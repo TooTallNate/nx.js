@@ -1,6 +1,6 @@
 #!/bin/bash
 set -euo pipefail
-#curl --upload-file nxjs.nro ftp://192.168.86.115:5000/switch/nxjs.nro --netrc
-curl --netrc \
-    --upload-file nxjs.nro ftp://192.168.86.115:5000/switch/nxjs.nro \
-    --upload-file nxjs.js ftp://192.168.86.115:5000/switch/nxjs.js
+SWITCH_HOST="${1-192.168.86.115:5000}"
+curl --netrc-optional \
+    --upload-file nxjs.nro "ftp://${SWITCH_HOST}/switch/nxjs.nro" \
+    --upload-file nxjs.js "ftp://${SWITCH_HOST}/switch/nxjs.js"
