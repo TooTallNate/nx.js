@@ -1,6 +1,4 @@
-import EventTarget from '@ungap/event-target';
-
-const SWITCH_SYMBOL = Symbol('Switch');
+export const SWITCH_SYMBOL = Symbol('Switch');
 
 export interface Native {
 	cwd: () => string;

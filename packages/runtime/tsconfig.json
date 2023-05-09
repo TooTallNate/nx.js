@@ -32,7 +32,7 @@
     "skipLibCheck": true                                 /* Skip type checking all .d.ts files. */
   },
   "include": [
-    "nxjs.env.d.ts",
+    //"nxjs.env.d.ts",
     "src/**/*.ts"
   ]
 }

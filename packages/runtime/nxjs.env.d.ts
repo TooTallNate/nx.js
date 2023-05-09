@@ -1,1 +1,1 @@
-const Switch: import('./src/switch').Switch;
+const Switch: import('./dist/index').Switch;
