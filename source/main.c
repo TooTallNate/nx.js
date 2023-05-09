@@ -75,8 +75,27 @@ static JSValue js_cwd(JSContext *ctx, JSValueConst this_val, int argc, JSValueCo
 
 static JSValue js_readdir_sync(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-    const char *str = JS_ToCString(ctx, argv[0]);
-    JS_FreeCString(ctx, str);
+    DIR *dir;
+    struct dirent *entry;
+
+    const char *path = JS_ToCString(ctx, argv[0]);
+    dir = opendir(path);
+    if (dir == NULL) {
+        JSValue error = JS_NewString(ctx, "An error occurred");
+        JS_Throw(ctx, error);
+        return JS_UNDEFINED;
+    }
+
+    int i = 0;
+    JSValue arr = JS_NewArray(ctx);
+    while ((entry = readdir(dir)) != NULL) {
+        JS_SetPropertyUint32(ctx, arr, i, JS_NewString(ctx, entry->d_name));
+        i++;
+    }
+
+    closedir(dir);
+
+    return arr;
 }
 
 static JSValue js_getenv(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -202,6 +221,9 @@ int main(int argc, char *argv[])
 
     JSValue env_to_object_func = JS_NewCFunction(ctx, js_env_to_object, "envToObject", 0);
     JS_SetPropertyStr(ctx, native_obj, "envToObject", env_to_object_func);
+
+    JSValue readdir_sync_func = JS_NewCFunction(ctx, js_readdir_sync, "readDirSync", 0);
+    JS_SetPropertyStr(ctx, native_obj, "readDirSync", readdir_sync_func);
 
     // `Switch.argv`
     JSValue argv_array = JS_NewArray(ctx);
