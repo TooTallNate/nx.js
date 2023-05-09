@@ -20,20 +20,11 @@ importers:
         specifier: ^0.0.1
         version: link:../../packages/runtime
 
-  packages/env:
-    dependencies:
-      nxjs-runtime:
-        specifier: ^0.0.1
-        version: link:../runtime
-
   packages/runtime:
     dependencies:
       '@ungap/event-target':
         specifier: ^0.2.4
         version: 0.2.4
-      '@ungap/global-this':
-        specifier: ^0.4.4
-        version: 0.4.4
       core-js:
         specifier: ^3.30.2
         version: 3.30.2
@@ -247,10 +238,6 @@ packages:
 
   /@ungap/event-target@0.2.4:
     resolution: {integrity: sha512-u9Fd3k2qfMtn+0dxbCn/y0pzQ9Ucw6lWR984CrHcbxc+WzcMkJE4VjWHWSb9At40MjwMyHCkJNXroS55Osshhw==}
-    dev: false
-
-  /@ungap/global-this@0.4.4:
-    resolution: {integrity: sha512-mHkm6FvepJECMNthFuIgpAEFmPOk71UyXuIxYfjytvFTnSDBIz7jmViO+LfHI/AjrazWije0PnSP3+/NlwzqtA==}
     dev: false
 
   /core-js@3.30.2:

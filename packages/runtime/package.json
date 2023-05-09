@@ -12,7 +12,6 @@
   "license": "MIT",
   "dependencies": {
     "@ungap/event-target": "^0.2.4",
-    "@ungap/global-this": "^0.4.4",
     "core-js": "^3.30.2"
   },
   "devDependencies": {
