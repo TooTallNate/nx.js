@@ -41,7 +41,6 @@ char *read_file(const char *filename)
 
 void print_js_error(JSContext *ctx)
 {
-    /* An exception was thrown */
     JSValue exception_val = JS_GetException(ctx);
     const char *exception_str = JS_ToCString(ctx, exception_val);
     printf("%s\n", exception_str);
@@ -74,34 +73,54 @@ static JSValue js_cwd(JSContext *ctx, JSValueConst this_val, int argc, JSValueCo
     return JS_UNDEFINED;
 }
 
-//`static duk_ret_t get_env_variables(duk_context *ctx)
-//`{
-//`    // Push a new object onto the stack to store the environment variables
-//`    duk_push_object(ctx);
-//`
-//`    // Get the environment variables from the operating system
-//`    extern char **environ;
-//`    char **envp = environ;
-//`    while (*envp)
-//`    {
-//`        // Split each environment variable into a key-value pair
-//`        char *eq = strchr(*envp, '=');
-//`        if (eq)
-//`        {
-//`            *eq = '\0';
-//`            char *key = *envp;
-//`            char *value = eq + 1;
-//`
-//`            // Add the key-value pair to the object on the stack
-//`            duk_push_string(ctx, value);
-//`            duk_put_prop_string(ctx, -2, key);
-//`        }
-//`        envp++;
-//`    }
-//`
-//`    // Return the object with the environment variables
-//`    return 1;
-//`}
+static JSValue js_readdir_sync(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    const char *str = JS_ToCString(ctx, argv[0]);
+    JS_FreeCString(ctx, str);
+}
+
+static JSValue js_getenv(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    const char *name = JS_ToCString(ctx, argv[0]);
+    char* value = getenv(name);
+    JS_FreeCString(ctx, name);
+    return JS_NewString(ctx, value);
+}
+
+static JSValue js_setenv(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    const char *name = JS_ToCString(ctx, argv[0]);
+    const char *value = JS_ToCString(ctx, argv[1]);
+    setenv(name, value, 1);
+    JS_FreeCString(ctx, name);
+    JS_FreeCString(ctx, value);
+    return JS_UNDEFINED;
+}
+
+static JSValue js_env_to_object(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    JSValue env = JS_NewObject(ctx);
+
+    // Get the environment variables from the operating system
+    extern char **environ;
+    char **envp = environ;
+    while (*envp)
+    {
+        // Split each environment variable into a key-value pair
+        char *eq = strchr(*envp, '=');
+        if (eq)
+        {
+            *eq = '\0';
+            char *key = *envp;
+            char *value = eq + 1;
+
+            JS_SetPropertyStr(ctx, env, key, JS_NewString(ctx, value));
+        }
+        envp++;
+    }
+
+    return env;
+}
 
 // Main program entrypoint
 int main(int argc, char *argv[])
@@ -129,7 +148,6 @@ int main(int argc, char *argv[])
         strcpy(dot_nro, ".js");
     }
 
-    printf("JS Path: %s\n", js_path);
     char *buffer = read_file(js_path);
     if (buffer == NULL)
     {
@@ -167,28 +185,31 @@ int main(int argc, char *argv[])
 
     JSValue global_obj = JS_GetGlobalObject(ctx);
     JSValue switch_obj = JS_GetPropertyStr(ctx, global_obj, "Switch");
+    JSValue native_obj = JS_GetPropertyStr(ctx, switch_obj, "native");
     JSValue switch_dispatch_func = JS_GetPropertyStr(ctx, switch_obj, "dispatchEvent");
 
     JSValue print_func = JS_NewCFunction(ctx, js_print, "print", 0);
     JS_SetPropertyStr(ctx, switch_obj, "print", print_func);
 
     JSValue cwd_func = JS_NewCFunction(ctx, js_cwd, "cwd", 0);
-    JS_SetPropertyStr(ctx, switch_obj, "cwd", cwd_func);
+    JS_SetPropertyStr(ctx, native_obj, "cwd", cwd_func);
 
-    ///* place the object on the global scope */
-    // JS_SetPropertyStr(ctx, global_obj, "Switch", switch_obj);
+    JSValue getenv_func = JS_NewCFunction(ctx, js_getenv, "getenv", 0);
+    JS_SetPropertyStr(ctx, native_obj, "getenv", getenv_func);
 
-    // duk_push_c_function(ctx, get_env_variables, DUK_VARARGS);
-    // duk_put_prop_string(ctx, -2, "env");
+    JSValue setenv_func = JS_NewCFunction(ctx, js_setenv, "setenv", 0);
+    JS_SetPropertyStr(ctx, native_obj, "setenv", setenv_func);
 
-    //// `Switch.argv`
-    // duk_push_array(ctx);
-    // for (int i = 0; i < argc; i++)
-    //{
-    //     /duk_push_string(ctx, argv[i]);
-    //     /duk_put_prop_index(ctx, -2, i);
-    // }
-    // duk_put_prop_string(ctx, -2, "argv");
+    JSValue env_to_object_func = JS_NewCFunction(ctx, js_env_to_object, "envToObject", 0);
+    JS_SetPropertyStr(ctx, native_obj, "envToObject", env_to_object_func);
+
+    // `Switch.argv`
+    JSValue argv_array = JS_NewArray(ctx);
+    for (int i = 0; i < argc; i++)
+    {
+        JS_SetPropertyUint32(ctx, argv_array, 0, JS_NewString(ctx, argv[i]));
+    }
+    JS_SetPropertyStr(ctx, switch_obj, "argv", argv_array);
 
     // Run the user code
     if (buffer != NULL)
@@ -240,7 +261,9 @@ int main(int argc, char *argv[])
         consoleUpdate(NULL);
     }
 
+    JS_FreeValue(ctx, argv_array);
     JS_FreeValue(ctx, switch_dispatch_func);
+    JS_FreeValue(ctx, native_obj);
     JS_FreeValue(ctx, switch_obj);
     JS_FreeValue(ctx, global_obj);
     JS_FreeContext(ctx);

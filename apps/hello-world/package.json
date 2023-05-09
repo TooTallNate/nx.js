@@ -1,0 +1,12 @@
+{
+  "name": "nxjs-hello-world",
+  "description": "Simple 'Hello World' app using nx.js",
+  "scripts": {
+    "build": "esbuild --bundle --target=es2020 src/main.ts --outfile=dist/main.js"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "esbuild": "^0.17.18",
+    "nxjs-env": "^0.0.1"
+  }
+}

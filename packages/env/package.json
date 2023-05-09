@@ -1,0 +1,10 @@
+{
+  "name": "nxjs-env",
+  "version": "0.0.1",
+  "description": "",
+  "types": "./index.d.ts",
+  "license": "MIT",
+  "dependencies": {
+    "nxjs-runtime": "^0.0.1"
+  }
+}
