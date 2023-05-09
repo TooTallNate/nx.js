@@ -1,1 +1,1 @@
-/// <reference types="nxjs-env" />
+/// <reference types="nxjs-runtime" />

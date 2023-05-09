@@ -2,7 +2,7 @@
   "name": "nxjs-runtime",
   "version": "0.0.1",
   "description": "Runtime initialization code for nx.js",
-  "types": "./dist/index.d.ts",
+  "types": "./nxjs.env.d.ts",
   "main": "./dist/index.js",
   "scripts": {
     "build": "tsc",
