@@ -107,11 +107,11 @@ static JSValue js_env_to_object(JSContext *ctx, JSValueConst this_val, int argc,
     while (*envp)
     {
         // Split each environment variable into a key-value pair
-        char *eq = strchr(*envp, '=');
+        char *key = strdup(*envp);
+        char *eq = strchr(key, '=');
         if (eq)
         {
             *eq = '\0';
-            char *key = *envp;
             char *value = eq + 1;
 
             JS_SetPropertyStr(ctx, env, key, JS_NewString(ctx, value));
