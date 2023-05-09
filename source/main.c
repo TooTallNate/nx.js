@@ -1,14 +1,11 @@
-// Include the most common headers from the C standard library
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <dirent.h>
 #include <string.h>
-
-// Include the main libnx system header, for Switch development
+#include <inttypes.h>
 #include <switch.h>
-
-#include "duktape.h"
+#include <quickjs.h>
 
 char *read_file(const char *filename)
 {
@@ -42,58 +39,69 @@ char *read_file(const char *filename)
     return buffer;
 }
 
-static duk_ret_t native_print(duk_context *ctx)
+void print_js_error(JSContext *ctx)
 {
-    duk_push_string(ctx, " ");
-    duk_insert(ctx, 0);
-    duk_join(ctx, duk_get_top(ctx) - 1);
-    printf("%s\n", duk_safe_to_string(ctx, -1));
-    return 0;
+    /* An exception was thrown */
+    JSValue exception_val = JS_GetException(ctx);
+    const char *exception_str = JS_ToCString(ctx, exception_val);
+    printf("%s\n", exception_str);
+    JS_FreeCString(ctx, exception_str);
+
+    JSValue stack_val = JS_GetPropertyStr(ctx, exception_val, "stack");
+    const char *stack_str = JS_ToCString(ctx, stack_val);
+    printf("%s\n", stack_str);
+    JS_FreeCString(ctx, stack_str);
+
+    JS_FreeValue(ctx, exception_val);
 }
 
-static duk_ret_t native_cwd(duk_context *ctx)
+static JSValue js_print(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    const char *str = JS_ToCString(ctx, argv[0]);
+    printf("%s", str);
+    JS_FreeCString(ctx, str);
+    return JS_UNDEFINED;
+}
+
+static JSValue js_cwd(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     char cwd[1024]; // buffer to hold current working directory
 
     if (getcwd(cwd, sizeof(cwd)) != NULL)
     {
-        duk_push_string(ctx, cwd);
+        return JS_NewString(ctx, cwd);
     }
-    else
-    {
-        duk_push_null(ctx);
-    }
-    return 1;
+    return JS_UNDEFINED;
 }
 
-static duk_ret_t get_env_variables(duk_context *ctx)
-{
-    // Push a new object onto the stack to store the environment variables
-    duk_push_object(ctx);
-
-    // Get the environment variables from the operating system
-    extern char **environ;
-    char **envp = environ;
-    while (*envp)
-    {
-        // Split each environment variable into a key-value pair
-        char *eq = strchr(*envp, '=');
-        if (eq)
-        {
-            *eq = '\0';
-            char *key = *envp;
-            char *value = eq + 1;
-
-            // Add the key-value pair to the object on the stack
-            duk_push_string(ctx, value);
-            duk_put_prop_string(ctx, -2, key);
-        }
-        envp++;
-    }
-
-    // Return the object with the environment variables
-    return 1;
-}
+//`static duk_ret_t get_env_variables(duk_context *ctx)
+//`{
+//`    // Push a new object onto the stack to store the environment variables
+//`    duk_push_object(ctx);
+//`
+//`    // Get the environment variables from the operating system
+//`    extern char **environ;
+//`    char **envp = environ;
+//`    while (*envp)
+//`    {
+//`        // Split each environment variable into a key-value pair
+//`        char *eq = strchr(*envp, '=');
+//`        if (eq)
+//`        {
+//`            *eq = '\0';
+//`            char *key = *envp;
+//`            char *value = eq + 1;
+//`
+//`            // Add the key-value pair to the object on the stack
+//`            duk_push_string(ctx, value);
+//`            duk_put_prop_string(ctx, -2, key);
+//`        }
+//`        envp++;
+//`    }
+//`
+//`    // Return the object with the environment variables
+//`    return 1;
+//`}
 
 // Main program entrypoint
 int main(int argc, char *argv[])
@@ -121,38 +129,15 @@ int main(int argc, char *argv[])
         strcpy(dot_nro, ".js");
     }
 
+    printf("JS Path: %s\n", js_path);
     char *buffer = read_file(js_path);
     if (buffer == NULL)
     {
         printf("Failed to load JS file: %s\n", js_path);
     }
 
-    duk_context *ctx = duk_create_heap_default();
-
-    // The global `Switch` object
-    duk_push_object(ctx);
-
-    // `Switch.print()`
-    duk_push_c_function(ctx, native_print, DUK_VARARGS);
-    duk_put_prop_string(ctx, -2, "print");
-
-    duk_push_c_function(ctx, get_env_variables, DUK_VARARGS);
-    duk_put_prop_string(ctx, -2, "env");
-
-    // `Switch.cwd()`
-    duk_push_c_function(ctx, native_cwd, DUK_VARARGS);
-    duk_put_prop_string(ctx, -2, "cwd");
-
-    // `Switch.argv`
-    duk_push_array(ctx);
-    for (int i = 0; i < argc; i++)
-    {
-        duk_push_string(ctx, argv[i]);
-        duk_put_prop_index(ctx, -2, i);
-    }
-    duk_put_prop_string(ctx, -2, "argv");
-
-    duk_put_global_string(ctx, "Switch");
+    JSRuntime *rt = JS_NewRuntime();
+    JSContext *ctx = JS_NewContext(rt);
 
     // Initialize the JS runtime environment
     Result rc = romfsInit();
@@ -162,25 +147,59 @@ int main(int argc, char *argv[])
     }
     else
     {
-        char *runtime_buffer = read_file("romfs:/runtime.js");
+        char *runtime_path = "romfs:/runtime.js";
+        char *runtime_buffer = read_file(runtime_path);
         if (runtime_buffer == NULL)
         {
             printf("Failed to initialize JS runtime\n");
         }
         else
         {
-            duk_eval_string(ctx, runtime_buffer);
+            JSValue runtime_init_result = JS_Eval(ctx, runtime_buffer, strlen(runtime_buffer), runtime_path, JS_EVAL_TYPE_GLOBAL);
+            if (JS_IsException(runtime_init_result))
+            {
+                print_js_error(ctx);
+            }
+            JS_FreeValue(ctx, runtime_init_result);
             free(runtime_buffer);
-            duk_pop(ctx); /* pop eval result */
         }
     }
+
+    JSValue global_obj = JS_GetGlobalObject(ctx);
+    JSValue switch_obj = JS_GetPropertyStr(ctx, global_obj, "Switch");
+    JSValue switch_dispatch_func = JS_GetPropertyStr(ctx, switch_obj, "dispatchEvent");
+
+    JSValue print_func = JS_NewCFunction(ctx, js_print, "print", 0);
+    JS_SetPropertyStr(ctx, switch_obj, "print", print_func);
+
+    JSValue cwd_func = JS_NewCFunction(ctx, js_cwd, "cwd", 0);
+    JS_SetPropertyStr(ctx, switch_obj, "cwd", cwd_func);
+
+    ///* place the object on the global scope */
+    // JS_SetPropertyStr(ctx, global_obj, "Switch", switch_obj);
+
+    // duk_push_c_function(ctx, get_env_variables, DUK_VARARGS);
+    // duk_put_prop_string(ctx, -2, "env");
+
+    //// `Switch.argv`
+    // duk_push_array(ctx);
+    // for (int i = 0; i < argc; i++)
+    //{
+    //     /duk_push_string(ctx, argv[i]);
+    //     /duk_put_prop_index(ctx, -2, i);
+    // }
+    // duk_put_prop_string(ctx, -2, "argv");
 
     // Run the user code
     if (buffer != NULL)
     {
-        duk_eval_string(ctx, buffer);
+        JSValue user_code_result = JS_Eval(ctx, buffer, strlen(buffer), js_path, JS_EVAL_TYPE_GLOBAL);
+        if (JS_IsException(user_code_result))
+        {
+            print_js_error(ctx);
+        }
+        JS_FreeValue(ctx, user_code_result);
         free(buffer);
-        duk_pop(ctx); /* pop eval result */
     }
 
     // Main loop
@@ -198,17 +217,34 @@ int main(int argc, char *argv[])
 
         if (kDown)
         {
-            // TODO: Fire keypress event
-            printf("kDown: %" PRIu64 "\n", kDown);
+            JSValue event_obj = JS_NewObject(ctx);
+            JSValue event_type = JS_NewString(ctx, "input");
+            JS_SetPropertyStr(ctx, event_obj, "type", event_type);
+            // TODO: "bigint is not supported"
+            // JSValue event_raw = JS_NewBigUint64(ctx, kDown);
+            JSValue event_raw = JS_NewUint32(ctx, kDown);
+            JS_SetPropertyStr(ctx, event_obj, "value", event_raw);
+            JSValue args[] = {event_obj};
+            JSValue ret_val = JS_Call(ctx, switch_dispatch_func, switch_obj, 1, args);
+            if (JS_IsException(ret_val))
+            {
+                print_js_error(ctx);
+            }
+            JS_FreeValue(ctx, event_raw);
+            JS_FreeValue(ctx, event_type);
+            JS_FreeValue(ctx, event_obj);
+            JS_FreeValue(ctx, ret_val);
         }
-
-        // Your code goes here
 
         // Update the console, sending a new frame to the display
         consoleUpdate(NULL);
     }
 
-    duk_destroy_heap(ctx);
+    JS_FreeValue(ctx, switch_dispatch_func);
+    JS_FreeValue(ctx, switch_obj);
+    JS_FreeValue(ctx, global_obj);
+    JS_FreeContext(ctx);
+    JS_FreeRuntime(rt);
 
     // Deinitialize and clean up resources used by the console (important!)
     consoleExit(NULL);
