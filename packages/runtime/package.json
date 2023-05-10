@@ -3,11 +3,14 @@
   "version": "0.0.1",
   "description": "Runtime initialization code for nx.js",
   "types": "./nxjs.env.d.ts",
-  "main": "./dist/index.js",
   "scripts": {
     "build": "tsc",
     "bundle": "esbuild --bundle --target=es2020 src/index.ts --outfile=runtime.js"
   },
+  "files": [
+    "dist",
+    "nxjs.env.d.ts"
+  ],
   "author": "Nathan Rajlich <n@n8.io>",
   "license": "MIT",
   "dependencies": {

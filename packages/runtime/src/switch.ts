@@ -13,6 +13,7 @@ export class Switch extends EventTarget {
 	native: Native;
 
 	// Populated by the host process
+	exit!: () => void;
 	print!: (str: string) => void;
 
 	constructor() {
@@ -50,10 +51,6 @@ export class Env {
 
 	set(name: string, value: string): void {
 		this[SWITCH_SYMBOL].native.setenv(name, value);
-	}
-
-	has(name: string): boolean {
-		return false;
 	}
 
 	delete(name: string): void {}

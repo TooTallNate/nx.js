@@ -54,6 +54,14 @@ void print_js_error(JSContext *ctx)
     JS_FreeValue(ctx, exception_val);
 }
 
+static int is_running = 1;
+
+static JSValue js_exit(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    is_running = 0;
+    return JS_UNDEFINED;
+}
+
 static JSValue js_print(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     const char *str = JS_ToCString(ctx, argv[0]);
@@ -166,6 +174,7 @@ int main(int argc, char *argv[])
     {
         strcpy(dot_nro, ".js");
     }
+    //printf("JS file: %s\n", js_path);
 
     char *buffer = read_file(js_path);
     if (buffer == NULL)
@@ -206,6 +215,9 @@ int main(int argc, char *argv[])
     JSValue switch_obj = JS_GetPropertyStr(ctx, global_obj, "Switch");
     JSValue native_obj = JS_GetPropertyStr(ctx, switch_obj, "native");
     JSValue switch_dispatch_func = JS_GetPropertyStr(ctx, switch_obj, "dispatchEvent");
+
+    JSValue exit_func = JS_NewCFunction(ctx, js_exit, "exit", 0);
+    JS_SetPropertyStr(ctx, switch_obj, "exit", exit_func);
 
     JSValue print_func = JS_NewCFunction(ctx, js_print, "print", 0);
     JS_SetPropertyStr(ctx, switch_obj, "print", print_func);
@@ -256,38 +268,38 @@ int main(int argc, char *argv[])
         u64 kDown = padGetButtonsDown(&pad);
 
         if (kDown & HidNpadButton_Plus)
-            break; // break in order to return to hbmenu
-
-        if (kDown)
         {
-            JSValue event_obj = JS_NewObject(ctx);
-            JSValue event_type = JS_NewString(ctx, "input");
-            JS_SetPropertyStr(ctx, event_obj, "type", event_type);
-            // TODO: "bigint is not supported"
-            // JSValue event_raw = JS_NewBigUint64(ctx, kDown);
-            JSValue event_raw = JS_NewUint32(ctx, kDown);
-            JS_SetPropertyStr(ctx, event_obj, "value", event_raw);
-            JSValue args[] = {event_obj};
-            JSValue ret_val = JS_Call(ctx, switch_dispatch_func, switch_obj, 1, args);
-            if (JS_IsException(ret_val))
-            {
-                print_js_error(ctx);
-            }
-            JS_FreeValue(ctx, event_raw);
-            JS_FreeValue(ctx, event_type);
-            JS_FreeValue(ctx, event_obj);
-            JS_FreeValue(ctx, ret_val);
+            is_running = 0;
+        }
+
+        JSValue event_obj = JS_NewObject(ctx);
+        JSValue event_type = JS_NewString(ctx, "frame");
+        JS_SetPropertyStr(ctx, event_obj, "type", event_type);
+        JSValue event_raw = JS_NewUint32(ctx, kDown);
+        JS_SetPropertyStr(ctx, event_obj, "value", event_raw);
+        JSValue args[] = {event_obj};
+        JSValue ret_val = JS_Call(ctx, switch_dispatch_func, switch_obj, 1, args);
+        if (JS_IsException(ret_val))
+        {
+            print_js_error(ctx);
+        }
+        JS_FreeValue(ctx, event_obj);
+        JS_FreeValue(ctx, ret_val);
+
+        if (!is_running) {
+            // `Switch.exit()` was called
+            break;
         }
 
         // Update the console, sending a new frame to the display
         consoleUpdate(NULL);
     }
 
-    JS_FreeValue(ctx, argv_array);
-    JS_FreeValue(ctx, switch_dispatch_func);
-    JS_FreeValue(ctx, native_obj);
-    JS_FreeValue(ctx, switch_obj);
-    JS_FreeValue(ctx, global_obj);
+    //JS_FreeValue(ctx, argv_array);
+    //JS_FreeValue(ctx, switch_dispatch_func);
+    //JS_FreeValue(ctx, native_obj);
+    //JS_FreeValue(ctx, switch_obj);
+    //JS_FreeValue(ctx, global_obj);
     JS_FreeContext(ctx);
     JS_FreeRuntime(rt);
 
