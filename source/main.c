@@ -255,6 +255,7 @@ int main(int argc, char *argv[])
         }
         JS_FreeValue(ctx, user_code_result);
         free(buffer);
+        free(js_path);
     }
 
     // Main loop
