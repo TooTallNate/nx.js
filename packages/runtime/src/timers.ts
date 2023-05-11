@@ -44,7 +44,7 @@ export function createTimersFactory(s: Switch) {
 		timers.delete(id);
 	}
 
-	s.addEventListener('frame', () => {
+	function processTimers() {
 		const now = Date.now();
 		for (const [id, timer] of timers) {
 			if (now >= timer.invokeAt) {
@@ -56,7 +56,13 @@ export function createTimersFactory(s: Switch) {
 				}
 			}
 		}
-	});
+	}
 
-	return { setTimeout, setInterval, clearTimeout, clearInterval };
+	return {
+		setTimeout,
+		setInterval,
+		clearTimeout,
+		clearInterval,
+		processTimers,
+	};
 }

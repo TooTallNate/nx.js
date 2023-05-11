@@ -7,6 +7,21 @@
 #include <switch.h>
 #include <quickjs.h>
 
+static PrintConsole *print_console = NULL;
+
+static JSValue js_console_init(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    print_console = consoleInit(NULL);
+    return JS_UNDEFINED;
+}
+
+static JSValue js_console_exit(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    consoleExit(NULL);
+    print_console = NULL;
+    return JS_UNDEFINED;
+}
+
 char *read_file(const char *filename)
 {
     FILE *file = fopen(filename, "rb");
@@ -88,7 +103,8 @@ static JSValue js_readdir_sync(JSContext *ctx, JSValueConst this_val, int argc, 
 
     const char *path = JS_ToCString(ctx, argv[0]);
     dir = opendir(path);
-    if (dir == NULL) {
+    if (dir == NULL)
+    {
         JSValue error = JS_NewString(ctx, "An error occurred");
         JS_Throw(ctx, error);
         return JS_UNDEFINED;
@@ -96,7 +112,8 @@ static JSValue js_readdir_sync(JSContext *ctx, JSValueConst this_val, int argc, 
 
     int i = 0;
     JSValue arr = JS_NewArray(ctx);
-    while ((entry = readdir(dir)) != NULL) {
+    while ((entry = readdir(dir)) != NULL)
+    {
         JS_SetPropertyUint32(ctx, arr, i, JS_NewString(ctx, entry->d_name));
         i++;
     }
@@ -109,7 +126,7 @@ static JSValue js_readdir_sync(JSContext *ctx, JSValueConst this_val, int argc, 
 static JSValue js_getenv(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     const char *name = JS_ToCString(ctx, argv[0]);
-    char* value = getenv(name);
+    char *value = getenv(name);
     JS_FreeCString(ctx, name);
     return JS_NewString(ctx, value);
 }
@@ -149,16 +166,14 @@ static JSValue js_env_to_object(JSContext *ctx, JSValueConst this_val, int argc,
     return env;
 }
 
+static JSValue js_appletGetOperationMode(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    return JS_NewInt32(ctx, appletGetOperationMode());
+}
+
 // Main program entrypoint
 int main(int argc, char *argv[])
 {
-    // This example uses a text console, as a simple way to output text to the screen.
-    // If you want to write a software-rendered graphics application,
-    //   take a look at the graphics/simplegfx example, which uses the libnx Framebuffer API instead.
-    // If on the other hand you want to write an OpenGL based application,
-    //   take a look at the graphics/opengl set of examples, which uses EGL instead.
-    consoleInit(NULL);
-
     // Configure our supported input layout: a single player with standard controller styles
     padConfigureInput(1, HidNpadStyleSet_NpadStandard);
 
@@ -174,7 +189,6 @@ int main(int argc, char *argv[])
     {
         strcpy(dot_nro, ".js");
     }
-    //printf("JS file: %s\n", js_path);
 
     char *buffer = read_file(js_path);
     if (buffer == NULL)
@@ -219,23 +233,26 @@ int main(int argc, char *argv[])
     JSValue exit_func = JS_NewCFunction(ctx, js_exit, "exit", 0);
     JS_SetPropertyStr(ctx, switch_obj, "exit", exit_func);
 
-    JSValue print_func = JS_NewCFunction(ctx, js_print, "print", 0);
-    JS_SetPropertyStr(ctx, switch_obj, "print", print_func);
+    const JSCFunctionListEntry function_list[] = {
+        JS_CFUNC_DEF("print", 1, js_print),
+        JS_CFUNC_DEF("cwd", 0, js_cwd),
 
-    JSValue cwd_func = JS_NewCFunction(ctx, js_cwd, "cwd", 0);
-    JS_SetPropertyStr(ctx, native_obj, "cwd", cwd_func);
+        // env vars
+        JS_CFUNC_DEF("getenv", 1, js_getenv),
+        JS_CFUNC_DEF("setenv", 2, js_setenv),
+        JS_CFUNC_DEF("envToObject", 0, js_env_to_object),
 
-    JSValue getenv_func = JS_NewCFunction(ctx, js_getenv, "getenv", 0);
-    JS_SetPropertyStr(ctx, native_obj, "getenv", getenv_func);
+        // console renderer
+        JS_CFUNC_DEF("consoleInit", 0, js_console_init),
+        JS_CFUNC_DEF("consoleExit", 0, js_console_exit),
 
-    JSValue setenv_func = JS_NewCFunction(ctx, js_setenv, "setenv", 0);
-    JS_SetPropertyStr(ctx, native_obj, "setenv", setenv_func);
+        // filesystem
+        JS_CFUNC_DEF("readDirSync", 0, js_readdir_sync),
 
-    JSValue env_to_object_func = JS_NewCFunction(ctx, js_env_to_object, "envToObject", 0);
-    JS_SetPropertyStr(ctx, native_obj, "envToObject", env_to_object_func);
-
-    JSValue readdir_sync_func = JS_NewCFunction(ctx, js_readdir_sync, "readDirSync", 0);
-    JS_SetPropertyStr(ctx, native_obj, "readDirSync", readdir_sync_func);
+        // applet
+        JS_CFUNC_DEF("appletGetOperationMode", 0, js_appletGetOperationMode),
+    };
+    JS_SetPropertyFunctionList(ctx, native_obj, function_list, 9);
 
     // `Switch.argv`
     JSValue argv_array = JS_NewArray(ctx);
@@ -273,38 +290,54 @@ int main(int argc, char *argv[])
             is_running = 0;
         }
 
+        // Dispatch "frame" event
         JSValue event_obj = JS_NewObject(ctx);
         JSValue event_type = JS_NewString(ctx, "frame");
         JS_SetPropertyStr(ctx, event_obj, "type", event_type);
-        JSValue event_raw = JS_NewUint32(ctx, kDown);
-        JS_SetPropertyStr(ctx, event_obj, "value", event_raw);
         JSValue args[] = {event_obj};
         JSValue ret_val = JS_Call(ctx, switch_dispatch_func, switch_obj, 1, args);
+        JS_FreeValue(ctx, event_obj);
+
+        if (!is_running)
+        {
+            // `Switch.exit()` was called
+            JS_FreeValue(ctx, ret_val);
+            break;
+        }
+
         if (JS_IsException(ret_val))
         {
             print_js_error(ctx);
         }
-        JS_FreeValue(ctx, event_obj);
         JS_FreeValue(ctx, ret_val);
 
-        if (!is_running) {
-            // `Switch.exit()` was called
-            break;
-        }
-
         // Update the console, sending a new frame to the display
-        consoleUpdate(NULL);
+        if (print_console != NULL)
+        {
+            consoleUpdate(print_console);
+        }
     }
 
-    //JS_FreeValue(ctx, argv_array);
-    //JS_FreeValue(ctx, switch_dispatch_func);
-    //JS_FreeValue(ctx, native_obj);
-    //JS_FreeValue(ctx, switch_obj);
-    //JS_FreeValue(ctx, global_obj);
+    // Dispatch "exit" event
+    JSValue event_obj = JS_NewObject(ctx);
+    JSValue event_type = JS_NewString(ctx, "exit");
+    JS_SetPropertyStr(ctx, event_obj, "type", event_type);
+    JSValue args[] = {event_obj};
+    JSValue ret_val = JS_Call(ctx, switch_dispatch_func, switch_obj, 1, args);
+    JS_FreeValue(ctx, event_obj);
+    if (JS_IsException(ret_val))
+    {
+        print_js_error(ctx);
+    }
+    JS_FreeValue(ctx, ret_val);
+
+    // JS_FreeValue(ctx, argv_array);
+    // JS_FreeValue(ctx, switch_dispatch_func);
+    // JS_FreeValue(ctx, native_obj);
+    // JS_FreeValue(ctx, switch_obj);
+    // JS_FreeValue(ctx, global_obj);
     JS_FreeContext(ctx);
     JS_FreeRuntime(rt);
 
-    // Deinitialize and clean up resources used by the console (important!)
-    consoleExit(NULL);
     return 0;
 }

@@ -1,14 +1,14 @@
-import { SWITCH_SYMBOL, Switch } from './switch';
+import { INTERNAL_SYMBOL, Switch } from './switch';
 
 export class Console {
-	[SWITCH_SYMBOL]: Switch;
+	[INTERNAL_SYMBOL]: Switch;
 
 	constructor(s: Switch) {
-		this[SWITCH_SYMBOL] = s;
+		this[INTERNAL_SYMBOL] = s;
 	}
 
 	log = (input: unknown) => {
-		this[SWITCH_SYMBOL].print(
+		this[INTERNAL_SYMBOL].print(
 			`${typeof input === 'string' ? input : JSON.stringify(input)}\n`
 		);
 	};

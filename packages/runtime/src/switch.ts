@@ -1,26 +1,66 @@
-export const SWITCH_SYMBOL = Symbol('Switch');
+export const INTERNAL_SYMBOL = Symbol('Internal');
 
 export interface Native {
+	print: (str: string) => void;
 	cwd: () => string;
 	getenv: (name: string) => string;
 	setenv: (name: string, value: string) => void;
 	envToObject: () => Record<string, string>;
 	readDirSync: (path: string) => string[];
+	consoleInit: () => void;
+	consoleExit: () => void;
+}
+
+interface Internal {
+	renderingMode?: RenderingMode;
+	setRenderingMode: (mode: RenderingMode) => void;
+	cleanup: () => void;
+}
+
+enum RenderingMode {
+	Init,
+	Console,
+	Framebuffer,
 }
 
 export class Switch extends EventTarget {
 	env: Env;
+	//canvas: Canvas;
 	native: Native;
+	[INTERNAL_SYMBOL]: Internal;
 
 	// Populated by the host process
-	exit!: () => void;
-	print!: (str: string) => void;
+	exit!: () => never;
 
 	constructor() {
 		super();
-		this.env = new Env(this);
 		// @ts-expect-error Populated by the host process
-		this.native = {};
+		const native: Native = {};
+		this.native = native;
+		this.env = new Env(this);
+		this[INTERNAL_SYMBOL] = {
+			renderingMode: RenderingMode.Init,
+			setRenderingMode(mode: RenderingMode) {
+				native.consoleInit();
+				this.renderingMode = mode;
+			},
+			cleanup() {
+				if (this.renderingMode === RenderingMode.Console) {
+					native.consoleExit();
+				}
+			},
+		};
+	}
+
+	/**
+	 * Prints `str` to the console.
+	 */
+	print(str: string) {
+		const internal = this[INTERNAL_SYMBOL];
+		if (internal.renderingMode !== RenderingMode.Console) {
+			internal.setRenderingMode(RenderingMode.Console);
+		}
+		this.native.print(str);
 	}
 
 	/**
@@ -39,23 +79,23 @@ export class Switch extends EventTarget {
 }
 
 export class Env {
-	[SWITCH_SYMBOL]: Switch;
+	[INTERNAL_SYMBOL]: Switch;
 
 	constructor(s: Switch) {
-		this[SWITCH_SYMBOL] = s;
+		this[INTERNAL_SYMBOL] = s;
 	}
 
 	get(name: string): string | undefined {
-		return this[SWITCH_SYMBOL].native.getenv(name);
+		return this[INTERNAL_SYMBOL].native.getenv(name);
 	}
 
 	set(name: string, value: string): void {
-		this[SWITCH_SYMBOL].native.setenv(name, value);
+		this[INTERNAL_SYMBOL].native.setenv(name, value);
 	}
 
 	delete(name: string): void {}
 
 	toObject(): Record<string, string> {
-		return this[SWITCH_SYMBOL].native.envToObject();
+		return this[INTERNAL_SYMBOL].native.envToObject();
 	}
 }
