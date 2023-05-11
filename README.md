@@ -31,7 +31,7 @@ high-level JavaScript API that simplifies the development process.
 1. Launch the app from the homebrew loader.
 1. Profit!
 
-See the [API docs](./api.md) for further details, and check out the [`apps`](./apps) for more examples.
+See the [API docs](./api.md) for further details, and check out the [`apps`](./apps) directory for examples.
 
 ## Contributing
 
