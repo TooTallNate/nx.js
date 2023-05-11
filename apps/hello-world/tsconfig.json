@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "target": "es2020",                                  /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */
+    "moduleResolution": "node",
     "noEmit": true,                                      /* `esbuild` is used for bundling. */
     "forceConsistentCasingInFileNames": true,            /* Ensure that casing is correct in imports. */
     "strict": true,                                      /* Enable all strict type-checking options. */
