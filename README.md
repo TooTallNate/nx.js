@@ -24,7 +24,7 @@ high-level JavaScript API that simplifies the development process.
 
 1. Download the `nxjs.nro` file from the Releases page.
 1. Create a file called `nxjs.js` with the following contents:
-    ```
+    ```javascript
     console.log('Hello Switch, from JavaScript!');
     ```
 1. Copy both files into the `/switch` directory on your SD card.
