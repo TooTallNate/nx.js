@@ -10,11 +10,15 @@ create engaging and interactive experiences for the Nintendo Switch platform.
 The framework abstracts the underlying low-level details and provides a
 high-level JavaScript API that simplifies the development process.
 
+nx.js is designed with Web standards in mind, so familiar APIs like
+`setTimeout()`, `fetch()`, `new URL()`, `Canvas` and much more are
+supported. So if you are familar with web development then you should feel 
+right at home.
+
 ## Features
 
 -   **JavaScript Development**: Write homebrew applications for the Nintendo Switch using JavaScript, a popular and widely supported programming language.
 -   **High-Level API**: Benefit from a high-level JavaScript API designed specifically for the Nintendo Switch platform, providing easy access to console-specific features and functionality.
--   **Resource Management**: Utilize convenient resource management mechanisms for loading and handling game assets such as graphics, audio, and data files.
 -   **Input Handling**: Capture and process user input with ease, including buttons, touch screen, and motion controls, to create engaging gameplay experiences.
 -   **Graphics and UI**: Create visually appealing and interactive user interfaces using the web [`Canvas`](https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API) API.
 -   **Audio Support**: Integrate audio playback and sound effects into your applications using the provided web [`Audio`](https://developer.mozilla.org/en-US/docs/Web/API/HTMLAudioElement/Audio) API.
