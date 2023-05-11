@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "switch.h": "c",
-        "quickjs.h": "c"
+        "quickjs.h": "c",
+        "stdio.h": "c"
     }
 }

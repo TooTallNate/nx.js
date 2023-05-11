@@ -1,20 +1,19 @@
 {
     "configurations": [
         {
-            "name": "Mac",
+            "name": "devkitA64",
             "includePath": [
                 "${workspaceFolder}/**",
                 "/opt/devkitpro/libnx/include/**",
-                "/opt/devkitpro/portlibs/switch/include/**"
+                "/opt/devkitpro/portlibs/switch/include/**",
+                "/opt/devkitpro/devkitA64/include/**",
+                "/opt/devkitpro/devkitA64/aarch64-none-elf/include/**"
             ],
             "defines": [],
-            "macFrameworkPath": [
-                "/Library/Developer/CommandLineTools/SDKs/MacOSX13.sdk/System/Library/Frameworks"
-            ],
-            "compilerPath": "/opt/homebrew/opt/llvm/bin/clang",
+            "compilerPath": "/opt/devkitpro/devkitA64/bin/aarch64-none-elf-gcc",
             "cStandard": "c17",
             "cppStandard": "c++14",
-            "intelliSenseMode": "macos-clang-arm64",
+            "intelliSenseMode": "macos-gcc-x64",
             "configurationProvider": "ms-vscode.makefile-tools"
         }
     ],
