@@ -19,9 +19,9 @@ jobs:
 
       - name: Build QuickJS
         working-directory: ./lib/quickjs
-        run: make
+        run: make V=1
 
       - name: Build nx.js
-        run: make
+        run: make V=1
       
       - run: ls -l
