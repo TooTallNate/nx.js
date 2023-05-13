@@ -34,7 +34,7 @@ jobs:
       - name: Bundle `runtime.js`
         run: pnpm bundle
 
-      - name: Bundle `runtime.js`
+      - name: Copy `runtime.js` to RomFS
         run: mkdir -p ./romfs && cp -v ./packages/runtime/runtime.js ./romfs/runtime.js
 
       - name: Build `libquickjs.a`
@@ -44,4 +44,7 @@ jobs:
       - name: Build `nxjs.nro`
         run: make V=1
       
-      - run: ls -l
+      - uses: actions/upload-artifact@v3
+        with:
+          name: nxjs.nro
+          path: ./nxjs.nro
