@@ -18,6 +18,6 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v3
 
-      - run: ls -l
-
-      - run: ls -l /opt/devkitpro
+      - run: make
+        env:
+          DEVKITPRO: /opt/devkitpro
