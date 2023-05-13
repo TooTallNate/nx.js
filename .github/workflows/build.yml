@@ -18,6 +18,9 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v3
 
-      - run: make
-        env:
-          DEVKITPRO: /opt/devkitpro
+      - name: Build QuickJS
+        working-directory: ./lib/quickjs
+        run: make
+
+      - name: Build nx.js
+        run: make
