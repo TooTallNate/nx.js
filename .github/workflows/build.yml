@@ -17,11 +17,31 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v3
 
-      - name: Build QuickJS
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8.5.0
+
+      - name: Setup Node.js 20.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20.x
+          cache: 'pnpm'
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Bundle `runtime.js`
+        run: pnpm bundle
+
+      - name: Bundle `runtime.js`
+        run: mkdir -p ./romfs && cp -v ./packages/runtime/runtime.js ./romfs/runtime.js
+
+      - name: Build `libquickjs.a`
         working-directory: ./lib/quickjs
         run: make V=1
 
-      - name: Build nx.js
+      - name: Build `nxjs.nro`
         run: make V=1
       
       - run: ls -l
