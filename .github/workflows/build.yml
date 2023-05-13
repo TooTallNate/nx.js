@@ -1,0 +1,23 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - '!*'
+  pull_request:
+
+jobs:
+  build:
+    name: nx.js NRO
+    runs-on: ubuntu-latest
+    container: devkitpro/devkita64
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+
+      - run: ls -l
+
+      - run: ls -l /opt/devkitpro
