@@ -17,7 +17,7 @@ include $(DEVKITPRO)/libnx/switch_rules
 TARGET		:=	quickjs
 SOURCES		:=	source
 DATA		:=	data
-INCLUDES	:=
+INCLUDES	:=	include
 
 #---------------------------------------------------------------------------------
 # options for code generation
