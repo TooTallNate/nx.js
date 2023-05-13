@@ -10,10 +10,9 @@ on:
 
 jobs:
   build:
-    name: nx.js NRO
+    name: Build `nxjs.nro`
     runs-on: ubuntu-latest
     container: devkitpro/devkita64
-
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v3
@@ -24,3 +23,5 @@ jobs:
 
       - name: Build nx.js
         run: make
+      
+      - run: ls -l
