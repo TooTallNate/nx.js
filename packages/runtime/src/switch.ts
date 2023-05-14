@@ -1,4 +1,11 @@
+import { Canvas, CanvasRenderingContext2D } from './canvas';
+
 export const INTERNAL_SYMBOL = Symbol('Internal');
+
+export enum AppletOperationMode {
+	Handheld = 0, ///< Handheld
+	Console = 1, ///< Console (Docked / TV-mode)
+}
 
 export interface Native {
 	print: (str: string) => void;
@@ -9,11 +16,14 @@ export interface Native {
 	readDirSync: (path: string) => string[];
 	consoleInit: () => void;
 	consoleExit: () => void;
+	framebufferInit: (buf: ArrayBuffer) => void;
+	framebufferExit: () => void;
+	appletGetOperationMode: () => AppletOperationMode;
 }
 
 interface Internal {
 	renderingMode?: RenderingMode;
-	setRenderingMode: (mode: RenderingMode) => void;
+	setRenderingMode: (mode: RenderingMode, buf?: ArrayBuffer) => void;
 	cleanup: () => void;
 }
 
@@ -25,7 +35,7 @@ enum RenderingMode {
 
 export class Switch extends EventTarget {
 	env: Env;
-	//canvas: Canvas;
+	screen: Canvas;
 	native: Native;
 	[INTERNAL_SYMBOL]: Internal;
 
@@ -40,16 +50,29 @@ export class Switch extends EventTarget {
 		this.env = new Env(this);
 		this[INTERNAL_SYMBOL] = {
 			renderingMode: RenderingMode.Init,
-			setRenderingMode(mode: RenderingMode) {
-				native.consoleInit();
+			setRenderingMode(mode: RenderingMode, buf?: ArrayBuffer) {
+				if (mode === RenderingMode.Console) {
+					native.framebufferExit();
+					native.consoleInit();
+				} else if (mode === RenderingMode.Framebuffer && buf) {
+					native.consoleExit();
+					native.framebufferInit(buf);
+				} else {
+					throw new Error('Unsupported rendering mode');
+				}
 				this.renderingMode = mode;
 			},
 			cleanup() {
 				if (this.renderingMode === RenderingMode.Console) {
 					native.consoleExit();
+				} else if (this.renderingMode === RenderingMode.Framebuffer) {
+					native.framebufferExit();
 				}
 			},
 		};
+
+		// Framebuffer mode uses the HTML5 Canvas API
+		this.screen = new Screen(this, 1280, 720);
 	}
 
 	/**
@@ -97,5 +120,27 @@ export class Env {
 
 	toObject(): Record<string, string> {
 		return this[INTERNAL_SYMBOL].native.envToObject();
+	}
+}
+
+class Screen extends Canvas {
+	[INTERNAL_SYMBOL]: Switch;
+
+	constructor(s: Switch, width: number, height: number) {
+		super(width, height);
+		this[INTERNAL_SYMBOL] = s;
+	}
+
+	getContext(contextId: '2d'): CanvasRenderingContext2D {
+		const ctx = super.getContext(contextId);
+		const Switch = this[INTERNAL_SYMBOL];
+		const internal = Switch[INTERNAL_SYMBOL];
+		if (internal.renderingMode !== RenderingMode.Framebuffer) {
+			internal.setRenderingMode(
+				RenderingMode.Framebuffer,
+				ctx[INTERNAL_SYMBOL].buffer
+			);
+		}
+		return ctx;
 	}
 }

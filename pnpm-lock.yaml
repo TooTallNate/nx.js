@@ -11,6 +11,15 @@ importers:
         specifier: ^1.9.3
         version: 1.9.3
 
+  apps/canvas:
+    devDependencies:
+      esbuild:
+        specifier: ^0.17.18
+        version: 0.17.18
+      nxjs-runtime:
+        specifier: ^0.0.1
+        version: link:../../packages/runtime
+
   apps/hello-world:
     devDependencies:
       esbuild:

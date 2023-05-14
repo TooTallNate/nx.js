@@ -7,18 +7,64 @@
 #include <switch.h>
 #include <quickjs.h>
 
+// Text renderer
 static PrintConsole *print_console = NULL;
+
+// Framebuffer renderer
+static NWindow *win = NULL;
+static Framebuffer *framebuffer = NULL;
+static uint8_t *js_framebuffer = NULL;
 
 static JSValue js_console_init(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-    print_console = consoleInit(NULL);
+    if (print_console == NULL)
+    {
+        print_console = consoleInit(NULL);
+    }
     return JS_UNDEFINED;
 }
 
 static JSValue js_console_exit(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-    consoleExit(NULL);
-    print_console = NULL;
+    if (print_console != NULL)
+    {
+        consoleExit(NULL);
+        print_console = NULL;
+    }
+    return JS_UNDEFINED;
+}
+
+static JSValue js_framebuffer_init(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    if (win == NULL)
+    {
+        // Retrieve the default window
+        win = nwindowGetDefault();
+    }
+    if (framebuffer != NULL)
+    {
+        framebufferClose(framebuffer);
+        free(framebuffer);
+    }
+    framebuffer = malloc(sizeof(Framebuffer));
+    int width = 1280;
+    int height = 720;
+    framebufferCreate(framebuffer, win, width, height, PIXEL_FORMAT_RGBA_8888, 2);
+    framebufferMakeLinear(framebuffer);
+    size_t buf_size; /* should result in `width * height * 4` */
+    js_framebuffer = JS_GetArrayBuffer(ctx, &buf_size, argv[0]);
+    return JS_UNDEFINED;
+}
+
+static JSValue js_framebuffer_exit(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    if (framebuffer != NULL)
+    {
+        framebufferClose(framebuffer);
+        free(framebuffer);
+        framebuffer = NULL;
+        js_framebuffer = NULL;
+    }
     return JS_UNDEFINED;
 }
 
@@ -246,13 +292,17 @@ int main(int argc, char *argv[])
         JS_CFUNC_DEF("consoleInit", 0, js_console_init),
         JS_CFUNC_DEF("consoleExit", 0, js_console_exit),
 
+        // framebuffer renderer
+        JS_CFUNC_DEF("framebufferInit", 0, js_framebuffer_init),
+        JS_CFUNC_DEF("framebufferExit", 0, js_framebuffer_exit),
+
         // filesystem
         JS_CFUNC_DEF("readDirSync", 0, js_readdir_sync),
 
         // applet
         JS_CFUNC_DEF("appletGetOperationMode", 0, js_appletGetOperationMode),
     };
-    JS_SetPropertyFunctionList(ctx, native_obj, function_list, 9);
+    JS_SetPropertyFunctionList(ctx, native_obj, function_list, 11);
 
     // `Switch.argv`
     JSValue argv_array = JS_NewArray(ctx);
@@ -311,9 +361,40 @@ int main(int argc, char *argv[])
         }
         JS_FreeValue(ctx, ret_val);
 
-        // Update the console, sending a new frame to the display
-        if (print_console != NULL)
+        if (framebuffer != NULL)
         {
+            // Retrieve the framebuffer
+            u32 stride;
+            u8 *framebuf = (u8 *)framebufferBegin(framebuffer, &stride);
+
+            memcpy(framebuf, js_framebuffer, 1280 * 720 * 4);
+            //u32 *f = malloc(1280 * 720 * 4);
+            //memset(f, 0, 1280 * 720 * 4);
+            //u32 yy = 100;
+            //for (u32 x = 0; x < 1280; x++)
+            //{
+            //    u32 pos = (yy * 1280) + x;
+            //    f[pos] = 0x01010101 * 10 * 4; // Set framebuf to different shades of grey.
+            //}
+
+            //// memcpy
+            //for (u32 y = 0; y < 720; y++)
+            //{
+            //    for (u32 x = 0; x < 1280; x++)
+            //    {
+            //        u32 pos = y * stride / sizeof(u32) + x;
+            //        framebuf[pos] = f[(y * 1280) + x];
+            //        //framebuf[pos] = 0x01010101 * 50 * 4; // Set framebuf to different shades of grey.
+            //    }
+            //}
+
+            //free(f);
+
+            framebufferEnd(framebuffer);
+        }
+        else if (print_console != NULL)
+        {
+            // Update the console, sending a new frame to the display
             consoleUpdate(print_console);
         }
     }
