@@ -1,6 +1,9 @@
 dist
 node_modules
 .turbo
+/lib/*/lib
+/lib/*/debug
+/lib/*/release
 
 /nxjs.*
 /build

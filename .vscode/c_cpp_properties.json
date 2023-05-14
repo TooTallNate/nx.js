@@ -4,6 +4,7 @@
             "name": "devkitA64",
             "includePath": [
                 "${workspaceFolder}/**",
+                "${workspaceFolder}/lib/quickjs/include/**",
                 "/opt/devkitpro/libnx/include/**",
                 "/opt/devkitpro/portlibs/switch/include/**",
                 "/opt/devkitpro/devkitA64/include/**",
