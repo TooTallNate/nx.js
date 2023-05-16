@@ -21,24 +21,24 @@ export interface Native {
 	appletGetOperationMode: () => AppletOperationMode;
 
 	// canvas
+	canvasNewContext: (width: number, height: number) => any;
+	canvasFillRect(ctx: any, x: number, y: number, w: number, h: number): void;
 	canvasGetImageData: (
-		buffer: ArrayBuffer,
+		ctx: any,
 		sx: number,
 		sy: number,
 		sw: number,
-		sh: number,
-		cw: number
+		sh: number
 	) => ArrayBuffer;
 	canvasPutImageData: (
+		ctx: any,
 		source: ArrayBuffer,
-		dest: ArrayBuffer,
 		dx: number,
 		dy: number,
 		dirtyX: number,
 		dirtyY: number,
 		dirtyWidth: number,
-		dirtyHeight: number,
-		cw: number
+		dirtyHeight: number
 	) => void;
 }
 
@@ -71,13 +71,13 @@ export class Switch extends EventTarget {
 		this.env = new Env(this);
 		this[INTERNAL_SYMBOL] = {
 			renderingMode: RenderingMode.Init,
-			setRenderingMode(mode: RenderingMode, buf?: ArrayBuffer) {
+			setRenderingMode(mode: RenderingMode, ctx?: any) {
 				if (mode === RenderingMode.Console) {
 					native.framebufferExit();
 					native.consoleInit();
-				} else if (mode === RenderingMode.Framebuffer && buf) {
+				} else if (mode === RenderingMode.Framebuffer && ctx) {
 					native.consoleExit();
-					native.framebufferInit(buf);
+					native.framebufferInit(ctx);
 				} else {
 					throw new Error('Unsupported rendering mode');
 				}
@@ -152,7 +152,7 @@ class Screen extends Canvas {
 		if (internal.renderingMode !== RenderingMode.Framebuffer) {
 			internal.setRenderingMode(
 				RenderingMode.Framebuffer,
-				ctx[INTERNAL_SYMBOL].buffer
+				ctx[INTERNAL_SYMBOL]
 			);
 		}
 		return ctx;

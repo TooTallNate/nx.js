@@ -2,6 +2,9 @@
     "files.associations": {
         "switch.h": "c",
         "quickjs.h": "c",
-        "stdio.h": "c"
+        "stdio.h": "c",
+        "cairo.h": "c",
+        "ft2build.h": "c",
+        "cairo-ft.h": "c"
     }
 }

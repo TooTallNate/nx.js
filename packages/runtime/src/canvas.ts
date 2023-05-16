@@ -64,16 +64,90 @@ export class ImageData implements LibImageData {
 	}
 }
 
-export class CanvasRenderingContext2D implements CanvasImageData {
+export class CanvasRenderingContext2D
+	implements CanvasImageData, CanvasRect, CanvasText, CanvasFillStrokeStyles
+{
 	readonly canvas: Canvas;
-	[INTERNAL_SYMBOL]: Uint8ClampedArray;
+	[INTERNAL_SYMBOL]: any;
 
 	constructor(canvas: Canvas) {
+		const { native } = canvas[INTERNAL_SYMBOL];
+		const { width: w, height: h } = canvas;
 		this.canvas = canvas;
-		this[INTERNAL_SYMBOL] = new Uint8ClampedArray(
-			canvas.width * canvas.height * 4
-		);
+		this[INTERNAL_SYMBOL] = native.canvasNewContext(w, h);
+		this.fillStyle = '';
+		this.strokeStyle = '';
 	}
+
+	fillText(
+		text: string,
+		x: number,
+		y: number,
+		maxWidth?: number | undefined
+	): void {
+		throw new Error('Method not implemented.');
+	}
+
+	measureText(text: string): TextMetrics {
+		throw new Error('Method not implemented.');
+	}
+
+	strokeText(
+		text: string,
+		x: number,
+		y: number,
+		maxWidth?: number | undefined
+	): void {
+		throw new Error('Method not implemented.');
+	}
+
+	fillStyle: string | CanvasGradient | CanvasPattern;
+	strokeStyle: string | CanvasGradient | CanvasPattern;
+	createConicGradient(
+		startAngle: number,
+		x: number,
+		y: number
+	): CanvasGradient {
+		throw new Error('Method not implemented.');
+	}
+	createLinearGradient(
+		x0: number,
+		y0: number,
+		x1: number,
+		y1: number
+	): CanvasGradient {
+		throw new Error('Method not implemented.');
+	}
+	createPattern(
+		image: CanvasImageSource,
+		repetition: string | null
+	): CanvasPattern | null {
+		throw new Error('Method not implemented.');
+	}
+	createRadialGradient(
+		x0: number,
+		y0: number,
+		r0: number,
+		x1: number,
+		y1: number,
+		r1: number
+	): CanvasGradient {
+		throw new Error('Method not implemented.');
+	}
+
+	clearRect(x: number, y: number, w: number, h: number): void {
+		throw new Error('Method not implemented.');
+	}
+
+	fillRect(x: number, y: number, w: number, h: number): void {
+		const { native } = this.canvas[INTERNAL_SYMBOL];
+		native.canvasFillRect(this[INTERNAL_SYMBOL], x, y, w, h);
+	}
+
+	strokeRect(x: number, y: number, w: number, h: number): void {
+		throw new Error('Method not implemented.');
+	}
+
 	createImageData(
 		sw: number,
 		sh: number,
@@ -116,12 +190,11 @@ export class CanvasRenderingContext2D implements CanvasImageData {
 	): ImageData {
 		const { native } = this.canvas[INTERNAL_SYMBOL];
 		const buffer = native.canvasGetImageData(
-			this[INTERNAL_SYMBOL].buffer,
+			this[INTERNAL_SYMBOL],
 			sx,
 			sy,
 			sw,
-			sh,
-			this.canvas.width
+			sh
 		);
 		const data = new Uint8ClampedArray(buffer);
 		return new ImageData(data, sw, sh, settings);
@@ -138,15 +211,14 @@ export class CanvasRenderingContext2D implements CanvasImageData {
 	): void {
 		const { native } = this.canvas[INTERNAL_SYMBOL];
 		native.canvasPutImageData(
+			this[INTERNAL_SYMBOL],
 			imagedata.data.buffer,
-			this[INTERNAL_SYMBOL].buffer,
 			dx,
 			dy,
 			dirtyX,
 			dirtyY,
 			dirtyWidth,
-			dirtyHeight,
-			this.canvas.width
+			dirtyHeight
 		);
 	}
 }
