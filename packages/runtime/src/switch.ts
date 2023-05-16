@@ -2,6 +2,9 @@ import { Canvas, CanvasRenderingContext2D } from './canvas';
 
 export const INTERNAL_SYMBOL = Symbol('Internal');
 
+export type Opaque<T> = { __type: T };
+export type CanvasRenderingContext2DState = Opaque<'CanvasRenderingContext2DState'>;
+
 export enum AppletOperationMode {
 	Handheld = 0, ///< Handheld
 	Console = 1, ///< Console (Docked / TV-mode)
@@ -16,22 +19,23 @@ export interface Native {
 	readDirSync: (path: string) => string[];
 	consoleInit: () => void;
 	consoleExit: () => void;
-	framebufferInit: (buf: ArrayBuffer) => void;
+	framebufferInit: (buf: CanvasRenderingContext2DState) => void;
 	framebufferExit: () => void;
 	appletGetOperationMode: () => AppletOperationMode;
 
 	// canvas
-	canvasNewContext: (width: number, height: number) => any;
-	canvasFillRect(ctx: any, x: number, y: number, w: number, h: number): void;
+	canvasNewContext: (width: number, height: number) => CanvasRenderingContext2DState;
+	canvasSetFillStyle: (ctx: CanvasRenderingContext2DState, r: number, g: number, b: number, a: number) => void;
+	canvasFillRect(ctx: CanvasRenderingContext2DState, x: number, y: number, w: number, h: number): void;
 	canvasGetImageData: (
-		ctx: any,
+		ctx: CanvasRenderingContext2DState,
 		sx: number,
 		sy: number,
 		sw: number,
 		sh: number
 	) => ArrayBuffer;
 	canvasPutImageData: (
-		ctx: any,
+		ctx: CanvasRenderingContext2DState,
 		source: ArrayBuffer,
 		dx: number,
 		dy: number,
@@ -44,7 +48,7 @@ export interface Native {
 
 interface Internal {
 	renderingMode?: RenderingMode;
-	setRenderingMode: (mode: RenderingMode, buf?: ArrayBuffer) => void;
+	setRenderingMode: (mode: RenderingMode, ctx?: CanvasRenderingContext2DState) => void;
 	cleanup: () => void;
 }
 
@@ -71,7 +75,7 @@ export class Switch extends EventTarget {
 		this.env = new Env(this);
 		this[INTERNAL_SYMBOL] = {
 			renderingMode: RenderingMode.Init,
-			setRenderingMode(mode: RenderingMode, ctx?: any) {
+			setRenderingMode(mode: RenderingMode, ctx?: CanvasRenderingContext2DState) {
 				if (mode === RenderingMode.Console) {
 					native.framebufferExit();
 					native.consoleInit();

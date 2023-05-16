@@ -1,4 +1,5 @@
-import type { Switch } from './switch';
+import colorRgba = require('color-rgba');
+import type { CanvasRenderingContext2DState, Switch } from './switch';
 import { INTERNAL_SYMBOL } from './switch';
 import { LibImageData } from './types';
 
@@ -68,15 +69,33 @@ export class CanvasRenderingContext2D
 	implements CanvasImageData, CanvasRect, CanvasText, CanvasFillStrokeStyles
 {
 	readonly canvas: Canvas;
-	[INTERNAL_SYMBOL]: any;
+	[INTERNAL_SYMBOL]: CanvasRenderingContext2DState;
+
+	strokeStyle: string | CanvasGradient | CanvasPattern;
 
 	constructor(canvas: Canvas) {
 		const { native } = canvas[INTERNAL_SYMBOL];
 		const { width: w, height: h } = canvas;
 		this.canvas = canvas;
 		this[INTERNAL_SYMBOL] = native.canvasNewContext(w, h);
-		this.fillStyle = '';
 		this.strokeStyle = '';
+	}
+
+	get fillStyle(): string | CanvasGradient | CanvasPattern {
+		return '';
+	}
+
+	set fillStyle(v: string | CanvasGradient | CanvasPattern) {
+		if (typeof v === 'string') {
+			const parsed = colorRgba(v);
+			if (!parsed || parsed.length !== 4) {
+				return;
+			}
+			const { native } = this.canvas[INTERNAL_SYMBOL];
+			native.canvasSetFillStyle(this[INTERNAL_SYMBOL], ...parsed);
+		} else {
+			throw new Error('CanvasGradient/CanvasPattern not implemented.');
+		}
 	}
 
 	fillText(
@@ -101,8 +120,6 @@ export class CanvasRenderingContext2D
 		throw new Error('Method not implemented.');
 	}
 
-	fillStyle: string | CanvasGradient | CanvasPattern;
-	strokeStyle: string | CanvasGradient | CanvasPattern;
 	createConicGradient(
 		startAngle: number,
 		x: number,

@@ -34,6 +34,9 @@ importers:
       '@ungap/event-target':
         specifier: ^0.2.4
         version: 0.2.4
+      color-rgba:
+        specifier: ^2.4.0
+        version: 2.4.0
       core-js:
         specifier: ^3.30.2
         version: 3.30.2
@@ -41,6 +44,9 @@ importers:
         specifier: ^4.0.0
         version: 4.0.0
     devDependencies:
+      '@types/color-rgba':
+        specifier: ^2.1.0
+        version: 2.1.0
       esbuild:
         specifier: ^0.17.18
         version: 0.17.18
@@ -248,8 +254,33 @@ packages:
     dev: true
     optional: true
 
+  /@types/color-rgba@2.1.0:
+    resolution: {integrity: sha512-tWcJLEiKdZ3ihJdThfLCe6Kw5vo0lgGcuucGkbtzcp1zifDA1E2Z96wxeSS/r+ytpHD15NCAWabX8GV911ywCA==}
+    dev: true
+
   /@ungap/event-target@0.2.4:
     resolution: {integrity: sha512-u9Fd3k2qfMtn+0dxbCn/y0pzQ9Ucw6lWR984CrHcbxc+WzcMkJE4VjWHWSb9At40MjwMyHCkJNXroS55Osshhw==}
+    dev: false
+
+  /color-name@1.1.4:
+    resolution: {integrity: sha512-dOy+3AuW3a2wNbZHIuMZpTcgjGuLU/uBL/ubcZF9OXbDo8ff4O8yVp5Bf0efS8uEoYo5q4Fx7dY9OgQGXgAsQA==}
+    dev: false
+
+  /color-parse@1.4.2:
+    resolution: {integrity: sha512-RI7s49/8yqDj3fECFZjUI1Yi0z/Gq1py43oNJivAIIDSyJiOZLfYCRQEgn8HEVAj++PcRe8AnL2XF0fRJ3BTnA==}
+    dependencies:
+      color-name: 1.1.4
+    dev: false
+
+  /color-rgba@2.4.0:
+    resolution: {integrity: sha512-Nti4qbzr/z2LbUWySr7H9dk3Rl7gZt7ihHAxlgT4Ho90EXWkjtkL1avTleu9yeGuqrt/chxTB6GKK8nZZ6V0+Q==}
+    dependencies:
+      color-parse: 1.4.2
+      color-space: 2.0.0
+    dev: false
+
+  /color-space@2.0.0:
+    resolution: {integrity: sha512-Bu8P/usGNuVWushjxcuaGSkhT+L2KX0cvgMGMTF0KJ7lFeqonhsntT68d6Yu3uwZzCmbF7KTB9EV67AGcUXhJw==}
     dev: false
 
   /core-js@3.30.2:

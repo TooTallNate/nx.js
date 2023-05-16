@@ -21,10 +21,15 @@ static uint8_t *js_framebuffer = NULL;
 static JSClassID js_canvas_context_class_id;
 static JSClassID js_test_class_id;
 
+// typedef struct {
+//   double r, g, b, a;
+// } rgba_t;
+
 typedef struct
 {
     uint32_t width;
     uint32_t height;
+    // rgba_t fill;
     uint8_t *data;
     cairo_t *ctx;
     cairo_surface_t *surface;
@@ -259,6 +264,7 @@ static JSValue js_canvas_new_context(JSContext *ctx, JSValueConst this_val, int 
     {
         return JS_ThrowOutOfMemory(ctx);
     }
+    memset(context, 0, sizeof(CanvasContext2D));
 
     // printf("1: %p\n", (void*)context);
     JSValue obj = JS_NewObjectClass(ctx, js_canvas_context_class_id);
@@ -267,6 +273,8 @@ static JSValue js_canvas_new_context(JSContext *ctx, JSValueConst this_val, int 
         free(context);
         return obj;
     }
+
+    // TOOD: this probably needs to go into `framebuffer_init` instead
     JS_DupValue(ctx, obj);
 
     // On Switch, the byte order seems to be BGRA
@@ -281,6 +289,29 @@ static JSValue js_canvas_new_context(JSContext *ctx, JSValueConst this_val, int 
 
     JS_SetOpaque(obj, context);
     return obj;
+}
+
+static JSValue js_canvas_set_fill_style(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    CanvasContext2D *context = JS_GetOpaque2(ctx, argv[0], js_canvas_context_class_id);
+    if (!context)
+    {
+        return JS_EXCEPTION;
+    }
+    double r;
+    double g;
+    double b;
+    double a;
+    if (JS_ToFloat64(ctx, &r, argv[1]) ||
+        JS_ToFloat64(ctx, &g, argv[2]) ||
+        JS_ToFloat64(ctx, &b, argv[3]) ||
+        JS_ToFloat64(ctx, &a, argv[4]))
+    {
+        JS_ThrowTypeError(ctx, "invalid input");
+        return JS_EXCEPTION;
+    }
+    cairo_set_source_rgba(context->ctx, r / (double)255, g / (double)255, b / (double)255, a);
+    return JS_UNDEFINED;
 }
 
 static JSValue js_canvas_fill_rect(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -302,9 +333,7 @@ static JSValue js_canvas_fill_rect(JSContext *ctx, JSValueConst this_val, int ar
         JS_ThrowTypeError(ctx, "invalid input");
         return JS_EXCEPTION;
     }
-    // TODO: get proper current color
-    cairo_set_operator(context->ctx, CAIRO_OPERATOR_SOURCE);
-    cairo_set_source_rgb(context->ctx, 0.0, 0.0, 1.0);
+    //cairo_set_operator(context->ctx, CAIRO_OPERATOR_SOURCE);
     cairo_rectangle(
         context->ctx,
         x, y,
@@ -396,12 +425,12 @@ static JSValue js_canvas_put_image_data(JSContext *ctx, JSValueConst this_val, i
 static void finalizer_canvas_context_2d(JSRuntime *rt, JSValue val)
 {
     CanvasContext2D *context = JS_GetOpaque(val, js_canvas_context_class_id);
-    printf("freeing: %p\n", (void *)context);
     if (context)
     {
-        // cairo_destroy(context->ctx);
-        // cairo_surface_destroy(context->surface);
-        // free(context);
+        cairo_destroy(context->ctx);
+        cairo_surface_destroy(context->surface);
+        js_free_rt(rt, context->data);
+        js_free_rt(rt, context);
     }
 }
 
@@ -544,6 +573,7 @@ int main(int argc, char *argv[])
 
         // canvas
         JS_CFUNC_DEF("canvasNewContext", 0, js_canvas_new_context),
+        JS_CFUNC_DEF("canvasSetFillStyle", 0, js_canvas_set_fill_style),
         JS_CFUNC_DEF("canvasFillRect", 0, js_canvas_fill_rect),
         JS_CFUNC_DEF("canvasGetImageData", 0, js_canvas_get_image_data),
         JS_CFUNC_DEF("canvasPutImageData", 0, js_canvas_put_image_data),
@@ -551,7 +581,7 @@ int main(int argc, char *argv[])
         JS_CFUNC_DEF("test", 0, js_new_test),
         JS_CFUNC_DEF("getTest", 0, js_get_test),
     };
-    JS_SetPropertyFunctionList(ctx, native_obj, function_list, 17);
+    JS_SetPropertyFunctionList(ctx, native_obj, function_list, 18);
 
     // `Switch.argv`
     JSValue argv_array = JS_NewArray(ctx);
