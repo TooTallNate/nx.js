@@ -217,6 +217,80 @@ static JSValue js_appletGetOperationMode(JSContext *ctx, JSValueConst this_val, 
     return JS_NewInt32(ctx, appletGetOperationMode());
 }
 
+static JSValue js_canvas_get_image_data(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    int sx;
+    int sy;
+    int sw;
+    int sh;
+    int cw;
+    size_t length;
+    uint32_t *buffer = (uint32_t *)JS_GetArrayBuffer(ctx, &length, argv[0]);
+    if (JS_ToInt32(ctx, &sx, argv[1]) ||
+        JS_ToInt32(ctx, &sy, argv[2]) ||
+        JS_ToInt32(ctx, &sw, argv[3]) ||
+        JS_ToInt32(ctx, &sh, argv[4]) ||
+        JS_ToInt32(ctx, &cw, argv[5]))
+    {
+        JS_ThrowTypeError(ctx, "invalid input");
+        return JS_EXCEPTION;
+    }
+
+    // Create a new ArrayBuffer with managed data
+    size_t size = sw * sh * 4;
+    uint32_t *new_buffer = js_malloc(ctx, size);
+    if (!new_buffer) {
+        return JS_ThrowOutOfMemory(ctx);
+    }
+    
+    // Fill the buffer with some data
+    memset(new_buffer, 0, size);
+    for (int y = 0; y < sh; y++) {
+        for (int x = 0; x < sw; x++) {
+            new_buffer[(y * sw) + x] = buffer[(y * cw) + x];
+        }
+    }
+    
+    // Create the ArrayBuffer object
+    return JS_NewArrayBuffer(ctx, (uint8_t*)new_buffer, size, NULL, NULL, 0);
+}
+
+static JSValue js_canvas_put_image_data(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    int dx;
+    int dy;
+    int dirty_x;
+    int dirty_y;
+    int dirty_width;
+    int dirty_height;
+    int cw;
+    size_t source_length;
+    size_t dest_length;
+    uint32_t *source_buffer = (uint32_t *)JS_GetArrayBuffer(ctx, &source_length, argv[0]);
+    uint32_t *dest_buffer = (uint32_t *)JS_GetArrayBuffer(ctx, &dest_length, argv[1]);
+    if (JS_ToInt32(ctx, &dx, argv[2]) ||
+        JS_ToInt32(ctx, &dy, argv[3]) ||
+        JS_ToInt32(ctx, &dirty_x, argv[4]) ||
+        JS_ToInt32(ctx, &dirty_y, argv[5]) ||
+        JS_ToInt32(ctx, &dirty_width, argv[6]) ||
+        JS_ToInt32(ctx, &dirty_height, argv[7]) ||
+        JS_ToInt32(ctx, &cw, argv[8]))
+    {
+        JS_ThrowTypeError(ctx, "invalid input");
+        return JS_EXCEPTION;
+    }
+    int dest_x;
+    int dest_y;
+    for (int y = dirty_y; y < dirty_height; y++) {
+        for (int x = dirty_x; x < dirty_width; x++) {
+            dest_x = dx + x;
+            dest_y = dy + y;
+            dest_buffer[(dest_y * cw) + dest_x] = source_buffer[(y * dirty_width) + x];
+        }
+    }
+    return JS_UNDEFINED;
+}
+
 // Main program entrypoint
 int main(int argc, char *argv[])
 {
@@ -301,8 +375,12 @@ int main(int argc, char *argv[])
 
         // applet
         JS_CFUNC_DEF("appletGetOperationMode", 0, js_appletGetOperationMode),
+
+        // canvas
+        JS_CFUNC_DEF("canvasGetImageData", 0, js_canvas_get_image_data),
+        JS_CFUNC_DEF("canvasPutImageData", 0, js_canvas_put_image_data),
     };
-    JS_SetPropertyFunctionList(ctx, native_obj, function_list, 11);
+    JS_SetPropertyFunctionList(ctx, native_obj, function_list, 13);
 
     // `Switch.argv`
     JSValue argv_array = JS_NewArray(ctx);
@@ -363,33 +441,10 @@ int main(int argc, char *argv[])
 
         if (framebuffer != NULL)
         {
-            // Retrieve the framebuffer
+            // Copy the JS framebuffer to the current Switch buffer
             u32 stride;
             u8 *framebuf = (u8 *)framebufferBegin(framebuffer, &stride);
-
             memcpy(framebuf, js_framebuffer, 1280 * 720 * 4);
-            //u32 *f = malloc(1280 * 720 * 4);
-            //memset(f, 0, 1280 * 720 * 4);
-            //u32 yy = 100;
-            //for (u32 x = 0; x < 1280; x++)
-            //{
-            //    u32 pos = (yy * 1280) + x;
-            //    f[pos] = 0x01010101 * 10 * 4; // Set framebuf to different shades of grey.
-            //}
-
-            //// memcpy
-            //for (u32 y = 0; y < 720; y++)
-            //{
-            //    for (u32 x = 0; x < 1280; x++)
-            //    {
-            //        u32 pos = y * stride / sizeof(u32) + x;
-            //        framebuf[pos] = f[(y * 1280) + x];
-            //        //framebuf[pos] = 0x01010101 * 50 * 4; // Set framebuf to different shades of grey.
-            //    }
-            //}
-
-            //free(f);
-
             framebufferEnd(framebuffer);
         }
         else if (print_console != NULL)

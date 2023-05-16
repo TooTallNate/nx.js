@@ -19,6 +19,27 @@ export interface Native {
 	framebufferInit: (buf: ArrayBuffer) => void;
 	framebufferExit: () => void;
 	appletGetOperationMode: () => AppletOperationMode;
+
+	// canvas
+	canvasGetImageData: (
+		buffer: ArrayBuffer,
+		sx: number,
+		sy: number,
+		sw: number,
+		sh: number,
+		cw: number
+	) => ArrayBuffer;
+	canvasPutImageData: (
+		source: ArrayBuffer,
+		dest: ArrayBuffer,
+		dx: number,
+		dy: number,
+		dirtyX: number,
+		dirtyY: number,
+		dirtyWidth: number,
+		dirtyHeight: number,
+		cw: number
+	) => void;
 }
 
 interface Internal {
@@ -124,13 +145,6 @@ export class Env {
 }
 
 class Screen extends Canvas {
-	[INTERNAL_SYMBOL]: Switch;
-
-	constructor(s: Switch, width: number, height: number) {
-		super(width, height);
-		this[INTERNAL_SYMBOL] = s;
-	}
-
 	getContext(contextId: '2d'): CanvasRenderingContext2D {
 		const ctx = super.getContext(contextId);
 		const Switch = this[INTERNAL_SYMBOL];
