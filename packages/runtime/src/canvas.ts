@@ -1,7 +1,8 @@
+import toPx = require('to-px/index.js');
 import colorRgba = require('color-rgba');
+import parseCssFont from 'parse-css-font';
 import type { CanvasRenderingContext2DState, Switch } from './switch';
 import { INTERNAL_SYMBOL } from './switch';
-import { LibImageData } from './types';
 
 export class Canvas {
 	[INTERNAL_SYMBOL]: Switch;
@@ -24,7 +25,7 @@ export class Canvas {
 	}
 }
 
-export class ImageData implements LibImageData {
+export class ImageData implements globalThis.ImageData {
 	readonly colorSpace: PredefinedColorSpace;
 	readonly data: Uint8ClampedArray;
 	readonly height: number;
@@ -66,22 +67,39 @@ export class ImageData implements LibImageData {
 }
 
 export class CanvasRenderingContext2D
-	implements CanvasImageData, CanvasRect, CanvasText, CanvasFillStrokeStyles
+	implements
+		CanvasImageData,
+		CanvasRect,
+		CanvasText,
+		CanvasFillStrokeStyles,
+		CanvasTextDrawingStyles
 {
 	readonly canvas: Canvas;
 	[INTERNAL_SYMBOL]: CanvasRenderingContext2DState;
 
 	strokeStyle: string | CanvasGradient | CanvasPattern;
+	direction: CanvasDirection;
+	fontKerning: CanvasFontKerning;
+	textAlign: CanvasTextAlign;
+	textBaseline: CanvasTextBaseline;
 
 	constructor(canvas: Canvas) {
 		const { native } = canvas[INTERNAL_SYMBOL];
 		const { width: w, height: h } = canvas;
 		this.canvas = canvas;
 		this[INTERNAL_SYMBOL] = native.canvasNewContext(w, h);
+		this.font = '24pt system-ui';
+
+		// TODO: implement
 		this.strokeStyle = '';
+		this.direction = 'ltr';
+		this.fontKerning = 'auto';
+		this.textAlign = 'left';
+		this.textBaseline = 'alphabetic';
 	}
 
 	get fillStyle(): string | CanvasGradient | CanvasPattern {
+		// TODO: implement
 		return '';
 	}
 
@@ -98,13 +116,54 @@ export class CanvasRenderingContext2D
 		}
 	}
 
+	get font(): string {
+		// TODO: implement
+		return '';
+	}
+
+	set font(v: string) {
+		const parsed = parseCssFont(v);
+		if ('system' in parsed) {
+			// "system" fonts are not supported
+			return;
+		}
+		if (typeof parsed.size !== 'string') {
+			// Missing required font size
+			return;
+		}
+		if (!parsed.family) {
+			// Missing required font name
+			return;
+		}
+		const px = toPx(parsed.size);
+		if (typeof px !== 'number') {
+			// Invalid font size
+			return;
+		}
+		const { native, fonts } = this.canvas[INTERNAL_SYMBOL];
+		let font = fonts._findFont(parsed);
+		if (!font) {
+			if (parsed.family.includes('system-ui')) {
+				font = fonts._addSystemFont();
+			} else {
+				return;
+			}
+		}
+		native.canvasSetFont(
+			this[INTERNAL_SYMBOL],
+			font[INTERNAL_SYMBOL].fontFace,
+			px
+		);
+	}
+
 	fillText(
 		text: string,
 		x: number,
 		y: number,
 		maxWidth?: number | undefined
 	): void {
-		throw new Error('Method not implemented.');
+		const { native } = this.canvas[INTERNAL_SYMBOL];
+		native.canvasFillText(this[INTERNAL_SYMBOL], text, x, y, maxWidth);
 	}
 
 	measureText(text: string): TextMetrics {

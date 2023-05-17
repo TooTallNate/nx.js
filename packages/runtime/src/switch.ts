@@ -1,9 +1,12 @@
 import { Canvas, CanvasRenderingContext2D } from './canvas';
+import { FontFaceSet } from './font';
 
 export const INTERNAL_SYMBOL = Symbol('Internal');
 
 export type Opaque<T> = { __type: T };
-export type CanvasRenderingContext2DState = Opaque<'CanvasRenderingContext2DState'>;
+export type CanvasRenderingContext2DState =
+	Opaque<'CanvasRenderingContext2DState'>;
+export type FontFaceState = Opaque<'FontFaceState'>;
 
 export enum AppletOperationMode {
 	Handheld = 0, ///< Handheld
@@ -23,10 +26,41 @@ export interface Native {
 	framebufferExit: () => void;
 	appletGetOperationMode: () => AppletOperationMode;
 
+	// font
+	newFontFace: (data: ArrayBuffer) => FontFaceState;
+	getSystemFont: () => ArrayBuffer;
+
 	// canvas
-	canvasNewContext: (width: number, height: number) => CanvasRenderingContext2DState;
-	canvasSetFillStyle: (ctx: CanvasRenderingContext2DState, r: number, g: number, b: number, a: number) => void;
-	canvasFillRect(ctx: CanvasRenderingContext2DState, x: number, y: number, w: number, h: number): void;
+	canvasNewContext: (
+		width: number,
+		height: number
+	) => CanvasRenderingContext2DState;
+	canvasSetFillStyle: (
+		ctx: CanvasRenderingContext2DState,
+		r: number,
+		g: number,
+		b: number,
+		a: number
+	) => void;
+	canvasSetFont: (
+		ctx: CanvasRenderingContext2DState,
+		face: FontFaceState,
+		fontSize: number
+	) => void;
+	canvasFillRect(
+		ctx: CanvasRenderingContext2DState,
+		x: number,
+		y: number,
+		w: number,
+		h: number
+	): void;
+	canvasFillText(
+		ctx: CanvasRenderingContext2DState,
+		text: string,
+		x: number,
+		y: number,
+		maxWidth?: number | undefined
+	): void;
 	canvasGetImageData: (
 		ctx: CanvasRenderingContext2DState,
 		sx: number,
@@ -48,7 +82,10 @@ export interface Native {
 
 interface Internal {
 	renderingMode?: RenderingMode;
-	setRenderingMode: (mode: RenderingMode, ctx?: CanvasRenderingContext2DState) => void;
+	setRenderingMode: (
+		mode: RenderingMode,
+		ctx?: CanvasRenderingContext2DState
+	) => void;
 	cleanup: () => void;
 }
 
@@ -62,6 +99,7 @@ export class Switch extends EventTarget {
 	env: Env;
 	screen: Canvas;
 	native: Native;
+	fonts: FontFaceSet;
 	[INTERNAL_SYMBOL]: Internal;
 
 	// Populated by the host process
@@ -75,7 +113,10 @@ export class Switch extends EventTarget {
 		this.env = new Env(this);
 		this[INTERNAL_SYMBOL] = {
 			renderingMode: RenderingMode.Init,
-			setRenderingMode(mode: RenderingMode, ctx?: CanvasRenderingContext2DState) {
+			setRenderingMode(
+				mode: RenderingMode,
+				ctx?: CanvasRenderingContext2DState
+			) {
 				if (mode === RenderingMode.Console) {
 					native.framebufferExit();
 					native.consoleInit();
@@ -98,6 +139,8 @@ export class Switch extends EventTarget {
 
 		// Framebuffer mode uses the HTML5 Canvas API
 		this.screen = new Screen(this, 1280, 720);
+
+		this.fonts = new FontFaceSet();
 	}
 
 	/**

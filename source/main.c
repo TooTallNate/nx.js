@@ -17,24 +17,28 @@ static PrintConsole *print_console = NULL;
 static NWindow *win = NULL;
 static Framebuffer *framebuffer = NULL;
 static uint8_t *js_framebuffer = NULL;
+static FT_Library ft_library = NULL;
 
+static JSClassID js_font_face_class_id;
 static JSClassID js_canvas_context_class_id;
 static JSClassID js_test_class_id;
 
-// typedef struct {
-//   double r, g, b, a;
-// } rgba_t;
+typedef struct
+{
+    FT_Face ft_face;
+    cairo_font_face_t *cairo_font;
+} FontFace;
 
 typedef struct
 {
     uint32_t width;
     uint32_t height;
-    // rgba_t fill;
     uint8_t *data;
     cairo_t *ctx;
     cairo_surface_t *surface;
     cairo_path_t *path;
-    cairo_font_face_t *font_face;
+    // cairo_font_face_t *font;
+    FT_Face ft_face;
 } CanvasContext2D;
 
 static JSValue js_console_init(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -92,7 +96,7 @@ static JSValue js_framebuffer_exit(JSContext *ctx, JSValueConst this_val, int ar
     return JS_UNDEFINED;
 }
 
-char *read_file(const char *filename)
+uint8_t *read_file(const char *filename, size_t *out_size)
 {
     FILE *file = fopen(filename, "rb");
     if (file == NULL)
@@ -101,10 +105,10 @@ char *read_file(const char *filename)
     }
 
     fseek(file, 0, SEEK_END);
-    long size = ftell(file);
+    size_t size = ftell(file);
     rewind(file);
 
-    char *buffer = malloc(size + 1);
+    uint8_t *buffer = malloc(size);
     if (buffer == NULL)
     {
         fclose(file);
@@ -120,7 +124,8 @@ char *read_file(const char *filename)
         return NULL;
     }
 
-    buffer[size] = '\0';
+    *out_size = size;
+
     return buffer;
 }
 
@@ -241,6 +246,51 @@ static JSValue js_appletGetOperationMode(JSContext *ctx, JSValueConst this_val, 
     return JS_NewInt32(ctx, appletGetOperationMode());
 }
 
+static JSValue js_new_font_face(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    FontFace *context = js_malloc(ctx, sizeof(FontFace));
+    if (!context)
+    {
+        return JS_ThrowOutOfMemory(ctx);
+    }
+    memset(context, 0, sizeof(FontFace));
+
+    size_t bytes;
+    FT_Byte *font_data = JS_GetArrayBuffer(ctx, &bytes, argv[0]);
+
+    FT_New_Memory_Face(ft_library,
+                       font_data, /* first byte in memory */
+                       bytes,     /* size in bytes        */
+                       0,         /* face_index           */
+                       &context->ft_face);
+
+    // Create a Cairo font face from the FreeType face
+    context->cairo_font = cairo_ft_font_face_create_for_ft_face(context->ft_face, 0);
+
+    JSValue obj = JS_NewObjectClass(ctx, js_font_face_class_id);
+    if (JS_IsException(obj))
+    {
+        free(context);
+        return obj;
+    }
+
+    JS_SetOpaque(obj, context);
+
+    return obj;
+}
+
+static JSValue js_get_system_font(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    PlFontData font;
+    Result rc = plGetSharedFontByType(&font, PlSharedFontType_Standard);
+    if (R_FAILED(rc))
+    {
+        JS_ThrowTypeError(ctx, "Failed to load system font");
+        return JS_EXCEPTION;
+    }
+    return JS_NewArrayBufferCopy(ctx, font.address, font.size);
+}
+
 static JSValue js_canvas_new_context(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     int width;
@@ -287,6 +337,8 @@ static JSValue js_canvas_new_context(JSContext *ctx, JSValueConst this_val, int 
     context->surface = surface;
     context->ctx = cairo_create(surface);
 
+    cairo_set_font_size(context->ctx, 46);
+
     JS_SetOpaque(obj, context);
     return obj;
 }
@@ -314,6 +366,30 @@ static JSValue js_canvas_set_fill_style(JSContext *ctx, JSValueConst this_val, i
     return JS_UNDEFINED;
 }
 
+static JSValue js_canvas_set_font(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    CanvasContext2D *context = JS_GetOpaque2(ctx, argv[0], js_canvas_context_class_id);
+    if (!context)
+    {
+        return JS_EXCEPTION;
+    }
+    FontFace *face = JS_GetOpaque2(ctx, argv[1], js_font_face_class_id);
+    if (!face)
+    {
+        return JS_EXCEPTION;
+    }
+    double font_size;
+    if (JS_ToFloat64(ctx, &font_size, argv[2]))
+    {
+        JS_ThrowTypeError(ctx, "invalid input");
+        return JS_EXCEPTION;
+    }
+    cairo_set_font_face(context->ctx, face->cairo_font);
+    cairo_set_font_size(context->ctx, font_size);
+    context->ft_face = face->ft_face;
+    return JS_UNDEFINED;
+}
+
 static JSValue js_canvas_fill_rect(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     CanvasContext2D *context = JS_GetOpaque2(ctx, argv[0], js_canvas_context_class_id);
@@ -333,13 +409,34 @@ static JSValue js_canvas_fill_rect(JSContext *ctx, JSValueConst this_val, int ar
         JS_ThrowTypeError(ctx, "invalid input");
         return JS_EXCEPTION;
     }
-    //cairo_set_operator(context->ctx, CAIRO_OPERATOR_SOURCE);
     cairo_rectangle(
         context->ctx,
         x, y,
         w,
         h);
     cairo_fill(context->ctx);
+    return JS_UNDEFINED;
+}
+
+static JSValue js_canvas_fill_text(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    CanvasContext2D *context = JS_GetOpaque2(ctx, argv[0], js_canvas_context_class_id);
+    if (!context)
+    {
+        return JS_EXCEPTION;
+    }
+    double x;
+    double y;
+    if (JS_ToFloat64(ctx, &x, argv[2]) ||
+        JS_ToFloat64(ctx, &y, argv[3]))
+    {
+        JS_ThrowTypeError(ctx, "invalid input");
+        return JS_EXCEPTION;
+    }
+    const char *text = JS_ToCString(ctx, argv[1]);
+    cairo_move_to(context->ctx, x, y);
+    cairo_show_text(context->ctx, text);
+    JS_FreeCString(ctx, text);
     return JS_UNDEFINED;
 }
 
@@ -434,6 +531,18 @@ static void finalizer_canvas_context_2d(JSRuntime *rt, JSValue val)
     }
 }
 
+static void finalizer_font_face(JSRuntime *rt, JSValue val)
+{
+    FontFace *context = JS_GetOpaque(val, js_font_face_class_id);
+    printf("Finalizing font face");
+    if (context)
+    {
+        FT_Done_Face(context->ft_face);
+        cairo_font_face_destroy(context->cairo_font);
+        js_free_rt(rt, context);
+    }
+}
+
 typedef struct
 {
     int data;
@@ -475,6 +584,15 @@ static void finalizer_test(JSRuntime *rt, JSValue val)
 // Main program entrypoint
 int main(int argc, char *argv[])
 {
+    Result rc;
+
+    rc = plInitialize(PlServiceType_User);
+    if (R_FAILED(rc))
+        diagAbortWithResult(rc);
+
+    // Initialize FreeType library
+    FT_Init_FreeType(&ft_library);
+
     // Configure our supported input layout: a single player with standard controller styles
     padConfigureInput(1, HidNpadStyleSet_NpadStandard);
 
@@ -491,8 +609,9 @@ int main(int argc, char *argv[])
         strcpy(dot_nro, ".js");
     }
 
-    char *buffer = read_file(js_path);
-    if (buffer == NULL)
+    size_t user_code_size;
+    char *user_code = (char *)read_file(js_path, &user_code_size);
+    if (user_code == NULL)
     {
         printf("Failed to load JS file: %s\n", js_path);
     }
@@ -501,22 +620,23 @@ int main(int argc, char *argv[])
     JSContext *ctx = JS_NewContext(rt);
 
     // Initialize the JS runtime environment
-    Result rc = romfsInit();
+    rc = romfsInit();
     if (R_FAILED(rc))
     {
-        printf("romfsInit failed: %08X\n", rc);
+        diagAbortWithResult(rc);
     }
     else
     {
+        size_t runtime_buffer_size;
         char *runtime_path = "romfs:/runtime.js";
-        char *runtime_buffer = read_file(runtime_path);
+        char *runtime_buffer = (char *)read_file(runtime_path, &runtime_buffer_size);
         if (runtime_buffer == NULL)
         {
             printf("Failed to initialize JS runtime\n");
         }
         else
         {
-            JSValue runtime_init_result = JS_Eval(ctx, runtime_buffer, strlen(runtime_buffer), runtime_path, JS_EVAL_TYPE_GLOBAL);
+            JSValue runtime_init_result = JS_Eval(ctx, runtime_buffer, runtime_buffer_size, runtime_path, JS_EVAL_TYPE_GLOBAL);
             if (JS_IsException(runtime_init_result))
             {
                 print_js_error(ctx);
@@ -534,11 +654,18 @@ int main(int argc, char *argv[])
     JS_NewClass(rt, js_test_class_id, &test_class);
 
     JS_NewClassID(&js_canvas_context_class_id);
-    JSClassDef my_data_class = {
+    JSClassDef font_face_class = {
+        "FontFace",
+        .finalizer = finalizer_font_face,
+    };
+    JS_NewClass(rt, js_font_face_class_id, &font_face_class);
+
+    JS_NewClassID(&js_canvas_context_class_id);
+    JSClassDef canvas_context_class = {
         "CanvasContext2D",
         .finalizer = finalizer_canvas_context_2d,
     };
-    JS_NewClass(rt, js_canvas_context_class_id, &my_data_class);
+    JS_NewClass(rt, js_canvas_context_class_id, &canvas_context_class);
 
     JSValue global_obj = JS_GetGlobalObject(ctx);
     JSValue switch_obj = JS_GetPropertyStr(ctx, global_obj, "Switch");
@@ -571,17 +698,23 @@ int main(int argc, char *argv[])
         // applet
         JS_CFUNC_DEF("appletGetOperationMode", 0, js_appletGetOperationMode),
 
+        // font
+        JS_CFUNC_DEF("newFontFace", 0, js_new_font_face),
+        JS_CFUNC_DEF("getSystemFont", 0, js_get_system_font),
+
         // canvas
         JS_CFUNC_DEF("canvasNewContext", 0, js_canvas_new_context),
         JS_CFUNC_DEF("canvasSetFillStyle", 0, js_canvas_set_fill_style),
+        JS_CFUNC_DEF("canvasSetFont", 0, js_canvas_set_font),
         JS_CFUNC_DEF("canvasFillRect", 0, js_canvas_fill_rect),
+        JS_CFUNC_DEF("canvasFillText", 0, js_canvas_fill_text),
         JS_CFUNC_DEF("canvasGetImageData", 0, js_canvas_get_image_data),
         JS_CFUNC_DEF("canvasPutImageData", 0, js_canvas_put_image_data),
 
         JS_CFUNC_DEF("test", 0, js_new_test),
         JS_CFUNC_DEF("getTest", 0, js_get_test),
     };
-    JS_SetPropertyFunctionList(ctx, native_obj, function_list, 18);
+    JS_SetPropertyFunctionList(ctx, native_obj, function_list, 22);
 
     // `Switch.argv`
     JSValue argv_array = JS_NewArray(ctx);
@@ -592,15 +725,15 @@ int main(int argc, char *argv[])
     JS_SetPropertyStr(ctx, switch_obj, "argv", argv_array);
 
     // Run the user code
-    if (buffer != NULL)
+    if (user_code != NULL)
     {
-        JSValue user_code_result = JS_Eval(ctx, buffer, strlen(buffer), js_path, JS_EVAL_TYPE_GLOBAL);
+        JSValue user_code_result = JS_Eval(ctx, user_code, user_code_size, js_path, JS_EVAL_TYPE_GLOBAL);
         if (JS_IsException(user_code_result))
         {
             print_js_error(ctx);
         }
         JS_FreeValue(ctx, user_code_result);
-        free(buffer);
+        free(user_code);
         free(js_path);
     }
 
@@ -675,6 +808,8 @@ int main(int argc, char *argv[])
     // JS_FreeValue(ctx, global_obj);
     JS_FreeContext(ctx);
     JS_FreeRuntime(rt);
+
+    FT_Done_FreeType(ft_library);
 
     if (print_console != NULL)
     {

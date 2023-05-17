@@ -43,10 +43,16 @@ importers:
       parse-css-font:
         specifier: ^4.0.0
         version: 4.0.0
+      to-px:
+        specifier: ^1.1.0
+        version: 1.1.0
     devDependencies:
       '@types/color-rgba':
         specifier: ^2.1.0
         version: 2.1.0
+      '@types/to-px':
+        specifier: ^1.1.2
+        version: 1.1.2
       esbuild:
         specifier: ^0.17.18
         version: 0.17.18
@@ -258,6 +264,10 @@ packages:
     resolution: {integrity: sha512-tWcJLEiKdZ3ihJdThfLCe6Kw5vo0lgGcuucGkbtzcp1zifDA1E2Z96wxeSS/r+ytpHD15NCAWabX8GV911ywCA==}
     dev: true
 
+  /@types/to-px@1.1.2:
+    resolution: {integrity: sha512-O3OkxRVcfcrAW2wH8bCVDhs1RCGwHI77l+wDNQ8KlX0HCCwBtShKkqQByKlzIirR72D36JHNgJhYb9B69iJ2PA==}
+    dev: true
+
   /@ungap/event-target@0.2.4:
     resolution: {integrity: sha512-u9Fd3k2qfMtn+0dxbCn/y0pzQ9Ucw6lWR984CrHcbxc+WzcMkJE4VjWHWSb9At40MjwMyHCkJNXroS55Osshhw==}
     dev: false
@@ -354,11 +364,21 @@ packages:
       unquote: 1.1.1
     dev: false
 
+  /parse-unit@1.0.1:
+    resolution: {integrity: sha512-hrqldJHokR3Qj88EIlV/kAyAi/G5R2+R56TBANxNMy0uPlYcttx0jnMW6Yx5KsKPSbC3KddM/7qQm3+0wEXKxg==}
+    dev: false
+
   /prettier@2.8.8:
     resolution: {integrity: sha512-tdN8qQGvNjw4CHbY+XXk0JgCXn9QiF21a55rBe5LJAU+kDyC4WQn4+awm2Xfk2lQMk5fKup9XgzTZtGkjBdP9Q==}
     engines: {node: '>=10.13.0'}
     hasBin: true
     dev: true
+
+  /to-px@1.1.0:
+    resolution: {integrity: sha512-bfg3GLYrGoEzrGoE05TAL/Uw+H/qrf2ptr9V3W7U0lkjjyYnIfgxmVLUfhQ1hZpIQwin81uxhDjvUkDYsC0xWw==}
+    dependencies:
+      parse-unit: 1.0.1
+    dev: false
 
   /turbo-darwin-64@1.9.3:
     resolution: {integrity: sha512-0dFc2cWXl82kRE4Z+QqPHhbEFEpUZho1msHXHWbz5+PqLxn8FY0lEVOHkq5tgKNNEd5KnGyj33gC/bHhpZOk5g==}

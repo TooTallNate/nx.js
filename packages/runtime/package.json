@@ -17,10 +17,12 @@
     "@ungap/event-target": "^0.2.4",
     "color-rgba": "^2.4.0",
     "core-js": "^3.30.2",
-    "parse-css-font": "^4.0.0"
+    "parse-css-font": "^4.0.0",
+    "to-px": "^1.1.0"
   },
   "devDependencies": {
     "@types/color-rgba": "^2.1.0",
+    "@types/to-px": "^1.1.2",
     "esbuild": "^0.17.18",
     "typescript": "^5.0.4"
   }
