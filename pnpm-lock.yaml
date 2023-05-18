@@ -29,6 +29,31 @@ importers:
         specifier: ^0.0.1
         version: link:../../packages/runtime
 
+  apps/touchscreen:
+    dependencies:
+      color-hash:
+        specifier: ^2.0.2
+        version: 2.0.2
+    devDependencies:
+      '@types/color-hash':
+        specifier: ^1.0.2
+        version: 1.0.2
+      esbuild:
+        specifier: ^0.17.18
+        version: 0.17.18
+      nxjs-runtime:
+        specifier: ^0.0.1
+        version: link:../../packages/runtime
+
+  apps/ttf-font:
+    devDependencies:
+      esbuild:
+        specifier: ^0.17.18
+        version: 0.17.18
+      nxjs-runtime:
+        specifier: ^0.0.1
+        version: link:../../packages/runtime
+
   packages/runtime:
     dependencies:
       '@ungap/event-target':
@@ -260,6 +285,10 @@ packages:
     dev: true
     optional: true
 
+  /@types/color-hash@1.0.2:
+    resolution: {integrity: sha512-QJCVXSVRse+mMvzWQ8vH6AcKxtqCgHPHf5abAdGn86DEeQdUpSJnKAeCa1+hZuohaUF3l4RhigC9akRx82Bwig==}
+    dev: true
+
   /@types/color-rgba@2.1.0:
     resolution: {integrity: sha512-tWcJLEiKdZ3ihJdThfLCe6Kw5vo0lgGcuucGkbtzcp1zifDA1E2Z96wxeSS/r+ytpHD15NCAWabX8GV911ywCA==}
     dev: true
@@ -270,6 +299,10 @@ packages:
 
   /@ungap/event-target@0.2.4:
     resolution: {integrity: sha512-u9Fd3k2qfMtn+0dxbCn/y0pzQ9Ucw6lWR984CrHcbxc+WzcMkJE4VjWHWSb9At40MjwMyHCkJNXroS55Osshhw==}
+    dev: false
+
+  /color-hash@2.0.2:
+    resolution: {integrity: sha512-6exeENAqBTuIR1wIo36mR8xVVBv6l1hSLd7Qmvf6158Ld1L15/dbahR9VUOiX7GmGJBCnQyS0EY+I8x+wa7egg==}
     dev: false
 
   /color-name@1.1.4:
