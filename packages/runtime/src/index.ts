@@ -2,6 +2,7 @@ import { def } from './polyfills';
 import { Switch as _Switch, INTERNAL_SYMBOL } from './switch';
 import { createTimersFactory } from './timers';
 import { Console } from './console';
+import { FontFace } from './font';
 
 export type { Switch } from './switch';
 
@@ -16,6 +17,8 @@ def('setTimeout', setTimeout);
 def('setInterval', setInterval);
 def('clearTimeout', clearTimeout);
 def('clearInterval', clearInterval);
+
+def('FontFace', FontFace);
 
 Switch.addEventListener('frame', () => {
 	processTimers();
