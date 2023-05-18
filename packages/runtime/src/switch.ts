@@ -19,12 +19,19 @@ export interface Native {
 	getenv: (name: string) => string;
 	setenv: (name: string, value: string) => void;
 	envToObject: () => Record<string, string>;
-	readDirSync: (path: string) => string[];
 	consoleInit: () => void;
 	consoleExit: () => void;
 	framebufferInit: (buf: CanvasRenderingContext2DState) => void;
 	framebufferExit: () => void;
 	appletGetOperationMode: () => AppletOperationMode;
+
+	// hid
+	hidInitializeTouchScreen: () => void;
+	hidGetTouchScreenStates: () => Touch[] | undefined;
+
+	// fs
+	readDirSync: (path: string) => string[];
+	readFileSync: (path: string) => ArrayBuffer;
 
 	// font
 	newFontFace: (data: ArrayBuffer) => FontFaceState;
@@ -81,6 +88,8 @@ export interface Native {
 }
 
 interface Internal {
+	previousTouches: Touch[];
+	touchscreenInitialized?: boolean;
 	renderingMode?: RenderingMode;
 	setRenderingMode: (
 		mode: RenderingMode,
@@ -93,6 +102,14 @@ enum RenderingMode {
 	Init,
 	Console,
 	Framebuffer,
+}
+
+interface SwitchEventHandlersEventMap {
+	frame: Event;
+	exit: Event;
+	touchstart: TouchEvent;
+	touchmove: TouchEvent;
+	touchend: TouchEvent;
 }
 
 export class Switch extends EventTarget {
@@ -112,6 +129,7 @@ export class Switch extends EventTarget {
 		this.native = native;
 		this.env = new Env(this);
 		this[INTERNAL_SYMBOL] = {
+			previousTouches: [],
 			renderingMode: RenderingMode.Init,
 			setRenderingMode(
 				mode: RenderingMode,
@@ -143,6 +161,53 @@ export class Switch extends EventTarget {
 		this.fonts = new FontFaceSet();
 	}
 
+	addEventListener<K extends keyof SwitchEventHandlersEventMap>(
+		type: K,
+		listener: (ev: SwitchEventHandlersEventMap[K]) => any,
+		options?: boolean | AddEventListenerOptions
+	): void;
+	addEventListener(
+		type: string,
+		listener: EventListenerOrEventListenerObject,
+		options?: boolean | AddEventListenerOptions
+	): void;
+	addEventListener(
+		type: string,
+		callback: EventListenerOrEventListenerObject | null,
+		options?: boolean | AddEventListenerOptions | undefined
+	): void {
+		if (
+			!this[INTERNAL_SYMBOL].touchscreenInitialized &&
+			(type === 'touchstart' ||
+				type === 'touchmove' ||
+				type === 'touchend')
+		) {
+			this.native.hidInitializeTouchScreen();
+			this[INTERNAL_SYMBOL].touchscreenInitialized = true;
+		}
+		super.addEventListener(type, callback, options);
+	}
+
+	removeEventListener<K extends keyof SwitchEventHandlersEventMap>(
+		type: K,
+		listener: (
+			ev: SwitchEventHandlersEventMap[K]
+		) => any,
+		options?: boolean | EventListenerOptions
+	): void;
+	removeEventListener(
+		type: string,
+		listener: EventListenerOrEventListenerObject,
+		options?: boolean | EventListenerOptions
+	): void;
+	removeEventListener(
+		type: string,
+		listener: EventListenerOrEventListenerObject,
+		options?: boolean | EventListenerOptions
+	): void {
+		super.removeEventListener(type, listener, options);
+	}
+
 	/**
 	 * Prints `str` to the console.
 	 */
@@ -157,15 +222,22 @@ export class Switch extends EventTarget {
 	/**
 	 * Returns the current working directory as a URL instance.
 	 */
-	cwd(): URL {
+	cwd() {
 		return new URL(`${this.native.cwd()}/`);
 	}
 
 	/**
 	 * Returns an array of the file names within `path`.
 	 */
-	readDirSync(path: string | URL): string[] {
+	readDirSync(path: string | URL) {
 		return this.native.readDirSync(String(path));
+	}
+
+	/**
+	 * Returns an `ArrayBuffer` containing the contents of the file at `path`.
+	 */
+	readFileSync(path: string | URL) {
+		return this.native.readFileSync(String(path));
 	}
 }
 

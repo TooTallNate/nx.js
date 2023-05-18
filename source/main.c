@@ -171,6 +171,35 @@ static JSValue js_cwd(JSContext *ctx, JSValueConst this_val, int argc, JSValueCo
     return JS_UNDEFINED;
 }
 
+static JSValue js_hid_initialize_touch_screen(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    hidInitializeTouchScreen();
+    return JS_UNDEFINED;
+}
+
+static JSValue js_hid_get_touch_screen_states(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    HidTouchScreenState state = {0};
+    hidGetTouchScreenStates(&state, 1);
+    if (state.count == 0)
+    {
+        return JS_UNDEFINED;
+    }
+    JSValue arr = JS_NewArray(ctx);
+    for (int i = 0; i < state.count; i++)
+    {
+        JSValue touch = JS_NewObject(ctx);
+        JS_SetPropertyUint32(ctx, arr, i, touch);
+        JS_SetPropertyStr(ctx, touch, "identifier", JS_NewInt32(ctx, state.touches[i].finger_id));
+        JS_SetPropertyStr(ctx, touch, "screenX", JS_NewInt32(ctx, state.touches[i].x));
+        JS_SetPropertyStr(ctx, touch, "screenY", JS_NewInt32(ctx, state.touches[i].y));
+        JS_SetPropertyStr(ctx, touch, "radiusX", JS_NewFloat64(ctx, (double)state.touches[i].diameter_x / 2.0));
+        JS_SetPropertyStr(ctx, touch, "radiusY", JS_NewFloat64(ctx, (double)state.touches[i].diameter_y / 2.0));
+        JS_SetPropertyStr(ctx, touch, "rotationAngle", JS_NewInt32(ctx, state.touches[i].rotation_angle));
+    }
+    return arr;
+}
+
 static JSValue js_readdir_sync(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     DIR *dir;
@@ -196,6 +225,49 @@ static JSValue js_readdir_sync(JSContext *ctx, JSValueConst this_val, int argc, 
     closedir(dir);
 
     return arr;
+}
+
+static void free_js_array_buffer(JSRuntime *rt, void *opaque, void *ptr)
+{
+    js_free_rt(rt, ptr);
+}
+
+static JSValue js_read_file_sync(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    const char *filename = JS_ToCString(ctx, argv[0]);
+    FILE *file = fopen(filename, "rb");
+    if (file == NULL)
+    {
+        JS_ThrowTypeError(ctx, "File not found: %s", filename);
+        JS_FreeCString(ctx, filename);
+        return JS_EXCEPTION;
+    }
+
+    fseek(file, 0, SEEK_END);
+    size_t size = ftell(file);
+    rewind(file);
+
+    uint8_t *buffer = js_malloc(ctx, size);
+    if (buffer == NULL)
+    {
+        JS_FreeCString(ctx, filename);
+        fclose(file);
+        JS_ThrowOutOfMemory(ctx);
+        return JS_EXCEPTION;
+    }
+
+    size_t result = fread(buffer, 1, size, file);
+    fclose(file);
+
+    if (result != size)
+    {
+        JS_FreeCString(ctx, filename);
+        js_free(ctx, buffer);
+        JS_ThrowTypeError(ctx, "Failed to read entire file. Got %lu, expected %lu", result, result);
+        return JS_EXCEPTION;
+    }
+
+    return JS_NewArrayBuffer(ctx, buffer, size, free_js_array_buffer, NULL, false);
 }
 
 static JSValue js_getenv(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -251,7 +323,8 @@ static JSValue js_new_font_face(JSContext *ctx, JSValueConst this_val, int argc,
     FontFace *context = js_malloc(ctx, sizeof(FontFace));
     if (!context)
     {
-        return JS_ThrowOutOfMemory(ctx);
+        JS_ThrowOutOfMemory(ctx);
+        return JS_EXCEPTION;
     }
     memset(context, 0, sizeof(FontFace));
 
@@ -305,14 +378,16 @@ static JSValue js_canvas_new_context(JSContext *ctx, JSValueConst this_val, int 
     uint8_t *buffer = js_malloc(ctx, buf_size);
     if (!buffer)
     {
-        return JS_ThrowOutOfMemory(ctx);
+        JS_ThrowOutOfMemory(ctx);
+        return JS_EXCEPTION;
     }
     memset(buffer, 0, buf_size);
 
     CanvasContext2D *context = js_malloc(ctx, sizeof(CanvasContext2D));
     if (!context)
     {
-        return JS_ThrowOutOfMemory(ctx);
+        JS_ThrowOutOfMemory(ctx);
+        return JS_EXCEPTION;
     }
     memset(context, 0, sizeof(CanvasContext2D));
 
@@ -464,7 +539,8 @@ static JSValue js_canvas_get_image_data(JSContext *ctx, JSValueConst this_val, i
     uint32_t *new_buffer = js_malloc(ctx, size);
     if (!new_buffer)
     {
-        return JS_ThrowOutOfMemory(ctx);
+        JS_ThrowOutOfMemory(ctx);
+        return JS_EXCEPTION;
     }
 
     // Fill the buffer with some data
@@ -586,6 +662,8 @@ int main(int argc, char *argv[])
 {
     Result rc;
 
+    print_console = consoleInit(print_console);
+
     rc = plInitialize(PlServiceType_User);
     if (R_FAILED(rc))
         diagAbortWithResult(rc);
@@ -684,6 +762,10 @@ int main(int argc, char *argv[])
         JS_CFUNC_DEF("setenv", 2, js_setenv),
         JS_CFUNC_DEF("envToObject", 0, js_env_to_object),
 
+        // hid
+        JS_CFUNC_DEF("hidInitializeTouchScreen", 0, js_hid_initialize_touch_screen),
+        JS_CFUNC_DEF("hidGetTouchScreenStates", 0, js_hid_get_touch_screen_states),
+
         // console renderer
         JS_CFUNC_DEF("consoleInit", 0, js_console_init),
         JS_CFUNC_DEF("consoleExit", 0, js_console_exit),
@@ -694,6 +776,7 @@ int main(int argc, char *argv[])
 
         // filesystem
         JS_CFUNC_DEF("readDirSync", 0, js_readdir_sync),
+        JS_CFUNC_DEF("readFileSync", 0, js_read_file_sync),
 
         // applet
         JS_CFUNC_DEF("appletGetOperationMode", 0, js_appletGetOperationMode),
@@ -714,7 +797,7 @@ int main(int argc, char *argv[])
         JS_CFUNC_DEF("test", 0, js_new_test),
         JS_CFUNC_DEF("getTest", 0, js_get_test),
     };
-    JS_SetPropertyFunctionList(ctx, native_obj, function_list, 22);
+    JS_SetPropertyFunctionList(ctx, native_obj, function_list, 25);
 
     // `Switch.argv`
     JSValue argv_array = JS_NewArray(ctx);
@@ -788,6 +871,11 @@ int main(int argc, char *argv[])
         }
     }
 
+    if (print_console == NULL)
+    {
+        print_console = consoleInit(print_console);
+    }
+
     // Dispatch "exit" event
     JSValue event_obj = JS_NewObject(ctx);
     JSValue event_type = JS_NewString(ctx, "exit");
@@ -801,6 +889,11 @@ int main(int argc, char *argv[])
     }
     JS_FreeValue(ctx, ret_val);
 
+    if (print_console == NULL)
+    {
+        print_console = consoleInit(print_console);
+    }
+
     // JS_FreeValue(ctx, argv_array);
     // JS_FreeValue(ctx, switch_dispatch_func);
     // JS_FreeValue(ctx, native_obj);
@@ -810,6 +903,8 @@ int main(int argc, char *argv[])
     JS_FreeRuntime(rt);
 
     FT_Done_FreeType(ft_library);
+
+    consoleUpdate(print_console);
 
     if (print_console != NULL)
     {
