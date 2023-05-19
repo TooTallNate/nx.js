@@ -88,6 +88,7 @@ export interface Native {
 }
 
 interface Internal {
+	previousButtons: number;
 	previousTouches: Touch[];
 	touchscreenInitialized?: boolean;
 	renderingMode?: RenderingMode;
@@ -105,8 +106,10 @@ enum RenderingMode {
 }
 
 interface SwitchEventHandlersEventMap {
-	frame: Event;
+	frame: UIEvent;
 	exit: Event;
+	buttondown: UIEvent;
+	buttonup: UIEvent;
 	touchstart: TouchEvent;
 	touchmove: TouchEvent;
 	touchend: TouchEvent;
@@ -129,6 +132,7 @@ export class Switch extends EventTarget {
 		this.native = native;
 		this.env = new Env(this);
 		this[INTERNAL_SYMBOL] = {
+			previousButtons: 0,
 			previousTouches: [],
 			renderingMode: RenderingMode.Init,
 			setRenderingMode(
@@ -190,9 +194,7 @@ export class Switch extends EventTarget {
 
 	removeEventListener<K extends keyof SwitchEventHandlersEventMap>(
 		type: K,
-		listener: (
-			ev: SwitchEventHandlersEventMap[K]
-		) => any,
+		listener: (ev: SwitchEventHandlersEventMap[K]) => any,
 		options?: boolean | EventListenerOptions
 	): void;
 	removeEventListener(

@@ -30,9 +30,30 @@ function touchIsEqual(a: Touch, b: Touch) {
 	);
 }
 
-Switch.addEventListener('frame', () => {
-	const { touchscreenInitialized, previousTouches } = Switch[INTERNAL_SYMBOL];
+Switch.addEventListener('frame', (event) => {
+	const { touchscreenInitialized, previousButtons, previousTouches } =
+		Switch[INTERNAL_SYMBOL];
 	processTimers();
+
+	const buttonsDown = ~previousButtons & event.detail;
+	const buttonsUp = previousButtons & ~event.detail;
+	Switch[INTERNAL_SYMBOL].previousButtons = event.detail;
+
+	if (buttonsDown !== 0) {
+		Switch.dispatchEvent({
+			type: 'buttondown',
+			// @ts-expect-error
+			detail: buttonsDown,
+		});
+	}
+
+	if (buttonsUp !== 0) {
+		Switch.dispatchEvent({
+			type: 'buttonup',
+			// @ts-expect-error
+			detail: buttonsUp,
+		});
+	}
 
 	if (touchscreenInitialized) {
 		const touches = Switch.native.hidGetTouchScreenStates();

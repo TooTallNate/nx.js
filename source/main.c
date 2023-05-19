@@ -823,13 +823,10 @@ int main(int argc, char *argv[])
     // Main loop
     while (appletMainLoop())
     {
-        // Scan the gamepad. This should be done once for each frame
         padUpdate(&pad);
+        u64 kDown = padGetButtons(&pad);
 
-        // padGetButtonsDown returns the set of buttons that have been
-        // newly pressed in this frame compared to the previous one
-        u64 kDown = padGetButtonsDown(&pad);
-
+        // TODO: move this to JS
         if (kDown & HidNpadButton_Plus)
         {
             is_running = 0;
@@ -837,8 +834,8 @@ int main(int argc, char *argv[])
 
         // Dispatch "frame" event
         JSValue event_obj = JS_NewObject(ctx);
-        JSValue event_type = JS_NewString(ctx, "frame");
-        JS_SetPropertyStr(ctx, event_obj, "type", event_type);
+        JS_SetPropertyStr(ctx, event_obj, "type", JS_NewString(ctx, "frame"));
+        JS_SetPropertyStr(ctx, event_obj, "detail", JS_NewUint32(ctx, kDown));
         JSValue args[] = {event_obj};
         JSValue ret_val = JS_Call(ctx, switch_dispatch_func, switch_obj, 1, args);
         JS_FreeValue(ctx, event_obj);
