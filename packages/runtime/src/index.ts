@@ -30,6 +30,8 @@ function touchIsEqual(a: Touch, b: Touch) {
 	);
 }
 
+const btnPlus = 1 << 10; ///< Plus button
+
 Switch.addEventListener('frame', (event) => {
 	const { touchscreenInitialized, previousButtons, previousTouches } =
 		Switch[INTERNAL_SYMBOL];
@@ -40,19 +42,22 @@ Switch.addEventListener('frame', (event) => {
 	Switch[INTERNAL_SYMBOL].previousButtons = event.detail;
 
 	if (buttonsDown !== 0) {
-		Switch.dispatchEvent({
-			type: 'buttondown',
-			// @ts-expect-error
+		const ev = new UIEvent('buttondown', {
+			cancelable: true,
 			detail: buttonsDown,
 		});
+		Switch.dispatchEvent(ev);
+		if (!ev.defaultPrevented && buttonsDown & btnPlus) {
+			return Switch.exit();
+		}
 	}
 
 	if (buttonsUp !== 0) {
-		Switch.dispatchEvent({
-			type: 'buttonup',
-			// @ts-expect-error
-			detail: buttonsUp,
-		});
+		Switch.dispatchEvent(
+			new UIEvent('buttonup', {
+				detail: buttonsUp,
+			})
+		);
 	}
 
 	if (touchscreenInitialized) {
@@ -94,37 +99,37 @@ Switch.addEventListener('frame', (event) => {
 			}
 
 			if (startTouches.length) {
-				Switch.dispatchEvent({
-					type: 'touchstart',
-					// @ts-expect-error
-					touches,
-					changedTouches: startTouches,
-				});
+				Switch.dispatchEvent(
+					new TouchEvent('touchstart', {
+						touches,
+						changedTouches: startTouches,
+					})
+				);
 			}
 			if (changedTouches.length) {
-				Switch.dispatchEvent({
-					type: 'touchmove',
-					// @ts-expect-error
-					touches,
-					changedTouches,
-				});
+				Switch.dispatchEvent(
+					new TouchEvent('touchmove', {
+						touches,
+						changedTouches,
+					})
+				);
 			}
 			if (endTouches.length) {
-				Switch.dispatchEvent({
-					type: 'touchend',
-					// @ts-expect-error
-					touches,
-					changedTouches: endTouches,
-				});
+				Switch.dispatchEvent(
+					new TouchEvent('touchend', {
+						touches,
+						changedTouches: endTouches,
+					})
+				);
 			}
 		} else if (previousTouches.length) {
 			// No current touches, but there were previous touches, so fire "touchend"
-			Switch.dispatchEvent({
-				type: 'touchend',
-				// @ts-expect-error
-				touches: [],
-				changedTouches: previousTouches,
-			});
+			Switch.dispatchEvent(
+				new TouchEvent('touchend', {
+					touches: [],
+					changedTouches: previousTouches,
+				})
+			);
 			Switch[INTERNAL_SYMBOL].previousTouches = [];
 		}
 	}

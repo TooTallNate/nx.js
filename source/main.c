@@ -826,12 +826,6 @@ int main(int argc, char *argv[])
         padUpdate(&pad);
         u64 kDown = padGetButtons(&pad);
 
-        // TODO: move this to JS
-        if (kDown & HidNpadButton_Plus)
-        {
-            is_running = 0;
-        }
-
         // Dispatch "frame" event
         JSValue event_obj = JS_NewObject(ctx);
         JS_SetPropertyStr(ctx, event_obj, "type", JS_NewString(ctx, "frame"));

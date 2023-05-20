@@ -9,7 +9,11 @@ export const def = (key: string, value: unknown) =>
 import 'core-js/actual/url';
 import 'core-js/actual/url-search-params';
 import EventTarget from '@ungap/event-target';
+import { Event, UIEvent, TouchEvent } from './event';
 def('EventTarget', EventTarget);
+def('Event', Event);
+def('UIEvent', UIEvent);
+def('TouchEvent', TouchEvent);
 
 class TextDecoder implements globalThis.TextDecoder {
 	encoding: string;
