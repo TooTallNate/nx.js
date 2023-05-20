@@ -6,7 +6,7 @@ declare const Switch: _Switch;
 
 export class FontFaceSet extends EventTarget {
 	[INTERNAL_SYMBOL]: {
-		fonts: Set<FontFace>;
+		fonts: Set<globalThis.FontFace>;
 	};
 
 	constructor() {
@@ -16,11 +16,11 @@ export class FontFaceSet extends EventTarget {
 		};
 	}
 
-	add(font: FontFace) {
+	add(font: globalThis.FontFace) {
 		this[INTERNAL_SYMBOL].fonts.add(font);
 	}
 
-	values(): IterableIterator<FontFace> {
+	values(): IterableIterator<globalThis.FontFace> {
 		return this[INTERNAL_SYMBOL].fonts.values();
 	}
 
@@ -31,7 +31,7 @@ export class FontFaceSet extends EventTarget {
 		for (const family of desired.family) {
 			for (const fontFace of this[INTERNAL_SYMBOL].fonts) {
 				if (family === fontFace.family) {
-					return fontFace;
+					return fontFace as FontFace;
 				}
 			}
 		}
