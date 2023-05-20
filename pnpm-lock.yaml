@@ -29,6 +29,15 @@ importers:
         specifier: ^0.0.1
         version: link:../../packages/runtime
 
+  apps/snake:
+    devDependencies:
+      esbuild:
+        specifier: ^0.17.18
+        version: 0.17.18
+      nxjs-runtime:
+        specifier: ^0.0.1
+        version: link:../../packages/runtime
+
   apps/touchscreen:
     dependencies:
       color-hash:
