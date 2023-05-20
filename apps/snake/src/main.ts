@@ -31,14 +31,24 @@ function start() {
 	play();
 }
 
-function restart() {
-	pause();
-	start();
-}
-
 function pause() {
 	state = 'paused';
 	clearInterval(interval);
+
+	const boxWidth = 400;
+	const boxHeight = 200;
+	const boxX = Switch.screen.width / 2 - boxWidth / 2;
+	const boxY = Switch.screen.height / 2 - boxHeight / 2;
+	ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+	ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
+	// TODO: use `ctx.measureText()` to properly center text
+	ctx.fillStyle = 'white';
+	ctx.font = '40px system-ui';
+	let textY = boxY + 80;
+	ctx.fillText('Paused!', boxX + 125, textY);
+	ctx.font = '24px system-ui';
+	textY += 60;
+	ctx.fillText('Press + to resume...', boxX + 80, textY);
 }
 
 function play() {
@@ -83,11 +93,6 @@ function draw() {
 			gridSize
 		);
 	}
-
-	// Debugging
-	ctx.fillStyle = 'white';
-	ctx.font = '16px system-ui';
-	ctx.fillText(`Direction: ${direction}`, 10, Switch.screen.height - 10);
 }
 
 function update() {
@@ -146,11 +151,29 @@ function makeFood(): void {
 }
 
 function gameOver() {
-	clearInterval(interval);
 	state = 'gameover';
+	clearInterval(interval);
 	const score = snakeBody.length - 3;
+	const boxWidth = 500;
+	const boxHeight = 300;
+	const boxX = Switch.screen.width / 2 - boxWidth / 2;
+	const boxY = Switch.screen.height / 2 - boxHeight / 2;
+	ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+	ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
+	ctx.fillStyle = 'red';
+	// TODO: use `ctx.measureText()` to properly center text
+	ctx.font = '50px system-ui';
+	let textY = boxY + 80;
+	ctx.fillText('Game Over!', boxX + 100, textY);
 	ctx.fillStyle = 'white';
-	ctx.fillText('Game Over. Your score was ' + score, 40, 40);
+	ctx.font = '36px system-ui';
+	textY += 60;
+	ctx.fillText(`Your score: ${score}`, boxX + 140, textY);
+	ctx.font = '24px system-ui';
+	textY += 60;
+	ctx.fillText('Press A to try again...', boxX + 125, textY);
+	textY += 50;
+	ctx.fillText('Press + to exit...', boxX + 150, textY);
 }
 
 Switch.addEventListener('buttondown', (event) => {
