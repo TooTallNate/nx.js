@@ -1,16 +1,10 @@
+import { Button } from 'nxjs-constants';
+
 type Position = [number, number];
 type Direction = 'up' | 'down' | 'left' | 'right';
 type State = 'playing' | 'paused' | 'gameover';
 
 const ctx = Switch.screen.getContext('2d');
-
-// TODO: move these to `nxjs-constants`(?) module
-const HidNpadButton_A = 1 << 0; ///< A button / Right face button
-const HidNpadButton_Plus = 1 << 10; ///< Plus button
-const HidNpadButton_Left = 1 << 12; ///< D-Pad Left button
-const HidNpadButton_Up = 1 << 13; ///< D-Pad Up button
-const HidNpadButton_Right = 1 << 14; ///< D-Pad Right button
-const HidNpadButton_Down = 1 << 15; ///< D-Pad Down button
 
 const snakeBody: Position[] = [];
 const gridSize = 16;
@@ -178,33 +172,33 @@ function gameOver() {
 
 Switch.addEventListener('buttondown', (event) => {
 	if (state === 'playing') {
-		if (event.detail & HidNpadButton_Left) {
+		if (event.detail & Button.AnyLeft) {
 			if (direction !== 'right') {
 				direction = 'left';
 			}
-		} else if (event.detail & HidNpadButton_Up) {
+		} else if (event.detail & Button.AnyUp) {
 			if (direction !== 'down') {
 				direction = 'up';
 			}
-		} else if (event.detail & HidNpadButton_Right) {
+		} else if (event.detail & Button.AnyRight) {
 			if (direction !== 'left') {
 				direction = 'right';
 			}
-		} else if (event.detail & HidNpadButton_Down) {
+		} else if (event.detail & Button.AnyDown) {
 			if (direction !== 'up') {
 				direction = 'down';
 			}
-		} else if (event.detail & HidNpadButton_Plus) {
+		} else if (event.detail & Button.Plus) {
 			event.preventDefault();
 			pause();
 		}
 	} else if (state === 'paused') {
-		if (event.detail & HidNpadButton_Plus) {
+		if (event.detail & Button.Plus) {
 			event.preventDefault();
 			play();
 		}
 	} else if (state === 'gameover') {
-		if (event.detail & HidNpadButton_A) {
+		if (event.detail & Button.A) {
 			start();
 		}
 	}

@@ -30,6 +30,10 @@ importers:
         version: link:../../packages/runtime
 
   apps/snake:
+    dependencies:
+      nxjs-constants:
+        specifier: 0.0.1
+        version: link:../../packages/constants
     devDependencies:
       esbuild:
         specifier: ^0.17.18
@@ -62,6 +66,12 @@ importers:
       nxjs-runtime:
         specifier: ^0.0.1
         version: link:../../packages/runtime
+
+  packages/constants:
+    devDependencies:
+      typescript:
+        specifier: ^5.0.4
+        version: 5.0.4
 
   packages/runtime:
     dependencies:
