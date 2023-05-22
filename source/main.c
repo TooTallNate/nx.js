@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <dirent.h>
+#include <errno.h>
 #include <string.h>
 #include <inttypes.h>
 #include <switch.h>
@@ -664,9 +665,17 @@ int main(int argc, char *argv[])
 
     print_console = consoleInit(print_console);
 
+    rc = romfsInit();
+    if (R_FAILED(rc))
+    {
+        diagAbortWithResult(rc);
+    }
+
     rc = plInitialize(PlServiceType_User);
     if (R_FAILED(rc))
+    {
         diagAbortWithResult(rc);
+    }
 
     // Initialize FreeType library
     FT_Init_FreeType(&ft_library);
@@ -678,50 +687,50 @@ int main(int argc, char *argv[])
     PadState pad;
     padInitializeDefault(&pad);
 
-    // Replace `.nro` with `.js`
-    char *js_path = strdup(argv[0]);
-    size_t js_path_len = strlen(js_path);
-    char *dot_nro = strstr(js_path, ".nro");
-    if (dot_nro != NULL && (dot_nro - js_path) == js_path_len - 4)
-    {
-        strcpy(dot_nro, ".js");
-    }
-
+    // First try the `main.js` file on the RomFS
     size_t user_code_size;
+    int js_path_needs_free = 0;
+    char *js_path = "romfs:/main.js";
     char *user_code = (char *)read_file(js_path, &user_code_size);
+    if (user_code == NULL && errno == ENOENT)
+    {
+        // If no `main.js`, then try the `.js file with the
+        // matching name as the `.nro` file on the SD card
+        js_path_needs_free = 1;
+        js_path = strdup(argv[0]);
+        size_t js_path_len = strlen(js_path);
+        char *dot_nro = strstr(js_path, ".nro");
+        if (dot_nro != NULL && (dot_nro - js_path) == js_path_len - 4)
+        {
+            strcpy(dot_nro, ".js");
+        }
+
+        user_code = (char *)read_file(js_path, &user_code_size);
+    }
     if (user_code == NULL)
     {
-        printf("Failed to load JS file: %s\n", js_path);
+        printf("%s: %s\n", strerror(errno), js_path);
     }
 
     JSRuntime *rt = JS_NewRuntime();
     JSContext *ctx = JS_NewContext(rt);
 
-    // Initialize the JS runtime environment
-    rc = romfsInit();
-    if (R_FAILED(rc))
+    size_t runtime_buffer_size;
+    char *runtime_path = "romfs:/runtime.js";
+    char *runtime_buffer = (char *)read_file(runtime_path, &runtime_buffer_size);
+    if (runtime_buffer == NULL)
     {
-        diagAbortWithResult(rc);
+        printf("Failed to initialize JS runtime\n");
     }
     else
     {
-        size_t runtime_buffer_size;
-        char *runtime_path = "romfs:/runtime.js";
-        char *runtime_buffer = (char *)read_file(runtime_path, &runtime_buffer_size);
-        if (runtime_buffer == NULL)
+        JSValue runtime_init_result = JS_Eval(ctx, runtime_buffer, runtime_buffer_size, runtime_path, JS_EVAL_TYPE_GLOBAL);
+        if (JS_IsException(runtime_init_result))
         {
-            printf("Failed to initialize JS runtime\n");
+            print_js_error(ctx);
         }
-        else
-        {
-            JSValue runtime_init_result = JS_Eval(ctx, runtime_buffer, runtime_buffer_size, runtime_path, JS_EVAL_TYPE_GLOBAL);
-            if (JS_IsException(runtime_init_result))
-            {
-                print_js_error(ctx);
-            }
-            JS_FreeValue(ctx, runtime_init_result);
-            free(runtime_buffer);
-        }
+        JS_FreeValue(ctx, runtime_init_result);
+        free(runtime_buffer);
     }
 
     JS_NewClassID(&js_test_class_id);
@@ -817,7 +826,10 @@ int main(int argc, char *argv[])
         }
         JS_FreeValue(ctx, user_code_result);
         free(user_code);
-        free(js_path);
+        if (js_path_needs_free)
+        {
+            free(js_path);
+        }
     }
 
     // Main loop
