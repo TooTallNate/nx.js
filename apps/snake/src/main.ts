@@ -14,6 +14,7 @@ const boardX = Switch.screen.width / 2 - (boardWidth * gridSize) / 2;
 const boardY = Switch.screen.height / 2 - (boardHeight * gridSize) / 2;
 let food: Position = [0, 0];
 let direction: Direction = 'right';
+let directionChange: Direction | undefined;
 let interval: number = 0;
 let state: State;
 
@@ -90,6 +91,14 @@ function draw() {
 }
 
 function update() {
+	// Only allow the direction to change once per update.
+	// This is to avoid an issue where very quick direction
+	// changes might make the snake eat itself inadvertently.
+	if (directionChange) {
+		direction = directionChange;
+		directionChange = undefined;
+	}
+
 	// Move snake
 	const oldHead = snakeBody[snakeBody.length - 1];
 	const head: Position = [oldHead[0], oldHead[1]];
@@ -172,25 +181,27 @@ function gameOver() {
 
 Switch.addEventListener('buttondown', (event) => {
 	if (state === 'playing') {
-		if (event.detail & Button.AnyLeft) {
-			if (direction !== 'right') {
-				direction = 'left';
-			}
-		} else if (event.detail & Button.AnyUp) {
-			if (direction !== 'down') {
-				direction = 'up';
-			}
-		} else if (event.detail & Button.AnyRight) {
-			if (direction !== 'left') {
-				direction = 'right';
-			}
-		} else if (event.detail & Button.AnyDown) {
-			if (direction !== 'up') {
-				direction = 'down';
-			}
-		} else if (event.detail & Button.Plus) {
+		if (event.detail & Button.Plus) {
 			event.preventDefault();
 			pause();
+		} else if (!directionChange) {
+			if (event.detail & Button.AnyLeft) {
+				if (direction !== 'right') {
+					directionChange = 'left';
+				}
+			} else if (event.detail & Button.AnyUp) {
+				if (direction !== 'down') {
+					directionChange = 'up';
+				}
+			} else if (event.detail & Button.AnyRight) {
+				if (direction !== 'left') {
+					directionChange = 'right';
+				}
+			} else if (event.detail & Button.AnyDown) {
+				if (direction !== 'up') {
+					directionChange = 'down';
+				}
+			}
 		}
 	} else if (state === 'paused') {
 		if (event.detail & Button.Plus) {
