@@ -52,7 +52,7 @@ Your application code may also use this event to update the UI or render a game 
 ```ts
 let frameCount = 0;
 Switch.addEventListener('frame', () => {
-	console.log(`frame: ${frameCount++}`);
+    console.log(`frame: ${frameCount++}`);
 });
 ```
 
@@ -65,8 +65,8 @@ by hitting the Home button.
 
 ```ts
 Switch.addEventListener('exit', () => {
-	const logFile = new URL('debug.log', Switch.cwd());
-	Switch.writeFileSync(logFile, `Exited at ${new Date()}`);
+    const logFile = new URL('debug.log', Switch.cwd());
+    Switch.writeFileSync(logFile, `Exited at ${new Date()}`);
 });
 ```
 
@@ -80,9 +80,9 @@ You may use `Button` enum from the `nxjs-constants` module with a bitwise `&` to
 import { Button } from 'nxjs-constants';
 
 Switch.addEventListener('buttondown', (event) => {
-	if (event.detail & Button.A) {
-		console.log('A button pressed');
-	}
+    if (event.detail & Button.A) {
+        console.log('A button pressed');
+    }
 });
 ```
 
@@ -96,9 +96,9 @@ You may use `Button` enum from the `nxjs-constants` module with a bitwise `&` to
 import { Button } from 'nxjs-constants';
 
 Switch.addEventListener('buttonup', (event) => {
-	if (event.detail & Button.A) {
-		console.log('A button was released');
-	}
+    if (event.detail & Button.A) {
+        console.log('A button was released');
+    }
 });
 ```
 
@@ -108,8 +108,8 @@ Emitted while interacting with the touchscreen. These events follow the Web [Tou
 
 ```ts
 Switch.addEventListener('touchmove', (e) => {
-	for (const touch of e.changedTouches) {
-		console.log(`${touch.identifier}: ${touch.screenX} x ${touch.screenY}`);
-	}
+    for (const touch of e.changedTouches) {
+        console.log(`${touch.identifier}: ${touch.screenX} x ${touch.screenY}`);
+    }
 });
 ```
