@@ -4,11 +4,11 @@ The `Switch` global object contains native interfaces to interact with the Switc
 
 ## Properties
 
-#### `Switch.canvas` -> [`Canvas`](./canvas.md)
+#### `Switch.screen` -> [`Canvas`](./canvas.md)
 
 Resembles the HTML [`Canvas`](./canvas.md) object which can have draw operations performed on it.
 The `width` and `height` properties are set to the Switch screen resolution.
-Use `getContext('2d')` to get the [canvas rendering context](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D) instance.
+Use `getContext('2d')` to get the [canvas rendering context](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D) instance. See the [canvas](../apps/canvas/) application for an example of drawing to the canvas context.
 
 #### `Switch.fonts` -> [`FontFaceSet`](https://developer.mozilla.org/en-US/docs/Web/API/FontFaceSet)
 

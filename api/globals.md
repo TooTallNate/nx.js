@@ -22,7 +22,7 @@ Listed below are the officially supported Web interfaces:
 -   [`clearTimeout`](https://developer.mozilla.org/en-US/docs/Web/API/clearTimeout)
 -   [`clearInterval`](https://developer.mozilla.org/en-US/docs/Web/API/clearInterval)
 -   [`FontFace`](https://developer.mozilla.org/en-US/docs/Web/API/FontFace)
-    -   See the [`Switch.fonts`](./switch.md) property for more details.
+    -   See the [`Switch.fonts`](switch.md#switchfonts---fontfaceset) property for more details.
 -   [`EventTarget`](https://developer.mozilla.org/en-US/docs/Web/API/EventTarget)
 -   [`URL`](https://developer.mozilla.org/en-US/docs/Web/API/URL)
 -   [`URLSearchParams`](https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams)
@@ -31,3 +31,10 @@ Listed below are the officially supported Web interfaces:
     -   [`TouchEvent`](https://developer.mozilla.org/en-US/docs/Web/API/TouchEvent)
 -   [`TextDecoder`](https://developer.mozilla.org/en-US/docs/Web/API/TouchEvent)
     -   Only `utf-8` decoding is built-in. Use an npm module if you need a different encoding.
+
+The following Web interfaces are _planned_, but _not yet implemented_:
+
+-   `fetch`
+-   `Image`
+-   `Audio`
+-   Other? Create a GitHub issue if you think anything else would be useful.
