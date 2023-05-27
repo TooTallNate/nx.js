@@ -35,7 +35,7 @@ right at home.
 1. Launch the app from the homebrew loader.
 1. Profit!
 
-See the [API docs](./api/globals.md) for further details, and check out the [`apps`](./apps) directory for examples.
+See the [API docs](./docs/globals.md) for further details, and check out the [`apps`](./apps) directory for examples.
 
 ## Contributing
 

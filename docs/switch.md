@@ -61,7 +61,7 @@ Switch.addEventListener('frame', () => {
 Emitted exactly once, immediately before the application will exit. This event happens after the event loop has ended,
 so it is not possible to schedule any asynchronous work during this event. Can be used to clean up any resources
 or to save some state to the filesystem (synchronously). Note that this event will _not_ be emitted if the app is exited
-by hitting the Home button.
+by pressing the Home button.
 
 ```ts
 Switch.addEventListener('exit', () => {
@@ -73,7 +73,7 @@ Switch.addEventListener('exit', () => {
 #### `buttondown` event
 
 Emitted when any button on the controller has been pressed down since the previous frame.
-The `event.detail` property describes all buttons which are currently being pressed.
+The `event.detail` property describes all newly pressed buttons.
 You may use `Button` enum from the `nxjs-constants` module with a bitwise `&` to check for a specific button.
 
 ```ts
@@ -89,7 +89,7 @@ Switch.addEventListener('buttondown', (event) => {
 #### `buttonup` event
 
 Emitted when any button on the controller has been released since the previous frame.
-The `event.detail` property describes all buttons which are currently being pressed.
+The `event.detail` property describes all buttons which have just been released.
 You may use `Button` enum from the `nxjs-constants` module with a bitwise `&` to check for a specific button.
 
 ```ts
@@ -104,7 +104,7 @@ Switch.addEventListener('buttonup', (event) => {
 
 #### `touchstart`, `touchmove`, `touchend` events
 
-Emitted while interacting with the touchscreen. These events follow the Web [Touch events](https://developer.mozilla.org/en-US/docs/Web/API/Touch_events) standard.
+Emitted while interacting with the touchscreen. These events follow the Web [Touch events](https://developer.mozilla.org/en-US/docs/Web/API/Touch_events) standard. See the [touchscreen](../apps/touchscreen/) application for an example of utilizing touch events.
 
 ```ts
 Switch.addEventListener('touchmove', (e) => {
