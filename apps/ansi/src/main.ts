@@ -14,9 +14,9 @@ const printTime = (move = true) => {
 	console.log(
 		`${move ? `${cursor.up(1)}${erase.line}` : ''}${green(
 			'Current time:'
-		)} ${new Date()}`
+		)} ${new Date().toISOString()}`
 	);
 };
 console.log();
 printTime(false);
-setInterval(printTime, 1000);
+Switch.addEventListener('frame', () => printTime());
