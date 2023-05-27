@@ -221,7 +221,7 @@ Switch.addEventListener('buttondown', (event) => {
 
 function updateScore() {
 	ctx.fillStyle = 'black';
-	ctx.fillRect(32, 0, 250, 26);
+	ctx.fillRect(32, 0, 250, 30);
 
 	ctx.fillStyle = 'white';
 	ctx.font = '20px system-ui';
