@@ -1,3 +1,4 @@
+import { FPS } from './fps';
 import { Button } from 'nxjs-constants';
 
 type Position = [number, number];
@@ -17,12 +18,15 @@ let direction: Direction = 'right';
 let directionChange: Direction | undefined;
 let interval: number = 0;
 let state: State;
+let score = 0;
 
 function start() {
 	makeFood();
+	score = 0;
 	snakeBody.length = 0;
 	snakeBody.push([5, 5], [6, 5], [7, 5]);
 	direction = 'right';
+	updateScore();
 	play();
 }
 
@@ -53,10 +57,6 @@ function play() {
 }
 
 function draw() {
-	// Reset board
-	ctx.fillStyle = 'black';
-	ctx.fillRect(0, 0, Switch.screen.width, Switch.screen.height);
-
 	// Draw border
 	// TODO: use `strokeRect()` instead
 	ctx.fillStyle = 'white';
@@ -66,6 +66,8 @@ function draw() {
 		boardWidth * gridSize + 2,
 		boardHeight * gridSize + 2
 	);
+
+	// Reset board
 	ctx.fillStyle = 'rgb(0, 0, 70)';
 	ctx.fillRect(boardX, boardY, boardWidth * gridSize, boardHeight * gridSize);
 
@@ -128,7 +130,9 @@ function update() {
 
 	// if `head` matches the food position, then eat it
 	if (head[0] === food[0] && head[1] === food[1]) {
+		score++;
 		makeFood();
+		updateScore();
 	} else {
 		snakeBody.shift();
 	}
@@ -214,5 +218,27 @@ Switch.addEventListener('buttondown', (event) => {
 		}
 	}
 });
+
+function updateScore() {
+	ctx.fillStyle = 'black';
+	ctx.fillRect(32, 0, 250, 26);
+
+	ctx.fillStyle = 'white';
+	ctx.font = '20px system-ui';
+	ctx.fillText(`Score: ${score}`, 32, 26);
+}
+
+const fps = new FPS();
+
+fps.addEventListener('update', () => {
+	ctx.fillStyle = 'black';
+	ctx.fillRect(Switch.screen.width - 104, 0, 90, 26);
+
+	ctx.fillStyle = 'white';
+	ctx.font = '20px system-ui';
+	ctx.fillText(`FPS: ${Math.round(fps.rate)}`, Switch.screen.width - 104, 26);
+});
+
+Switch.addEventListener('frame', fps.tick);
 
 start();
