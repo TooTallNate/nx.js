@@ -117,7 +117,7 @@ jobs:
         with:
           script: |
             const { createRelease } = await import('${{ github.workspace }}/.github/scripts/create-release.mjs')
-            await createRelease({ octokit: github, context })
+            await createRelease({ github, context })
 
   debug:
     name: Debug
