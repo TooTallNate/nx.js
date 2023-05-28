@@ -4,7 +4,7 @@
     "build": "turbo run build",
     "bundle": "turbo run bundle",
     "format": "prettier --write \"**/*.{ts,js}\"",
-    "ci:version": "changeset version && pnpm install --no-frozen-lockfile",
+    "ci:version": "changeset version && node .github/scripts/cleanup-examples.mjs && pnpm install --no-frozen-lockfile",
     "ci:publish": "pnpm publish -r && node .github/scripts/create-git-tag.mjs"
   },
   "devDependencies": {
