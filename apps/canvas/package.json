@@ -1,5 +1,6 @@
 {
   "name": "nxjs-example-canvas",
+  "version": "0.0.0",
   "private": true,
   "description": "nx.js example using the web `Canvas` API",
   "scripts": {

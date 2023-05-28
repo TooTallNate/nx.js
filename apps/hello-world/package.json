@@ -1,5 +1,6 @@
 {
   "name": "nxjs-example-hello-world",
+  "version": "0.0.0",
   "private": true,
   "description": "Simple 'Hello World' app using nx.js",
   "scripts": {

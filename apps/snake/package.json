@@ -1,5 +1,6 @@
 {
   "name": "nxjs-example-snake",
+  "version": "0.0.0",
   "private": true,
   "description": "Classic 'snake' game using nx.js",
   "scripts": {
