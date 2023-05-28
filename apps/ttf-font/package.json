@@ -1,7 +1,7 @@
 {
-  "name": "nxjs-example-hello-world",
+  "name": "nxjs-example-ttf-font",
   "private": true,
-  "description": "Simple 'Hello World' app using nx.js",
+  "description": "nx.js example that uses a custom TTF font",
   "scripts": {
     "build": "esbuild --bundle --target=es2020 src/main.ts --outfile=dist/main.js"
   },

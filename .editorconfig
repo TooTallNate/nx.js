@@ -23,6 +23,7 @@ indent_size = 4
 indent_size = 8
 
 [*.md]
+indent_style = space
 trim_trailing_whitespace = false
 
 # Ideal settings - some plugins might support these.

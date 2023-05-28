@@ -11,6 +11,22 @@ importers:
         specifier: ^1.9.3
         version: 1.9.3
 
+  apps/ansi:
+    dependencies:
+      kleur:
+        specifier: ^4.1.5
+        version: 4.1.5
+      sisteransi:
+        specifier: ^1.0.5
+        version: 1.0.5
+    devDependencies:
+      esbuild:
+        specifier: ^0.17.18
+        version: 0.17.18
+      nxjs-runtime:
+        specifier: ^0.0.1
+        version: link:../../packages/runtime
+
   apps/canvas:
     devDependencies:
       esbuild:
@@ -29,15 +45,74 @@ importers:
         specifier: ^0.0.1
         version: link:../../packages/runtime
 
+  apps/snake:
+    dependencies:
+      nxjs-constants:
+        specifier: 0.0.1
+        version: link:../../packages/constants
+    devDependencies:
+      esbuild:
+        specifier: ^0.17.18
+        version: 0.17.18
+      nxjs-runtime:
+        specifier: ^0.0.1
+        version: link:../../packages/runtime
+
+  apps/touchscreen:
+    dependencies:
+      color-hash:
+        specifier: ^2.0.2
+        version: 2.0.2
+    devDependencies:
+      '@types/color-hash':
+        specifier: ^1.0.2
+        version: 1.0.2
+      esbuild:
+        specifier: ^0.17.18
+        version: 0.17.18
+      nxjs-runtime:
+        specifier: ^0.0.1
+        version: link:../../packages/runtime
+
+  apps/ttf-font:
+    devDependencies:
+      esbuild:
+        specifier: ^0.17.18
+        version: 0.17.18
+      nxjs-runtime:
+        specifier: ^0.0.1
+        version: link:../../packages/runtime
+
+  packages/constants:
+    devDependencies:
+      typescript:
+        specifier: ^5.0.4
+        version: 5.0.4
+
   packages/runtime:
     dependencies:
       '@ungap/event-target':
         specifier: ^0.2.4
         version: 0.2.4
+      color-rgba:
+        specifier: ^2.4.0
+        version: 2.4.0
       core-js:
         specifier: ^3.30.2
         version: 3.30.2
+      parse-css-font:
+        specifier: ^4.0.0
+        version: 4.0.0
+      to-px:
+        specifier: ^1.1.0
+        version: 1.1.0
     devDependencies:
+      '@types/color-rgba':
+        specifier: ^2.1.0
+        version: 2.1.0
+      '@types/to-px':
+        specifier: ^1.1.2
+        version: 1.1.2
       esbuild:
         specifier: ^0.17.18
         version: 0.17.18
@@ -245,13 +320,74 @@ packages:
     dev: true
     optional: true
 
+  /@types/color-hash@1.0.2:
+    resolution: {integrity: sha512-QJCVXSVRse+mMvzWQ8vH6AcKxtqCgHPHf5abAdGn86DEeQdUpSJnKAeCa1+hZuohaUF3l4RhigC9akRx82Bwig==}
+    dev: true
+
+  /@types/color-rgba@2.1.0:
+    resolution: {integrity: sha512-tWcJLEiKdZ3ihJdThfLCe6Kw5vo0lgGcuucGkbtzcp1zifDA1E2Z96wxeSS/r+ytpHD15NCAWabX8GV911ywCA==}
+    dev: true
+
+  /@types/to-px@1.1.2:
+    resolution: {integrity: sha512-O3OkxRVcfcrAW2wH8bCVDhs1RCGwHI77l+wDNQ8KlX0HCCwBtShKkqQByKlzIirR72D36JHNgJhYb9B69iJ2PA==}
+    dev: true
+
   /@ungap/event-target@0.2.4:
     resolution: {integrity: sha512-u9Fd3k2qfMtn+0dxbCn/y0pzQ9Ucw6lWR984CrHcbxc+WzcMkJE4VjWHWSb9At40MjwMyHCkJNXroS55Osshhw==}
+    dev: false
+
+  /color-hash@2.0.2:
+    resolution: {integrity: sha512-6exeENAqBTuIR1wIo36mR8xVVBv6l1hSLd7Qmvf6158Ld1L15/dbahR9VUOiX7GmGJBCnQyS0EY+I8x+wa7egg==}
+    dev: false
+
+  /color-name@1.1.4:
+    resolution: {integrity: sha512-dOy+3AuW3a2wNbZHIuMZpTcgjGuLU/uBL/ubcZF9OXbDo8ff4O8yVp5Bf0efS8uEoYo5q4Fx7dY9OgQGXgAsQA==}
+    dev: false
+
+  /color-parse@1.4.2:
+    resolution: {integrity: sha512-RI7s49/8yqDj3fECFZjUI1Yi0z/Gq1py43oNJivAIIDSyJiOZLfYCRQEgn8HEVAj++PcRe8AnL2XF0fRJ3BTnA==}
+    dependencies:
+      color-name: 1.1.4
+    dev: false
+
+  /color-rgba@2.4.0:
+    resolution: {integrity: sha512-Nti4qbzr/z2LbUWySr7H9dk3Rl7gZt7ihHAxlgT4Ho90EXWkjtkL1avTleu9yeGuqrt/chxTB6GKK8nZZ6V0+Q==}
+    dependencies:
+      color-parse: 1.4.2
+      color-space: 2.0.0
+    dev: false
+
+  /color-space@2.0.0:
+    resolution: {integrity: sha512-Bu8P/usGNuVWushjxcuaGSkhT+L2KX0cvgMGMTF0KJ7lFeqonhsntT68d6Yu3uwZzCmbF7KTB9EV67AGcUXhJw==}
     dev: false
 
   /core-js@3.30.2:
     resolution: {integrity: sha512-uBJiDmwqsbJCWHAwjrx3cvjbMXP7xD72Dmsn5LOJpiRmE3WbBbN5rCqQ2Qh6Ek6/eOrjlWngEynBWo4VxerQhg==}
     requiresBuild: true
+    dev: false
+
+  /css-font-size-keywords@1.0.0:
+    resolution: {integrity: sha512-Q+svMDbMlelgCfH/RVDKtTDaf5021O486ZThQPIpahnIjUkMUslC+WuOQSWTgGSrNCH08Y7tYNEmmy0hkfMI8Q==}
+    dev: false
+
+  /css-font-stretch-keywords@1.0.1:
+    resolution: {integrity: sha512-KmugPO2BNqoyp9zmBIUGwt58UQSfyk1X5DbOlkb2pckDXFSAfjsD5wenb88fNrD6fvS+vu90a/tsPpb9vb0SLg==}
+    dev: false
+
+  /css-font-style-keywords@1.0.1:
+    resolution: {integrity: sha512-0Fn0aTpcDktnR1RzaBYorIxQily85M2KXRpzmxQPgh8pxUN9Fcn00I8u9I3grNr1QXVgCl9T5Imx0ZwKU973Vg==}
+    dev: false
+
+  /css-font-weight-keywords@1.0.0:
+    resolution: {integrity: sha512-5So8/NH+oDD+EzsnF4iaG4ZFHQ3vaViePkL1ZbZ5iC/KrsCY+WHq/lvOgrtmuOQ9pBBZ1ADGpaf+A4lj1Z9eYA==}
+    dev: false
+
+  /css-list-helpers@2.0.0:
+    resolution: {integrity: sha512-9Bj8tZ0jWbAM3u/U6m/boAzAwLPwtjzFvwivr2piSvyVa3K3rChJzQy4RIHkNkKiZCHrEMWDJWtTR8UyVhdDnQ==}
+    dev: false
+
+  /css-system-font-keywords@1.0.0:
+    resolution: {integrity: sha512-1umTtVd/fXS25ftfjB71eASCrYhilmEsvDEI6wG/QplnmlfmVM5HkZ/ZX46DT5K3eblFPgLUHt5BRCb0YXkSFA==}
     dev: false
 
   /esbuild@0.17.18:
@@ -284,11 +420,42 @@ packages:
       '@esbuild/win32-x64': 0.17.18
     dev: true
 
+  /kleur@4.1.5:
+    resolution: {integrity: sha512-o+NO+8WrRiQEE4/7nwRJhN1HWpVmJm511pBHUxPLtp0BUISzlBplORYSmTclCnJvQq2tKu/sgl3xVpkc7ZWuQQ==}
+    engines: {node: '>=6'}
+    dev: false
+
+  /parse-css-font@4.0.0:
+    resolution: {integrity: sha512-lnY7dTUfjRXsSo5G5C639L8RaBBaVSgL+5hacIFKsNHzeCJQ5SFSZv1DZmc7+wZv/22PFGOq2YbaEHLdaCS/mQ==}
+    dependencies:
+      css-font-size-keywords: 1.0.0
+      css-font-stretch-keywords: 1.0.1
+      css-font-style-keywords: 1.0.1
+      css-font-weight-keywords: 1.0.0
+      css-list-helpers: 2.0.0
+      css-system-font-keywords: 1.0.0
+      unquote: 1.1.1
+    dev: false
+
+  /parse-unit@1.0.1:
+    resolution: {integrity: sha512-hrqldJHokR3Qj88EIlV/kAyAi/G5R2+R56TBANxNMy0uPlYcttx0jnMW6Yx5KsKPSbC3KddM/7qQm3+0wEXKxg==}
+    dev: false
+
   /prettier@2.8.8:
     resolution: {integrity: sha512-tdN8qQGvNjw4CHbY+XXk0JgCXn9QiF21a55rBe5LJAU+kDyC4WQn4+awm2Xfk2lQMk5fKup9XgzTZtGkjBdP9Q==}
     engines: {node: '>=10.13.0'}
     hasBin: true
     dev: true
+
+  /sisteransi@1.0.5:
+    resolution: {integrity: sha512-bLGGlR1QxBcynn2d5YmDX4MGjlZvy2MRBDRNHLJ8VI6l6+9FUiyTFNJ0IveOSP0bcXgVDPRcfGqA0pjaqUpfVg==}
+    dev: false
+
+  /to-px@1.1.0:
+    resolution: {integrity: sha512-bfg3GLYrGoEzrGoE05TAL/Uw+H/qrf2ptr9V3W7U0lkjjyYnIfgxmVLUfhQ1hZpIQwin81uxhDjvUkDYsC0xWw==}
+    dependencies:
+      parse-unit: 1.0.1
+    dev: false
 
   /turbo-darwin-64@1.9.3:
     resolution: {integrity: sha512-0dFc2cWXl82kRE4Z+QqPHhbEFEpUZho1msHXHWbz5+PqLxn8FY0lEVOHkq5tgKNNEd5KnGyj33gC/bHhpZOk5g==}
@@ -356,3 +523,7 @@ packages:
     engines: {node: '>=12.20'}
     hasBin: true
     dev: true
+
+  /unquote@1.1.1:
+    resolution: {integrity: sha512-vRCqFv6UhXpWxZPyGDh/F3ZpNv8/qo7w6iufLpQg9aKnQ71qM4B5KiI7Mia9COcjEhrO9LueHpMYjYzsWH3OIg==}
+    dev: false

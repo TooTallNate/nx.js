@@ -3,6 +3,7 @@ set -euo pipefail
 
 # Build JS runtime
 pnpm bundle
+mkdir -p romfs
 cp -v ./packages/runtime/runtime.js ./romfs/runtime.js
 
 # Build packages and example apps

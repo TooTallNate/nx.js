@@ -1,7 +1,7 @@
 {
-  "name": "nxjs-example-hello-world",
+  "name": "nxjs-example-ansi",
   "private": true,
-  "description": "Simple 'Hello World' app using nx.js",
+  "description": "nx.js example application with colors and cursor movement using ANSI escapes",
   "scripts": {
     "build": "esbuild --bundle --target=es2020 src/main.ts --outfile=dist/main.js"
   },
@@ -9,5 +9,9 @@
   "devDependencies": {
     "esbuild": "^0.17.18",
     "nxjs-runtime": "^0.0.1"
+  },
+  "dependencies": {
+    "kleur": "^4.1.5",
+    "sisteransi": "^1.0.5"
   }
 }

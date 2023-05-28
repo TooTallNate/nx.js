@@ -1,11 +1,14 @@
 {
-  "name": "nxjs-example-hello-world",
+  "name": "nxjs-example-snake",
   "private": true,
-  "description": "Simple 'Hello World' app using nx.js",
+  "description": "Classic 'snake' game using nx.js",
   "scripts": {
     "build": "esbuild --bundle --target=es2020 src/main.ts --outfile=dist/main.js"
   },
   "license": "MIT",
+  "dependencies": {
+    "nxjs-constants": "0.0.1"
+  },
   "devDependencies": {
     "esbuild": "^0.17.18",
     "nxjs-runtime": "^0.0.1"

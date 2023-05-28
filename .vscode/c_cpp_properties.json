@@ -7,15 +7,16 @@
                 "${workspaceFolder}/lib/quickjs/include/**",
                 "/opt/devkitpro/libnx/include/**",
                 "/opt/devkitpro/portlibs/switch/include/**",
-                "/opt/devkitpro/devkitA64/include/**",
-                "/opt/devkitpro/devkitA64/aarch64-none-elf/include/**"
+                "/opt/devkitpro/portlibs/switch/include/cairo/**"
             ],
             "defines": [],
-            "compilerPath": "/opt/devkitpro/devkitA64/bin/aarch64-none-elf-gcc",
+            "macFrameworkPath": [
+                "/Library/Developer/CommandLineTools/SDKs/MacOSX13.sdk/System/Library/Frameworks"
+            ],
+            "compilerPath": "/opt/homebrew/opt/llvm/bin/clang",
             "cStandard": "c17",
             "cppStandard": "c++14",
-            "intelliSenseMode": "macos-gcc-x64",
-            "configurationProvider": "ms-vscode.makefile-tools"
+            "intelliSenseMode": "macos-clang-arm64"
         }
     ],
     "version": 4

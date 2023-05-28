@@ -1,6 +1,12 @@
 import { Canvas, CanvasRenderingContext2D } from './canvas';
+import { FontFaceSet } from './font';
 
 export const INTERNAL_SYMBOL = Symbol('Internal');
+
+export type Opaque<T> = { __type: T };
+export type CanvasRenderingContext2DState =
+	Opaque<'CanvasRenderingContext2DState'>;
+export type FontFaceState = Opaque<'FontFaceState'>;
 
 export enum AppletOperationMode {
 	Handheld = 0, ///< Handheld
@@ -13,17 +19,83 @@ export interface Native {
 	getenv: (name: string) => string;
 	setenv: (name: string, value: string) => void;
 	envToObject: () => Record<string, string>;
-	readDirSync: (path: string) => string[];
 	consoleInit: () => void;
 	consoleExit: () => void;
-	framebufferInit: (buf: ArrayBuffer) => void;
+	framebufferInit: (buf: CanvasRenderingContext2DState) => void;
 	framebufferExit: () => void;
 	appletGetOperationMode: () => AppletOperationMode;
+
+	// hid
+	hidInitializeTouchScreen: () => void;
+	hidGetTouchScreenStates: () => Touch[] | undefined;
+
+	// fs
+	readDirSync: (path: string) => string[];
+	readFileSync: (path: string) => ArrayBuffer;
+
+	// font
+	newFontFace: (data: ArrayBuffer) => FontFaceState;
+	getSystemFont: () => ArrayBuffer;
+
+	// canvas
+	canvasNewContext: (
+		width: number,
+		height: number
+	) => CanvasRenderingContext2DState;
+	canvasSetFillStyle: (
+		ctx: CanvasRenderingContext2DState,
+		r: number,
+		g: number,
+		b: number,
+		a: number
+	) => void;
+	canvasSetFont: (
+		ctx: CanvasRenderingContext2DState,
+		face: FontFaceState,
+		fontSize: number
+	) => void;
+	canvasFillRect(
+		ctx: CanvasRenderingContext2DState,
+		x: number,
+		y: number,
+		w: number,
+		h: number
+	): void;
+	canvasFillText(
+		ctx: CanvasRenderingContext2DState,
+		text: string,
+		x: number,
+		y: number,
+		maxWidth?: number | undefined
+	): void;
+	canvasGetImageData: (
+		ctx: CanvasRenderingContext2DState,
+		sx: number,
+		sy: number,
+		sw: number,
+		sh: number
+	) => ArrayBuffer;
+	canvasPutImageData: (
+		ctx: CanvasRenderingContext2DState,
+		source: ArrayBuffer,
+		dx: number,
+		dy: number,
+		dirtyX: number,
+		dirtyY: number,
+		dirtyWidth: number,
+		dirtyHeight: number
+	) => void;
 }
 
 interface Internal {
+	previousButtons: number;
+	previousTouches: Touch[];
+	touchscreenInitialized?: boolean;
 	renderingMode?: RenderingMode;
-	setRenderingMode: (mode: RenderingMode, buf?: ArrayBuffer) => void;
+	setRenderingMode: (
+		mode: RenderingMode,
+		ctx?: CanvasRenderingContext2DState
+	) => void;
 	cleanup: () => void;
 }
 
@@ -33,10 +105,21 @@ enum RenderingMode {
 	Framebuffer,
 }
 
+interface SwitchEventHandlersEventMap {
+	frame: UIEvent;
+	exit: Event;
+	buttondown: UIEvent;
+	buttonup: UIEvent;
+	touchstart: TouchEvent;
+	touchmove: TouchEvent;
+	touchend: TouchEvent;
+}
+
 export class Switch extends EventTarget {
 	env: Env;
 	screen: Canvas;
 	native: Native;
+	fonts: FontFaceSet;
 	[INTERNAL_SYMBOL]: Internal;
 
 	// Populated by the host process
@@ -49,14 +132,19 @@ export class Switch extends EventTarget {
 		this.native = native;
 		this.env = new Env(this);
 		this[INTERNAL_SYMBOL] = {
+			previousButtons: 0,
+			previousTouches: [],
 			renderingMode: RenderingMode.Init,
-			setRenderingMode(mode: RenderingMode, buf?: ArrayBuffer) {
+			setRenderingMode(
+				mode: RenderingMode,
+				ctx?: CanvasRenderingContext2DState
+			) {
 				if (mode === RenderingMode.Console) {
 					native.framebufferExit();
 					native.consoleInit();
-				} else if (mode === RenderingMode.Framebuffer && buf) {
+				} else if (mode === RenderingMode.Framebuffer && ctx) {
 					native.consoleExit();
-					native.framebufferInit(buf);
+					native.framebufferInit(ctx);
 				} else {
 					throw new Error('Unsupported rendering mode');
 				}
@@ -64,7 +152,7 @@ export class Switch extends EventTarget {
 			},
 			cleanup() {
 				if (this.renderingMode === RenderingMode.Console) {
-					native.consoleExit();
+					//native.consoleExit();
 				} else if (this.renderingMode === RenderingMode.Framebuffer) {
 					native.framebufferExit();
 				}
@@ -73,6 +161,53 @@ export class Switch extends EventTarget {
 
 		// Framebuffer mode uses the HTML5 Canvas API
 		this.screen = new Screen(this, 1280, 720);
+
+		this.fonts = new FontFaceSet();
+	}
+
+	addEventListener<K extends keyof SwitchEventHandlersEventMap>(
+		type: K,
+		listener: (ev: SwitchEventHandlersEventMap[K]) => any,
+		options?: boolean | AddEventListenerOptions
+	): void;
+	addEventListener(
+		type: string,
+		listener: EventListenerOrEventListenerObject,
+		options?: boolean | AddEventListenerOptions
+	): void;
+	addEventListener(
+		type: string,
+		callback: EventListenerOrEventListenerObject | null,
+		options?: boolean | AddEventListenerOptions | undefined
+	): void {
+		if (
+			!this[INTERNAL_SYMBOL].touchscreenInitialized &&
+			(type === 'touchstart' ||
+				type === 'touchmove' ||
+				type === 'touchend')
+		) {
+			this.native.hidInitializeTouchScreen();
+			this[INTERNAL_SYMBOL].touchscreenInitialized = true;
+		}
+		super.addEventListener(type, callback, options);
+	}
+
+	removeEventListener<K extends keyof SwitchEventHandlersEventMap>(
+		type: K,
+		listener: (ev: SwitchEventHandlersEventMap[K]) => any,
+		options?: boolean | EventListenerOptions
+	): void;
+	removeEventListener(
+		type: string,
+		listener: EventListenerOrEventListenerObject,
+		options?: boolean | EventListenerOptions
+	): void;
+	removeEventListener(
+		type: string,
+		listener: EventListenerOrEventListenerObject,
+		options?: boolean | EventListenerOptions
+	): void {
+		super.removeEventListener(type, listener, options);
 	}
 
 	/**
@@ -89,15 +224,22 @@ export class Switch extends EventTarget {
 	/**
 	 * Returns the current working directory as a URL instance.
 	 */
-	cwd(): URL {
+	cwd() {
 		return new URL(`${this.native.cwd()}/`);
 	}
 
 	/**
 	 * Returns an array of the file names within `path`.
 	 */
-	readDirSync(path: string | URL): string[] {
+	readDirSync(path: string | URL) {
 		return this.native.readDirSync(String(path));
+	}
+
+	/**
+	 * Returns an `ArrayBuffer` containing the contents of the file at `path`.
+	 */
+	readFileSync(path: string | URL) {
+		return this.native.readFileSync(String(path));
 	}
 }
 
@@ -124,13 +266,6 @@ export class Env {
 }
 
 class Screen extends Canvas {
-	[INTERNAL_SYMBOL]: Switch;
-
-	constructor(s: Switch, width: number, height: number) {
-		super(width, height);
-		this[INTERNAL_SYMBOL] = s;
-	}
-
 	getContext(contextId: '2d'): CanvasRenderingContext2D {
 		const ctx = super.getContext(contextId);
 		const Switch = this[INTERNAL_SYMBOL];
@@ -138,7 +273,7 @@ class Screen extends Canvas {
 		if (internal.renderingMode !== RenderingMode.Framebuffer) {
 			internal.setRenderingMode(
 				RenderingMode.Framebuffer,
-				ctx[INTERNAL_SYMBOL].buffer
+				ctx[INTERNAL_SYMBOL]
 			);
 		}
 		return ctx;
