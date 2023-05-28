@@ -95,10 +95,16 @@ jobs:
     needs: [build, release]
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+
       - name: Create GitHub Release
         uses: actions/github-script@v6
         with:
           script: |
+            console.log(__dirname)
+            console.log(require('fs').readdirSync(__dirname))
+            console.log(require('fs').readdirSync(__dirname + '.github'))
             const { createRelease } = await import('${{ github.workspace }}/.github/scripts/create-release.mjs')
             await createRelease({ octokit: github, context })
 
