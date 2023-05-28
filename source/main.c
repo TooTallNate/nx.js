@@ -466,6 +466,23 @@ static JSValue js_canvas_set_font(JSContext *ctx, JSValueConst this_val, int arg
     return JS_UNDEFINED;
 }
 
+static JSValue js_canvas_set_line_width(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    CanvasContext2D *context = JS_GetOpaque2(ctx, argv[0], js_canvas_context_class_id);
+    if (!context)
+    {
+        return JS_EXCEPTION;
+    }
+    double n;
+    if (JS_ToFloat64(ctx, &n, argv[1]))
+    {
+        JS_ThrowTypeError(ctx, "invalid input");
+        return JS_EXCEPTION;
+    }
+    cairo_set_line_width(context->ctx, n);
+    return JS_UNDEFINED;
+}
+
 static JSValue js_canvas_fill_rect(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     CanvasContext2D *context = JS_GetOpaque2(ctx, argv[0], js_canvas_context_class_id);
@@ -514,6 +531,27 @@ static JSValue js_canvas_fill_text(JSContext *ctx, JSValueConst this_val, int ar
     cairo_show_text(context->ctx, text);
     JS_FreeCString(ctx, text);
     return JS_UNDEFINED;
+}
+
+static JSValue js_canvas_measure_text(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    CanvasContext2D *context = JS_GetOpaque2(ctx, argv[0], js_canvas_context_class_id);
+    if (!context)
+    {
+        return JS_EXCEPTION;
+    }
+    const char *text = JS_ToCString(ctx, argv[1]);
+    cairo_text_extents_t extents;
+    cairo_text_extents(context->ctx, text, &extents);
+    JS_FreeCString(ctx, text);
+    JSValue obj = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, obj, "xBearing", JS_NewFloat64(ctx, extents.x_bearing));
+    JS_SetPropertyStr(ctx, obj, "yBearing", JS_NewFloat64(ctx, extents.y_bearing));
+    JS_SetPropertyStr(ctx, obj, "xAdvance", JS_NewFloat64(ctx, extents.x_advance));
+    JS_SetPropertyStr(ctx, obj, "yAdvance", JS_NewFloat64(ctx, extents.y_advance));
+    JS_SetPropertyStr(ctx, obj, "width", JS_NewFloat64(ctx, extents.width));
+    JS_SetPropertyStr(ctx, obj, "height", JS_NewFloat64(ctx, extents.height));
+    return obj;
 }
 
 static JSValue js_canvas_get_image_data(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -796,17 +834,19 @@ int main(int argc, char *argv[])
 
         // canvas
         JS_CFUNC_DEF("canvasNewContext", 0, js_canvas_new_context),
+        JS_CFUNC_DEF("canvasSetLineWidth", 0, js_canvas_set_line_width),
         JS_CFUNC_DEF("canvasSetFillStyle", 0, js_canvas_set_fill_style),
         JS_CFUNC_DEF("canvasSetFont", 0, js_canvas_set_font),
         JS_CFUNC_DEF("canvasFillRect", 0, js_canvas_fill_rect),
         JS_CFUNC_DEF("canvasFillText", 0, js_canvas_fill_text),
+        JS_CFUNC_DEF("canvasMeasureText", 0, js_canvas_measure_text),
         JS_CFUNC_DEF("canvasGetImageData", 0, js_canvas_get_image_data),
         JS_CFUNC_DEF("canvasPutImageData", 0, js_canvas_put_image_data),
 
         JS_CFUNC_DEF("test", 0, js_new_test),
         JS_CFUNC_DEF("getTest", 0, js_get_test),
     };
-    JS_SetPropertyFunctionList(ctx, native_obj, function_list, 25);
+    JS_SetPropertyFunctionList(ctx, native_obj, function_list, 27);
 
     // `Switch.argv`
     JSValue argv_array = JS_NewArray(ctx);

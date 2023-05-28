@@ -71,6 +71,9 @@ export class CanvasRenderingContext2D
 		CanvasImageData,
 		CanvasRect,
 		CanvasText,
+		CanvasDrawPath,
+		CanvasPath,
+		CanvasPathDrawingStyles,
 		CanvasFillStrokeStyles,
 		CanvasTextDrawingStyles
 {
@@ -82,6 +85,12 @@ export class CanvasRenderingContext2D
 	fontKerning: CanvasFontKerning;
 	textAlign: CanvasTextAlign;
 	textBaseline: CanvasTextBaseline;
+
+	// TODO
+	lineCap!: CanvasLineCap;
+	lineDashOffset!: number;
+	lineJoin!: CanvasLineJoin;
+	miterLimit!: number;
 
 	constructor(canvas: Canvas) {
 		const { native } = canvas[INTERNAL_SYMBOL];
@@ -96,6 +105,152 @@ export class CanvasRenderingContext2D
 		this.fontKerning = 'auto';
 		this.textAlign = 'left';
 		this.textBaseline = 'alphabetic';
+	}
+	arc(
+		x: number,
+		y: number,
+		radius: number,
+		startAngle: number,
+		endAngle: number,
+		counterclockwise?: boolean | undefined
+	): void {
+		throw new Error('Method not implemented.');
+	}
+	arcTo(
+		x1: number,
+		y1: number,
+		x2: number,
+		y2: number,
+		radius: number
+	): void {
+		throw new Error('Method not implemented.');
+	}
+	bezierCurveTo(
+		cp1x: number,
+		cp1y: number,
+		cp2x: number,
+		cp2y: number,
+		x: number,
+		y: number
+	): void {
+		throw new Error('Method not implemented.');
+	}
+	closePath(): void {
+		throw new Error('Method not implemented.');
+	}
+	ellipse(
+		x: number,
+		y: number,
+		radiusX: number,
+		radiusY: number,
+		rotation: number,
+		startAngle: number,
+		endAngle: number,
+		counterclockwise?: boolean | undefined
+	): void {
+		throw new Error('Method not implemented.');
+	}
+	lineTo(x: number, y: number): void {
+		throw new Error('Method not implemented.');
+	}
+	moveTo(x: number, y: number): void {
+		throw new Error('Method not implemented.');
+	}
+	quadraticCurveTo(cpx: number, cpy: number, x: number, y: number): void {
+		throw new Error('Method not implemented.');
+	}
+	rect(x: number, y: number, w: number, h: number): void {
+		throw new Error('Method not implemented.');
+	}
+	roundRect(
+		x: number,
+		y: number,
+		w: number,
+		h: number,
+		radii?: number | DOMPointInit | (number | DOMPointInit)[] | undefined
+	): void;
+	roundRect(
+		x: number,
+		y: number,
+		w: number,
+		h: number,
+		radii?:
+			| number
+			| DOMPointInit
+			| Iterable<number | DOMPointInit>
+			| undefined
+	): void;
+	roundRect(
+		x: unknown,
+		y: unknown,
+		w: unknown,
+		h: unknown,
+		radii?: unknown
+	): void {
+		throw new Error('Method not implemented.');
+	}
+	beginPath(): void {
+		throw new Error('Method not implemented.');
+	}
+	clip(fillRule?: CanvasFillRule | undefined): void;
+	clip(path: Path2D, fillRule?: CanvasFillRule | undefined): void;
+	clip(path?: unknown, fillRule?: unknown): void {
+		throw new Error('Method not implemented.');
+	}
+	fill(fillRule?: CanvasFillRule | undefined): void;
+	fill(path: Path2D, fillRule?: CanvasFillRule | undefined): void;
+	fill(path?: unknown, fillRule?: unknown): void {
+		throw new Error('Method not implemented.');
+	}
+	isPointInPath(
+		x: number,
+		y: number,
+		fillRule?: CanvasFillRule | undefined
+	): boolean;
+	isPointInPath(
+		path: Path2D,
+		x: number,
+		y: number,
+		fillRule?: CanvasFillRule | undefined
+	): boolean;
+	isPointInPath(
+		path: unknown,
+		x: unknown,
+		y?: unknown,
+		fillRule?: unknown
+	): boolean {
+		throw new Error('Method not implemented.');
+	}
+	isPointInStroke(x: number, y: number): boolean;
+	isPointInStroke(path: Path2D, x: number, y: number): boolean;
+	isPointInStroke(path: unknown, x: unknown, y?: unknown): boolean {
+		throw new Error('Method not implemented.');
+	}
+	stroke(): void;
+	stroke(path: Path2D): void;
+	stroke(path?: unknown): void {
+		throw new Error('Method not implemented.');
+	}
+
+	getLineDash(): number[] {
+		throw new Error('Method not implemented.');
+	}
+
+	setLineDash(segments: number[]): void;
+	setLineDash(segments: Iterable<number>): void;
+	setLineDash(segments: Iterable<number>): void {
+		throw new Error('Method not implemented.');
+	}
+
+	get lineWidth(): number {
+		throw new Error('Method not implemented.');
+	}
+
+	set lineWidth(v: number) {
+		this.canvas[INTERNAL_SYMBOL].native.canvasSetLineWidth(
+			this[INTERNAL_SYMBOL],
+			v
+		);
 	}
 
 	get fillStyle(): string | CanvasGradient | CanvasPattern {
@@ -167,7 +322,8 @@ export class CanvasRenderingContext2D
 	}
 
 	measureText(text: string): TextMetrics {
-		throw new Error('Method not implemented.');
+		const { native } = this.canvas[INTERNAL_SYMBOL];
+		return native.canvasMeasureText(this[INTERNAL_SYMBOL], text);
 	}
 
 	strokeText(

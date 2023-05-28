@@ -38,22 +38,23 @@ export interface Native {
 	getSystemFont: () => ArrayBuffer;
 
 	// canvas
-	canvasNewContext: (
+	canvasNewContext(
 		width: number,
 		height: number
-	) => CanvasRenderingContext2DState;
-	canvasSetFillStyle: (
+	): CanvasRenderingContext2DState;
+	canvasSetLineWidth(ctx: CanvasRenderingContext2DState, n: number): void;
+	canvasSetFillStyle(
 		ctx: CanvasRenderingContext2DState,
 		r: number,
 		g: number,
 		b: number,
 		a: number
-	) => void;
-	canvasSetFont: (
+	): void;
+	canvasSetFont(
 		ctx: CanvasRenderingContext2DState,
 		face: FontFaceState,
 		fontSize: number
-	) => void;
+	): void;
 	canvasFillRect(
 		ctx: CanvasRenderingContext2DState,
 		x: number,
@@ -68,14 +69,15 @@ export interface Native {
 		y: number,
 		maxWidth?: number | undefined
 	): void;
-	canvasGetImageData: (
+	canvasMeasureText(ctx: CanvasRenderingContext2DState, text: string): any;
+	canvasGetImageData(
 		ctx: CanvasRenderingContext2DState,
 		sx: number,
 		sy: number,
 		sw: number,
 		sh: number
-	) => ArrayBuffer;
-	canvasPutImageData: (
+	): ArrayBuffer;
+	canvasPutImageData(
 		ctx: CanvasRenderingContext2DState,
 		source: ArrayBuffer,
 		dx: number,
@@ -84,7 +86,7 @@ export interface Native {
 		dirtyY: number,
 		dirtyWidth: number,
 		dirtyHeight: number
-	) => void;
+	): void;
 }
 
 interface Internal {
