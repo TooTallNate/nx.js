@@ -106,7 +106,7 @@ export async function createRelease({ octokit, context }) {
 	const workflow = await findWorkflowForSha({
 		octokit,
 		context,
-		name: 'Build',
+		name: 'CI',
 	});
 	const artifact = await findArtifactForWorkflow({
 		octokit,
