@@ -80,8 +80,8 @@ You may use `Button` enum from the `nxjs-constants` module with a bitwise `&` to
 import { Button } from 'nxjs-constants';
 
 Switch.addEventListener('buttondown', (event) => {
-    if (event.detail & Button.A) {
-        console.log('A button pressed');
+    if (event.detail & Button.B) {
+        console.log('Button "B" pressed');
     }
 });
 ```
@@ -96,8 +96,8 @@ You may use `Button` enum from the `nxjs-constants` module with a bitwise `&` to
 import { Button } from 'nxjs-constants';
 
 Switch.addEventListener('buttonup', (event) => {
-    if (event.detail & Button.A) {
-        console.log('A button was released');
+    if (event.detail & Button.B) {
+        console.log('Button "B" released');
     }
 });
 ```
