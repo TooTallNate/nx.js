@@ -108,6 +108,9 @@ export async function createRelease({ github, context }) {
 		context,
 		name: 'CI',
 	});
+  console.log('Workflow ID', workflow.id);
+  await new Promise(r => setTimeout(r, 60 * 1000));
+
 	const artifact = await findArtifactForWorkflow({
 		github,
 		context,
