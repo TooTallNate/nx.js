@@ -1,5 +1,11 @@
 # nxjs-runtime
 
+## 0.0.5
+
+### Patch Changes
+
+- 4bc3271: .
+
 ## 0.0.4
 
 ### Patch Changes
