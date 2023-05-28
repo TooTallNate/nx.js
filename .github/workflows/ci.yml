@@ -91,7 +91,7 @@ jobs:
 
   gh-release:
     name: Create GitHub Release
-    if: needs.release.outputs.hasChangesets == 'false'
+    if: needs.release.outputs.published == 'true'
     needs: [build, release]
     runs-on: ubuntu-latest
     steps:
