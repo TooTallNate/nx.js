@@ -1,12 +1,7 @@
 import { execSync } from 'child_process';
-import { readFileSync } from 'node:fs';
+import { getGitTag } from './create-release.mjs';
 
-const packageJsonUrl = new URL(
-	'../../packages/runtime/package.json',
-	import.meta.url
-);
-const { version } = JSON.parse(readFileSync(packageJsonUrl, 'utf8'));
-const tag = `v${version}`;
+const tag = getGitTag();
 try {
 	execSync(`git tag ${tag}`, { stdio: 'pipe' });
 	console.log(`Created git tag "${tag}"`);

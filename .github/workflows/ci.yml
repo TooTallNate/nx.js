@@ -1,0 +1,102 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - '!*'
+  pull_request:
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+  build:
+    name: Build `nxjs.nro`
+    runs-on: ubuntu-latest
+    container: ghcr.io/tootallnate/pacman-packages:nxjs
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8.5.0
+
+      - name: Setup Node.js 20.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20.x
+          cache: 'pnpm'
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Bundle `runtime.js`
+        run: pnpm bundle
+
+      - name: Copy `runtime.js` to RomFS
+        run: mkdir -p ./romfs && cp -v ./packages/runtime/runtime.js ./romfs/runtime.js
+
+      - name: Build `nxjs.nro`
+        run: make V=1
+      
+      - uses: actions/upload-artifact@v3
+        with:
+          name: nxjs.nro
+          path: ./nxjs.nro
+
+  release:
+    name: Release
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    outputs:
+      published: ${{ steps.changesets.outputs.published }}
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+
+      - name: Fetch git tags
+        run: git fetch origin 'refs/tags/*:refs/tags/*'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8.5.0
+
+      - name: Setup Node.js 20.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20.x
+          cache: 'pnpm'
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Packages
+        run: pnpm build
+
+      - name: Create Release Pull Request or Publish to npm
+        id: changesets
+        uses: changesets/action@v1
+        with:
+          version: pnpm ci:version
+          publish: pnpm ci:publish
+          createGithubReleases: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  gh-release:
+    name: Create GitHub Release
+    if: github.repository == 'TooTallNate/nx.js' && needs.release.outputs.published == 'true'
+    needs: [build, release]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create GitHub Release
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { createRelease } = await import('${{ github.workspace }}/.github/scripts/create-release.mjs')
+            await createRelease({ octokit: github, context })
