@@ -1,29 +1,5 @@
 import { readFileSync } from 'node:fs';
 
-async function findWorkflowForSha({ github, context, name }) {
-	const {
-		sha,
-		repo: { owner, repo },
-	} = context;
-
-	// Get the workflow runs for the repository
-	const response = await github.rest.actions.listWorkflowRunsForRepo({
-		owner,
-		repo,
-	});
-
-	// Find the workflow run with the matching commit SHA
-	const workflowRun = response.data.workflow_runs.find(
-		(run) => run.head_sha === sha && run.name === name
-	);
-
-	if (!workflowRun) {
-		throw new Error(`Could not find "${name}" workflow for SHA ${sha}`);
-	}
-
-	return workflowRun;
-}
-
 export function getGitTag() {
 	const packageJsonUrl = new URL(
 		'../../packages/runtime/package.json',
@@ -34,13 +10,9 @@ export function getGitTag() {
 }
 
 export async function createRelease({ github, context }) {
-	const workflow = await findWorkflowForSha({
-		github,
-		context,
-		name: 'CI',
-	});
-  console.log('Workflow ID', workflow.id);
-  await new Promise(r => setTimeout(r, 60 * 1000));
+	const {
+		repo: { owner, repo },
+	} = context;
 
 	const nxjsNroUrl = new URL('../../nxjs.nro', import.meta.url);
 	const nxjsNroBuffer = readFileSync(nxjsNroUrl)
