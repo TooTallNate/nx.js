@@ -109,11 +109,3 @@ jobs:
           script: |
             const { createRelease } = await import('${{ github.workspace }}/.github/scripts/create-release.mjs')
             await createRelease({ github, context })
-
-  debug:
-    name: Debug
-    needs: [build, release]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Debug
-        run: echo published "${{ needs.release.outputs.published }}" && echo hasChangesets "${{ needs.release.outputs.hasChangesets }}"

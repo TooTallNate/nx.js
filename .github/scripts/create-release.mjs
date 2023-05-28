@@ -15,7 +15,7 @@ export async function createRelease({ github, context }) {
 	} = context;
 
 	const nxjsNroUrl = new URL('../../nxjs.nro', import.meta.url);
-	const nxjsNroBuffer = readFileSync(nxjsNroUrl)
+	const nxjsNroBuffer = readFileSync(nxjsNroUrl);
 
 	const tag = getGitTag();
 	const releaseName = `nx.js ${tag}`;
