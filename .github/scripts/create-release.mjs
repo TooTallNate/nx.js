@@ -1,14 +1,14 @@
 import yauzl from 'yauzl';
 import { readFileSync } from 'node:fs';
 
-async function findWorkflowForSha({ octokit, context, name }) {
+async function findWorkflowForSha({ github, context, name }) {
 	const {
 		sha,
 		repo: { owner, repo },
 	} = context;
 
 	// Get the workflow runs for the repository
-	const response = await octokit.actions.listWorkflowRunsForRepo({
+	const response = await github.rest.actions.listWorkflowRunsForRepo({
 		owner,
 		repo,
 	});
@@ -25,13 +25,13 @@ async function findWorkflowForSha({ octokit, context, name }) {
 	return workflowRun;
 }
 
-async function findArtifactForWorkflow({ octokit, context, workflow, name }) {
+async function findArtifactForWorkflow({ github, context, workflow, name }) {
 	const {
 		repo: { owner, repo },
 	} = context;
 
 	// Get the artifact details
-	const response = await octokit.actions.listWorkflowRunArtifacts({
+	const response = await github.rest.actions.listWorkflowRunArtifacts({
 		owner,
 		repo,
 		run_id: workflow.id,
@@ -51,13 +51,13 @@ async function findArtifactForWorkflow({ octokit, context, workflow, name }) {
 	return artifact;
 }
 
-async function extractArtifact({ octokit, context, artifact }) {
+async function extractArtifact({ github, context, artifact }) {
 	const {
 		repo: { owner, repo },
 	} = context;
 
 	// Download the artifact file
-	const artifactResponse = await octokit.actions.downloadArtifact({
+	const artifactResponse = await github.rest.actions.downloadArtifact({
 		owner,
 		repo,
 		artifact_id: artifact.id,
@@ -102,19 +102,19 @@ export function getGitTag() {
 	return `v${version}`;
 }
 
-export async function createRelease({ octokit, context }) {
+export async function createRelease({ github, context }) {
 	const workflow = await findWorkflowForSha({
-		octokit,
+		github,
 		context,
 		name: 'CI',
 	});
 	const artifact = await findArtifactForWorkflow({
-		octokit,
+		github,
 		context,
 		workflow,
 		name: 'nxjs.nro',
 	});
-	const nxjsNroBuffer = await extractArtifact({ octokit, context, artifact });
+	const nxjsNroBuffer = await extractArtifact({ github, context, artifact });
 
 	const tag = getGitTag();
 	const releaseName = `nx.js ${tag}`;
@@ -123,7 +123,7 @@ export async function createRelease({ octokit, context }) {
 	const releaseBody = undefined;
 
 	// Create the release
-	const releaseResponse = await octokit.repos.createRelease({
+	const releaseResponse = await github.rest.repos.createRelease({
 		owner,
 		repo,
 		tag_name: tag,
@@ -137,7 +137,7 @@ export async function createRelease({ octokit, context }) {
 	);
 
 	// Upload the file to the release
-	const uploadResponse = await octokit.repos.uploadReleaseAsset({
+	const uploadResponse = await github.rest.repos.uploadReleaseAsset({
 		owner,
 		repo,
 		release_id: releaseResponse.data.id,
