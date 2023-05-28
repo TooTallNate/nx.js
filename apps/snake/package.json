@@ -8,10 +8,10 @@
   },
   "license": "MIT",
   "dependencies": {
-    "nxjs-constants": "0.0.1"
+    "nxjs-constants": "0.0.2"
   },
   "devDependencies": {
     "esbuild": "^0.17.18",
-    "nxjs-runtime": "^0.0.1"
+    "nxjs-runtime": "^0.0.2"
   }
 }
