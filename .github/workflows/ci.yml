@@ -112,6 +112,11 @@ jobs:
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Download `nxjs.nro`
+        uses: actions/download-artifact@v3
+        with:
+          name: nxjs.nro
+
       - name: Create GitHub Release
         uses: actions/github-script@v6
         with:

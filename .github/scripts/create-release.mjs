@@ -1,4 +1,3 @@
-import yauzl from 'yauzl';
 import { readFileSync } from 'node:fs';
 
 async function findWorkflowForSha({ github, context, name }) {
@@ -25,74 +24,6 @@ async function findWorkflowForSha({ github, context, name }) {
 	return workflowRun;
 }
 
-async function findArtifactForWorkflow({ github, context, workflow, name }) {
-	const {
-		repo: { owner, repo },
-	} = context;
-
-	// Get the artifact details
-	const response = await github.rest.actions.listWorkflowRunArtifacts({
-		owner,
-		repo,
-		run_id: workflow.id,
-	});
-
-	// Find the artifact by name
-	const artifact = response.data.artifacts.find(
-		(artifact) => artifact.name === name
-	);
-
-	if (!artifact) {
-		throw new Error(
-			`Could not find artifact "${name}" for workflow run ${workflow.id}`
-		);
-	}
-
-	return artifact;
-}
-
-async function extractArtifact({ github, context, artifact }) {
-	const {
-		repo: { owner, repo },
-	} = context;
-
-	// Download the artifact file
-	const artifactResponse = await github.rest.actions.downloadArtifact({
-		owner,
-		repo,
-		artifact_id: artifact.id,
-		archive_format: 'zip',
-	});
-
-	const stream = await new Promise((resolve, reject) =>
-		yauzl.fromBuffer(
-			Buffer.from(artifactResponse.data),
-			{ lazyEntries: true },
-			(err, zipFile) => {
-				if (err) return reject(err);
-				zipFile.readEntry();
-				zipFile.on('entry', (entry) => {
-					if (entry.fileName === artifact.name) {
-						zipFile.openReadStream(entry, (err, s) => {
-							if (err) return reject(err);
-							resolve(s);
-						});
-					} else {
-						zipFile.readEntry();
-					}
-				});
-			}
-		)
-	);
-
-	const chunks = [];
-	for await (const chunk of stream) {
-		chunks.push(chunk);
-	}
-
-	return Buffer.concat(chunks);
-}
-
 export function getGitTag() {
 	const packageJsonUrl = new URL(
 		'../../packages/runtime/package.json',
@@ -111,13 +42,8 @@ export async function createRelease({ github, context }) {
   console.log('Workflow ID', workflow.id);
   await new Promise(r => setTimeout(r, 60 * 1000));
 
-	const artifact = await findArtifactForWorkflow({
-		github,
-		context,
-		workflow,
-		name: 'nxjs.nro',
-	});
-	const nxjsNroBuffer = await extractArtifact({ github, context, artifact });
+	const nxjsNroUrl = new URL('../../nxjs.nro', import.meta.url);
+	const nxjsNroBuffer = readFileSync(nxjsNroUrl)
 
 	const tag = getGitTag();
 	const releaseName = `nx.js ${tag}`;
