@@ -3,9 +3,12 @@
   "scripts": {
     "build": "turbo run build",
     "bundle": "turbo run bundle",
-    "format": "prettier --write \"**/*.{ts,js}\""
+    "format": "prettier --write \"**/*.{ts,js}\"",
+    "ci:version": "changeset version && pnpm install --no-frozen-lockfile",
+    "ci:publish": "changeset publish"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.26.1",
     "prettier": "^2.8.8",
     "turbo": "^1.9.3"
   }
