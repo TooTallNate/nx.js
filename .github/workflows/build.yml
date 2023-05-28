@@ -12,7 +12,7 @@ jobs:
   build:
     name: Build `nxjs.nro`
     runs-on: ubuntu-latest
-    container: devkitpro/devkita64
+    container: ghcr.io/tootallnate/pacman-packages:nxjs
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v3
@@ -36,10 +36,6 @@ jobs:
 
       - name: Copy `runtime.js` to RomFS
         run: mkdir -p ./romfs && cp -v ./packages/runtime/runtime.js ./romfs/runtime.js
-
-      - name: Build `libquickjs.a`
-        working-directory: ./lib/quickjs
-        run: make V=1
 
       - name: Build `nxjs.nro`
         run: make V=1

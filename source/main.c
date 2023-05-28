@@ -6,7 +6,7 @@
 #include <string.h>
 #include <inttypes.h>
 #include <switch.h>
-#include <quickjs.h>
+#include <quickjs/quickjs.h>
 #include <cairo.h>
 #include <cairo-ft.h>
 #include <ft2build.h>

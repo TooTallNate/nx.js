@@ -65,7 +65,7 @@ LIBS	:=  `freetype-config --libs` `aarch64-none-elf-pkg-config cairo --libs` -lq
 # list of directories containing libraries, this must be the top level containing
 # include and lib
 #---------------------------------------------------------------------------------
-LIBDIRS	:= $(PORTLIBS) $(LIBNX) $(CURDIR)/lib/quickjs
+LIBDIRS	:= $(PORTLIBS) $(LIBNX)
 
 
 #---------------------------------------------------------------------------------
