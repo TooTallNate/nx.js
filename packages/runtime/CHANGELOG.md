@@ -1,5 +1,11 @@
 # nxjs-runtime
 
+## 0.0.4
+
+### Patch Changes
+
+- b889930: Debugging release workflow
+
 ## 0.0.3
 
 ### Patch Changes
