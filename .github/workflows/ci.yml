@@ -90,7 +90,7 @@ jobs:
 
   gh-release:
     name: Create GitHub Release
-    if: github.repository == 'TooTallNate/nx.js' && needs.release.outputs.published == 'true'
+    if: needs.release.outputs.published == 'true'
     needs: [build, release]
     runs-on: ubuntu-latest
     steps:
@@ -100,3 +100,11 @@ jobs:
           script: |
             const { createRelease } = await import('${{ github.workspace }}/.github/scripts/create-release.mjs')
             await createRelease({ octokit: github, context })
+
+  debug:
+    name: Debug
+    needs: [build, release]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Debug
+        run: echo "${{ needs.release.outputs.published }}"
