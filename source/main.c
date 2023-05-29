@@ -108,7 +108,7 @@ uint8_t *read_file(const char *filename, size_t *out_size)
     size_t size = ftell(file);
     rewind(file);
 
-    uint8_t *buffer = malloc(size);
+    uint8_t *buffer = malloc(size + 1);
     if (buffer == NULL)
     {
         fclose(file);
@@ -125,6 +125,8 @@ uint8_t *read_file(const char *filename, size_t *out_size)
     }
 
     *out_size = size;
+
+    buffer[size + 1] = '\0';
 
     return buffer;
 }
