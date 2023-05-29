@@ -22,7 +22,6 @@ static FT_Library ft_library = NULL;
 
 static JSClassID js_font_face_class_id;
 static JSClassID js_canvas_context_class_id;
-static JSClassID js_test_class_id;
 
 typedef struct
 {
@@ -658,44 +657,6 @@ static void finalizer_font_face(JSRuntime *rt, JSValue val)
     }
 }
 
-typedef struct
-{
-    int data;
-} Test;
-
-static JSValue js_new_test(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
-    Test *context = malloc(sizeof(Test));
-    printf("1: %p\n", (void *)context);
-    JSValue obj = JS_NewObjectClass(ctx, js_test_class_id);
-    if (JS_IsException(obj))
-    {
-        free(context);
-        return obj;
-    }
-    JS_DupValue(ctx, obj);
-    context->data = 42;
-    JS_SetOpaque(obj, context);
-    return obj;
-}
-
-static JSValue js_get_test(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
-    Test *context = JS_GetOpaque2(ctx, argv[0], js_test_class_id);
-    printf("v: %d\n", context->data);
-    return JS_NewInt32(ctx, context->data);
-}
-
-static void finalizer_test(JSRuntime *rt, JSValue val)
-{
-    Test *context = JS_GetOpaque(val, js_test_class_id);
-    printf("freeing: %p\n", (void *)context);
-    if (context)
-    {
-        free(context);
-    }
-}
-
 // Main program entrypoint
 int main(int argc, char *argv[])
 {
@@ -771,13 +732,6 @@ int main(int argc, char *argv[])
         free(runtime_buffer);
     }
 
-    JS_NewClassID(&js_test_class_id);
-    JSClassDef test_class = {
-        "Test",
-        .finalizer = finalizer_test,
-    };
-    JS_NewClass(rt, js_test_class_id, &test_class);
-
     JS_NewClassID(&js_canvas_context_class_id);
     JSClassDef font_face_class = {
         "FontFace",
@@ -842,9 +796,6 @@ int main(int argc, char *argv[])
         JS_CFUNC_DEF("canvasMeasureText", 0, js_canvas_measure_text),
         JS_CFUNC_DEF("canvasGetImageData", 0, js_canvas_get_image_data),
         JS_CFUNC_DEF("canvasPutImageData", 0, js_canvas_put_image_data),
-
-        JS_CFUNC_DEF("test", 0, js_new_test),
-        JS_CFUNC_DEF("getTest", 0, js_get_test),
     };
     JS_SetPropertyFunctionList(ctx, native_obj, function_list, 27);
 
