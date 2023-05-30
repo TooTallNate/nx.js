@@ -1,5 +1,13 @@
 # nxjs-runtime
 
+## 0.0.6
+
+### Patch Changes
+
+- 0cc389c: NULL terminate the source code file reads
+- 24e9dff: Add initial keyboard support with `keydown` and `keyup` events
+- d0819bf: Remove test Class ID code
+
 ## 0.0.5
 
 ### Patch Changes
