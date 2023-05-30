@@ -112,26 +112,26 @@ enum KeyboardKey {
 	X = 27,
 	Y = 28,
 	Z = 29,
-	D1 = 30,
-	D2 = 31,
-	D3 = 32,
-	D4 = 33,
-	D5 = 34,
-	D6 = 35,
-	D7 = 36,
-	D8 = 37,
-	D9 = 38,
-	D0 = 39,
+	Digit1 = 30,
+	Digit2 = 31,
+	Digit3 = 32,
+	Digit4 = 33,
+	Digit5 = 34,
+	Digit6 = 35,
+	Digit7 = 36,
+	Digit8 = 37,
+	Digit9 = 38,
+	Digit0 = 39,
 	Return = 40,
 	Escape = 41,
 	Backspace = 42,
 	Tab = 43,
 	Space = 44,
 	Minus = 45,
-	Plus = 46,
-	OpenBracket = 47,
-	CloseBracket = 48,
-	Pipe = 49,
+	Equal = 46,
+	BracketLeft = 47,
+	BracketRight = 48,
+	Backslash = 49,
 	Tilde = 50,
 	Semicolon = 51,
 	Quote = 52,
@@ -161,10 +161,10 @@ enum KeyboardKey {
 	Delete = 76,
 	End = 77,
 	PageDown = 78,
-	RightArrow = 79,
-	LeftArrow = 80,
-	DownArrow = 81,
-	UpArrow = 82,
+	ArrowRight = 79,
+	ArrowLeft = 80,
+	ArrowDown = 81,
+	ArrowUp = 82,
 	NumLock = 83,
 	NumPadDivide = 84,
 	NumPadMultiply = 85,
@@ -182,7 +182,7 @@ enum KeyboardKey {
 	NumPad9 = 97,
 	NumPad0 = 98,
 	NumPadDot = 99,
-	Backslash = 100,
+	//Backslash = 100,
 	Application = 101,
 	Power = 102,
 	NumPadEquals = 103,
@@ -210,15 +210,41 @@ enum KeyboardKey {
 	Katakana = 146,
 	Hiragana = 147,
 	ZenkakuHankaku = 148,
-	LeftControl = 224,
-	LeftShift = 225,
-	LeftAlt = 226,
-	LeftGui = 227,
-	RightControl = 228,
-	RightShift = 229,
-	RightAlt = 230,
-	RightGui = 231,
+	ControlLeft = 224,
+	ShiftLeft = 225,
+	AltLeft = 226,
+	OSLeft = 227,
+	ControlRight = 228,
+	ShiftRight = 229,
+	AltRight = 230,
+	OSRight = 231,
 }
+
+const keyboardKeyMap = new Map<KeyboardKey, string | [string, string]>([
+	[KeyboardKey.Digit1, ['1', '!']],
+	[KeyboardKey.Digit2, ['2', '@']],
+	[KeyboardKey.Digit3, ['3', '#']],
+	[KeyboardKey.Digit4, ['4', '$']],
+	[KeyboardKey.Digit5, ['5', '%']],
+	[KeyboardKey.Digit6, ['6', '^']],
+	[KeyboardKey.Digit7, ['7', '&']],
+	[KeyboardKey.Digit8, ['8', '*']],
+	[KeyboardKey.Digit9, ['9', '(']],
+	[KeyboardKey.Digit0, ['0', ')']],
+	[KeyboardKey.Space, ' '],
+	[KeyboardKey.Minus, ['-', '_']],
+	[KeyboardKey.Equal, ['=', '+']],
+	[KeyboardKey.BracketLeft, ['[', '{']],
+	[KeyboardKey.BracketRight, [']', '}']],
+	[KeyboardKey.Backslash, ['\'', '|']],
+	[KeyboardKey.Tilde, '~'],
+	[KeyboardKey.Semicolon, [';', ':']],
+	[KeyboardKey.Quote, ["'", '"']],
+	[KeyboardKey.Backquote, ['`', '~']],
+	[KeyboardKey.Comma, [',', '<']],
+	[KeyboardKey.Period, ['.', '>']],
+	[KeyboardKey.Slash, ['/', '?']],
+]);
 
 export class KeyboardEvent extends UIEvent implements globalThis.KeyboardEvent {
 	readonly DOM_KEY_LOCATION_STANDARD = 0 as const;
@@ -281,7 +307,18 @@ export class KeyboardEvent extends UIEvent implements globalThis.KeyboardEvent {
 
 	get key(): string {
 		const { code } = this;
-		return this.shiftKey ? code : code.toLowerCase();
+		let key = keyboardKeyMap.get(this.keyCode);
+		if (typeof key === 'string') {
+			return key;
+		}
+		if (Array.isArray(key)) {
+			return this.shiftKey ? key[1] : key[0];
+		}
+		if (code.length === 1) {
+			// one of the alphabetic keys
+			return this.shiftKey ? code : code.toLowerCase();
+		}
+		return code;
 	}
 }
 
