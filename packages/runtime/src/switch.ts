@@ -1,7 +1,6 @@
 import { Canvas, CanvasRenderingContext2D } from './canvas';
 import { FontFaceSet } from './font';
-
-export const INTERNAL_SYMBOL = Symbol('Internal');
+import { INTERNAL_SYMBOL } from './types';
 
 export type Opaque<T> = { __type: T };
 export type CanvasRenderingContext2DState =
@@ -12,6 +11,11 @@ export enum AppletOperationMode {
 	Handheld = 0, ///< Handheld
 	Console = 1, ///< Console (Docked / TV-mode)
 }
+
+type Keys = {
+	modifiers: bigint;
+	[i: number]: bigint;
+};
 
 export interface Native {
 	print: (str: string) => void;
@@ -26,8 +30,10 @@ export interface Native {
 	appletGetOperationMode: () => AppletOperationMode;
 
 	// hid
+	hidInitializeKeyboard: () => void;
 	hidInitializeTouchScreen: () => void;
 	hidGetTouchScreenStates: () => Touch[] | undefined;
+	hidGetKeyboardStates: () => Keys;
 
 	// fs
 	readDirSync: (path: string) => string[];
@@ -91,7 +97,9 @@ export interface Native {
 
 interface Internal {
 	previousButtons: number;
+	previousKeys: Keys;
 	previousTouches: Touch[];
+	keyboardInitialized?: boolean;
 	touchscreenInitialized?: boolean;
 	renderingMode?: RenderingMode;
 	setRenderingMode: (
@@ -112,6 +120,8 @@ interface SwitchEventHandlersEventMap {
 	exit: Event;
 	buttondown: UIEvent;
 	buttonup: UIEvent;
+	keydown: KeyboardEvent;
+	keyup: KeyboardEvent;
 	touchstart: TouchEvent;
 	touchmove: TouchEvent;
 	touchend: TouchEvent;
@@ -136,6 +146,13 @@ export class Switch extends EventTarget {
 		this[INTERNAL_SYMBOL] = {
 			previousButtons: 0,
 			previousTouches: [],
+			previousKeys: {
+				[0]: 0n,
+				[1]: 0n,
+				[2]: 0n,
+				[3]: 0n,
+				modifiers: 0n,
+			},
 			renderingMode: RenderingMode.Init,
 			setRenderingMode(
 				mode: RenderingMode,
@@ -182,6 +199,13 @@ export class Switch extends EventTarget {
 		callback: EventListenerOrEventListenerObject | null,
 		options?: boolean | AddEventListenerOptions | undefined
 	): void {
+		if (
+			!this[INTERNAL_SYMBOL].keyboardInitialized &&
+			(type === 'keydown' || type === 'keyup')
+		) {
+			this.native.hidInitializeKeyboard();
+			this[INTERNAL_SYMBOL].keyboardInitialized = true;
+		}
 		if (
 			!this[INTERNAL_SYMBOL].touchscreenInitialized &&
 			(type === 'touchstart' ||

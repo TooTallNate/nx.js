@@ -1,5 +1,5 @@
 import type { IFont } from 'parse-css-font';
-import { INTERNAL_SYMBOL } from './switch';
+import { INTERNAL_SYMBOL } from './types';
 import type { Switch as _Switch, FontFaceState } from './switch';
 
 declare const Switch: _Switch;

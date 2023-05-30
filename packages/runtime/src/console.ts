@@ -1,4 +1,5 @@
-import { INTERNAL_SYMBOL, Switch } from './switch';
+import { Switch } from './switch';
+import { INTERNAL_SYMBOL } from './types';
 
 export class Console {
 	[INTERNAL_SYMBOL]: Switch;
