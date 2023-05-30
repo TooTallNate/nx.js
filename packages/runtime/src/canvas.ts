@@ -2,7 +2,7 @@ import toPx = require('to-px/index.js');
 import colorRgba = require('color-rgba');
 import parseCssFont from 'parse-css-font';
 import type { CanvasRenderingContext2DState, Switch } from './switch';
-import { INTERNAL_SYMBOL } from './switch';
+import { INTERNAL_SYMBOL } from './types';
 
 export class Canvas {
 	[INTERNAL_SYMBOL]: Switch;

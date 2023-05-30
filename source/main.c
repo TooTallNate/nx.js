@@ -179,6 +179,12 @@ static JSValue js_hid_initialize_touch_screen(JSContext *ctx, JSValueConst this_
     return JS_UNDEFINED;
 }
 
+static JSValue js_hid_initialize_keyboard(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    hidInitializeKeyboard();
+    return JS_UNDEFINED;
+}
+
 static JSValue js_hid_get_touch_screen_states(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     HidTouchScreenState state = {0};
@@ -200,6 +206,19 @@ static JSValue js_hid_get_touch_screen_states(JSContext *ctx, JSValueConst this_
         JS_SetPropertyStr(ctx, touch, "rotationAngle", JS_NewInt32(ctx, state.touches[i].rotation_angle));
     }
     return arr;
+}
+
+static JSValue js_hid_get_keyboard_states(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    HidKeyboardState state = {0};
+    hidGetKeyboardStates(&state, 1);
+    JSValue obj = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, obj, "modifiers", JS_NewBigUint64(ctx, state.modifiers));
+    for (int i = 0; i < 4; i++)
+    {
+        JS_SetPropertyUint32(ctx, obj, i, JS_NewBigUint64(ctx, state.keys[i]));
+    }
+    return obj;
 }
 
 static JSValue js_readdir_sync(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -766,7 +785,9 @@ int main(int argc, char *argv[])
         JS_CFUNC_DEF("envToObject", 0, js_env_to_object),
 
         // hid
+        JS_CFUNC_DEF("hidInitializeKeyboard", 0, js_hid_initialize_keyboard),
         JS_CFUNC_DEF("hidInitializeTouchScreen", 0, js_hid_initialize_touch_screen),
+        JS_CFUNC_DEF("hidGetKeyboardStates", 0, js_hid_get_keyboard_states),
         JS_CFUNC_DEF("hidGetTouchScreenStates", 0, js_hid_get_touch_screen_states),
 
         // console renderer

@@ -1,5 +1,6 @@
 import { def } from './polyfills';
-import { Switch as _Switch, INTERNAL_SYMBOL } from './switch';
+import { Switch as _Switch } from './switch';
+import { INTERNAL_SYMBOL } from './types';
 import { createTimersFactory } from './timers';
 import { Console } from './console';
 import { FontFace } from './font';
@@ -33,8 +34,13 @@ function touchIsEqual(a: Touch, b: Touch) {
 const btnPlus = 1 << 10; ///< Plus button
 
 Switch.addEventListener('frame', (event) => {
-	const { touchscreenInitialized, previousButtons, previousTouches } =
-		Switch[INTERNAL_SYMBOL];
+	const {
+		keyboardInitialized,
+		touchscreenInitialized,
+		previousButtons,
+		previousKeys,
+		previousTouches,
+	} = Switch[INTERNAL_SYMBOL];
 	processTimers();
 
 	const buttonsDown = ~previousButtons & event.detail;
@@ -58,6 +64,31 @@ Switch.addEventListener('frame', (event) => {
 				detail: buttonsUp,
 			})
 		);
+	}
+
+	if (keyboardInitialized) {
+		const keys = Switch.native.hidGetKeyboardStates();
+		for (let i = 0; i < 4; i++) {
+			const keysDown = ~previousKeys[i] & keys[i];
+			const keysUp = previousKeys[i] & ~keys[i];
+			for (let k = 0; k < 64; k++) {
+				if (keysDown & (1n << (BigInt(k) & 63n))) {
+					const o = {
+						keyCode: i * 64 + k,
+						modifiers: keys.modifiers,
+					};
+					Switch.dispatchEvent(new KeyboardEvent('keydown', o));
+				}
+				if (keysUp & (1n << (BigInt(k) & 63n))) {
+					const o = {
+						keyCode: i * 64 + k,
+						modifiers: keys.modifiers,
+					};
+					Switch.dispatchEvent(new KeyboardEvent('keyup', o));
+				}
+			}
+		}
+		Switch[INTERNAL_SYMBOL].previousKeys = keys;
 	}
 
 	if (touchscreenInitialized) {
