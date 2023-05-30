@@ -51,6 +51,22 @@ importers:
         specifier: ^0.0.5
         version: link:../../packages/runtime
 
+  apps/repl:
+    dependencies:
+      kleur:
+        specifier: ^4.1.5
+        version: 4.1.5
+      sisteransi:
+        specifier: ^1.0.5
+        version: 1.0.5
+    devDependencies:
+      esbuild:
+        specifier: ^0.17.18
+        version: 0.17.18
+      nxjs-runtime:
+        specifier: ^0.0.5
+        version: link:../../packages/runtime
+
   apps/snake:
     dependencies:
       nxjs-constants:

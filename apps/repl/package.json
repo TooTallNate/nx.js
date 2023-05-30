@@ -1,0 +1,18 @@
+{
+  "name": "nxjs-example-repl",
+  "version": "0.0.0",
+  "private": true,
+  "description": "nx.js example application REPL (read-eval-print-loop)",
+  "scripts": {
+    "build": "esbuild --bundle --target=es2020 src/main.ts --outfile=dist/main.js"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "kleur": "^4.1.5",
+    "sisteransi": "^1.0.5"
+  },
+  "devDependencies": {
+    "esbuild": "^0.17.18",
+    "nxjs-runtime": "^0.0.5"
+  }
+}
