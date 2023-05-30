@@ -122,7 +122,7 @@ enum KeyboardKey {
 	Digit8 = 37,
 	Digit9 = 38,
 	Digit0 = 39,
-	Return = 40,
+	Enter = 40,
 	Escape = 41,
 	Backspace = 42,
 	Tab = 43,
@@ -244,6 +244,14 @@ const keyboardKeyMap = new Map<KeyboardKey, string | [string, string]>([
 	[KeyboardKey.Comma, [',', '<']],
 	[KeyboardKey.Period, ['.', '>']],
 	[KeyboardKey.Slash, ['/', '?']],
+	[KeyboardKey.ControlLeft, 'Control'],
+	[KeyboardKey.ShiftLeft, 'Shift'],
+	[KeyboardKey.AltLeft, 'Alt'],
+	[KeyboardKey.OSLeft, 'Meta'],
+	[KeyboardKey.ControlRight, 'Control'],
+	[KeyboardKey.ShiftRight, 'Shift'],
+	[KeyboardKey.AltRight, 'Alt'],
+	[KeyboardKey.OSRight, 'Meta'],
 ]);
 
 export class KeyboardEvent extends UIEvent implements globalThis.KeyboardEvent {
@@ -313,6 +321,10 @@ export class KeyboardEvent extends UIEvent implements globalThis.KeyboardEvent {
 		}
 		if (Array.isArray(key)) {
 			return this.shiftKey ? key[1] : key[0];
+		}
+		if (typeof code !== 'string') {
+			console.log(`Invalid keyCode: ${this.keyCode}`);
+			return '';
 		}
 		if (code.length === 1) {
 			// one of the alphabetic keys
