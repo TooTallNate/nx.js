@@ -1,3 +1,4 @@
+/// HidNpadButton
 export enum Button {
 	A = 1 << 0, ///< A button / Right face button
 	B = 1 << 1, ///< B button / Down face button
