@@ -236,7 +236,7 @@ const keyboardKeyMap = new Map<KeyboardKey, string | [string, string]>([
 	[KeyboardKey.Equal, ['=', '+']],
 	[KeyboardKey.BracketLeft, ['[', '{']],
 	[KeyboardKey.BracketRight, [']', '}']],
-	[KeyboardKey.Backslash, ["\\", '|']],
+	[KeyboardKey.Backslash, ['\\', '|']],
 	[KeyboardKey.Tilde, '~'],
 	[KeyboardKey.Semicolon, [';', ':']],
 	[KeyboardKey.Quote, ["'", '"']],

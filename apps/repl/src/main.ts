@@ -1,5 +1,6 @@
-import { cyan, yellow } from 'kleur/colors';
 import { cursor, erase } from 'sisteransi';
+import { bold, cyan, bgYellow } from 'kleur/colors';
+import { inspect } from './inspect';
 
 console.log('Welcome to the nx.js REPL!');
 console.log('Use a keyboard to enter JavaScript code.');
@@ -7,12 +8,20 @@ console.log('Press the + button or the "Esc" key to exit...');
 console.log();
 
 let buffer = '';
+let historyIndex = 0;
+let cursorPosition = 0;
 const history: string[] = [];
+const prompt = bold(cyan('>'));
 
-const cursorChar = yellow('|');
+const cursorChar = (v: string) => bold(bgYellow(v || ' '));
 
-function showPrompt() {
-	Switch.print(`${cyan('>')} ${cursorChar}`);
+function renderPrompt() {
+	const bufferL = buffer.slice(0, cursorPosition);
+	const bufferP = buffer[cursorPosition];
+	const bufferR = buffer.slice(cursorPosition + 1);
+	Switch.print(
+		`\r${erase.line}${prompt} ${bufferL}${cursorChar(bufferP)}${bufferR}`
+	);
 }
 
 Switch.addEventListener('keydown', (e) => {
@@ -20,35 +29,51 @@ Switch.addEventListener('keydown', (e) => {
 	if (key.length === 1) {
 		// Printable character
 		buffer += key;
-		Switch.print(
-			`${cursor.backward(1)}${erase.lineEnd}${key}${cursorChar}`
-		);
+		cursorPosition++;
+		renderPrompt();
 	} else if (key === 'Enter') {
 		// Remove cursor
 		Switch.print(`${cursor.backward(1)}${erase.lineEnd}\n`);
 		try {
 			history.push(buffer);
-			const result = eval(buffer);
+			historyIndex = history.length - 1;
+			const trimmed = buffer.trim();
+			const result =
+				trimmed.length === 0 ? undefined : eval(`(${trimmed})`);
 			buffer = '';
-			console.log(result);
-			console.log();
+			cursorPosition = 0;
+			Switch.print(`${inspect(result)}\n\n`);
 		} catch (err: unknown) {
 			buffer = '';
+			cursorPosition = 0;
 			if (err instanceof Error) {
 				console.log(`${err}\n${err.stack}`);
 			} else {
 				console.log(`Error: ${err}`);
 			}
 		}
-		showPrompt();
+		renderPrompt();
 	} else if (key === 'Backspace') {
 		if (buffer.length) {
 			buffer = buffer.slice(0, -1);
-			Switch.print(`${cursor.backward(2)}${erase.lineEnd}${cursorChar}`);
+			cursorPosition--;
+			renderPrompt();
 		}
 	} else if (key === 'Escape') {
 		Switch.exit();
+	} else if (key === 'ArrowUp') {
+	} else if (key === 'ArrowDown') {
+	} else if (key === 'ArrowLeft') {
+		if (cursorPosition > 0) {
+			cursorPosition--;
+			renderPrompt();
+		}
+	} else if (key === 'ArrowRight') {
+		if (cursorPosition < buffer.length) {
+			cursorPosition++;
+			renderPrompt();
+		}
 	}
 });
 
-showPrompt();
+renderPrompt();
