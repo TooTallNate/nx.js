@@ -236,7 +236,7 @@ const keyboardKeyMap = new Map<KeyboardKey, string | [string, string]>([
 	[KeyboardKey.Equal, ['=', '+']],
 	[KeyboardKey.BracketLeft, ['[', '{']],
 	[KeyboardKey.BracketRight, [']', '}']],
-	[KeyboardKey.Backslash, ["'", '|']],
+	[KeyboardKey.Backslash, ["\\", '|']],
 	[KeyboardKey.Tilde, '~'],
 	[KeyboardKey.Semicolon, [';', ':']],
 	[KeyboardKey.Quote, ["'", '"']],
@@ -339,11 +339,11 @@ export class KeyboardEvent extends UIEvent implements globalThis.KeyboardEvent {
 			return this.shiftKey ? key[1] : key[0];
 		}
 		if (typeof code !== 'string') {
-			console.log(`Invalid keyCode: ${this.keyCode}`);
+			// Sometimes get `keyCode=1`, which is not a known key
 			return '';
 		}
 		if (code.length === 1) {
-			// one of the alphabetic keys
+			// One of the alphabetic keys
 			return this.shiftKey ? code : code.toLowerCase();
 		}
 		return code;
