@@ -1,6 +1,6 @@
 {
   "name": "nxjs-runtime",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Runtime initialization code for nx.js",
   "types": "./nxjs.env.d.ts",
   "scripts": {

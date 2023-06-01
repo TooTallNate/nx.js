@@ -1,5 +1,13 @@
 # nxjs-runtime
 
+## 0.0.7
+
+### Patch Changes
+
+- 02b388c: Make `console.log` be a bound function
+- b084cf7: Fix backslash key mapping
+- 9b52d78: Filter out "." and ".." from `Switch.readDirSync()`
+
 ## 0.0.6
 
 ### Patch Changes
