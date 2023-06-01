@@ -239,6 +239,10 @@ static JSValue js_readdir_sync(JSContext *ctx, JSValueConst this_val, int argc, 
     JSValue arr = JS_NewArray(ctx);
     while ((entry = readdir(dir)) != NULL)
     {
+        // Filter out `.` and `..`
+        if (!strcmp(".", entry->d_name) || !strcmp("..", entry->d_name)) {
+            continue;
+        }
         JS_SetPropertyUint32(ctx, arr, i, JS_NewString(ctx, entry->d_name));
         i++;
     }
