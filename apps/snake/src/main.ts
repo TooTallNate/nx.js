@@ -1,20 +1,40 @@
 import { FPS } from './fps';
 import { Button } from 'nxjs-constants';
 
-type Position = [number, number];
-type Direction = 'up' | 'down' | 'left' | 'right';
-type State = 'playing' | 'paused' | 'gameover';
+interface Position {
+	x: number;
+	y: number;
+}
+
+interface SnakeBodyPart extends Position {
+	direction: Direction;
+}
+
+enum Direction {
+	Up,
+	Down,
+	Left,
+	Right,
+}
+
+enum State {
+	Playing,
+	Paused,
+	Gameover,
+}
 
 const ctx = Switch.screen.getContext('2d');
 
-const snakeBody: Position[] = [];
+const snakeBody: SnakeBodyPart[] = [];
 const gridSize = 16;
 const boardWidth = 76;
 const boardHeight = 40;
 const boardX = Switch.screen.width / 2 - (boardWidth * gridSize) / 2;
 const boardY = Switch.screen.height / 2 - (boardHeight * gridSize) / 2;
-let food: Position = [0, 0];
-let direction: Direction = 'right';
+const updateRate = 100;
+let updatedAt = 0;
+let food: Position = { x: 0, y: 0 };
+let direction: Direction = Direction.Right;
 let directionChange: Direction | undefined;
 let interval: number = 0;
 let state: State;
@@ -24,14 +44,19 @@ function start() {
 	makeFood();
 	score = 0;
 	snakeBody.length = 0;
-	snakeBody.push([5, 5], [6, 5], [7, 5]);
-	direction = 'right';
+	snakeBody.push(
+		{ x: 5, y: 5, direction: Direction.Right },
+		{ x: 6, y: 5, direction: Direction.Right },
+		{ x: 7, y: 5, direction: Direction.Right },
+		{ x: 8, y: 5, direction: Direction.Right }
+	);
+	direction = Direction.Right;
 	updateScore();
 	play();
 }
 
 function pause() {
-	state = 'paused';
+	state = State.Paused;
 	clearInterval(interval);
 
 	const boxWidth = 400;
@@ -51,8 +76,9 @@ function pause() {
 }
 
 function play() {
-	state = 'playing';
-	interval = setInterval(update, 100);
+	state = State.Playing;
+	interval = setInterval(update, updateRate);
+	updatedAt = Date.now();
 	draw();
 }
 
@@ -74,52 +100,125 @@ function draw() {
 	// Draw food
 	ctx.fillStyle = 'green';
 	ctx.fillRect(
-		boardX + food[0] * gridSize,
-		boardY + food[1] * gridSize,
+		boardX + food.x * gridSize,
+		boardY + food.y * gridSize,
 		gridSize,
 		gridSize
 	);
 
 	// Draw snake
 	ctx.fillStyle = 'red';
-	for (const [x, y] of snakeBody) {
+	const now = Date.now();
+	const diff = now - updatedAt;
+	const pos = (diff / updateRate) * gridSize;
+
+	// Snake tail
+	const tail = snakeBody[0];
+	if (tail.direction === Direction.Right) {
 		ctx.fillRect(
-			boardX + x * gridSize,
-			boardY + y * gridSize,
+			pos + boardX + tail.x * gridSize,
+			boardY + tail.y * gridSize,
+			gridSize - pos,
+			gridSize
+		);
+	} else if (tail.direction === Direction.Left) {
+		ctx.fillRect(
+			boardX + tail.x * gridSize,
+			boardY + tail.y * gridSize,
+			gridSize - pos,
+			gridSize
+		);
+	} else if (tail.direction === Direction.Up) {
+		ctx.fillRect(
+			boardX + tail.x * gridSize,
+			boardY + tail.y * gridSize,
+			gridSize,
+			gridSize - pos
+		);
+	} else {
+		ctx.fillRect(
+			boardX + tail.x * gridSize,
+			pos + boardY + tail.y * gridSize,
+			gridSize,
+			gridSize - pos
+		);
+	}
+
+	// Snake body
+	for (let i = 1; i < snakeBody.length - 1; i++) {
+		ctx.fillRect(
+			boardX + snakeBody[i].x * gridSize,
+			boardY + snakeBody[i].y * gridSize,
 			gridSize,
 			gridSize
+		);
+	}
+
+	// Snake head
+	const head = snakeBody[snakeBody.length - 1];
+	if (head.direction === Direction.Right) {
+		ctx.fillRect(
+			boardX + head.x * gridSize,
+			boardY + head.y * gridSize,
+			pos,
+			gridSize
+		);
+	} else if (head.direction === Direction.Left) {
+		ctx.fillRect(
+			gridSize - pos + boardX + head.x * gridSize,
+			boardY + head.y * gridSize,
+			pos,
+			gridSize
+		);
+	} else if (head.direction === Direction.Up) {
+		ctx.fillRect(
+			boardX + head.x * gridSize,
+			gridSize - pos + boardY + head.y * gridSize,
+			gridSize,
+			pos
+		);
+	} else {
+		ctx.fillRect(
+			boardX + head.x * gridSize,
+			boardY + head.y * gridSize,
+			gridSize,
+			pos
 		);
 	}
 }
 
 function update() {
+	updatedAt = Date.now();
+
 	// Only allow the direction to change once per update.
 	// This is to avoid an issue where very quick direction
 	// changes might make the snake eat itself inadvertently.
-	if (directionChange) {
+	if (typeof directionChange !== 'undefined') {
 		direction = directionChange;
 		directionChange = undefined;
 	}
 
-	// Move snake
 	const oldHead = snakeBody[snakeBody.length - 1];
-	const head: Position = [oldHead[0], oldHead[1]];
-	if (direction === 'up') {
-		head[1]--;
-	} else if (direction === 'down') {
-		head[1]++;
-	} else if (direction === 'left') {
-		head[0]--;
-	} else if (direction === 'right') {
-		head[0]++;
+	oldHead.direction = direction;
+
+	// Move snake
+	const head = { ...oldHead, direction };
+	if (direction === Direction.Up) {
+		head.y--;
+	} else if (direction === Direction.Down) {
+		head.y++;
+	} else if (direction === Direction.Left) {
+		head.x--;
+	} else if (direction === Direction.Right) {
+		head.x++;
 	}
 
 	// if `head` is past the edge, or within the snake body - game over
 	if (
-		head[0] < 0 ||
-		head[1] < 0 ||
-		head[0] >= boardWidth ||
-		head[1] >= boardHeight ||
+		head.x < 0 ||
+		head.y < 0 ||
+		head.x >= boardWidth ||
+		head.y >= boardHeight ||
 		isWithinSnake(head)
 	) {
 		gameOver();
@@ -129,28 +228,32 @@ function update() {
 	snakeBody.push(head);
 
 	// if `head` matches the food position, then eat it
-	if (head[0] === food[0] && head[1] === food[1]) {
+	if (positionsEqual(head, food)) {
 		score++;
 		makeFood();
 		updateScore();
 	} else {
 		snakeBody.shift();
 	}
+}
 
-	draw();
+Switch.addEventListener('frame', () => {
+	if (state === State.Playing) draw();
+});
+
+function positionsEqual(a: Position, b: Position) {
+	return a.x === b.x && a.y === b.y;
 }
 
 function isWithinSnake(pos: Position) {
-	return snakeBody.some(
-		(snakePos) => pos[0] === snakePos[0] && pos[1] === snakePos[1]
-	);
+	return snakeBody.some((s) => positionsEqual(pos, s));
 }
 
 function makeFood(): void {
-	food = [
-		Math.floor(Math.random() * boardWidth),
-		Math.floor(Math.random() * boardHeight),
-	];
+	food = {
+		x: Math.floor(Math.random() * boardWidth),
+		y: Math.floor(Math.random() * boardHeight),
+	};
 	if (isWithinSnake(food)) {
 		// Inside of snake body, so try again
 		makeFood();
@@ -158,9 +261,8 @@ function makeFood(): void {
 }
 
 function gameOver() {
-	state = 'gameover';
+	state = State.Gameover;
 	clearInterval(interval);
-	const score = snakeBody.length - 3;
 	const boxWidth = 500;
 	const boxHeight = 300;
 	const boxX = Switch.screen.width / 2 - boxWidth / 2;
@@ -184,35 +286,35 @@ function gameOver() {
 }
 
 Switch.addEventListener('buttondown', (event) => {
-	if (state === 'playing') {
+	if (state === State.Playing) {
 		if (event.detail & Button.Plus) {
 			event.preventDefault();
 			pause();
 		} else if (!directionChange) {
 			if (event.detail & Button.AnyLeft) {
-				if (direction !== 'right') {
-					directionChange = 'left';
+				if (direction !== Direction.Right) {
+					directionChange = Direction.Left;
 				}
 			} else if (event.detail & Button.AnyUp) {
-				if (direction !== 'down') {
-					directionChange = 'up';
+				if (direction !== Direction.Down) {
+					directionChange = Direction.Up;
 				}
 			} else if (event.detail & Button.AnyRight) {
-				if (direction !== 'left') {
-					directionChange = 'right';
+				if (direction !== Direction.Left) {
+					directionChange = Direction.Right;
 				}
 			} else if (event.detail & Button.AnyDown) {
-				if (direction !== 'up') {
-					directionChange = 'down';
+				if (direction !== Direction.Up) {
+					directionChange = Direction.Down;
 				}
 			}
 		}
-	} else if (state === 'paused') {
+	} else if (state === State.Paused) {
 		if (event.detail & Button.Plus) {
 			event.preventDefault();
 			play();
 		}
-	} else if (state === 'gameover') {
+	} else if (state === State.Gameover) {
 		if (event.detail & Button.A) {
 			start();
 		}
