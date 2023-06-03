@@ -7,6 +7,7 @@ export class Console {
 	constructor(s: Switch) {
 		this[INTERNAL_SYMBOL] = s;
 		this.log = this.log.bind(this);
+		this.warn = this.warn.bind(this);
 	}
 
 	log(input: unknown) {
@@ -14,5 +15,9 @@ export class Console {
 		this[INTERNAL_SYMBOL].print(
 			`${typeof input === 'string' ? input : JSON.stringify(input)}\n`
 		);
+	}
+
+	warn(input: unknown) {
+		return this.log(input);
 	}
 }
