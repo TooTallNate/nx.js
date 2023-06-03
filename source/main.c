@@ -757,7 +757,7 @@ int main(int argc, char *argv[])
         free(runtime_buffer);
     }
 
-    JS_NewClassID(&js_canvas_context_class_id);
+    JS_NewClassID(&js_font_face_class_id);
     JSClassDef font_face_class = {
         "FontFace",
         .finalizer = finalizer_font_face,
