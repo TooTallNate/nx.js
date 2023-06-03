@@ -105,6 +105,19 @@ importers:
         specifier: ^0.0.7
         version: link:../../packages/runtime
 
+  apps/yoga:
+    dependencies:
+      yoga-wasm-web:
+        specifier: ^0.3.3
+        version: 0.3.3
+    devDependencies:
+      esbuild:
+        specifier: ^0.17.18
+        version: 0.17.18
+      nxjs-runtime:
+        specifier: ^0.0.7
+        version: link:../../packages/runtime
+
   packages/constants:
     devDependencies:
       typescript:
@@ -2312,3 +2325,7 @@ packages:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
     dev: true
+
+  /yoga-wasm-web@0.3.3:
+    resolution: {integrity: sha512-N+d4UJSJbt/R3wqY7Coqs5pcV0aUj2j9IaQ3rNj9bVCLld8tTGKRa2USARjnvZJWVx1NDmQev8EknoczaOQDOA==}
+    dev: false

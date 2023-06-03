@@ -1,0 +1,17 @@
+{
+  "name": "nxjs-example-yoga",
+  "version": "0.0.0",
+  "private": true,
+  "description": "nx.js example application utilizing the `yoga` layout engine",
+  "scripts": {
+    "build": "esbuild --bundle --target=es2020 src/main.ts --outfile=dist/main.js"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "esbuild": "^0.17.18",
+    "nxjs-runtime": "^0.0.7"
+  },
+  "dependencies": {
+    "yoga-wasm-web": "^0.3.3"
+  }
+}
