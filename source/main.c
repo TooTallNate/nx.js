@@ -240,7 +240,8 @@ static JSValue js_readdir_sync(JSContext *ctx, JSValueConst this_val, int argc, 
     while ((entry = readdir(dir)) != NULL)
     {
         // Filter out `.` and `..`
-        if (!strcmp(".", entry->d_name) || !strcmp("..", entry->d_name)) {
+        if (!strcmp(".", entry->d_name) || !strcmp("..", entry->d_name))
+        {
             continue;
         }
         JS_SetPropertyUint32(ctx, arr, i, JS_NewString(ctx, entry->d_name));
@@ -853,6 +854,22 @@ int main(int argc, char *argv[])
     // Main loop
     while (appletMainLoop())
     {
+        // Process any Promises that need to be fulfilled
+        JSContext *ctx1;
+        int err;
+        for (;;)
+        {
+            err = JS_ExecutePendingJob(rt, &ctx1);
+            if (err <= 0)
+            {
+                if (err < 0)
+                {
+                    print_js_error(ctx1);
+                }
+                break;
+            }
+        }
+
         padUpdate(&pad);
         u64 kDown = padGetButtons(&pad);
 
