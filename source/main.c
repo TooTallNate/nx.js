@@ -827,6 +827,22 @@ int main(int argc, char *argv[])
     // Main loop
     while (appletMainLoop())
     {
+        // Process any Promises that need to be fulfilled
+        JSContext *ctx1;
+        int err;
+        for (;;)
+        {
+            err = JS_ExecutePendingJob(rt, &ctx1);
+            if (err <= 0)
+            {
+                if (err < 0)
+                {
+                    print_js_error(ctx1);
+                }
+                break;
+            }
+        }
+
         // Check if any thread pool tasks have been completed
         if (context->work != NULL)
         {
