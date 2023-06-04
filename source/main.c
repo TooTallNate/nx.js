@@ -10,6 +10,10 @@
 #include <cairo.h>
 #include <cairo-ft.h>
 #include <ft2build.h>
+#include <pthread.h>
+
+#include "types.h"
+#include "fs.h"
 
 // Text renderer
 static PrintConsole *print_console = NULL;
@@ -240,7 +244,8 @@ static JSValue js_readdir_sync(JSContext *ctx, JSValueConst this_val, int argc, 
     while ((entry = readdir(dir)) != NULL)
     {
         // Filter out `.` and `..`
-        if (!strcmp(".", entry->d_name) || !strcmp("..", entry->d_name)) {
+        if (!strcmp(".", entry->d_name) || !strcmp("..", entry->d_name))
+        {
             continue;
         }
         JS_SetPropertyUint32(ctx, arr, i, JS_NewString(ctx, entry->d_name));
@@ -252,48 +257,10 @@ static JSValue js_readdir_sync(JSContext *ctx, JSValueConst this_val, int argc, 
     return arr;
 }
 
-static void free_js_array_buffer(JSRuntime *rt, void *opaque, void *ptr)
-{
-    js_free_rt(rt, ptr);
-}
-
-static JSValue js_read_file_sync(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
-    const char *filename = JS_ToCString(ctx, argv[0]);
-    FILE *file = fopen(filename, "rb");
-    if (file == NULL)
-    {
-        JS_ThrowTypeError(ctx, "File not found: %s", filename);
-        JS_FreeCString(ctx, filename);
-        return JS_EXCEPTION;
-    }
-
-    fseek(file, 0, SEEK_END);
-    size_t size = ftell(file);
-    rewind(file);
-
-    uint8_t *buffer = js_malloc(ctx, size);
-    if (buffer == NULL)
-    {
-        JS_FreeCString(ctx, filename);
-        fclose(file);
-        JS_ThrowOutOfMemory(ctx);
-        return JS_EXCEPTION;
-    }
-
-    size_t result = fread(buffer, 1, size, file);
-    fclose(file);
-
-    if (result != size)
-    {
-        JS_FreeCString(ctx, filename);
-        js_free(ctx, buffer);
-        JS_ThrowTypeError(ctx, "Failed to read entire file. Got %lu, expected %lu", result, result);
-        return JS_EXCEPTION;
-    }
-
-    return JS_NewArrayBuffer(ctx, buffer, size, free_js_array_buffer, NULL, false);
-}
+// static void free_js_array_buffer(JSRuntime *rt, void *opaque, void *ptr)
+//{
+//     js_free_rt(rt, ptr);
+// }
 
 static JSValue js_getenv(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
@@ -739,6 +706,12 @@ int main(int argc, char *argv[])
     JSRuntime *rt = JS_NewRuntime();
     JSContext *ctx = JS_NewContext(rt);
 
+    nx_context_t *context = malloc(sizeof(nx_context_t));
+    memset(context, 0, sizeof(nx_context_t));
+    context->thpool = thpool_init(4);
+    pthread_mutex_init(&(context->async_done_mutex), NULL);
+    JS_SetContextOpaque(ctx, context);
+
     size_t runtime_buffer_size;
     char *runtime_path = "romfs:/runtime.js";
     char *runtime_buffer = (char *)read_file(runtime_path, &runtime_buffer_size);
@@ -802,7 +775,8 @@ int main(int argc, char *argv[])
         JS_CFUNC_DEF("framebufferInit", 0, js_framebuffer_init),
         JS_CFUNC_DEF("framebufferExit", 0, js_framebuffer_exit),
 
-        // filesystem
+        // fs
+        JS_CFUNC_DEF("readFile", 0, js_read_file),
         JS_CFUNC_DEF("readDirSync", 0, js_readdir_sync),
         JS_CFUNC_DEF("readFileSync", 0, js_read_file_sync),
 
@@ -824,7 +798,7 @@ int main(int argc, char *argv[])
         JS_CFUNC_DEF("canvasGetImageData", 0, js_canvas_get_image_data),
         JS_CFUNC_DEF("canvasPutImageData", 0, js_canvas_put_image_data),
     };
-    JS_SetPropertyFunctionList(ctx, native_obj, function_list, 27);
+    JS_SetPropertyFunctionList(ctx, native_obj, function_list, 28);
 
     // `Switch.argv`
     JSValue argv_array = JS_NewArray(ctx);
@@ -853,6 +827,20 @@ int main(int argc, char *argv[])
     // Main loop
     while (appletMainLoop())
     {
+        // Check if any thread pool tasks have been completed
+        if (context->work != NULL)
+        {
+            if (context->work->done)
+            {
+                context->work->callback(context->work);
+                context->work = NULL;
+            }
+            else
+            {
+                printf("Waiting\n");
+            }
+        }
+
         padUpdate(&pad);
         u64 kDown = padGetButtons(&pad);
 

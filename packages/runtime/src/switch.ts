@@ -17,6 +17,8 @@ type Keys = {
 	[i: number]: bigint;
 };
 
+type Callback<T> = (err: Error | null, result: T) => void;
+
 export interface Native {
 	print: (str: string) => void;
 	cwd: () => string;
@@ -36,6 +38,7 @@ export interface Native {
 	hidGetKeyboardStates: () => Keys;
 
 	// fs
+	readFile: (path: string, cb: Callback<ArrayBuffer>) => void;
 	readDirSync: (path: string) => string[];
 	readFileSync: (path: string) => ArrayBuffer;
 
@@ -136,6 +139,7 @@ export class Switch extends EventTarget {
 
 	// Populated by the host process
 	exit!: () => never;
+	argv!: string[];
 
 	constructor() {
 		super();
@@ -252,6 +256,20 @@ export class Switch extends EventTarget {
 	 */
 	cwd() {
 		return new URL(`${this.native.cwd()}/`);
+	}
+
+	/**
+	 * Returns an `ArrayBuffer` containing the contents of the file at `path`.
+	 */
+	readFile(path: string | URL) {
+		return new Promise<ArrayBuffer>((resolve, reject) =>
+			this.native.readFile(String(path), (err, r) => {
+				console.log(err)
+				console.log(r)
+				if (err) return reject(err);
+				resolve(r);
+			})
+		);
 	}
 
 	/**

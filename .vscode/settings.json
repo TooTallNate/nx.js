@@ -6,7 +6,16 @@
         "cairo.h": "c",
         "ft2build.h": "c",
         "cairo-ft.h": "c",
-        "types.h": "c"
+        "types.h": "c",
+        "async.h": "c",
+        "thpool.h": "c",
+        "__availability": "c",
+        "__config": "c",
+        "__locale": "c",
+        "charconv": "c",
+        "string_view": "c",
+        "tuple": "c",
+        "algorithm": "c"
     },
     "C_Cpp.default.compilerPath": "/opt/devkitpro/devkitA64/bin/aarch64-none-elf-gcc"
 }
