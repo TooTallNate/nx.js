@@ -11,6 +11,8 @@
 #include <cairo-ft.h>
 #include <ft2build.h>
 
+#include "types.h"
+
 // Text renderer
 static PrintConsole *print_console = NULL;
 
@@ -740,6 +742,9 @@ int main(int argc, char *argv[])
     JSRuntime *rt = JS_NewRuntime();
     JSContext *ctx = JS_NewContext(rt);
 
+    nx_context_t *nx_ctx = malloc(sizeof(nx_context_t));
+    JS_SetContextOpaque(ctx, nx_ctx);
+
     size_t runtime_buffer_size;
     char *runtime_path = "romfs:/runtime.js";
     char *runtime_buffer = (char *)read_file(runtime_path, &runtime_buffer_size);
@@ -953,6 +958,8 @@ int main(int argc, char *argv[])
         framebufferClose(framebuffer);
         free(framebuffer);
     }
+
+    free(nx_ctx);
 
     return 0;
 }
