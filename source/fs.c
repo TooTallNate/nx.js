@@ -12,6 +12,38 @@
 // sleep() - TODO remove
 #include <unistd.h>
 
+JSValue js_readdir_sync(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    DIR *dir;
+    struct dirent *entry;
+
+    const char *path = JS_ToCString(ctx, argv[0]);
+    dir = opendir(path);
+    if (dir == NULL)
+    {
+        JSValue error = JS_NewString(ctx, "An error occurred");
+        JS_Throw(ctx, error);
+        return JS_UNDEFINED;
+    }
+
+    int i = 0;
+    JSValue arr = JS_NewArray(ctx);
+    while ((entry = readdir(dir)) != NULL)
+    {
+        // Filter out `.` and `..`
+        if (!strcmp(".", entry->d_name) || !strcmp("..", entry->d_name))
+        {
+            continue;
+        }
+        JS_SetPropertyUint32(ctx, arr, i, JS_NewString(ctx, entry->d_name));
+        i++;
+    }
+
+    closedir(dir);
+
+    return arr;
+}
+
 void free_array_buffer(JSRuntime *rt, void *opaque, void *ptr)
 {
     free(ptr);
@@ -133,36 +165,4 @@ JSValue js_read_file_sync(JSContext *ctx, JSValueConst this_val, int argc, JSVal
     }
 
     return JS_NewArrayBuffer(ctx, buffer, size, free_js_array_buffer, NULL, false);
-}
-
-JSValue js_readdir_sync(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
-    DIR *dir;
-    struct dirent *entry;
-
-    const char *path = JS_ToCString(ctx, argv[0]);
-    dir = opendir(path);
-    if (dir == NULL)
-    {
-        JSValue error = JS_NewString(ctx, "An error occurred");
-        JS_Throw(ctx, error);
-        return JS_UNDEFINED;
-    }
-
-    int i = 0;
-    JSValue arr = JS_NewArray(ctx);
-    while ((entry = readdir(dir)) != NULL)
-    {
-        // Filter out `.` and `..`
-        if (!strcmp(".", entry->d_name) || !strcmp("..", entry->d_name))
-        {
-            continue;
-        }
-        JS_SetPropertyUint32(ctx, arr, i, JS_NewString(ctx, entry->d_name));
-        i++;
-    }
-
-    closedir(dir);
-
-    return arr;
 }
