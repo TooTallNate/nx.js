@@ -4,6 +4,29 @@ The `Switch` global object contains native interfaces to interact with the Switc
 
 ## Properties
 
+#### `Switch.argv` -> `string[]`
+
+Array of the arguments passed to the process. Under normal circumstances, this array contains a single entry with the absolute path to the `.nro` file.
+
+```ts
+console.log(Switch.argv);
+// [ "sdmc:/switch/nxjs.nro" ]
+```
+
+#### `Switch.entrypoint` -> `string`
+
+String value of the entrypoint JavaScript file that was evaluated. If a `main.js` file is present on the application's RomFS, then that will be executed first, in which case the value will be `romfs:/main.js`. Otherwise, the value will be the path of the `.nro` file on the SD card, with the `.nro` extension replaced with `.js`.
+
+```ts
+// In RomFS mode
+console.log(Switch.argv);
+// romfs:/main.js
+
+// In SD card mode (assuming the `.nro` file is located at `sdmc:/switch/nxjs.nro`)
+console.log(Switch.argv);
+// sdmc:/switch/nxjs.js
+```
+
 #### `Switch.screen` -> [`Canvas`](./canvas.md)
 
 Resembles the HTML [`Canvas`](./canvas.md) object which can have draw operations performed on it.
