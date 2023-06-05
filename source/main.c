@@ -11,6 +11,7 @@
 #include <ft2build.h>
 
 #include "types.h"
+#include "applet.h"
 #include "fs.h"
 
 // Text renderer
@@ -264,11 +265,6 @@ static JSValue js_env_to_object(JSContext *ctx, JSValueConst this_val, int argc,
     }
 
     return env;
-}
-
-static JSValue js_appletGetOperationMode(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
-    return JS_NewInt32(ctx, appletGetOperationMode());
 }
 
 static JSValue js_new_font_face(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -738,6 +734,7 @@ int main(int argc, char *argv[])
         JS_CFUNC_DEF("readFileSync", 0, js_read_file_sync),
 
         // applet
+        JS_CFUNC_DEF("appletGetAppletType", 0, js_appletGetAppletType),
         JS_CFUNC_DEF("appletGetOperationMode", 0, js_appletGetOperationMode),
 
         // font

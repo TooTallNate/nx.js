@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #include <dirent.h>
 #include <string.h>
 #include "fs.h"
