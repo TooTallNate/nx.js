@@ -225,43 +225,6 @@ static JSValue js_hid_get_keyboard_states(JSContext *ctx, JSValueConst this_val,
     return obj;
 }
 
-static JSValue js_readdir_sync(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
-    DIR *dir;
-    struct dirent *entry;
-
-    const char *path = JS_ToCString(ctx, argv[0]);
-    dir = opendir(path);
-    if (dir == NULL)
-    {
-        JSValue error = JS_NewString(ctx, "An error occurred");
-        JS_Throw(ctx, error);
-        return JS_UNDEFINED;
-    }
-
-    int i = 0;
-    JSValue arr = JS_NewArray(ctx);
-    while ((entry = readdir(dir)) != NULL)
-    {
-        // Filter out `.` and `..`
-        if (!strcmp(".", entry->d_name) || !strcmp("..", entry->d_name))
-        {
-            continue;
-        }
-        JS_SetPropertyUint32(ctx, arr, i, JS_NewString(ctx, entry->d_name));
-        i++;
-    }
-
-    closedir(dir);
-
-    return arr;
-}
-
-// static void free_js_array_buffer(JSRuntime *rt, void *opaque, void *ptr)
-//{
-//     js_free_rt(rt, ptr);
-// }
-
 static JSValue js_getenv(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     const char *name = JS_ToCString(ctx, argv[0]);
@@ -340,7 +303,6 @@ static JSValue js_new_font_face(JSContext *ctx, JSValueConst this_val, int argc,
     }
 
     JS_SetOpaque(obj, context);
-
     return obj;
 }
 
@@ -919,11 +881,6 @@ int main(int argc, char *argv[])
         print_console = consoleInit(print_console);
     }
 
-    // JS_FreeValue(ctx, argv_array);
-    // JS_FreeValue(ctx, switch_dispatch_func);
-    // JS_FreeValue(ctx, native_obj);
-    // JS_FreeValue(ctx, switch_obj);
-    // JS_FreeValue(ctx, global_obj);
     JS_FreeContext(ctx);
     JS_FreeRuntime(rt);
 

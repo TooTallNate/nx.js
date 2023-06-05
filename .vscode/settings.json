@@ -15,7 +15,8 @@
         "charconv": "c",
         "string_view": "c",
         "tuple": "c",
-        "algorithm": "c"
+        "algorithm": "c",
+        "fs.h": "c"
     },
     "C_Cpp.default.compilerPath": "/opt/devkitpro/devkitA64/bin/aarch64-none-elf-gcc"
 }

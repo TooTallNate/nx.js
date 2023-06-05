@@ -11,10 +11,12 @@ typedef struct
     nx_async_result_t work;
     int err;
     const char *filename;
-    char *result;
+    uint8_t *result;
+    size_t size;
 } nx_fs_read_file_async_t;
 
 JSValue js_read_file(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv);
 JSValue js_read_file_sync(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv);
+JSValue js_readdir_sync(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv);
 
 #endif
