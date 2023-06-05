@@ -133,6 +133,7 @@ export class Switch extends EventTarget {
 	[INTERNAL_SYMBOL]: Internal;
 
 	// Populated by the host process
+	argv!: string[];
 	exit!: () => never;
 
 	constructor() {
