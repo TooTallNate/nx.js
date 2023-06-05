@@ -754,6 +754,9 @@ int main(int argc, char *argv[])
     };
     JS_SetPropertyFunctionList(ctx, native_obj, function_list, sizeof(function_list) / sizeof(function_list[0]));
 
+    // `Switch.entrypoint`
+    JS_SetPropertyStr(ctx, switch_obj, "entrypoint", JS_NewString(ctx, js_path));
+
     // `Switch.argv`
     JSValue argv_array = JS_NewArray(ctx);
     for (int i = 0; i < argc; i++)

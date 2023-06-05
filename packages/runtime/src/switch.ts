@@ -134,6 +134,7 @@ export class Switch extends EventTarget {
 
 	// Populated by the host process
 	argv!: string[];
+	entrypoint!: string;
 	exit!: () => never;
 
 	constructor() {
