@@ -755,7 +755,7 @@ int main(int argc, char *argv[])
         JS_CFUNC_DEF("canvasGetImageData", 0, js_canvas_get_image_data),
         JS_CFUNC_DEF("canvasPutImageData", 0, js_canvas_put_image_data),
     };
-    JS_SetPropertyFunctionList(ctx, native_obj, function_list, 27);
+    JS_SetPropertyFunctionList(ctx, native_obj, function_list, sizeof(function_list) / sizeof(function_list[0]));
 
     // `Switch.argv`
     JSValue argv_array = JS_NewArray(ctx);
