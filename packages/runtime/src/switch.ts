@@ -7,11 +7,6 @@ export type CanvasRenderingContext2DState =
 	Opaque<'CanvasRenderingContext2DState'>;
 export type FontFaceState = Opaque<'FontFaceState'>;
 
-export enum AppletOperationMode {
-	Handheld = 0, ///< Handheld
-	Console = 1, ///< Console (Docked / TV-mode)
-}
-
 type Keys = {
 	modifiers: bigint;
 	[i: number]: bigint;
@@ -29,7 +24,10 @@ export interface Native {
 	consoleExit: () => void;
 	framebufferInit: (buf: CanvasRenderingContext2DState) => void;
 	framebufferExit: () => void;
-	appletGetOperationMode: () => AppletOperationMode;
+
+	// applet
+	appletGetAppletType: () => number;
+	appletGetOperationMode: () => number;
 
 	// hid
 	hidInitializeKeyboard: () => void;
@@ -138,8 +136,9 @@ export class Switch extends EventTarget {
 	[INTERNAL_SYMBOL]: Internal;
 
 	// Populated by the host process
-	exit!: () => never;
 	argv!: string[];
+	entrypoint!: string;
+	exit!: () => never;
 
 	constructor() {
 		super();

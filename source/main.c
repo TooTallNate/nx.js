@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <dirent.h>
 #include <errno.h>
 #include <string.h>
 #include <inttypes.h>
@@ -13,6 +12,10 @@
 #include <pthread.h>
 
 #include "types.h"
+#include "fs.h"
+
+#include "types.h"
+#include "applet.h"
 #include "fs.h"
 
 // Text renderer
@@ -266,11 +269,6 @@ static JSValue js_env_to_object(JSContext *ctx, JSValueConst this_val, int argc,
     }
 
     return env;
-}
-
-static JSValue js_appletGetOperationMode(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
-    return JS_NewInt32(ctx, appletGetOperationMode());
 }
 
 static JSValue js_new_font_face(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -668,11 +666,11 @@ int main(int argc, char *argv[])
     JSRuntime *rt = JS_NewRuntime();
     JSContext *ctx = JS_NewContext(rt);
 
-    nx_context_t *context = malloc(sizeof(nx_context_t));
-    memset(context, 0, sizeof(nx_context_t));
-    context->thpool = thpool_init(4);
-    pthread_mutex_init(&(context->async_done_mutex), NULL);
-    JS_SetContextOpaque(ctx, context);
+    nx_context_t *nx_ctx = malloc(sizeof(nx_context_t));
+    memset(nx_ctx, 0, sizeof(nx_context_t));
+    nx_ctx->thpool = thpool_init(4);
+    pthread_mutex_init(&(nx_ctx->async_done_mutex), NULL);
+    JS_SetContextOpaque(ctx, nx_ctx);
 
     size_t runtime_buffer_size;
     char *runtime_path = "romfs:/runtime.js";
@@ -743,6 +741,7 @@ int main(int argc, char *argv[])
         JS_CFUNC_DEF("readFileSync", 0, js_read_file_sync),
 
         // applet
+        JS_CFUNC_DEF("appletGetAppletType", 0, js_appletGetAppletType),
         JS_CFUNC_DEF("appletGetOperationMode", 0, js_appletGetOperationMode),
 
         // font
@@ -760,7 +759,10 @@ int main(int argc, char *argv[])
         JS_CFUNC_DEF("canvasGetImageData", 0, js_canvas_get_image_data),
         JS_CFUNC_DEF("canvasPutImageData", 0, js_canvas_put_image_data),
     };
-    JS_SetPropertyFunctionList(ctx, native_obj, function_list, 28);
+    JS_SetPropertyFunctionList(ctx, native_obj, function_list, sizeof(function_list) / sizeof(function_list[0]));
+
+    // `Switch.entrypoint`
+    JS_SetPropertyStr(ctx, switch_obj, "entrypoint", JS_NewString(ctx, js_path));
 
     // `Switch.argv`
     JSValue argv_array = JS_NewArray(ctx);
@@ -806,12 +808,12 @@ int main(int argc, char *argv[])
         }
 
         // Check if any thread pool tasks have been completed
-        if (context->work != NULL)
+        if (nx_ctx->work != NULL)
         {
-            if (context->work->done)
+            if (nx_ctx->work->done)
             {
-                context->work->callback(context->work);
-                context->work = NULL;
+                nx_ctx->work->callback(nx_ctx->work);
+                nx_ctx->work = NULL;
             }
             else
             {
@@ -897,6 +899,8 @@ int main(int argc, char *argv[])
         framebufferClose(framebuffer);
         free(framebuffer);
     }
+
+    free(nx_ctx);
 
     return 0;
 }

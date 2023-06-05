@@ -1,5 +1,6 @@
 import { FPS } from './fps';
-import { Button } from 'nxjs-constants';
+import { Hid } from 'nxjs-constants';
+const { Button } = Hid;
 
 interface Position {
 	x: number;

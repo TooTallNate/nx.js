@@ -3,7 +3,6 @@
 
 #include <switch.h>
 #include <quickjs/quickjs.h>
-
 #include "types.h"
 
 typedef struct
