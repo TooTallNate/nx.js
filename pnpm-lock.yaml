@@ -138,6 +138,9 @@ importers:
       esbuild:
         specifier: ^0.17.18
         version: 0.17.18
+      kleur:
+        specifier: ^4.1.5
+        version: 4.1.5
       typescript:
         specifier: ^5.0.4
         version: 5.0.4

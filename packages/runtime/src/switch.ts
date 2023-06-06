@@ -1,6 +1,7 @@
 import { Canvas, CanvasRenderingContext2D } from './canvas';
 import { FontFaceSet } from './font';
 import { INTERNAL_SYMBOL } from './types';
+import { inspect } from './inspect';
 
 export type Opaque<T> = { __type: T };
 export type CanvasRenderingContext2DState =
@@ -267,6 +268,8 @@ export class Switch extends EventTarget {
 	readFileSync(path: string | URL) {
 		return this.native.readFileSync(String(path));
 	}
+
+	inspect = inspect;
 }
 
 export class Env {

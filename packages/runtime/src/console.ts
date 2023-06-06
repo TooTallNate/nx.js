@@ -12,9 +12,8 @@ export class Console {
 
 	log(input: unknown) {
 		if (arguments.length === 0) input = '';
-		this[INTERNAL_SYMBOL].print(
-			`${typeof input === 'string' ? input : JSON.stringify(input)}\n`
-		);
+		const s = this[INTERNAL_SYMBOL];
+		s.print(`${typeof input === 'string' ? input : s.inspect(input)}\n`);
 	}
 
 	warn(input: unknown) {
