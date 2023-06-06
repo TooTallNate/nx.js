@@ -7,7 +7,6 @@
 
 typedef struct
 {
-    nx_async_result_t work;
     int err;
     const char *filename;
     uint8_t *result;

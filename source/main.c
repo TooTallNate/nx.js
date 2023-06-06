@@ -12,10 +12,9 @@
 #include <pthread.h>
 
 #include "types.h"
-#include "fs.h"
-
-#include "types.h"
+#include "async.h"
 #include "applet.h"
+#include "dns.h"
 #include "fs.h"
 
 // Text renderer
@@ -609,6 +608,23 @@ static void finalizer_font_face(JSRuntime *rt, JSValue val)
     }
 }
 
+void nx_process_pending_jobs(JSRuntime *rt) {
+        JSContext *ctx1;
+        int err;
+        for (;;)
+        {
+            err = JS_ExecutePendingJob(rt, &ctx1);
+            if (err <= 0)
+            {
+                if (err < 0)
+                {
+                    print_js_error(ctx1);
+                }
+                break;
+            }
+        }
+}
+
 // Main program entrypoint
 int main(int argc, char *argv[])
 {
@@ -735,6 +751,9 @@ int main(int argc, char *argv[])
         JS_CFUNC_DEF("framebufferInit", 0, js_framebuffer_init),
         JS_CFUNC_DEF("framebufferExit", 0, js_framebuffer_exit),
 
+        // dns
+        JS_CFUNC_DEF("resolveDns", 0, js_dns_resolve),
+
         // fs
         JS_CFUNC_DEF("readFile", 0, js_read_file),
         JS_CFUNC_DEF("readDirSync", 0, js_readdir_sync),
@@ -791,35 +810,11 @@ int main(int argc, char *argv[])
     // Main loop
     while (appletMainLoop())
     {
-        // Process any Promises that need to be fulfilled
-        JSContext *ctx1;
-        int err;
-        for (;;)
-        {
-            err = JS_ExecutePendingJob(rt, &ctx1);
-            if (err <= 0)
-            {
-                if (err < 0)
-                {
-                    print_js_error(ctx1);
-                }
-                break;
-            }
-        }
+        // Check if any thread pool tasks have completed
+        nx_process_async(ctx, nx_ctx);
 
-        // Check if any thread pool tasks have been completed
-        if (nx_ctx->work != NULL)
-        {
-            if (nx_ctx->work->done)
-            {
-                nx_ctx->work->callback(nx_ctx->work);
-                nx_ctx->work = NULL;
-            }
-            else
-            {
-                printf("Waiting\n");
-            }
-        }
+        // Process any Promises that need to be fulfilled
+        nx_process_pending_jobs(rt);
 
         padUpdate(&pad);
         u64 kDown = padGetButtons(&pad);
