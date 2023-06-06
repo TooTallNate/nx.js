@@ -16,7 +16,10 @@ export const inspect = (v: unknown): string => {
 	if (typeof v === 'string') {
 		return green(JSON.stringify(v));
 	}
-	if (typeof v === 'undefined' || v === null) {
+	if (typeof v === 'undefined') {
+		return `\x1b[38;2;100;100;100m${v}\x1b[39m`;
+	}
+	if (v === null) {
 		return bold(String(v));
 	}
 	if (typeof v === 'function') {
@@ -65,7 +68,7 @@ export const inspect = (v: unknown): string => {
 		return printObject(v);
 	}
 	return `? ${v}`;
-}
+};
 
 inspect.custom = Symbol('Switch.inspect.custom');
 
@@ -74,9 +77,7 @@ function printObject(v: any) {
 	const contents =
 		keys.length === 0
 			? ''
-			: ` ${keys
-					.map((k) => `${k}: ${inspect(v[k])}`)
-					.join(', ')} `;
+			: ` ${keys.map((k) => `${k}: ${inspect(v[k])}`).join(', ')} `;
 	return `{${contents}}`;
 }
 
