@@ -1,6 +1,5 @@
 import { erase } from 'sisteransi';
 import { bold, cyan, bgYellow } from 'kleur/colors';
-import { inspect } from './inspect';
 
 console.log('Welcome to the nx.js REPL!');
 console.log('Use a keyboard to enter JavaScript code.');
@@ -48,7 +47,7 @@ Switch.addEventListener('keydown', (e) => {
 				trimmed.length === 0 ? undefined : eval(`(${trimmed})`);
 			buffer = '';
 			cursorPosition = 0;
-			Switch.print(`${inspect(result)}\n\n`);
+			Switch.print(`${Switch.inspect(result)}\n\n`);
 		} catch (err: unknown) {
 			buffer = '';
 			cursorPosition = 0;
