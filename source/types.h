@@ -2,14 +2,12 @@
 #define _NX_TYPES_
 
 #include <pthread.h>
-#include <stdbool.h>
 #include <quickjs/quickjs.h>
 #include "thpool.h"
 
-
 typedef struct nx_work_s nx_work_t;
 typedef void (*nx_work_cb)(nx_work_t *req);
-typedef void (*nx_after_work_cb)(JSContext *ctx, nx_work_t *req);
+typedef void (*nx_after_work_cb)(JSContext *ctx, nx_work_t *req, JSValue *args);
 
 struct nx_work_s
 {

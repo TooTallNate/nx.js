@@ -82,22 +82,11 @@ void js_read_file_do(nx_work_t *req)
     }
 }
 
-void js_read_file_cb(JSContext *ctx, nx_work_t *req)
+void js_read_file_cb(JSContext *ctx, nx_work_t *req, JSValue *args)
 {
     nx_fs_read_file_async_t *data = (nx_fs_read_file_async_t *)req->data;
     JS_FreeCString(ctx, data->filename);
-
-    JSValue result = JS_NewArrayBuffer(ctx, data->result,data->size,  free_array_buffer, NULL, false);
-    JSValue args[] = {JS_NULL, result};
-    JSValue ret_val = JS_Call(ctx, req->js_callback, JS_NULL, 2, args);
-    JS_FreeValue(ctx, req->js_callback);
-    if (JS_IsException(ret_val))
-    {
-        //p(data->work.ctx);
-    }
-    JS_FreeValue(ctx, ret_val);
-    free(data);
-    free(req);
+    args[1] = JS_NewArrayBuffer(ctx, data->result, data->size, free_array_buffer, NULL, false);
 }
 
 JSValue js_read_file(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)

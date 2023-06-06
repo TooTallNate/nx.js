@@ -6,6 +6,23 @@ console.log('Press the + button to exit...');
 Switch.resolveDns('n8.io').then((r) => {
 	console.log(r);
 });
+Switch.resolveDns('google.com').then((r) => {
+	console.log(r);
+});
+Switch.resolveDns('github.com').then((r) => {
+	console.log(r);
+});
+Switch.resolveDns('example.com').then((r) => {
+	console.log(r);
+});
+
+Switch.resolveDns('dsfadfasdfasdfn8.io').then((r) => {
+	console.log(r);
+}, err => {
+    console.log(err)
+    console.log(err.stack)
+});
+
 
 Switch.readFile(Switch.argv[0]).then(
 	(r) => {
