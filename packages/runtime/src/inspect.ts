@@ -1,8 +1,11 @@
 import { bold, cyan, green, magenta, red, yellow } from 'kleur/colors';
 
-export function inspect(v: unknown): string {
+export const inspect = (v: unknown): string => {
+	if (v && typeof (v as any)[inspect.custom] === 'function') {
+		return (v as any)[inspect.custom]();
+	}
 	if (typeof v === 'number' || typeof v === 'boolean') {
-		return bold(yellow(String(v)));
+		return bold(yellow(v));
 	}
 	if (typeof v === 'bigint') {
 		return bold(yellow(`${v}n`));
@@ -31,6 +34,11 @@ export function inspect(v: unknown): string {
 	if (isDate(v)) {
 		return magenta(v.toISOString());
 	}
+	if (isError(v)) {
+		const stack = v.stack?.trim();
+		const obj = Object.keys(v).length > 0 ? ` ${printObject(v)}` : '';
+		return stack ? `${v}\n${stack}${obj}` : `[${v}]${obj}`;
+	}
 	if (isArrayBuffer(v)) {
 		const contents = new Uint8Array(v);
 		const b = [];
@@ -54,16 +62,22 @@ export function inspect(v: unknown): string {
 		return `${getClass(v)}(${v.length}) [${c}]`;
 	}
 	if (typeof v === 'object') {
-		const keys = Object.keys(v);
-		const contents =
-			keys.length === 0
-				? ''
-				: ` ${keys
-						.map((k) => `${k}: ${inspect((v as any)[k])}`)
-						.join(', ')} `;
-		return `{${contents}}`;
+		return printObject(v);
 	}
 	return `? ${v}`;
+}
+
+inspect.custom = Symbol('Switch.inspect.custom');
+
+function printObject(v: any) {
+	const keys = Object.keys(v);
+	const contents =
+		keys.length === 0
+			? ''
+			: ` ${keys
+					.map((k) => `${k}: ${inspect(v[k])}`)
+					.join(', ')} `;
+	return `{${contents}}`;
 }
 
 function getClass(v: unknown) {
@@ -72,6 +86,10 @@ function getClass(v: unknown) {
 
 function isDate(v: unknown): v is Date {
 	return getClass(v) === 'Date';
+}
+
+function isError(v: unknown): v is Error {
+	return getClass(v) === 'Error';
 }
 
 function isRegExp(v: unknown): v is RegExp {
