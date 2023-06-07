@@ -67,6 +67,7 @@ void js_read_file_do(nx_work_t *req)
     data->result = malloc(data->size);
     if (data->result == NULL)
     {
+        data->err = errno;
         fclose(file);
         return;
     }
