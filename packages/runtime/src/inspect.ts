@@ -1,4 +1,6 @@
-import { bold, cyan, green, magenta, red, yellow } from 'kleur/colors';
+import { bold, cyan, green, magenta, red, rgb, yellow } from 'kleur/colors';
+
+const grey = rgb(100, 100, 100);
 
 export const inspect = (v: unknown): string => {
 	if (v && typeof (v as any)[inspect.custom] === 'function') {
@@ -17,7 +19,7 @@ export const inspect = (v: unknown): string => {
 		return green(JSON.stringify(v));
 	}
 	if (typeof v === 'undefined') {
-		return `\x1b[38;2;100;100;100m${v}\x1b[39m`;
+		return grey(String(v));
 	}
 	if (v === null) {
 		return bold(String(v));
