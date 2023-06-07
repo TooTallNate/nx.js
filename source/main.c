@@ -846,31 +846,12 @@ int main(int argc, char *argv[])
     JSValue args[] = {event_obj};
     JSValue ret_val = JS_Call(ctx, switch_dispatch_func, switch_obj, 1, args);
     JS_FreeValue(ctx, event_obj);
-    if (JS_IsException(ret_val))
-    {
-        if (print_console != NULL)
-        {
-            print_console = consoleInit(NULL);
-        }
-        print_js_error(ctx);
-        sleep(3);
-    }
     JS_FreeValue(ctx, ret_val);
 
     JS_FreeContext(ctx);
     JS_FreeRuntime(rt);
 
     FT_Done_FreeType(ft_library);
-
-    if (print_console != NULL)
-    {
-        consoleExit(print_console);
-    }
-    if (framebuffer != NULL)
-    {
-        framebufferClose(framebuffer);
-        free(framebuffer);
-    }
 
     free(nx_ctx);
 
