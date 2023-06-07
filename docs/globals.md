@@ -16,7 +16,6 @@ For any non-supported features, it is recommended to polyfill those features by 
 Listed below are the officially supported Web interfaces:
 
 -   [`console`](https://developer.mozilla.org/en-US/docs/Web/API/console)
-    -   Only `console.log()` is implemented at this time, and will enable the console renderer when invoked.
 -   [`setTimeout`](https://developer.mozilla.org/en-US/docs/Web/API/setTimeout)
 -   [`setInterval`](https://developer.mozilla.org/en-US/docs/Web/API/setInterval)
 -   [`clearTimeout`](https://developer.mozilla.org/en-US/docs/Web/API/clearTimeout)
