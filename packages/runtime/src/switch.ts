@@ -172,7 +172,7 @@ export class Switch extends EventTarget {
 			},
 			cleanup() {
 				if (this.renderingMode === RenderingMode.Console) {
-					//native.consoleExit();
+					native.consoleExit();
 				} else if (this.renderingMode === RenderingMode.Framebuffer) {
 					native.framebufferExit();
 				}

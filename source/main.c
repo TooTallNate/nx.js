@@ -611,7 +611,7 @@ int main(int argc, char *argv[])
 {
     Result rc;
 
-    print_console = consoleInit(print_console);
+    print_console = consoleInit(NULL);
 
     rc = romfsInit();
     if (R_FAILED(rc))
@@ -839,11 +839,6 @@ int main(int argc, char *argv[])
         }
     }
 
-    if (print_console == NULL)
-    {
-        print_console = consoleInit(print_console);
-    }
-
     // Dispatch "exit" event
     JSValue event_obj = JS_NewObject(ctx);
     JSValue event_type = JS_NewString(ctx, "exit");
@@ -853,26 +848,19 @@ int main(int argc, char *argv[])
     JS_FreeValue(ctx, event_obj);
     if (JS_IsException(ret_val))
     {
+        if (print_console != NULL)
+        {
+            print_console = consoleInit(NULL);
+        }
         print_js_error(ctx);
+        sleep(3);
     }
     JS_FreeValue(ctx, ret_val);
 
-    if (print_console == NULL)
-    {
-        print_console = consoleInit(print_console);
-    }
-
-    // JS_FreeValue(ctx, argv_array);
-    // JS_FreeValue(ctx, switch_dispatch_func);
-    // JS_FreeValue(ctx, native_obj);
-    // JS_FreeValue(ctx, switch_obj);
-    // JS_FreeValue(ctx, global_obj);
     JS_FreeContext(ctx);
     JS_FreeRuntime(rt);
 
     FT_Done_FreeType(ft_library);
-
-    consoleUpdate(print_console);
 
     if (print_console != NULL)
     {
