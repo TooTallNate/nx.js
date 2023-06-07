@@ -24,7 +24,7 @@
     "@types/color-rgba": "^2.1.0",
     "@types/to-px": "^1.1.2",
     "esbuild": "^0.17.18",
-    "kleur": "^4.1.5",
+    "kleur": "TooTallNate/kleur#rgb",
     "typescript": "^5.0.4"
   }
 }
