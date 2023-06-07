@@ -1,5 +1,11 @@
 # nxjs-constants
 
+## 0.0.8
+
+### Patch Changes
+
+- 91ec2ec: Add `Switch.native.appletGetAppletType()` and `AppletType` enum to constants package
+
 ## 0.0.7
 
 ## 0.0.6

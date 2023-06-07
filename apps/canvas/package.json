@@ -9,6 +9,6 @@
   "license": "MIT",
   "devDependencies": {
     "esbuild": "^0.17.18",
-    "nxjs-runtime": "^0.0.7"
+    "nxjs-runtime": "^0.0.8"
   }
 }

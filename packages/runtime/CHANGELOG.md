@@ -1,5 +1,21 @@
 # nxjs-runtime
 
+## 0.0.8
+
+### Patch Changes
+
+- c553611: Properly initialize FontFace class ID
+- 82452c4: Add `console.error()`
+- ab44617: Add `Switch.entrypoint`
+- 7de26ff: Render `undefined` as grey
+- 3cb2a94: Add support for `Promise` fulfillment
+- d3b658b: Add `console.warn()`
+- 94a90f1: Add `Switch.inspect()`
+- b22fd00: Add yellow coloring to `console.warn()`
+- 81d325b: Add Error inspection and custom inspect symbol
+- dcdeefb: Add `Switch.argv` TypeScript definition
+- 91ec2ec: Add `Switch.native.appletGetAppletType()` and `AppletType` enum to constants package
+
 ## 0.0.7
 
 ### Patch Changes
