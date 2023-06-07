@@ -1,6 +1,4 @@
-#ifndef _NX_TYPES_
-#define _NX_TYPES_
-
+#pragma once
 #include <pthread.h>
 #include <quickjs/quickjs.h>
 #include "thpool.h"
@@ -26,5 +24,3 @@ typedef struct
     pthread_mutex_t async_done_mutex;
     nx_work_t *work_queue;
 } nx_context_t;
-
-#endif

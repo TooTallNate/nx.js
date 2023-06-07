@@ -30,7 +30,7 @@ importers:
         specifier: ^0.17.18
         version: 0.17.18
       nxjs-runtime:
-        specifier: ^0.0.7
+        specifier: ^0.0.8
         version: link:../../packages/runtime
 
   apps/canvas:
@@ -39,7 +39,7 @@ importers:
         specifier: ^0.17.18
         version: 0.17.18
       nxjs-runtime:
-        specifier: ^0.0.7
+        specifier: ^0.0.8
         version: link:../../packages/runtime
 
   apps/hello-world:
@@ -48,7 +48,7 @@ importers:
         specifier: ^0.17.18
         version: 0.17.18
       nxjs-runtime:
-        specifier: ^0.0.7
+        specifier: ^0.0.8
         version: link:../../packages/runtime
 
   apps/repl:
@@ -64,20 +64,20 @@ importers:
         specifier: ^0.17.18
         version: 0.17.18
       nxjs-runtime:
-        specifier: ^0.0.7
+        specifier: ^0.0.8
         version: link:../../packages/runtime
 
   apps/snake:
     dependencies:
       nxjs-constants:
-        specifier: 0.0.7
+        specifier: 0.0.8
         version: link:../../packages/constants
     devDependencies:
       esbuild:
         specifier: ^0.17.18
         version: 0.17.18
       nxjs-runtime:
-        specifier: ^0.0.7
+        specifier: ^0.0.8
         version: link:../../packages/runtime
 
   apps/touchscreen:
@@ -93,7 +93,7 @@ importers:
         specifier: ^0.17.18
         version: 0.17.18
       nxjs-runtime:
-        specifier: ^0.0.7
+        specifier: ^0.0.8
         version: link:../../packages/runtime
 
   apps/ttf-font:
@@ -102,7 +102,7 @@ importers:
         specifier: ^0.17.18
         version: 0.17.18
       nxjs-runtime:
-        specifier: ^0.0.7
+        specifier: ^0.0.8
         version: link:../../packages/runtime
 
   packages/constants:
@@ -139,8 +139,8 @@ importers:
         specifier: ^0.17.18
         version: 0.17.18
       kleur:
-        specifier: ^4.1.5
-        version: 4.1.5
+        specifier: TooTallNate/kleur#rgb
+        version: github.com/TooTallNate/kleur/aa22b05da68d29ff6d2ce5eba5895ac654b7f25a
       typescript:
         specifier: ^5.0.4
         version: 5.0.4
@@ -2314,4 +2314,11 @@ packages:
   /yocto-queue@0.1.0:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
+    dev: true
+
+  github.com/TooTallNate/kleur/aa22b05da68d29ff6d2ce5eba5895ac654b7f25a:
+    resolution: {tarball: https://codeload.github.com/TooTallNate/kleur/tar.gz/aa22b05da68d29ff6d2ce5eba5895ac654b7f25a}
+    name: kleur
+    version: 4.1.5
+    engines: {node: '>=6'}
     dev: true

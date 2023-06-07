@@ -10,7 +10,7 @@
   "devDependencies": {
     "@types/color-hash": "^1.0.2",
     "esbuild": "^0.17.18",
-    "nxjs-runtime": "^0.0.7"
+    "nxjs-runtime": "^0.0.8"
   },
   "dependencies": {
     "color-hash": "^2.0.2"
