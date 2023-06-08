@@ -1,0 +1,25 @@
+{
+  "name": "nxjs-pack",
+  "version": "0.0.8",
+  "description": "Package nx.js applications into a `.nro` file",
+  "bin": "./dist/nxjs-pack.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc"
+  },
+  "files": [
+    "dist"
+  ],
+  "author": "Nathan Rajlich <n@n8.io>",
+  "license": "MIT",
+  "dependencies": {
+    "@tootallnate/nro": "^0.0.1",
+    "@types/node": "^20.2.5",
+    "parse-author": "^2.0.0"
+  },
+  "devDependencies": {
+    "@types/parse-author": "^2.0.1",
+    "types-package-json": "^2.0.39",
+    "typescript": "^5.0.4"
+  }
+}

@@ -4,7 +4,7 @@
   "private": true,
   "description": "nx.js example that uses a custom TTF font",
   "scripts": {
-    "build": "esbuild --bundle --target=es2020 src/main.ts --outfile=dist/main.js"
+    "build": "esbuild --bundle --target=es2020 src/main.ts --outfile=romfs/main.js"
   },
   "license": "MIT",
   "devDependencies": {

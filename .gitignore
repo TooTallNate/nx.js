@@ -1,12 +1,13 @@
-dist
+romfs
 node_modules
 .turbo
+/apps/*/*.nro
+/packages/*/dist
 /lib/*/lib
 /lib/*/debug
 /lib/*/release
 
 /nxjs.*
 /build
-/romfs
 
 /?.html

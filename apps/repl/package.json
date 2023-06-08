@@ -4,7 +4,7 @@
   "private": true,
   "description": "nx.js example application REPL (read-eval-print-loop)",
   "scripts": {
-    "build": "esbuild --bundle --target=es2020 src/main.ts --outfile=dist/main.js"
+    "build": "esbuild --bundle --target=es2020 src/main.ts --outfile=romfs/main.js"
   },
   "license": "MIT",
   "dependencies": {
@@ -13,6 +13,7 @@
   },
   "devDependencies": {
     "esbuild": "^0.17.18",
+    "nxjs-pack": "^0.0.8",
     "nxjs-runtime": "^0.0.8"
   }
 }

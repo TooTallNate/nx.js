@@ -50,13 +50,16 @@ jobs:
   release:
     name: Release
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [build]
     runs-on: ubuntu-latest
-    outputs:
-      published: ${{ steps.changesets.outputs.published }}
-      hasChangesets: ${{ steps.changesets.outputs.hasChangesets }}
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v3
+
+      - name: Download `nxjs.nro`
+        uses: actions/download-artifact@v3
+        with:
+          name: nxjs.nro
 
       - name: Fetch git tags
         run: git fetch origin 'refs/tags/*:refs/tags/*'
@@ -78,6 +81,9 @@ jobs:
       - name: Build Packages
         run: pnpm build
 
+      - name: Copy `nxjs.nro` to "nxjs-pack"
+        run: cp -v nxjs.nro packages/pack/dist
+
       - name: Create Release Pull Request or Publish to npm
         id: changesets
         uses: changesets/action@v1
@@ -89,21 +95,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-  gh-release:
-    name: Create GitHub Release
-    if: needs.release.outputs.published == 'true'
-    needs: [build, release]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Repo
-        uses: actions/checkout@v3
-
-      - name: Download `nxjs.nro`
-        uses: actions/download-artifact@v3
-        with:
-          name: nxjs.nro
-
-      - name: Create GitHub Release
+      - name: Create GitHub Release (if published happened)
+        if: steps.changesets.outputs.published == 'true'
         uses: actions/github-script@v6
         with:
           script: |

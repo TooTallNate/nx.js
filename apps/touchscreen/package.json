@@ -4,7 +4,7 @@
   "private": true,
   "description": "nx.js example using the touchscreen",
   "scripts": {
-    "build": "esbuild --bundle --main-fields=module,main --target=es2020 src/main.ts --outfile=dist/main.js"
+    "build": "esbuild --bundle --main-fields=module,main --target=es2020 src/main.ts --outfile=romfs/main.js"
   },
   "license": "MIT",
   "devDependencies": {

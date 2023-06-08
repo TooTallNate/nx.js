@@ -4,7 +4,7 @@
   "private": true,
   "description": "Classic 'snake' game using nx.js",
   "scripts": {
-    "build": "esbuild --bundle --target=es2020 src/main.ts --outfile=dist/main.js"
+    "build": "esbuild --bundle --target=es2020 src/main.ts --outfile=romfs/main.js"
   },
   "license": "MIT",
   "dependencies": {

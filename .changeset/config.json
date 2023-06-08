@@ -4,8 +4,9 @@
   "commit": false,
   "fixed": [
     [
+      "nxjs-constants",
       "nxjs-runtime",
-      "nxjs-constants"
+      "nxjs-pack"
     ]
   ],
   "linked": [],
