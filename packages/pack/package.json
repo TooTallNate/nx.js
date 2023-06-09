@@ -14,6 +14,7 @@
   "license": "MIT",
   "dependencies": {
     "@tootallnate/nro": "^0.0.1",
+    "@tootallnate/romfs": "^0.0.1",
     "@types/node": "^20.2.5",
     "parse-author": "^2.0.0"
   },

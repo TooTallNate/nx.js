@@ -119,6 +119,9 @@ importers:
       '@tootallnate/nro':
         specifier: ^0.0.1
         version: 0.0.1
+      '@tootallnate/romfs':
+        specifier: ^0.0.1
+        version: 0.0.1
       '@types/node':
         specifier: ^20.2.5
         version: 20.2.5
@@ -631,6 +634,10 @@ packages:
     resolution: {integrity: sha512-uC5q2dpJvwwTgHCLhOzCC0a0Z55QT6QRblVpNe0lGwnf27aWu1gFP/FAiP8OL9MZIG+TLHG12ZK0o264MCwweA==}
     dependencies:
       '@tootallnate/nacp': 0.0.1
+    dev: false
+
+  /@tootallnate/romfs@0.0.1:
+    resolution: {integrity: sha512-8+lQoFRTU6VmSVL+lXSI2c83Rb/OuMNJ/r2BuPI7gnjboJNEBSEQbvV9fZe2+EpfsTYrj+2FyvoEfsuXqC9BYA==}
     dev: false
 
   /@types/color-hash@1.0.2:
