@@ -10,11 +10,13 @@ import 'core-js/actual/url';
 import 'core-js/actual/url-search-params';
 import EventTarget from '@ungap/event-target';
 import { Event, UIEvent, KeyboardEvent, TouchEvent } from './event';
+import * as WebAssembly from './wasm';
 def('EventTarget', EventTarget);
 def('Event', Event);
 def('UIEvent', UIEvent);
 def('KeyboardEvent', KeyboardEvent);
 def('TouchEvent', TouchEvent);
+def('WebAssembly', WebAssembly);
 
 class TextDecoder implements globalThis.TextDecoder {
 	encoding: string;

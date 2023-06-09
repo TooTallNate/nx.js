@@ -1,0 +1,14 @@
+{
+  "name": "nxjs-example-wasm",
+  "version": "0.0.0",
+  "private": true,
+  "description": "nx.js example that loads a WASM binary",
+  "scripts": {
+    "build": "esbuild --bundle --target=es2020 src/main.ts --outfile=dist/main.js"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "esbuild": "^0.17.18",
+    "nxjs-runtime": "^0.0.8"
+  }
+}

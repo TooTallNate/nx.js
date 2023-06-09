@@ -13,6 +13,7 @@
 #include "types.h"
 #include "applet.h"
 #include "fs.h"
+#include "wasm.h"
 
 // Text renderer
 static PrintConsole *print_console = NULL;
@@ -754,6 +755,8 @@ int main(int argc, char *argv[])
     };
     JS_SetPropertyFunctionList(ctx, native_obj, function_list, sizeof(function_list) / sizeof(function_list[0]));
 
+    js_wasm_init(ctx, native_obj);
+
     // `Switch.entrypoint`
     JS_SetPropertyStr(ctx, switch_obj, "entrypoint", JS_NewString(ctx, js_path));
 
@@ -852,6 +855,9 @@ int main(int argc, char *argv[])
     JS_FreeRuntime(rt);
 
     FT_Done_FreeType(ft_library);
+    if (nx_ctx->wasm_env) {
+        m3_FreeEnvironment(nx_ctx->wasm_env);
+    }
 
     free(nx_ctx);
 

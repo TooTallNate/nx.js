@@ -6,7 +6,8 @@
         "cairo.h": "c",
         "ft2build.h": "c",
         "cairo-ft.h": "c",
-        "types.h": "c"
+        "types.h": "c",
+        "wasm.h": "c"
     },
     "C_Cpp.default.compilerPath": "/opt/devkitpro/devkitA64/bin/aarch64-none-elf-gcc"
 }
