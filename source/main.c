@@ -629,6 +629,7 @@ int main(int argc, char *argv[])
     JSValue native_obj = JS_GetPropertyStr(ctx, switch_obj, "native");
     JSValue switch_dispatch_func = JS_GetPropertyStr(ctx, switch_obj, "dispatchEvent");
 
+    nx_init_applet(ctx, native_obj);
     nx_init_font(ctx, native_obj);
 
     JSValue exit_func = JS_NewCFunction(ctx, js_exit, "exit", 0);
@@ -660,10 +661,6 @@ int main(int argc, char *argv[])
         // filesystem
         JS_CFUNC_DEF("readDirSync", 0, js_readdir_sync),
         JS_CFUNC_DEF("readFileSync", 0, js_read_file_sync),
-
-        // applet
-        JS_CFUNC_DEF("appletGetAppletType", 0, js_appletGetAppletType),
-        JS_CFUNC_DEF("appletGetOperationMode", 0, js_appletGetOperationMode),
 
         // canvas
         JS_CFUNC_DEF("canvasNewContext", 0, js_canvas_new_context),
