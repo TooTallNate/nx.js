@@ -12,6 +12,7 @@
 
 #include "types.h"
 #include "applet.h"
+#include "font.h"
 #include "fs.h"
 
 // Text renderer
@@ -21,16 +22,8 @@ static PrintConsole *print_console = NULL;
 static NWindow *win = NULL;
 static Framebuffer *framebuffer = NULL;
 static uint8_t *js_framebuffer = NULL;
-static FT_Library ft_library = NULL;
 
-static JSClassID js_font_face_class_id;
 static JSClassID js_canvas_context_class_id;
-
-typedef struct
-{
-    FT_Face ft_face;
-    cairo_font_face_t *cairo_font;
-} FontFace;
 
 typedef struct
 {
@@ -267,52 +260,6 @@ static JSValue js_env_to_object(JSContext *ctx, JSValueConst this_val, int argc,
     return env;
 }
 
-static JSValue js_new_font_face(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
-    FontFace *context = js_malloc(ctx, sizeof(FontFace));
-    if (!context)
-    {
-        JS_ThrowOutOfMemory(ctx);
-        return JS_EXCEPTION;
-    }
-    memset(context, 0, sizeof(FontFace));
-
-    size_t bytes;
-    FT_Byte *font_data = JS_GetArrayBuffer(ctx, &bytes, argv[0]);
-
-    FT_New_Memory_Face(ft_library,
-                       font_data, /* first byte in memory */
-                       bytes,     /* size in bytes        */
-                       0,         /* face_index           */
-                       &context->ft_face);
-
-    // Create a Cairo font face from the FreeType face
-    context->cairo_font = cairo_ft_font_face_create_for_ft_face(context->ft_face, 0);
-
-    JSValue obj = JS_NewObjectClass(ctx, js_font_face_class_id);
-    if (JS_IsException(obj))
-    {
-        free(context);
-        return obj;
-    }
-
-    JS_SetOpaque(obj, context);
-
-    return obj;
-}
-
-static JSValue js_get_system_font(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
-    PlFontData font;
-    Result rc = plGetSharedFontByType(&font, PlSharedFontType_Standard);
-    if (R_FAILED(rc))
-    {
-        JS_ThrowTypeError(ctx, "Failed to load system font");
-        return JS_EXCEPTION;
-    }
-    return JS_NewArrayBufferCopy(ctx, font.address, font.size);
-}
-
 static JSValue js_canvas_new_context(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     int width;
@@ -397,7 +344,7 @@ static JSValue js_canvas_set_font(JSContext *ctx, JSValueConst this_val, int arg
     {
         return JS_EXCEPTION;
     }
-    FontFace *face = JS_GetOpaque2(ctx, argv[1], js_font_face_class_id);
+    nx_font_face_t *face = nx_get_font_face(ctx, argv[1]);
     if (!face)
     {
         return JS_EXCEPTION;
@@ -594,18 +541,6 @@ static void finalizer_canvas_context_2d(JSRuntime *rt, JSValue val)
     }
 }
 
-static void finalizer_font_face(JSRuntime *rt, JSValue val)
-{
-    FontFace *context = JS_GetOpaque(val, js_font_face_class_id);
-    printf("Finalizing font face");
-    if (context)
-    {
-        FT_Done_Face(context->ft_face);
-        cairo_font_face_destroy(context->cairo_font);
-        js_free_rt(rt, context);
-    }
-}
-
 // Main program entrypoint
 int main(int argc, char *argv[])
 {
@@ -624,9 +559,6 @@ int main(int argc, char *argv[])
     {
         diagAbortWithResult(rc);
     }
-
-    // Initialize FreeType library
-    FT_Init_FreeType(&ft_library);
 
     // Configure our supported input layout: a single player with standard controller styles
     padConfigureInput(1, HidNpadStyleSet_NpadStandard);
@@ -664,6 +596,7 @@ int main(int argc, char *argv[])
     JSContext *ctx = JS_NewContext(rt);
 
     nx_context_t *nx_ctx = malloc(sizeof(nx_context_t));
+    memset(nx_ctx, 0, sizeof(nx_context_t));
     JS_SetContextOpaque(ctx, nx_ctx);
 
     size_t runtime_buffer_size;
@@ -684,13 +617,6 @@ int main(int argc, char *argv[])
         free(runtime_buffer);
     }
 
-    JS_NewClassID(&js_font_face_class_id);
-    JSClassDef font_face_class = {
-        "FontFace",
-        .finalizer = finalizer_font_face,
-    };
-    JS_NewClass(rt, js_font_face_class_id, &font_face_class);
-
     JS_NewClassID(&js_canvas_context_class_id);
     JSClassDef canvas_context_class = {
         "CanvasContext2D",
@@ -702,6 +628,8 @@ int main(int argc, char *argv[])
     JSValue switch_obj = JS_GetPropertyStr(ctx, global_obj, "Switch");
     JSValue native_obj = JS_GetPropertyStr(ctx, switch_obj, "native");
     JSValue switch_dispatch_func = JS_GetPropertyStr(ctx, switch_obj, "dispatchEvent");
+
+    nx_init_font(ctx, native_obj);
 
     JSValue exit_func = JS_NewCFunction(ctx, js_exit, "exit", 0);
     JS_SetPropertyStr(ctx, switch_obj, "exit", exit_func);
@@ -736,10 +664,6 @@ int main(int argc, char *argv[])
         // applet
         JS_CFUNC_DEF("appletGetAppletType", 0, js_appletGetAppletType),
         JS_CFUNC_DEF("appletGetOperationMode", 0, js_appletGetOperationMode),
-
-        // font
-        JS_CFUNC_DEF("newFontFace", 0, js_new_font_face),
-        JS_CFUNC_DEF("getSystemFont", 0, js_get_system_font),
 
         // canvas
         JS_CFUNC_DEF("canvasNewContext", 0, js_canvas_new_context),
@@ -851,7 +775,10 @@ int main(int argc, char *argv[])
     JS_FreeContext(ctx);
     JS_FreeRuntime(rt);
 
-    FT_Done_FreeType(ft_library);
+    if (nx_ctx->ft_library)
+    {
+        FT_Done_FreeType(nx_ctx->ft_library);
+    }
 
     free(nx_ctx);
 
