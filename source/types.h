@@ -1,6 +1,8 @@
 #pragma once
 #include <pthread.h>
 #include <quickjs/quickjs.h>
+#include <cairo-ft.h>
+#include <ft2build.h>
 #include "thpool.h"
 
 typedef struct nx_work_s nx_work_t;
@@ -23,4 +25,10 @@ typedef struct
     threadpool thpool;
     pthread_mutex_t async_done_mutex;
     nx_work_t *work_queue;
+    FT_Library ft_library;
 } nx_context_t;
+
+inline nx_context_t *nx_get_context(JSContext *ctx)
+{
+    return JS_GetContextOpaque(ctx);
+}
