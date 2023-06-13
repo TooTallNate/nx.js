@@ -7,7 +7,25 @@ static JSClassID js_wasm_module_id;
 typedef struct {
     IM3Module module;
     bool loaded;
-} WasmModule;
+} nx_wasm_module_t;
+
+static JSValue js_wasm_new_memory(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv) {
+    nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
+
+    if (nx_ctx->wasm_env == NULL) {
+        nx_ctx->wasm_env = m3_NewEnvironment();
+    }
+
+    JSValue obj = JS_NewObjectClass(ctx, js_wasm_runtime_id);
+
+    IM3Runtime runtime = m3_NewRuntime(nx_ctx->wasm_env, 64 * 1024, NULL);
+    if (!runtime) {
+        JS_FreeValue(ctx, obj);
+
+    }
+
+    return obj;
+}
 
 static JSValue js_wasm_new_module(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv) {
     nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
@@ -31,7 +49,7 @@ static void finalizer_wasm_runtime(JSRuntime *rt, JSValue val)
 
 static void finalizer_wasm_module(JSRuntime *rt, JSValue val)
 {
-    WasmModule *module = JS_GetOpaque(val, js_wasm_module_id);
+    nx_wasm_module_t *module = JS_GetOpaque(val, js_wasm_module_id);
     if (module)
     {
         if (!module->loaded) {
@@ -44,6 +62,7 @@ static void finalizer_wasm_module(JSRuntime *rt, JSValue val)
 
 static const JSCFunctionListEntry function_list[] = {
     JS_CFUNC_DEF("wasmNewModule", 1, js_wasm_new_module),
+    JS_CFUNC_DEF("wasmNewMemory", 1, js_wasm_new_memory),
 };
 
 void js_wasm_init(JSContext *ctx, JSValueConst native_obj) {
