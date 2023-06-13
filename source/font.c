@@ -69,14 +69,14 @@ static void finalizer_font_face(JSRuntime *rt, JSValue val)
     }
 }
 
-static const JSCFunctionListEntry function_list[] = {
-    JS_CFUNC_DEF("newFontFace", 0, js_new_font_face),
-    JS_CFUNC_DEF("getSystemFont", 0, js_get_system_font)};
-
 nx_font_face_t *nx_get_font_face(JSContext *ctx, JSValueConst obj)
 {
     return JS_GetOpaque2(ctx, obj, js_font_face_class_id);
 }
+
+static const JSCFunctionListEntry function_list[] = {
+    JS_CFUNC_DEF("newFontFace", 0, js_new_font_face),
+    JS_CFUNC_DEF("getSystemFont", 0, js_get_system_font)};
 
 void nx_init_font(JSContext *ctx, JSValueConst native_obj)
 {
