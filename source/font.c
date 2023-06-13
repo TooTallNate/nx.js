@@ -2,9 +2,9 @@
 #include "types.h"
 #include "font.h"
 
-static JSClassID js_font_face_class_id;
+static JSClassID nx_font_face_class_id;
 
-static JSValue js_new_font_face(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+static JSValue nx_new_font_face(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     nx_context_t *nx_ctx = nx_get_context(ctx);
     nx_font_face_t *context = js_malloc(ctx, sizeof(nx_font_face_t));
@@ -33,7 +33,7 @@ static JSValue js_new_font_face(JSContext *ctx, JSValueConst this_val, int argc,
     // Create a Cairo font face from the FreeType face
     context->cairo_font = cairo_ft_font_face_create_for_ft_face(context->ft_face, 0);
 
-    JSValue obj = JS_NewObjectClass(ctx, js_font_face_class_id);
+    JSValue obj = JS_NewObjectClass(ctx, nx_font_face_class_id);
     if (JS_IsException(obj))
     {
         free(context);
@@ -45,7 +45,7 @@ static JSValue js_new_font_face(JSContext *ctx, JSValueConst this_val, int argc,
     return obj;
 }
 
-static JSValue js_get_system_font(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+static JSValue nx_get_system_font(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     PlFontData font;
     Result rc = plGetSharedFontByType(&font, PlSharedFontType_Standard);
@@ -59,7 +59,7 @@ static JSValue js_get_system_font(JSContext *ctx, JSValueConst this_val, int arg
 
 static void finalizer_font_face(JSRuntime *rt, JSValue val)
 {
-    nx_font_face_t *context = JS_GetOpaque(val, js_font_face_class_id);
+    nx_font_face_t *context = JS_GetOpaque(val, nx_font_face_class_id);
     printf("Finalizing font face");
     if (context)
     {
@@ -71,23 +71,23 @@ static void finalizer_font_face(JSRuntime *rt, JSValue val)
 
 nx_font_face_t *nx_get_font_face(JSContext *ctx, JSValueConst obj)
 {
-    return JS_GetOpaque2(ctx, obj, js_font_face_class_id);
+    return JS_GetOpaque2(ctx, obj, nx_font_face_class_id);
 }
 
 static const JSCFunctionListEntry function_list[] = {
-    JS_CFUNC_DEF("newFontFace", 0, js_new_font_face),
-    JS_CFUNC_DEF("getSystemFont", 0, js_get_system_font)};
+    JS_CFUNC_DEF("newFontFace", 0, nx_new_font_face),
+    JS_CFUNC_DEF("getSystemFont", 0, nx_get_system_font)};
 
 void nx_init_font(JSContext *ctx, JSValueConst native_obj)
 {
     JSRuntime *rt = JS_GetRuntime(ctx);
 
-    JS_NewClassID(&js_font_face_class_id);
+    JS_NewClassID(&nx_font_face_class_id);
     JSClassDef font_face_class = {
         "FontFace",
         .finalizer = finalizer_font_face,
     };
-    JS_NewClass(rt, js_font_face_class_id, &font_face_class);
+    JS_NewClass(rt, nx_font_face_class_id, &font_face_class);
 
     JS_SetPropertyFunctionList(ctx, native_obj, function_list, sizeof(function_list) / sizeof(function_list[0]));
 }

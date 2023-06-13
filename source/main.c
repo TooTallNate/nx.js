@@ -6,12 +6,10 @@
 #include <inttypes.h>
 #include <switch.h>
 #include <quickjs/quickjs.h>
-#include <cairo.h>
-#include <cairo-ft.h>
-#include <ft2build.h>
 
 #include "types.h"
 #include "applet.h"
+#include "canvas.h"
 #include "font.h"
 #include "fs.h"
 
@@ -22,20 +20,6 @@ static PrintConsole *print_console = NULL;
 static NWindow *win = NULL;
 static Framebuffer *framebuffer = NULL;
 static uint8_t *js_framebuffer = NULL;
-
-static JSClassID js_canvas_context_class_id;
-
-typedef struct
-{
-    uint32_t width;
-    uint32_t height;
-    uint8_t *data;
-    cairo_t *ctx;
-    cairo_surface_t *surface;
-    cairo_path_t *path;
-    // cairo_font_face_t *font;
-    FT_Face ft_face;
-} CanvasContext2D;
 
 static JSValue js_console_init(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
@@ -69,7 +53,7 @@ static JSValue js_framebuffer_init(JSContext *ctx, JSValueConst this_val, int ar
         free(framebuffer);
     }
     framebuffer = malloc(sizeof(Framebuffer));
-    CanvasContext2D *context = JS_GetOpaque2(ctx, argv[0], js_canvas_context_class_id);
+    nx_canvas_context_2d_t *context = nx_get_canvas_context_2d(ctx, argv[0]);
     if (!context)
     {
         return JS_EXCEPTION;
@@ -260,287 +244,6 @@ static JSValue js_env_to_object(JSContext *ctx, JSValueConst this_val, int argc,
     return env;
 }
 
-static JSValue js_canvas_new_context(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
-    int width;
-    int height;
-    if (JS_ToInt32(ctx, &width, argv[0]) ||
-        JS_ToInt32(ctx, &height, argv[1]))
-    {
-        JS_ThrowTypeError(ctx, "invalid input");
-        return JS_EXCEPTION;
-    }
-    size_t buf_size = width * height * 4;
-    uint8_t *buffer = js_malloc(ctx, buf_size);
-    if (!buffer)
-    {
-        JS_ThrowOutOfMemory(ctx);
-        return JS_EXCEPTION;
-    }
-    memset(buffer, 0, buf_size);
-
-    CanvasContext2D *context = js_malloc(ctx, sizeof(CanvasContext2D));
-    if (!context)
-    {
-        JS_ThrowOutOfMemory(ctx);
-        return JS_EXCEPTION;
-    }
-    memset(context, 0, sizeof(CanvasContext2D));
-
-    // printf("1: %p\n", (void*)context);
-    JSValue obj = JS_NewObjectClass(ctx, js_canvas_context_class_id);
-    if (JS_IsException(obj))
-    {
-        free(context);
-        return obj;
-    }
-
-    // TOOD: this probably needs to go into `framebuffer_init` instead
-    JS_DupValue(ctx, obj);
-
-    // On Switch, the byte order seems to be BGRA
-    cairo_surface_t *surface = cairo_image_surface_create_for_data(
-        buffer, CAIRO_FORMAT_ARGB32, width, height, width * 4);
-
-    context->width = width;
-    context->height = height;
-    context->data = buffer;
-    context->surface = surface;
-    context->ctx = cairo_create(surface);
-
-    cairo_set_font_size(context->ctx, 46);
-
-    JS_SetOpaque(obj, context);
-    return obj;
-}
-
-static JSValue js_canvas_set_fill_style(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
-    CanvasContext2D *context = JS_GetOpaque2(ctx, argv[0], js_canvas_context_class_id);
-    if (!context)
-    {
-        return JS_EXCEPTION;
-    }
-    double r;
-    double g;
-    double b;
-    double a;
-    if (JS_ToFloat64(ctx, &r, argv[1]) ||
-        JS_ToFloat64(ctx, &g, argv[2]) ||
-        JS_ToFloat64(ctx, &b, argv[3]) ||
-        JS_ToFloat64(ctx, &a, argv[4]))
-    {
-        JS_ThrowTypeError(ctx, "invalid input");
-        return JS_EXCEPTION;
-    }
-    cairo_set_source_rgba(context->ctx, r / (double)255, g / (double)255, b / (double)255, a);
-    return JS_UNDEFINED;
-}
-
-static JSValue js_canvas_set_font(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
-    CanvasContext2D *context = JS_GetOpaque2(ctx, argv[0], js_canvas_context_class_id);
-    if (!context)
-    {
-        return JS_EXCEPTION;
-    }
-    nx_font_face_t *face = nx_get_font_face(ctx, argv[1]);
-    if (!face)
-    {
-        return JS_EXCEPTION;
-    }
-    double font_size;
-    if (JS_ToFloat64(ctx, &font_size, argv[2]))
-    {
-        JS_ThrowTypeError(ctx, "invalid input");
-        return JS_EXCEPTION;
-    }
-    cairo_set_font_face(context->ctx, face->cairo_font);
-    cairo_set_font_size(context->ctx, font_size);
-    context->ft_face = face->ft_face;
-    return JS_UNDEFINED;
-}
-
-static JSValue js_canvas_set_line_width(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
-    CanvasContext2D *context = JS_GetOpaque2(ctx, argv[0], js_canvas_context_class_id);
-    if (!context)
-    {
-        return JS_EXCEPTION;
-    }
-    double n;
-    if (JS_ToFloat64(ctx, &n, argv[1]))
-    {
-        JS_ThrowTypeError(ctx, "invalid input");
-        return JS_EXCEPTION;
-    }
-    cairo_set_line_width(context->ctx, n);
-    return JS_UNDEFINED;
-}
-
-static JSValue js_canvas_fill_rect(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
-    CanvasContext2D *context = JS_GetOpaque2(ctx, argv[0], js_canvas_context_class_id);
-    if (!context)
-    {
-        return JS_EXCEPTION;
-    }
-    double x;
-    double y;
-    double w;
-    double h;
-    if (JS_ToFloat64(ctx, &x, argv[1]) ||
-        JS_ToFloat64(ctx, &y, argv[2]) ||
-        JS_ToFloat64(ctx, &w, argv[3]) ||
-        JS_ToFloat64(ctx, &h, argv[4]))
-    {
-        JS_ThrowTypeError(ctx, "invalid input");
-        return JS_EXCEPTION;
-    }
-    cairo_rectangle(
-        context->ctx,
-        x, y,
-        w,
-        h);
-    cairo_fill(context->ctx);
-    return JS_UNDEFINED;
-}
-
-static JSValue js_canvas_fill_text(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
-    CanvasContext2D *context = JS_GetOpaque2(ctx, argv[0], js_canvas_context_class_id);
-    if (!context)
-    {
-        return JS_EXCEPTION;
-    }
-    double x;
-    double y;
-    if (JS_ToFloat64(ctx, &x, argv[2]) ||
-        JS_ToFloat64(ctx, &y, argv[3]))
-    {
-        JS_ThrowTypeError(ctx, "invalid input");
-        return JS_EXCEPTION;
-    }
-    const char *text = JS_ToCString(ctx, argv[1]);
-    cairo_move_to(context->ctx, x, y);
-    cairo_show_text(context->ctx, text);
-    JS_FreeCString(ctx, text);
-    return JS_UNDEFINED;
-}
-
-static JSValue js_canvas_measure_text(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
-    CanvasContext2D *context = JS_GetOpaque2(ctx, argv[0], js_canvas_context_class_id);
-    if (!context)
-    {
-        return JS_EXCEPTION;
-    }
-    const char *text = JS_ToCString(ctx, argv[1]);
-    cairo_text_extents_t extents;
-    cairo_text_extents(context->ctx, text, &extents);
-    JS_FreeCString(ctx, text);
-    JSValue obj = JS_NewObject(ctx);
-    JS_SetPropertyStr(ctx, obj, "xBearing", JS_NewFloat64(ctx, extents.x_bearing));
-    JS_SetPropertyStr(ctx, obj, "yBearing", JS_NewFloat64(ctx, extents.y_bearing));
-    JS_SetPropertyStr(ctx, obj, "xAdvance", JS_NewFloat64(ctx, extents.x_advance));
-    JS_SetPropertyStr(ctx, obj, "yAdvance", JS_NewFloat64(ctx, extents.y_advance));
-    JS_SetPropertyStr(ctx, obj, "width", JS_NewFloat64(ctx, extents.width));
-    JS_SetPropertyStr(ctx, obj, "height", JS_NewFloat64(ctx, extents.height));
-    return obj;
-}
-
-static JSValue js_canvas_get_image_data(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
-    int sx;
-    int sy;
-    int sw;
-    int sh;
-    int cw;
-    size_t length;
-    uint32_t *buffer = (uint32_t *)JS_GetArrayBuffer(ctx, &length, argv[0]);
-    if (JS_ToInt32(ctx, &sx, argv[1]) ||
-        JS_ToInt32(ctx, &sy, argv[2]) ||
-        JS_ToInt32(ctx, &sw, argv[3]) ||
-        JS_ToInt32(ctx, &sh, argv[4]) ||
-        JS_ToInt32(ctx, &cw, argv[5]))
-    {
-        JS_ThrowTypeError(ctx, "invalid input");
-        return JS_EXCEPTION;
-    }
-
-    // Create a new ArrayBuffer with managed data
-    size_t size = sw * sh * 4;
-    uint32_t *new_buffer = js_malloc(ctx, size);
-    if (!new_buffer)
-    {
-        JS_ThrowOutOfMemory(ctx);
-        return JS_EXCEPTION;
-    }
-
-    // Fill the buffer with some data
-    memset(new_buffer, 0, size);
-    for (int y = 0; y < sh; y++)
-    {
-        for (int x = 0; x < sw; x++)
-        {
-            new_buffer[(y * sw) + x] = buffer[(y * cw) + x];
-        }
-    }
-
-    // Create the ArrayBuffer object
-    return JS_NewArrayBuffer(ctx, (uint8_t *)new_buffer, size, NULL, NULL, 0);
-}
-
-static JSValue js_canvas_put_image_data(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
-    int dx;
-    int dy;
-    int dirty_x;
-    int dirty_y;
-    int dirty_width;
-    int dirty_height;
-    int cw;
-    size_t source_length;
-    size_t dest_length;
-    uint32_t *source_buffer = (uint32_t *)JS_GetArrayBuffer(ctx, &source_length, argv[0]);
-    uint32_t *dest_buffer = (uint32_t *)JS_GetArrayBuffer(ctx, &dest_length, argv[1]);
-    if (JS_ToInt32(ctx, &dx, argv[2]) ||
-        JS_ToInt32(ctx, &dy, argv[3]) ||
-        JS_ToInt32(ctx, &dirty_x, argv[4]) ||
-        JS_ToInt32(ctx, &dirty_y, argv[5]) ||
-        JS_ToInt32(ctx, &dirty_width, argv[6]) ||
-        JS_ToInt32(ctx, &dirty_height, argv[7]) ||
-        JS_ToInt32(ctx, &cw, argv[8]))
-    {
-        JS_ThrowTypeError(ctx, "invalid input");
-        return JS_EXCEPTION;
-    }
-    int dest_x;
-    int dest_y;
-    for (int y = dirty_y; y < dirty_height; y++)
-    {
-        for (int x = dirty_x; x < dirty_width; x++)
-        {
-            dest_x = dx + x;
-            dest_y = dy + y;
-            dest_buffer[(dest_y * cw) + dest_x] = source_buffer[(y * dirty_width) + x];
-        }
-    }
-    return JS_UNDEFINED;
-}
-
-static void finalizer_canvas_context_2d(JSRuntime *rt, JSValue val)
-{
-    CanvasContext2D *context = JS_GetOpaque(val, js_canvas_context_class_id);
-    if (context)
-    {
-        cairo_destroy(context->ctx);
-        cairo_surface_destroy(context->surface);
-        js_free_rt(rt, context->data);
-        js_free_rt(rt, context);
-    }
-}
-
 // Main program entrypoint
 int main(int argc, char *argv[])
 {
@@ -617,19 +320,13 @@ int main(int argc, char *argv[])
         free(runtime_buffer);
     }
 
-    JS_NewClassID(&js_canvas_context_class_id);
-    JSClassDef canvas_context_class = {
-        "CanvasContext2D",
-        .finalizer = finalizer_canvas_context_2d,
-    };
-    JS_NewClass(rt, js_canvas_context_class_id, &canvas_context_class);
-
     JSValue global_obj = JS_GetGlobalObject(ctx);
     JSValue switch_obj = JS_GetPropertyStr(ctx, global_obj, "Switch");
     JSValue native_obj = JS_GetPropertyStr(ctx, switch_obj, "native");
     JSValue switch_dispatch_func = JS_GetPropertyStr(ctx, switch_obj, "dispatchEvent");
 
     nx_init_applet(ctx, native_obj);
+    nx_init_canvas(ctx, native_obj);
     nx_init_font(ctx, native_obj);
     nx_init_fs(ctx, native_obj);
 
@@ -658,17 +355,6 @@ int main(int argc, char *argv[])
         // framebuffer renderer
         JS_CFUNC_DEF("framebufferInit", 0, js_framebuffer_init),
         JS_CFUNC_DEF("framebufferExit", 0, js_framebuffer_exit),
-
-        // canvas
-        JS_CFUNC_DEF("canvasNewContext", 0, js_canvas_new_context),
-        JS_CFUNC_DEF("canvasSetLineWidth", 0, js_canvas_set_line_width),
-        JS_CFUNC_DEF("canvasSetFillStyle", 0, js_canvas_set_fill_style),
-        JS_CFUNC_DEF("canvasSetFont", 0, js_canvas_set_font),
-        JS_CFUNC_DEF("canvasFillRect", 0, js_canvas_fill_rect),
-        JS_CFUNC_DEF("canvasFillText", 0, js_canvas_fill_text),
-        JS_CFUNC_DEF("canvasMeasureText", 0, js_canvas_measure_text),
-        JS_CFUNC_DEF("canvasGetImageData", 0, js_canvas_get_image_data),
-        JS_CFUNC_DEF("canvasPutImageData", 0, js_canvas_put_image_data),
     };
     JS_SetPropertyFunctionList(ctx, native_obj, function_list, sizeof(function_list) / sizeof(function_list[0]));
 
