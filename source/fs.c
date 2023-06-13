@@ -77,3 +77,12 @@ JSValue js_read_file_sync(JSContext *ctx, JSValueConst this_val, int argc, JSVal
 
     return JS_NewArrayBuffer(ctx, buffer, size, free_js_array_buffer, NULL, false);
 }
+
+static const JSCFunctionListEntry function_list[] = {
+    JS_CFUNC_DEF("readDirSync", 0, js_readdir_sync),
+    JS_CFUNC_DEF("readFileSync", 0, js_read_file_sync)};
+
+void nx_init_fs(JSContext *ctx, JSValueConst native_obj)
+{
+    JS_SetPropertyFunctionList(ctx, native_obj, function_list, sizeof(function_list) / sizeof(function_list[0]));
+}

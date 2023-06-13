@@ -631,6 +631,7 @@ int main(int argc, char *argv[])
 
     nx_init_applet(ctx, native_obj);
     nx_init_font(ctx, native_obj);
+    nx_init_fs(ctx, native_obj);
 
     JSValue exit_func = JS_NewCFunction(ctx, js_exit, "exit", 0);
     JS_SetPropertyStr(ctx, switch_obj, "exit", exit_func);
@@ -657,10 +658,6 @@ int main(int argc, char *argv[])
         // framebuffer renderer
         JS_CFUNC_DEF("framebufferInit", 0, js_framebuffer_init),
         JS_CFUNC_DEF("framebufferExit", 0, js_framebuffer_exit),
-
-        // filesystem
-        JS_CFUNC_DEF("readDirSync", 0, js_readdir_sync),
-        JS_CFUNC_DEF("readFileSync", 0, js_read_file_sync),
 
         // canvas
         JS_CFUNC_DEF("canvasNewContext", 0, js_canvas_new_context),
