@@ -392,6 +392,8 @@ static void* thread_do(struct thread* thread_p){
 
 /* Frees a thread  */
 static void thread_destroy (thread* thread_p){
+	void *result;
+	pthread_join(thread_p->pthread, &result);
 	free(thread_p);
 }
 

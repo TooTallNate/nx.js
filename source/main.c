@@ -460,6 +460,9 @@ int main(int argc, char *argv[])
         FT_Done_FreeType(nx_ctx->ft_library);
     }
 
+    thpool_wait(nx_ctx->thpool);
+    thpool_destroy(nx_ctx->thpool);
+
     free(nx_ctx);
 
     return 0;
