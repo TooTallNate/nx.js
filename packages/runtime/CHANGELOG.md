@@ -1,5 +1,16 @@
 # nxjs-runtime
 
+## 0.0.9
+
+### Patch Changes
+
+- fd5b863: Disable err printing on thpool
+  (for some reason, this fixes printing without a newline, for example on the REPL app)
+- 19e11c7: Add threadpool, with new asynchronous functions:
+  - `Switch.readFile() -> Promise<ArrayBuffer>`
+  - `Switch.resolveDns() -> Promise<string[]>`
+- b050eb6: Fix segfault upon exit when rendering in "console" mode
+
 ## 0.0.8
 
 ### Patch Changes
