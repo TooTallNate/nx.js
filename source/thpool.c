@@ -34,11 +34,7 @@
 #define THPOOL_DEBUG 0
 #endif
 
-#if !defined(DISABLE_PRINT) || defined(THPOOL_DEBUG)
-#define err(str) fprintf(stderr, str)
-#else
 #define err(str)
-#endif
 
 static volatile int threads_keepalive;
 static volatile int threads_on_hold;
