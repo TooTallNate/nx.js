@@ -443,6 +443,11 @@ int main(int argc, char *argv[])
         }
     }
 
+    // XXX: Ideally we wouldn't `thpool_wait()` here,
+    // but the app seems to crash without it
+    thpool_wait(nx_ctx->thpool);
+    thpool_destroy(nx_ctx->thpool);
+
     // Dispatch "exit" event
     JSValue event_obj = JS_NewObject(ctx);
     JSValue event_type = JS_NewString(ctx, "exit");
@@ -459,9 +464,6 @@ int main(int argc, char *argv[])
     {
         FT_Done_FreeType(nx_ctx->ft_library);
     }
-
-    thpool_wait(nx_ctx->thpool);
-    thpool_destroy(nx_ctx->thpool);
 
     free(nx_ctx);
 
