@@ -54,13 +54,21 @@ console.log(new URL('assets/logo.png', Switch.cwd());
 // smdc:/switch/example/assets/logo.png
 ```
 
-#### `Switch.readDirSync(path: string)` -> `string[]`
+#### `Switch.resolveDns(hostname: string)` -> `string[]`
+
+Performs a DNS lookup to resolve a hostname to an array of IP addresses.
+
+#### `Switch.readDirSync(path: string | URL)` -> `string[]`
 
 Returns an array of file names that exist within the directory `path`.
 
-#### `Switch.readFileSync(path: string)` -> `Uint8Array`
+#### `Switch.readFile(path: string | URL)` -> `Promise<ArrayBuffer>`
 
-Reads the file at path `path` and returns a `Uint8Array` of the file contents.
+Reads the file at path `path`.
+
+#### `Switch.readFileSync(path: string | URL)` -> `ArrayBuffer`
+
+Synchronously reads the file at path `path`.
 
 ## Events
 

@@ -13,6 +13,20 @@ type Keys = {
 	[i: number]: bigint;
 };
 
+type Callback<T> = (err: Error | null, result: T) => void;
+type CallbackReturnType<T> = T extends (
+	fn: Callback<infer U>,
+	...args: any[]
+) => any
+	? U
+	: never;
+type CallbackArguments<T> = T extends (
+	fn: Callback<any>,
+	...args: infer U
+) => any
+	? U
+	: never;
+
 export interface Native {
 	print: (str: string) => void;
 	cwd: () => string;
@@ -34,7 +48,11 @@ export interface Native {
 	hidGetTouchScreenStates: () => Touch[] | undefined;
 	hidGetKeyboardStates: () => Keys;
 
+	// dns
+	resolveDns: (cb: Callback<string[]>, hostname: string) => void;
+
 	// fs
+	readFile: (cb: Callback<ArrayBuffer>, path: string) => void;
 	readDirSync: (path: string) => string[];
 	readFileSync: (path: string) => ArrayBuffer;
 
@@ -124,6 +142,18 @@ interface SwitchEventHandlersEventMap {
 	touchstart: TouchEvent;
 	touchmove: TouchEvent;
 	touchend: TouchEvent;
+}
+
+function toPromise<Func extends (cb: Callback<any>, ...args: any[]) => any>(
+	fn: Func,
+	...args: CallbackArguments<Func>
+) {
+	return new Promise<CallbackReturnType<Func>>((resolve, reject) => {
+		fn((err, result) => {
+			if (err) return reject(err);
+			resolve(result);
+		}, ...args);
+	});
 }
 
 export class Switch extends EventTarget {
@@ -256,14 +286,30 @@ export class Switch extends EventTarget {
 	}
 
 	/**
-	 * Returns an array of the file names within `path`.
+	 * Performs a DNS lookup to resolve a hostname to an array of IP addresses.
+	 */
+	resolveDns(hostname: string) {
+		return toPromise(this.native.resolveDns, hostname);
+	}
+
+	/**
+	 * Returns a Promise which resolves to an `ArrayBuffer` containing
+	 * the contents of the file at `path`.
+	 */
+	readFile(path: string | URL) {
+		return toPromise(this.native.readFile, String(path));
+	}
+
+	/**
+	 * Synchronously returns an array of the file names within `path`.
 	 */
 	readDirSync(path: string | URL) {
 		return this.native.readDirSync(String(path));
 	}
 
 	/**
-	 * Returns an `ArrayBuffer` containing the contents of the file at `path`.
+	 * Synchronously returns an `ArrayBuffer` containing the contents
+	 * of the file at `path`.
 	 */
 	readFileSync(path: string | URL) {
 		return this.native.readFileSync(String(path));
@@ -287,7 +333,9 @@ export class Env {
 		this[INTERNAL_SYMBOL].native.setenv(name, value);
 	}
 
-	delete(name: string): void {}
+	delete(name: string): void {
+		throw new Error('Method not implemented.');
+	}
 
 	toObject(): Record<string, string> {
 		return this[INTERNAL_SYMBOL].native.envToObject();

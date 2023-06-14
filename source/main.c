@@ -8,7 +8,10 @@
 #include <quickjs/quickjs.h>
 
 #include "types.h"
+#include "async.h"
 #include "applet.h"
+#include "dns.h"
+#include "error.h"
 #include "canvas.h"
 #include "font.h"
 #include "fs.h"
@@ -109,21 +112,6 @@ uint8_t *read_file(const char *filename, size_t *out_size)
     buffer[size + 1] = '\0';
 
     return buffer;
-}
-
-void print_js_error(JSContext *ctx)
-{
-    JSValue exception_val = JS_GetException(ctx);
-    const char *exception_str = JS_ToCString(ctx, exception_val);
-    printf("%s\n", exception_str);
-    JS_FreeCString(ctx, exception_str);
-
-    JSValue stack_val = JS_GetPropertyStr(ctx, exception_val, "stack");
-    const char *stack_str = JS_ToCString(ctx, stack_val);
-    printf("%s\n", stack_str);
-    JS_FreeCString(ctx, stack_str);
-
-    JS_FreeValue(ctx, exception_val);
 }
 
 static int is_running = 1;
@@ -244,6 +232,23 @@ static JSValue js_env_to_object(JSContext *ctx, JSValueConst this_val, int argc,
     return env;
 }
 
+void nx_process_pending_jobs(JSRuntime *rt) {
+        JSContext *ctx1;
+        int err;
+        for (;;)
+        {
+            err = JS_ExecutePendingJob(rt, &ctx1);
+            if (err <= 0)
+            {
+                if (err < 0)
+                {
+                    print_js_error(ctx1);
+                }
+                break;
+            }
+        }
+}
+
 // Main program entrypoint
 int main(int argc, char *argv[])
 {
@@ -300,6 +305,8 @@ int main(int argc, char *argv[])
 
     nx_context_t *nx_ctx = malloc(sizeof(nx_context_t));
     memset(nx_ctx, 0, sizeof(nx_context_t));
+    nx_ctx->thpool = thpool_init(4);
+    pthread_mutex_init(&(nx_ctx->async_done_mutex), NULL);
     JS_SetContextOpaque(ctx, nx_ctx);
 
     size_t runtime_buffer_size;
@@ -355,6 +362,9 @@ int main(int argc, char *argv[])
         // framebuffer renderer
         JS_CFUNC_DEF("framebufferInit", 0, js_framebuffer_init),
         JS_CFUNC_DEF("framebufferExit", 0, js_framebuffer_exit),
+
+        // dns
+        JS_CFUNC_DEF("resolveDns", 0, js_dns_resolve)
     };
     JS_SetPropertyFunctionList(ctx, native_obj, function_list, sizeof(function_list) / sizeof(function_list[0]));
 
@@ -388,21 +398,11 @@ int main(int argc, char *argv[])
     // Main loop
     while (appletMainLoop())
     {
+        // Check if any thread pool tasks have completed
+        nx_process_async(ctx, nx_ctx);
+
         // Process any Promises that need to be fulfilled
-        JSContext *ctx1;
-        int err;
-        for (;;)
-        {
-            err = JS_ExecutePendingJob(rt, &ctx1);
-            if (err <= 0)
-            {
-                if (err < 0)
-                {
-                    print_js_error(ctx1);
-                }
-                break;
-            }
-        }
+        nx_process_pending_jobs(rt);
 
         padUpdate(&pad);
         u64 kDown = padGetButtons(&pad);
@@ -442,6 +442,11 @@ int main(int argc, char *argv[])
             consoleUpdate(print_console);
         }
     }
+
+    // XXX: Ideally we wouldn't `thpool_wait()` here,
+    // but the app seems to crash without it
+    thpool_wait(nx_ctx->thpool);
+    thpool_destroy(nx_ctx->thpool);
 
     // Dispatch "exit" event
     JSValue event_obj = JS_NewObject(ctx);

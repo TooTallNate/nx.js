@@ -1,7 +1,20 @@
 #include <stdbool.h>
 #include <dirent.h>
+#include <stdlib.h>
 #include <string.h>
+#include <switch.h>
+#include <errno.h>
+#include <quickjs/quickjs.h>
 #include "fs.h"
+#include "async.h"
+
+typedef struct
+{
+    int err;
+    const char *filename;
+    uint8_t *result;
+    size_t size;
+} nx_fs_read_file_async_t;
 
 JSValue js_readdir_sync(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
@@ -35,9 +48,62 @@ JSValue js_readdir_sync(JSContext *ctx, JSValueConst this_val, int argc, JSValue
     return arr;
 }
 
+void free_array_buffer(JSRuntime *rt, void *opaque, void *ptr)
+{
+    free(ptr);
+}
+
 void free_js_array_buffer(JSRuntime *rt, void *opaque, void *ptr)
 {
     js_free_rt(rt, ptr);
+}
+
+void js_read_file_do(nx_work_t *req)
+{
+    nx_fs_read_file_async_t *data = (nx_fs_read_file_async_t *)req->data;
+    FILE *file = fopen(data->filename, "rb");
+    if (file == NULL)
+    {
+        data->err = errno;
+        return;
+    }
+
+    fseek(file, 0, SEEK_END);
+    data->size = ftell(file);
+    rewind(file);
+
+    data->result = malloc(data->size);
+    if (data->result == NULL)
+    {
+        data->err = errno;
+        fclose(file);
+        return;
+    }
+
+    size_t result = fread(data->result, 1, data->size, file);
+    fclose(file);
+
+    if (result != data->size)
+    {
+        free(data->result);
+        data->result = NULL;
+        data->err = -1;
+    }
+}
+
+void js_read_file_cb(JSContext *ctx, nx_work_t *req, JSValue *args)
+{
+    nx_fs_read_file_async_t *data = (nx_fs_read_file_async_t *)req->data;
+    JS_FreeCString(ctx, data->filename);
+    args[1] = JS_NewArrayBuffer(ctx, data->result, data->size, free_array_buffer, NULL, false);
+}
+
+JSValue js_read_file(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    NX_INIT_WORK_T(nx_fs_read_file_async_t);
+    data->filename = JS_ToCString(ctx, argv[1]);
+    nx_queue_async(ctx, req, js_read_file_do, js_read_file_cb, argv[0]);
+    return JS_UNDEFINED;
 }
 
 JSValue js_read_file_sync(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -79,6 +145,7 @@ JSValue js_read_file_sync(JSContext *ctx, JSValueConst this_val, int argc, JSVal
 }
 
 static const JSCFunctionListEntry function_list[] = {
+    JS_CFUNC_DEF("readFile", 0, js_read_file),
     JS_CFUNC_DEF("readDirSync", 0, js_readdir_sync),
     JS_CFUNC_DEF("readFileSync", 0, js_read_file_sync)};
 
