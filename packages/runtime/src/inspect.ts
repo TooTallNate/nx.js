@@ -44,7 +44,7 @@ export const inspect = (v: unknown): string => {
 	}
 	if (isPromise(v)) {
 		let val = '';
-		const [ state, result ] = Switch.native.getInternalPromiseState(v);
+		const [state, result] = Switch.native.getInternalPromiseState(v);
 		if (state === 0) {
 			val = cyan('<pending>');
 		} else {
