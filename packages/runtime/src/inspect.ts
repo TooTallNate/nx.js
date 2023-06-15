@@ -1,4 +1,7 @@
 import { bold, cyan, green, magenta, red, rgb, yellow } from 'kleur/colors';
+import type { Switch as _Switch } from './switch';
+
+declare const Switch: _Switch;
 
 const grey = rgb(100, 100, 100);
 
@@ -38,6 +41,19 @@ export const inspect = (v: unknown): string => {
 	}
 	if (isDate(v)) {
 		return magenta(v.toISOString());
+	}
+	if (isPromise(v)) {
+		let val = '';
+		const [ state, result ] = Switch.native.getInternalPromiseState(v);
+		if (state === 0) {
+			val = cyan('<pending>');
+		} else {
+			if (state === 2) {
+				val = `${red('<rejected>')} `;
+			}
+			val += inspect(result);
+		}
+		return `Promise { ${val} }`;
 	}
 	if (isError(v)) {
 		const stack = v.stack?.trim();
@@ -105,4 +121,8 @@ function isArrayBuffer(v: unknown): v is ArrayBuffer {
 
 function isTypedArray(v: unknown): v is ArrayLike<number> {
 	return getClass(v).endsWith('Array');
+}
+
+function isPromise(v: unknown): v is Promise<unknown> {
+	return getClass(v) === 'Promise';
 }

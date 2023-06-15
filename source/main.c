@@ -232,6 +232,20 @@ static JSValue js_env_to_object(JSContext *ctx, JSValueConst this_val, int argc,
     return env;
 }
 
+// Returns the internal state of a Promise instance.
+static JSValue js_get_internal_promise_state(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    JSPromiseData *promise_data = JS_GetOpaque(argv[0], JS_CLASS_PROMISE);
+    JSValue arr = JS_NewArray(ctx);
+    JS_SetPropertyUint32(ctx, arr, 0, JS_NewInt32(ctx, promise_data->promise_state));
+    if (promise_data->promise_state > 0) {
+        JS_SetPropertyUint32(ctx, arr, 1, promise_data->promise_result);
+    } else {
+        JS_SetPropertyUint32(ctx, arr, 1, JS_NULL);
+    }
+    return arr;
+}
+
 void nx_process_pending_jobs(JSRuntime *rt) {
         JSContext *ctx1;
         int err;
@@ -343,6 +357,7 @@ int main(int argc, char *argv[])
     const JSCFunctionListEntry function_list[] = {
         JS_CFUNC_DEF("print", 1, js_print),
         JS_CFUNC_DEF("cwd", 0, js_cwd),
+        JS_CFUNC_DEF("getInternalPromiseState", 0, js_get_internal_promise_state),
 
         // env vars
         JS_CFUNC_DEF("getenv", 1, js_getenv),

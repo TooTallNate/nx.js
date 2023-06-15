@@ -30,6 +30,7 @@ type CallbackArguments<T> = T extends (
 export interface Native {
 	print: (str: string) => void;
 	cwd: () => string;
+	getInternalPromiseState: (p: Promise<unknown>) => [number, unknown],
 	getenv: (name: string) => string;
 	setenv: (name: string, value: string) => void;
 	envToObject: () => Record<string, string>;
