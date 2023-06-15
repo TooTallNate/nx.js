@@ -22,16 +22,26 @@ JSValue js_readdir_sync(JSContext *ctx, JSValueConst this_val, int argc, JSValue
     struct dirent *entry;
 
     const char *path = JS_ToCString(ctx, argv[0]);
+    if (!path)
+    {
+        return JS_Throw(ctx, JS_NewError(ctx));
+    }
     dir = opendir(path);
+    JS_FreeCString(ctx, path);
     if (dir == NULL)
     {
-        JSValue error = JS_NewString(ctx, "An error occurred");
-        JS_Throw(ctx, error);
-        return JS_UNDEFINED;
+        JSValue error = JS_NewError(ctx);
+        JS_DefinePropertyValueStr(ctx, error, "message", JS_NewString(ctx, strerror(errno)), JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+        return JS_Throw(ctx, error);
     }
 
     int i = 0;
     JSValue arr = JS_NewArray(ctx);
+    if (JS_IsException(arr))
+    {
+        closedir(dir);
+        return arr;
+    }
     while ((entry = readdir(dir)) != NULL)
     {
         // Filter out `.` and `..`
@@ -39,8 +49,23 @@ JSValue js_readdir_sync(JSContext *ctx, JSValueConst this_val, int argc, JSValue
         {
             continue;
         }
-        JS_SetPropertyUint32(ctx, arr, i, JS_NewString(ctx, entry->d_name));
+        JSValue str = JS_NewString(ctx, entry->d_name);
+        if (JS_IsException(str) || JS_SetPropertyUint32(ctx, arr, i, str) < 0)
+        {
+            JS_FreeValue(ctx, str);
+            JS_FreeValue(ctx, arr);
+            closedir(dir);
+            return JS_EXCEPTION;
+        }
         i++;
+    }
+    if (errno) // Check if readdir ended with an error
+    {
+        JS_FreeValue(ctx, arr);
+        closedir(dir);
+        JSValue error = JS_NewError(ctx);
+        JS_DefinePropertyValueStr(ctx, error, "message", JS_NewString(ctx, strerror(errno)), JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+        return JS_Throw(ctx, error);
     }
 
     closedir(dir);
