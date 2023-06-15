@@ -48,6 +48,8 @@ Switch.addEventListener('keydown', (e) => {
 			buffer = '';
 			cursorPosition = 0;
 			Switch.print(`${Switch.inspect(result)}\n\n`);
+			// @ts-expect-error `_` is not defined on `globalThis`
+			globalThis._ = result;
 		} catch (err: unknown) {
 			buffer = '';
 			cursorPosition = 0;
