@@ -70,18 +70,20 @@ void js_dns_resolve_cb(JSContext *ctx, nx_work_t *req, JSValue *args)
     nx_dns_resolve_t *data = (nx_dns_resolve_t *)req->data;
     JS_FreeCString(ctx, data->hostname);
 
-    if (data->err) {
+    if (data->err)
+    {
         args[0] = JS_NewError(ctx);
-        JS_SetPropertyStr(ctx, args[0], "message", JS_NewString(ctx, gai_strerror(data->err)));
+        JS_DefinePropertyValueStr(ctx, args[0], "message", JS_NewString(ctx, gai_strerror(data->err)), JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
         return;
     }
 
     JSValue result = JS_NewArray(ctx);
     for (size_t i = 0; i < data->num_entries; i++)
     {
-        JS_SetPropertyUint32(ctx, result, 0, JS_NewString(ctx, data->entries[i]));
+        JS_SetPropertyUint32(ctx, result, i, JS_NewString(ctx, data->entries[i]));
         free(data->entries[i]);
     }
+    free(data->entries);
     args[1] = result;
 }
 
