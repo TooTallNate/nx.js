@@ -65,11 +65,13 @@ int nx_queue_async(JSContext *ctx, nx_work_t *req, nx_work_cb work_cb, nx_after_
     req->after_work_cb = after_work_cb;
 
     // Add to linked list
+    pthread_mutex_lock(&nx_ctx->async_done_mutex);
     if (nx_ctx->work_queue)
     {
         req->next = nx_ctx->work_queue;
     }
     nx_ctx->work_queue = req;
+    pthread_mutex_unlock(&nx_ctx->async_done_mutex);
 
     return thpool_add_work(nx_ctx->thpool, (void (*)(void *))nx_do_async, req);
 }
