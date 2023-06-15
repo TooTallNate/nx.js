@@ -390,7 +390,7 @@ int main(int argc, char *argv[])
     JSValue argv_array = JS_NewArray(ctx);
     for (int i = 0; i < argc; i++)
     {
-        JS_SetPropertyUint32(ctx, argv_array, 0, JS_NewString(ctx, argv[i]));
+        JS_SetPropertyUint32(ctx, argv_array, i, JS_NewString(ctx, argv[i]));
     }
     JS_SetPropertyStr(ctx, switch_obj, "argv", argv_array);
 
