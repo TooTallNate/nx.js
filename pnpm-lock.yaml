@@ -80,6 +80,19 @@ importers:
         specifier: ^0.0.9
         version: link:../../packages/runtime
 
+  apps/tests:
+    dependencies:
+      kleur:
+        specifier: github:TooTallNate/kleur#rgb
+        version: github.com/TooTallNate/kleur/aa22b05da68d29ff6d2ce5eba5895ac654b7f25a
+    devDependencies:
+      esbuild:
+        specifier: ^0.17.18
+        version: 0.17.18
+      nxjs-runtime:
+        specifier: ^0.0.9
+        version: link:../../packages/runtime
+
   apps/touchscreen:
     dependencies:
       color-hash:
@@ -2321,4 +2334,3 @@ packages:
     name: kleur
     version: 4.1.5
     engines: {node: '>=6'}
-    dev: true
