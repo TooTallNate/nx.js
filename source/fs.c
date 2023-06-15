@@ -120,6 +120,13 @@ void js_read_file_cb(JSContext *ctx, nx_work_t *req, JSValue *args)
 {
     nx_fs_read_file_async_t *data = (nx_fs_read_file_async_t *)req->data;
     JS_FreeCString(ctx, data->filename);
+
+    if (data->err) {
+        args[0] = JS_NewError(ctx);
+        JS_DefinePropertyValueStr(ctx, args[0], "message", JS_NewString(ctx, strerror(data->err)), JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+        return;
+    }
+
     args[1] = JS_NewArrayBuffer(ctx, data->result, data->size, free_array_buffer, NULL, false);
 }
 

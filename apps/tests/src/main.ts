@@ -30,7 +30,7 @@ test('`Switch.readDirSync()` works on `romfs:/` path', () => {
 	assert(files.length > 0);
 });
 
-test('`Switch.readDirSync()` throws error upon invalid path', () => {
+test('`Switch.readDirSync()` throws error when directory does not exist', () => {
 	let err: Error | undefined;
 	try {
 		Switch.readDirSync('romfs:/__does_not_exist__');
@@ -56,8 +56,34 @@ test('`Switch.resolveDns()` rejects with invalid hostname', async () => {
 	assert(err);
 });
 
-test('`Switch.readFile()` works', async () => {
+test('`Switch.readFile()` works with string path', async () => {
 	const data = await Switch.readFile('romfs:/runtime.js');
 	assert(data instanceof ArrayBuffer);
 	assert(data.byteLength > 0);
+});
+
+test('`Switch.readFile()` works with URL path', async () => {
+	const data = await Switch.readFile(new URL(Switch.entrypoint));
+	assert(data instanceof ArrayBuffer);
+	assert(data.byteLength > 0);
+});
+
+test('`Switch.readFile()` rejects when file does not exist', async () => {
+	let err: Error | undefined;
+	try {
+		await Switch.readFile('romfs:/__does_not_exist__');
+	} catch (_err) {
+		err = _err as Error;
+	}
+	assert(err);
+});
+
+test('`Switch.readFile()` rejects when attempting to read a directory', async () => {
+	let err: Error | undefined;
+	try {
+		await Switch.readFile('.');
+	} catch (_err) {
+		err = _err as Error;
+	}
+	assert(err);
 });
