@@ -60,7 +60,6 @@ static JSValue nx_get_system_font(JSContext *ctx, JSValueConst this_val, int arg
 static void finalizer_font_face(JSRuntime *rt, JSValue val)
 {
     nx_font_face_t *context = JS_GetOpaque(val, nx_font_face_class_id);
-    printf("Finalizing font face");
     if (context)
     {
         FT_Done_Face(context->ft_face);
