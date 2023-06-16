@@ -141,6 +141,18 @@ static JSValue js_cwd(JSContext *ctx, JSValueConst this_val, int argc, JSValueCo
     return JS_UNDEFINED;
 }
 
+static JSValue js_chdir(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    const char *dir = JS_ToCString(ctx, argv[0]);
+    if (chdir(dir) < 0) {
+        JS_ThrowTypeError(ctx, "%s: %s", strerror(errno), dir);
+        JS_FreeCString(ctx, dir);
+        return JS_EXCEPTION;
+    }
+    JS_FreeCString(ctx, dir);
+    return JS_UNDEFINED;
+}
+
 static JSValue js_hid_initialize_touch_screen(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     hidInitializeTouchScreen();
@@ -357,6 +369,7 @@ int main(int argc, char *argv[])
     const JSCFunctionListEntry function_list[] = {
         JS_CFUNC_DEF("print", 1, js_print),
         JS_CFUNC_DEF("cwd", 0, js_cwd),
+        JS_CFUNC_DEF("chdir", 1, js_chdir),
         JS_CFUNC_DEF("getInternalPromiseState", 0, js_get_internal_promise_state),
 
         // env vars

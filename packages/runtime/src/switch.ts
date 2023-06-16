@@ -30,6 +30,7 @@ type CallbackArguments<T> = T extends (
 export interface Native {
 	print: (str: string) => void;
 	cwd: () => string;
+	chdir: (dir: string) => void;
 	getInternalPromiseState: (p: Promise<unknown>) => [number, unknown];
 	getenv: (name: string) => string;
 	setenv: (name: string, value: string) => void;
@@ -284,6 +285,13 @@ export class Switch extends EventTarget {
 	 */
 	cwd() {
 		return new URL(`${this.native.cwd()}/`);
+	}
+
+	/**
+	 * Changes the current working directory to the specified path.
+	 */
+	chdir(dir: string | URL) {
+		return this.native.chdir(String(dir));
 	}
 
 	/**
