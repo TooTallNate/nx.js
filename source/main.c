@@ -144,7 +144,8 @@ static JSValue js_cwd(JSContext *ctx, JSValueConst this_val, int argc, JSValueCo
 static JSValue js_chdir(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     const char *dir = JS_ToCString(ctx, argv[0]);
-    if (chdir(dir) < 0) {
+    if (chdir(dir) != 0)
+    {
         JS_ThrowTypeError(ctx, "%s: %s", strerror(errno), dir);
         JS_FreeCString(ctx, dir);
         return JS_EXCEPTION;
@@ -205,6 +206,17 @@ static JSValue js_getenv(JSContext *ctx, JSValueConst this_val, int argc, JSValu
 {
     const char *name = JS_ToCString(ctx, argv[0]);
     char *value = getenv(name);
+    if (value == NULL)
+    {
+        if (errno)
+        {
+            JS_ThrowTypeError(ctx, "%s: %s", strerror(errno), name);
+            JS_FreeCString(ctx, name);
+            return JS_EXCEPTION;
+        }
+        JS_FreeCString(ctx, name);
+        return JS_UNDEFINED;
+    }
     JS_FreeCString(ctx, name);
     return JS_NewString(ctx, value);
 }
@@ -213,9 +225,28 @@ static JSValue js_setenv(JSContext *ctx, JSValueConst this_val, int argc, JSValu
 {
     const char *name = JS_ToCString(ctx, argv[0]);
     const char *value = JS_ToCString(ctx, argv[1]);
-    setenv(name, value, 1);
+    if (setenv(name, value, 1) != 0)
+    {
+        JS_ThrowTypeError(ctx, "%s: %s=%s", strerror(errno), name, value);
+        JS_FreeCString(ctx, name);
+        JS_FreeCString(ctx, value);
+        return JS_EXCEPTION;
+    }
     JS_FreeCString(ctx, name);
     JS_FreeCString(ctx, value);
+    return JS_UNDEFINED;
+}
+
+static JSValue js_unsetenv(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    const char *name = JS_ToCString(ctx, argv[0]);
+    if (unsetenv(name) != 0)
+    {
+        JS_ThrowTypeError(ctx, "%s: %s", strerror(errno), name);
+        JS_FreeCString(ctx, name);
+        return JS_EXCEPTION;
+    }
+    JS_FreeCString(ctx, name);
     return JS_UNDEFINED;
 }
 
@@ -250,29 +281,33 @@ static JSValue js_get_internal_promise_state(JSContext *ctx, JSValueConst this_v
     JSPromiseData *promise_data = JS_GetOpaque(argv[0], JS_CLASS_PROMISE);
     JSValue arr = JS_NewArray(ctx);
     JS_SetPropertyUint32(ctx, arr, 0, JS_NewInt32(ctx, promise_data->promise_state));
-    if (promise_data->promise_state > 0) {
+    if (promise_data->promise_state > 0)
+    {
         JS_SetPropertyUint32(ctx, arr, 1, promise_data->promise_result);
-    } else {
+    }
+    else
+    {
         JS_SetPropertyUint32(ctx, arr, 1, JS_NULL);
     }
     return arr;
 }
 
-void nx_process_pending_jobs(JSRuntime *rt) {
-        JSContext *ctx1;
-        int err;
-        for (;;)
+void nx_process_pending_jobs(JSRuntime *rt)
+{
+    JSContext *ctx1;
+    int err;
+    for (;;)
+    {
+        err = JS_ExecutePendingJob(rt, &ctx1);
+        if (err <= 0)
         {
-            err = JS_ExecutePendingJob(rt, &ctx1);
-            if (err <= 0)
+            if (err < 0)
             {
-                if (err < 0)
-                {
-                    print_js_error(ctx1);
-                }
-                break;
+                print_js_error(ctx1);
             }
+            break;
         }
+    }
 }
 
 // Main program entrypoint
@@ -375,6 +410,7 @@ int main(int argc, char *argv[])
         // env vars
         JS_CFUNC_DEF("getenv", 1, js_getenv),
         JS_CFUNC_DEF("setenv", 2, js_setenv),
+        JS_CFUNC_DEF("unsetenv", 1, js_unsetenv),
         JS_CFUNC_DEF("envToObject", 0, js_env_to_object),
 
         // hid
@@ -392,8 +428,7 @@ int main(int argc, char *argv[])
         JS_CFUNC_DEF("framebufferExit", 0, js_framebuffer_exit),
 
         // dns
-        JS_CFUNC_DEF("resolveDns", 0, js_dns_resolve)
-    };
+        JS_CFUNC_DEF("resolveDns", 0, js_dns_resolve)};
     JS_SetPropertyFunctionList(ctx, native_obj, function_list, sizeof(function_list) / sizeof(function_list[0]));
 
     // `Switch.entrypoint`

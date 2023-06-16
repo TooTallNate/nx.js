@@ -34,6 +34,7 @@ export interface Native {
 	getInternalPromiseState: (p: Promise<unknown>) => [number, unknown];
 	getenv: (name: string) => string;
 	setenv: (name: string, value: string) => void;
+	unsetenv: (name: string) => void;
 	envToObject: () => Record<string, string>;
 	consoleInit: () => void;
 	consoleExit: () => void;
@@ -343,7 +344,7 @@ export class Env {
 	}
 
 	delete(name: string): void {
-		throw new Error('Method not implemented.');
+		this[INTERNAL_SYMBOL].native.unsetenv(name);
 	}
 
 	toObject(): Record<string, string> {
