@@ -1,6 +1,6 @@
 import { Canvas, CanvasRenderingContext2D } from './canvas';
 import { FontFaceSet } from './font';
-import { INTERNAL_SYMBOL } from './types';
+import { INTERNAL_SYMBOL, PathLike, Stats } from './types';
 import { inspect } from './inspect';
 
 export type Opaque<T> = { __type: T };
@@ -32,7 +32,7 @@ export interface Native {
 	cwd: () => string;
 	chdir: (dir: string) => void;
 	getInternalPromiseState: (p: Promise<unknown>) => [number, unknown];
-	getenv: (name: string) => string;
+	getenv: (name: string) => string | undefined;
 	setenv: (name: string, value: string) => void;
 	unsetenv: (name: string) => void;
 	envToObject: () => Record<string, string>;
@@ -58,6 +58,7 @@ export interface Native {
 	readFile: (cb: Callback<ArrayBuffer>, path: string) => void;
 	readDirSync: (path: string) => string[];
 	readFileSync: (path: string) => ArrayBuffer;
+	stat: (cb: Callback<Stats>, path: string) => void;
 
 	// font
 	newFontFace: (data: ArrayBuffer) => FontFaceState;
@@ -291,7 +292,7 @@ export class Switch extends EventTarget {
 	/**
 	 * Changes the current working directory to the specified path.
 	 */
-	chdir(dir: string | URL) {
+	chdir(dir: PathLike) {
 		return this.native.chdir(String(dir));
 	}
 
@@ -306,14 +307,14 @@ export class Switch extends EventTarget {
 	 * Returns a Promise which resolves to an `ArrayBuffer` containing
 	 * the contents of the file at `path`.
 	 */
-	readFile(path: string | URL) {
+	readFile(path: PathLike) {
 		return toPromise(this.native.readFile, String(path));
 	}
 
 	/**
 	 * Synchronously returns an array of the file names within `path`.
 	 */
-	readDirSync(path: string | URL) {
+	readDirSync(path: PathLike) {
 		return this.native.readDirSync(String(path));
 	}
 
@@ -321,8 +322,16 @@ export class Switch extends EventTarget {
 	 * Synchronously returns an `ArrayBuffer` containing the contents
 	 * of the file at `path`.
 	 */
-	readFileSync(path: string | URL) {
+	readFileSync(path: PathLike) {
 		return this.native.readFileSync(String(path));
+	}
+
+	/**
+	 * Returns a Promise which resolves to an object containing
+	 * information about the file pointed to by `path`.
+	 */
+	stat(path: PathLike) {
+		return toPromise(this.native.stat, String(path));
 	}
 
 	inspect = inspect;
@@ -335,19 +344,19 @@ export class Env {
 		this[INTERNAL_SYMBOL] = s;
 	}
 
-	get(name: string): string | undefined {
+	get(name: string) {
 		return this[INTERNAL_SYMBOL].native.getenv(name);
 	}
 
-	set(name: string, value: string): void {
+	set(name: string, value: string) {
 		this[INTERNAL_SYMBOL].native.setenv(name, value);
 	}
 
-	delete(name: string): void {
+	delete(name: string) {
 		this[INTERNAL_SYMBOL].native.unsetenv(name);
 	}
 
-	toObject(): Record<string, string> {
+	toObject() {
 		return this[INTERNAL_SYMBOL].native.envToObject();
 	}
 }

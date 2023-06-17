@@ -87,3 +87,18 @@ test('`Switch.readFile()` rejects when attempting to read a directory', async ()
 	}
 	assert(err);
 });
+
+test('`Switch.stat()` returns file information', async () => {
+	const stat = await Switch.stat(Switch.entrypoint);
+	assert(stat.size > 0);
+});
+
+test('`Switch.stat()` rejects when file does not exist', async () => {
+	let err: Error | undefined;
+	try {
+		await Switch.stat('romfs:/__does_not_exist__');
+	} catch (_err) {
+		err = _err as Error;
+	}
+	assert(err);
+});

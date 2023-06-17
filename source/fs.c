@@ -4,6 +4,7 @@
 #include <string.h>
 #include <switch.h>
 #include <errno.h>
+#include <sys/stat.h>
 #include <quickjs/quickjs.h>
 #include "fs.h"
 #include "async.h"
@@ -15,6 +16,13 @@ typedef struct
     uint8_t *result;
     size_t size;
 } nx_fs_read_file_async_t;
+
+typedef struct
+{
+    int err;
+    const char *filename;
+    struct stat st;
+} nx_fs_stat_async_t;
 
 JSValue js_readdir_sync(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
@@ -144,7 +152,7 @@ JSValue js_read_file_sync(JSContext *ctx, JSValueConst this_val, int argc, JSVal
     FILE *file = fopen(filename, "rb");
     if (file == NULL)
     {
-        JS_ThrowTypeError(ctx, "File not found: %s", filename);
+        JS_ThrowTypeError(ctx, "%s: %s", strerror(errno), filename);
         JS_FreeCString(ctx, filename);
         return JS_EXCEPTION;
     }
@@ -176,10 +184,51 @@ JSValue js_read_file_sync(JSContext *ctx, JSValueConst this_val, int argc, JSVal
     return JS_NewArrayBuffer(ctx, buffer, size, free_js_array_buffer, NULL, false);
 }
 
+void js_stat_do(nx_work_t *req)
+{
+    nx_fs_stat_async_t *data = (nx_fs_stat_async_t *)req->data;
+    if (stat(data->filename, &data->st) != 0)
+    {
+        data->err = errno;
+        return;
+    }
+}
+
+void js_stat_cb(JSContext *ctx, nx_work_t *req, JSValue *args)
+{
+    nx_fs_stat_async_t *data = (nx_fs_stat_async_t *)req->data;
+    JS_FreeCString(ctx, data->filename);
+
+    if (data->err) {
+        args[0] = JS_NewError(ctx);
+        JS_DefinePropertyValueStr(ctx, args[0], "message", JS_NewString(ctx, strerror(data->err)), JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+        return;
+    }
+
+    JSValue stat = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, stat, "size", JS_NewInt32(ctx, data->st.st_size));
+    JS_SetPropertyStr(ctx, stat, "mtime", JS_NewInt32(ctx, data->st.st_mtim.tv_sec));
+    JS_SetPropertyStr(ctx, stat, "atime", JS_NewInt32(ctx, data->st.st_atim.tv_nsec));
+    JS_SetPropertyStr(ctx, stat, "ctime", JS_NewInt32(ctx, data->st.st_ctim.tv_nsec));
+    JS_SetPropertyStr(ctx, stat, "mode", JS_NewInt32(ctx, data->st.st_mode));
+    JS_SetPropertyStr(ctx, stat, "uid", JS_NewInt32(ctx, data->st.st_uid));
+    JS_SetPropertyStr(ctx, stat, "gid", JS_NewInt32(ctx, data->st.st_gid));
+    args[1] = stat;
+}
+
+JSValue js_stat(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    NX_INIT_WORK_T(nx_fs_stat_async_t);
+    data->filename = JS_ToCString(ctx, argv[1]);
+    nx_queue_async(ctx, req, js_stat_do, js_stat_cb, argv[0]);
+    return JS_UNDEFINED;
+}
+
 static const JSCFunctionListEntry function_list[] = {
     JS_CFUNC_DEF("readFile", 0, js_read_file),
     JS_CFUNC_DEF("readDirSync", 0, js_readdir_sync),
-    JS_CFUNC_DEF("readFileSync", 0, js_read_file_sync)};
+    JS_CFUNC_DEF("readFileSync", 0, js_read_file_sync),
+    JS_CFUNC_DEF("stat", 0, js_stat)};
 
 void nx_init_fs(JSContext *ctx, JSValueConst native_obj)
 {
