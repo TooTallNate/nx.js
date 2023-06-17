@@ -58,6 +58,7 @@ export interface Native {
 	readFile: (cb: Callback<ArrayBuffer>, path: string) => void;
 	readDirSync: (path: string) => string[];
 	readFileSync: (path: string) => ArrayBuffer;
+	remove: (cb: Callback<void>, path: string) => void;
 	stat: (cb: Callback<Stats>, path: string) => void;
 
 	// font
@@ -324,6 +325,13 @@ export class Switch extends EventTarget {
 	 */
 	readFileSync(path: PathLike) {
 		return this.native.readFileSync(String(path));
+	}
+
+	/**
+	 * Removes the file or directory specified by `path`.
+	 */
+	remove(path: PathLike) {
+		return toPromise(this.native.remove, String(path));
 	}
 
 	/**

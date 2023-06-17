@@ -24,7 +24,13 @@ typedef struct
     struct stat st;
 } nx_fs_stat_async_t;
 
-JSValue js_readdir_sync(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+typedef struct
+{
+    int err;
+    const char *filename;
+} nx_fs_remove_async_t;
+
+JSValue nx_readdir_sync(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     DIR *dir;
     struct dirent *entry;
@@ -91,7 +97,7 @@ void free_js_array_buffer(JSRuntime *rt, void *opaque, void *ptr)
     js_free_rt(rt, ptr);
 }
 
-void js_read_file_do(nx_work_t *req)
+void nx_read_file_do(nx_work_t *req)
 {
     nx_fs_read_file_async_t *data = (nx_fs_read_file_async_t *)req->data;
     FILE *file = fopen(data->filename, "rb");
@@ -124,12 +130,13 @@ void js_read_file_do(nx_work_t *req)
     }
 }
 
-void js_read_file_cb(JSContext *ctx, nx_work_t *req, JSValue *args)
+void nx_read_file_cb(JSContext *ctx, nx_work_t *req, JSValue *args)
 {
     nx_fs_read_file_async_t *data = (nx_fs_read_file_async_t *)req->data;
     JS_FreeCString(ctx, data->filename);
 
-    if (data->err) {
+    if (data->err)
+    {
         args[0] = JS_NewError(ctx);
         JS_DefinePropertyValueStr(ctx, args[0], "message", JS_NewString(ctx, strerror(data->err)), JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
         return;
@@ -138,15 +145,15 @@ void js_read_file_cb(JSContext *ctx, nx_work_t *req, JSValue *args)
     args[1] = JS_NewArrayBuffer(ctx, data->result, data->size, free_array_buffer, NULL, false);
 }
 
-JSValue js_read_file(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+JSValue nx_read_file(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     NX_INIT_WORK_T(nx_fs_read_file_async_t);
     data->filename = JS_ToCString(ctx, argv[1]);
-    nx_queue_async(ctx, req, js_read_file_do, js_read_file_cb, argv[0]);
+    nx_queue_async(ctx, req, nx_read_file_do, nx_read_file_cb, argv[0]);
     return JS_UNDEFINED;
 }
 
-JSValue js_read_file_sync(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+JSValue nx_read_file_sync(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     const char *filename = JS_ToCString(ctx, argv[0]);
     FILE *file = fopen(filename, "rb");
@@ -184,7 +191,7 @@ JSValue js_read_file_sync(JSContext *ctx, JSValueConst this_val, int argc, JSVal
     return JS_NewArrayBuffer(ctx, buffer, size, free_js_array_buffer, NULL, false);
 }
 
-void js_stat_do(nx_work_t *req)
+void nx_stat_do(nx_work_t *req)
 {
     nx_fs_stat_async_t *data = (nx_fs_stat_async_t *)req->data;
     if (stat(data->filename, &data->st) != 0)
@@ -194,12 +201,23 @@ void js_stat_do(nx_work_t *req)
     }
 }
 
-void js_stat_cb(JSContext *ctx, nx_work_t *req, JSValue *args)
+void nx_stat_do(nx_work_t *req)
+{
+    nx_fs_stat_async_t *data = (nx_fs_stat_async_t *)req->data;
+    if (stat(data->filename, &data->st) != 0)
+    {
+        data->err = errno;
+        return;
+    }
+}
+
+void nx_stat_cb(JSContext *ctx, nx_work_t *req, JSValue *args)
 {
     nx_fs_stat_async_t *data = (nx_fs_stat_async_t *)req->data;
     JS_FreeCString(ctx, data->filename);
 
-    if (data->err) {
+    if (data->err)
+    {
         args[0] = JS_NewError(ctx);
         JS_DefinePropertyValueStr(ctx, args[0], "message", JS_NewString(ctx, strerror(data->err)), JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
         return;
@@ -216,19 +234,50 @@ void js_stat_cb(JSContext *ctx, nx_work_t *req, JSValue *args)
     args[1] = stat;
 }
 
-JSValue js_stat(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+JSValue nx_stat(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     NX_INIT_WORK_T(nx_fs_stat_async_t);
     data->filename = JS_ToCString(ctx, argv[1]);
-    nx_queue_async(ctx, req, js_stat_do, js_stat_cb, argv[0]);
+    nx_queue_async(ctx, req, nx_stat_do, nx_stat_cb, argv[0]);
+    return JS_UNDEFINED;
+}
+
+void nx_remove_do(nx_work_t *req)
+{
+    nx_fs_remove_async_t *data = (nx_fs_remove_async_t *)req->data;
+    if (remove(data->filename) != 0)
+    {
+        data->err = errno;
+    }
+}
+
+void nx_remove_cb(JSContext *ctx, nx_work_t *req, JSValue *args)
+{
+    nx_fs_remove_async_t *data = (nx_fs_remove_async_t *)req->data;
+    JS_FreeCString(ctx, data->filename);
+
+    if (data->err)
+    {
+        args[0] = JS_NewError(ctx);
+        JS_DefinePropertyValueStr(ctx, args[0], "message", JS_NewString(ctx, strerror(data->err)), JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+    }
+}
+
+JSValue nx_remove(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    NX_INIT_WORK_T(nx_fs_remove_async_t);
+    data->filename = JS_ToCString(ctx, argv[1]);
+    nx_queue_async(ctx, req, nx_remove_do, nx_remove_cb, argv[0]);
     return JS_UNDEFINED;
 }
 
 static const JSCFunctionListEntry function_list[] = {
-    JS_CFUNC_DEF("readFile", 0, js_read_file),
-    JS_CFUNC_DEF("readDirSync", 0, js_readdir_sync),
-    JS_CFUNC_DEF("readFileSync", 0, js_read_file_sync),
-    JS_CFUNC_DEF("stat", 0, js_stat)};
+    // JS_CFUNC_DEF("readDir", 0, nx_readdir),
+    JS_CFUNC_DEF("readFile", 2, nx_read_file),
+    JS_CFUNC_DEF("readDirSync", 1, nx_readdir_sync),
+    JS_CFUNC_DEF("readFileSync", 1, nx_read_file_sync),
+    JS_CFUNC_DEF("stat", 2, nx_stat),
+    JS_CFUNC_DEF("remove", 2, nx_remove)};
 
 void nx_init_fs(JSContext *ctx, JSValueConst native_obj)
 {
