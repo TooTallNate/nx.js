@@ -269,6 +269,7 @@ static JSValue js_env_to_object(JSContext *ctx, JSValueConst this_val, int argc,
 
             JS_SetPropertyStr(ctx, env, key, JS_NewString(ctx, value));
         }
+        free(key);
         envp++;
     }
 
