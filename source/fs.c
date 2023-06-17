@@ -197,17 +197,6 @@ void nx_stat_do(nx_work_t *req)
     if (stat(data->filename, &data->st) != 0)
     {
         data->err = errno;
-        return;
-    }
-}
-
-void nx_stat_do(nx_work_t *req)
-{
-    nx_fs_stat_async_t *data = (nx_fs_stat_async_t *)req->data;
-    if (stat(data->filename, &data->st) != 0)
-    {
-        data->err = errno;
-        return;
     }
 }
 
