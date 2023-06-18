@@ -4,6 +4,9 @@ import { INTERNAL_SYMBOL } from './types';
 import { createTimersFactory } from './timers';
 import { Console } from './console';
 import { FontFace } from './font';
+import { AbortSignal, AbortController } from './abort-controller';
+def('AbortSignal', AbortSignal);
+def('AbortController', AbortController);
 
 export type { Switch } from './switch';
 
