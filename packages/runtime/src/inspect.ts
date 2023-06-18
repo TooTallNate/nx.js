@@ -92,11 +92,14 @@ inspect.custom = Symbol('Switch.inspect.custom');
 
 function printObject(v: any) {
 	const keys = Object.keys(v);
+	const ctor = v.constructor;
+	const className =
+		ctor !== Object && typeof ctor.name === 'string' ? `${ctor.name} ` : '';
 	const contents =
 		keys.length === 0
 			? ''
 			: ` ${keys.map((k) => `${k}: ${inspect(v[k])}`).join(', ')} `;
-	return `{${contents}}`;
+	return `${className}{${contents}}`;
 }
 
 function getClass(v: unknown) {
