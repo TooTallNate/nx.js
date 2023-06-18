@@ -9,6 +9,14 @@
 #define countof(x) (sizeof(x) / sizeof((x)[0]))
 #endif
 
+#ifndef NXJS_VERSION
+#define NXJS_VERSION "0.0.0"
+#endif
+
+// QuickJS doesn't have a way to get the version
+// programatically, so it's hard-coded here
+#define QUICKJS_VERSION "2021-03-27"
+
 typedef int BOOL;
 
 typedef struct nx_work_s nx_work_t;

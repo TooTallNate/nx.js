@@ -149,6 +149,13 @@ interface SwitchEventHandlersEventMap {
 	touchend: TouchEvent;
 }
 
+interface Versions {
+	nxjs: string;
+	cairo: string;
+	freetype2: string;
+	quickjs: string;
+}
+
 function toPromise<Func extends (cb: Callback<any>, ...args: any[]) => any>(
 	fn: Func,
 	...args: CallbackArguments<Func>
@@ -171,6 +178,7 @@ export class Switch extends EventTarget {
 	// Populated by the host process
 	argv!: string[];
 	entrypoint!: string;
+	version!: Versions;
 	exit!: () => never;
 
 	constructor() {

@@ -3,6 +3,10 @@
 #include <cairo-ft.h>
 #include <ft2build.h>
 
+#define STR_HELPER(x) #x
+#define STR(x) STR_HELPER(x)
+#define FREETYPE_VERSION_STR STR(FREETYPE_MAJOR) "." STR(FREETYPE_MINOR) "." STR(FREETYPE_PATCH)
+
 typedef struct
 {
     FT_Face ft_face;

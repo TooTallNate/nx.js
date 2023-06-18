@@ -394,6 +394,13 @@ int main(int argc, char *argv[])
     JSValue native_obj = JS_GetPropertyStr(ctx, switch_obj, "native");
     JSValue switch_dispatch_func = JS_GetPropertyStr(ctx, switch_obj, "dispatchEvent");
 
+    JSValue version_obj = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, version_obj, "nxjs", JS_NewString(ctx, NXJS_VERSION));
+    JS_SetPropertyStr(ctx, version_obj, "cairo", JS_NewString(ctx, cairo_version_string()));
+    JS_SetPropertyStr(ctx, version_obj, "freetype2", JS_NewString(ctx, FREETYPE_VERSION_STR));
+    JS_SetPropertyStr(ctx, version_obj, "quickjs", JS_NewString(ctx, QUICKJS_VERSION));
+    JS_SetPropertyStr(ctx, switch_obj, "version", version_obj);
+
     nx_init_applet(ctx, native_obj);
     nx_init_canvas(ctx, native_obj);
     nx_init_font(ctx, native_obj);
