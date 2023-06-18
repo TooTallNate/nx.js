@@ -43,6 +43,7 @@ SOURCES		:=	source
 DATA		:=	data
 INCLUDES	:=	include
 ROMFS		:=	romfs
+APP_VERSION :=  `jq -r .version < ../packages/runtime/package.json`
 
 #---------------------------------------------------------------------------------
 # options for code generation
