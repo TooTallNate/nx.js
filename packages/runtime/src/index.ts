@@ -4,9 +4,16 @@ import { INTERNAL_SYMBOL } from './types';
 import { createTimersFactory } from './timers';
 import { Console } from './console';
 import { FontFace } from './font';
+//import { Image } from './image';
+
 import { AbortSignal, AbortController } from './abort-controller';
 def('AbortSignal', AbortSignal);
 def('AbortController', AbortController);
+
+import * as streams from 'web-streams-polyfill/ponyfill/es2018';
+for (const k of Object.keys(streams)) {
+	def(k, streams[k as keyof typeof streams]);
+}
 
 export type { Switch } from './switch';
 
