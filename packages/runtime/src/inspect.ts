@@ -5,7 +5,12 @@ declare const Switch: _Switch;
 
 const grey = rgb(100, 100, 100);
 
-export const inspect = (v: unknown): string => {
+export interface InspectOptions {
+	refs?: Set<{}>;
+}
+
+export const inspect = (v: unknown, opts?: InspectOptions): string => {
+	// Primitives
 	if (v && typeof (v as any)[inspect.custom] === 'function') {
 		return (v as any)[inspect.custom]();
 	}
@@ -27,13 +32,26 @@ export const inspect = (v: unknown): string => {
 	if (v === null) {
 		return bold(String(v));
 	}
+
+	// After this point, all should be typeof "object" or
+	// "function", so they can have additional properties
+	// which may be circular references.
+	const refs = opts?.refs ?? new Set();
+	if (refs.has(v)) {
+		return cyan('[Circular]');
+	}
+
+	refs.add(v);
+
 	if (typeof v === 'function') {
 		const { name } = v;
 		return cyan(`[Function${name ? `: ${name}` : ' (anonymous)'}]`);
 	}
 	if (Array.isArray(v)) {
 		const contents =
-			v.length === 0 ? '' : ` ${v.map((e) => inspect(e)).join(', ')} `;
+			v.length === 0
+				? ''
+				: ` ${v.map((e) => inspect(e, { ...opts, refs })).join(', ')} `;
 		return `[${contents}]`;
 	}
 	if (isRegExp(v)) {
@@ -51,13 +69,16 @@ export const inspect = (v: unknown): string => {
 			if (state === 2) {
 				val = `${red('<rejected>')} `;
 			}
-			val += inspect(result);
+			val += inspect(result, { ...opts, refs });
 		}
 		return `Promise { ${val} }`;
 	}
 	if (isError(v)) {
 		const stack = v.stack?.trim();
-		const obj = Object.keys(v).length > 0 ? ` ${printObject(v)}` : '';
+		const obj =
+			Object.keys(v).length > 0
+				? ` ${printObject(v, { ...opts, refs })}`
+				: '';
 		return stack ? `${v}\n${stack}${obj}` : `[${v}]${obj}`;
 	}
 	if (isArrayBuffer(v)) {
@@ -83,14 +104,14 @@ export const inspect = (v: unknown): string => {
 		return `${getClass(v)}(${v.length}) [${c}]`;
 	}
 	if (typeof v === 'object') {
-		return printObject(v);
+		return printObject(v, { ...opts, refs });
 	}
 	return `? ${v}`;
 };
 
 inspect.custom = Symbol('Switch.inspect.custom');
 
-function printObject(v: any) {
+function printObject(v: any, opts: InspectOptions) {
 	const keys = Object.keys(v);
 	const ctor = v.constructor;
 	const className =
@@ -98,7 +119,7 @@ function printObject(v: any) {
 	const contents =
 		keys.length === 0
 			? ''
-			: ` ${keys.map((k) => `${k}: ${inspect(v[k])}`).join(', ')} `;
+			: ` ${keys.map((k) => `${k}: ${inspect(v[k], opts)}`).join(', ')} `;
 	return `${className}{${contents}}`;
 }
 
