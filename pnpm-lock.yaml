@@ -1,9 +1,5 @@
 lockfileVersion: '6.0'
 
-settings:
-  autoInstallPeers: true
-  excludeLinksFromLockfile: false
-
 importers:
 
   .:
@@ -34,7 +30,7 @@ importers:
         specifier: ^0.17.18
         version: 0.17.18
       nxjs-runtime:
-        specifier: ^0.0.9
+        specifier: ^0.0.10
         version: link:../../packages/runtime
 
   apps/canvas:
@@ -43,7 +39,7 @@ importers:
         specifier: ^0.17.18
         version: 0.17.18
       nxjs-runtime:
-        specifier: ^0.0.9
+        specifier: ^0.0.10
         version: link:../../packages/runtime
 
   apps/hello-world:
@@ -52,7 +48,7 @@ importers:
         specifier: ^0.17.18
         version: 0.17.18
       nxjs-runtime:
-        specifier: ^0.0.9
+        specifier: ^0.0.10
         version: link:../../packages/runtime
 
   apps/repl:
@@ -68,20 +64,20 @@ importers:
         specifier: ^0.17.18
         version: 0.17.18
       nxjs-runtime:
-        specifier: ^0.0.9
+        specifier: ^0.0.10
         version: link:../../packages/runtime
 
   apps/snake:
     dependencies:
       nxjs-constants:
-        specifier: 0.0.9
+        specifier: 0.0.10
         version: link:../../packages/constants
     devDependencies:
       esbuild:
         specifier: ^0.17.18
         version: 0.17.18
       nxjs-runtime:
-        specifier: ^0.0.9
+        specifier: ^0.0.10
         version: link:../../packages/runtime
 
   apps/tests:
@@ -94,7 +90,7 @@ importers:
         specifier: ^0.17.18
         version: 0.17.18
       nxjs-runtime:
-        specifier: ^0.0.9
+        specifier: ^0.0.10
         version: link:../../packages/runtime
 
   apps/touchscreen:
@@ -110,7 +106,7 @@ importers:
         specifier: ^0.17.18
         version: 0.17.18
       nxjs-runtime:
-        specifier: ^0.0.9
+        specifier: ^0.0.10
         version: link:../../packages/runtime
 
   apps/ttf-font:
@@ -119,7 +115,7 @@ importers:
         specifier: ^0.17.18
         version: 0.17.18
       nxjs-runtime:
-        specifier: ^0.0.9
+        specifier: ^0.0.10
         version: link:../../packages/runtime
 
   packages/constants:
@@ -2346,3 +2342,7 @@ packages:
     name: kleur
     version: 4.1.5
     engines: {node: '>=6'}
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false

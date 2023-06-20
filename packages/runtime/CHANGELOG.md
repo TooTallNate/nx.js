@@ -1,5 +1,25 @@
 # nxjs-runtime
 
+## 0.0.10
+
+### Patch Changes
+
+- 6074fb2: Add web streams polyfill
+- 835efcf: Fix infinite loop upon circular references in `Switch.inspect()`
+- 150e55c: Add `Switch.chdir()`
+- 209ebb8: Fix indexing in `Switch.argv`
+- 01befe9: Fix `Switch.readDirSync()` throwing an error upon failure
+- b250662: Set NACP version for output `nxjs.nro`
+- 806737b: Add `Switch.stat()`
+- b0dde04: Fix memory leak in `Switch.env.toObject()`
+- 168a024: Add `Promise` introspection to `Switch.inspect()`
+- 95e5954: Add `Switch.remove()`
+- 26d38f0: Add `Switch.env.delete()` and add error handling for env `get()` and `set()`
+- 091683b: Add class name when inspecting objects in `Switch.inspect()`
+- 97afca5: Add `Switch.version` object
+- ce8f8ac: Fix resolving more than one IP address in `Switch.resolveDns()`
+- 901d941: Add `AbortController` and `AbortSignal` polyfills
+
 ## 0.0.9
 
 ### Patch Changes
