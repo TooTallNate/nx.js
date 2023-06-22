@@ -48,7 +48,6 @@ JSValue nx_js_tcp_connect(JSContext *ctx, JSValueConst this_val, int argc, JSVal
         JS_ThrowTypeError(ctx, "invalid input");
         return JS_EXCEPTION;
     }
-    printf("ip: %s, port: %d\n", ip, port);
 
     nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
     nx_connect_t *req = malloc(sizeof(nx_connect_t));
@@ -114,7 +113,6 @@ JSValue nx_js_tcp_read(JSContext *ctx, JSValueConst this_val, int argc, JSValueC
 
 void nx_on_write(nx_poll_t *p, nx_write_t *req)
 {
-    printf("onwrite\n");
     nx_js_callback_t *req_cb = (nx_js_callback_t *)req->opaque;
     JSValue args[] = {JS_UNDEFINED, JS_UNDEFINED};
 
@@ -151,7 +149,6 @@ JSValue nx_js_tcp_write(JSContext *ctx, JSValueConst this_val, int argc, JSValue
         JS_ThrowTypeError(ctx, "invalid input");
         return JS_EXCEPTION;
     }
-    printf("b: %ld, size: %ld\n", (intptr_t)buffer, buffer_size);
 
     nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
     nx_write_t *req = malloc(sizeof(nx_write_t));

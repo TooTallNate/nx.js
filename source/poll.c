@@ -65,9 +65,7 @@ void nx_poll(nx_poll_t *p)
 
     nx_watcher_t *watcher;
 
-    // printf("polling\n");
     int ready_fds = poll(p->poll_fds, p->poll_fds_used, 0);
-    //printf("ready_fds: %d\n", ready_fds);
     if (ready_fds < 0)
     {
         printf("poll() error: %s", strerror(errno));
@@ -184,7 +182,9 @@ void nx_read_ready(nx_poll_t *p, nx_watcher_t *watcher, int revents)
     {
         printf("read error: %s\n", strerror(errno));
         req->err = errno;
-    } else {
+    }
+    else
+    {
         req->bytes_read = n;
     }
     req->callback(p, req);
@@ -210,7 +210,6 @@ void nx_write_ready(nx_poll_t *p, int fd, char *data, size_t num_bytes, nx_watch
 
 int nx_write(nx_poll_t *p, nx_write_t *req, int fd, const uint8_t *data, size_t num_bytes, nx_write_cb callback)
 {
-    printf("numbytes: %lu\n", num_bytes);
     req->err = 0;
     req->fd = fd;
     req->bytes_total = num_bytes;
@@ -218,7 +217,6 @@ int nx_write(nx_poll_t *p, nx_write_t *req, int fd, const uint8_t *data, size_t 
     req->callback = callback;
 
     ssize_t n = write(fd, data, num_bytes);
-    printf("n: %ld\n", n);
     if (n < 0)
     {
         if (errno == EAGAIN || errno == EWOULDBLOCK)
@@ -237,7 +235,6 @@ int nx_write(nx_poll_t *p, nx_write_t *req, int fd, const uint8_t *data, size_t 
     else
     {
         req->bytes_written += n;
-        printf("cb\n");
         callback(p, req);
     }
     return 0;
