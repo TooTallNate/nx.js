@@ -30,7 +30,7 @@ struct nx_work_s
     JSValue js_callback;
     nx_work_cb work_cb;
     nx_after_work_cb after_work_cb;
-    pthread_mutex_t* async_done_mutex;
+    pthread_mutex_t *async_done_mutex;
     void *data;
 };
 
@@ -52,18 +52,21 @@ inline nx_context_t *nx_get_context(JSContext *ctx)
 // ever gets updated.
 #define JS_CLASS_PROMISE 49
 
-struct list_head {
+struct list_head
+{
     struct list_head *prev;
     struct list_head *next;
 };
 
-typedef enum JSPromiseStateEnum {
+typedef enum JSPromiseStateEnum
+{
     JS_PROMISE_PENDING,
     JS_PROMISE_FULFILLED,
     JS_PROMISE_REJECTED,
 } JSPromiseStateEnum;
 
-typedef struct JSPromiseData {
+typedef struct JSPromiseData
+{
     JSPromiseStateEnum promise_state;
     /* 0=fulfill, 1=reject, list of JSPromiseReactionData.link */
     struct list_head promise_reactions[2];

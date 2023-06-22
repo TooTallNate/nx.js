@@ -1,8 +1,6 @@
 #pragma once
-#include <quickjs/quickjs.h>
 #include <cairo.h>
-#include <cairo-ft.h>
-#include <ft2build.h>
+#include "types.h"
 
 typedef struct
 {

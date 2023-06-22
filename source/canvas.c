@@ -311,5 +311,5 @@ void nx_init_canvas(JSContext *ctx, JSValueConst native_obj)
     };
     JS_NewClass(rt, nx_canvas_context_class_id, &font_face_class);
 
-    JS_SetPropertyFunctionList(ctx, native_obj, function_list, sizeof(function_list) / sizeof(function_list[0]));
+    JS_SetPropertyFunctionList(ctx, native_obj, function_list, countof(function_list));
 }

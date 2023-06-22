@@ -270,5 +270,5 @@ static const JSCFunctionListEntry function_list[] = {
 
 void nx_init_fs(JSContext *ctx, JSValueConst native_obj)
 {
-    JS_SetPropertyFunctionList(ctx, native_obj, function_list, sizeof(function_list) / sizeof(function_list[0]));
+    JS_SetPropertyFunctionList(ctx, native_obj, function_list, countof(function_list));
 }

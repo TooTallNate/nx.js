@@ -1,6 +1,4 @@
-#ifndef _NX_DNS_
-#define _NX_DNS_
-
+#pragma once
 #include <switch.h>
 #include <quickjs/quickjs.h>
 #include "types.h"
@@ -14,5 +12,3 @@ typedef struct
 } nx_dns_resolve_t;
 
 JSValue js_dns_resolve(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv);
-
-#endif

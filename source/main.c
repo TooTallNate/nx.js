@@ -295,16 +295,16 @@ static JSValue js_get_internal_promise_state(JSContext *ctx, JSValueConst this_v
 
 void nx_process_pending_jobs(JSRuntime *rt)
 {
-    JSContext *ctx1;
+    JSContext *ctx;
     int err;
     for (;;)
     {
-        err = JS_ExecutePendingJob(rt, &ctx1);
+        err = JS_ExecutePendingJob(rt, &ctx);
         if (err <= 0)
         {
             if (err < 0)
             {
-                print_js_error(ctx1);
+                print_js_error(ctx);
             }
             break;
         }
@@ -437,7 +437,7 @@ int main(int argc, char *argv[])
 
         // dns
         JS_CFUNC_DEF("resolveDns", 0, js_dns_resolve)};
-    JS_SetPropertyFunctionList(ctx, native_obj, function_list, sizeof(function_list) / sizeof(function_list[0]));
+    JS_SetPropertyFunctionList(ctx, native_obj, function_list, countof(function_list));
 
     // `Switch.entrypoint`
     JS_SetPropertyStr(ctx, switch_obj, "entrypoint", JS_NewString(ctx, js_path));
