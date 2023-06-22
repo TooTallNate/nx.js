@@ -3,7 +3,9 @@
 #include <quickjs/quickjs.h>
 #include <cairo-ft.h>
 #include <ft2build.h>
+#include <poll.h>
 #include "thpool.h"
+#include "poll.h"
 
 #ifndef countof
 #define countof(x) (sizeof(x) / sizeof((x)[0]))
@@ -36,6 +38,7 @@ struct nx_work_s
 
 typedef struct
 {
+    nx_poll_t poll;
     threadpool thpool;
     pthread_mutex_t async_done_mutex;
     nx_work_t *work_queue;

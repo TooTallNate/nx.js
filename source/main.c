@@ -15,6 +15,8 @@
 #include "canvas.h"
 #include "font.h"
 #include "fs.h"
+#include "tcp.h"
+#include "poll.h"
 
 // Text renderer
 static PrintConsole *print_console = NULL;
@@ -318,6 +320,12 @@ int main(int argc, char *argv[])
 
     print_console = consoleInit(NULL);
 
+    rc = socketInitializeDefault();
+    if (R_FAILED(rc))
+    {
+        diagAbortWithResult(rc);
+    }
+
     rc = romfsInit();
     if (R_FAILED(rc))
     {
@@ -369,6 +377,7 @@ int main(int argc, char *argv[])
     memset(nx_ctx, 0, sizeof(nx_context_t));
     nx_ctx->thpool = thpool_init(4);
     pthread_mutex_init(&(nx_ctx->async_done_mutex), NULL);
+    nx_poll_init(&nx_ctx->poll);
     JS_SetContextOpaque(ctx, nx_ctx);
 
     size_t runtime_buffer_size;
@@ -405,6 +414,7 @@ int main(int argc, char *argv[])
     nx_init_canvas(ctx, native_obj);
     nx_init_font(ctx, native_obj);
     nx_init_fs(ctx, native_obj);
+    nx_init_tcp(ctx, native_obj);
 
     JSValue exit_func = JS_NewCFunction(ctx, js_exit, "exit", 0);
     JS_SetPropertyStr(ctx, switch_obj, "exit", exit_func);
@@ -469,6 +479,9 @@ int main(int argc, char *argv[])
     // Main loop
     while (appletMainLoop())
     {
+        // Check if any file descriptors have reported activity
+        nx_poll(&nx_ctx->poll);
+
         // Check if any thread pool tasks have completed
         nx_process_async(ctx, nx_ctx);
 

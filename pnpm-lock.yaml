@@ -1,5 +1,9 @@
 lockfileVersion: '6.0'
 
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
 importers:
 
   .:
@@ -72,6 +76,15 @@ importers:
       nxjs-constants:
         specifier: 0.0.10
         version: link:../../packages/constants
+    devDependencies:
+      esbuild:
+        specifier: ^0.17.18
+        version: 0.17.18
+      nxjs-runtime:
+        specifier: ^0.0.10
+        version: link:../../packages/runtime
+
+  apps/tcp-client:
     devDependencies:
       esbuild:
         specifier: ^0.17.18
@@ -2342,7 +2355,3 @@ packages:
     name: kleur
     version: 4.1.5
     engines: {node: '>=6'}
-
-settings:
-  autoInstallPeers: true
-  excludeLinksFromLockfile: false
