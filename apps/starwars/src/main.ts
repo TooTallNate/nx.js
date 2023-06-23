@@ -1,5 +1,14 @@
 import stripAnsi from 'strip-ansi';
 
+const ctx = Switch.screen.getContext('2d');
+const fontData = Switch.readFileSync(new URL('Monaco.ttf', Switch.entrypoint));
+const font = new FontFace('Monaco', fontData);
+Switch.fonts.add(font);
+
+const fontSize = 30.83;
+const yOffset = 180;
+ctx.font = `${fontSize}px Monaco`;
+
 function fdToStream(fd: number) {
 	const decoder = new TextDecoder();
 	const buffer = new ArrayBuffer(102400);
@@ -51,14 +60,20 @@ async function main() {
 		const chunk = await reader.read();
 		if (chunk.done) break;
 		if (chunk.value) {
-			// there's 13 lines per frame, but libnx apparently has a bug
-			// with the ANSI escape sequence "\x1B[H" (with no explicit
-			// row/column values), so we'll reset the frame manually,
-			// and also move it down so that the frame is centered
-			if (lineCount++ % 13 === 0) {
-				Switch.print('\x1B[17;1H');
+			const line = lineCount++ % 13;
+			// there's 13 lines per frame, so when the line is
+			// zero then clear the screen to begin drawing the
+			// new frame
+			if (line === 0) {
+				ctx.fillStyle = 'black';
+				ctx.fillRect(0, 0, Switch.screen.width, Switch.screen.height);
+				ctx.fillStyle = 'white';
 			}
-			Switch.print(`      ${stripAnsi(chunk.value).slice(0, 67)}\n`);
+			ctx.fillText(
+				stripAnsi(chunk.value).slice(0, 67),
+				0,
+				line * fontSize + yOffset
+			);
 		}
 	}
 	console.log('TCP socket closed');

@@ -84,7 +84,7 @@ importers:
         specifier: ^0.0.10
         version: link:../../packages/runtime
 
-  apps/tcp-client:
+  apps/starwars:
     dependencies:
       strip-ansi:
         specifier: ^7.1.0
