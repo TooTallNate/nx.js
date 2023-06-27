@@ -111,7 +111,9 @@ uint8_t *read_file(const char *filename, size_t *out_size)
 
     *out_size = size;
 
-    buffer[size + 1] = '\0';
+    // NULL terminate the buffer, to work around bug in QuickJS
+    // eval where doesn't respect the provided buffer size
+    buffer[size] = '\0';
 
     return buffer;
 }
