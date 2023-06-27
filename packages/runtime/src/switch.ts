@@ -2,6 +2,7 @@ import { Canvas, CanvasRenderingContext2D } from './canvas';
 import { FontFaceSet } from './font';
 import { INTERNAL_SYMBOL, PathLike, Stats } from './types';
 import { inspect } from './inspect';
+import { bufferSourceToArrayBuffer } from './utils';
 
 export type Opaque<T> = { __type: T };
 export type CanvasRenderingContext2DState =
@@ -166,7 +167,7 @@ interface Versions {
 	quickjs: string;
 }
 
-//const encoder = new TextEncoder();
+const encoder = new TextEncoder();
 
 function toPromise<Func extends (cb: Callback<any>, ...args: any[]) => any>(
 	fn: Func,
@@ -374,15 +375,15 @@ export class Switch extends EventTarget {
 		return toPromise(this.native.connect, ip, port);
 	}
 
-	read(fd: number, buffer: ArrayBuffer) {
-		//const ab = bufferSourceToArrayBuffer(buffer);
-		return toPromise(this.native.read, fd, buffer);
+	read(fd: number, buffer: BufferSource) {
+		const ab = bufferSourceToArrayBuffer(buffer);
+		return toPromise(this.native.read, fd, ab);
 	}
 
-	write(fd: number, data: ArrayBuffer) {
-		//const d = typeof data === 'string' ? encoder.encode(data) : data;
-		//const ab = bufferSourceToArrayBuffer(data);
-		return toPromise(this.native.write, fd, data);
+	write(fd: number, data: string | BufferSource) {
+		const d = typeof data === 'string' ? encoder.encode(data) : data;
+		const ab = bufferSourceToArrayBuffer(d);
+		return toPromise(this.native.write, fd, ab);
 	}
 
 	inspect = inspect;

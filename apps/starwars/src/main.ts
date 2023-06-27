@@ -49,7 +49,7 @@ async function main() {
 	}
 
 	// write "starwars" command
-	await Switch.write(fd, new TextEncoder().encode('starwars\r\n').buffer);
+	await Switch.write(fd, 'starwars\r\n');
 
 	// next line is the "starwars" echo, which we can ignore
 	await reader.read();
