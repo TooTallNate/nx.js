@@ -347,6 +347,17 @@ int main(int argc, char *argv[])
     PadState pad;
     padInitializeDefault(&pad);
 
+    int had_error = 0;
+
+    JSRuntime *rt = JS_NewRuntime();
+    JSContext *ctx = JS_NewContext(rt);
+
+    nx_context_t *nx_ctx = malloc(sizeof(nx_context_t));
+    memset(nx_ctx, 0, sizeof(nx_context_t));
+    nx_ctx->thpool = thpool_init(4);
+    pthread_mutex_init(&(nx_ctx->async_done_mutex), NULL);
+    JS_SetContextOpaque(ctx, nx_ctx);
+
     // First try the `main.js` file on the RomFS
     size_t user_code_size;
     int js_path_needs_free = 0;
@@ -370,34 +381,35 @@ int main(int argc, char *argv[])
     if (user_code == NULL)
     {
         printf("%s: %s\n", strerror(errno), js_path);
+        if (js_path_needs_free)
+        {
+            free(js_path);
+        }
+        had_error = 1;
+        goto wait_error;
     }
-
-    JSRuntime *rt = JS_NewRuntime();
-    JSContext *ctx = JS_NewContext(rt);
-
-    nx_context_t *nx_ctx = malloc(sizeof(nx_context_t));
-    memset(nx_ctx, 0, sizeof(nx_context_t));
-    nx_ctx->thpool = thpool_init(4);
-    pthread_mutex_init(&(nx_ctx->async_done_mutex), NULL);
-    nx_poll_init(&nx_ctx->poll);
-    JS_SetContextOpaque(ctx, nx_ctx);
 
     size_t runtime_buffer_size;
     char *runtime_path = "romfs:/runtime.js";
     char *runtime_buffer = (char *)read_file(runtime_path, &runtime_buffer_size);
     if (runtime_buffer == NULL)
     {
-        printf("Failed to initialize JS runtime\n");
+        printf("%s: %s\n", strerror(errno), runtime_path);
+        had_error = 1;
+        goto wait_error;
     }
-    else
+
+    JSValue runtime_init_result = JS_Eval(ctx, runtime_buffer, runtime_buffer_size, runtime_path, JS_EVAL_TYPE_GLOBAL);
+    if (JS_IsException(runtime_init_result))
     {
-        JSValue runtime_init_result = JS_Eval(ctx, runtime_buffer, runtime_buffer_size, runtime_path, JS_EVAL_TYPE_GLOBAL);
-        if (JS_IsException(runtime_init_result))
-        {
-            print_js_error(ctx);
-        }
-        JS_FreeValue(ctx, runtime_init_result);
-        free(runtime_buffer);
+        print_js_error(ctx);
+        had_error = 1;
+    }
+    JS_FreeValue(ctx, runtime_init_result);
+    free(runtime_buffer);
+    if (had_error)
+    {
+        goto wait_error;
     }
 
     JSValue global_obj = JS_GetGlobalObject(ctx);
@@ -463,19 +475,21 @@ int main(int argc, char *argv[])
     JS_SetPropertyStr(ctx, switch_obj, "argv", argv_array);
 
     // Run the user code
-    if (user_code != NULL)
+    JSValue user_code_result = JS_Eval(ctx, user_code, user_code_size, js_path, JS_EVAL_TYPE_GLOBAL);
+    if (JS_IsException(user_code_result))
     {
-        JSValue user_code_result = JS_Eval(ctx, user_code, user_code_size, js_path, JS_EVAL_TYPE_GLOBAL);
-        if (JS_IsException(user_code_result))
-        {
-            print_js_error(ctx);
-        }
-        JS_FreeValue(ctx, user_code_result);
-        free(user_code);
-        if (js_path_needs_free)
-        {
-            free(js_path);
-        }
+        print_js_error(ctx);
+        had_error = 1;
+    }
+    JS_FreeValue(ctx, user_code_result);
+    free(user_code);
+    if (js_path_needs_free)
+    {
+        free(js_path);
+    }
+    if (had_error)
+    {
+        goto wait_error;
     }
 
     // Main loop
@@ -542,6 +556,21 @@ int main(int argc, char *argv[])
     JSValue ret_val = JS_Call(ctx, switch_dispatch_func, switch_obj, 1, args);
     JS_FreeValue(ctx, event_obj);
     JS_FreeValue(ctx, ret_val);
+
+wait_error:
+    if (had_error)
+    {
+        // When an initialization or unhandled error occurs,
+        // wait until the user presses "+" to fully exit so
+        // the user has a chance to read the error message.
+        while (appletMainLoop())
+        {
+            padUpdate(&pad);
+            u64 kDown = padGetButtonsDown(&pad);
+            if (kDown & HidNpadButton_Plus) break;
+            consoleUpdate(NULL);
+        }
+    }
 
     JS_FreeContext(ctx);
     JS_FreeRuntime(rt);
