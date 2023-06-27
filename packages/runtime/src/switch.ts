@@ -27,6 +27,11 @@ type CallbackArguments<T> = T extends (
 	? U
 	: never;
 
+interface ConnectOpts {
+	hostname?: string;
+	port: number;
+}
+
 export interface Native {
 	print: (str: string) => void;
 	cwd: () => string;
@@ -115,6 +120,11 @@ export interface Native {
 		dirtyWidth: number,
 		dirtyHeight: number
 	): void;
+
+	// tcp
+	connect(cb: Callback<number>, ip: string, port: number): void;
+	write(cb: Callback<number>, fd: number, data: ArrayBuffer): void;
+	read(cb: Callback<number>, fd: number, buffer: ArrayBuffer): void;
 }
 
 interface Internal {
@@ -155,6 +165,8 @@ interface Versions {
 	freetype2: string;
 	quickjs: string;
 }
+
+//const encoder = new TextEncoder();
 
 function toPromise<Func extends (cb: Callback<any>, ...args: any[]) => any>(
 	fn: Func,
@@ -348,6 +360,29 @@ export class Switch extends EventTarget {
 	 */
 	stat(path: PathLike) {
 		return toPromise(this.native.stat, String(path));
+	}
+
+	/**
+	 * Creates a TCP connection specified by the `hostname`
+	 * and `port`.
+	 */
+	async connect({ hostname = '127.0.0.1', port }: ConnectOpts) {
+		const [ip] = await this.resolveDns(hostname);
+		if (!ip) {
+			throw new Error(`Could not resolve "${hostname}" to an IP address`);
+		}
+		return toPromise(this.native.connect, ip, port);
+	}
+
+	read(fd: number, buffer: ArrayBuffer) {
+		//const ab = bufferSourceToArrayBuffer(buffer);
+		return toPromise(this.native.read, fd, buffer);
+	}
+
+	write(fd: number, data: ArrayBuffer) {
+		//const d = typeof data === 'string' ? encoder.encode(data) : data;
+		//const ab = bufferSourceToArrayBuffer(data);
+		return toPromise(this.native.write, fd, data);
 	}
 
 	inspect = inspect;
