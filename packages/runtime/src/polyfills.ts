@@ -9,9 +9,10 @@ export const def = (key: string, value: unknown) =>
 import 'core-js/actual/url';
 import 'core-js/actual/url-search-params';
 import EventTarget from '@ungap/event-target';
-import { Event, UIEvent, KeyboardEvent, TouchEvent } from './event';
+import { Event, ErrorEvent, UIEvent, KeyboardEvent, TouchEvent } from './event';
 def('EventTarget', EventTarget);
 def('Event', Event);
+def('ErrorEvent', ErrorEvent);
 def('UIEvent', UIEvent);
 def('KeyboardEvent', KeyboardEvent);
 def('TouchEvent', TouchEvent);

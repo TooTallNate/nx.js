@@ -370,3 +370,19 @@ export class TouchEvent extends UIEvent implements globalThis.TouchEvent {
 		this.touches = options.touches ?? [];
 	}
 }
+
+export class ErrorEvent extends Event implements globalThis.ErrorEvent {
+	colno: number;
+	error: any;
+	filename: string;
+	lineno: number;
+	message: string;
+	constructor(type: string, options: ErrorEventInit) {
+		super(type, options);
+		this.colno = options.colno ?? 0;
+		this.error = options.error;
+		this.filename = options.filename ?? '';
+		this.lineno = options.lineno ?? 0;
+		this.message = this.error?.message ?? '';
+	}
+}
