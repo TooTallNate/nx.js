@@ -1,6 +1,18 @@
 #include "font.h"
 #include "canvas.h"
 
+#define RECT_ARGS                                        \
+    double args[4];                                      \
+    if (js_validate_doubles_args(ctx, argv, args, 4, 1)) \
+    {                                                    \
+        JS_ThrowTypeError(ctx, "invalid input");         \
+        return JS_EXCEPTION;                             \
+    }                                                    \
+    double x = args[0];                                  \
+    double y = args[1];                                  \
+    double width = args[2];                              \
+    double height = args[3];
+
 static JSClassID nx_canvas_context_class_id;
 
 static int js_validate_doubles_args(JSContext *ctx, JSValueConst *argv, double *args, size_t count, size_t offset)
@@ -44,7 +56,6 @@ static JSValue js_canvas_new_context(JSContext *ctx, JSValueConst this_val, int 
     }
     memset(context, 0, sizeof(nx_canvas_context_2d_t));
 
-    // printf("1: %p\n", (void*)context);
     JSValue obj = JS_NewObjectClass(ctx, nx_canvas_context_class_id);
     if (JS_IsException(obj))
     {
@@ -71,6 +82,109 @@ static JSValue js_canvas_new_context(JSContext *ctx, JSValueConst this_val, int 
     return obj;
 }
 
+static JSValue js_canvas_begin_path(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
+    if (!context)
+    {
+        return JS_EXCEPTION;
+    }
+    cairo_new_path(context->ctx);
+    return JS_UNDEFINED;
+}
+
+static JSValue js_canvas_close_path(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
+    if (!context)
+    {
+        return JS_EXCEPTION;
+    }
+    cairo_close_path(context->ctx);
+    return JS_UNDEFINED;
+}
+
+static JSValue js_canvas_fill(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
+    if (!context)
+    {
+        return JS_EXCEPTION;
+    }
+    cairo_fill(context->ctx);
+    return JS_UNDEFINED;
+}
+
+static JSValue js_canvas_stroke(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
+    if (!context)
+    {
+        return JS_EXCEPTION;
+    }
+    cairo_stroke(context->ctx);
+    return JS_UNDEFINED;
+}
+
+static JSValue js_canvas_move_to(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
+    if (!context)
+    {
+        return JS_EXCEPTION;
+    }
+    double args[2];
+    if (js_validate_doubles_args(ctx, argv, args, 2, 1))
+    {
+        JS_ThrowTypeError(ctx, "invalid input");
+        return JS_EXCEPTION;
+    }
+    cairo_move_to(context->ctx, args[0], args[1]);
+    return JS_UNDEFINED;
+}
+
+static JSValue js_canvas_line_to(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
+    if (!context)
+    {
+        return JS_EXCEPTION;
+    }
+    double args[2];
+    if (js_validate_doubles_args(ctx, argv, args, 2, 1))
+    {
+        JS_ThrowTypeError(ctx, "invalid input");
+        return JS_EXCEPTION;
+    }
+    cairo_line_to(context->ctx, args[0], args[1]);
+    return JS_UNDEFINED;
+}
+
+static JSValue js_canvas_rect(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
+    if (!context)
+    {
+        return JS_EXCEPTION;
+    }
+    RECT_ARGS;
+    if (width == 0)
+    {
+        cairo_move_to(context->ctx, x, y);
+        cairo_line_to(context->ctx, x, y + height);
+    }
+    else if (height == 0)
+    {
+        cairo_move_to(context->ctx, x, y);
+        cairo_line_to(context->ctx, x + width, y);
+    }
+    else
+    {
+        cairo_rectangle(context->ctx, x, y, width, height);
+    }
+    return JS_UNDEFINED;
+}
+
 static JSValue js_canvas_set_fill_style(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
@@ -84,7 +198,7 @@ static JSValue js_canvas_set_fill_style(JSContext *ctx, JSValueConst this_val, i
         JS_ThrowTypeError(ctx, "invalid input");
         return JS_EXCEPTION;
     }
-    cairo_set_source_rgba(context->ctx, args[0] / (double)255, args[1] / (double)255, args[2] / (double)255, args[3]);
+    cairo_set_source_rgba(context->ctx, args[0] / 255., args[1] / 255., args[2] / 255., args[3]);
     return JS_UNDEFINED;
 }
 
@@ -206,23 +320,8 @@ static JSValue js_canvas_fill_rect(JSContext *ctx, JSValueConst this_val, int ar
     {
         return JS_EXCEPTION;
     }
-    double x;
-    double y;
-    double w;
-    double h;
-    if (JS_ToFloat64(ctx, &x, argv[1]) ||
-        JS_ToFloat64(ctx, &y, argv[2]) ||
-        JS_ToFloat64(ctx, &w, argv[3]) ||
-        JS_ToFloat64(ctx, &h, argv[4]))
-    {
-        JS_ThrowTypeError(ctx, "invalid input");
-        return JS_EXCEPTION;
-    }
-    cairo_rectangle(
-        context->ctx,
-        x, y,
-        w,
-        h);
+    RECT_ARGS;
+    cairo_rectangle(context->ctx, x, y, width, height);
     cairo_fill(context->ctx);
     return JS_UNDEFINED;
 }
@@ -234,16 +333,14 @@ static JSValue js_canvas_fill_text(JSContext *ctx, JSValueConst this_val, int ar
     {
         return JS_EXCEPTION;
     }
-    double x;
-    double y;
-    if (JS_ToFloat64(ctx, &x, argv[2]) ||
-        JS_ToFloat64(ctx, &y, argv[3]))
+    double args[2];
+    if (js_validate_doubles_args(ctx, argv, args, 2, 2))
     {
         JS_ThrowTypeError(ctx, "invalid input");
         return JS_EXCEPTION;
     }
     const char *text = JS_ToCString(ctx, argv[1]);
-    cairo_move_to(context->ctx, x, y);
+    cairo_move_to(context->ctx, args[0], args[1]);
     cairo_show_text(context->ctx, text);
     JS_FreeCString(ctx, text);
     return JS_UNDEFINED;
@@ -372,6 +469,13 @@ static const JSCFunctionListEntry function_list[] = {
     JS_CFUNC_DEF("canvasSetLineWidth", 0, js_canvas_set_line_width),
     JS_CFUNC_DEF("canvasSetFillStyle", 0, js_canvas_set_fill_style),
     JS_CFUNC_DEF("canvasSetFont", 0, js_canvas_set_font),
+    JS_CFUNC_DEF("canvasBeginPath", 0, js_canvas_begin_path),
+    JS_CFUNC_DEF("canvasClosePath", 0, js_canvas_close_path),
+    JS_CFUNC_DEF("canvasFill", 0, js_canvas_fill),
+    JS_CFUNC_DEF("canvasStroke", 0, js_canvas_stroke),
+    JS_CFUNC_DEF("canvasMoveTo", 0, js_canvas_move_to),
+    JS_CFUNC_DEF("canvasLineTo", 0, js_canvas_line_to),
+    JS_CFUNC_DEF("canvasRect", 0, js_canvas_rect),
     JS_CFUNC_DEF("canvasRotate", 0, js_canvas_rotate),
     JS_CFUNC_DEF("canvasTranslate", 0, js_canvas_translate),
     JS_CFUNC_DEF("canvasTransform", 0, js_canvas_transform),

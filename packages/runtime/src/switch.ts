@@ -77,6 +77,27 @@ export interface Native {
 		height: number
 	): CanvasRenderingContext2DState;
 	canvasSetLineWidth(ctx: CanvasRenderingContext2DState, n: number): void;
+	canvasBeginPath(ctx: CanvasRenderingContext2DState): void;
+	canvasClosePath(ctx: CanvasRenderingContext2DState): void;
+	canvasFill(ctx: CanvasRenderingContext2DState): void;
+	canvasStroke(ctx: CanvasRenderingContext2DState): void;
+	canvasMoveTo(
+		ctx: CanvasRenderingContext2DState,
+		x: number,
+		y: number
+	): void;
+	canvasLineTo(
+		ctx: CanvasRenderingContext2DState,
+		x: number,
+		y: number
+	): void;
+	canvasRect(
+		ctx: CanvasRenderingContext2DState,
+		x: number,
+		y: number,
+		w: number,
+		h: number
+	): void;
 	canvasRotate(ctx: CanvasRenderingContext2DState, n: number): void;
 	canvasScale(ctx: CanvasRenderingContext2DState, x: number, y: number): void;
 	canvasTranslate(
@@ -430,6 +451,13 @@ export class Env {
 }
 
 class Screen extends Canvas {
+	[INTERNAL_SYMBOL]: Switch;
+
+	constructor(s: Switch, w: number, h: number) {
+		super(w, h);
+		this[INTERNAL_SYMBOL] = s;
+	}
+
 	getContext(contextId: '2d'): CanvasRenderingContext2D {
 		const ctx = super.getContext(contextId);
 		const Switch = this[INTERNAL_SYMBOL];
