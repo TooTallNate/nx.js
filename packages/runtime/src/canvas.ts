@@ -153,7 +153,15 @@ export class CanvasRenderingContext2D
 		e: number,
 		f: number
 	): void {
-		throw new Error('Method not implemented.');
+		this.canvas[INTERNAL_SYMBOL].native.canvasTransform(
+			this[INTERNAL_SYMBOL],
+			a,
+			b,
+			c,
+			d,
+			e,
+			f
+		);
 	}
 
 	translate(x: number, y: number): void {

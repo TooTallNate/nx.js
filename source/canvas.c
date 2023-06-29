@@ -3,6 +3,20 @@
 
 static JSClassID nx_canvas_context_class_id;
 
+static int js_validate_doubles_args(JSContext *ctx, JSValueConst *argv, double *args, size_t count, size_t offset)
+{
+    int result = 0;
+    for (size_t i = 0; i < count; i++)
+    {
+        if (JS_ToFloat64(ctx, &args[i], argv[offset + i]))
+        {
+            result = 1;
+            break;
+        }
+    }
+    return result;
+}
+
 static JSValue js_canvas_new_context(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     int width;
@@ -64,19 +78,13 @@ static JSValue js_canvas_set_fill_style(JSContext *ctx, JSValueConst this_val, i
     {
         return JS_EXCEPTION;
     }
-    double r;
-    double g;
-    double b;
-    double a;
-    if (JS_ToFloat64(ctx, &r, argv[1]) ||
-        JS_ToFloat64(ctx, &g, argv[2]) ||
-        JS_ToFloat64(ctx, &b, argv[3]) ||
-        JS_ToFloat64(ctx, &a, argv[4]))
+    double args[4];
+    if (js_validate_doubles_args(ctx, argv, args, 4, 1))
     {
         JS_ThrowTypeError(ctx, "invalid input");
         return JS_EXCEPTION;
     }
-    cairo_set_source_rgba(context->ctx, r / (double)255, g / (double)255, b / (double)255, a);
+    cairo_set_source_rgba(context->ctx, args[0] / (double)255, args[1] / (double)255, args[2] / (double)255, args[3]);
     return JS_UNDEFINED;
 }
 
@@ -145,14 +153,13 @@ static JSValue js_canvas_translate(JSContext *ctx, JSValueConst this_val, int ar
     {
         return JS_EXCEPTION;
     }
-    double x;
-    double y;
-    if (JS_ToFloat64(ctx, &x, argv[1]) || JS_ToFloat64(ctx, &y, argv[2]))
+    double args[2];
+    if (js_validate_doubles_args(ctx, argv, args, 2, 1))
     {
         JS_ThrowTypeError(ctx, "invalid input");
         return JS_EXCEPTION;
     }
-    cairo_translate(context->ctx, x, y);
+    cairo_translate(context->ctx, args[0], args[1]);
     return JS_UNDEFINED;
 }
 
@@ -163,14 +170,32 @@ static JSValue js_canvas_scale(JSContext *ctx, JSValueConst this_val, int argc, 
     {
         return JS_EXCEPTION;
     }
-    double x;
-    double y;
-    if (JS_ToFloat64(ctx, &x, argv[1]) || JS_ToFloat64(ctx, &y, argv[2]))
+    double args[2];
+    if (js_validate_doubles_args(ctx, argv, args, 2, 1))
     {
         JS_ThrowTypeError(ctx, "invalid input");
         return JS_EXCEPTION;
     }
-    cairo_scale(context->ctx, x, y);
+    cairo_scale(context->ctx, args[0], args[1]);
+    return JS_UNDEFINED;
+}
+
+static JSValue js_canvas_transform(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
+    if (!context)
+    {
+        return JS_EXCEPTION;
+    }
+    double args[6];
+    if (js_validate_doubles_args(ctx, argv, args, 6, 1))
+    {
+        JS_ThrowTypeError(ctx, "invalid input");
+        return JS_EXCEPTION;
+    }
+    cairo_matrix_t matrix;
+    cairo_matrix_init(&matrix, args[0], args[1], args[2], args[3], args[4], args[5]);
+    cairo_transform(context->ctx, &matrix);
     return JS_UNDEFINED;
 }
 
@@ -349,6 +374,7 @@ static const JSCFunctionListEntry function_list[] = {
     JS_CFUNC_DEF("canvasSetFont", 0, js_canvas_set_font),
     JS_CFUNC_DEF("canvasRotate", 0, js_canvas_rotate),
     JS_CFUNC_DEF("canvasTranslate", 0, js_canvas_translate),
+    JS_CFUNC_DEF("canvasTransform", 0, js_canvas_transform),
     JS_CFUNC_DEF("canvasScale", 0, js_canvas_scale),
     JS_CFUNC_DEF("canvasFillRect", 0, js_canvas_fill_rect),
     JS_CFUNC_DEF("canvasFillText", 0, js_canvas_fill_text),
