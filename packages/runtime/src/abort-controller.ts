@@ -8,9 +8,6 @@ export class AbortSignal extends EventTarget implements globalThis.AbortSignal {
 
 	constructor() {
 		super();
-
-		// Compared to assignment, Object.defineProperty makes properties non-enumerable by default and
-		// we want Object.keys(new AbortController().signal) to be [] for compat with the native impl
 		Object.defineProperty(this, 'aborted', {
 			value: false,
 			writable: true,
@@ -28,7 +25,9 @@ export class AbortSignal extends EventTarget implements globalThis.AbortSignal {
 		});
 	}
 	throwIfAborted(): void {
-		throw new Error('Method not implemented.');
+		if (this.aborted) {
+			throw this.reason;
+		}
 	}
 	dispatchEvent(event: Event): boolean {
 		if (event.type === 'abort') {
@@ -48,8 +47,6 @@ export class AbortController implements globalThis.AbortController {
 	signal!: globalThis.AbortSignal;
 
 	constructor() {
-		// Compared to assignment, Object.defineProperty makes properties non-enumerable by default and
-		// we want Object.keys(new AbortController()) to be [] for compat with the native impl
 		Object.defineProperty(this, 'signal', {
 			value: new AbortSignal(),
 			writable: true,
