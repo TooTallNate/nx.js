@@ -75,7 +75,8 @@ export class CanvasRenderingContext2D
 		CanvasPath,
 		CanvasPathDrawingStyles,
 		CanvasFillStrokeStyles,
-		CanvasTextDrawingStyles
+		CanvasTextDrawingStyles,
+		CanvasTransform
 {
 	readonly canvas: Canvas;
 	[INTERNAL_SYMBOL]: CanvasRenderingContext2DState;
@@ -106,6 +107,63 @@ export class CanvasRenderingContext2D
 		this.textAlign = 'left';
 		this.textBaseline = 'alphabetic';
 	}
+	getTransform(): DOMMatrix {
+		throw new Error('Method not implemented.');
+	}
+	resetTransform(): void {
+		throw new Error('Method not implemented.');
+	}
+	rotate(angle: number): void {
+		this.canvas[INTERNAL_SYMBOL].native.canvasRotate(
+			this[INTERNAL_SYMBOL],
+			angle
+		);
+	}
+	scale(x: number, y: number): void {
+		this.canvas[INTERNAL_SYMBOL].native.canvasScale(
+			this[INTERNAL_SYMBOL],
+			x,
+			y
+		);
+	}
+	setTransform(
+		a: number,
+		b: number,
+		c: number,
+		d: number,
+		e: number,
+		f: number
+	): void;
+	setTransform(transform?: DOMMatrix2DInit): void;
+	setTransform(
+		a?: DOMMatrix2DInit | number,
+		b?: number,
+		c?: number,
+		d?: number,
+		e?: number,
+		f?: number
+	): void {
+		throw new Error('Method not implemented.');
+	}
+	transform(
+		a: number,
+		b: number,
+		c: number,
+		d: number,
+		e: number,
+		f: number
+	): void {
+		throw new Error('Method not implemented.');
+	}
+
+	translate(x: number, y: number): void {
+		this.canvas[INTERNAL_SYMBOL].native.canvasTranslate(
+			this[INTERNAL_SYMBOL],
+			x,
+			y
+		);
+	}
+
 	arc(
 		x: number,
 		y: number,
@@ -167,25 +225,21 @@ export class CanvasRenderingContext2D
 		y: number,
 		w: number,
 		h: number,
-		radii?: number | DOMPointInit | (number | DOMPointInit)[] | undefined
+		radii?: number | DOMPointInit | (number | DOMPointInit)[]
 	): void;
 	roundRect(
 		x: number,
 		y: number,
 		w: number,
 		h: number,
-		radii?:
-			| number
-			| DOMPointInit
-			| Iterable<number | DOMPointInit>
-			| undefined
+		radii?: number | DOMPointInit | Iterable<number | DOMPointInit>
 	): void;
 	roundRect(
-		x: unknown,
-		y: unknown,
-		w: unknown,
-		h: unknown,
-		radii?: unknown
+		x: number,
+		y: number,
+		w: number,
+		h: number,
+		radii?: number | DOMPointInit | Iterable<number | DOMPointInit>
 	): void {
 		throw new Error('Method not implemented.');
 	}
@@ -214,10 +268,10 @@ export class CanvasRenderingContext2D
 		fillRule?: CanvasFillRule | undefined
 	): boolean;
 	isPointInPath(
-		path: unknown,
-		x: unknown,
-		y?: unknown,
-		fillRule?: unknown
+		pathOrX: Path2D | number,
+		xOrY: number,
+		yOrFillRule?: number | CanvasFillRule,
+		fillRule?: CanvasFillRule
 	): boolean {
 		throw new Error('Method not implemented.');
 	}
@@ -226,9 +280,7 @@ export class CanvasRenderingContext2D
 	isPointInStroke(path: unknown, x: unknown, y?: unknown): boolean {
 		throw new Error('Method not implemented.');
 	}
-	stroke(): void;
-	stroke(path: Path2D): void;
-	stroke(path?: unknown): void {
+	stroke(path?: Path2D): void {
 		throw new Error('Method not implemented.');
 	}
 

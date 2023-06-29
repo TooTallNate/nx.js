@@ -77,6 +77,9 @@ export interface Native {
 		height: number
 	): CanvasRenderingContext2DState;
 	canvasSetLineWidth(ctx: CanvasRenderingContext2DState, n: number): void;
+	canvasRotate(ctx: CanvasRenderingContext2DState, n: number): void;
+	canvasTranslate(ctx: CanvasRenderingContext2DState, x: number, y: number): void;
+	canvasScale(ctx: CanvasRenderingContext2DState, x: number, y: number): void;
 	canvasSetFillStyle(
 		ctx: CanvasRenderingContext2DState,
 		r: number,

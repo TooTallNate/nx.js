@@ -121,6 +121,59 @@ static JSValue js_canvas_set_line_width(JSContext *ctx, JSValueConst this_val, i
     return JS_UNDEFINED;
 }
 
+static JSValue js_canvas_rotate(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
+    if (!context)
+    {
+        return JS_EXCEPTION;
+    }
+    double n;
+    if (JS_ToFloat64(ctx, &n, argv[1]))
+    {
+        JS_ThrowTypeError(ctx, "invalid input");
+        return JS_EXCEPTION;
+    }
+    cairo_rotate(context->ctx, n);
+    return JS_UNDEFINED;
+}
+
+static JSValue js_canvas_translate(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
+    if (!context)
+    {
+        return JS_EXCEPTION;
+    }
+    double x;
+    double y;
+    if (JS_ToFloat64(ctx, &x, argv[1]) || JS_ToFloat64(ctx, &y, argv[2]))
+    {
+        JS_ThrowTypeError(ctx, "invalid input");
+        return JS_EXCEPTION;
+    }
+    cairo_translate(context->ctx, x, y);
+    return JS_UNDEFINED;
+}
+
+static JSValue js_canvas_scale(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
+    if (!context)
+    {
+        return JS_EXCEPTION;
+    }
+    double x;
+    double y;
+    if (JS_ToFloat64(ctx, &x, argv[1]) || JS_ToFloat64(ctx, &y, argv[2]))
+    {
+        JS_ThrowTypeError(ctx, "invalid input");
+        return JS_EXCEPTION;
+    }
+    cairo_scale(context->ctx, x, y);
+    return JS_UNDEFINED;
+}
+
 static JSValue js_canvas_fill_rect(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
@@ -294,6 +347,9 @@ static const JSCFunctionListEntry function_list[] = {
     JS_CFUNC_DEF("canvasSetLineWidth", 0, js_canvas_set_line_width),
     JS_CFUNC_DEF("canvasSetFillStyle", 0, js_canvas_set_fill_style),
     JS_CFUNC_DEF("canvasSetFont", 0, js_canvas_set_font),
+    JS_CFUNC_DEF("canvasRotate", 0, js_canvas_rotate),
+    JS_CFUNC_DEF("canvasTranslate", 0, js_canvas_translate),
+    JS_CFUNC_DEF("canvasScale", 0, js_canvas_scale),
     JS_CFUNC_DEF("canvasFillRect", 0, js_canvas_fill_rect),
     JS_CFUNC_DEF("canvasFillText", 0, js_canvas_fill_text),
     JS_CFUNC_DEF("canvasMeasureText", 0, js_canvas_measure_text),
