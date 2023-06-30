@@ -114,7 +114,7 @@ export interface Native {
 		e: number,
 		f: number
 	): void;
-	canvasSetFillStyle(
+	canvasSetSourceRgba(
 		ctx: CanvasRenderingContext2DState,
 		r: number,
 		g: number,
@@ -465,7 +465,7 @@ class Screen extends Canvas {
 		if (internal.renderingMode !== RenderingMode.Framebuffer) {
 			internal.setRenderingMode(
 				RenderingMode.Framebuffer,
-				ctx[INTERNAL_SYMBOL]
+				ctx[INTERNAL_SYMBOL].ctx
 			);
 		}
 		return ctx;

@@ -7,6 +7,8 @@ import type { Switch as _Switch } from './switch';
 
 declare const Switch: _Switch;
 
+type RGBA = [number, number, number, number];
+
 export class Canvas {
 	width: number;
 	height: number;
@@ -80,9 +82,13 @@ export class CanvasRenderingContext2D
 		CanvasTransform
 {
 	readonly canvas: Canvas;
-	[INTERNAL_SYMBOL]: CanvasRenderingContext2DState;
+	[INTERNAL_SYMBOL]: {
+		ctx: CanvasRenderingContext2DState;
+		fillStyle: RGBA;
+		strokeStyle: RGBA;
+		currentStyle?: RGBA;
+	};
 
-	strokeStyle: string | CanvasGradient | CanvasPattern;
 	direction: CanvasDirection;
 	fontKerning: CanvasFontKerning;
 	textAlign: CanvasTextAlign;
@@ -97,11 +103,14 @@ export class CanvasRenderingContext2D
 	constructor(canvas: Canvas) {
 		const { width: w, height: h } = canvas;
 		this.canvas = canvas;
-		this[INTERNAL_SYMBOL] = Switch.native.canvasNewContext(w, h);
-		this.font = '24pt system-ui';
+		this[INTERNAL_SYMBOL] = {
+			ctx: Switch.native.canvasNewContext(w, h),
+			strokeStyle: [0, 0, 0, 1],
+			fillStyle: [0, 0, 0, 1],
+		};
+		this.font = '10px system-ui';
 
 		// TODO: implement
-		this.strokeStyle = '';
 		this.direction = 'ltr';
 		this.fontKerning = 'auto';
 		this.textAlign = 'left';
@@ -114,10 +123,10 @@ export class CanvasRenderingContext2D
 		throw new Error('Method not implemented.');
 	}
 	rotate(angle: number): void {
-		Switch.native.canvasRotate(this[INTERNAL_SYMBOL], angle);
+		Switch.native.canvasRotate(this[INTERNAL_SYMBOL].ctx, angle);
 	}
 	scale(x: number, y: number): void {
-		Switch.native.canvasScale(this[INTERNAL_SYMBOL], x, y);
+		Switch.native.canvasScale(this[INTERNAL_SYMBOL].ctx, x, y);
 	}
 	setTransform(
 		a: number,
@@ -146,11 +155,19 @@ export class CanvasRenderingContext2D
 		e: number,
 		f: number
 	): void {
-		Switch.native.canvasTransform(this[INTERNAL_SYMBOL], a, b, c, d, e, f);
+		Switch.native.canvasTransform(
+			this[INTERNAL_SYMBOL].ctx,
+			a,
+			b,
+			c,
+			d,
+			e,
+			f
+		);
 	}
 
 	translate(x: number, y: number): void {
-		Switch.native.canvasTranslate(this[INTERNAL_SYMBOL], x, y);
+		Switch.native.canvasTranslate(this[INTERNAL_SYMBOL].ctx, x, y);
 	}
 
 	arc(
@@ -183,7 +200,7 @@ export class CanvasRenderingContext2D
 		throw new Error('Method not implemented.');
 	}
 	closePath(): void {
-		Switch.native.canvasClosePath(this[INTERNAL_SYMBOL]);
+		Switch.native.canvasClosePath(this[INTERNAL_SYMBOL].ctx);
 	}
 	ellipse(
 		x: number,
@@ -198,16 +215,16 @@ export class CanvasRenderingContext2D
 		throw new Error('Method not implemented.');
 	}
 	lineTo(x: number, y: number): void {
-		Switch.native.canvasLineTo(this[INTERNAL_SYMBOL], x, y);
+		Switch.native.canvasLineTo(this[INTERNAL_SYMBOL].ctx, x, y);
 	}
 	moveTo(x: number, y: number): void {
-		Switch.native.canvasMoveTo(this[INTERNAL_SYMBOL], x, y);
+		Switch.native.canvasMoveTo(this[INTERNAL_SYMBOL].ctx, x, y);
 	}
 	quadraticCurveTo(cpx: number, cpy: number, x: number, y: number): void {
 		throw new Error('Method not implemented.');
 	}
 	rect(x: number, y: number, w: number, h: number): void {
-		Switch.native.canvasRect(this[INTERNAL_SYMBOL], x, y, w, h);
+		Switch.native.canvasRect(this[INTERNAL_SYMBOL].ctx, x, y, w, h);
 	}
 	roundRect(
 		x: number,
@@ -233,7 +250,7 @@ export class CanvasRenderingContext2D
 		throw new Error('Method not implemented.');
 	}
 	beginPath(): void {
-		Switch.native.canvasBeginPath(this[INTERNAL_SYMBOL]);
+		Switch.native.canvasBeginPath(this[INTERNAL_SYMBOL].ctx);
 	}
 	clip(fillRule?: CanvasFillRule | undefined): void;
 	clip(path: Path2D, fillRule?: CanvasFillRule | undefined): void;
@@ -246,7 +263,14 @@ export class CanvasRenderingContext2D
 		fillRuleOrPath?: CanvasFillRule | Path2D,
 		fillRule?: CanvasFillRule
 	): void {
-		Switch.native.canvasFill(this[INTERNAL_SYMBOL]);
+		const i = this[INTERNAL_SYMBOL];
+		if (i.currentStyle !== i.fillStyle) {
+			Switch.native.canvasSetSourceRgba(
+				this[INTERNAL_SYMBOL].ctx,
+				...i.fillStyle
+			);
+		}
+		Switch.native.canvasFill(i.ctx);
 	}
 	isPointInPath(
 		x: number,
@@ -273,7 +297,14 @@ export class CanvasRenderingContext2D
 		throw new Error('Method not implemented.');
 	}
 	stroke(path?: Path2D): void {
-		Switch.native.canvasStroke(this[INTERNAL_SYMBOL]);
+		const i = this[INTERNAL_SYMBOL];
+		if (i.currentStyle !== i.strokeStyle) {
+			Switch.native.canvasSetSourceRgba(
+				this[INTERNAL_SYMBOL].ctx,
+				...i.strokeStyle
+			);
+		}
+		Switch.native.canvasStroke(i.ctx);
 	}
 
 	getLineDash(): number[] {
@@ -291,12 +322,11 @@ export class CanvasRenderingContext2D
 	}
 
 	set lineWidth(v: number) {
-		Switch.native.canvasSetLineWidth(this[INTERNAL_SYMBOL], v);
+		Switch.native.canvasSetLineWidth(this[INTERNAL_SYMBOL].ctx, v);
 	}
 
 	get fillStyle(): string | CanvasGradient | CanvasPattern {
-		// TODO: implement
-		return '';
+		return rgbaToString(this[INTERNAL_SYMBOL].fillStyle);
 	}
 
 	set fillStyle(v: string | CanvasGradient | CanvasPattern) {
@@ -305,7 +335,23 @@ export class CanvasRenderingContext2D
 			if (!parsed || parsed.length !== 4) {
 				return;
 			}
-			Switch.native.canvasSetFillStyle(this[INTERNAL_SYMBOL], ...parsed);
+			this[INTERNAL_SYMBOL].fillStyle = parsed;
+		} else {
+			throw new Error('CanvasGradient/CanvasPattern not implemented.');
+		}
+	}
+
+	get strokeStyle(): string | CanvasGradient | CanvasPattern {
+		return rgbaToString(this[INTERNAL_SYMBOL].strokeStyle);
+	}
+
+	set strokeStyle(v: string | CanvasGradient | CanvasPattern) {
+		if (typeof v === 'string') {
+			const parsed = colorRgba(v);
+			if (!parsed || parsed.length !== 4) {
+				return;
+			}
+			this[INTERNAL_SYMBOL].strokeStyle = parsed;
 		} else {
 			throw new Error('CanvasGradient/CanvasPattern not implemented.');
 		}
@@ -345,7 +391,7 @@ export class CanvasRenderingContext2D
 			}
 		}
 		native.canvasSetFont(
-			this[INTERNAL_SYMBOL],
+			this[INTERNAL_SYMBOL].ctx,
 			font[INTERNAL_SYMBOL].fontFace,
 			px
 		);
@@ -358,7 +404,7 @@ export class CanvasRenderingContext2D
 		maxWidth?: number | undefined
 	): void {
 		Switch.native.canvasFillText(
-			this[INTERNAL_SYMBOL],
+			this[INTERNAL_SYMBOL].ctx,
 			text,
 			x,
 			y,
@@ -367,7 +413,7 @@ export class CanvasRenderingContext2D
 	}
 
 	measureText(text: string): TextMetrics {
-		return Switch.native.canvasMeasureText(this[INTERNAL_SYMBOL], text);
+		return Switch.native.canvasMeasureText(this[INTERNAL_SYMBOL].ctx, text);
 	}
 
 	strokeText(
@@ -416,7 +462,7 @@ export class CanvasRenderingContext2D
 	}
 
 	fillRect(x: number, y: number, w: number, h: number): void {
-		Switch.native.canvasFillRect(this[INTERNAL_SYMBOL], x, y, w, h);
+		Switch.native.canvasFillRect(this[INTERNAL_SYMBOL].ctx, x, y, w, h);
 	}
 
 	strokeRect(x: number, y: number, w: number, h: number): void {
@@ -464,7 +510,7 @@ export class CanvasRenderingContext2D
 		settings?: ImageDataSettings | undefined
 	): ImageData {
 		const buffer = Switch.native.canvasGetImageData(
-			this[INTERNAL_SYMBOL],
+			this[INTERNAL_SYMBOL].ctx,
 			sx,
 			sy,
 			sw,
@@ -484,7 +530,7 @@ export class CanvasRenderingContext2D
 		dirtyHeight = imagedata.height
 	): void {
 		Switch.native.canvasPutImageData(
-			this[INTERNAL_SYMBOL],
+			this[INTERNAL_SYMBOL].ctx,
 			imagedata.data.buffer,
 			dx,
 			dy,
@@ -494,4 +540,14 @@ export class CanvasRenderingContext2D
 			dirtyHeight
 		);
 	}
+}
+
+function rgbaToString(rgba: RGBA) {
+	if (rgba[3] < 1) {
+		return `rgba(${rgba.join(', ')})`;
+	}
+	return `#${rgba
+		.slice(0, -1)
+		.map((v) => v.toString(16).padStart(2, '0'))
+		.join('')}`;
 }

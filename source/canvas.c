@@ -185,7 +185,7 @@ static JSValue js_canvas_rect(JSContext *ctx, JSValueConst this_val, int argc, J
     return JS_UNDEFINED;
 }
 
-static JSValue js_canvas_set_fill_style(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+static JSValue js_canvas_set_source_rgba(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
     if (!context)
@@ -467,7 +467,7 @@ nx_canvas_context_2d_t *nx_get_canvas_context_2d(JSContext *ctx, JSValueConst ob
 static const JSCFunctionListEntry function_list[] = {
     JS_CFUNC_DEF("canvasNewContext", 0, js_canvas_new_context),
     JS_CFUNC_DEF("canvasSetLineWidth", 0, js_canvas_set_line_width),
-    JS_CFUNC_DEF("canvasSetFillStyle", 0, js_canvas_set_fill_style),
+    JS_CFUNC_DEF("canvasSetSourceRgba", 0, js_canvas_set_source_rgba),
     JS_CFUNC_DEF("canvasSetFont", 0, js_canvas_set_font),
     JS_CFUNC_DEF("canvasBeginPath", 0, js_canvas_begin_path),
     JS_CFUNC_DEF("canvasClosePath", 0, js_canvas_close_path),
