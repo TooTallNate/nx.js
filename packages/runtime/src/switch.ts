@@ -76,7 +76,13 @@ export interface Native {
 		width: number,
 		height: number
 	): CanvasRenderingContext2DState;
+	canvasGetLineWidth(ctx: CanvasRenderingContext2DState): number;
 	canvasSetLineWidth(ctx: CanvasRenderingContext2DState, n: number): void;
+	canvasGetLineDash(ctx: CanvasRenderingContext2DState): number[];
+	canvasSetLineDash(
+		ctx: CanvasRenderingContext2DState,
+		dashes: number[]
+	): void;
 	canvasBeginPath(ctx: CanvasRenderingContext2DState): void;
 	canvasClosePath(ctx: CanvasRenderingContext2DState): void;
 	canvasFill(ctx: CanvasRenderingContext2DState): void;
@@ -114,6 +120,7 @@ export interface Native {
 		e: number,
 		f: number
 	): void;
+	canvasResetTransform(ctx: CanvasRenderingContext2DState): void;
 	canvasSetSourceRgba(
 		ctx: CanvasRenderingContext2DState,
 		r: number,

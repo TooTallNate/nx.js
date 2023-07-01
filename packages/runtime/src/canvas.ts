@@ -71,13 +71,14 @@ export class ImageData implements globalThis.ImageData {
 
 export class CanvasRenderingContext2D
 	implements
-		CanvasImageData,
-		CanvasRect,
-		CanvasText,
 		CanvasDrawPath,
+		CanvasFillStrokeStyles,
+		CanvasImageData,
 		CanvasPath,
 		CanvasPathDrawingStyles,
-		CanvasFillStrokeStyles,
+		CanvasRect,
+		CanvasState,
+		CanvasText,
 		CanvasTextDrawingStyles,
 		CanvasTransform
 {
@@ -116,18 +117,29 @@ export class CanvasRenderingContext2D
 		this.textAlign = 'left';
 		this.textBaseline = 'alphabetic';
 	}
-	getTransform(): DOMMatrix {
+	restore(): void {
 		throw new Error('Method not implemented.');
 	}
-	resetTransform(): void {
+	save(): void {
 		throw new Error('Method not implemented.');
 	}
+
 	rotate(angle: number): void {
 		Switch.native.canvasRotate(this[INTERNAL_SYMBOL].ctx, angle);
 	}
+
 	scale(x: number, y: number): void {
 		Switch.native.canvasScale(this[INTERNAL_SYMBOL].ctx, x, y);
 	}
+
+	getTransform(): DOMMatrix {
+		throw new Error('Method not implemented.');
+	}
+
+	resetTransform(): void {
+		Switch.native.canvasResetTransform(this[INTERNAL_SYMBOL].ctx);
+	}
+
 	setTransform(
 		a: number,
 		b: number,
@@ -145,8 +157,18 @@ export class CanvasRenderingContext2D
 		e?: number,
 		f?: number
 	): void {
-		throw new Error('Method not implemented.');
+		this.resetTransform();
+		if (typeof a === 'object') {
+			b = a.b;
+			c = a.c;
+			d = a.d;
+			e = a.e;
+			f = a.f;
+			a = a.a;
+		}
+		this.transform(a ?? 0, b ?? 0, c ?? 0, d ?? 0, e ?? 0, f ?? 0);
 	}
+
 	transform(
 		a: number,
 		b: number,
@@ -231,20 +253,6 @@ export class CanvasRenderingContext2D
 		y: number,
 		w: number,
 		h: number,
-		radii?: number | DOMPointInit | (number | DOMPointInit)[]
-	): void;
-	roundRect(
-		x: number,
-		y: number,
-		w: number,
-		h: number,
-		radii?: number | DOMPointInit | Iterable<number | DOMPointInit>
-	): void;
-	roundRect(
-		x: number,
-		y: number,
-		w: number,
-		h: number,
 		radii?: number | DOMPointInit | Iterable<number | DOMPointInit>
 	): void {
 		throw new Error('Method not implemented.');
@@ -308,17 +316,18 @@ export class CanvasRenderingContext2D
 	}
 
 	getLineDash(): number[] {
-		throw new Error('Method not implemented.');
+		return Switch.native.canvasGetLineDash(this[INTERNAL_SYMBOL].ctx);
 	}
 
-	setLineDash(segments: number[]): void;
-	setLineDash(segments: Iterable<number>): void;
 	setLineDash(segments: Iterable<number>): void {
-		throw new Error('Method not implemented.');
+		Switch.native.canvasSetLineDash(
+			this[INTERNAL_SYMBOL].ctx,
+			Array.from(segments)
+		);
 	}
 
 	get lineWidth(): number {
-		throw new Error('Method not implemented.');
+		return Switch.native.canvasGetLineWidth(this[INTERNAL_SYMBOL].ctx);
 	}
 
 	set lineWidth(v: number) {

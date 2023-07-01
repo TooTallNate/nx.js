@@ -226,6 +226,16 @@ static JSValue js_canvas_set_font(JSContext *ctx, JSValueConst this_val, int arg
     return JS_UNDEFINED;
 }
 
+static JSValue js_canvas_get_line_width(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
+    if (!context)
+    {
+        return JS_EXCEPTION;
+    }
+    return JS_NewFloat64(ctx, cairo_get_line_width(context->ctx));
+}
+
 static JSValue js_canvas_set_line_width(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
@@ -240,6 +250,64 @@ static JSValue js_canvas_set_line_width(JSContext *ctx, JSValueConst this_val, i
         return JS_EXCEPTION;
     }
     cairo_set_line_width(context->ctx, n);
+    return JS_UNDEFINED;
+}
+
+static JSValue js_canvas_get_line_dash(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
+    if (!context)
+    {
+        return JS_EXCEPTION;
+    }
+    int count = cairo_get_dash_count(context->ctx);
+    double dashes[count];
+    cairo_get_dash(context->ctx, dashes, NULL);
+
+    JSValue array = JS_NewArray(ctx);
+    for (int i = 0; i < count; i++)
+    {
+        JS_SetPropertyUint32(ctx, array, i, JS_NewFloat64(ctx, dashes[i]));
+    }
+    return array;
+}
+
+static JSValue js_canvas_set_line_dash(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
+    if (!context)
+    {
+        return JS_EXCEPTION;
+    }
+    JSValue length_val = JS_GetPropertyStr(ctx, argv[1], "length");
+    uint32_t length;
+    if (JS_ToUint32(ctx, &length, length_val))
+    {
+        JS_ThrowTypeError(ctx, "invalid input");
+        return JS_EXCEPTION;
+    }
+    uint32_t num_dashes = length & 1 ? length * 2 : length;
+    uint32_t zero_dashes = 0;
+    double dashes[num_dashes];
+    for (uint32_t i = 0; i < num_dashes; i++)
+    {
+        if (JS_ToFloat64(ctx, &dashes[i], JS_GetPropertyUint32(ctx, argv[1], i % length)))
+        {
+            return JS_UNDEFINED;
+        }
+        if (dashes[i] == 0)
+            zero_dashes++;
+    }
+    double offset;
+    cairo_get_dash(context->ctx, NULL, &offset);
+    if (zero_dashes == num_dashes)
+    {
+        cairo_set_dash(context->ctx, NULL, 0, offset);
+    }
+    else
+    {
+        cairo_set_dash(context->ctx, dashes, num_dashes, offset);
+    }
     return JS_UNDEFINED;
 }
 
@@ -310,6 +378,17 @@ static JSValue js_canvas_transform(JSContext *ctx, JSValueConst this_val, int ar
     cairo_matrix_t matrix;
     cairo_matrix_init(&matrix, args[0], args[1], args[2], args[3], args[4], args[5]);
     cairo_transform(context->ctx, &matrix);
+    return JS_UNDEFINED;
+}
+
+static JSValue js_canvas_reset_transform(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
+    if (!context)
+    {
+        return JS_EXCEPTION;
+    }
+    cairo_identity_matrix(context->ctx);
     return JS_UNDEFINED;
 }
 
@@ -466,6 +545,9 @@ nx_canvas_context_2d_t *nx_get_canvas_context_2d(JSContext *ctx, JSValueConst ob
 
 static const JSCFunctionListEntry function_list[] = {
     JS_CFUNC_DEF("canvasNewContext", 0, js_canvas_new_context),
+    JS_CFUNC_DEF("canvasGetLineDash", 0, js_canvas_get_line_dash),
+    JS_CFUNC_DEF("canvasSetLineDash", 0, js_canvas_set_line_dash),
+    JS_CFUNC_DEF("canvasGetLineWidth", 0, js_canvas_get_line_width),
     JS_CFUNC_DEF("canvasSetLineWidth", 0, js_canvas_set_line_width),
     JS_CFUNC_DEF("canvasSetSourceRgba", 0, js_canvas_set_source_rgba),
     JS_CFUNC_DEF("canvasSetFont", 0, js_canvas_set_font),
@@ -479,6 +561,7 @@ static const JSCFunctionListEntry function_list[] = {
     JS_CFUNC_DEF("canvasRotate", 0, js_canvas_rotate),
     JS_CFUNC_DEF("canvasTranslate", 0, js_canvas_translate),
     JS_CFUNC_DEF("canvasTransform", 0, js_canvas_transform),
+    JS_CFUNC_DEF("canvasResetTransform", 0, js_canvas_reset_transform),
     JS_CFUNC_DEF("canvasScale", 0, js_canvas_scale),
     JS_CFUNC_DEF("canvasFillRect", 0, js_canvas_fill_rect),
     JS_CFUNC_DEF("canvasFillText", 0, js_canvas_fill_text),
