@@ -202,9 +202,17 @@ export class CanvasRenderingContext2D
 		radius: number,
 		startAngle: number,
 		endAngle: number,
-		counterclockwise?: boolean | undefined
+		counterclockwise?: boolean
 	): void {
-		throw new Error('Method not implemented.');
+		Switch.native.canvasArc(
+			this[INTERNAL_SYMBOL].ctx,
+			x,
+			y,
+			radius,
+			startAngle,
+			endAngle,
+			counterclockwise ?? false
+		);
 	}
 
 	arcTo(
@@ -214,7 +222,14 @@ export class CanvasRenderingContext2D
 		y2: number,
 		radius: number
 	): void {
-		throw new Error('Method not implemented.');
+		Switch.native.canvasArcTo(
+			this[INTERNAL_SYMBOL].ctx,
+			x1,
+			y1,
+			x2,
+			y2,
+			radius
+		);
 	}
 
 	bezierCurveTo(
@@ -258,9 +273,19 @@ export class CanvasRenderingContext2D
 		rotation: number,
 		startAngle: number,
 		endAngle: number,
-		counterclockwise?: boolean | undefined
+		counterclockwise?: boolean
 	): void {
-		throw new Error('Method not implemented.');
+		Switch.native.canvasEllipse(
+			this[INTERNAL_SYMBOL].ctx,
+			x,
+			y,
+			radiusX,
+			radiusY,
+			rotation,
+			startAngle,
+			endAngle,
+			counterclockwise ?? false
+		);
 	}
 
 	lineTo(x: number, y: number): void {

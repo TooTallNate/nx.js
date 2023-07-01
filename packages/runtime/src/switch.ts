@@ -113,6 +113,34 @@ export interface Native {
 		x: number,
 		y: number
 	): void;
+	canvasArc(
+		ctx: CanvasRenderingContext2DState,
+		x: number,
+		y: number,
+		radius: number,
+		startAngle: number,
+		endAngle: number,
+		counterclockwise: boolean
+	): void;
+	canvasArcTo(
+		ctx: CanvasRenderingContext2DState,
+		x1: number,
+		y1: number,
+		x2: number,
+		y2: number,
+		radius: number
+	): void;
+	canvasEllipse(
+		ctx: CanvasRenderingContext2DState,
+		x: number,
+		y: number,
+		radiusX: number,
+		radiusY: number,
+		rotation: number,
+		startAngle: number,
+		endAngle: number,
+		counterclockwise: boolean
+	): void;
 	canvasRect(
 		ctx: CanvasRenderingContext2DState,
 		x: number,

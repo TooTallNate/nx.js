@@ -1,3 +1,9 @@
+/**
+ * Mostly based off of `node-canvas` - MIT license
+ * https://github.com/Automattic/node-canvas
+ */
+
+#include <math.h>
 #include "font.h"
 #include "canvas.h"
 
@@ -204,6 +210,286 @@ static JSValue js_canvas_quadratic_curve_to(JSContext *ctx, JSValueConst this_va
     }
 
     cairo_curve_to(context->ctx, x + 2.0 / 3.0 * (x1 - x), y + 2.0 / 3.0 * (y1 - y), x2 + 2.0 / 3.0 * (x1 - x2), y2 + 2.0 / 3.0 * (y1 - y2), x2, y2);
+    return JS_UNDEFINED;
+}
+
+static double twoPi = M_PI * 2.;
+
+// Adapted from https://chromium.googlesource.com/chromium/blink/+/refs/heads/main/Source/modules/canvas2d/CanvasPathMethods.cpp
+static void canonicalizeAngle(double *startAngle, double *endAngle)
+{
+    // Make 0 <= startAngle < 2*PI
+    double newStartAngle = fmod(*startAngle, twoPi);
+    if (newStartAngle < 0)
+    {
+        newStartAngle += twoPi;
+        // Check for possible catastrophic cancellation in cases where
+        // newStartAngle was a tiny negative number (c.f. crbug.com/503422)
+        if (newStartAngle >= twoPi)
+            newStartAngle -= twoPi;
+    }
+    double delta = newStartAngle - *startAngle;
+    *startAngle = newStartAngle;
+    *endAngle = *endAngle + delta;
+}
+
+// Adapted from https://chromium.googlesource.com/chromium/blink/+/refs/heads/main/Source/modules/canvas2d/CanvasPathMethods.cpp
+static double adjustEndAngle(double startAngle, double endAngle, int counterclockwise)
+{
+    double newEndAngle = endAngle;
+    /* http://www.whatwg.org/specs/web-apps/current-work/multipage/the-canvas-element.html#dom-context-2d-arc
+     * If the counterclockwise argument is false and endAngle-startAngle is equal to or greater than 2pi, or,
+     * if the counterclockwise argument is true and startAngle-endAngle is equal to or greater than 2pi,
+     * then the arc is the whole circumference of this ellipse, and the point at startAngle along this circle's circumference,
+     * measured in radians clockwise from the ellipse's semi-major axis, acts as both the start point and the end point.
+     */
+    if (!counterclockwise && endAngle - startAngle >= twoPi)
+        newEndAngle = startAngle + twoPi;
+    else if (counterclockwise && startAngle - endAngle >= twoPi)
+        newEndAngle = startAngle - twoPi;
+    /*
+     * Otherwise, the arc is the path along the circumference of this ellipse from the start point to the end point,
+     * going anti-clockwise if the counterclockwise argument is true, and clockwise otherwise.
+     * Since the points are on the ellipse, as opposed to being simply angles from zero,
+     * the arc can never cover an angle greater than 2pi radians.
+     */
+    /* NOTE: When startAngle = 0, endAngle = 2Pi and counterclockwise = true, the spec does not indicate clearly.
+     * We draw the entire circle, because some web sites use arc(x, y, r, 0, 2*Math.PI, true) to draw circle.
+     * We preserve backward-compatibility.
+     */
+    else if (!counterclockwise && startAngle > endAngle)
+        newEndAngle = startAngle + (twoPi - fmod(startAngle - endAngle, twoPi));
+    else if (counterclockwise && startAngle < endAngle)
+        newEndAngle = startAngle - (twoPi - fmod(endAngle - startAngle, twoPi));
+    return newEndAngle;
+}
+
+/*
+ * Adds an arc at x, y with the given radii and start/end angles.
+ */
+static JSValue js_canvas_arc(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
+    if (!context)
+    {
+        return JS_EXCEPTION;
+    }
+    double args[5];
+    if (js_validate_doubles_args(ctx, argv, args, 5, 1))
+    {
+        JS_ThrowTypeError(ctx, "invalid input");
+        return JS_EXCEPTION;
+    }
+
+    double x = args[0];
+    double y = args[1];
+    double radius = args[2];
+    double startAngle = args[3];
+    double endAngle = args[4];
+
+    if (radius < 0)
+    {
+        JS_ThrowRangeError(ctx, "The radius provided is negative.");
+        return JS_EXCEPTION;
+    }
+
+    int counterclockwise = JS_ToBool(ctx, argv[6]);
+
+    cairo_t *cr = context->ctx;
+
+    canonicalizeAngle(&startAngle, &endAngle);
+    endAngle = adjustEndAngle(startAngle, endAngle, counterclockwise);
+
+    if (counterclockwise)
+    {
+        cairo_arc_negative(cr, x, y, radius, startAngle, endAngle);
+    }
+    else
+    {
+        cairo_arc(cr, x, y, radius, startAngle, endAngle);
+    }
+
+    return JS_UNDEFINED;
+}
+
+typedef struct Point
+{
+    float x;
+    float y;
+} Point;
+
+/*
+ * Adds an arcTo point (x0,y0) to (x1,y1) with the given radius.
+ *
+ * Implementation influenced by WebKit.
+ */
+static JSValue js_canvas_arc_to(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
+    if (!context)
+    {
+        return JS_EXCEPTION;
+    }
+    double args[5];
+    if (js_validate_doubles_args(ctx, argv, args, 5, 1))
+    {
+        JS_ThrowTypeError(ctx, "invalid input");
+        return JS_EXCEPTION;
+    }
+
+    cairo_t *cr = context->ctx;
+
+    // Current path point
+    double x, y;
+    cairo_get_current_point(cr, &x, &y);
+    Point p0 = {x, y};
+
+    // Point (x0,y0)
+    Point p1 = {args[0], args[1]};
+
+    // Point (x1,y1)
+    Point p2 = {args[2], args[3]};
+
+    float radius = args[4];
+
+    if ((p1.x == p0.x && p1.y == p0.y) || (p1.x == p2.x && p1.y == p2.y) || radius == 0.f)
+    {
+        cairo_line_to(cr, p1.x, p1.y);
+        return JS_UNDEFINED;
+    }
+
+    Point p1p0 = {(p0.x - p1.x), (p0.y - p1.y)};
+    Point p1p2 = {(p2.x - p1.x), (p2.y - p1.y)};
+    float p1p0_length = sqrtf(p1p0.x * p1p0.x + p1p0.y * p1p0.y);
+    float p1p2_length = sqrtf(p1p2.x * p1p2.x + p1p2.y * p1p2.y);
+
+    double cos_phi = (p1p0.x * p1p2.x + p1p0.y * p1p2.y) / (p1p0_length * p1p2_length);
+    // all points on a line logic
+    if (-1 == cos_phi)
+    {
+        cairo_line_to(cr, p1.x, p1.y);
+        return JS_UNDEFINED;
+    }
+
+    if (1 == cos_phi)
+    {
+        // add infinite far away point
+        unsigned int max_length = 65535;
+        double factor_max = max_length / p1p0_length;
+        Point ep = {(p0.x + factor_max * p1p0.x), (p0.y + factor_max * p1p0.y)};
+        cairo_line_to(cr, ep.x, ep.y);
+        return JS_UNDEFINED;
+    }
+
+    float tangent = radius / tan(acos(cos_phi) / 2);
+    float factor_p1p0 = tangent / p1p0_length;
+    Point t_p1p0 = {(p1.x + factor_p1p0 * p1p0.x), (p1.y + factor_p1p0 * p1p0.y)};
+
+    Point orth_p1p0 = {p1p0.y, -p1p0.x};
+    float orth_p1p0_length = sqrt(orth_p1p0.x * orth_p1p0.x + orth_p1p0.y * orth_p1p0.y);
+    float factor_ra = radius / orth_p1p0_length;
+
+    double cos_alpha = (orth_p1p0.x * p1p2.x + orth_p1p0.y * p1p2.y) / (orth_p1p0_length * p1p2_length);
+    if (cos_alpha < 0.f)
+    {
+        orth_p1p0.x = -orth_p1p0.x;
+        orth_p1p0.y = -orth_p1p0.y;
+    }
+
+    Point p = {(t_p1p0.x + factor_ra * orth_p1p0.x), (t_p1p0.y + factor_ra * orth_p1p0.y)};
+
+    orth_p1p0.x = -orth_p1p0.x;
+    orth_p1p0.y = -orth_p1p0.y;
+    float sa = acos(orth_p1p0.x / orth_p1p0_length);
+    if (orth_p1p0.y < 0.f)
+        sa = 2 * M_PI - sa;
+
+    int anticlockwise = 0;
+
+    float factor_p1p2 = tangent / p1p2_length;
+    Point t_p1p2 = {(p1.x + factor_p1p2 * p1p2.x), (p1.y + factor_p1p2 * p1p2.y)};
+    Point orth_p1p2 = {(t_p1p2.x - p.x), (t_p1p2.y - p.y)};
+    float orth_p1p2_length = sqrtf(orth_p1p2.x * orth_p1p2.x + orth_p1p2.y * orth_p1p2.y);
+    float ea = acos(orth_p1p2.x / orth_p1p2_length);
+
+    if (orth_p1p2.y < 0)
+        ea = 2 * M_PI - ea;
+    if ((sa > ea) && ((sa - ea) < M_PI))
+        anticlockwise = 1;
+    if ((sa < ea) && ((ea - sa) > M_PI))
+        anticlockwise = 1;
+
+    cairo_line_to(cr, t_p1p0.x, t_p1p0.y);
+
+    if (anticlockwise && M_PI * 2 != radius)
+    {
+        cairo_arc_negative(cr, p.x, p.y, radius, sa, ea);
+    }
+    else
+    {
+        cairo_arc(cr, p.x, p.y, radius, sa, ea);
+    }
+
+    return JS_UNDEFINED;
+}
+
+static JSValue js_canvas_ellipse(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
+    if (!context)
+    {
+        return JS_EXCEPTION;
+    }
+    double args[7];
+    if (js_validate_doubles_args(ctx, argv, args, 7, 1))
+    {
+        JS_ThrowTypeError(ctx, "invalid input");
+        return JS_EXCEPTION;
+    }
+
+    double radiusX = args[2];
+    double radiusY = args[3];
+
+    if (radiusX == 0 || radiusY == 0)
+        return JS_UNDEFINED;
+
+    double x = args[0];
+    double y = args[1];
+    double rotation = args[4];
+    double startAngle = args[5];
+    double endAngle = args[6];
+    int anticlockwise = JS_ToBool(ctx, argv[8]);
+
+    cairo_t *cr = context->ctx;
+
+    // See https://www.cairographics.org/cookbook/ellipses/
+    double xRatio = radiusX / radiusY;
+
+    cairo_matrix_t save_matrix;
+    cairo_get_matrix(cr, &save_matrix);
+    cairo_translate(cr, x, y);
+    cairo_rotate(cr, rotation);
+    cairo_scale(cr, xRatio, 1.0);
+    cairo_translate(cr, -x, -y);
+    if (anticlockwise && M_PI * 2 != args[4])
+    {
+        cairo_arc_negative(cr,
+                           x,
+                           y,
+                           radiusY,
+                           startAngle,
+                           endAngle);
+    }
+    else
+    {
+        cairo_arc(cr,
+                  x,
+                  y,
+                  radiusY,
+                  startAngle,
+                  endAngle);
+    }
+    cairo_set_matrix(cr, &save_matrix);
     return JS_UNDEFINED;
 }
 
@@ -625,6 +911,9 @@ static const JSCFunctionListEntry function_list[] = {
     JS_CFUNC_DEF("canvasLineTo", 0, js_canvas_line_to),
     JS_CFUNC_DEF("canvasBezierCurveTo", 0, js_canvas_bezier_curve_to),
     JS_CFUNC_DEF("canvasQuadraticCurveTo", 0, js_canvas_quadratic_curve_to),
+    JS_CFUNC_DEF("canvasArc", 0, js_canvas_arc),
+    JS_CFUNC_DEF("canvasArcTo", 0, js_canvas_arc_to),
+    JS_CFUNC_DEF("canvasEllipse", 0, js_canvas_ellipse),
     JS_CFUNC_DEF("canvasRect", 0, js_canvas_rect),
     JS_CFUNC_DEF("canvasRotate", 0, js_canvas_rotate),
     JS_CFUNC_DEF("canvasTranslate", 0, js_canvas_translate),
