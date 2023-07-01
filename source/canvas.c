@@ -160,6 +160,53 @@ static JSValue js_canvas_line_to(JSContext *ctx, JSValueConst this_val, int argc
     return JS_UNDEFINED;
 }
 
+static JSValue js_canvas_bezier_curve_to(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
+    if (!context)
+    {
+        return JS_EXCEPTION;
+    }
+    double args[6];
+    if (js_validate_doubles_args(ctx, argv, args, 6, 1))
+    {
+        JS_ThrowTypeError(ctx, "invalid input");
+        return JS_EXCEPTION;
+    }
+    cairo_curve_to(context->ctx, args[0], args[1], args[2], args[3], args[4], args[5]);
+    return JS_UNDEFINED;
+}
+
+/*
+ * Quadratic curve approximation from libsvg-cairo.
+ */
+static JSValue js_canvas_quadratic_curve_to(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
+    if (!context)
+    {
+        return JS_EXCEPTION;
+    }
+    double args[4];
+    if (js_validate_doubles_args(ctx, argv, args, 4, 1))
+    {
+        JS_ThrowTypeError(ctx, "invalid input");
+        return JS_EXCEPTION;
+    }
+    double x, y, x1 = args[0], y1 = args[1], x2 = args[2], y2 = args[3];
+
+    cairo_get_current_point(context->ctx, &x, &y);
+
+    if (0 == x && 0 == y)
+    {
+        x = x1;
+        y = y1;
+    }
+
+    cairo_curve_to(context->ctx, x + 2.0 / 3.0 * (x1 - x), y + 2.0 / 3.0 * (y1 - y), x2 + 2.0 / 3.0 * (x1 - x2), y2 + 2.0 / 3.0 * (y1 - y2), x2, y2);
+    return JS_UNDEFINED;
+}
+
 static JSValue js_canvas_rect(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
@@ -381,6 +428,25 @@ static JSValue js_canvas_transform(JSContext *ctx, JSValueConst this_val, int ar
     return JS_UNDEFINED;
 }
 
+static JSValue js_canvas_get_transform(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
+    if (!context)
+    {
+        return JS_EXCEPTION;
+    }
+    cairo_matrix_t matrix;
+    cairo_get_matrix(context->ctx, &matrix);
+    JSValue array = JS_NewArray(ctx);
+    JS_SetPropertyUint32(ctx, array, 0, JS_NewFloat64(ctx, matrix.xx));
+    JS_SetPropertyUint32(ctx, array, 1, JS_NewFloat64(ctx, matrix.yx));
+    JS_SetPropertyUint32(ctx, array, 2, JS_NewFloat64(ctx, matrix.xy));
+    JS_SetPropertyUint32(ctx, array, 3, JS_NewFloat64(ctx, matrix.yy));
+    JS_SetPropertyUint32(ctx, array, 4, JS_NewFloat64(ctx, matrix.x0));
+    JS_SetPropertyUint32(ctx, array, 5, JS_NewFloat64(ctx, matrix.y0));
+    return array;
+}
+
 static JSValue js_canvas_reset_transform(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
@@ -557,10 +623,13 @@ static const JSCFunctionListEntry function_list[] = {
     JS_CFUNC_DEF("canvasStroke", 0, js_canvas_stroke),
     JS_CFUNC_DEF("canvasMoveTo", 0, js_canvas_move_to),
     JS_CFUNC_DEF("canvasLineTo", 0, js_canvas_line_to),
+    JS_CFUNC_DEF("canvasBezierCurveTo", 0, js_canvas_bezier_curve_to),
+    JS_CFUNC_DEF("canvasQuadraticCurveTo", 0, js_canvas_quadratic_curve_to),
     JS_CFUNC_DEF("canvasRect", 0, js_canvas_rect),
     JS_CFUNC_DEF("canvasRotate", 0, js_canvas_rotate),
     JS_CFUNC_DEF("canvasTranslate", 0, js_canvas_translate),
     JS_CFUNC_DEF("canvasTransform", 0, js_canvas_transform),
+    JS_CFUNC_DEF("canvasGetTransform", 0, js_canvas_get_transform),
     JS_CFUNC_DEF("canvasResetTransform", 0, js_canvas_reset_transform),
     JS_CFUNC_DEF("canvasScale", 0, js_canvas_scale),
     JS_CFUNC_DEF("canvasFillRect", 0, js_canvas_fill_rect),

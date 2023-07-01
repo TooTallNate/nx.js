@@ -97,6 +97,22 @@ export interface Native {
 		x: number,
 		y: number
 	): void;
+	canvasBezierCurveTo(
+		ctx: CanvasRenderingContext2DState,
+		cp1x: number,
+		cp1y: number,
+		cp2x: number,
+		cp2y: number,
+		x: number,
+		y: number
+	): void;
+	canvasQuadraticCurveTo(
+		ctx: CanvasRenderingContext2DState,
+		cpx: number,
+		cpy: number,
+		x: number,
+		y: number
+	): void;
 	canvasRect(
 		ctx: CanvasRenderingContext2DState,
 		x: number,
@@ -120,6 +136,7 @@ export interface Native {
 		e: number,
 		f: number
 	): void;
+	canvasGetTransform(ctx: CanvasRenderingContext2DState): number[];
 	canvasResetTransform(ctx: CanvasRenderingContext2DState): void;
 	canvasSetSourceRgba(
 		ctx: CanvasRenderingContext2DState,

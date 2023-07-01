@@ -117,9 +117,11 @@ export class CanvasRenderingContext2D
 		this.textAlign = 'left';
 		this.textBaseline = 'alphabetic';
 	}
+
 	restore(): void {
 		throw new Error('Method not implemented.');
 	}
+
 	save(): void {
 		throw new Error('Method not implemented.');
 	}
@@ -133,7 +135,9 @@ export class CanvasRenderingContext2D
 	}
 
 	getTransform(): DOMMatrix {
-		throw new Error('Method not implemented.');
+		return new DOMMatrix(
+			Switch.native.canvasGetTransform(this[INTERNAL_SYMBOL].ctx)
+		);
 	}
 
 	resetTransform(): void {
@@ -202,6 +206,7 @@ export class CanvasRenderingContext2D
 	): void {
 		throw new Error('Method not implemented.');
 	}
+
 	arcTo(
 		x1: number,
 		y1: number,
@@ -211,6 +216,7 @@ export class CanvasRenderingContext2D
 	): void {
 		throw new Error('Method not implemented.');
 	}
+
 	bezierCurveTo(
 		cp1x: number,
 		cp1y: number,
@@ -219,11 +225,31 @@ export class CanvasRenderingContext2D
 		x: number,
 		y: number
 	): void {
-		throw new Error('Method not implemented.');
+		Switch.native.canvasBezierCurveTo(
+			this[INTERNAL_SYMBOL].ctx,
+			cp1x,
+			cp1y,
+			cp2x,
+			cp2y,
+			x,
+			y
+		);
 	}
+
+	quadraticCurveTo(cpx: number, cpy: number, x: number, y: number): void {
+		Switch.native.canvasQuadraticCurveTo(
+			this[INTERNAL_SYMBOL].ctx,
+			cpx,
+			cpy,
+			x,
+			y
+		);
+	}
+
 	closePath(): void {
 		Switch.native.canvasClosePath(this[INTERNAL_SYMBOL].ctx);
 	}
+
 	ellipse(
 		x: number,
 		y: number,
@@ -236,18 +262,19 @@ export class CanvasRenderingContext2D
 	): void {
 		throw new Error('Method not implemented.');
 	}
+
 	lineTo(x: number, y: number): void {
 		Switch.native.canvasLineTo(this[INTERNAL_SYMBOL].ctx, x, y);
 	}
+
 	moveTo(x: number, y: number): void {
 		Switch.native.canvasMoveTo(this[INTERNAL_SYMBOL].ctx, x, y);
 	}
-	quadraticCurveTo(cpx: number, cpy: number, x: number, y: number): void {
-		throw new Error('Method not implemented.');
-	}
+
 	rect(x: number, y: number, w: number, h: number): void {
 		Switch.native.canvasRect(this[INTERNAL_SYMBOL].ctx, x, y, w, h);
 	}
+
 	roundRect(
 		x: number,
 		y: number,
