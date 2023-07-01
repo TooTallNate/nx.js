@@ -317,21 +317,23 @@ export class CanvasRenderingContext2D
 	clip(path?: unknown, fillRule?: unknown): void {
 		throw new Error('Method not implemented.');
 	}
+
 	fill(fillRule?: CanvasFillRule): void;
 	fill(path: Path2D, fillRule?: CanvasFillRule): void;
 	fill(
 		fillRuleOrPath?: CanvasFillRule | Path2D,
 		fillRule?: CanvasFillRule
 	): void {
+		if (fillRuleOrPath) {
+			throw new Error('`path` param not implemented.');
+		}
 		const i = this[INTERNAL_SYMBOL];
 		if (i.currentStyle !== i.fillStyle) {
-			Switch.native.canvasSetSourceRgba(
-				this[INTERNAL_SYMBOL].ctx,
-				...i.fillStyle
-			);
+			Switch.native.canvasSetSourceRgba(i.ctx, ...i.fillStyle);
 		}
 		Switch.native.canvasFill(i.ctx);
 	}
+
 	isPointInPath(
 		x: number,
 		y: number,
@@ -351,18 +353,20 @@ export class CanvasRenderingContext2D
 	): boolean {
 		throw new Error('Method not implemented.');
 	}
+
 	isPointInStroke(x: number, y: number): boolean;
 	isPointInStroke(path: Path2D, x: number, y: number): boolean;
 	isPointInStroke(path: unknown, x: unknown, y?: unknown): boolean {
 		throw new Error('Method not implemented.');
 	}
+
 	stroke(path?: Path2D): void {
+		if (path) {
+			throw new Error('`path` param not implemented.');
+		}
 		const i = this[INTERNAL_SYMBOL];
 		if (i.currentStyle !== i.strokeStyle) {
-			Switch.native.canvasSetSourceRgba(
-				this[INTERNAL_SYMBOL].ctx,
-				...i.strokeStyle
-			);
+			Switch.native.canvasSetSourceRgba(i.ctx, ...i.strokeStyle);
 		}
 		Switch.native.canvasStroke(i.ctx);
 	}
@@ -464,13 +468,11 @@ export class CanvasRenderingContext2D
 		y: number,
 		maxWidth?: number | undefined
 	): void {
-		Switch.native.canvasFillText(
-			this[INTERNAL_SYMBOL].ctx,
-			text,
-			x,
-			y,
-			maxWidth
-		);
+		const i = this[INTERNAL_SYMBOL];
+		if (i.currentStyle !== i.fillStyle) {
+			Switch.native.canvasSetSourceRgba(i.ctx, ...i.fillStyle);
+		}
+		Switch.native.canvasFillText(i.ctx, text, x, y, maxWidth);
 	}
 
 	measureText(text: string): TextMetrics {
@@ -523,7 +525,11 @@ export class CanvasRenderingContext2D
 	}
 
 	fillRect(x: number, y: number, w: number, h: number): void {
-		Switch.native.canvasFillRect(this[INTERNAL_SYMBOL].ctx, x, y, w, h);
+		const i = this[INTERNAL_SYMBOL];
+		if (i.currentStyle !== i.fillStyle) {
+			Switch.native.canvasSetSourceRgba(i.ctx, ...i.fillStyle);
+		}
+		Switch.native.canvasFillRect(i.ctx, x, y, w, h);
 	}
 
 	strokeRect(x: number, y: number, w: number, h: number): void {
