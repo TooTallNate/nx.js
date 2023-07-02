@@ -78,10 +78,25 @@ export interface Native {
 	): CanvasRenderingContext2DState;
 	canvasGetLineWidth(ctx: CanvasRenderingContext2DState): number;
 	canvasSetLineWidth(ctx: CanvasRenderingContext2DState, n: number): void;
+	canvasGetLineJoin(ctx: CanvasRenderingContext2DState): CanvasLineJoin;
+	canvasSetLineJoin(
+		ctx: CanvasRenderingContext2DState,
+		n: CanvasLineJoin
+	): void;
+	canvasGetLineCap(ctx: CanvasRenderingContext2DState): CanvasLineCap;
+	canvasSetLineCap(
+		ctx: CanvasRenderingContext2DState,
+		n: CanvasLineCap
+	): void;
 	canvasGetLineDash(ctx: CanvasRenderingContext2DState): number[];
 	canvasSetLineDash(
 		ctx: CanvasRenderingContext2DState,
 		dashes: number[]
+	): void;
+	canvasGetLineDashOffset(ctx: CanvasRenderingContext2DState): number;
+	canvasSetLineDashOffset(
+		ctx: CanvasRenderingContext2DState,
+		offset: number
 	): void;
 	canvasBeginPath(ctx: CanvasRenderingContext2DState): void;
 	canvasClosePath(ctx: CanvasRenderingContext2DState): void;

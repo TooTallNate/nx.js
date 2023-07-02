@@ -89,7 +89,8 @@ static JSValue js_canvas_new_context(JSContext *ctx, JSValueConst this_val, int 
     context->surface = surface;
     context->ctx = cairo_create(surface);
 
-    cairo_set_font_size(context->ctx, 46);
+    // Match browser defaults
+    cairo_set_line_width(context->ctx, 1);
 
     JS_SetOpaque(obj, context);
     return obj;
@@ -529,6 +530,96 @@ static JSValue js_canvas_set_line_width(JSContext *ctx, JSValueConst this_val, i
     return JS_UNDEFINED;
 }
 
+static JSValue js_canvas_get_line_join(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    CANVAS_CONTEXT;
+    const char *join;
+    switch (cairo_get_line_join(context->ctx))
+    {
+    case CAIRO_LINE_JOIN_BEVEL:
+        join = "bevel";
+        break;
+    case CAIRO_LINE_JOIN_ROUND:
+        join = "round";
+        break;
+    default:
+        join = "miter";
+    }
+    return JS_NewString(ctx, join);
+}
+
+static JSValue js_canvas_set_line_join(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    CANVAS_CONTEXT;
+    const char *type = JS_ToCString(ctx, argv[1]);
+    if (!type)
+    {
+        JS_ThrowTypeError(ctx, "invalid input");
+        return JS_EXCEPTION;
+    }
+    cairo_line_join_t line_join;
+    if (0 == strcmp("round", type))
+    {
+        line_join = CAIRO_LINE_JOIN_ROUND;
+    }
+    else if (0 == strcmp("bevel", type))
+    {
+        line_join = CAIRO_LINE_JOIN_BEVEL;
+    }
+    else
+    {
+        line_join = CAIRO_LINE_JOIN_MITER;
+    }
+    JS_FreeCString(ctx, type);
+    cairo_set_line_join(context->ctx, line_join);
+    return JS_UNDEFINED;
+}
+
+static JSValue js_canvas_get_line_cap(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    CANVAS_CONTEXT;
+    const char *cap;
+    switch (cairo_get_line_cap(context->ctx))
+    {
+    case CAIRO_LINE_CAP_ROUND:
+        cap = "round";
+        break;
+    case CAIRO_LINE_CAP_SQUARE:
+        cap = "square";
+        break;
+    default:
+        cap = "butt";
+    }
+    return JS_NewString(ctx, cap);
+}
+
+static JSValue js_canvas_set_line_cap(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    CANVAS_CONTEXT;
+    const char *type = JS_ToCString(ctx, argv[1]);
+    if (!type)
+    {
+        JS_ThrowTypeError(ctx, "invalid input");
+        return JS_EXCEPTION;
+    }
+    cairo_line_cap_t line_cap;
+    if (0 == strcmp("round", type))
+    {
+        line_cap = CAIRO_LINE_CAP_ROUND;
+    }
+    else if (0 == strcmp("square", type))
+    {
+        line_cap = CAIRO_LINE_CAP_SQUARE;
+    }
+    else
+    {
+        line_cap = CAIRO_LINE_CAP_BUTT;
+    }
+    JS_FreeCString(ctx, type);
+    cairo_set_line_cap(context->ctx, line_cap);
+    return JS_UNDEFINED;
+}
+
 static JSValue js_canvas_get_line_dash(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     CANVAS_CONTEXT;
@@ -576,6 +667,30 @@ static JSValue js_canvas_set_line_dash(JSContext *ctx, JSValueConst this_val, in
     {
         cairo_set_dash(context->ctx, dashes, num_dashes, offset);
     }
+    return JS_UNDEFINED;
+}
+
+static JSValue js_canvas_get_line_dash_offset(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    CANVAS_CONTEXT;
+    double offset;
+    cairo_get_dash(context->ctx, NULL, &offset);
+    return JS_NewFloat64(ctx, offset);
+}
+
+static JSValue js_canvas_set_line_dash_offset(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    CANVAS_CONTEXT;
+    double offset;
+    if (JS_ToFloat64(ctx, &offset, argv[1]))
+    {
+        JS_ThrowTypeError(ctx, "invalid input");
+        return JS_EXCEPTION;
+    }
+    int num_dashes = cairo_get_dash_count(context->ctx);
+    double dashes[num_dashes];
+    cairo_get_dash(context->ctx, dashes, NULL);
+    cairo_set_dash(context->ctx, dashes, num_dashes, offset);
     return JS_UNDEFINED;
 }
 
@@ -798,8 +913,14 @@ static const JSCFunctionListEntry function_list[] = {
     JS_CFUNC_DEF("canvasNewContext", 0, js_canvas_new_context),
     JS_CFUNC_DEF("canvasGetLineDash", 0, js_canvas_get_line_dash),
     JS_CFUNC_DEF("canvasSetLineDash", 0, js_canvas_set_line_dash),
+    JS_CFUNC_DEF("canvasGetLineDashOffset", 0, js_canvas_get_line_dash_offset),
+    JS_CFUNC_DEF("canvasSetLineDashOffset", 0, js_canvas_set_line_dash_offset),
     JS_CFUNC_DEF("canvasGetLineWidth", 0, js_canvas_get_line_width),
     JS_CFUNC_DEF("canvasSetLineWidth", 0, js_canvas_set_line_width),
+    JS_CFUNC_DEF("canvasGetLineJoin", 0, js_canvas_get_line_join),
+    JS_CFUNC_DEF("canvasSetLineJoin", 0, js_canvas_set_line_join),
+    JS_CFUNC_DEF("canvasGetLineCap", 0, js_canvas_get_line_cap),
+    JS_CFUNC_DEF("canvasSetLineCap", 0, js_canvas_set_line_cap),
     JS_CFUNC_DEF("canvasSetSourceRgba", 0, js_canvas_set_source_rgba),
     JS_CFUNC_DEF("canvasSetFont", 0, js_canvas_set_font),
     JS_CFUNC_DEF("canvasBeginPath", 0, js_canvas_begin_path),

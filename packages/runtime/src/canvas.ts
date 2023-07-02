@@ -96,9 +96,6 @@ export class CanvasRenderingContext2D
 	textBaseline: CanvasTextBaseline;
 
 	// TODO
-	lineCap!: CanvasLineCap;
-	lineDashOffset!: number;
-	lineJoin!: CanvasLineJoin;
 	miterLimit!: number;
 
 	constructor(canvas: Canvas) {
@@ -382,12 +379,36 @@ export class CanvasRenderingContext2D
 		);
 	}
 
-	get lineWidth(): number {
+	get lineDashOffset() {
+		return Switch.native.canvasGetLineDashOffset(this[INTERNAL_SYMBOL].ctx);
+	}
+
+	set lineDashOffset(v: number) {
+		Switch.native.canvasSetLineDashOffset(this[INTERNAL_SYMBOL].ctx, v);
+	}
+
+	get lineWidth() {
 		return Switch.native.canvasGetLineWidth(this[INTERNAL_SYMBOL].ctx);
 	}
 
 	set lineWidth(v: number) {
 		Switch.native.canvasSetLineWidth(this[INTERNAL_SYMBOL].ctx, v);
+	}
+
+	get lineJoin() {
+		return Switch.native.canvasGetLineJoin(this[INTERNAL_SYMBOL].ctx);
+	}
+
+	set lineJoin(v: CanvasLineJoin) {
+		Switch.native.canvasSetLineJoin(this[INTERNAL_SYMBOL].ctx, v);
+	}
+
+	get lineCap() {
+		return Switch.native.canvasGetLineCap(this[INTERNAL_SYMBOL].ctx);
+	}
+
+	set lineCap(v: CanvasLineCap) {
+		Switch.native.canvasSetLineCap(this[INTERNAL_SYMBOL].ctx, v);
 	}
 
 	get fillStyle(): string | CanvasGradient | CanvasPattern {
