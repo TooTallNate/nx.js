@@ -7,6 +7,13 @@
 #include "font.h"
 #include "canvas.h"
 
+#define CANVAS_CONTEXT                                                                         \
+    nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id); \
+    if (!context)                                                                              \
+    {                                                                                          \
+        return JS_EXCEPTION;                                                                   \
+    }
+
 #define RECT_ARGS                                        \
     double args[4];                                      \
     if (js_validate_doubles_args(ctx, argv, args, 4, 1)) \
@@ -90,55 +97,35 @@ static JSValue js_canvas_new_context(JSContext *ctx, JSValueConst this_val, int 
 
 static JSValue js_canvas_begin_path(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-    nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
-    if (!context)
-    {
-        return JS_EXCEPTION;
-    }
+    CANVAS_CONTEXT;
     cairo_new_path(context->ctx);
     return JS_UNDEFINED;
 }
 
 static JSValue js_canvas_close_path(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-    nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
-    if (!context)
-    {
-        return JS_EXCEPTION;
-    }
+    CANVAS_CONTEXT;
     cairo_close_path(context->ctx);
     return JS_UNDEFINED;
 }
 
 static JSValue js_canvas_fill(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-    nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
-    if (!context)
-    {
-        return JS_EXCEPTION;
-    }
+    CANVAS_CONTEXT;
     cairo_fill(context->ctx);
     return JS_UNDEFINED;
 }
 
 static JSValue js_canvas_stroke(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-    nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
-    if (!context)
-    {
-        return JS_EXCEPTION;
-    }
+    CANVAS_CONTEXT;
     cairo_stroke(context->ctx);
     return JS_UNDEFINED;
 }
 
 static JSValue js_canvas_move_to(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-    nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
-    if (!context)
-    {
-        return JS_EXCEPTION;
-    }
+    CANVAS_CONTEXT;
     double args[2];
     if (js_validate_doubles_args(ctx, argv, args, 2, 1))
     {
@@ -151,11 +138,7 @@ static JSValue js_canvas_move_to(JSContext *ctx, JSValueConst this_val, int argc
 
 static JSValue js_canvas_line_to(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-    nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
-    if (!context)
-    {
-        return JS_EXCEPTION;
-    }
+    CANVAS_CONTEXT;
     double args[2];
     if (js_validate_doubles_args(ctx, argv, args, 2, 1))
     {
@@ -168,11 +151,7 @@ static JSValue js_canvas_line_to(JSContext *ctx, JSValueConst this_val, int argc
 
 static JSValue js_canvas_bezier_curve_to(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-    nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
-    if (!context)
-    {
-        return JS_EXCEPTION;
-    }
+    CANVAS_CONTEXT;
     double args[6];
     if (js_validate_doubles_args(ctx, argv, args, 6, 1))
     {
@@ -188,11 +167,7 @@ static JSValue js_canvas_bezier_curve_to(JSContext *ctx, JSValueConst this_val, 
  */
 static JSValue js_canvas_quadratic_curve_to(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-    nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
-    if (!context)
-    {
-        return JS_EXCEPTION;
-    }
+    CANVAS_CONTEXT;
     double args[4];
     if (js_validate_doubles_args(ctx, argv, args, 4, 1))
     {
@@ -269,11 +244,7 @@ static double adjustEndAngle(double startAngle, double endAngle, int countercloc
  */
 static JSValue js_canvas_arc(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-    nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
-    if (!context)
-    {
-        return JS_EXCEPTION;
-    }
+    CANVAS_CONTEXT;
     double args[5];
     if (js_validate_doubles_args(ctx, argv, args, 5, 1))
     {
@@ -325,11 +296,7 @@ typedef struct Point
  */
 static JSValue js_canvas_arc_to(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-    nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
-    if (!context)
-    {
-        return JS_EXCEPTION;
-    }
+    CANVAS_CONTEXT;
     double args[5];
     if (js_validate_doubles_args(ctx, argv, args, 5, 1))
     {
@@ -435,11 +402,7 @@ static JSValue js_canvas_arc_to(JSContext *ctx, JSValueConst this_val, int argc,
 
 static JSValue js_canvas_ellipse(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-    nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
-    if (!context)
-    {
-        return JS_EXCEPTION;
-    }
+    CANVAS_CONTEXT;
     double args[7];
     if (js_validate_doubles_args(ctx, argv, args, 7, 1))
     {
@@ -495,11 +458,7 @@ static JSValue js_canvas_ellipse(JSContext *ctx, JSValueConst this_val, int argc
 
 static JSValue js_canvas_rect(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-    nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
-    if (!context)
-    {
-        return JS_EXCEPTION;
-    }
+    CANVAS_CONTEXT;
     RECT_ARGS;
     if (width == 0)
     {
@@ -520,11 +479,7 @@ static JSValue js_canvas_rect(JSContext *ctx, JSValueConst this_val, int argc, J
 
 static JSValue js_canvas_set_source_rgba(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-    nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
-    if (!context)
-    {
-        return JS_EXCEPTION;
-    }
+    CANVAS_CONTEXT;
     double args[4];
     if (js_validate_doubles_args(ctx, argv, args, 4, 1))
     {
@@ -537,11 +492,7 @@ static JSValue js_canvas_set_source_rgba(JSContext *ctx, JSValueConst this_val, 
 
 static JSValue js_canvas_set_font(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-    nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
-    if (!context)
-    {
-        return JS_EXCEPTION;
-    }
+    CANVAS_CONTEXT;
     nx_font_face_t *face = nx_get_font_face(ctx, argv[1]);
     if (!face)
     {
@@ -561,21 +512,13 @@ static JSValue js_canvas_set_font(JSContext *ctx, JSValueConst this_val, int arg
 
 static JSValue js_canvas_get_line_width(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-    nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
-    if (!context)
-    {
-        return JS_EXCEPTION;
-    }
+    CANVAS_CONTEXT;
     return JS_NewFloat64(ctx, cairo_get_line_width(context->ctx));
 }
 
 static JSValue js_canvas_set_line_width(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-    nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
-    if (!context)
-    {
-        return JS_EXCEPTION;
-    }
+    CANVAS_CONTEXT;
     double n;
     if (JS_ToFloat64(ctx, &n, argv[1]))
     {
@@ -588,11 +531,7 @@ static JSValue js_canvas_set_line_width(JSContext *ctx, JSValueConst this_val, i
 
 static JSValue js_canvas_get_line_dash(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-    nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
-    if (!context)
-    {
-        return JS_EXCEPTION;
-    }
+    CANVAS_CONTEXT;
     int count = cairo_get_dash_count(context->ctx);
     double dashes[count];
     cairo_get_dash(context->ctx, dashes, NULL);
@@ -607,11 +546,7 @@ static JSValue js_canvas_get_line_dash(JSContext *ctx, JSValueConst this_val, in
 
 static JSValue js_canvas_set_line_dash(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-    nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
-    if (!context)
-    {
-        return JS_EXCEPTION;
-    }
+    CANVAS_CONTEXT;
     JSValue length_val = JS_GetPropertyStr(ctx, argv[1], "length");
     uint32_t length;
     if (JS_ToUint32(ctx, &length, length_val))
@@ -646,11 +581,7 @@ static JSValue js_canvas_set_line_dash(JSContext *ctx, JSValueConst this_val, in
 
 static JSValue js_canvas_rotate(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-    nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
-    if (!context)
-    {
-        return JS_EXCEPTION;
-    }
+    CANVAS_CONTEXT;
     double n;
     if (JS_ToFloat64(ctx, &n, argv[1]))
     {
@@ -663,11 +594,7 @@ static JSValue js_canvas_rotate(JSContext *ctx, JSValueConst this_val, int argc,
 
 static JSValue js_canvas_translate(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-    nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
-    if (!context)
-    {
-        return JS_EXCEPTION;
-    }
+    CANVAS_CONTEXT;
     double args[2];
     if (js_validate_doubles_args(ctx, argv, args, 2, 1))
     {
@@ -680,11 +607,7 @@ static JSValue js_canvas_translate(JSContext *ctx, JSValueConst this_val, int ar
 
 static JSValue js_canvas_scale(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-    nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
-    if (!context)
-    {
-        return JS_EXCEPTION;
-    }
+    CANVAS_CONTEXT;
     double args[2];
     if (js_validate_doubles_args(ctx, argv, args, 2, 1))
     {
@@ -697,11 +620,7 @@ static JSValue js_canvas_scale(JSContext *ctx, JSValueConst this_val, int argc, 
 
 static JSValue js_canvas_transform(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-    nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
-    if (!context)
-    {
-        return JS_EXCEPTION;
-    }
+    CANVAS_CONTEXT;
     double args[6];
     if (js_validate_doubles_args(ctx, argv, args, 6, 1))
     {
@@ -716,11 +635,7 @@ static JSValue js_canvas_transform(JSContext *ctx, JSValueConst this_val, int ar
 
 static JSValue js_canvas_get_transform(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-    nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
-    if (!context)
-    {
-        return JS_EXCEPTION;
-    }
+    CANVAS_CONTEXT;
     cairo_matrix_t matrix;
     cairo_get_matrix(context->ctx, &matrix);
     JSValue array = JS_NewArray(ctx);
@@ -735,22 +650,14 @@ static JSValue js_canvas_get_transform(JSContext *ctx, JSValueConst this_val, in
 
 static JSValue js_canvas_reset_transform(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-    nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
-    if (!context)
-    {
-        return JS_EXCEPTION;
-    }
+    CANVAS_CONTEXT;
     cairo_identity_matrix(context->ctx);
     return JS_UNDEFINED;
 }
 
 static JSValue js_canvas_fill_rect(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-    nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
-    if (!context)
-    {
-        return JS_EXCEPTION;
-    }
+    CANVAS_CONTEXT;
     RECT_ARGS;
     cairo_rectangle(context->ctx, x, y, width, height);
     cairo_fill(context->ctx);
@@ -759,11 +666,7 @@ static JSValue js_canvas_fill_rect(JSContext *ctx, JSValueConst this_val, int ar
 
 static JSValue js_canvas_fill_text(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-    nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
-    if (!context)
-    {
-        return JS_EXCEPTION;
-    }
+    CANVAS_CONTEXT;
     double args[2];
     if (js_validate_doubles_args(ctx, argv, args, 2, 2))
     {
@@ -779,11 +682,7 @@ static JSValue js_canvas_fill_text(JSContext *ctx, JSValueConst this_val, int ar
 
 static JSValue js_canvas_measure_text(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-    nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);
-    if (!context)
-    {
-        return JS_EXCEPTION;
-    }
+    CANVAS_CONTEXT;
     const char *text = JS_ToCString(ctx, argv[1]);
     cairo_text_extents_t extents;
     cairo_text_extents(context->ctx, text, &extents);
