@@ -6,6 +6,7 @@ node_modules
 /lib/*/release
 
 /nxjs.*
+!/nxjs.jpg
 /build
 /romfs
 
