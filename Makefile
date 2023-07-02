@@ -37,6 +37,7 @@ include $(DEVKITPRO)/libnx/switch_rules
 #   of a homebrew executable (.nro). This is intended to be used for sysmodules.
 #   NACP building is skipped as well.
 #---------------------------------------------------------------------------------
+APP_TITLE   :=  nx.js
 TARGET		:=	nxjs
 BUILD		:=	build
 SOURCES		:=	source
