@@ -1,13 +1,13 @@
 import stripAnsi from 'strip-ansi';
 
 const ctx = Switch.screen.getContext('2d');
-const fontData = Switch.readFileSync(new URL('Monaco.ttf', Switch.entrypoint));
-const font = new FontFace('Monaco', fontData);
+const fontData = Switch.readFileSync(new URL('Hack-Regular.ttf', Switch.entrypoint));
+const font = new FontFace('Hack', fontData);
 Switch.fonts.add(font);
 
 const fontSize = 30.83;
 const yOffset = 180;
-ctx.font = `${fontSize}px Monaco`;
+ctx.font = `${fontSize}px Hack`;
 
 function fdToStream(fd: number) {
 	const decoder = new TextDecoder();
