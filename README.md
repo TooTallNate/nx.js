@@ -1,11 +1,11 @@
 # nx.js
 
+<img align="right" width="200" height="200" src="./assets/logo.png">
+
 **nx.js** is a framework that enables the development of Nintendo Switch
 homebrew applications using JavaScript. Powered by the [QuickJS][] engine,
 nx.js provides a streamlined environment for writing homebrew applications
 for the Nintendo Switch console.
-
-<img align="right" width="200" height="200" src="./assets/logo.png">
 
 With nx.js, developers can leverage their JavaScript skills and tools to
 create engaging and interactive experiences for the Nintendo Switch platform.
