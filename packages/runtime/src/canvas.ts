@@ -557,6 +557,7 @@ export class CanvasRenderingContext2D
 		const i = this[INTERNAL_SYMBOL];
 		if (i.currentStyle !== i.fillStyle) {
 			Switch.native.canvasSetSourceRgba(i.ctx, ...i.fillStyle);
+			i.currentStyle = i.strokeStyle;
 		}
 		Switch.native.canvasFillRect(i.ctx, x, y, w, h);
 	}
