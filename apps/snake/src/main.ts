@@ -101,9 +101,9 @@ function draw() {
 	// Draw food
 	ctx.fillStyle = 'green';
 	ctx.arc(
-		boardX + (gridSize / 2) + food.x * gridSize,
-		boardY + (gridSize / 2) + food.y * gridSize,
-		gridSize/ 2,
+		boardX + gridSize / 2 + food.x * gridSize,
+		boardY + gridSize / 2 + food.y * gridSize,
+		gridSize / 2,
 		0,
 		2 * Math.PI
 	);
