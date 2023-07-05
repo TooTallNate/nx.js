@@ -33,7 +33,7 @@ importers:
         specifier: ^0.17.18
         version: 0.17.18
       nxjs-runtime:
-        specifier: ^0.0.10
+        specifier: ^0.0.11
         version: link:../../packages/runtime
 
   apps/canvas:
@@ -42,7 +42,7 @@ importers:
         specifier: ^0.17.18
         version: 0.17.18
       nxjs-runtime:
-        specifier: ^0.0.10
+        specifier: ^0.0.11
         version: link:../../packages/runtime
 
   apps/hello-world:
@@ -51,7 +51,7 @@ importers:
         specifier: ^0.17.18
         version: 0.17.18
       nxjs-runtime:
-        specifier: ^0.0.10
+        specifier: ^0.0.11
         version: link:../../packages/runtime
 
   apps/repl:
@@ -67,20 +67,20 @@ importers:
         specifier: ^0.17.18
         version: 0.17.18
       nxjs-runtime:
-        specifier: ^0.0.10
+        specifier: ^0.0.11
         version: link:../../packages/runtime
 
   apps/snake:
     dependencies:
       nxjs-constants:
-        specifier: 0.0.10
+        specifier: 0.0.11
         version: link:../../packages/constants
     devDependencies:
       esbuild:
         specifier: ^0.17.18
         version: 0.17.18
       nxjs-runtime:
-        specifier: ^0.0.10
+        specifier: ^0.0.11
         version: link:../../packages/runtime
 
   apps/starwars:
@@ -93,7 +93,7 @@ importers:
         specifier: ^0.17.18
         version: 0.17.18
       nxjs-runtime:
-        specifier: ^0.0.10
+        specifier: ^0.0.11
         version: link:../../packages/runtime
 
   apps/tests:
@@ -106,7 +106,7 @@ importers:
         specifier: ^0.17.18
         version: 0.17.18
       nxjs-runtime:
-        specifier: ^0.0.10
+        specifier: ^0.0.11
         version: link:../../packages/runtime
 
   apps/touchscreen:
@@ -122,7 +122,7 @@ importers:
         specifier: ^0.17.18
         version: 0.17.18
       nxjs-runtime:
-        specifier: ^0.0.10
+        specifier: ^0.0.11
         version: link:../../packages/runtime
 
   apps/ttf-font:
@@ -131,7 +131,7 @@ importers:
         specifier: ^0.17.18
         version: 0.17.18
       nxjs-runtime:
-        specifier: ^0.0.10
+        specifier: ^0.0.11
         version: link:../../packages/runtime
 
   packages/constants:

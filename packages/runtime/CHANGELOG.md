@@ -1,5 +1,49 @@
 # nxjs-runtime
 
+## 0.0.11
+
+### Patch Changes
+
+- Add `ErrorEvent` polyfill ([`af2a932`](https://github.com/TooTallNate/nx.js/commit/af2a9329a575642ea7a5d547cd906af03dd406e7))
+
+- Add Canvas `beginPath()`, `closePath()`, `fill()`, `stroke()`, `moveTo()`, `lineTo()`, `rect()` ([`a54f605`](https://github.com/TooTallNate/nx.js/commit/a54f60509d618b5128cd29e11f62fdc2348ee3d7))
+
+- Move all dependencies to dev, since they get bundled ([`a4ea4f2`](https://github.com/TooTallNate/nx.js/commit/a4ea4f2134d6afc4f8149120f03b0ace88b7d623))
+
+- Set app title to `nx.js` and add logo to `.nro` file ([`d4b1996`](https://github.com/TooTallNate/nx.js/commit/d4b19961b3799fe3f9725a5670329f11a8673452))
+
+- Add Canvas `lineJoin`, `lineCap`, and `lineDashOffset` ([`26ee360`](https://github.com/TooTallNate/nx.js/commit/26ee36002169b356787e6629490e9eaf834ed5e9))
+
+- Add Canvas `strokeStyle` ([`c0ba341`](https://github.com/TooTallNate/nx.js/commit/c0ba34116470bf79f9594c2de0db00f930c39cc6))
+
+- Add `clientX` and `clientY` to touch events ([`dcc0519`](https://github.com/TooTallNate/nx.js/commit/dcc0519dd234d827255ffc05c08637c05c023ada))
+
+- Add Canvas `getTransform()`, `bezierCurveTo()`, and `quadraticCurveTo()` ([`eb6ae49`](https://github.com/TooTallNate/nx.js/commit/eb6ae49b99a8e4e546c5ac9e76469d3ea28c55ea))
+
+- Prevent further code execution upon initialization error ([`254ae9c`](https://github.com/TooTallNate/nx.js/commit/254ae9cfeea64acad08cf5707d239dbc2d9ab1c1))
+
+- Add Canvas `setTransform()`, `resetTransform()`, `getLineDash()`, `setLineDash()`, and `lineWidth` getter ([`1e15670`](https://github.com/TooTallNate/nx.js/commit/1e156707875245e23f3d9d9ef3c15171cd6be209))
+
+- Add `TextEncoder` polyfill and use better `TextDecoder` implementation ([`fe7fba0`](https://github.com/TooTallNate/nx.js/commit/fe7fba019ab22e11d6beabdd492fd7741ed5eed2))
+
+- Add Canvas `arc()`, `arcTo()`, and `ellipse()` ([`6bf58b5`](https://github.com/TooTallNate/nx.js/commit/6bf58b582b6036879bd5afb20d83a1bbb2fd2ff7))
+
+- Add initial `poll()` implementation ([#15](https://github.com/TooTallNate/nx.js/pull/15))
+
+  - Adds `Switch.connect()`
+  - Adds `Switch.read()`
+  - Adds `Swtich.write()`
+
+- Add Canvas `transform()` ([`8afa279`](https://github.com/TooTallNate/nx.js/commit/8afa279e3f51f4aae1c318f81ed8fcf736a23173))
+
+- Add canvas context `rotate()`, `translate()` and `scale()` ([`674cc05`](https://github.com/TooTallNate/nx.js/commit/674cc05fd2888809fbd89c5a17473552bc3daf61))
+
+- Fix `read_file()` NULL termination off-by-one error ([`902de42`](https://github.com/TooTallNate/nx.js/commit/902de42dfc0e968bf2e549048552e0fd3c160980))
+
+- Accept `BufferSource` in `Switch.read()` and string in `Switch.write()` ([`b3a0810`](https://github.com/TooTallNate/nx.js/commit/b3a0810d0482e781c00799f8e589a4c6958f3686))
+
+- Add Canvas `miterLimit` ([`02722a5`](https://github.com/TooTallNate/nx.js/commit/02722a553dcd900eb2822b13b96630e502540d8f))
+
 ## 0.0.10
 
 ### Patch Changes
