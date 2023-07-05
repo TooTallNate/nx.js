@@ -694,6 +694,28 @@ static JSValue js_canvas_set_line_dash_offset(JSContext *ctx, JSValueConst this_
     return JS_UNDEFINED;
 }
 
+static JSValue js_canvas_get_miter_limit(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    CANVAS_CONTEXT;
+    return JS_NewFloat64(ctx, cairo_get_miter_limit(context->ctx));
+}
+
+static JSValue js_canvas_set_miter_limit(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    CANVAS_CONTEXT;
+    double limit;
+    if (JS_ToFloat64(ctx, &limit, argv[1]))
+    {
+        JS_ThrowTypeError(ctx, "invalid input");
+        return JS_EXCEPTION;
+    }
+    if (limit > 0)
+    {
+        cairo_set_miter_limit(context->ctx, limit);
+    }
+    return JS_UNDEFINED;
+}
+
 static JSValue js_canvas_rotate(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     CANVAS_CONTEXT;
@@ -921,6 +943,8 @@ static const JSCFunctionListEntry function_list[] = {
     JS_CFUNC_DEF("canvasSetLineJoin", 0, js_canvas_set_line_join),
     JS_CFUNC_DEF("canvasGetLineCap", 0, js_canvas_get_line_cap),
     JS_CFUNC_DEF("canvasSetLineCap", 0, js_canvas_set_line_cap),
+    JS_CFUNC_DEF("canvasGetMiterLimit", 0, js_canvas_get_miter_limit),
+    JS_CFUNC_DEF("canvasSetMiterLimit", 0, js_canvas_set_miter_limit),
     JS_CFUNC_DEF("canvasSetSourceRgba", 0, js_canvas_set_source_rgba),
     JS_CFUNC_DEF("canvasSetFont", 0, js_canvas_set_font),
     JS_CFUNC_DEF("canvasBeginPath", 0, js_canvas_begin_path),

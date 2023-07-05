@@ -98,6 +98,8 @@ export interface Native {
 		ctx: CanvasRenderingContext2DState,
 		offset: number
 	): void;
+	canvasGetMiterLimit(ctx: CanvasRenderingContext2DState): number;
+	canvasSetMiterLimit(ctx: CanvasRenderingContext2DState, n: number): void;
 	canvasBeginPath(ctx: CanvasRenderingContext2DState): void;
 	canvasClosePath(ctx: CanvasRenderingContext2DState): void;
 	canvasFill(ctx: CanvasRenderingContext2DState): void;

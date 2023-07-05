@@ -95,9 +95,6 @@ export class CanvasRenderingContext2D
 	textAlign: CanvasTextAlign;
 	textBaseline: CanvasTextBaseline;
 
-	// TODO
-	miterLimit!: number;
-
 	constructor(canvas: Canvas) {
 		const { width: w, height: h } = canvas;
 		this.canvas = canvas;
@@ -409,6 +406,14 @@ export class CanvasRenderingContext2D
 
 	set lineCap(v: CanvasLineCap) {
 		Switch.native.canvasSetLineCap(this[INTERNAL_SYMBOL].ctx, v);
+	}
+
+	get miterLimit() {
+		return Switch.native.canvasGetMiterLimit(this[INTERNAL_SYMBOL].ctx);
+	}
+
+	set miterLimit(v: number) {
+		Switch.native.canvasSetMiterLimit(this[INTERNAL_SYMBOL].ctx, v);
 	}
 
 	get fillStyle(): string | CanvasGradient | CanvasPattern {
