@@ -324,6 +324,7 @@ export class CanvasRenderingContext2D
 		const i = this[INTERNAL_SYMBOL];
 		if (i.currentStyle !== i.fillStyle) {
 			Switch.native.canvasSetSourceRgba(i.ctx, ...i.fillStyle);
+			i.currentStyle = i.fillStyle;
 		}
 		Switch.native.canvasFill(i.ctx);
 	}
@@ -361,6 +362,7 @@ export class CanvasRenderingContext2D
 		const i = this[INTERNAL_SYMBOL];
 		if (i.currentStyle !== i.strokeStyle) {
 			Switch.native.canvasSetSourceRgba(i.ctx, ...i.strokeStyle);
+			i.currentStyle = i.strokeStyle;
 		}
 		Switch.native.canvasStroke(i.ctx);
 	}
@@ -497,6 +499,7 @@ export class CanvasRenderingContext2D
 		const i = this[INTERNAL_SYMBOL];
 		if (i.currentStyle !== i.fillStyle) {
 			Switch.native.canvasSetSourceRgba(i.ctx, ...i.fillStyle);
+			i.currentStyle = i.fillStyle;
 		}
 		Switch.native.canvasFillText(i.ctx, text, x, y, maxWidth);
 	}
