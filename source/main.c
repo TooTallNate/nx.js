@@ -182,10 +182,14 @@ static JSValue js_hid_get_touch_screen_states(JSContext *ctx, JSValueConst this_
     for (int i = 0; i < state.count; i++)
     {
         JSValue touch = JS_NewObject(ctx);
+        JSValue x = JS_NewInt32(ctx, state.touches[i].x);
+        JSValue y = JS_NewInt32(ctx, state.touches[i].y);
         JS_SetPropertyUint32(ctx, arr, i, touch);
         JS_SetPropertyStr(ctx, touch, "identifier", JS_NewInt32(ctx, state.touches[i].finger_id));
-        JS_SetPropertyStr(ctx, touch, "screenX", JS_NewInt32(ctx, state.touches[i].x));
-        JS_SetPropertyStr(ctx, touch, "screenY", JS_NewInt32(ctx, state.touches[i].y));
+        JS_SetPropertyStr(ctx, touch, "clientX", x);
+        JS_SetPropertyStr(ctx, touch, "clientY", y);
+        JS_SetPropertyStr(ctx, touch, "screenX", x);
+        JS_SetPropertyStr(ctx, touch, "screenY", y);
         JS_SetPropertyStr(ctx, touch, "radiusX", JS_NewFloat64(ctx, (double)state.touches[i].diameter_x / 2.0));
         JS_SetPropertyStr(ctx, touch, "radiusY", JS_NewFloat64(ctx, (double)state.touches[i].diameter_y / 2.0));
         JS_SetPropertyStr(ctx, touch, "rotationAngle", JS_NewInt32(ctx, state.touches[i].rotation_angle));
