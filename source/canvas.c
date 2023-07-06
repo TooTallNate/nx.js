@@ -124,6 +124,21 @@ static JSValue js_canvas_stroke(JSContext *ctx, JSValueConst this_val, int argc,
     return JS_UNDEFINED;
 }
 
+static JSValue js_canvas_save(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    CANVAS_CONTEXT;
+    cairo_save(context->ctx);
+    return JS_UNDEFINED;
+}
+
+
+static JSValue js_canvas_restore(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    CANVAS_CONTEXT;
+    cairo_restore(context->ctx);
+    return JS_UNDEFINED;
+}
+
 static JSValue js_canvas_move_to(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     CANVAS_CONTEXT;
@@ -947,6 +962,8 @@ static const JSCFunctionListEntry function_list[] = {
     JS_CFUNC_DEF("canvasSetMiterLimit", 0, js_canvas_set_miter_limit),
     JS_CFUNC_DEF("canvasSetSourceRgba", 0, js_canvas_set_source_rgba),
     JS_CFUNC_DEF("canvasSetFont", 0, js_canvas_set_font),
+    JS_CFUNC_DEF("canvasSave", 0, js_canvas_save),
+    JS_CFUNC_DEF("canvasRestore", 0, js_canvas_restore),
     JS_CFUNC_DEF("canvasBeginPath", 0, js_canvas_begin_path),
     JS_CFUNC_DEF("canvasClosePath", 0, js_canvas_close_path),
     JS_CFUNC_DEF("canvasFill", 0, js_canvas_fill),

@@ -104,6 +104,8 @@ export interface Native {
 	canvasClosePath(ctx: CanvasRenderingContext2DState): void;
 	canvasFill(ctx: CanvasRenderingContext2DState): void;
 	canvasStroke(ctx: CanvasRenderingContext2DState): void;
+	canvasSave(ctx: CanvasRenderingContext2DState): void;
+	canvasRestore(ctx: CanvasRenderingContext2DState): void;
 	canvasMoveTo(
 		ctx: CanvasRenderingContext2DState,
 		x: number,

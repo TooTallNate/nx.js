@@ -105,11 +105,11 @@ export class CanvasRenderingContext2D
 	}
 
 	restore(): void {
-		throw new Error('Method not implemented.');
+		Switch.native.canvasRestore(this[INTERNAL_SYMBOL].ctx);
 	}
 
 	save(): void {
-		throw new Error('Method not implemented.');
+		Switch.native.canvasSave(this[INTERNAL_SYMBOL].ctx);
 	}
 
 	rotate(angle: number): void {
