@@ -70,19 +70,11 @@ export class ImageData implements globalThis.ImageData {
 }
 
 export class CanvasRenderingContext2D
-	implements
-		CanvasDrawPath,
-		CanvasFillStrokeStyles,
-		CanvasImageData,
-		CanvasPath,
-		CanvasPathDrawingStyles,
-		CanvasRect,
-		CanvasState,
-		CanvasText,
-		CanvasTextDrawingStyles,
-		CanvasTransform
+	implements globalThis.CanvasRenderingContext2D
 {
+	// @ts-expect-error `Canvas` does not implement all DOM properties
 	readonly canvas: Canvas;
+
 	[INTERNAL_SYMBOL]: {
 		ctx: CanvasRenderingContext2DState;
 		fillStyle: RGBA;
