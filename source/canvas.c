@@ -129,6 +129,14 @@ static JSValue js_canvas_close_path(JSContext *ctx, JSValueConst this_val, int a
     return JS_UNDEFINED;
 }
 
+static JSValue js_canvas_clip(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    CANVAS_CONTEXT;
+    js_set_fill_rule(ctx, argv[1], context->ctx);
+    cairo_clip_preserve(context->ctx);
+    return JS_UNDEFINED;
+}
+
 static JSValue js_canvas_fill(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     CANVAS_CONTEXT;
@@ -999,6 +1007,7 @@ static const JSCFunctionListEntry function_list[] = {
     JS_CFUNC_DEF("canvasRestore", 0, js_canvas_restore),
     JS_CFUNC_DEF("canvasBeginPath", 0, js_canvas_begin_path),
     JS_CFUNC_DEF("canvasClosePath", 0, js_canvas_close_path),
+    JS_CFUNC_DEF("canvasClip", 0, js_canvas_clip),
     JS_CFUNC_DEF("canvasFill", 0, js_canvas_fill),
     JS_CFUNC_DEF("canvasStroke", 0, js_canvas_stroke),
     JS_CFUNC_DEF("canvasMoveTo", 0, js_canvas_move_to),

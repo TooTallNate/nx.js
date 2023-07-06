@@ -295,13 +295,24 @@ export class CanvasRenderingContext2D
 	): void {
 		throw new Error('Method not implemented.');
 	}
+
 	beginPath(): void {
 		Switch.native.canvasBeginPath(this[INTERNAL_SYMBOL].ctx);
 	}
-	clip(fillRule?: CanvasFillRule | undefined): void;
-	clip(path: Path2D, fillRule?: CanvasFillRule | undefined): void;
-	clip(path?: unknown, fillRule?: unknown): void {
-		throw new Error('Method not implemented.');
+
+	clip(fillRule?: CanvasFillRule): void;
+	clip(path: Path2D, fillRule?: CanvasFillRule): void;
+	clip(
+		pathOrFillRule?: CanvasFillRule | Path2D,
+		fillRule?: CanvasFillRule
+	): void {
+		let path: Path2D | undefined;
+		if (typeof pathOrFillRule === 'object') {
+			path = pathOrFillRule;
+		} else {
+			fillRule = pathOrFillRule;
+		}
+		Switch.native.canvasClip(this[INTERNAL_SYMBOL].ctx, fillRule);
 	}
 
 	fill(fillRule?: CanvasFillRule): void;

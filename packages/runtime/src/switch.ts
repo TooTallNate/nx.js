@@ -89,19 +89,17 @@ export interface Native {
 		n: CanvasLineCap
 	): void;
 	canvasGetLineDash(ctx: CanvasRenderingContext2DState): number[];
-	canvasSetLineDash(
-		ctx: CanvasRenderingContext2DState,
-		dashes: number[]
-	): void;
+	canvasSetLineDash(ctx: CanvasRenderingContext2DState, n: number[]): void;
 	canvasGetLineDashOffset(ctx: CanvasRenderingContext2DState): number;
 	canvasSetLineDashOffset(
 		ctx: CanvasRenderingContext2DState,
-		offset: number
+		n: number
 	): void;
 	canvasGetMiterLimit(ctx: CanvasRenderingContext2DState): number;
 	canvasSetMiterLimit(ctx: CanvasRenderingContext2DState, n: number): void;
 	canvasBeginPath(ctx: CanvasRenderingContext2DState): void;
 	canvasClosePath(ctx: CanvasRenderingContext2DState): void;
+	canvasClip(ctx: CanvasRenderingContext2DState, fillRule?: CanvasFillRule): void;
 	canvasFill(ctx: CanvasRenderingContext2DState): void;
 	canvasStroke(ctx: CanvasRenderingContext2DState): void;
 	canvasSave(ctx: CanvasRenderingContext2DState): void;
