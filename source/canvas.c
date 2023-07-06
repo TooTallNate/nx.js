@@ -42,6 +42,25 @@ static int js_validate_doubles_args(JSContext *ctx, JSValueConst *argv, double *
     return result;
 }
 
+static void js_set_fill_rule(JSContext *ctx, JSValueConst fill_rule, cairo_t *cctx)
+{
+    cairo_fill_rule_t rule = CAIRO_FILL_RULE_WINDING;
+    if (JS_IsString(fill_rule))
+    {
+        const char *str = JS_ToCString(ctx, fill_rule);
+        if (!str)
+        {
+            // TODO: error handling
+        }
+        if (strcmp(str, "evenodd") == 0)
+        {
+            rule = CAIRO_FILL_RULE_EVEN_ODD;
+        }
+        JS_FreeCString(ctx, str);
+    }
+    cairo_set_fill_rule(cctx, rule);
+}
+
 static JSValue js_canvas_new_context(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     int width;
@@ -113,6 +132,7 @@ static JSValue js_canvas_close_path(JSContext *ctx, JSValueConst this_val, int a
 static JSValue js_canvas_fill(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     CANVAS_CONTEXT;
+    js_set_fill_rule(ctx, argv[1], context->ctx);
     cairo_fill(context->ctx);
     return JS_UNDEFINED;
 }
@@ -811,8 +831,21 @@ static JSValue js_canvas_fill_rect(JSContext *ctx, JSValueConst this_val, int ar
 {
     CANVAS_CONTEXT;
     RECT_ARGS;
-    cairo_rectangle(context->ctx, x, y, width, height);
-    cairo_fill(context->ctx);
+    if (width && height) {
+        cairo_rectangle(context->ctx, x, y, width, height);
+        cairo_fill(context->ctx);
+    }
+    return JS_UNDEFINED;
+}
+
+static JSValue js_canvas_stroke_rect(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    CANVAS_CONTEXT;
+    RECT_ARGS;
+    if (width && height) {
+        cairo_rectangle(context->ctx, x, y, width, height);
+        cairo_stroke(context->ctx);
+    }
     return JS_UNDEFINED;
 }
 
@@ -983,6 +1016,7 @@ static const JSCFunctionListEntry function_list[] = {
     JS_CFUNC_DEF("canvasResetTransform", 0, js_canvas_reset_transform),
     JS_CFUNC_DEF("canvasScale", 0, js_canvas_scale),
     JS_CFUNC_DEF("canvasFillRect", 0, js_canvas_fill_rect),
+    JS_CFUNC_DEF("canvasStrokeRect", 0, js_canvas_stroke_rect),
     JS_CFUNC_DEF("canvasFillText", 0, js_canvas_fill_text),
     JS_CFUNC_DEF("canvasMeasureText", 0, js_canvas_measure_text),
     JS_CFUNC_DEF("canvasGetImageData", 0, js_canvas_get_image_data),

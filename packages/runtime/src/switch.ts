@@ -204,6 +204,13 @@ export interface Native {
 		w: number,
 		h: number
 	): void;
+	canvasStrokeRect(
+		ctx: CanvasRenderingContext2DState,
+		x: number,
+		y: number,
+		w: number,
+		h: number
+	): void;
 	canvasFillText(
 		ctx: CanvasRenderingContext2DState,
 		text: string,

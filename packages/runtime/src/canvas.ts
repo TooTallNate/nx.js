@@ -555,7 +555,12 @@ export class CanvasRenderingContext2D
 	}
 
 	strokeRect(x: number, y: number, w: number, h: number): void {
-		throw new Error('Method not implemented.');
+		const i = this[INTERNAL_SYMBOL];
+		if (i.currentStyle !== i.strokeStyle) {
+			Switch.native.canvasSetSourceRgba(i.ctx, ...i.fillStyle);
+			i.currentStyle = i.strokeStyle;
+		}
+		Switch.native.canvasStrokeRect(i.ctx, x, y, w, h);
 	}
 
 	createImageData(
