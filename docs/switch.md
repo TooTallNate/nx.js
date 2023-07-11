@@ -19,11 +19,11 @@ String value of the entrypoint JavaScript file that was evaluated. If a `main.js
 
 ```ts
 // In RomFS mode
-console.log(Switch.argv);
+console.log(Switch.entrypoint);
 // romfs:/main.js
 
 // In SD card mode (assuming the `.nro` file is located at `sdmc:/switch/nxjs.nro`)
-console.log(Switch.argv);
+console.log(Switch.entrypoint);
 // sdmc:/switch/nxjs.js
 ```
 
