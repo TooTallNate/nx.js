@@ -24,7 +24,7 @@ const tileColorMax = '#3c3a33';
 export class CanvasActuator {
 	constructor() {
 		this.ctx = Switch.screen.getContext('2d');
-		this.ctx.font = '40px system-ui';
+		this.ctx.font = 'bold 40px "Clear Sans"';
 		this.gridSize = 500;
 		this.gridSpacing = 15;
 		this.tileSize = (this.gridSize - this.gridSpacing * (4 + 1)) / 4;

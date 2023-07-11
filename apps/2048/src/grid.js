@@ -1,3 +1,5 @@
+import { Tile } from './tile';
+
 export class Grid {
 	constructor(size, previousState) {
 		this.size = size;
