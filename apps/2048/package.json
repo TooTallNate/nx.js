@@ -1,0 +1,17 @@
+{
+  "name": "nxjs-example-2048",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Port of the 2048 game using nx.js",
+  "scripts": {
+    "build": "esbuild --bundle --target=es2020 src/main.js --outfile=dist/main.js"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "nxjs-constants": "0.0.11"
+  },
+  "devDependencies": {
+    "esbuild": "^0.17.18",
+    "nxjs-runtime": "^0.0.11"
+  }
+}
