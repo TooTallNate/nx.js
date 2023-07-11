@@ -10,12 +10,14 @@ import 'core-js/actual/url';
 import 'core-js/actual/url-search-params';
 import EventTarget from '@ungap/event-target';
 import { Event, ErrorEvent, UIEvent, KeyboardEvent, TouchEvent } from './event';
+import { Blob } from './polyfills/blob';
 def('EventTarget', EventTarget);
 def('Event', Event);
 def('ErrorEvent', ErrorEvent);
 def('UIEvent', UIEvent);
 def('KeyboardEvent', KeyboardEvent);
 def('TouchEvent', TouchEvent);
+def('Blob', Blob);
 
 /**
  * Credit for `TextEncoder` and `TextDecoder` goes to Sam Thorogood.
