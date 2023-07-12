@@ -64,7 +64,14 @@ export class CanvasActuator {
 		setTimeout(function () {
 			// Draw grid container
 			ctx.fillStyle = '#bbada0';
-			ctx.fillRect(self.gridX, self.gridY, self.gridSize, self.gridSize);
+			ctx.roundRect(
+				self.gridX,
+				self.gridY,
+				self.gridSize,
+				self.gridSize,
+				8
+			);
+			ctx.fill();
 
 			// Draw each cell
 			grid.cells.forEach(function (column, x) {
@@ -104,7 +111,8 @@ export class CanvasActuator {
 			fillStyle = tileColors[tile.value] || tileColorMax;
 		}
 		ctx.fillStyle = fillStyle;
-		ctx.fillRect(tileX, tileY, this.tileSize, this.tileSize);
+		ctx.roundRect(tileX, tileY, this.tileSize, this.tileSize, 6);
+		ctx.fill();
 
 		if (tile?.value) {
 			const val = String(tile.value);
@@ -167,7 +175,8 @@ export class CanvasActuator {
 		const scoreY = 100;
 
 		ctx.fillStyle = '#bbada0';
-		ctx.fillRect(scoreX, scoreY, scoreWidth, scoreHeight);
+		ctx.roundRect(scoreX, scoreY, scoreWidth, scoreHeight, 6);
+		ctx.fill();
 
 		var difference = score - this.score;
 		this.score = score;
