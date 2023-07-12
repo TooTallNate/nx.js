@@ -1,7 +1,9 @@
 import stripAnsi from 'strip-ansi';
 
 const ctx = Switch.screen.getContext('2d');
-const fontData = Switch.readFileSync(new URL('Hack-Regular.ttf', Switch.entrypoint));
+const fontData = Switch.readFileSync(
+	new URL('Hack-Regular.ttf', Switch.entrypoint)
+);
 const font = new FontFace('Hack', fontData);
 Switch.fonts.add(font);
 

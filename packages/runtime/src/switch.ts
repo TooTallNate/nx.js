@@ -72,10 +72,7 @@ export interface Native {
 	getSystemFont: () => ArrayBuffer;
 
 	// canvas
-	canvasNewContext(
-		width: number,
-		height: number
-	): CanvasRenderingContext2DState;
+	canvasNewContext(w: number, h: number): CanvasRenderingContext2DState;
 	canvasGetLineWidth(ctx: CanvasRenderingContext2DState): number;
 	canvasSetLineWidth(ctx: CanvasRenderingContext2DState, n: number): void;
 	canvasGetLineJoin(ctx: CanvasRenderingContext2DState): CanvasLineJoin;
@@ -99,7 +96,10 @@ export interface Native {
 	canvasSetMiterLimit(ctx: CanvasRenderingContext2DState, n: number): void;
 	canvasBeginPath(ctx: CanvasRenderingContext2DState): void;
 	canvasClosePath(ctx: CanvasRenderingContext2DState): void;
-	canvasClip(ctx: CanvasRenderingContext2DState, fillRule?: CanvasFillRule): void;
+	canvasClip(
+		ctx: CanvasRenderingContext2DState,
+		fillRule?: CanvasFillRule
+	): void;
 	canvasFill(ctx: CanvasRenderingContext2DState): void;
 	canvasStroke(ctx: CanvasRenderingContext2DState): void;
 	canvasSave(ctx: CanvasRenderingContext2DState): void;
