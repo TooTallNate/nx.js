@@ -30,7 +30,13 @@ export class FontFaceSet extends EventTarget {
 		}
 		for (const family of desired.family) {
 			for (const fontFace of this[INTERNAL_SYMBOL].fonts) {
-				if (family === fontFace.family) {
+				if (
+					family === fontFace.family &&
+					desired.stretch === fontFace.stretch &&
+					desired.style === fontFace.style &&
+					desired.variant === fontFace.variant &&
+					desired.weight === fontFace.weight
+				) {
 					return fontFace as FontFace;
 				}
 			}
@@ -68,24 +74,24 @@ export class FontFace implements globalThis.FontFace {
 	constructor(
 		family: string,
 		source: string | BinaryData,
-		descriptors?: FontFaceDescriptors
+		descriptors: FontFaceDescriptors = {}
 	) {
 		if (typeof source === 'string') {
 			throw new Error('Font `source` must be an ArrayBuffer');
 		}
 		this.family = family;
-		this.ascentOverride = descriptors?.ascentOverride ?? '';
-		this.descentOverride = descriptors?.descentOverride ?? '';
-		this.display = descriptors?.display ?? 'auto';
-		this.featureSettings = descriptors?.featureSettings ?? '';
-		this.lineGapOverride = descriptors?.lineGapOverride ?? '';
+		this.ascentOverride = descriptors.ascentOverride ?? 'normal';
+		this.descentOverride = descriptors.descentOverride ?? 'normal';
+		this.display = descriptors.display ?? 'auto';
+		this.featureSettings = descriptors.featureSettings ?? 'normal';
+		this.lineGapOverride = descriptors.lineGapOverride ?? 'normal';
 		this.loaded = Promise.resolve(this);
 		this.status = 'loaded';
-		this.stretch = descriptors?.stretch ?? '';
-		this.style = descriptors?.style ?? '';
-		this.unicodeRange = descriptors?.unicodeRange ?? '';
-		this.variant = descriptors?.variant ?? '';
-		this.weight = descriptors?.weight ?? '';
+		this.stretch = descriptors.stretch ?? 'normal';
+		this.style = descriptors.style ?? 'normal';
+		this.unicodeRange = descriptors.unicodeRange ?? '';
+		this.variant = descriptors.variant ?? 'normal';
+		this.weight = descriptors.weight ?? 'normal';
 		const buffer = source instanceof ArrayBuffer ? source : source.buffer;
 		this[INTERNAL_SYMBOL] = {
 			data: buffer,
