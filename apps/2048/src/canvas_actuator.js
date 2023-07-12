@@ -1,3 +1,5 @@
+const bgColor = '#faf8ef';
+
 // Tiles 2 and 4 are dark font
 const tileFontColorDark = '#776e65';
 
@@ -18,15 +20,37 @@ const tileColors = {
 	2048: '#edc22e',
 };
 
+const tileFontSizes = {
+	2: 60,
+	4: 60,
+	8: 60,
+	16: 60,
+};
+
 // After 2048, this color is used
 const tileColorMax = '#3c3a33';
 
 export class CanvasActuator {
 	constructor() {
+		/**
+		 * @type CanvasRenderingContext2D
+		 */
 		this.ctx = Switch.screen.getContext('2d');
-		this.ctx.font = 'bold 40px "Clear Sans"';
-		this.gridSize = 500;
-		this.gridSpacing = 15;
+
+		// Draw background
+		this.ctx.fillStyle = bgColor;
+		this.ctx.fillRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
+
+		// Draw title
+		this.ctx.fillStyle = tileFontColorDark;
+		this.ctx.font = 'bold 80px "Clear Sans"';
+		this.ctx.fillText('2048', 20, 80);
+
+		this.ctx.font = 'bold 30px "Clear Sans"';
+		this.ctx.fillText('HOW TO PLAY:', 20, 120);
+
+		this.gridSize = 600;
+		this.gridSpacing = 18;
 		this.tileSize = (this.gridSize - this.gridSpacing * (4 + 1)) / 4;
 		this.gridX = this.ctx.canvas.width / 2 - this.gridSize / 2;
 		this.gridY = this.ctx.canvas.height / 2 - this.gridSize / 2;
@@ -38,11 +62,6 @@ export class CanvasActuator {
 		const { ctx } = this;
 
 		setTimeout(function () {
-			//self.clearContainer(self.tileContainer);
-			// Clear everything
-			ctx.fillStyle = '#faf8ef';
-			ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-
 			// Draw grid container
 			ctx.fillStyle = '#bbada0';
 			ctx.fillRect(self.gridX, self.gridY, self.gridSize, self.gridSize);
@@ -54,8 +73,8 @@ export class CanvasActuator {
 				});
 			});
 
-			////self.updateScore(metadata.score);
-			////self.updateBestScore(metadata.bestScore);
+			self.updateScore(metadata.score);
+			//self.updateBestScore(metadata.bestScore);
 
 			//if (metadata.terminated) {
 			//	if (metadata.over) {
@@ -69,11 +88,6 @@ export class CanvasActuator {
 	// Continues the game (both restart and keep playing)
 	continueGame() {
 		this.clearMessage();
-	}
-	clearContainer(container) {
-		while (container.firstChild) {
-			container.removeChild(container.firstChild);
-		}
 	}
 	addTile(tile, x, y) {
 		const { ctx } = this;
@@ -94,9 +108,11 @@ export class CanvasActuator {
 
 		if (tile?.value) {
 			const val = String(tile.value);
-			const m = ctx.measureText(val);
+			const fontSize = tileFontSizes[tile.value] ?? 60;
+			ctx.font = `bold ${fontSize}px "Clear Sans"`;
 			ctx.fillStyle =
 				tile.value > 4 ? tileFontColorLight : tileFontColorDark;
+			const m = ctx.measureText(val);
 			ctx.fillText(
 				val,
 				tileX + this.tileSize / 2 - m.width / 2,
@@ -143,31 +159,31 @@ export class CanvasActuator {
 		// Put the tile on the board
 		//this.tileContainer.appendChild(wrapper);
 	}
-	applyClasses(element, classes) {
-		element.setAttribute('class', classes.join(' '));
-	}
-	normalizePosition(position) {
-		return { x: position.x + 1, y: position.y + 1 };
-	}
-	positionClass(position) {
-		position = this.normalizePosition(position);
-		return 'tile-position-' + position.x + '-' + position.y;
-	}
 	updateScore(score) {
-		this.clearContainer(this.scoreContainer);
+		const { ctx } = this;
+		const scoreWidth = 200;
+		const scoreHeight = 100;
+		const scoreX = 1280 - scoreWidth;
+		const scoreY = 100;
+
+		ctx.fillStyle = '#bbada0';
+		ctx.fillRect(scoreX, scoreY, scoreWidth, scoreHeight);
 
 		var difference = score - this.score;
 		this.score = score;
 
-		this.scoreContainer.textContent = this.score;
+		//this.scoreContainer.textContent = this.score;
+		ctx.fillStyle = tileFontColorLight;
+		ctx.font = 'bold 30px "Clear Sans"';
+		ctx.fillText(String(this.score), scoreX, scoreY + 30);
 
-		if (difference > 0) {
-			var addition = document.createElement('div');
-			addition.classList.add('score-addition');
-			addition.textContent = '+' + difference;
+		//if (difference > 0) {
+		//	var addition = document.createElement('div');
+		//	addition.classList.add('score-addition');
+		//	addition.textContent = '+' + difference;
 
-			this.scoreContainer.appendChild(addition);
-		}
+		//	this.scoreContainer.appendChild(addition);
+		//}
 	}
 	updateBestScore(bestScore) {
 		this.bestContainer.textContent = bestScore;
@@ -182,7 +198,7 @@ export class CanvasActuator {
 	}
 	clearMessage() {
 		// IE only takes one value to remove at a time.
-		this.messageContainer.classList.remove('game-won');
-		this.messageContainer.classList.remove('game-over');
+		//this.messageContainer.classList.remove('game-won');
+		//this.messageContainer.classList.remove('game-over');
 	}
 }

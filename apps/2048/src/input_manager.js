@@ -1,11 +1,10 @@
+import { Hid } from 'nxjs-constants';
+
+const { Button } = Hid;
+
 export class InputManager {
 	constructor() {
 		this.events = {};
-
-		this.eventTouchstart = 'touchstart';
-		this.eventTouchmove = 'touchmove';
-		this.eventTouchend = 'touchend';
-
 		this.listen();
 	}
 	on(event, callback) {
@@ -66,9 +65,7 @@ export class InputManager {
 
 		// Respond to swipe events
 		var touchStartClientX, touchStartClientY;
-		var gameContainer = Switch;
-
-		gameContainer.addEventListener(this.eventTouchstart, function (event) {
+		Switch.addEventListener('touchstart', function (event) {
 			if (event.touches.length > 1) {
 				return; // Ignore if touching with more than 1 finger
 			}
@@ -79,11 +76,11 @@ export class InputManager {
 			event.preventDefault();
 		});
 
-		gameContainer.addEventListener(this.eventTouchmove, function (event) {
+		Switch.addEventListener('touchmove', function (event) {
 			event.preventDefault();
 		});
 
-		gameContainer.addEventListener(this.eventTouchend, function (event) {
+		Switch.addEventListener('touchend', function (event) {
 			if (event.touches.length > 0) {
 				return; // Ignore if still touching with one or more fingers
 			}
@@ -103,6 +100,18 @@ export class InputManager {
 					'move',
 					absDx > absDy ? (dx > 0 ? 1 : 3) : dy > 0 ? 2 : 0
 				);
+			}
+		});
+
+		Switch.addEventListener('buttondown', (event) => {
+			if (event.detail & Button.AnyLeft) {
+				self.emit('move', 3);
+			} else if (event.detail & Button.AnyRight) {
+				self.emit('move', 1);
+			} else if (event.detail & Button.AnyUp) {
+				self.emit('move', 0);
+			} else if (event.detail & Button.AnyDown) {
+				self.emit('move', 2);
 			}
 		});
 	}
