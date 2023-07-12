@@ -44,10 +44,18 @@ export class CanvasActuator {
 		// Draw title
 		this.ctx.fillStyle = tileFontColorDark;
 		this.ctx.font = 'bold 80px "Clear Sans"';
-		this.ctx.fillText('2048', 20, 80);
+		this.ctx.fillText('2048', 60, 80);
 
 		this.ctx.font = 'bold 30px "Clear Sans"';
-		this.ctx.fillText('HOW TO PLAY:', 20, 120);
+		this.ctx.fillText('HOW TO PLAY:', 60, 140);
+
+		this.ctx.font = '24px "Clear Sans"';
+		this.ctx.fillText('Use the D-pad or swipe the', 20, 190);
+		this.ctx.fillText('screen to move the tiles.', 20, 220);
+		this.ctx.fillText('Tiles with the same', 20, 270);
+		this.ctx.fillText('number merge into one', 20, 300);
+		this.ctx.fillText('when they touch.', 20, 330);
+		this.ctx.fillText('Add them up to reach 2048!', 20, 380);
 
 		this.gridSize = 600;
 		this.gridSpacing = 18;
