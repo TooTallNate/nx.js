@@ -1,10 +1,12 @@
+import { ease, easeIn, easeInOut } from './easings';
+
 const bgColor = '#faf8ef';
+const gridContainerColor = '#bbada0';
 
-// Tiles 2 and 4 are dark font
-const tileFontColorDark = '#776e65';
+const fontColorDark = '#776e65';
+const fontColorLight = '#f9f6f2';
 
-// Every other tile is light
-const tileFontColorLight = '#f9f6f2';
+const emptyTileColor = 'rgba(238, 228, 218, 0.35)';
 
 const tileColors = {
 	2: '#eee4da',
@@ -30,8 +32,12 @@ const tileFontSizes = {
 // After 2048, this color is used
 const tileColorMax = '#3c3a33';
 
+const tileMoveDuration = 100;
+
 export class CanvasActuator {
 	constructor() {
+		this.lastUpdateAt = 0;
+
 		/**
 		 * @type CanvasRenderingContext2D
 		 */
@@ -42,7 +48,7 @@ export class CanvasActuator {
 		this.ctx.fillRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
 
 		// Draw title
-		this.ctx.fillStyle = tileFontColorDark;
+		this.ctx.fillStyle = fontColorDark;
 		this.ctx.font = 'bold 80px "Clear Sans"';
 		this.ctx.fillText('2048', 60, 80);
 
@@ -64,117 +70,144 @@ export class CanvasActuator {
 		this.gridY = this.ctx.canvas.height / 2 - this.gridSize / 2;
 
 		this.score = 0;
+
+		this.updateGridContainer = this.updateGridContainer.bind(this);
 	}
+
 	actuate(grid, metadata) {
-		var self = this;
-		const { ctx } = this;
+		this.lastUpdateAt = Date.now();
+		clearTimeout(this.updateGridContainerTimeoutId);
+		this.updateGridContainer(grid, metadata);
+		this.updateScore(metadata.score);
+		//this.updateBestScore(metadata.bestScore);
 
-		setTimeout(function () {
-			// Draw grid container
-			ctx.fillStyle = '#bbada0';
-			ctx.roundRect(
-				self.gridX,
-				self.gridY,
-				self.gridSize,
-				self.gridSize,
-				8
-			);
-			ctx.fill();
-
-			// Draw each cell
-			grid.cells.forEach(function (column, x) {
-				column.forEach(function (cell, y) {
-					self.addTile(cell, x, y);
-				});
-			});
-
-			self.updateScore(metadata.score);
-			//self.updateBestScore(metadata.bestScore);
-
-			//if (metadata.terminated) {
-			//	if (metadata.over) {
-			//		self.message(false); // You lose
-			//	} else if (metadata.won) {
-			//		self.message(true); // You win!
-			//	}
-			//}
-		}, 0);
+		if (metadata.terminated) {
+			if (metadata.over) {
+				this.message(false); // You lose
+			} else if (metadata.won) {
+				this.message(true); // You win!
+			}
+		}
 	}
+
+	updateGridContainer(grid) {
+		const delta = Date.now() - this.lastUpdateAt;
+
+		this.drawGridContainer(grid);
+
+		// Draw active cells
+		for (let x = 0; x < grid.size; x++) {
+			for (let y = 0; y < grid.size; y++) {
+				const tile = grid.cells[x][y];
+				if (tile) this.addTile(tile, delta);
+			}
+		}
+
+		if (delta < tileMoveDuration) {
+			this.updateGridContainerTimeoutId = setTimeout(
+				this.updateGridContainer,
+				0,
+				grid
+			);
+		}
+	}
+
+	drawGridContainer(grid) {
+		// Draw grid container
+		this.ctx.fillStyle = gridContainerColor;
+		this.ctx.roundRect(
+			this.gridX,
+			this.gridY,
+			this.gridSize,
+			this.gridSize,
+			8
+		);
+		this.ctx.fill();
+
+		// Draw empty cells
+		for (let x = 0; x < grid.size; x++) {
+			for (let y = 0; y < grid.size; y++) {
+				const tilePos = this.tilePosition(x, y);
+				this.drawTile(null, tilePos.x, tilePos.y);
+			}
+		}
+	}
+
 	// Continues the game (both restart and keep playing)
 	continueGame() {
 		this.clearMessage();
 	}
-	addTile(tile, x, y) {
+
+	tilePosition(x, y) {
+		return {
+			x:
+				this.gridX +
+				this.gridSpacing +
+				x * (this.tileSize + this.gridSpacing),
+			y:
+				this.gridY +
+				this.gridSpacing +
+				y * (this.tileSize + this.gridSpacing),
+		};
+	}
+
+	addTile(tile, delta) {
+		if (tile.previousPosition) {
+			// Render the (potentially) moving tile at its current location
+			const oldPos = this.tilePosition(
+				tile.previousPosition.x,
+				tile.previousPosition.y
+			);
+			const tilePos = this.tilePosition(tile.x, tile.y);
+			const t = Math.min(delta / tileMoveDuration, 1);
+			const e = easeInOut(t);
+			const dx = tilePos.x - oldPos.x;
+			const dy = tilePos.y - oldPos.y;
+			const x = oldPos.x + dx * e.y;
+			const y = oldPos.y + dy * e.y;
+			this.drawTile(tile, x, y);
+		} else if (tile.mergedFrom) {
+			const t = Math.min(delta / tileMoveDuration, 1);
+			if (t === 1) {
+				// TODO: make it "pop"
+				const tilePos = this.tilePosition(tile.x, tile.y);
+				this.drawTile(tile, tilePos.x, tilePos.y);
+			} else {
+				// Render the tiles that merged
+				for (const mergedTile of tile.mergedFrom) {
+					this.addTile(mergedTile, delta);
+				}
+			}
+		} else {
+			const tilePos = this.tilePosition(tile.x, tile.y);
+			this.drawTile(tile, tilePos.x, tilePos.y);
+		}
+	}
+
+	drawTile(tile, x, y) {
 		const { ctx } = this;
-		const tileX =
-			this.gridX +
-			this.gridSpacing +
-			x * (this.tileSize + this.gridSpacing);
-		const tileY =
-			this.gridY +
-			this.gridSpacing +
-			y * (this.tileSize + this.gridSpacing);
-		let fillStyle = 'rgba(238, 228, 218, 0.35)';
+		let fillStyle = emptyTileColor;
 		if (tile?.value) {
 			fillStyle = tileColors[tile.value] || tileColorMax;
 		}
 		ctx.fillStyle = fillStyle;
-		ctx.roundRect(tileX, tileY, this.tileSize, this.tileSize, 6);
+		ctx.roundRect(x, y, this.tileSize, this.tileSize, 6);
 		ctx.fill();
 
 		if (tile?.value) {
 			const val = String(tile.value);
 			const fontSize = tileFontSizes[tile.value] ?? 60;
 			ctx.font = `bold ${fontSize}px "Clear Sans"`;
-			ctx.fillStyle =
-				tile.value > 4 ? tileFontColorLight : tileFontColorDark;
+			ctx.fillStyle = tile.value > 4 ? fontColorLight : fontColorDark;
 			const m = ctx.measureText(val);
 			ctx.fillText(
 				val,
-				tileX + this.tileSize / 2 - m.width / 2,
-				tileY + this.tileSize / 2 + m.height / 2
+				x + this.tileSize / 2 - m.width / 2,
+				y + this.tileSize / 2 + m.height / 2
 			);
 		}
-		//var wrapper = document.createElement('div');
-		//var inner = document.createElement('div');
-		//var position = tile.previousPosition || { x: tile.x, y: tile.y };
-		//var positionClass = this.positionClass(position);
-
-		// We can't use classlist because it somehow glitches when replacing classes
-		//var classes = ['tile', 'tile-' + tile.value, positionClass];
-
-		//if (tile.value > 2048) classes.push('tile-super');
-
-		//this.applyClasses(wrapper, classes);
-
-		//inner.classList.add('tile-inner');
-		//inner.textContent = tile.value;
-
-		//if (tile.previousPosition) {
-		//	// Make sure that the tile gets rendered in the previous position first
-		//	setTimeout(function () {
-		//		classes[2] = self.positionClass({ x: tile.x, y: tile.y });
-		//		self.applyClasses(wrapper, classes); // Update the position
-		//	}, 0);
-		//} else if (tile.mergedFrom) {
-		//	classes.push('tile-merged');
-		//	this.applyClasses(wrapper, classes);
-
-		//	// Render the tiles that merged
-		//	tile.mergedFrom.forEach(function (merged) {
-		//		self.addTile(merged);
-		//	});
-		//} else {
-		//	classes.push('tile-new');
-		//	this.applyClasses(wrapper, classes);
-		//}
-
-		// Add the inner part of the tile to the wrapper
-		//wrapper.appendChild(inner);
-
-		// Put the tile on the board
-		//this.tileContainer.appendChild(wrapper);
 	}
+
 	updateScore(score) {
 		const { ctx } = this;
 		const scoreWidth = 200;
@@ -189,8 +222,7 @@ export class CanvasActuator {
 		var difference = score - this.score;
 		this.score = score;
 
-		//this.scoreContainer.textContent = this.score;
-		ctx.fillStyle = tileFontColorLight;
+		ctx.fillStyle = fontColorLight;
 		ctx.font = 'bold 30px "Clear Sans"';
 		ctx.fillText(String(this.score), scoreX, scoreY + 30);
 
@@ -202,17 +234,15 @@ export class CanvasActuator {
 		//	this.scoreContainer.appendChild(addition);
 		//}
 	}
+
 	updateBestScore(bestScore) {
 		this.bestContainer.textContent = bestScore;
 	}
-	message(won) {
-		var type = won ? 'game-won' : 'game-over';
-		var message = won ? 'You win!' : 'Game over!';
 
-		this.messageContainer.classList.add(type);
-		this.messageContainer.getElementsByTagName('p')[0].textContent =
-			message;
+	message(won) {
+		const message = won ? 'You win!' : 'Game over!';
 	}
+
 	clearMessage() {
 		// IE only takes one value to remove at a time.
 		//this.messageContainer.classList.remove('game-won');
