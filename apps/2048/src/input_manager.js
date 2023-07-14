@@ -123,9 +123,4 @@ export class InputManager {
 		event.preventDefault();
 		this.emit('keepPlaying');
 	}
-	//bindButtonPress(selector, fn) {
-	//    var button = document.querySelector(selector);
-	//    button.addEventListener("click", fn.bind(this));
-	//    button.addEventListener(this.eventTouchend, fn.bind(this));
-	//}
 }

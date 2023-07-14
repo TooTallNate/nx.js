@@ -33,6 +33,9 @@ const tileFontSizes = {
 const tileColorMax = '#3c3a33';
 
 const tileMoveDuration = 100;
+const scoreAnimationDuration = 600;
+
+const scoreDiffMeasureCache = new Map();
 
 export class CanvasActuator {
 	constructor() {
@@ -68,10 +71,15 @@ export class CanvasActuator {
 		this.tileSize = (this.gridSize - this.gridSpacing * (4 + 1)) / 4;
 		this.gridX = this.ctx.canvas.width / 2 - this.gridSize / 2;
 		this.gridY = this.ctx.canvas.height / 2 - this.gridSize / 2;
+		this.sidebarWidth = (this.ctx.canvas.width - this.gridSize) / 2;
+		this.scoreBoxWidth = this.sidebarWidth * 0.5;
+		this.scoreBoxHeight = 100;
 
 		this.score = 0;
+		this.scoreAnimations = new Map();
 
 		this.updateGridContainer = this.updateGridContainer.bind(this);
+		this.drawScore = this.drawScore.bind(this);
 	}
 
 	actuate(grid, metadata) {
@@ -80,17 +88,9 @@ export class CanvasActuator {
 		this.updateGridContainer(grid, metadata);
 		this.updateScore(metadata.score);
 		//this.updateBestScore(metadata.bestScore);
-
-		if (metadata.terminated) {
-			if (metadata.over) {
-				this.message(false); // You lose
-			} else if (metadata.won) {
-				this.message(true); // You win!
-			}
-		}
 	}
 
-	updateGridContainer(grid) {
+	updateGridContainer(grid, metadata) {
 		const delta = Date.now() - this.lastUpdateAt;
 
 		this.drawGridContainer(grid);
@@ -103,11 +103,20 @@ export class CanvasActuator {
 			}
 		}
 
+		if (metadata.terminated) {
+			if (metadata.over) {
+				this.message(false); // You lose
+			} else if (metadata.won) {
+				this.message(true); // You win!
+			}
+		}
+
 		if (delta < tileMoveDuration) {
 			this.updateGridContainerTimeoutId = setTimeout(
 				this.updateGridContainer,
 				0,
-				grid
+				grid,
+				metadata
 			);
 		}
 	}
@@ -169,6 +178,7 @@ export class CanvasActuator {
 		} else if (tile.mergedFrom) {
 			const t = Math.min(delta / tileMoveDuration, 1);
 			if (t === 1) {
+				// Movement animation completed, so render the merged cell
 				// TODO: make it "pop"
 				const tilePos = this.tilePosition(tile.x, tile.y);
 				this.drawTile(tile, tilePos.x, tilePos.y);
@@ -179,6 +189,7 @@ export class CanvasActuator {
 				}
 			}
 		} else {
+			// TODO: "appear" animation, delayed by 100ms
 			const tilePos = this.tilePosition(tile.x, tile.y);
 			this.drawTile(tile, tilePos.x, tilePos.y);
 		}
@@ -209,30 +220,66 @@ export class CanvasActuator {
 	}
 
 	updateScore(score) {
+		const difference = score - this.score;
+		this.score = score;
+		if (difference > 0) {
+			this.scoreAnimations.set(Date.now(), difference);
+		}
+		this.drawScore();
+	}
+
+	drawScore() {
 		const { ctx } = this;
-		const scoreWidth = 200;
-		const scoreHeight = 100;
-		const scoreX = 1280 - scoreWidth;
-		const scoreY = 100;
+		const scoreWidth = this.scoreBoxWidth;
+		const scoreHeight = this.scoreBoxHeight;
+		const scoreX =
+			ctx.canvas.width - this.sidebarWidth + this.scoreBoxWidth / 2;
+		const scoreY = 80;
+
+		ctx.fillStyle = bgColor;
+		//ctx.fillStyle = 'red';
+		ctx.fillRect(scoreX, scoreY - 80, scoreWidth, scoreHeight + 80);
 
 		ctx.fillStyle = '#bbada0';
 		ctx.roundRect(scoreX, scoreY, scoreWidth, scoreHeight, 6);
 		ctx.fill();
 
-		var difference = score - this.score;
-		this.score = score;
-
 		ctx.fillStyle = fontColorLight;
-		ctx.font = 'bold 30px "Clear Sans"';
-		ctx.fillText(String(this.score), scoreX, scoreY + 30);
+		ctx.font = 'bold 36px "Clear Sans"';
+		const scoreStr = String(this.score);
+		const scoreMeasure = ctx.measureText(scoreStr);
+		const scoreTextX = scoreX + (scoreWidth / 2 - scoreMeasure.width / 2);
+		const scoreTextY = scoreY + (scoreHeight / 2 + scoreMeasure.height / 2);
+		ctx.fillText(scoreStr, scoreTextX, scoreTextY);
 
-		//if (difference > 0) {
-		//	var addition = document.createElement('div');
-		//	addition.classList.add('score-addition');
-		//	addition.textContent = '+' + difference;
+		const now = Date.now();
 
-		//	this.scoreContainer.appendChild(addition);
-		//}
+		for (const [startedAt, difference] of this.scoreAnimations.entries()) {
+			const diff = now - startedAt;
+			const t = Math.min(diff / scoreAnimationDuration, 1);
+			const e = easeIn(t);
+			ctx.save();
+			ctx.fillStyle = `rgba(119, 110, 101, ${1 - e.y})`;
+			ctx.font = 'bold 30px sans-serif';
+			const scoreDiff = `+${difference}`;
+			let scoreDiffMeasure = scoreDiffMeasureCache.get(scoreDiff);
+			if (!scoreDiffMeasure) {
+				scoreDiffMeasure = ctx.measureText(scoreDiff);
+				scoreDiffMeasureCache.get(scoreDiff, scoreDiffMeasure);
+			}
+			const y = scoreTextY - scoreHeight * e.y;
+			const scoreTextX =
+				scoreX + (scoreWidth / 2 - scoreDiffMeasure.width / 2);
+			ctx.fillText(scoreDiff, scoreTextX, y);
+			ctx.restore();
+			if (t === 1) {
+				this.scoreAnimations.delete(startedAt);
+			}
+		}
+
+		if (this.scoreAnimations.size > 0) {
+			setTimeout(this.drawScore, 0);
+		}
 	}
 
 	updateBestScore(bestScore) {
