@@ -34,6 +34,7 @@ const tileColorMax = '#3c3a33';
 
 const tileMoveDuration = 100;
 const scoreAnimationDuration = 600;
+const messageFadeAnimationDuration = 800;
 
 const scoreDiffMeasureCache = new Map();
 
@@ -103,15 +104,18 @@ export class CanvasActuator {
 			}
 		}
 
+		let animationDuration = tileMoveDuration;
+
 		if (metadata.terminated) {
+			animationDuration = messageFadeAnimationDuration;
 			if (metadata.over) {
-				this.message(false); // You lose
+				this.message(false, delta); // You lose
 			} else if (metadata.won) {
-				this.message(true); // You win!
+				this.message(true, delta); // You win!
 			}
 		}
 
-		if (delta < tileMoveDuration) {
+		if (delta < animationDuration) {
 			this.updateGridContainerTimeoutId = setTimeout(
 				this.updateGridContainer,
 				0,
@@ -258,9 +262,7 @@ export class CanvasActuator {
 			const diff = now - startedAt;
 			const t = Math.min(diff / scoreAnimationDuration, 1);
 			const e = easeIn(t);
-			ctx.save();
 			ctx.fillStyle = `rgba(119, 110, 101, ${1 - e.y})`;
-			ctx.font = 'bold 30px sans-serif';
 			const scoreDiff = `+${difference}`;
 			let scoreDiffMeasure = scoreDiffMeasureCache.get(scoreDiff);
 			if (!scoreDiffMeasure) {
@@ -271,7 +273,6 @@ export class CanvasActuator {
 			const scoreTextX =
 				scoreX + (scoreWidth / 2 - scoreDiffMeasure.width / 2);
 			ctx.fillText(scoreDiff, scoreTextX, y);
-			ctx.restore();
 			if (t === 1) {
 				this.scoreAnimations.delete(startedAt);
 			}
@@ -282,12 +283,31 @@ export class CanvasActuator {
 		}
 	}
 
-	updateBestScore(bestScore) {
-		this.bestContainer.textContent = bestScore;
-	}
+	//updateBestScore(bestScore) {
+	//	this.bestContainer.textContent = bestScore;
+	//}
 
-	message(won) {
+	message(won, delta) {
+		const t = Math.min(delta / messageFadeAnimationDuration, 1);
+		const e = ease(t);
+
+		this.ctx.fillStyle = `rgba(255, 255, 255, ${e.y / 2})`;
+		this.ctx.roundRect(
+			this.gridX,
+			this.gridY,
+			this.gridSize,
+			this.gridSize,
+			8
+		);
+		this.ctx.fill();
+
+		this.ctx.font = 'bold 64px "Clear Sans"';
+		this.ctx.fillStyle = `rgba(119, 110, 101, ${e.y})`;
 		const message = won ? 'You win!' : 'Game over!';
+		const m = this.ctx.measureText(message);
+		const x = this.gridX + (this.gridSize / 2 - m.width / 2);
+		const y = this.gridY + (this.gridSize / 2 + m.height / 2);
+		this.ctx.fillText(message, x, y);
 	}
 
 	clearMessage() {
