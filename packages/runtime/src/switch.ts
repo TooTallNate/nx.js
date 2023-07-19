@@ -64,6 +64,7 @@ export interface Native {
 	readFile: (cb: Callback<ArrayBuffer>, path: string) => void;
 	readDirSync: (path: string) => string[];
 	readFileSync: (path: string) => ArrayBuffer;
+	writeFileSync: (path: string, data: ArrayBuffer) => void;
 	remove: (cb: Callback<void>, path: string) => void;
 	stat: (cb: Callback<Stats>, path: string) => void;
 
@@ -459,6 +460,15 @@ export class Switch extends EventTarget {
 	 */
 	readFileSync(path: PathLike) {
 		return this.native.readFileSync(String(path));
+	}
+
+	/**
+	 * Synchronously writes the contents of `data` to the file at `path`.
+	 */
+	writeFileSync(path: PathLike, data: string | BufferSource) {
+		const d = typeof data === 'string' ? encoder.encode(data) : data;
+		const ab = bufferSourceToArrayBuffer(d);
+		return this.native.writeFileSync(String(path), ab);
 	}
 
 	/**

@@ -184,11 +184,45 @@ JSValue nx_read_file_sync(JSContext *ctx, JSValueConst this_val, int argc, JSVal
     {
         JS_FreeCString(ctx, filename);
         js_free(ctx, buffer);
-        JS_ThrowTypeError(ctx, "Failed to read entire file. Got %lu, expected %lu", result, result);
+        JS_ThrowTypeError(ctx, "Failed to read entire file. Got %lu, expected %lu", result, size);
         return JS_EXCEPTION;
     }
 
     return JS_NewArrayBuffer(ctx, buffer, size, free_js_array_buffer, NULL, false);
+}
+
+JSValue nx_write_file_sync(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    const char *filename = JS_ToCString(ctx, argv[0]);
+    FILE *file = fopen(filename, "w");
+    if (file == NULL)
+    {
+        JS_ThrowTypeError(ctx, "%s: %s", strerror(errno), filename);
+        JS_FreeCString(ctx, filename);
+        return JS_EXCEPTION;
+    }
+
+    size_t size;
+    uint8_t *buffer = JS_GetArrayBuffer(ctx, &size, argv[1]);
+    if (buffer == NULL)
+    {
+        JS_FreeCString(ctx, filename);
+        fclose(file);
+        JS_ThrowOutOfMemory(ctx);
+        return JS_EXCEPTION;
+    }
+
+    size_t result = fwrite(buffer, 1, size, file);
+    fclose(file);
+
+    if (result != size)
+    {
+        JS_FreeCString(ctx, filename);
+        JS_ThrowTypeError(ctx, "Failed to write entire file. Got %lu, expected %lu", result, result);
+        return JS_EXCEPTION;
+    }
+
+    return JS_UNDEFINED;
 }
 
 void nx_stat_do(nx_work_t *req)
@@ -265,6 +299,7 @@ static const JSCFunctionListEntry function_list[] = {
     JS_CFUNC_DEF("readFile", 2, nx_read_file),
     JS_CFUNC_DEF("readDirSync", 1, nx_readdir_sync),
     JS_CFUNC_DEF("readFileSync", 1, nx_read_file_sync),
+    JS_CFUNC_DEF("writeFileSync", 1, nx_write_file_sync),
     JS_CFUNC_DEF("stat", 2, nx_stat),
     JS_CFUNC_DEF("remove", 2, nx_remove)};
 
