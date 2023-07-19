@@ -3,69 +3,14 @@ import { Hid } from 'nxjs-constants';
 const { Button } = Hid;
 
 export class InputManager {
-	constructor() {
-		this.events = {};
+	constructor(gameManager) {
+		this.gameManager = gameManager;
 		this.listen();
 	}
-	on(event, callback) {
-		if (!this.events[event]) {
-			this.events[event] = [];
-		}
-		this.events[event].push(callback);
-	}
-	emit(event, data) {
-		var callbacks = this.events[event];
-		if (callbacks) {
-			callbacks.forEach(function (callback) {
-				callback(data);
-			});
-		}
-	}
 	listen() {
-		var self = this;
-
-		//var map = {
-		//    38: 0,
-		//    39: 1,
-		//    40: 2,
-		//    37: 3,
-		//    75: 0,
-		//    76: 1,
-		//    74: 2,
-		//    72: 3,
-		//    87: 0,
-		//    68: 1,
-		//    83: 2,
-		//    65: 3 // A
-		//};
-
-		//// Respond to direction keys
-		//document.addEventListener("keydown", function (event) {
-		//    var modifiers = event.altKey || event.ctrlKey || event.metaKey ||
-		//        event.shiftKey;
-		//    var mapped = map[event.which];
-
-		//    if (!modifiers) {
-		//        if (mapped !== undefined) {
-		//            event.preventDefault();
-		//            self.emit("move", mapped);
-		//        }
-		//    }
-
-		//    // R key restarts the game
-		//    if (!modifiers && event.which === 82) {
-		//        self.restart.call(self, event);
-		//    }
-		//});
-
-		// Respond to button presses
-		//this.bindButtonPress(".retry-button", this.restart);
-		//this.bindButtonPress(".restart-button", this.restart);
-		//this.bindButtonPress(".keep-playing-button", this.keepPlaying);
-
 		// Respond to swipe events
 		var touchStartClientX, touchStartClientY;
-		Switch.addEventListener('touchstart', function (event) {
+		Switch.addEventListener('touchstart', (event) => {
 			if (event.touches.length > 1) {
 				return; // Ignore if touching with more than 1 finger
 			}
@@ -76,11 +21,11 @@ export class InputManager {
 			event.preventDefault();
 		});
 
-		Switch.addEventListener('touchmove', function (event) {
+		Switch.addEventListener('touchmove', (event) => {
 			event.preventDefault();
 		});
 
-		Switch.addEventListener('touchend', function (event) {
+		Switch.addEventListener('touchend', (event) => {
 			if (event.touches.length > 0) {
 				return; // Ignore if still touching with one or more fingers
 			}
@@ -96,8 +41,7 @@ export class InputManager {
 
 			if (Math.max(absDx, absDy) > 10) {
 				// (right : left) : (down : up)
-				self.emit(
-					'move',
+				this.gameManager.move(
 					absDx > absDy ? (dx > 0 ? 1 : 3) : dy > 0 ? 2 : 0
 				);
 			}
@@ -105,22 +49,21 @@ export class InputManager {
 
 		Switch.addEventListener('buttondown', (event) => {
 			if (event.detail & Button.AnyLeft) {
-				self.emit('move', 3);
+				this.gameManager.move(3);
 			} else if (event.detail & Button.AnyRight) {
-				self.emit('move', 1);
+				this.gameManager.move(1);
 			} else if (event.detail & Button.AnyUp) {
-				self.emit('move', 0);
+				this.gameManager.move(0);
 			} else if (event.detail & Button.AnyDown) {
-				self.emit('move', 2);
+				this.gameManager.move(2);
+			} else if (event.detail & Button.Minus) {
+				this.gameManager.restart();
+			} else if (this.gameManager.won && !this.gameManager.keepPlaying) {
+				if (event.detail & Button.Plus) {
+					event.preventDefault();
+					this.gameManager.continueGame();
+				}
 			}
 		});
-	}
-	restart(event) {
-		event.preventDefault();
-		this.emit('restart');
-	}
-	keepPlaying(event) {
-		event.preventDefault();
-		this.emit('keepPlaying');
 	}
 }

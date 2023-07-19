@@ -4,15 +4,11 @@ import { Tile } from './tile';
 export class GameManager {
 	constructor(size, InputManager, Actuator, StorageManager) {
 		this.size = size; // Size of the grid
-		this.inputManager = new InputManager();
+		this.inputManager = new InputManager(this);
 		this.storageManager = new StorageManager();
 		this.actuator = new Actuator();
 
 		this.startTiles = 2;
-
-		this.inputManager.on('move', this.move.bind(this));
-		this.inputManager.on('restart', this.restart.bind(this));
-		this.inputManager.on('keepPlaying', this.keepPlaying.bind(this));
 
 		this.setup();
 	}
@@ -23,9 +19,10 @@ export class GameManager {
 		this.setup();
 	}
 	// Keep playing after winning (allows going over 2048)
-	keepPlaying() {
+	continueGame() {
 		this.keepPlaying = true;
 		this.actuator.continueGame(); // Clear the game won/lost message
+		this.actuate();
 	}
 	// Return true if the game is lost, or has won and the user hasn't kept playing
 	isGameTerminated() {

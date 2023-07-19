@@ -41,6 +41,7 @@ const scoreDiffMeasureCache = new Map();
 export class CanvasActuator {
 	constructor() {
 		this.lastUpdateAt = 0;
+		this.continueGameAt = 0;
 
 		/**
 		 * @type CanvasRenderingContext2D
@@ -106,7 +107,7 @@ export class CanvasActuator {
 
 		let animationDuration = tileMoveDuration;
 
-		if (metadata.terminated) {
+		if (metadata.terminated && this.continueGameAt === 0) {
 			animationDuration = messageFadeAnimationDuration;
 			if (metadata.over) {
 				this.message(false, delta); // You lose
@@ -148,7 +149,7 @@ export class CanvasActuator {
 
 	// Continues the game (both restart and keep playing)
 	continueGame() {
-		this.clearMessage();
+		this.continueGameAt = Date.now();
 	}
 
 	tilePosition(x, y) {
@@ -241,7 +242,6 @@ export class CanvasActuator {
 		const scoreY = 80;
 
 		ctx.fillStyle = bgColor;
-		//ctx.fillStyle = 'red';
 		ctx.fillRect(scoreX, scoreY - 80, scoreWidth, scoreHeight + 80);
 
 		ctx.fillStyle = '#bbada0';
@@ -253,7 +253,7 @@ export class CanvasActuator {
 		const scoreStr = String(this.score);
 		const scoreMeasure = ctx.measureText(scoreStr);
 		const scoreTextX = scoreX + (scoreWidth / 2 - scoreMeasure.width / 2);
-		const scoreTextY = scoreY + (scoreHeight / 2 + scoreMeasure.height / 2);
+		const scoreTextY = 10 + scoreY + (scoreHeight / 2 + scoreMeasure.height / 2);
 		ctx.fillText(scoreStr, scoreTextX, scoreTextY);
 
 		const now = Date.now();
@@ -308,11 +308,5 @@ export class CanvasActuator {
 		const x = this.gridX + (this.gridSize / 2 - m.width / 2);
 		const y = this.gridY + (this.gridSize / 2 + m.height / 2);
 		this.ctx.fillText(message, x, y);
-	}
-
-	clearMessage() {
-		// IE only takes one value to remove at a time.
-		//this.messageContainer.classList.remove('game-won');
-		//this.messageContainer.classList.remove('game-over');
 	}
 }

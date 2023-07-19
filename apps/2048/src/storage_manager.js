@@ -1,59 +1,43 @@
-const fakeStorage = {
-	_data: {},
-
-	setItem: function (id, val) {
-		return (this._data[id] = String(val));
-	},
-
-	getItem: function (id) {
-		return this._data.hasOwnProperty(id) ? this._data[id] : undefined;
-	},
-
-	removeItem: function (id) {
-		return delete this._data[id];
-	},
-
-	clear: function () {
-		return (this._data = {});
-	},
-};
+const stateUrl = new URL('2048_state.json', Switch.argv[0]);
 
 export class StorageManager {
 	constructor() {
-		this.bestScoreKey = 'bestScore';
-		this.gameStateKey = 'gameState';
-
-		var supported = this.localStorageSupported();
-		this.storage = supported ? window.localStorage : fakeStorage;
-	}
-	localStorageSupported() {
-		var testKey = 'test';
-
+		let saved;
 		try {
-			var storage = window.localStorage;
-			storage.setItem(testKey, '1');
-			storage.removeItem(testKey);
-			return true;
-		} catch (error) {
-			return false;
+			saved = JSON.parse(
+				new TextDecoder().decode(Switch.readFileSync(stateUrl))
+			);
+		} catch (err) {
+			// ignore
 		}
+		this.bestScore = saved?.bestScore ?? 0;
+		this.gameState = saved?.gameState ?? null;
+
+		// Store game state on the SD card upon exit
+		Switch.addEventListener('exit', this.onExit.bind(this));
 	}
 	// Best score getters/setters
 	getBestScore() {
-		return this.storage.getItem(this.bestScoreKey) || 0;
+		return this.bestScore;
 	}
 	setBestScore(score) {
-		this.storage.setItem(this.bestScoreKey, score);
+		this.bestScore = score;
 	}
 	// Game state getters/setters and clearing
 	getGameState() {
-		var stateJSON = this.storage.getItem(this.gameStateKey);
-		return stateJSON ? JSON.parse(stateJSON) : null;
+		return this.gameState;
 	}
 	setGameState(gameState) {
-		this.storage.setItem(this.gameStateKey, JSON.stringify(gameState));
+		this.gameState = gameState;
 	}
 	clearGameState() {
-		this.storage.removeItem(this.gameStateKey);
+		this.gameState = null;
+	}
+	onExit() {
+		try {
+			Switch.writeFileSync(stateUrl, JSON.stringify(this));
+		} catch (err) {
+			// ignore
+		}
 	}
 }
