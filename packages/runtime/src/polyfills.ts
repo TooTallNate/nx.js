@@ -12,7 +12,13 @@ import 'core-js/actual/url-search-params';
 import EventTarget from '@ungap/event-target';
 def('EventTarget', EventTarget);
 
-import { Event, ErrorEvent, UIEvent, KeyboardEvent, TouchEvent } from './polyfills/event';
+import {
+	Event,
+	ErrorEvent,
+	UIEvent,
+	KeyboardEvent,
+	TouchEvent,
+} from './polyfills/event';
 def('Event', Event);
 def('ErrorEvent', ErrorEvent);
 def('UIEvent', UIEvent);

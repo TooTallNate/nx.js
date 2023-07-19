@@ -253,7 +253,8 @@ export class CanvasActuator {
 		const scoreStr = String(this.score);
 		const scoreMeasure = ctx.measureText(scoreStr);
 		const scoreTextX = scoreX + (scoreWidth / 2 - scoreMeasure.width / 2);
-		const scoreTextY = 10 + scoreY + (scoreHeight / 2 + scoreMeasure.height / 2);
+		const scoreTextY =
+			10 + scoreY + (scoreHeight / 2 + scoreMeasure.height / 2);
 		ctx.fillText(scoreStr, scoreTextX, scoreTextY);
 
 		const now = Date.now();
