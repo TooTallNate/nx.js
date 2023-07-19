@@ -1,4 +1,4 @@
-import { INTERNAL_SYMBOL } from './types';
+import { INTERNAL_SYMBOL } from '../types';
 
 export class Event implements globalThis.Event {
 	static readonly NONE = 0 as const;
