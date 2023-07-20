@@ -28,6 +28,10 @@
 
 static JSClassID nx_canvas_context_class_id;
 
+static inline int min(int a, int b) {
+    return a < b ? a : b;
+}
+
 static int js_validate_doubles_args(JSContext *ctx, JSValueConst *argv, double *args, size_t count, size_t offset)
 {
     int result = 0;
@@ -891,6 +895,11 @@ static JSValue js_canvas_measure_text(JSContext *ctx, JSValueConst this_val, int
     return obj;
 }
 
+static void js_free_array_buffer(JSRuntime *rt, void *opaque, void *ptr)
+{
+    js_free_rt(rt, ptr);
+}
+
 static JSValue js_canvas_get_image_data(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     CANVAS_CONTEXT;
@@ -961,6 +970,14 @@ static JSValue js_canvas_get_image_data(JSContext *ctx, JSValueConst this_val, i
         return JS_EXCEPTION;
     }
 
+    JSValue ab = JS_NewArrayBuffer(ctx, dst, size, js_free_array_buffer, NULL, 0);
+
+    if (JS_IsException(ab))
+    {
+        js_free(ctx, dst); // Free data in case of exception
+        return ab;
+    }
+
     // Rearrange alpha (argb -> rgba), undo alpha pre-multiplication,
     // and store in big-endian format
     for (int y = 0; y < sh; ++y)
@@ -996,44 +1013,114 @@ static JSValue js_canvas_get_image_data(JSContext *ctx, JSValueConst this_val, i
         dst += dstStride;
     }
 
-    return JS_NewArrayBuffer(ctx, dst, size, NULL, NULL, 0);
+    return ab;
 }
 
 static JSValue js_canvas_put_image_data(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-    int dx;
-    int dy;
-    int dirty_x;
-    int dirty_y;
-    int dirty_width;
-    int dirty_height;
-    int cw;
-    size_t source_length;
-    size_t dest_length;
-    uint32_t *source_buffer = (uint32_t *)JS_GetArrayBuffer(ctx, &source_length, argv[0]);
-    uint32_t *dest_buffer = (uint32_t *)JS_GetArrayBuffer(ctx, &dest_length, argv[1]);
-    if (JS_ToInt32(ctx, &dx, argv[2]) ||
-        JS_ToInt32(ctx, &dy, argv[3]) ||
-        JS_ToInt32(ctx, &dirty_x, argv[4]) ||
-        JS_ToInt32(ctx, &dirty_y, argv[5]) ||
-        JS_ToInt32(ctx, &dirty_width, argv[6]) ||
-        JS_ToInt32(ctx, &dirty_height, argv[7]) ||
-        JS_ToInt32(ctx, &cw, argv[8]))
+    CANVAS_CONTEXT;
+
+    int sx, sy, sw, sh, dx, dy, image_data_width, image_data_height, rows, cols;
+
+    if (JS_ToInt32(ctx, &image_data_width, argv[2]) ||
+        JS_ToInt32(ctx, &image_data_height, argv[3]) ||
+        JS_ToInt32(ctx, &dx, argv[4]) ||
+        JS_ToInt32(ctx, &dy, argv[5]) ||
+        JS_ToInt32(ctx, &sx, argv[6]) ||
+        JS_ToInt32(ctx, &sy, argv[7]) ||
+        JS_ToInt32(ctx, &sw, argv[8]) ||
+        JS_ToInt32(ctx, &sh, argv[9]))
     {
         JS_ThrowTypeError(ctx, "invalid input");
         return JS_EXCEPTION;
     }
-    int dest_x;
-    int dest_y;
-    for (int y = dirty_y; y < dirty_height; y++)
+
+    size_t src_length;
+    uint8_t *src = JS_GetArrayBuffer(ctx, &src_length, argv[1]);
+    uint8_t *dst = context->data;
+
+    int dstStride = context->width * 4;
+    int srcStride = image_data_width * 4;
+
+    // fix up negative height, width
+    if (sw < 0)
+        sx += sw, sw = -sw;
+    if (sh < 0)
+        sy += sh, sh = -sh;
+    // clamp the left edge
+    if (sx < 0)
+        sw += sx, sx = 0;
+    if (sy < 0)
+        sh += sy, sy = 0;
+    // clamp the right edge
+    if (sx + sw > image_data_width)
+        sw = image_data_width - sx;
+    if (sy + sh > image_data_height)
+        sh = image_data_height - sy;
+    // start destination at source offset
+    dx += sx;
+    dy += sy;
+
+    // chop off outlying source data
+    if (dx < 0)
+        sw += dx, sx -= dx, dx = 0;
+    if (dy < 0)
+        sh += dy, sy -= dy, dy = 0;
+
+    // clamp width at canvas size
+    cols = min(sw, context->width - dx);
+    rows = min(sh, context->height - dy);
+
+    if (cols <= 0 || rows <= 0)
+        return JS_UNDEFINED;
+
+    src += sy * srcStride + sx * 4;
+    dst += dstStride * dy + 4 * dx;
+    for (int y = 0; y < rows; ++y)
     {
-        for (int x = dirty_x; x < dirty_width; x++)
+        uint8_t *dstRow = dst;
+        uint8_t *srcRow = src;
+        for (int x = 0; x < cols; ++x)
         {
-            dest_x = dx + x;
-            dest_y = dy + y;
-            dest_buffer[(dest_y * cw) + dest_x] = source_buffer[(y * dirty_width) + x];
+            // rgba
+            uint8_t r = *srcRow++;
+            uint8_t g = *srcRow++;
+            uint8_t b = *srcRow++;
+            uint8_t a = *srcRow++;
+
+            // argb
+            // performance optimization: fully transparent/opaque pixels can be
+            // processed more efficiently.
+            if (a == 0)
+            {
+                *dstRow++ = 0;
+                *dstRow++ = 0;
+                *dstRow++ = 0;
+                *dstRow++ = 0;
+            }
+            else if (a == 255)
+            {
+                *dstRow++ = b;
+                *dstRow++ = g;
+                *dstRow++ = r;
+                *dstRow++ = a;
+            }
+            else
+            {
+                float alpha = (float)a / 255;
+                *dstRow++ = b * alpha;
+                *dstRow++ = g * alpha;
+                *dstRow++ = r * alpha;
+                *dstRow++ = a;
+            }
         }
+        dst += dstStride;
+        src += srcStride;
     }
+
+    cairo_surface_mark_dirty_rectangle(
+        context->surface, dx, dy, cols, rows);
+
     return JS_UNDEFINED;
 }
 

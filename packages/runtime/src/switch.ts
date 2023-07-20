@@ -228,6 +228,8 @@ export interface Native {
 	canvasPutImageData(
 		ctx: CanvasRenderingContext2DState,
 		source: ArrayBuffer,
+		sourceWidth: number,
+		sourceHeight: number,
 		dx: number,
 		dy: number,
 		dirtyX: number,

@@ -648,6 +648,16 @@ export class CanvasRenderingContext2D
 		return new ImageData(data, sw, sh, settings);
 	}
 
+	putImageData(imagedata: ImageData, dx: number, dy: number): void;
+	putImageData(
+		imagedata: ImageData,
+		dx: number,
+		dy: number,
+		dirtyX: number,
+		dirtyY: number,
+		dirtyWidth: number,
+		dirtyHeight: number
+	): void;
 	putImageData(
 		imagedata: ImageData,
 		dx: number,
@@ -660,6 +670,8 @@ export class CanvasRenderingContext2D
 		Switch.native.canvasPutImageData(
 			this[INTERNAL_SYMBOL].ctx,
 			imagedata.data.buffer,
+			imagedata.width,
+			imagedata.height,
 			dx,
 			dy,
 			dirtyX,
