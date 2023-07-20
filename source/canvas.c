@@ -159,7 +159,6 @@ static JSValue js_canvas_save(JSContext *ctx, JSValueConst this_val, int argc, J
     return JS_UNDEFINED;
 }
 
-
 static JSValue js_canvas_restore(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     CANVAS_CONTEXT;
@@ -839,7 +838,8 @@ static JSValue js_canvas_fill_rect(JSContext *ctx, JSValueConst this_val, int ar
 {
     CANVAS_CONTEXT;
     RECT_ARGS;
-    if (width && height) {
+    if (width && height)
+    {
         cairo_rectangle(context->ctx, x, y, width, height);
         cairo_fill(context->ctx);
     }
@@ -850,7 +850,8 @@ static JSValue js_canvas_stroke_rect(JSContext *ctx, JSValueConst this_val, int 
 {
     CANVAS_CONTEXT;
     RECT_ARGS;
-    if (width && height) {
+    if (width && height)
+    {
         cairo_rectangle(context->ctx, x, y, width, height);
         cairo_stroke(context->ctx);
     }
@@ -892,44 +893,110 @@ static JSValue js_canvas_measure_text(JSContext *ctx, JSValueConst this_val, int
 
 static JSValue js_canvas_get_image_data(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
+    CANVAS_CONTEXT;
+    uint32_t width = context->width;
+    uint32_t height = context->height;
+
     int sx;
     int sy;
     int sw;
     int sh;
-    int cw;
-    size_t length;
-    uint32_t *buffer = (uint32_t *)JS_GetArrayBuffer(ctx, &length, argv[0]);
     if (JS_ToInt32(ctx, &sx, argv[1]) ||
         JS_ToInt32(ctx, &sy, argv[2]) ||
         JS_ToInt32(ctx, &sw, argv[3]) ||
-        JS_ToInt32(ctx, &sh, argv[4]) ||
-        JS_ToInt32(ctx, &cw, argv[5]))
+        JS_ToInt32(ctx, &sh, argv[4]))
     {
         JS_ThrowTypeError(ctx, "invalid input");
         return JS_EXCEPTION;
     }
 
-    // Create a new ArrayBuffer with managed data
-    size_t size = sw * sh * 4;
-    uint32_t *new_buffer = js_malloc(ctx, size);
-    if (!new_buffer)
+    // WebKit and Firefox have this behavior:
+    // Flip the coordinates so the origin is top/left-most:
+    if (sw < 0)
+    {
+        sx += sw;
+        sw = -sw;
+    }
+    if (sh < 0)
+    {
+        sy += sh;
+        sh = -sh;
+    }
+
+    if (sx + sw > width)
+        sw = width - sx;
+    if (sy + sh > height)
+        sh = height - sy;
+
+    // WebKit/moz functionality
+    if (sw <= 0)
+        sw = 1;
+    if (sh <= 0)
+        sh = 1;
+
+    // Non-compliant. "Pixels outside the canvas must be returned as transparent
+    // black." This instead clips the returned array to the canvas area.
+    if (sx < 0)
+    {
+        sw += sx;
+        sx = 0;
+    }
+    if (sy < 0)
+    {
+        sh += sy;
+        sy = 0;
+    }
+
+    int srcStride = width * 4;
+    int bpp = srcStride / width;
+    size_t size = sw * sh * bpp;
+    int dstStride = sw * bpp;
+
+    uint8_t *src = context->data;
+
+    uint8_t *dst = js_malloc(ctx, size);
+    if (!dst)
     {
         JS_ThrowOutOfMemory(ctx);
         return JS_EXCEPTION;
     }
 
-    // Fill the buffer with some data
-    memset(new_buffer, 0, size);
-    for (int y = 0; y < sh; y++)
+    // Rearrange alpha (argb -> rgba), undo alpha pre-multiplication,
+    // and store in big-endian format
+    for (int y = 0; y < sh; ++y)
     {
-        for (int x = 0; x < sw; x++)
+        uint32_t *row = (uint32_t *)(src + srcStride * (y + sy));
+        for (int x = 0; x < sw; ++x)
         {
-            new_buffer[(y * sw) + x] = buffer[(y * cw) + x];
+            int bx = x * 4;
+            uint32_t *pixel = row + x + sx;
+            uint8_t a = *pixel >> 24;
+            uint8_t r = *pixel >> 16;
+            uint8_t g = *pixel >> 8;
+            uint8_t b = *pixel;
+            dst[bx + 3] = a;
+
+            // Performance optimization: fully transparent/opaque pixels can be
+            // processed more efficiently.
+            if (a == 0 || a == 255)
+            {
+                dst[bx + 0] = r;
+                dst[bx + 1] = g;
+                dst[bx + 2] = b;
+            }
+            else
+            {
+                // Undo alpha pre-multiplication
+                float alphaR = (float)255 / a;
+                dst[bx + 0] = (int)((float)r * alphaR);
+                dst[bx + 1] = (int)((float)g * alphaR);
+                dst[bx + 2] = (int)((float)b * alphaR);
+            }
         }
+        dst += dstStride;
     }
 
-    // Create the ArrayBuffer object
-    return JS_NewArrayBuffer(ctx, (uint8_t *)new_buffer, size, NULL, NULL, 0);
+    return JS_NewArrayBuffer(ctx, dst, size, NULL, NULL, 0);
 }
 
 static JSValue js_canvas_put_image_data(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
