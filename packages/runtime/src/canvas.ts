@@ -62,6 +62,68 @@ export class CanvasRenderingContext2D
 		this.fontKerning = 'auto';
 		this.textAlign = 'left';
 		this.textBaseline = 'alphabetic';
+		this.globalAlpha = 1;
+		this.globalCompositeOperation = 'source-over';
+		this.filter = 'none';
+		this.imageSmoothingEnabled = true;
+		this.imageSmoothingQuality = 'high';
+		this.shadowBlur = 0;
+		this.shadowColor = 'rgba(0, 0, 0, 0)';
+		this.shadowOffsetX = 0;
+		this.shadowOffsetY = 0;
+	}
+
+	globalAlpha: number;
+	globalCompositeOperation: GlobalCompositeOperation;
+	filter: string;
+	imageSmoothingEnabled: boolean;
+	imageSmoothingQuality: ImageSmoothingQuality;
+	shadowBlur: number;
+	shadowColor: string;
+	shadowOffsetX: number;
+	shadowOffsetY: number;
+
+	getContextAttributes(): CanvasRenderingContext2DSettings {
+		throw new Error('Method not implemented.');
+	}
+
+	drawImage(image: CanvasImageSource, dx: number, dy: number): void;
+	drawImage(
+		image: CanvasImageSource,
+		dx: number,
+		dy: number,
+		dw: number,
+		dh: number
+	): void;
+	drawImage(
+		image: CanvasImageSource,
+		sx: number,
+		sy: number,
+		sw: number,
+		sh: number,
+		dx: number,
+		dy: number,
+		dw: number,
+		dh: number
+	): void;
+	drawImage(
+		image: unknown,
+		sx: unknown,
+		sy: unknown,
+		sw?: unknown,
+		sh?: unknown,
+		dx?: unknown,
+		dy?: unknown,
+		dw?: unknown,
+		dh?: unknown
+	): void {
+		throw new Error('Method not implemented.');
+	}
+
+	drawFocusIfNeeded(element: Element): void;
+	drawFocusIfNeeded(path: Path2D, element: Element): void;
+	drawFocusIfNeeded(path: unknown, element?: unknown): void {
+		throw new Error('Method not implemented.');
 	}
 
 	restore(): void {
@@ -355,16 +417,12 @@ export class CanvasRenderingContext2D
 		Switch.native.canvasFill(i.ctx);
 	}
 
-	isPointInPath(
-		x: number,
-		y: number,
-		fillRule?: CanvasFillRule | undefined
-	): boolean;
+	isPointInPath(x: number, y: number, fillRule?: CanvasFillRule): boolean;
 	isPointInPath(
 		path: Path2D,
 		x: number,
 		y: number,
-		fillRule?: CanvasFillRule | undefined
+		fillRule?: CanvasFillRule
 	): boolean;
 	isPointInPath(
 		pathOrX: Path2D | number,
@@ -372,6 +430,23 @@ export class CanvasRenderingContext2D
 		yOrFillRule?: number | CanvasFillRule,
 		fillRule?: CanvasFillRule
 	): boolean {
+		let path: Path2D | undefined;
+		let x: number;
+		let y: number;
+		if (typeof pathOrX === 'object') {
+			path = pathOrX;
+			x = xOrY;
+			if (typeof yOrFillRule !== 'number') {
+				throw new TypeError('Expected third argument to be "number"');
+			}
+			y = yOrFillRule;
+		} else {
+			x = pathOrX;
+			y = xOrY;
+			if (typeof yOrFillRule === 'string') {
+				fillRule = yOrFillRule;
+			}
+		}
 		throw new Error('Method not implemented.');
 	}
 
@@ -576,7 +651,10 @@ export class CanvasRenderingContext2D
 	}
 
 	clearRect(x: number, y: number, w: number, h: number): void {
-		throw new Error('Method not implemented.');
+		this.save();
+		this.fillStyle = 'rgba(0,0,0,0)';
+		this.fillRect(x, y, w, h);
+		this.restore();
 	}
 
 	fillRect(x: number, y: number, w: number, h: number): void {
