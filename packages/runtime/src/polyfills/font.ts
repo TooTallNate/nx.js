@@ -1,6 +1,7 @@
 import type { IFont } from 'parse-css-font';
-import { INTERNAL_SYMBOL } from './types';
-import type { Switch as _Switch, FontFaceState } from './switch';
+import { INTERNAL_SYMBOL } from '../types';
+import type { Switch as _Switch, FontFaceState } from '../switch';
+import { def } from '../utils';
 
 declare const Switch: _Switch;
 
@@ -103,3 +104,6 @@ export class FontFace implements globalThis.FontFace {
 		throw new Error('Method not implemented.');
 	}
 }
+
+def('FontFace', FontFace);
+def('FontFaceSet', FontFaceSet);

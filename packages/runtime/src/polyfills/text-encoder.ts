@@ -1,3 +1,5 @@
+import { def } from '../utils';
+
 export class TextEncoder implements globalThis.TextEncoder {
 	encoding: string;
 	constructor() {
@@ -72,3 +74,5 @@ export class TextEncoder implements globalThis.TextEncoder {
 		throw new Error('Method not implemented.');
 	}
 }
+
+def('TextEncoder', TextEncoder);

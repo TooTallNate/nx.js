@@ -1,3 +1,4 @@
+import { def } from '../utils';
 import { INTERNAL_SYMBOL } from '../types';
 
 export class Event implements globalThis.Event {
@@ -386,3 +387,9 @@ export class ErrorEvent extends Event implements globalThis.ErrorEvent {
 		this.message = this.error?.message ?? '';
 	}
 }
+
+def('Event', Event);
+def('ErrorEvent', ErrorEvent);
+def('UIEvent', UIEvent);
+def('KeyboardEvent', KeyboardEvent);
+def('TouchEvent', TouchEvent);

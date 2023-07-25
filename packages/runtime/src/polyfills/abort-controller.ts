@@ -1,6 +1,8 @@
 // Based on https://github.com/mo/abortcontroller-polyfill
 // By @mo - MIT License
 
+import { def } from '../utils';
+
 export class AbortSignal extends EventTarget implements globalThis.AbortSignal {
 	readonly reason!: any;
 	readonly aborted!: boolean;
@@ -69,3 +71,6 @@ export class AbortController implements globalThis.AbortController {
 Object.defineProperty(AbortController.prototype, Symbol.toStringTag, {
 	value: 'AbortController',
 });
+
+def('AbortSignal', AbortSignal);
+def('AbortController', AbortController);

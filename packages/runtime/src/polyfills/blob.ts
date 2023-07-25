@@ -1,3 +1,5 @@
+import { def } from '../utils';
+
 /*! fetch-blob. MIT License. Jimmy Wärting <https://jimmy.warting.se/opensource> */
 
 // 64 KiB (same size chrome slice theirs blob into Uint8array's)
@@ -211,3 +213,5 @@ Object.defineProperties(Blob.prototype, {
 	type: { enumerable: true },
 	slice: { enumerable: true },
 });
+
+def('Blob', Blob);

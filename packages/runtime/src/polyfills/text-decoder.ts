@@ -1,3 +1,5 @@
+import { def } from '../utils';
+
 /**
  * Credit for `TextEncoder` and `TextDecoder` goes to Sam Thorogood.
  * Apache License 2.0
@@ -102,3 +104,5 @@ export class TextDecoder implements globalThis.TextDecoder {
 		}
 	}
 }
+
+def('TextDecoder', TextDecoder);

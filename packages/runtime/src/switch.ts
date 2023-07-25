@@ -1,5 +1,5 @@
 import { Canvas, CanvasRenderingContext2D } from './canvas';
-import { FontFaceSet } from './font';
+import { FontFaceSet } from './polyfills/font';
 import { INTERNAL_SYMBOL, PathLike, Stats } from './types';
 import { inspect } from './inspect';
 import { bufferSourceToArrayBuffer } from './utils';

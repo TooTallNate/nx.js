@@ -1,19 +1,10 @@
-import { def } from './polyfills';
+import './polyfills';
+import { def } from './utils';
 import { Switch as _Switch } from './switch';
 import { INTERNAL_SYMBOL } from './types';
 import { createTimersFactory } from './timers';
 import { Console } from './console';
-import { FontFace } from './font';
 //import { Image } from './image';
-
-import { AbortSignal, AbortController } from './abort-controller';
-def('AbortSignal', AbortSignal);
-def('AbortController', AbortController);
-
-import * as streams from 'web-streams-polyfill/ponyfill/es2018';
-for (const k of Object.keys(streams)) {
-	def(k, streams[k as keyof typeof streams]);
-}
 
 export type { Switch } from './switch';
 
@@ -28,8 +19,6 @@ def('setTimeout', setTimeout);
 def('setInterval', setInterval);
 def('clearTimeout', clearTimeout);
 def('clearInterval', clearInterval);
-
-def('FontFace', FontFace);
 
 function touchIsEqual(a: Touch, b: Touch) {
 	return (
