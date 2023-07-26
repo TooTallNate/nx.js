@@ -1,5 +1,3 @@
-import type { Switch } from './switch';
-
 interface Timer {
 	args: any[];
 	callback: Function;
@@ -7,7 +5,7 @@ interface Timer {
 	interval?: number;
 }
 
-export function createTimersFactory(s: Switch) {
+export function createTimersFactory() {
 	let nextId = 0;
 	const timers = new Map<number, Timer>();
 

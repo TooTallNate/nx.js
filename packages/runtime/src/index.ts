@@ -14,7 +14,7 @@ def('Switch', Switch);
 def('console', new Console(Switch));
 
 const { setTimeout, setInterval, clearTimeout, clearInterval, processTimers } =
-	createTimersFactory(Switch);
+	createTimersFactory();
 def('setTimeout', setTimeout);
 def('setInterval', setInterval);
 def('clearTimeout', clearTimeout);
