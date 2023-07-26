@@ -2,7 +2,7 @@ const ctx = Switch.screen.getContext('2d');
 
 // Place the font file alongside the `.nro` file on your SD card,
 // or embed it into the RomFS and read from there.
-const fontData = Switch.readFileSync(new URL('Alexandria.ttf', Switch.cwd()));
+const fontData = Switch.readFileSync(new URL('Alexandria.ttf', Switch.entrypoint));
 const font = new FontFace('Alexandria', fontData);
 Switch.fonts.add(font);
 

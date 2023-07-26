@@ -1,8 +1,8 @@
 {
-  "name": "nxjs-example-ttf-font",
+  "name": "nxjs-example-fonts",
   "version": "0.0.0",
   "private": true,
-  "description": "nx.js example that uses a custom TTF font",
+  "description": "nx.js example that uses customs fonts to write on the screen",
   "scripts": {
     "build": "esbuild --bundle --target=es2020 src/main.ts --outfile=dist/main.js"
   },
