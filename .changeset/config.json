@@ -7,6 +7,7 @@
   "commit": false,
   "fixed": [
     [
+      "create-nxjs-app",
       "nxjs-runtime",
       "nxjs-constants"
     ]
