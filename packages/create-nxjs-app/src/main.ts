@@ -1,6 +1,7 @@
+#!/usr/bin/env node
 import degit from 'degit';
-import { fileURLToPath, pathToFileURL } from 'url';
 import { promises as fs } from 'fs';
+import { fileURLToPath, pathToFileURL } from 'url';
 import { input, select } from '@inquirer/prompts';
 
 const distDir = new URL('../dist/', import.meta.url);
@@ -22,12 +23,16 @@ const appName = await input({
 });
 
 const dir = new URL(appName, pathToFileURL(process.cwd() + '/'));
-await fs.mkdir(dir);
+await fs.mkdir(dir, { recursive: true });
 
 const emitter = degit(`TooTallNate/nx.js/apps/${template}#v${version}`);
 
 emitter.on('info', info => {
-	console.log(info);
+	if (info.code !== 'SUCCESS') {
+		console.log(`${info.code}: ${info.message}`);
+	}
 });
 
 await emitter.clone(fileURLToPath(dir));
+
+console.log(`nx.js app "${appName}" initialized successfully!`);

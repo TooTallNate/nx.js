@@ -17,6 +17,11 @@ for (const app of apps) {
     });
 }
 
+// make "hello-world" be the first entry
+const helloWorldIndex = json.findIndex(e => e.name === 'hello-world');
+const helloWorld = json.splice(helloWorldIndex, 1)[0];
+json.unshift(helloWorld);
+
 fs.mkdirSync(distDir, { recursive: true });
 fs.writeFileSync(
 	new URL('choices.json', distDir),
