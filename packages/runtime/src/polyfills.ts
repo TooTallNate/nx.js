@@ -8,3 +8,7 @@ import './polyfills/text-encoder';
 import './polyfills/abort-controller';
 import './polyfills/streams';
 import './polyfills/font';
+import './fetch/headers';
+import './fetch/request';
+import './fetch/response';
+import './fetch/fetch';
