@@ -22,8 +22,8 @@ const appName = await input({
 	default: template,
 });
 
-const dir = new URL(appName, pathToFileURL(process.cwd() + '/'));
-await fs.mkdir(dir, { recursive: true });
+const appDir = new URL(`${appName}/`, pathToFileURL(process.cwd() + '/'));
+await fs.mkdir(appDir, { recursive: true });
 
 const emitter = degit(`TooTallNate/nx.js/apps/${template}#v${version}`);
 
@@ -33,6 +33,12 @@ emitter.on('info', info => {
 	}
 });
 
-await emitter.clone(fileURLToPath(dir));
+await emitter.clone(fileURLToPath(appDir));
+
+const pkgJsonUrl = new URL('package.json', appDir);
+const pkgJson = JSON.parse(await fs.readFile(pkgJsonUrl, 'utf8'));
+pkgJson.name = appName;
+pkgJson.description = '';
+await fs.writeFile(pkgJsonUrl, `${JSON.stringify(pkgJson, null, 2)}\n`);
 
 console.log(`nx.js app "${appName}" initialized successfully!`);
