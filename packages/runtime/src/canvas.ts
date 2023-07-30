@@ -30,9 +30,8 @@ export class Canvas {
 }
 
 export class CanvasRenderingContext2D
-	implements globalThis.CanvasRenderingContext2D
+	implements Omit<globalThis.CanvasRenderingContext2D, 'canvas'>
 {
-	// @ts-expect-error `Canvas` does not implement all DOM properties
 	readonly canvas: Canvas;
 
 	[INTERNAL_SYMBOL]: {
