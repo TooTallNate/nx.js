@@ -1,5 +1,36 @@
 # nxjs-runtime
 
+## 0.0.12
+
+### Patch Changes
+
+- Add `Switch.writeFileSync()` function ([`7ac3cca`](https://github.com/TooTallNate/nx.js/commit/7ac3cca46f9042399c8164ede4eceacb82c0f4bc))
+
+- Add `Blob` ([`9c1b3d1`](https://github.com/TooTallNate/nx.js/commit/9c1b3d1e19f55285b7cff2b487221a045419c954))
+
+- Fix Canvas `putImageData()` ([`8d7552b`](https://github.com/TooTallNate/nx.js/commit/8d7552bc30089becddbca2f1b2799fb44f11f88a))
+
+- Fix Canvas `getImageData()` ([`c10a105`](https://github.com/TooTallNate/nx.js/commit/c10a105e0ccbe3004d51be65bb61c94cf7547943))
+
+- Add Canvas `clip()` ([`af7a606`](https://github.com/TooTallNate/nx.js/commit/af7a606b1c2ec7f747f602b1374efd30f75a65e2))
+
+- Add Canvas `roundRect()` ([`45321a6`](https://github.com/TooTallNate/nx.js/commit/45321a654995c45cb43baf72b388ee2d4d768e11))
+
+- Better organization for polyfills ([`31dd7ad`](https://github.com/TooTallNate/nx.js/commit/31dd7ad2ecb83808da659df684a0c7713fc2e797))
+
+- Add Canvas `save()` and `restore()` ([`34f2756`](https://github.com/TooTallNate/nx.js/commit/34f275647e3e556ac9cda82e7504112ba0f4dbe6))
+
+- Add Canvas `strokeRect()` ([`2050801`](https://github.com/TooTallNate/nx.js/commit/20508014f63147b817d7b0615f5c02270e99864e))
+
+- Add initial `fetch()` implementation. Includes globals: ([`f4ecc23`](https://github.com/TooTallNate/nx.js/commit/f4ecc23a8db1311ad73130646e180a0e028c1cde))
+
+  - `Headers`
+  - `Request`
+  - `Response`
+  - `fetch()`
+
+- Add support for selecting fonts with modifications (weight, etc.) ([`67e97ce`](https://github.com/TooTallNate/nx.js/commit/67e97ce384a8c5a2d1a4fce8ea5cb52033ba2278))
+
 ## 0.0.11
 
 ### Patch Changes
