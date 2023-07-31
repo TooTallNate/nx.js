@@ -1,5 +1,19 @@
 # nxjs-runtime
 
+## 0.0.13
+
+### Patch Changes
+
+- Add `Image` (currently only PNG support) ([`0227d73`](https://github.com/TooTallNate/nx.js/commit/0227d73da26eaa65b38283e0c68282476617f648))
+
+- Add Canvas `drawImage()` ([`9efc267`](https://github.com/TooTallNate/nx.js/commit/9efc267b4ebf3648ad199103665ea1ece4df73d6))
+
+- Add support for WebP in `Image` ([`0fad48d`](https://github.com/TooTallNate/nx.js/commit/0fad48d0bb8acf2518972cc2aeb79b61e5c99d9d))
+
+- Add Canvas `globalAlpha` ([`ccb10f5`](https://github.com/TooTallNate/nx.js/commit/ccb10f5da28440da6e59e2efbd42776875f70cfa))
+
+- Add support for JPEG in `Image` ([`5fb65a4`](https://github.com/TooTallNate/nx.js/commit/5fb65a445beb33750eac0e68ecc84f981d226aed))
+
 ## 0.0.12
 
 ### Patch Changes
