@@ -3,8 +3,10 @@
  * https://github.com/Automattic/node-canvas
  */
 
+#include <stdbool.h>
 #include <math.h>
 #include "font.h"
+#include "image.h"
 #include "canvas.h"
 
 #define CANVAS_CONTEXT                                                                         \
@@ -28,7 +30,8 @@
 
 static JSClassID nx_canvas_context_class_id;
 
-static inline int min(int a, int b) {
+static inline int min(int a, int b)
+{
     return a < b ? a : b;
 }
 
@@ -1124,6 +1127,223 @@ static JSValue js_canvas_put_image_data(JSContext *ctx, JSValueConst this_val, i
     return JS_UNDEFINED;
 }
 
+/*
+ * Take a transform matrix and return its components
+ * 0: angle, 1: scaleX, 2: scaleY, 3: skewX, 4: translateX, 5: translateY
+ */
+void decompose_matrix(cairo_matrix_t matrix, double *destination)
+{
+    double denom = pow(matrix.xx, 2) + pow(matrix.yx, 2);
+    destination[0] = atan2(matrix.yx, matrix.xx);
+    destination[1] = sqrt(denom);
+    destination[2] = (matrix.xx * matrix.yy - matrix.xy * matrix.yx) / destination[1];
+    destination[3] = atan2(matrix.xx * matrix.xy + matrix.yx * matrix.yy, denom);
+    destination[4] = matrix.x0;
+    destination[5] = matrix.y0;
+}
+
+static JSValue js_canvas_draw_image(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    CANVAS_CONTEXT;
+
+    double
+        source_w = 0,
+        source_h = 0,
+        sx = 0, sy = 0, sw = 0, sh = 0, dx = 0, dy = 0, dw = 0, dh = 0;
+
+    if (JS_ToFloat64(ctx, &source_w, argv[2]) ||
+        JS_ToFloat64(ctx, &source_h, argv[3]) ||
+        JS_ToFloat64(ctx, &sx, argv[4]) ||
+        JS_ToFloat64(ctx, &sy, argv[5]) ||
+        JS_ToFloat64(ctx, &sw, argv[6]) ||
+        JS_ToFloat64(ctx, &sh, argv[7]) ||
+        JS_ToFloat64(ctx, &dx, argv[8]) ||
+        JS_ToFloat64(ctx, &dy, argv[9]) ||
+        JS_ToFloat64(ctx, &dw, argv[10]) ||
+        JS_ToFloat64(ctx, &dh, argv[11]))
+    {
+        JS_ThrowTypeError(ctx, "invalid input");
+        return JS_EXCEPTION;
+    }
+
+    cairo_surface_t *surface;
+    int is_canvas = JS_ToBool(ctx, argv[12]);
+    if (is_canvas)
+    {
+        // Canvas
+        nx_canvas_context_2d_t *image_ctx = JS_GetOpaque2(ctx, argv[1], nx_canvas_context_class_id);
+        if (!image_ctx)
+        {
+            return JS_EXCEPTION;
+        }
+        surface = image_ctx->surface;
+    }
+    else
+    {
+        // Image
+        nx_image_t *image_ctx = nx_get_image(ctx, argv[1]);
+        if (!image_ctx)
+        {
+            return JS_EXCEPTION;
+        }
+        surface = image_ctx->surface;
+    }
+
+    if (!(sw && sh && dw && dh))
+    {
+        return JS_UNDEFINED;
+    }
+
+    // Start draw
+    cairo_save(context->ctx);
+
+    cairo_matrix_t matrix;
+    double transforms[6];
+    cairo_get_matrix(context->ctx, &matrix);
+    decompose_matrix(matrix, transforms);
+    // extract the scale value from the current transform so that we know how many pixels we
+    // need for our extra canvas in the drawImage operation.
+    double current_scale_x = abs(transforms[1]);
+    double current_scale_y = abs(transforms[2]);
+    double extra_dx = 0;
+    double extra_dy = 0;
+    double fx = dw / sw * current_scale_x; // transforms[1] is scale on X
+    double fy = dh / sh * current_scale_y; // transforms[2] is scale on X
+    bool needScale = dw != sw || dh != sh;
+    bool needCut = sw != source_w || sh != source_h || sx < 0 || sy < 0;
+    bool sameCanvas = surface == context->surface;
+    bool needsExtraSurface = sameCanvas || needCut || needScale;
+    cairo_surface_t *surfTemp = NULL;
+    cairo_t *ctxTemp = NULL;
+
+    if (needsExtraSurface)
+    {
+        // we want to create the extra surface as small as possible.
+        // fx and fy are the total scaling we need to apply to sw, sh.
+        // from sw and sh we want to remove the part that is outside the source_w and soruce_h
+        double real_w = sw;
+        double real_h = sh;
+        double translate_x = 0;
+        double translate_y = 0;
+        // if sx or sy are negative, a part of the area represented by sw and sh is empty
+        // because there are empty pixels, so we cut it out.
+        // On the other hand if sx or sy are positive, but sw and sh extend outside the real
+        // source pixels, we cut the area in that case too.
+        if (sx < 0)
+        {
+            extra_dx = -sx * fx;
+            real_w = sw + sx;
+        }
+        else if (sx + sw > source_w)
+        {
+            real_w = sw - (sx + sw - source_w);
+        }
+        if (sy < 0)
+        {
+            extra_dy = -sy * fy;
+            real_h = sh + sy;
+        }
+        else if (sy + sh > source_h)
+        {
+            real_h = sh - (sy + sh - source_h);
+        }
+        // if after cutting we are still bigger than source pixels, we restrict again
+        if (real_w > source_w)
+        {
+            real_w = source_w;
+        }
+        if (real_h > source_h)
+        {
+            real_h = source_h;
+        }
+        // TODO: find a way to limit the surfTemp to real_w and real_h if fx and fy are bigger than 1.
+        // there are no more pixel than the one available in the source, no need to create a bigger surface.
+        surfTemp = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, round(real_w * fx), round(real_h * fy));
+        ctxTemp = cairo_create(surfTemp);
+        cairo_scale(ctxTemp, fx, fy);
+        if (sx > 0)
+        {
+            translate_x = sx;
+        }
+        if (sy > 0)
+        {
+            translate_y = sy;
+        }
+        cairo_set_source_surface(ctxTemp, surface, -translate_x, -translate_y);
+        // cairo_pattern_set_filter(cairo_get_source(ctxTemp), context->state->imageSmoothingEnabled ? context->state->patternQuality : CAIRO_FILTER_NEAREST);
+        cairo_pattern_set_filter(cairo_get_source(ctxTemp), CAIRO_FILTER_GOOD);
+        cairo_pattern_set_extend(cairo_get_source(ctxTemp), CAIRO_EXTEND_REFLECT);
+        cairo_paint_with_alpha(ctxTemp, 1);
+        surface = surfTemp;
+    }
+
+    // apply shadow if there is one
+    // if (context->hasShadow()) {
+    //  if(context->state->shadowBlur) {
+    //    // we need to create a new surface in order to blur
+    //    int pad = context->state->shadowBlur * 2;
+    //    cairo_surface_t *shadow_surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, dw + 2 * pad, dh + 2 * pad);
+    //    cairo_t *shadow_context = cairo_create(shadow_surface);
+
+    //    // mask and blur
+    //    context->setSourceRGBA(shadow_context, context->state->shadow);
+    //    cairo_mask_surface(shadow_context, surface, pad, pad);
+    //    context->blur(shadow_surface, context->state->shadowBlur);
+
+    //    // paint
+    //    // @note: ShadowBlur looks different in each browser. This implementation matches chrome as close as possible.
+    //    //        The 1.4 offset comes from visual tests with Chrome. I have read the spec and part of the shadowBlur
+    //    //        implementation, and its not immediately clear why an offset is necessary, but without it, the result
+    //    //        in chrome is different.
+    //    cairo_set_source_surface(ctx, shadow_surface,
+    //      dx + context->state->shadowOffsetX - pad + 1.4,
+    //      dy + context->state->shadowOffsetY - pad + 1.4);
+    //    cairo_paint(ctx);
+    //    // cleanup
+    //    cairo_destroy(shadow_context);
+    //    cairo_surface_destroy(shadow_surface);
+    //  } else {
+    //    context->setSourceRGBA(context->state->shadow);
+    //    cairo_mask_surface(ctx, surface,
+    //      dx + (context->state->shadowOffsetX),
+    //      dy + (context->state->shadowOffsetY));
+    //  }
+    //}
+
+    double scaled_dx = dx;
+    double scaled_dy = dy;
+
+    if (needsExtraSurface && (current_scale_x != 1 || current_scale_y != 1))
+    {
+        // in this case our surface contains already current_scale_x, we need to scale back
+        cairo_scale(context->ctx, 1 / current_scale_x, 1 / current_scale_y);
+        scaled_dx *= current_scale_x;
+        scaled_dy *= current_scale_y;
+    }
+
+    // Paint
+    cairo_set_source_surface(context->ctx, surface, scaled_dx + extra_dx, scaled_dy + extra_dy);
+
+    // TODO: support imageSmoothingEnabled
+    // cairo_pattern_set_filter(cairo_get_source(ctx), context->state->imageSmoothingEnabled ? context->state->patternQuality : CAIRO_FILTER_NEAREST);
+    cairo_pattern_set_filter(cairo_get_source(context->ctx), CAIRO_FILTER_GOOD);
+    cairo_pattern_set_extend(cairo_get_source(context->ctx), CAIRO_EXTEND_NONE);
+
+    // TODO: support globalAlpha
+    // cairo_paint_with_alpha(ctx, context->state->globalAlpha);
+    cairo_paint_with_alpha(context->ctx, 1);
+
+    cairo_restore(context->ctx);
+
+    if (needsExtraSurface)
+    {
+        cairo_destroy(ctxTemp);
+        cairo_surface_destroy(surfTemp);
+    }
+
+    return JS_UNDEFINED;
+}
+
 static void finalizer_canvas_context_2d(JSRuntime *rt, JSValue val)
 {
     nx_canvas_context_2d_t *context = JS_GetOpaque(val, nx_canvas_context_class_id);
@@ -1183,18 +1403,19 @@ static const JSCFunctionListEntry function_list[] = {
     JS_CFUNC_DEF("canvasFillText", 0, js_canvas_fill_text),
     JS_CFUNC_DEF("canvasMeasureText", 0, js_canvas_measure_text),
     JS_CFUNC_DEF("canvasGetImageData", 0, js_canvas_get_image_data),
-    JS_CFUNC_DEF("canvasPutImageData", 0, js_canvas_put_image_data)};
+    JS_CFUNC_DEF("canvasPutImageData", 0, js_canvas_put_image_data),
+    JS_CFUNC_DEF("canvasDrawImage", 0, js_canvas_draw_image)};
 
 void nx_init_canvas(JSContext *ctx, JSValueConst native_obj)
 {
     JSRuntime *rt = JS_GetRuntime(ctx);
 
     JS_NewClassID(&nx_canvas_context_class_id);
-    JSClassDef font_face_class = {
+    JSClassDef canvas_context_2d_class = {
         "nx_canvas_context_2d_t",
         .finalizer = finalizer_canvas_context_2d,
     };
-    JS_NewClass(rt, nx_canvas_context_class_id, &font_face_class);
+    JS_NewClass(rt, nx_canvas_context_class_id, &canvas_context_2d_class);
 
     JS_SetPropertyFunctionList(ctx, native_obj, function_list, countof(function_list));
 }

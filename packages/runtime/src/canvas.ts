@@ -2,13 +2,16 @@ import toPx = require('to-px/index.js');
 import colorRgba = require('color-rgba');
 import parseCssFont from 'parse-css-font';
 import { INTERNAL_SYMBOL } from './types';
+import { Image } from './image';
 import { ImageData } from './canvas/image-data';
-import type { CanvasRenderingContext2DState } from './switch';
+import type { CanvasRenderingContext2DState, ImageOpaque } from './switch';
 import type { Switch as _Switch } from './switch';
 
 declare const Switch: _Switch;
 
 type RGBA = [number, number, number, number];
+
+const contexts = new WeakMap<Canvas, CanvasRenderingContext2D>();
 
 export class Canvas {
 	width: number;
@@ -25,7 +28,12 @@ export class Canvas {
 				`"${contextId}" is not supported. Must be "2d".`
 			);
 		}
-		return new CanvasRenderingContext2D(this);
+		let ctx = contexts.get(this);
+		if (!ctx) {
+			ctx = new CanvasRenderingContext2D(this);
+			contexts.set(this, ctx);
+		}
+		return ctx;
 	}
 }
 
@@ -106,17 +114,87 @@ export class CanvasRenderingContext2D
 		dh: number
 	): void;
 	drawImage(
-		image: unknown,
-		sx: unknown,
-		sy: unknown,
-		sw?: unknown,
-		sh?: unknown,
-		dx?: unknown,
-		dy?: unknown,
-		dw?: unknown,
-		dh?: unknown
+		image: CanvasImageSource,
+		dxOrSx: number,
+		dyOrSy: number,
+		dwOrSw?: number,
+		dhOrSh?: number,
+		dx?: number,
+		dy?: number,
+		dw?: number,
+		dh?: number
 	): void {
-		throw new Error('Method not implemented.');
+		let sx = 0;
+		let sy = 0;
+		let sw: number;
+		let sh: number;
+		let imageWidth: number;
+		let imageHeight: number;
+		let opaque: CanvasRenderingContext2DState | ImageOpaque;
+		let isCanvas = false;
+		if (image instanceof Image) {
+			const o = image[INTERNAL_SYMBOL].opaque;
+			if (!o) {
+				throw new Error('Image not loaded');
+			}
+			opaque = o;
+			imageWidth = sw = image.naturalWidth;
+			imageHeight = sh = image.naturalHeight;
+		} else if (image instanceof Canvas) {
+			const ctx = contexts.get(image);
+			if (!ctx) {
+				throw new Error('Failed to get Canvas context');
+			}
+			opaque = ctx[INTERNAL_SYMBOL].ctx;
+			imageWidth = sw = image.width;
+			imageHeight = sh = image.height;
+			isCanvas = true;
+		} else {
+			throw new Error('Image type not supported');
+		}
+
+		if (typeof dwOrSw === 'number' && typeof dhOrSh === 'number') {
+			if (
+				typeof dx === 'number' &&
+				typeof dy === 'number' &&
+				typeof dw === 'number' &&
+				typeof dh === 'number'
+			) {
+				// img, sx, sy, sw, sh, dx, dy, dw, dh
+				sx = dxOrSx;
+				sy = dyOrSy;
+				sw = dwOrSw;
+				sh = dhOrSh;
+			} else {
+				// img, dx, dy, dw, dh
+				dx = dxOrSx;
+				dy = dyOrSy;
+				dw = dwOrSw;
+				dh = dhOrSh;
+			}
+		} else {
+			// img, dx, dy
+			dx = dxOrSx;
+			dy = dyOrSy;
+			dw = sw;
+			dh = sh;
+		}
+
+		Switch.native.canvasDrawImage(
+			this[INTERNAL_SYMBOL].ctx,
+			opaque,
+			imageWidth,
+			imageHeight,
+			sx,
+			sy,
+			sw,
+			sh,
+			dx,
+			dy,
+			dw,
+			dh,
+			isCanvas
+		);
 	}
 
 	drawFocusIfNeeded(element: Element): void;

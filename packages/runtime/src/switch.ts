@@ -248,6 +248,21 @@ export interface Native {
 		dirtyWidth: number,
 		dirtyHeight: number
 	): void;
+	canvasDrawImage(
+		ctx: CanvasRenderingContext2DState,
+		image: CanvasRenderingContext2DState | ImageOpaque,
+		imageWidth: number,
+		imageHeight: number,
+		sx: number,
+		sy: number,
+		sw: number,
+		sh: number,
+		dx: number,
+		dy: number,
+		dw: number,
+		dh: number,
+		isCanvas: boolean
+	): void;
 
 	// tcp
 	connect(cb: Callback<number>, ip: string, port: number): void;
