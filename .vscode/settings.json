@@ -8,7 +8,10 @@
         "types.h": "c",
         "async.h": "c",
         "thpool.h": "c",
-        "fs.h": "c"
+        "fs.h": "c",
+        "canvas.h": "c",
+        "font.h": "c",
+        "image.h": "c"
     },
     "C_Cpp.default.compilerPath": "/opt/devkitpro/devkitA64/bin/aarch64-none-elf-gcc"
 }

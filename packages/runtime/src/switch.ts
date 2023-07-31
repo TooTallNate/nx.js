@@ -8,6 +8,7 @@ export type Opaque<T> = { __type: T };
 export type CanvasRenderingContext2DState =
 	Opaque<'CanvasRenderingContext2DState'>;
 export type FontFaceState = Opaque<'FontFaceState'>;
+export type ImageOpaque = Opaque<'ImageOpaque'>;
 
 type Keys = {
 	modifiers: bigint;
@@ -71,6 +72,16 @@ export interface Native {
 	// font
 	newFontFace: (data: ArrayBuffer) => FontFaceState;
 	getSystemFont: () => ArrayBuffer;
+
+	// image
+	decodeImage: (
+		cb: Callback<{
+			opaque: ImageOpaque;
+			width: number;
+			height: number;
+		}>,
+		b: ArrayBuffer
+	) => void;
 
 	// canvas
 	canvasNewContext(w: number, h: number): CanvasRenderingContext2DState;
@@ -285,10 +296,9 @@ interface Versions {
 
 const encoder = new TextEncoder();
 
-function toPromise<Func extends (cb: Callback<any>, ...args: any[]) => any>(
-	fn: Func,
-	...args: CallbackArguments<Func>
-) {
+export function toPromise<
+	Func extends (cb: Callback<any>, ...args: any[]) => any
+>(fn: Func, ...args: CallbackArguments<Func>) {
 	return new Promise<CallbackReturnType<Func>>((resolve, reject) => {
 		fn((err, result) => {
 			if (err) return reject(err);

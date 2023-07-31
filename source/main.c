@@ -15,6 +15,7 @@
 #include "canvas.h"
 #include "font.h"
 #include "fs.h"
+#include "image.h"
 #include "tcp.h"
 #include "poll.h"
 
@@ -432,6 +433,7 @@ int main(int argc, char *argv[])
     nx_init_canvas(ctx, native_obj);
     nx_init_font(ctx, native_obj);
     nx_init_fs(ctx, native_obj);
+    nx_init_image(ctx, native_obj);
     nx_init_tcp(ctx, native_obj);
 
     JSValue exit_func = JS_NewCFunction(ctx, js_exit, "exit", 0);
