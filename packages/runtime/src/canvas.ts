@@ -69,7 +69,6 @@ export class CanvasRenderingContext2D
 		this.fontKerning = 'auto';
 		this.textAlign = 'left';
 		this.textBaseline = 'alphabetic';
-		this.globalAlpha = 1;
 		this.globalCompositeOperation = 'source-over';
 		this.filter = 'none';
 		this.imageSmoothingEnabled = true;
@@ -80,7 +79,6 @@ export class CanvasRenderingContext2D
 		this.shadowOffsetY = 0;
 	}
 
-	globalAlpha: number;
 	globalCompositeOperation: GlobalCompositeOperation;
 	filter: string;
 	imageSmoothingEnabled: boolean;
@@ -554,6 +552,14 @@ export class CanvasRenderingContext2D
 			this[INTERNAL_SYMBOL].ctx,
 			Array.from(segments)
 		);
+	}
+
+	get globalAlpha() {
+		return Switch.native.canvasGetGlobalAlpha(this[INTERNAL_SYMBOL].ctx);
+	}
+
+	set globalAlpha(v: number) {
+		Switch.native.canvasSetGlobalAlpha(this[INTERNAL_SYMBOL].ctx, v);
 	}
 
 	get lineDashOffset() {

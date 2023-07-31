@@ -85,6 +85,8 @@ export interface Native {
 
 	// canvas
 	canvasNewContext(w: number, h: number): CanvasRenderingContext2DState;
+	canvasGetGlobalAlpha(ctx: CanvasRenderingContext2DState): number;
+	canvasSetGlobalAlpha(ctx: CanvasRenderingContext2DState, n: number): void;
 	canvasGetLineWidth(ctx: CanvasRenderingContext2DState): number;
 	canvasSetLineWidth(ctx: CanvasRenderingContext2DState, n: number): void;
 	canvasGetLineJoin(ctx: CanvasRenderingContext2DState): CanvasLineJoin;

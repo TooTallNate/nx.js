@@ -88,7 +88,8 @@ static JSValue js_canvas_new_context(JSContext *ctx, JSValueConst this_val, int 
     memset(buffer, 0, buf_size);
 
     nx_canvas_context_2d_t *context = js_malloc(ctx, sizeof(nx_canvas_context_2d_t));
-    if (!context)
+    nx_canvas_state_t *state = js_malloc(ctx, sizeof(nx_canvas_state_t));
+    if (!context || !state)
     {
         JS_ThrowOutOfMemory(ctx);
         return JS_EXCEPTION;
@@ -98,7 +99,7 @@ static JSValue js_canvas_new_context(JSContext *ctx, JSValueConst this_val, int 
     JSValue obj = JS_NewObjectClass(ctx, nx_canvas_context_class_id);
     if (JS_IsException(obj))
     {
-        free(context);
+        js_free(ctx, context);
         return obj;
     }
 
@@ -109,6 +110,7 @@ static JSValue js_canvas_new_context(JSContext *ctx, JSValueConst this_val, int 
     cairo_surface_t *surface = cairo_image_surface_create_for_data(
         buffer, CAIRO_FORMAT_ARGB32, width, height, width * 4);
 
+    context->state = state;
     context->width = width;
     context->height = height;
     context->data = buffer;
@@ -117,6 +119,7 @@ static JSValue js_canvas_new_context(JSContext *ctx, JSValueConst this_val, int 
 
     // Match browser defaults
     cairo_set_line_width(context->ctx, 1);
+    state->globalAlpha = 1.0;
 
     JS_SetOpaque(obj, context);
     return obj;
@@ -536,7 +539,13 @@ static JSValue js_canvas_set_source_rgba(JSContext *ctx, JSValueConst this_val, 
         JS_ThrowTypeError(ctx, "invalid input");
         return JS_EXCEPTION;
     }
-    cairo_set_source_rgba(context->ctx, args[0] / 255., args[1] / 255., args[2] / 255., args[3]);
+    cairo_set_source_rgba(
+        context->ctx,
+        args[0] / 255.,                       // r
+        args[1] / 255.,                       // g
+        args[2] / 255.,                       // b
+        args[3] * context->state->globalAlpha // a
+    );
     return JS_UNDEFINED;
 }
 
@@ -716,6 +725,25 @@ static JSValue js_canvas_set_line_dash(JSContext *ctx, JSValueConst this_val, in
     {
         cairo_set_dash(context->ctx, dashes, num_dashes, offset);
     }
+    return JS_UNDEFINED;
+}
+
+static JSValue js_canvas_get_global_alpha(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    CANVAS_CONTEXT;
+    return JS_NewFloat64(ctx, context->state->globalAlpha);
+}
+
+static JSValue js_canvas_set_global_alpha(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    CANVAS_CONTEXT;
+    double value;
+    if (JS_ToFloat64(ctx, &value, argv[1]))
+    {
+        JS_ThrowTypeError(ctx, "invalid input");
+        return JS_EXCEPTION;
+    }
+    context->state->globalAlpha = value;
     return JS_UNDEFINED;
 }
 
@@ -1329,9 +1357,7 @@ static JSValue js_canvas_draw_image(JSContext *ctx, JSValueConst this_val, int a
     cairo_pattern_set_filter(cairo_get_source(context->ctx), CAIRO_FILTER_GOOD);
     cairo_pattern_set_extend(cairo_get_source(context->ctx), CAIRO_EXTEND_NONE);
 
-    // TODO: support globalAlpha
-    // cairo_paint_with_alpha(ctx, context->state->globalAlpha);
-    cairo_paint_with_alpha(context->ctx, 1);
+    cairo_paint_with_alpha(context->ctx, context->state->globalAlpha);
 
     cairo_restore(context->ctx);
 
@@ -1351,6 +1377,7 @@ static void finalizer_canvas_context_2d(JSRuntime *rt, JSValue val)
     {
         cairo_destroy(context->ctx);
         cairo_surface_destroy(context->surface);
+        js_free_rt(rt, context->state);
         js_free_rt(rt, context->data);
         js_free_rt(rt, context);
     }
@@ -1363,6 +1390,8 @@ nx_canvas_context_2d_t *nx_get_canvas_context_2d(JSContext *ctx, JSValueConst ob
 
 static const JSCFunctionListEntry function_list[] = {
     JS_CFUNC_DEF("canvasNewContext", 0, js_canvas_new_context),
+    JS_CFUNC_DEF("canvasGetGlobalAlpha", 0, js_canvas_get_global_alpha),
+    JS_CFUNC_DEF("canvasSetGlobalAlpha", 0, js_canvas_set_global_alpha),
     JS_CFUNC_DEF("canvasGetLineDash", 0, js_canvas_get_line_dash),
     JS_CFUNC_DEF("canvasSetLineDash", 0, js_canvas_set_line_dash),
     JS_CFUNC_DEF("canvasGetLineDashOffset", 0, js_canvas_get_line_dash_offset),
