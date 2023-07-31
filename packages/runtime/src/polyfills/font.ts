@@ -100,7 +100,7 @@ export class FontFace implements globalThis.FontFace {
 		};
 	}
 
-	load(): Promise<globalThis.FontFace> {
+	async load(): Promise<this> {
 		throw new Error('Method not implemented.');
 	}
 }

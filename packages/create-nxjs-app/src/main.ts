@@ -10,7 +10,9 @@ const { version } = JSON.parse(
 );
 const choices: { name: string; value: string; description: string }[] =
 	JSON.parse(await fs.readFile(new URL('choices.json', distDir), 'utf8'));
-for (const c of choices) { c.value = c.name }
+for (const c of choices) {
+	c.value = c.name;
+}
 
 const template = await select({
 	message: 'Select a nx.js template:',
@@ -27,7 +29,7 @@ await fs.mkdir(appDir, { recursive: true });
 
 const emitter = degit(`TooTallNate/nx.js/apps/${template}#v${version}`);
 
-emitter.on('info', info => {
+emitter.on('info', (info) => {
 	if (info.code !== 'SUCCESS') {
 		console.log(`${info.code}: ${info.message}`);
 	}

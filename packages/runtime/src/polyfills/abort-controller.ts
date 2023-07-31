@@ -35,7 +35,7 @@ export class AbortSignal extends EventTarget implements globalThis.AbortSignal {
 		if (event.type === 'abort') {
 			Object.defineProperty(this, 'aborted', { value: true });
 			if (typeof this.onabort === 'function') {
-				this.onabort.call(this, event);
+				this.onabort(event);
 			}
 		}
 		return super.dispatchEvent(event);
