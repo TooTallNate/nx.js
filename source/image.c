@@ -1,5 +1,6 @@
 #include <png.h>
 #include <turbojpeg.h>
+#include <webp/decode.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
@@ -139,6 +140,19 @@ cleanup:
     return ret;
 }
 
+uint8_t *decode_webp(uint8_t *webp_data, size_t data_size, int *width, int *height)
+{
+    // Decode the WebP image data into a BGRA format
+    uint8_t *bgra_data = WebPDecodeBGRA(webp_data, data_size, width, height);
+    if (bgra_data == NULL)
+    {
+        // TODO: Handle error
+        return NULL;
+    }
+
+    return bgra_data;
+}
+
 void nx_decode_image_do(nx_work_t *req)
 {
     nx_decode_image_async_t *data = (nx_decode_image_async_t *)req->data;
@@ -157,6 +171,10 @@ void nx_decode_image_do(nx_work_t *req)
             data->err_str = tjGetErrorStr();
             return;
         }
+    }
+    else if (image->format == FORMAT_WEBP)
+    {
+        image->buffer = decode_webp(data->input, data->input_size, &data->width, &data->height);
     }
     else
     {
