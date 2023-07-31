@@ -22,7 +22,6 @@ function blobToStream(blob: Blob) {
 }
 
 function arrayBufferToStream(buf: ArrayBuffer) {
-	console.log('arrayBufferToStream', buf);
 	return new ReadableStream<Uint8Array>({
 		start(controller) {
 			controller.enqueue(new Uint8Array(buf));

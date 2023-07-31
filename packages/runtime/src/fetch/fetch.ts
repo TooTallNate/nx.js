@@ -211,7 +211,11 @@ async function fetchFile(req: Request, url: URL) {
 	}
 	const path = url.protocol === 'file:' ? `sdmc:${url.pathname}` : url.href;
 	const data = await Switch.readFile(path);
-	return new Response(data);
+	return new Response(data, {
+		headers: {
+			'content-length': String(data.byteLength),
+		},
+	});
 }
 
 const fetchers = new Map<string, (req: Request, url: URL) => Promise<Response>>(

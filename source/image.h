@@ -1,8 +1,17 @@
 #pragma once
 #include "types.h"
 
+enum ImageFormat
+{
+    FORMAT_PNG,
+    FORMAT_JPEG,
+    FORMAT_WEBP,
+    FORMAT_UNKNOWN
+};
+
 typedef struct
 {
+    enum ImageFormat format;
     uint8_t *buffer;
     cairo_surface_t *surface;
 } nx_image_t;

@@ -1305,6 +1305,7 @@ static JSValue js_canvas_draw_image(JSContext *ctx, JSValueConst this_val, int a
         surface = surfTemp;
     }
 
+    // TODO: Support shadow
     // apply shadow if there is one
     // if (context->hasShadow()) {
     //  if(context->state->shadowBlur) {
