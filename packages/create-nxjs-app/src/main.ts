@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import degit from 'degit';
 import { promises as fs } from 'fs';
+import terminalLink from 'terminal-link';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { input, select } from '@inquirer/prompts';
 
@@ -10,8 +11,14 @@ const { version } = JSON.parse(
 );
 const choices: { name: string; value: string; description: string }[] =
 	JSON.parse(await fs.readFile(new URL('choices.json', distDir), 'utf8'));
+
 for (const c of choices) {
 	c.value = c.name;
+	c.name = terminalLink(
+		c.name,
+		`https://github.com/TooTallNate/nx.js/tree/v${version}/apps/${c.name}`,
+		{ fallback: false }
+	);
 }
 
 const template = await select({

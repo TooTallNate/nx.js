@@ -14,7 +14,8 @@
   "license": "MIT",
   "dependencies": {
     "@inquirer/prompts": "^3.0.0",
-    "degit": "^2.8.4"
+    "degit": "^2.8.4",
+    "terminal-link": "^3.0.0"
   },
   "devDependencies": {
     "@types/degit": "^2.8.3",
