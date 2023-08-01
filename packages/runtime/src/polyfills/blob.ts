@@ -24,7 +24,7 @@ async function* toIterator(
 				yield part;
 			}
 		} else {
-			// @ts-ignore TS Think blob.stream() returns a node:stream
+			// @ts-ignore TS ReadableStream does not have `Symbol.asyncIterator`
 			yield* part.stream();
 		}
 	}
@@ -190,10 +190,6 @@ export class Blob implements globalThis.Blob {
 		blob.#parts = blobParts;
 
 		return blob;
-	}
-
-	get [Symbol.toStringTag]() {
-		return 'Blob';
 	}
 
 	static [Symbol.hasInstance](object: any) {

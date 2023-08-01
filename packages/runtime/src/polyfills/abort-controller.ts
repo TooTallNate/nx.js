@@ -41,9 +41,6 @@ export class AbortSignal extends EventTarget implements globalThis.AbortSignal {
 		return super.dispatchEvent(event);
 	}
 }
-Object.defineProperty(AbortSignal.prototype, Symbol.toStringTag, {
-	value: 'AbortSignal',
-});
 
 export class AbortController implements globalThis.AbortController {
 	signal!: globalThis.AbortSignal;
@@ -68,9 +65,6 @@ export class AbortController implements globalThis.AbortController {
 		this.signal.dispatchEvent(event);
 	}
 }
-Object.defineProperty(AbortController.prototype, Symbol.toStringTag, {
-	value: 'AbortController',
-});
 
 def('AbortSignal', AbortSignal);
 def('AbortController', AbortController);
