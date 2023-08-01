@@ -3,6 +3,7 @@ import 'core-js/actual/url-search-params';
 import './polyfills/event-target';
 import './polyfills/event';
 import './polyfills/blob';
+import './polyfills/file';
 import './polyfills/text-decoder';
 import './polyfills/text-encoder';
 import './polyfills/abort-controller';
