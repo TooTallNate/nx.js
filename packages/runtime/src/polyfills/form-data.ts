@@ -12,9 +12,9 @@ export class FormData implements globalThis.FormData {
 	append(name: string, blobValue: Blob, filename?: string): void;
 	append(name: string, blobValue: string | Blob, filename?: string): void {
 		const value =
-			typeof blobValue === 'string'
+			typeof blobValue === 'string' || blobValue instanceof File
 				? blobValue
-				: new File([blobValue], filename ?? name);
+				: new File([blobValue], filename ?? name, blobValue);
 		const data = dataWm.get(this)!;
 		data.push([name, value]);
 	}
@@ -55,9 +55,9 @@ export class FormData implements globalThis.FormData {
 	set(name: string, blobValue: Blob, filename?: string): void;
 	set(name: string, blobValue: string | Blob, filename?: string): void {
 		const value =
-			typeof blobValue === 'string'
+			typeof blobValue === 'string' || blobValue instanceof File
 				? blobValue
-				: new File([blobValue], filename ?? name);
+				: new File([blobValue], filename ?? name, blobValue);
 		const data = dataWm.get(this)!;
 		for (const entry of data) {
 			if (entry[0] === name) {
