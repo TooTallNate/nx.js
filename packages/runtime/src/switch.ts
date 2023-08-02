@@ -3,6 +3,7 @@ import { FontFaceSet } from './polyfills/font';
 import { INTERNAL_SYMBOL, PathLike, Stats } from './types';
 import { inspect } from './inspect';
 import { bufferSourceToArrayBuffer } from './utils';
+import { encoder } from './polyfills/text-encoder';
 
 export type Opaque<T> = { __type: T };
 export type CanvasRenderingContext2DState =
@@ -313,8 +314,6 @@ interface Versions {
 	freetype2: string;
 	quickjs: string;
 }
-
-const encoder = new TextEncoder();
 
 export function toPromise<
 	Func extends (cb: Callback<any>, ...args: any[]) => any

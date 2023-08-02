@@ -17,10 +17,18 @@ export class TextDecoder implements globalThis.TextDecoder {
 		this.fatal = false;
 		this.ignoreBOM = false;
 	}
-	decode(input?: BufferSource | undefined): string {
+	decode(input?: BufferSource, options?: TextDecodeOptions): string {
 		if (!input) return '';
-		const buf = input instanceof ArrayBuffer ? input : input.buffer;
-		let bytes = new Uint8Array(buf);
+		let bytes;
+		if (input instanceof ArrayBuffer) {
+			bytes = new Uint8Array(input);
+		} else {
+			bytes = new Uint8Array(
+				input.buffer,
+				input.byteOffset,
+				input.byteLength
+			);
+		}
 		var inputIndex = 0;
 
 		// Create a working buffer for UTF-16 code points, but don't generate one
@@ -106,3 +114,5 @@ export class TextDecoder implements globalThis.TextDecoder {
 }
 
 def('TextDecoder', TextDecoder);
+
+export const decoder = new TextDecoder();

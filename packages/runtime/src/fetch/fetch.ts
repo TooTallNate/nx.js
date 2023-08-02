@@ -1,10 +1,10 @@
 import { def } from '../utils';
-import type { Switch as _Switch } from '../switch';
 import { objectUrls } from '../polyfills/url';
+import { decoder } from '../polyfills/text-decoder';
+import { encoder } from '../polyfills/text-encoder';
+import type { Switch as _Switch } from '../switch';
 
 declare const Switch: _Switch;
-
-const decoder = new TextDecoder();
 
 function fdToStream(fd: number) {
 	return new ReadableStream<Uint8Array>({
@@ -47,23 +47,21 @@ async function* headersIterator(
 			? concat(leftover, next.value)
 			: next.value;
 		let pos = 0;
-		//console.log(chunk);
 		while (true) {
 			const eol = indexOfEol(chunk, pos);
-			//console.log({ eol });
 			if (eol === -1) {
 				leftover = chunk.slice(pos);
 				break;
 			}
 			const line = decoder.decode(chunk.slice(pos, eol));
 			pos = eol + 2;
-			//console.log({ line });
 			if (line) {
 				yield { line };
 			} else {
 				// end of headers
 				leftover = chunk.slice(pos);
 				yield { line: null, leftover };
+				reader.releaseLock();
 				return;
 			}
 		}
@@ -153,8 +151,6 @@ async function fetchHttp(req: Request, url: URL) {
 		header += `${name}: ${value}\r\n`;
 	}
 	header += '\r\n';
-	//console.log({ header });
-	//console.log(`wrote: ${await Switch.write(fd, header)}`);
 	await Switch.write(fd, header);
 
 	const resHeaders = new Headers();
@@ -182,8 +178,6 @@ async function fetchHttp(req: Request, url: URL) {
 			leftover = v.leftover;
 		}
 	}
-
-	r.releaseLock();
 
 	const resStream =
 		resHeaders.get('transfer-encoding') === 'chunked'

@@ -1,4 +1,6 @@
 import { def } from '../utils';
+import { decoder } from './text-decoder';
+import { encoder } from './text-encoder';
 
 /*! fetch-blob. MIT License. Jimmy Wärting <https://jimmy.warting.se/opensource> */
 
@@ -55,9 +57,6 @@ export class Blob implements globalThis.Blob {
 			);
 		}
 
-		if (options === null) options = {};
-
-		const encoder = new TextEncoder();
 		for (const element of blobParts) {
 			let part;
 			if (ArrayBuffer.isView(element)) {
@@ -101,7 +100,6 @@ export class Blob implements globalThis.Blob {
 	async text(): Promise<string> {
 		// More optimized than using this.arrayBuffer()
 		// that requires twice as much ram
-		const decoder = new TextDecoder();
 		let str = '';
 		for await (const part of toIterator(this.#parts, false)) {
 			str += decoder.decode(part, { stream: true });
