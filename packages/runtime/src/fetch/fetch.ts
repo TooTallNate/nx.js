@@ -1,5 +1,6 @@
 import { def } from '../utils';
 import type { Switch as _Switch } from '../switch';
+import { objectUrls } from '../polyfills/url';
 
 declare const Switch: _Switch;
 
@@ -203,10 +204,27 @@ async function fetchHttp(req: Request, url: URL) {
 	});
 }
 
+async function fetchBlob(req: Request, url: URL) {
+	if (req.method !== 'GET') {
+		throw new Error(
+			`GET method must be used when fetching "${url.protocol}" protocol (got "${req.method}")`
+		);
+	}
+	const data = objectUrls.get(req.url);
+	if (!data) {
+		throw new Error(`Object URL "${req.url}" does not exist`);
+	}
+	return new Response(data, {
+		headers: {
+			'content-length': String(data.size),
+		},
+	});
+}
+
 async function fetchFile(req: Request, url: URL) {
 	if (req.method !== 'GET') {
 		throw new Error(
-			`Method must be GET when fetching local files (got "${req.method}")`
+			`GET method must be used when fetching "${url.protocol}" protocol (got "${req.method}")`
 		);
 	}
 	const path = url.protocol === 'file:' ? `sdmc:${url.pathname}` : url.href;
@@ -221,6 +239,7 @@ async function fetchFile(req: Request, url: URL) {
 const fetchers = new Map<string, (req: Request, url: URL) => Promise<Response>>(
 	[
 		['http:', fetchHttp],
+		['blob:', fetchBlob],
 		['file:', fetchFile],
 		['sdmc:', fetchFile],
 		['romfs:', fetchFile],
