@@ -1,5 +1,4 @@
-import 'core-js/actual/url';
-import 'core-js/actual/url-search-params';
+import './polyfills/url';
 import './polyfills/event-target';
 import './polyfills/event';
 import './polyfills/blob';
