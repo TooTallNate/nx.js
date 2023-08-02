@@ -191,17 +191,6 @@ export class Blob implements globalThis.Blob {
 
 		return blob;
 	}
-
-	static [Symbol.hasInstance](object: any) {
-		return (
-			object &&
-			typeof object === 'object' &&
-			typeof object.constructor === 'function' &&
-			(typeof object.stream === 'function' ||
-				typeof object.arrayBuffer === 'function') &&
-			/^(Blob|File)$/.test(object[Symbol.toStringTag])
-		);
-	}
 }
 
 Object.defineProperties(Blob.prototype, {
