@@ -10,6 +10,7 @@
 #include "types.h"
 #include "async.h"
 #include "applet.h"
+#include "crypto.h"
 #include "dns.h"
 #include "error.h"
 #include "canvas.h"
@@ -430,6 +431,7 @@ int main(int argc, char *argv[])
     JS_SetPropertyStr(ctx, switch_obj, "version", version_obj);
 
     nx_init_applet(ctx, native_obj);
+    nx_init_crypto(ctx, native_obj);
     nx_init_canvas(ctx, native_obj);
     nx_init_font(ctx, native_obj);
     nx_init_fs(ctx, native_obj);

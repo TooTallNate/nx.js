@@ -266,6 +266,9 @@ export interface Native {
 		isCanvas: boolean
 	): void;
 
+	// crypto
+	cryptoRandomBytes(buf: ArrayBuffer, offset: number, length: number): void;
+
 	// tcp
 	connect(cb: Callback<number>, ip: string, port: number): void;
 	write(cb: Callback<number>, fd: number, data: ArrayBuffer): void;

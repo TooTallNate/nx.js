@@ -14,4 +14,5 @@ import './fetch/headers';
 import './fetch/request';
 import './fetch/response';
 import './fetch/fetch';
+import './crypto';
 import './image';
