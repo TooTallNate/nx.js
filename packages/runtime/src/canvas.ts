@@ -39,17 +39,15 @@ export class Canvas {
 }
 
 export class CanvasRenderingContext2D
-	implements Omit<globalThis.CanvasRenderingContext2D, 'canvas'>
+	implements globalThis.CanvasRenderingContext2D
 {
-	readonly canvas: Canvas;
-
 	[INTERNAL_SYMBOL]: {
 		ctx: CanvasRenderingContext2DState;
 		fillStyle: RGBA;
 		strokeStyle: RGBA;
 		currentStyle?: RGBA;
 	};
-
+	canvas: HTMLCanvasElement;
 	direction: CanvasDirection;
 	fontKerning: CanvasFontKerning;
 	textAlign: CanvasTextAlign;
@@ -57,6 +55,7 @@ export class CanvasRenderingContext2D
 
 	constructor(canvas: Canvas) {
 		const { width: w, height: h } = canvas;
+		// @ts-expect-error `Canvas` does not implement all of `HTMLCanvasElement`
 		this.canvas = canvas;
 		this[INTERNAL_SYMBOL] = {
 			ctx: Switch.native.canvasNewContext(w, h),
