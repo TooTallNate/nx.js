@@ -39,6 +39,20 @@ right at home.
 
 See the [API docs](./docs/globals.md) for further details, and check out the [`apps`](./apps) directory for examples.
 
+## Creating an application
+
+To bootstrap the creation of an nx.js application, run the following command:
+
+```bash
+npm create nxjs-app@latest
+```
+
+You will be able to choose from one of the example applications as a starting point.
+Follow the prompts, and afterwards a new directory will be created with the project
+name that you entered.
+
+The project will be configured to bundle the application code with `esbuild`.
+
 ## Contributing
 
 Contributions to nx.js are welcome! If you find any issues or have
