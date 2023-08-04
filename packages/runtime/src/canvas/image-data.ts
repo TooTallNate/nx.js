@@ -1,3 +1,5 @@
+import { def } from '../utils';
+
 export class ImageData implements globalThis.ImageData {
 	readonly colorSpace: PredefinedColorSpace;
 	readonly data: Uint8ClampedArray;
@@ -38,3 +40,4 @@ export class ImageData implements globalThis.ImageData {
 		this.colorSpace = imageDataSettings?.colorSpace || 'srgb';
 	}
 }
+def('ImageData', ImageData);
