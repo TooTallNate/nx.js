@@ -1,5 +1,41 @@
 # nxjs-runtime
 
+## 0.0.14
+
+### Patch Changes
+
+- Add `File` ([`192b1d1`](https://github.com/TooTallNate/nx.js/commit/192b1d13ea61c8a062003a95a06739cb795d4d3c))
+
+- Add `FormData` ([`f21f042`](https://github.com/TooTallNate/nx.js/commit/f21f042c18032bc5d23540d4fd7fbe9ce2fd2e6c))
+
+- Remove `Symbol.hasInstance` from `Blob` ([`6f5ef58`](https://github.com/TooTallNate/nx.js/commit/6f5ef58c77bfa9a456c690fcc708253a1e1c36d3))
+
+- Fix `CanvasRenderingContext2D` class to be compatible with global type definition ([`019adac`](https://github.com/TooTallNate/nx.js/commit/019adac50c66e269de1319d68d68f3a185769f7d))
+
+- Updated logo with vector ([#20](https://github.com/TooTallNate/nx.js/pull/20))
+
+- Set `Symbol.toStringTag` on all global classes ([`e888b51`](https://github.com/TooTallNate/nx.js/commit/e888b51fbb83f13cd1fba03f4459e9b775037e5a))
+
+- Add support for `blob:` URLs in `fetch()` ([`9f663e9`](https://github.com/TooTallNate/nx.js/commit/9f663e9a0e0ae1c20d095c324993e3fbdbce28f3))
+
+- Add `ImageData` as a global ([`a2473e6`](https://github.com/TooTallNate/nx.js/commit/a2473e6d1db3d7b20a299089382562bed8de4d69))
+
+- Fix Canvas `ctx.font` setter to not throw upon empty string ([`4ddb225`](https://github.com/TooTallNate/nx.js/commit/4ddb225c6280c1f7885f73120e8e1687a69ec41c))
+
+- Add `URL.createObjectURL()` and `URL.revokeObjectURL()` ([`9905c8a`](https://github.com/TooTallNate/nx.js/commit/9905c8abbd1781fa9a3fffee650702aa9a5fe14f))
+
+- Support `FormData` encode/decode in `Body` class ([`1df3bfe`](https://github.com/TooTallNate/nx.js/commit/1df3bfe09a3ea717071c80dae3a42c46caab022b))
+
+- Fix passing `File` instance to `FormData` ([`ed38043`](https://github.com/TooTallNate/nx.js/commit/ed380430119d61285b41877bef4351295e0fe0f1))
+
+- Support `path` parameter in Canvas `fill()` method ([`756b5cf`](https://github.com/TooTallNate/nx.js/commit/756b5cf98cc29e50ca4c554ac6ffd6d64e9d0039))
+
+- Add `crypto.getRandomValues()` and `crypto.randomUUID()` ([`f4d007c`](https://github.com/TooTallNate/nx.js/commit/f4d007c15160c99caf020c7f5b49c93bf3a54fdf))
+
+- Prompt for package manager (pnpm, npm or yarn) and install dependencies ([`a43c1ac`](https://github.com/TooTallNate/nx.js/commit/a43c1acae2d6b6c1a32f26ef6d88b0daa891dff3))
+
+- Add `Path2D` ([`be90649`](https://github.com/TooTallNate/nx.js/commit/be90649022f7b7c56209cdcad338330dd618d2c9))
+
 ## 0.0.13
 
 ### Patch Changes

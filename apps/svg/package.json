@@ -10,7 +10,7 @@
   "devDependencies": {
     "@types/xmldom": "^0.1.31",
     "esbuild": "^0.17.18",
-    "nxjs-runtime": "^0.0.13"
+    "nxjs-runtime": "^0.0.14"
   },
   "dependencies": {
     "canvg": "^4.0.1",

@@ -9,7 +9,7 @@
   "license": "MIT",
   "devDependencies": {
     "esbuild": "^0.17.18",
-    "nxjs-runtime": "^0.0.13"
+    "nxjs-runtime": "^0.0.14"
   },
   "dependencies": {
     "strip-ansi": "^7.1.0"
