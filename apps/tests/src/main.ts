@@ -1,5 +1,7 @@
 import { assert, test } from './runner';
 
+const ctx = Switch.screen.getContext('2d');
+
 test('`Switch.entrypoint` is a string', () => {
 	assert(typeof Switch.entrypoint === 'string');
 	assert(Switch.entrypoint.length > 0);
@@ -101,4 +103,38 @@ test('`Switch.stat()` rejects when file does not exist', async () => {
 		err = _err as Error;
 	}
 	assert(err);
+});
+
+test('`CanvasContext2D#getImageData()`', () => {
+	ctx.fillStyle = 'red';
+	ctx.fillRect(0, 0, 1, 1);
+	const data = ctx.getImageData(0, 0, 1, 1);
+	assert(data.data[0] === 255);
+	assert(data.data[1] === 0);
+	assert(data.data[2] === 0);
+	assert(data.data[3] === 255);
+});
+
+test('FormData', async () => {
+	const file = new File(['conte', new Blob(['nts'])], 'file.txt', {
+		type: 'text/plain',
+	});
+	assert(file.name === 'file.txt');
+	assert(file.type === 'text/plain');
+
+	const form = new FormData();
+	form.append('file', file);
+	form.append('string', 'string-value');
+
+	const r = new Response(form);
+	const form2 = await r.formData();
+	assert(form2 instanceof FormData);
+	assert(form2.get('string') === 'string-value');
+	assert(form2.get('missing') === null);
+
+	const file2 = form2.get('file');
+	assert(file2 instanceof File);
+	assert(file2.name === 'file.txt');
+	assert(file2.type === 'text/plain');
+	assert((await file2.text()) === 'contents');
 });
