@@ -4,6 +4,7 @@ import parseCssFont from 'parse-css-font';
 import { INTERNAL_SYMBOL } from './types';
 import { Image } from './image';
 import { ImageData } from './canvas/image-data';
+import { Path2D } from './canvas/path2d';
 import type { CanvasRenderingContext2DState, ImageOpaque } from './switch';
 import type { Switch as _Switch } from './switch';
 
