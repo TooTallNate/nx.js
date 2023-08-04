@@ -640,6 +640,7 @@ export class CanvasRenderingContext2D
 	}
 
 	set font(v: string) {
+		if (!v) return;
 		const parsed = parseCssFont(v);
 		if ('system' in parsed) {
 			// "system" fonts are not supported
