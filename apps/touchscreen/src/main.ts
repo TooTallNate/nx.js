@@ -16,14 +16,24 @@ Switch.addEventListener(
 	{ once: true }
 );
 
+function degreesToRadians(degrees: number) {
+	return degrees * (Math.PI / 180);
+}
+
 Switch.addEventListener('touchmove', (e) => {
 	for (const touch of e.changedTouches) {
 		ctx.fillStyle = hash.hex(String(touch.identifier));
-		ctx.fillRect(
-			touch.screenX - touch.radiusX,
-			touch.screenY - touch.radiusY,
-			touch.radiusX * 2,
-			touch.radiusY * 2
+		ctx.beginPath();
+		ctx.ellipse(
+			touch.clientX,
+			touch.clientY,
+			touch.radiusX,
+			touch.radiusY,
+			degreesToRadians(touch.rotationAngle),
+			0,
+			2 * Math.PI
 		);
+		ctx.closePath();
+		ctx.fill();
 	}
 });
