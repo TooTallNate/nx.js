@@ -298,8 +298,9 @@ export class Path2D implements globalThis.Path2D {
 
 export function applyPath(
 	ctx: globalThis.CanvasRenderingContext2D,
-	commands: PathCommand[]
+	path: Path2D
 ) {
+	const commands = getCommands(path);
 	let x = 0;
 	let y = 0;
 	let endAngle: number;
