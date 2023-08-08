@@ -1,7 +1,5 @@
-romfs/main.js
 node_modules
 .turbo
-/apps/*/*.nro
 /packages/*/dist
 /lib/*/lib
 /lib/*/debug
@@ -10,6 +8,7 @@ node_modules
 /nxjs.*
 !/nxjs.jpg
 /build
+/romfs
 
 /?
 /?.*

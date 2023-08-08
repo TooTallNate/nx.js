@@ -29,6 +29,9 @@ importers:
       esbuild:
         specifier: ^0.17.18
         version: 0.17.18
+      nxjs-pack:
+        specifier: ^0.0.14
+        version: link:../../packages/pack
       nxjs-runtime:
         specifier: ^0.0.14
         version: link:../../packages/runtime
@@ -45,6 +48,9 @@ importers:
       esbuild:
         specifier: ^0.17.18
         version: 0.17.18
+      nxjs-pack:
+        specifier: ^0.0.14
+        version: link:../../packages/pack
       nxjs-runtime:
         specifier: ^0.0.14
         version: link:../../packages/runtime
@@ -54,6 +60,9 @@ importers:
       esbuild:
         specifier: ^0.17.18
         version: 0.17.18
+      nxjs-pack:
+        specifier: ^0.0.14
+        version: link:../../packages/pack
       nxjs-runtime:
         specifier: ^0.0.14
         version: link:../../packages/runtime
@@ -63,6 +72,9 @@ importers:
       esbuild:
         specifier: ^0.17.18
         version: 0.17.18
+      nxjs-pack:
+        specifier: ^0.0.14
+        version: link:../../packages/pack
       nxjs-runtime:
         specifier: ^0.0.14
         version: link:../../packages/runtime
@@ -72,6 +84,9 @@ importers:
       esbuild:
         specifier: ^0.17.18
         version: 0.17.18
+      nxjs-pack:
+        specifier: ^0.0.14
+        version: link:../../packages/pack
       nxjs-runtime:
         specifier: ^0.0.14
         version: link:../../packages/runtime
@@ -104,6 +119,9 @@ importers:
       esbuild:
         specifier: ^0.17.18
         version: 0.17.18
+      nxjs-pack:
+        specifier: ^0.0.14
+        version: link:../../packages/pack
       nxjs-runtime:
         specifier: ^0.0.14
         version: link:../../packages/runtime
@@ -117,6 +135,9 @@ importers:
       esbuild:
         specifier: ^0.17.18
         version: 0.17.18
+      nxjs-pack:
+        specifier: ^0.0.14
+        version: link:../../packages/pack
       nxjs-runtime:
         specifier: ^0.0.14
         version: link:../../packages/runtime
@@ -136,6 +157,9 @@ importers:
       esbuild:
         specifier: ^0.17.18
         version: 0.17.18
+      nxjs-pack:
+        specifier: ^0.0.14
+        version: link:../../packages/pack
       nxjs-runtime:
         specifier: ^0.0.14
         version: link:../../packages/runtime
@@ -149,6 +173,9 @@ importers:
       esbuild:
         specifier: ^0.17.18
         version: 0.17.18
+      nxjs-pack:
+        specifier: ^0.0.14
+        version: link:../../packages/pack
       nxjs-runtime:
         specifier: ^0.0.14
         version: link:../../packages/runtime
@@ -165,6 +192,9 @@ importers:
       esbuild:
         specifier: ^0.17.18
         version: 0.17.18
+      nxjs-pack:
+        specifier: ^0.0.14
+        version: link:../../packages/pack
       nxjs-runtime:
         specifier: ^0.0.14
         version: link:../../packages/runtime
@@ -208,19 +238,31 @@ importers:
 
   packages/pack:
     dependencies:
+      '@tootallnate/nacp':
+        specifier: ^0.0.1
+        version: 0.0.1
       '@tootallnate/nro':
-        specifier: ^0.0.1
-        version: 0.0.1
+        specifier: ^0.1.0
+        version: 0.1.0
       '@tootallnate/romfs':
-        specifier: ^0.0.1
-        version: 0.0.1
+        specifier: ^0.1.0
+        version: 0.1.0
       '@types/node':
         specifier: ^20.2.5
         version: 20.4.5
+      bytes:
+        specifier: ^3.1.2
+        version: 3.1.2
+      chalk:
+        specifier: ^5.3.0
+        version: 5.3.0
       parse-author:
         specifier: ^2.0.0
         version: 2.0.0
     devDependencies:
+      '@types/bytes':
+        specifier: ^3.1.1
+        version: 3.1.1
       '@types/parse-author':
         specifier: ^2.0.1
         version: 2.0.1
@@ -861,15 +903,19 @@ packages:
     resolution: {integrity: sha512-SodmIB6YIEj6oVSSRzi5Ll2Mz8EhlEkYFJN4UOLrEcQMkwUo7Fv3ZXcY2AnlhcQtlUABusZgwZkYHzbtpg/Ctg==}
     dev: false
 
-  /@tootallnate/nro@0.0.1:
-    resolution: {integrity: sha512-uC5q2dpJvwwTgHCLhOzCC0a0Z55QT6QRblVpNe0lGwnf27aWu1gFP/FAiP8OL9MZIG+TLHG12ZK0o264MCwweA==}
+  /@tootallnate/nro@0.1.0:
+    resolution: {integrity: sha512-4BtKlCxgj6TyJCwekkRTzaIJfEnVn97HbOLmJUwNT4ol/mZJ4smMohfU8zaYKnQiPjVdLhZ08qKH8kQI2xszjQ==}
     dependencies:
       '@tootallnate/nacp': 0.0.1
     dev: false
 
-  /@tootallnate/romfs@0.0.1:
-    resolution: {integrity: sha512-8+lQoFRTU6VmSVL+lXSI2c83Rb/OuMNJ/r2BuPI7gnjboJNEBSEQbvV9fZe2+EpfsTYrj+2FyvoEfsuXqC9BYA==}
+  /@tootallnate/romfs@0.1.0:
+    resolution: {integrity: sha512-ZXEgARulK9g0wLgL2mrsxOyAfcI0pAVSi+0UUs1B3lfbBv7qaltMe37YTmn8Aa8BvJ/sc+XqTI5aA7U6NX/nRg==}
     dev: false
+
+  /@types/bytes@3.1.1:
+    resolution: {integrity: sha512-lOGyCnw+2JVPKU3wIV0srU0NyALwTBJlVSx5DfMQOFuuohA8y9S8orImpuIQikZ0uIQ8gehrRjxgQC1rLRi11w==}
+    dev: true
 
   /@types/color-hash@1.0.2:
     resolution: {integrity: sha512-QJCVXSVRse+mMvzWQ8vH6AcKxtqCgHPHf5abAdGn86DEeQdUpSJnKAeCa1+hZuohaUF3l4RhigC9akRx82Bwig==}
@@ -1065,6 +1111,11 @@ packages:
   /buffer-crc32@0.2.13:
     resolution: {integrity: sha512-VO9Ht/+p3SN7SKWqcrgEzjGbRSJYTx+Q1pTQC0wrWqHx0vpJraQ6GtHx8tvcg1rlK1byhU5gccxgOgj7B0TDkQ==}
     dev: true
+
+  /bytes@3.1.2:
+    resolution: {integrity: sha512-/Nf7TyzTx6S3yRJObOAV7956r8cr2+Oj8AC5dt8wSP3BQAoeX58NoHyCU8P8zGkNXStjTSi6fzO6F0pBdcYbEg==}
+    engines: {node: '>= 0.8'}
+    dev: false
 
   /call-bind@1.0.2:
     resolution: {integrity: sha512-7O+FbCihrB5WGbFYesctwmTKae6rOiIzmz1icreWJ+0aA7LJfuqhEso2T9ncpcFtzMQtzXf2QGGueWJGTYsqrA==}

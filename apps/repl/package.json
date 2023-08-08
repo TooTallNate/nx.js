@@ -1,10 +1,11 @@
 {
-  "name": "nxjs-example-repl",
+  "name": "repl",
   "version": "0.0.0",
   "private": true,
   "description": "nx.js example application REPL (read-eval-print-loop)",
   "scripts": {
-    "build": "esbuild --bundle --target=es2020 src/main.ts --outfile=romfs/main.js"
+    "build": "esbuild --bundle --target=es2020 src/main.ts --outfile=romfs/main.js",
+    "nro": "nxjs-pack"
   },
   "license": "MIT",
   "dependencies": {
