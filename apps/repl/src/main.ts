@@ -43,8 +43,18 @@ Switch.addEventListener('keydown', (e) => {
 			history.push(buffer);
 			historyIndex = history.length;
 			const trimmed = buffer.trim();
-			const result =
-				trimmed.length === 0 ? undefined : (0, eval)(`(${trimmed})`);
+			let result: any = undefined;
+			if (trimmed.length > 0) {
+				try {
+					result = (0, eval)(`(${trimmed})`);
+				} catch (err: unknown) {
+					if (err instanceof SyntaxError) {
+						result = (0, eval)(trimmed);
+					} else {
+						throw err;
+					}
+				}
+			}
 			buffer = '';
 			cursorPosition = 0;
 			Switch.print(`${Switch.inspect(result)}\n\n`);

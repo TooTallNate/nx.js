@@ -106,7 +106,7 @@ if (packageManager !== 'skip') {
 
 // Ok, we're done
 console.log(
-	chalk.cyan(
+	chalk.green(
 		`\n🎉 nx.js app ${chalk.bold(`"${appName}"`)} initialized successfully!`
 	)
 );
@@ -118,9 +118,11 @@ if (packageManager === 'skip') {
 	console.log(` • Run the following command: ${cmd(`cd ${appName}`)}`);
 	console.log(` • Install dependencies using your preferred package manager`);
 	console.log(` • Invoke the ${cmd('build')} script to bundle your app`);
+	console.log(` • Invoke the ${cmd('nro')} script to generate a NRO file`);
 } else {
 	console.log(` • Run the following commands:`);
 	console.log();
 	console.log(`     ${cmd(`cd ${appName}`)}`);
-	console.log(`     ${cmd(`${packageManager} build`)}`);
+	console.log(`     ${cmd(`${packageManager} run build`)}`);
+	console.log(`     ${cmd(`${packageManager} run nro`)}`);
 }

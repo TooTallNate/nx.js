@@ -8,8 +8,9 @@
   "fixed": [
     [
       "create-nxjs-app",
+      "nxjs-constants",
       "nxjs-runtime",
-      "nxjs-constants"
+      "nxjs-pack"
     ]
   ],
   "linked": [],
