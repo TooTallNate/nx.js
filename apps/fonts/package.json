@@ -10,7 +10,7 @@
   "license": "MIT",
   "devDependencies": {
     "esbuild": "^0.17.18",
-    "nxjs-runtime": "^0.0.14",
-    "nxjs-pack": "^0.0.14"
+    "nxjs-runtime": "^0.0.15",
+    "nxjs-pack": "^0.0.15"
   }
 }
