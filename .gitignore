@@ -1,4 +1,4 @@
-romfs
+romfs/main.js
 node_modules
 .turbo
 /apps/*/*.nro
@@ -8,6 +8,8 @@ node_modules
 /lib/*/release
 
 /nxjs.*
+!/nxjs.jpg
 /build
 
-/?.html
+/?
+/?.*

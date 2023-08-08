@@ -100,12 +100,14 @@ function draw() {
 
 	// Draw food
 	ctx.fillStyle = 'green';
-	ctx.fillRect(
-		boardX + food.x * gridSize,
-		boardY + food.y * gridSize,
-		gridSize,
-		gridSize
+	ctx.arc(
+		boardX + gridSize / 2 + food.x * gridSize,
+		boardY + gridSize / 2 + food.y * gridSize,
+		gridSize / 2,
+		0,
+		2 * Math.PI
 	);
+	ctx.fill();
 
 	// Draw snake
 	ctx.fillStyle = 'red';

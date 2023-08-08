@@ -1,23 +1,48 @@
 import { Canvas, CanvasRenderingContext2D } from './canvas';
-import { FontFaceSet } from './font';
-import { INTERNAL_SYMBOL } from './types';
+import { FontFaceSet } from './polyfills/font';
+import { INTERNAL_SYMBOL, PathLike, Stats } from './types';
 import { inspect } from './inspect';
+import { bufferSourceToArrayBuffer } from './utils';
+import { encoder } from './polyfills/text-encoder';
 
 export type Opaque<T> = { __type: T };
 export type CanvasRenderingContext2DState =
 	Opaque<'CanvasRenderingContext2DState'>;
 export type FontFaceState = Opaque<'FontFaceState'>;
+export type ImageOpaque = Opaque<'ImageOpaque'>;
 
 type Keys = {
 	modifiers: bigint;
 	[i: number]: bigint;
 };
 
+type Callback<T> = (err: Error | null, result: T) => void;
+type CallbackReturnType<T> = T extends (
+	fn: Callback<infer U>,
+	...args: any[]
+) => any
+	? U
+	: never;
+type CallbackArguments<T> = T extends (
+	fn: Callback<any>,
+	...args: infer U
+) => any
+	? U
+	: never;
+
+interface ConnectOpts {
+	hostname?: string;
+	port: number;
+}
+
 export interface Native {
 	print: (str: string) => void;
 	cwd: () => string;
-	getenv: (name: string) => string;
+	chdir: (dir: string) => void;
+	getInternalPromiseState: (p: Promise<unknown>) => [number, unknown];
+	getenv: (name: string) => string | undefined;
 	setenv: (name: string, value: string) => void;
+	unsetenv: (name: string) => void;
 	envToObject: () => Record<string, string>;
 	consoleInit: () => void;
 	consoleExit: () => void;
@@ -34,21 +59,146 @@ export interface Native {
 	hidGetTouchScreenStates: () => Touch[] | undefined;
 	hidGetKeyboardStates: () => Keys;
 
+	// dns
+	resolveDns: (cb: Callback<string[]>, hostname: string) => void;
+
 	// fs
+	readFile: (cb: Callback<ArrayBuffer>, path: string) => void;
 	readDirSync: (path: string) => string[];
 	readFileSync: (path: string) => ArrayBuffer;
+	writeFileSync: (path: string, data: ArrayBuffer) => void;
+	remove: (cb: Callback<void>, path: string) => void;
+	stat: (cb: Callback<Stats>, path: string) => void;
 
 	// font
 	newFontFace: (data: ArrayBuffer) => FontFaceState;
 	getSystemFont: () => ArrayBuffer;
 
+	// image
+	decodeImage: (
+		cb: Callback<{
+			opaque: ImageOpaque;
+			width: number;
+			height: number;
+		}>,
+		b: ArrayBuffer
+	) => void;
+
 	// canvas
-	canvasNewContext(
-		width: number,
-		height: number
-	): CanvasRenderingContext2DState;
+	canvasNewContext(w: number, h: number): CanvasRenderingContext2DState;
+	canvasGetGlobalAlpha(ctx: CanvasRenderingContext2DState): number;
+	canvasSetGlobalAlpha(ctx: CanvasRenderingContext2DState, n: number): void;
+	canvasGetLineWidth(ctx: CanvasRenderingContext2DState): number;
 	canvasSetLineWidth(ctx: CanvasRenderingContext2DState, n: number): void;
-	canvasSetFillStyle(
+	canvasGetLineJoin(ctx: CanvasRenderingContext2DState): CanvasLineJoin;
+	canvasSetLineJoin(
+		ctx: CanvasRenderingContext2DState,
+		n: CanvasLineJoin
+	): void;
+	canvasGetLineCap(ctx: CanvasRenderingContext2DState): CanvasLineCap;
+	canvasSetLineCap(
+		ctx: CanvasRenderingContext2DState,
+		n: CanvasLineCap
+	): void;
+	canvasGetLineDash(ctx: CanvasRenderingContext2DState): number[];
+	canvasSetLineDash(ctx: CanvasRenderingContext2DState, n: number[]): void;
+	canvasGetLineDashOffset(ctx: CanvasRenderingContext2DState): number;
+	canvasSetLineDashOffset(
+		ctx: CanvasRenderingContext2DState,
+		n: number
+	): void;
+	canvasGetMiterLimit(ctx: CanvasRenderingContext2DState): number;
+	canvasSetMiterLimit(ctx: CanvasRenderingContext2DState, n: number): void;
+	canvasBeginPath(ctx: CanvasRenderingContext2DState): void;
+	canvasClosePath(ctx: CanvasRenderingContext2DState): void;
+	canvasClip(
+		ctx: CanvasRenderingContext2DState,
+		fillRule?: CanvasFillRule
+	): void;
+	canvasFill(ctx: CanvasRenderingContext2DState): void;
+	canvasStroke(ctx: CanvasRenderingContext2DState): void;
+	canvasSave(ctx: CanvasRenderingContext2DState): void;
+	canvasRestore(ctx: CanvasRenderingContext2DState): void;
+	canvasMoveTo(
+		ctx: CanvasRenderingContext2DState,
+		x: number,
+		y: number
+	): void;
+	canvasLineTo(
+		ctx: CanvasRenderingContext2DState,
+		x: number,
+		y: number
+	): void;
+	canvasBezierCurveTo(
+		ctx: CanvasRenderingContext2DState,
+		cp1x: number,
+		cp1y: number,
+		cp2x: number,
+		cp2y: number,
+		x: number,
+		y: number
+	): void;
+	canvasQuadraticCurveTo(
+		ctx: CanvasRenderingContext2DState,
+		cpx: number,
+		cpy: number,
+		x: number,
+		y: number
+	): void;
+	canvasArc(
+		ctx: CanvasRenderingContext2DState,
+		x: number,
+		y: number,
+		radius: number,
+		startAngle: number,
+		endAngle: number,
+		counterclockwise: boolean
+	): void;
+	canvasArcTo(
+		ctx: CanvasRenderingContext2DState,
+		x1: number,
+		y1: number,
+		x2: number,
+		y2: number,
+		radius: number
+	): void;
+	canvasEllipse(
+		ctx: CanvasRenderingContext2DState,
+		x: number,
+		y: number,
+		radiusX: number,
+		radiusY: number,
+		rotation: number,
+		startAngle: number,
+		endAngle: number,
+		counterclockwise: boolean
+	): void;
+	canvasRect(
+		ctx: CanvasRenderingContext2DState,
+		x: number,
+		y: number,
+		w: number,
+		h: number
+	): void;
+	canvasRotate(ctx: CanvasRenderingContext2DState, n: number): void;
+	canvasScale(ctx: CanvasRenderingContext2DState, x: number, y: number): void;
+	canvasTranslate(
+		ctx: CanvasRenderingContext2DState,
+		x: number,
+		y: number
+	): void;
+	canvasTransform(
+		ctx: CanvasRenderingContext2DState,
+		a: number,
+		b: number,
+		c: number,
+		d: number,
+		e: number,
+		f: number
+	): void;
+	canvasGetTransform(ctx: CanvasRenderingContext2DState): number[];
+	canvasResetTransform(ctx: CanvasRenderingContext2DState): void;
+	canvasSetSourceRgba(
 		ctx: CanvasRenderingContext2DState,
 		r: number,
 		g: number,
@@ -61,6 +211,13 @@ export interface Native {
 		fontSize: number
 	): void;
 	canvasFillRect(
+		ctx: CanvasRenderingContext2DState,
+		x: number,
+		y: number,
+		w: number,
+		h: number
+	): void;
+	canvasStrokeRect(
 		ctx: CanvasRenderingContext2DState,
 		x: number,
 		y: number,
@@ -85,6 +242,8 @@ export interface Native {
 	canvasPutImageData(
 		ctx: CanvasRenderingContext2DState,
 		source: ArrayBuffer,
+		sourceWidth: number,
+		sourceHeight: number,
 		dx: number,
 		dy: number,
 		dirtyX: number,
@@ -92,6 +251,29 @@ export interface Native {
 		dirtyWidth: number,
 		dirtyHeight: number
 	): void;
+	canvasDrawImage(
+		ctx: CanvasRenderingContext2DState,
+		image: CanvasRenderingContext2DState | ImageOpaque,
+		imageWidth: number,
+		imageHeight: number,
+		sx: number,
+		sy: number,
+		sw: number,
+		sh: number,
+		dx: number,
+		dy: number,
+		dw: number,
+		dh: number,
+		isCanvas: boolean
+	): void;
+
+	// crypto
+	cryptoRandomBytes(buf: ArrayBuffer, offset: number, length: number): void;
+
+	// tcp
+	connect(cb: Callback<number>, ip: string, port: number): void;
+	write(cb: Callback<number>, fd: number, data: ArrayBuffer): void;
+	read(cb: Callback<number>, fd: number, buffer: ArrayBuffer): void;
 }
 
 interface Internal {
@@ -126,6 +308,24 @@ interface SwitchEventHandlersEventMap {
 	touchend: TouchEvent;
 }
 
+interface Versions {
+	nxjs: string;
+	cairo: string;
+	freetype2: string;
+	quickjs: string;
+}
+
+export function toPromise<
+	Func extends (cb: Callback<any>, ...args: any[]) => any
+>(fn: Func, ...args: CallbackArguments<Func>) {
+	return new Promise<CallbackReturnType<Func>>((resolve, reject) => {
+		fn((err, result) => {
+			if (err) return reject(err);
+			resolve(result);
+		}, ...args);
+	});
+}
+
 export class Switch extends EventTarget {
 	env: Env;
 	screen: Canvas;
@@ -136,6 +336,7 @@ export class Switch extends EventTarget {
 	// Populated by the host process
 	argv!: string[];
 	entrypoint!: string;
+	version!: Versions;
 	exit!: () => never;
 
 	constructor() {
@@ -256,17 +457,87 @@ export class Switch extends EventTarget {
 	}
 
 	/**
-	 * Returns an array of the file names within `path`.
+	 * Changes the current working directory to the specified path.
 	 */
-	readDirSync(path: string | URL) {
+	chdir(dir: PathLike) {
+		return this.native.chdir(String(dir));
+	}
+
+	/**
+	 * Performs a DNS lookup to resolve a hostname to an array of IP addresses.
+	 */
+	resolveDns(hostname: string) {
+		return toPromise(this.native.resolveDns, hostname);
+	}
+
+	/**
+	 * Returns a Promise which resolves to an `ArrayBuffer` containing
+	 * the contents of the file at `path`.
+	 */
+	readFile(path: PathLike) {
+		return toPromise(this.native.readFile, String(path));
+	}
+
+	/**
+	 * Synchronously returns an array of the file names within `path`.
+	 */
+	readDirSync(path: PathLike) {
 		return this.native.readDirSync(String(path));
 	}
 
 	/**
-	 * Returns an `ArrayBuffer` containing the contents of the file at `path`.
+	 * Synchronously returns an `ArrayBuffer` containing the contents
+	 * of the file at `path`.
 	 */
-	readFileSync(path: string | URL) {
+	readFileSync(path: PathLike) {
 		return this.native.readFileSync(String(path));
+	}
+
+	/**
+	 * Synchronously writes the contents of `data` to the file at `path`.
+	 */
+	writeFileSync(path: PathLike, data: string | BufferSource) {
+		const d = typeof data === 'string' ? encoder.encode(data) : data;
+		const ab = bufferSourceToArrayBuffer(d);
+		return this.native.writeFileSync(String(path), ab);
+	}
+
+	/**
+	 * Removes the file or directory specified by `path`.
+	 */
+	remove(path: PathLike) {
+		return toPromise(this.native.remove, String(path));
+	}
+
+	/**
+	 * Returns a Promise which resolves to an object containing
+	 * information about the file pointed to by `path`.
+	 */
+	stat(path: PathLike) {
+		return toPromise(this.native.stat, String(path));
+	}
+
+	/**
+	 * Creates a TCP connection specified by the `hostname`
+	 * and `port`.
+	 */
+	async connect({ hostname = '127.0.0.1', port }: ConnectOpts) {
+		const [ip] = await this.resolveDns(hostname);
+		if (!ip) {
+			throw new Error(`Could not resolve "${hostname}" to an IP address`);
+		}
+		return toPromise(this.native.connect, ip, port);
+	}
+
+	read(fd: number, buffer: BufferSource) {
+		const ab = bufferSourceToArrayBuffer(buffer);
+		return toPromise(this.native.read, fd, ab);
+	}
+
+	write(fd: number, data: string | BufferSource) {
+		const d = typeof data === 'string' ? encoder.encode(data) : data;
+		const ab = bufferSourceToArrayBuffer(d);
+		return toPromise(this.native.write, fd, ab);
 	}
 
 	inspect = inspect;
@@ -279,22 +550,31 @@ export class Env {
 		this[INTERNAL_SYMBOL] = s;
 	}
 
-	get(name: string): string | undefined {
+	get(name: string) {
 		return this[INTERNAL_SYMBOL].native.getenv(name);
 	}
 
-	set(name: string, value: string): void {
+	set(name: string, value: string) {
 		this[INTERNAL_SYMBOL].native.setenv(name, value);
 	}
 
-	delete(name: string): void {}
+	delete(name: string) {
+		this[INTERNAL_SYMBOL].native.unsetenv(name);
+	}
 
-	toObject(): Record<string, string> {
+	toObject() {
 		return this[INTERNAL_SYMBOL].native.envToObject();
 	}
 }
 
 class Screen extends Canvas {
+	[INTERNAL_SYMBOL]: Switch;
+
+	constructor(s: Switch, w: number, h: number) {
+		super(w, h);
+		this[INTERNAL_SYMBOL] = s;
+	}
+
 	getContext(contextId: '2d'): CanvasRenderingContext2D {
 		const ctx = super.getContext(contextId);
 		const Switch = this[INTERNAL_SYMBOL];
@@ -302,7 +582,7 @@ class Screen extends Canvas {
 		if (internal.renderingMode !== RenderingMode.Framebuffer) {
 			internal.setRenderingMode(
 				RenderingMode.Framebuffer,
-				ctx[INTERNAL_SYMBOL]
+				ctx[INTERNAL_SYMBOL].ctx
 			);
 		}
 		return ctx;

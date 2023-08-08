@@ -1,5 +1,7 @@
 # nx.js
 
+<img align="right" width="200" height="200" src="./assets/logo.png">
+
 **nx.js** is a framework that enables the development of Nintendo Switch
 homebrew applications using JavaScript. Powered by the [QuickJS][] engine,
 nx.js provides a streamlined environment for writing homebrew applications
@@ -36,6 +38,20 @@ right at home.
 1. Profit!
 
 See the [API docs](./docs/globals.md) for further details, and check out the [`apps`](./apps) directory for examples.
+
+## Creating an application
+
+To bootstrap the creation of an nx.js application, run the following command:
+
+```bash
+npm create nxjs-app@latest
+```
+
+You will be able to choose from one of the example applications as a starting point.
+Follow the prompts, and afterwards a new directory will be created with the project
+name that you entered.
+
+The project will be configured to bundle the application code with `esbuild`.
 
 ## Contributing
 

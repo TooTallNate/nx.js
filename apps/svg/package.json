@@ -1,0 +1,19 @@
+{
+  "name": "nxjs-example-svg",
+  "version": "0.0.0",
+  "private": true,
+  "description": "nx.js example application which renders an SVG image to the screen",
+  "scripts": {
+    "build": "esbuild --bundle --banner:js='globalThis.global = globalThis;' --target=es2020 src/main.ts --outfile=dist/main.js"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@types/xmldom": "^0.1.31",
+    "esbuild": "^0.17.18",
+    "nxjs-runtime": "^0.0.14"
+  },
+  "dependencies": {
+    "canvg": "^4.0.1",
+    "xmldom": "^0.6.0"
+  }
+}

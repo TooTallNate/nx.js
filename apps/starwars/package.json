@@ -1,0 +1,17 @@
+{
+  "name": "nxjs-example-starwars",
+  "version": "0.0.0",
+  "private": true,
+  "description": "nx.js example which renders the Star Wars ASCII text",
+  "scripts": {
+    "build": "esbuild --bundle --target=es2020 src/main.ts --outfile=dist/main.js"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "esbuild": "^0.17.18",
+    "nxjs-runtime": "^0.0.14"
+  },
+  "dependencies": {
+    "strip-ansi": "^7.1.0"
+  }
+}

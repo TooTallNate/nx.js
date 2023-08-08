@@ -13,7 +13,7 @@
   },
   "devDependencies": {
     "esbuild": "^0.17.18",
-    "nxjs-pack": "^0.0.8",
-    "nxjs-runtime": "^0.0.8"
+    "nxjs-pack": "^0.0.14",
+    "nxjs-runtime": "^0.0.14"
   }
 }

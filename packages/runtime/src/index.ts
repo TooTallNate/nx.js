@@ -1,9 +1,10 @@
-import { def } from './polyfills';
+import './polyfills';
+import { def } from './utils';
 import { Switch as _Switch } from './switch';
 import { INTERNAL_SYMBOL } from './types';
 import { createTimersFactory } from './timers';
 import { Console } from './console';
-import { FontFace } from './font';
+//import { Image } from './image';
 
 export type { Switch } from './switch';
 
@@ -13,13 +14,11 @@ def('Switch', Switch);
 def('console', new Console(Switch));
 
 const { setTimeout, setInterval, clearTimeout, clearInterval, processTimers } =
-	createTimersFactory(Switch);
+	createTimersFactory();
 def('setTimeout', setTimeout);
 def('setInterval', setInterval);
 def('clearTimeout', clearTimeout);
 def('clearInterval', clearInterval);
-
-def('FontFace', FontFace);
 
 function touchIsEqual(a: Touch, b: Touch) {
 	return (
