@@ -51,7 +51,10 @@ You will be able to choose from one of the example applications as a starting po
 Follow the prompts, and afterwards a new directory will be created with the project
 name that you entered.
 
-The project will be configured to bundle the application code with `esbuild`.
+The following `package.json` scripts are configured:
+
+ * `build` - Bundle the application code to a single JavaScript file using [`esbuild`](https://esbuild.github.io)
+ * `nro` - Package the bundled application and any other files in the `romfs` directory into a self-contained `.nro` file
 
 ## Contributing
 
