@@ -54,7 +54,7 @@ name that you entered.
 The following `package.json` scripts are configured:
 
  * `build` - Bundle the application code to a single JavaScript file using [`esbuild`](https://esbuild.github.io)
- * `nro` - Package the bundled application and any other files in the `romfs` directory into a self-contained `.nro` file
+ * `nro` - Package the bundled app (+ any other files in the `romfs` dir) into a self-contained `.nro` file
 
 ## Contributing
 
