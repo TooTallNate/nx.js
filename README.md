@@ -41,7 +41,7 @@ See the [API docs](./docs/globals.md) for further details, and check out the [`a
 
 ## Creating an application
 
-To bootstrap the creation of an nx.js application, run the following command:
+Run the following command to bootstrap the creation of an nx.js application:
 
 ```bash
 npm create nxjs-app@latest
@@ -53,7 +53,7 @@ name that you entered.
 
 The following `package.json` scripts are configured:
 
- * `build` - Bundle the application code to a single JavaScript file using [`esbuild`](https://esbuild.github.io)
+ * `build` - Bundle the application code into a single JavaScript file using [`esbuild`](https://esbuild.github.io)
  * `nro` - Package the bundled app (+ any other files in the `romfs` dir) into a self-contained `.nro` file
 
 ## Contributing
