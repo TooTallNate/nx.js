@@ -1,5 +1,9 @@
 #pragma once
 #include "types.h"
+#include <png.h>
+#include <webp/decode.h>
+
+#define LIBTURBOJPEG_VERSION "2.1.2"
 
 enum ImageFormat
 {

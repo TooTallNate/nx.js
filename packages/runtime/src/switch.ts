@@ -309,10 +309,13 @@ interface SwitchEventHandlersEventMap {
 }
 
 interface Versions {
-	nxjs: string;
 	cairo: string;
 	freetype2: string;
+	nxjs: string;
+	png: string;
 	quickjs: string;
+	turbojpeg: string;
+	webp: string;
 }
 
 export function toPromise<
