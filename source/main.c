@@ -431,8 +431,8 @@ int main(int argc, char *argv[])
     JS_SetPropertyStr(ctx, version_obj, "quickjs", JS_NewString(ctx, QUICKJS_VERSION));
     JS_SetPropertyStr(ctx, version_obj, "turbojpeg", JS_NewString(ctx, LIBTURBOJPEG_VERSION));
     const int webp_version = WebPGetDecoderVersion();
-    char webp_version_str[10];
-    snprintf(webp_version_str, 10, "%d.%d.%d", (webp_version >> 16) & 0xFF, (webp_version >> 8) & 0xFF, webp_version & 0xFF);
+    char webp_version_str[12];
+    snprintf(webp_version_str, 12, "%d.%d.%d", (webp_version >> 16) & 0xFF, (webp_version >> 8) & 0xFF, webp_version & 0xFF);
     JS_SetPropertyStr(ctx, version_obj, "webp", JS_NewString(ctx, webp_version_str));
     JS_SetPropertyStr(ctx, switch_obj, "version", version_obj);
 
