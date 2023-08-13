@@ -205,6 +205,11 @@ function getCommands(p: Path2D) {
 	return commands;
 }
 
+/**
+ * This Canvas 2D API interface is used to declare a path that can then be used on a CanvasRenderingContext2D object. The path methods of the CanvasRenderingContext2D interface are also present on this interface, which gives you the convenience of being able to retain and replay your path whenever desired.
+ *
+ * @see https://developer.mozilla.org/docs/Web/API/Path2D
+ */
 export class Path2D implements globalThis.Path2D {
 	constructor(path?: Path2D | string) {
 		let commands: PathCommand[] | undefined;

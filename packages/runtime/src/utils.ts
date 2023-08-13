@@ -1,6 +1,7 @@
-export const def = (key: string, value: any) => {
-	if (typeof value.prototype === 'object') {
-		Object.defineProperty(value.prototype, Symbol.toStringTag, {
+export const def = <T>(key: string, value: T) => {
+	const proto = (value as any).prototype;
+	if (typeof proto === 'object') {
+		Object.defineProperty(proto, Symbol.toStringTag, {
 			value: key,
 		});
 	}
@@ -10,6 +11,7 @@ export const def = (key: string, value: any) => {
 		enumerable: false,
 		configurable: true,
 	});
+	return value;
 };
 
 export function bufferSourceToArrayBuffer(input: BufferSource): ArrayBuffer {

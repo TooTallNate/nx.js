@@ -9,6 +9,12 @@ export interface InspectOptions {
 	refs?: Set<{}>;
 }
 
+/**
+ *
+ * @param v
+ * @param opts
+ * @returns A string representation of `v` with ANSI color codes
+ */
 export const inspect = (v: unknown, opts?: InspectOptions): string => {
 	// Primitives
 	if (v && typeof (v as any)[inspect.custom] === 'function') {

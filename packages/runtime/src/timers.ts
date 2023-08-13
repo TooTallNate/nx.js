@@ -9,6 +9,15 @@ export function createTimersFactory() {
 	let nextId = 0;
 	const timers = new Map<number, Timer>();
 
+	/**
+	 * The global `setTimeout()` method sets a timer which executes a function or specified piece of code once the timer expires.
+	 *
+	 * @see https://developer.mozilla.org/en-US/docs/Web/API/setTimeout
+	 * @param handler
+	 * @param timeout
+	 * @param args
+	 * @returns
+	 */
 	function setTimeout(handler: TimerHandler, timeout = 0, ...args: any[]) {
 		const id = ++nextId;
 		const callback =

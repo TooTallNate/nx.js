@@ -282,7 +282,10 @@ export class KeyboardEvent extends UIEvent implements globalThis.KeyboardEvent {
 	readonly location: number;
 	readonly repeat: boolean;
 
-	// modifiers
+	/**
+	 * modifiers
+	 * @private
+	 */
 	[INTERNAL_SYMBOL]: bigint;
 
 	constructor(type: string, options?: KeyboardEventInit) {

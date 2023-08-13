@@ -41,6 +41,9 @@ export class Canvas {
 export class CanvasRenderingContext2D
 	implements globalThis.CanvasRenderingContext2D
 {
+	/**
+	 * @ignore
+	 */
 	[INTERNAL_SYMBOL]: {
 		ctx: CanvasRenderingContext2DState;
 		fillStyle: RGBA;

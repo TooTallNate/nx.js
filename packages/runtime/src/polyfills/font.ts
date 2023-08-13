@@ -5,7 +5,17 @@ import { def } from '../utils';
 
 declare const Switch: _Switch;
 
+/**
+ * Manages the loading of font-faces and querying of their download status.
+ *
+ * This property is available as {@link Switch.fonts | `Switch.fonts`}.
+ *
+ * @see https://developer.mozilla.org/en-US/docs/Web/API/FontFaceSet
+ */
 export class FontFaceSet extends EventTarget {
+	/**
+	 * @ignore
+	 */
 	[INTERNAL_SYMBOL]: {
 		fonts: Set<globalThis.FontFace>;
 	};
@@ -67,6 +77,9 @@ export class FontFace implements globalThis.FontFace {
 	unicodeRange: string;
 	variant: string;
 	weight: string;
+	/**
+	 * @ignore
+	 */
 	[INTERNAL_SYMBOL]: {
 		data: ArrayBuffer;
 		fontFace: FontFaceState;

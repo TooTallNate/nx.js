@@ -1,5 +1,6 @@
 import { def } from '../utils';
 import { Body } from './body';
+import { AbortSignal } from '../polyfills/abort-controller';
 import type { Switch as _Switch } from '../switch';
 
 declare const Switch: _Switch;

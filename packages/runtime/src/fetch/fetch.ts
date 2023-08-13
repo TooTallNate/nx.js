@@ -2,6 +2,7 @@ import { def } from '../utils';
 import { objectUrls } from '../polyfills/url';
 import { decoder } from '../polyfills/text-decoder';
 import { encoder } from '../polyfills/text-encoder';
+import { Response } from './response';
 import type { Switch as _Switch } from '../switch';
 
 declare const Switch: _Switch;
@@ -240,7 +241,20 @@ const fetchers = new Map<string, (req: Request, url: URL) => Promise<Response>>(
 	]
 );
 
-export const fetch: typeof globalThis.fetch = (input, init) => {
+/**
+ * The global `fetch()` method starts the process of fetching a resource from the network, returning a promise which is fulfilled once the response is available.
+ *
+ * Currently supported protocols are:
+ *
+ *  - `http:` - Fetch data from the network using the HTTP protocol
+ *  - `blob:` - Fetch data from a URL constructed by `URL.createObjectURL()`
+ *  - `sdmc:` - Fetch data from a local file on the SD card
+ *  - `romfs:` - Fetch data from the RomFS partition of the nx.js application
+ *  - `file:` - Same as `sdmc:`
+ *
+ * @see https://developer.mozilla.org/en-US/docs/Web/API/fetch
+ */
+export function fetch(input: URL | RequestInfo, init?: RequestInit) {
 	const req = new Request(input, init);
 	const url = new URL(req.url);
 	const fetcher = fetchers.get(url.protocol);
@@ -248,5 +262,5 @@ export const fetch: typeof globalThis.fetch = (input, init) => {
 		throw new Error(`scheme '${url.protocol.slice(0, -1)}' not supported`);
 	}
 	return fetcher(req, url);
-};
+}
 def('fetch', fetch);

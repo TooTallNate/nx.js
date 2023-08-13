@@ -15,6 +15,9 @@ export class Image extends EventTarget {
 	isMap: boolean;
 	loading: globalThis.HTMLImageElement['loading'];
 
+	/**
+	 * @ignore
+	 */
 	[INTERNAL_SYMBOL]: {
 		complete: boolean;
 		width: number;

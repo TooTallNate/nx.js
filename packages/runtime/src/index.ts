@@ -3,18 +3,44 @@ import { def } from './utils';
 import { Switch as _Switch } from './switch';
 import { INTERNAL_SYMBOL } from './types';
 import { createTimersFactory } from './timers';
-import { Console } from './console';
-//import { Image } from './image';
+import { console } from './console';
 
-export type { Switch } from './switch';
+export type { Switch, Env, Versions, ConnectOpts } from './switch';
+export type { InspectOptions } from './inspect';
+export type * from './types';
+export type * from './console';
+export type * from './canvas';
+export type * from './canvas/image-data';
+export type { Path2D } from './canvas/path2d';
+export type * from './polyfills/url-stub';
+export type * from './polyfills/event';
+export type * from './polyfills/blob';
+export type * from './polyfills/file';
+export type { TextDecoder } from './polyfills/text-decoder';
+export type { TextEncoder } from './polyfills/text-encoder';
+export type * from './polyfills/abort-controller';
+export type * from './polyfills/streams';
+export type { FontFace, FontFaceSet } from './polyfills/font';
+export type * from './polyfills/form-data';
+export type * from './fetch/headers';
+export type * from './fetch/request';
+export type * from './fetch/response';
+export type * from './fetch/fetch';
+export type * from './crypto';
+export type * from './image';
 
+/**
+ * The `Switch` global object contains native interfaces to interact with the Switch hardware.
+ */
 const Switch = new _Switch();
+export type { Switch as SwitchInstance };
 def('Switch', Switch);
 
-def('console', new Console(Switch));
+def('console', console);
 
 const { setTimeout, setInterval, clearTimeout, clearInterval, processTimers } =
 	createTimersFactory();
+export type { setTimeout, setInterval, clearTimeout, clearInterval };
 def('setTimeout', setTimeout);
 def('setInterval', setInterval);
 def('clearTimeout', clearTimeout);

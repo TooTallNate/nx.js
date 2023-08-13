@@ -30,11 +30,17 @@ type CallbackArguments<T> = T extends (
 	? U
 	: never;
 
-interface ConnectOpts {
+/**
+ *
+ */
+export interface ConnectOpts {
 	hostname?: string;
 	port: number;
 }
 
+/**
+ * @private
+ */
 export interface Native {
 	print: (str: string) => void;
 	cwd: () => string;
@@ -308,7 +314,7 @@ interface SwitchEventHandlersEventMap {
 	touchend: TouchEvent;
 }
 
-interface Versions {
+export interface Versions {
 	cairo: string;
 	freetype2: string;
 	nxjs: string;
@@ -330,18 +336,58 @@ export function toPromise<
 }
 
 export class Switch extends EventTarget {
+	/**
+	 * A Map-like object providing methods to interact with the environment variables of the process.
+	 */
 	env: Env;
+	/**
+	 * An instance of {@link Canvas} that will result in drawing to the screen.
+	 *
+	 * The `width` and `height` properties are set to the Switch screen resolution.
+	 *
+	 * @note Calling the `getContext('2d')` method on this canvas switches to _canvas rendering mode_. When in this mode, avoid using any {@link console} methods, as they will switch back to _text rendering mode_.
+	 */
 	screen: Canvas;
+	/**
+	 * @ignore
+	 */
 	native: Native;
+	/**
+	 * Contains the available fonts for use on the screen Canvas context.
+	 * By default, `"system-ui"` is the only font available, which is the system font provided by the Switch operating system.
+	 *
+	 * @demo See the [fonts](../apps/fonts/) application for an example of using custom fonts.
+	 */
 	fonts: FontFaceSet;
+	/**
+	 * @ignore
+	 */
 	[INTERNAL_SYMBOL]: Internal;
 
-	// Populated by the host process
+	// The following props are populated by the host process
+	/**
+	 * Array of the arguments passed to the process. Under normal circumstances, this array contains a single entry with the absolute path to the `.nro` file.
+	 * @example [ "sdmc:/switch/nxjs.nro" ]
+	 */
 	argv!: string[];
+	/**
+	 * String value of the entrypoint JavaScript file that was evaluated. If a `main.js` file is present on the application's RomFS, then that will be executed first, in which case the value will be `romfs:/main.js`. Otherwise, the value will be the path of the `.nro` file on the SD card, with the `.nro` extension replaced with `.js`.
+	 * @example "romfs:/main.js"
+	 * @example "sdmc:/switch/nxjs.js"
+	 */
 	entrypoint!: string;
+	/**
+	 * An Object containing the versions numbers of nx.js and all supporting C libraries.
+	 */
 	version!: Versions;
+	/**
+	 * Signals for the nx.js application process to exit. The "exit" event will be invoked once the event loop is stopped.
+	 */
 	exit!: () => never;
 
+	/**
+	 * @private
+	 */
 	constructor() {
 		super();
 		// @ts-expect-error Populated by the host process
@@ -442,7 +488,11 @@ export class Switch extends EventTarget {
 	}
 
 	/**
-	 * Prints `str` to the console.
+	 * Prints the string `str` to the console, without a trailing newline.
+	 *
+	 * You should usually use the {@link console} methods instead.
+	 *
+	 * @note Invoking this method switches to _text rendering mode_, clearing any pixels previously drawn on the screen using the Canvas API.
 	 */
 	print(str: string) {
 		const internal = this[INTERNAL_SYMBOL];
@@ -523,8 +573,12 @@ export class Switch extends EventTarget {
 	/**
 	 * Creates a TCP connection specified by the `hostname`
 	 * and `port`.
+	 *
+	 * @param connectOpts Object containing the `port` number and `hostname` (defaults to `127.0.0.1`) to connect to.
+	 * @returns Promise that is fulfilled once the connection has been successfully established.
 	 */
-	async connect({ hostname = '127.0.0.1', port }: ConnectOpts) {
+	async connect(connectOpts: ConnectOpts) {
+		const { hostname = '127.0.0.1', port } = connectOpts;
 		const [ip] = await this.resolveDns(hostname);
 		if (!ip) {
 			throw new Error(`Could not resolve "${hostname}" to an IP address`);
@@ -547,8 +601,14 @@ export class Switch extends EventTarget {
 }
 
 export class Env {
+	/**
+	 * @private
+	 */
 	[INTERNAL_SYMBOL]: Switch;
 
+	/**
+	 * @private
+	 */
 	constructor(s: Switch) {
 		this[INTERNAL_SYMBOL] = s;
 	}

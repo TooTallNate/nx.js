@@ -5,7 +5,8 @@
   "types": "./nxjs.env.d.ts",
   "scripts": {
     "build": "tsc",
-    "bundle": "esbuild --bundle --main-fields=module,main --target=es2020 src/index.ts --outfile=runtime.js"
+    "bundle": "esbuild --bundle --main-fields=module,main --target=es2020 src/index.ts --outfile=runtime.js",
+    "docs": "typedoc && cp -r ../../assets/* public/assets"
   },
   "files": [
     "dist",

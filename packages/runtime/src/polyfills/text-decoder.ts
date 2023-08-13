@@ -1,16 +1,22 @@
 import { def } from '../utils';
 
 /**
- * Credit for `TextEncoder` and `TextDecoder` goes to Sam Thorogood.
- * Apache License 2.0
- * https://github.com/samthor/fast-text-encoding/blob/master/src/lowlevel.js
+ * The `TextDecoder` interface represents a decoder for a specific text encoding.
+ * The implementation in nx.js only supports `"utf-8"` decoding.
+ * 
+ * If you need to decode binary data of a different encoding, consider importing
+ * a more full-featured polyfill, such as [`@kayahr/text-encoding`](https://www.npmjs.com/package/@kayahr/text-encoding).
+ *
+ * @copyright Apache License 2.0
+ * @author Sam Thorogood
+ * @see https://github.com/samthor/fast-text-encoding/blob/master/src/lowlevel.js
  */
 export class TextDecoder implements globalThis.TextDecoder {
 	encoding: string;
 	fatal: boolean;
 	ignoreBOM: boolean;
-	constructor(label?: string) {
-		if (typeof label === 'string' && label !== 'utf-8') {
+	constructor(encoding?: string) {
+		if (typeof encoding === 'string' && encoding !== 'utf-8') {
 			throw new TypeError('Only "utf-8" decoding is supported');
 		}
 		this.encoding = 'utf-8';
