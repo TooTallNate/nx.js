@@ -111,7 +111,13 @@ function walk(dir: URL, dirEntry: RomFS.RomFsEntry) {
 		}
 	}
 }
-walk(romfsDir, romfs);
+
+try {
+	walk(romfsDir, romfs);
+} catch (err: any) {
+	// Don't crash if there is no `romfs` directory
+	if (err.code !== 'ENOENT') throw err;
+}
 
 const outputNroName = `${name}.nro`;
 
