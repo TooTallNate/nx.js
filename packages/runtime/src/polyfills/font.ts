@@ -27,14 +27,17 @@ export class FontFaceSet extends EventTarget {
 		};
 	}
 
-	add(font: globalThis.FontFace) {
+	add(font: FontFace) {
 		this[INTERNAL_SYMBOL].fonts.add(font);
 	}
 
-	values(): IterableIterator<globalThis.FontFace> {
+	values(): IterableIterator<FontFace> {
 		return this[INTERNAL_SYMBOL].fonts.values();
 	}
 
+	/**
+	 * @ignore
+	 */
 	_findFont(desired: IFont): FontFace | null {
 		if (!desired.family) {
 			throw new Error('No font-family was specified');
@@ -55,6 +58,9 @@ export class FontFaceSet extends EventTarget {
 		return null;
 	}
 
+	/**
+	 * @ignore
+	 */
 	_addSystemFont(): FontFace {
 		const data = Switch.native.getSystemFont();
 		const font = new FontFace('system-ui', data);
@@ -62,6 +68,14 @@ export class FontFaceSet extends EventTarget {
 		return font;
 	}
 }
+
+export const fontFaceInternal = new WeakMap<
+	FontFace,
+	{
+		data: ArrayBuffer;
+		fontFace: FontFaceState;
+	}
+>();
 
 export class FontFace implements globalThis.FontFace {
 	ascentOverride: string;
@@ -77,13 +91,6 @@ export class FontFace implements globalThis.FontFace {
 	unicodeRange: string;
 	variant: string;
 	weight: string;
-	/**
-	 * @ignore
-	 */
-	[INTERNAL_SYMBOL]: {
-		data: ArrayBuffer;
-		fontFace: FontFaceState;
-	};
 
 	constructor(
 		family: string,
@@ -107,10 +114,10 @@ export class FontFace implements globalThis.FontFace {
 		this.variant = descriptors.variant ?? 'normal';
 		this.weight = descriptors.weight ?? 'normal';
 		const buffer = source instanceof ArrayBuffer ? source : source.buffer;
-		this[INTERNAL_SYMBOL] = {
+		fontFaceInternal.set(this, {
 			data: buffer,
 			fontFace: Switch.native.newFontFace(buffer),
-		};
+		});
 	}
 
 	async load(): Promise<this> {

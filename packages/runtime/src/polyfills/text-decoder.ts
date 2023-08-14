@@ -3,7 +3,7 @@ import { def } from '../utils';
 /**
  * The `TextDecoder` interface represents a decoder for a specific text encoding.
  * The implementation in nx.js only supports `"utf-8"` decoding.
- * 
+ *
  * If you need to decode binary data of a different encoding, consider importing
  * a more full-featured polyfill, such as [`@kayahr/text-encoding`](https://www.npmjs.com/package/@kayahr/text-encoding).
  *

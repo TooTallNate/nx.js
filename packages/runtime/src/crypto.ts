@@ -3,7 +3,17 @@ import { type Switch as _Switch } from './switch';
 
 declare const Switch: _Switch;
 
-class Crypto implements globalThis.Crypto {
+/**
+ * Basic cryptography features available in the current context.
+ * It allows access to a cryptographically strong random number
+ * generator and to cryptographic primitives.
+ */
+export class Crypto implements globalThis.Crypto {
+	/**
+	 * @ignore
+	 */
+	constructor() {}
+
 	get subtle(): SubtleCrypto {
 		throw new Error('`crypto.subtle` is not yet implemented');
 	}
@@ -30,4 +40,5 @@ class Crypto implements globalThis.Crypto {
 	}
 }
 def('Crypto', Crypto);
-def('crypto', new Crypto());
+export const crypto = new Crypto();
+def('crypto', crypto);

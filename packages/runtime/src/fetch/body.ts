@@ -1,5 +1,6 @@
 import { decoder } from '../polyfills/text-decoder';
 import { encoder } from '../polyfills/text-encoder';
+import { Headers } from './headers';
 import { asyncIteratorToStream, bufferSourceToArrayBuffer } from '../utils';
 
 function indexOfSequence<T>(

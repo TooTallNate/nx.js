@@ -7,6 +7,7 @@ import { ImageData } from './canvas/image-data';
 import { Path2D, applyPath } from './canvas/path2d';
 import type { CanvasRenderingContext2DState, ImageOpaque } from './switch';
 import type { Switch as _Switch } from './switch';
+import { fontFaceInternal } from './polyfills/font';
 
 declare const Switch: _Switch;
 
@@ -679,7 +680,7 @@ export class CanvasRenderingContext2D
 		}
 		native.canvasSetFont(
 			this[INTERNAL_SYMBOL].ctx,
-			font[INTERNAL_SYMBOL].fontFace,
+			fontFaceInternal.get(font)!.fontFace,
 			px
 		);
 	}
