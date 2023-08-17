@@ -13,8 +13,8 @@
     "sisteransi": "^1.0.5"
   },
   "devDependencies": {
-    "esbuild": "^0.17.18",
-    "nxjs-pack": "^0.0.15",
-    "nxjs-runtime": "^0.0.15"
+    "esbuild": "^0.17.19",
+    "nxjs-pack": "workspace:^",
+    "nxjs-runtime": "workspace:^"
   }
 }

@@ -10,9 +10,9 @@
   "license": "MIT",
   "devDependencies": {
     "@types/xmldom": "^0.1.31",
-    "esbuild": "^0.17.18",
-    "nxjs-runtime": "^0.0.15",
-    "nxjs-pack": "^0.0.15"
+    "esbuild": "^0.17.19",
+    "nxjs-pack": "workspace:^",
+    "nxjs-runtime": "workspace:^"
   },
   "dependencies": {
     "canvg": "^4.0.1",

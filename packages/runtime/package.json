@@ -19,12 +19,12 @@
     "@types/to-px": "^1.1.2",
     "@ungap/event-target": "^0.2.4",
     "color-rgba": "^2.4.0",
-    "core-js": "^3.30.2",
-    "esbuild": "^0.17.18",
-    "kleur": "TooTallNate/kleur#rgb",
+    "core-js": "^3.32.0",
+    "esbuild": "^0.17.19",
+    "kleur": "github:TooTallNate/kleur#rgb",
     "parse-css-font": "^4.0.0",
     "to-px": "^1.1.0",
-    "typescript": "^5.0.4",
+    "typescript": "^5.1.6",
     "web-streams-polyfill": "^3.2.1"
   }
 }

@@ -13,7 +13,7 @@
   "author": "Nathan Rajlich <n@n8.io>",
   "license": "MIT",
   "dependencies": {
-    "@inquirer/prompts": "^3.0.0",
+    "@inquirer/prompts": "^3.0.2",
     "chalk": "^5.3.0",
     "degit": "^2.8.4",
     "terminal-link": "^3.0.0",
@@ -21,9 +21,9 @@
   },
   "devDependencies": {
     "@types/degit": "^2.8.3",
-    "@types/node": "^20.4.5",
+    "@types/node": "^20.5.0",
     "@types/which": "^3.0.0",
     "types-package-json": "^2.0.39",
-    "typescript": "^5.0.4"
+    "typescript": "^5.1.6"
   }
 }
