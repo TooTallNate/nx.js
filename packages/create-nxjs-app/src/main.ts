@@ -8,6 +8,7 @@ import { spawn } from 'child_process';
 import terminalLink from 'terminal-link';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { input, select, Separator } from '@inquirer/prompts';
+import type { PackageJson } from 'types-package-json';
 
 async function hasPackageManager(name: string) {
 	const p = await which(name, { nothrow: true });
@@ -85,12 +86,24 @@ if (cloneError) {
 	process.exit(1);
 }
 
-// Patch the `package.json` file with the app name
-const pkgJsonUrl = new URL('package.json', appDir);
-const pkgJson = JSON.parse(await fs.readFile(pkgJsonUrl, 'utf8'));
-pkgJson.name = appName;
-pkgJson.description = '';
-await fs.writeFile(pkgJsonUrl, `${JSON.stringify(pkgJson, null, 2)}\n`);
+function removeWorkspace(deps: Record<string, string> = {}) {
+	for (const [name, value] of Object.entries(deps)) {
+		const noWorkspace = value.replace(/^workspace:\*?/, '');
+		if (noWorkspace !== value) {
+			deps[name] = `${noWorkspace}${version}`;
+		}
+	}
+}
+
+// Patch the `package.json` file with the app name, and update any
+// dependencies that use "workspace:" in the version to the actual version
+const packageJsonUrl = new URL('package.json', appDir);
+const packageJson: PackageJson = JSON.parse(await fs.readFile(packageJsonUrl, 'utf8'));
+packageJson.name = appName;
+packageJson.description = '';
+removeWorkspace(packageJson.dependencies);
+removeWorkspace(packageJson.devDependencies);
+await fs.writeFile(packageJsonUrl, `${JSON.stringify(packageJson, null, 2)}\n`);
 
 // Install dependencies
 if (packageManager !== 'skip') {

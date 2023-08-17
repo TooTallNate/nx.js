@@ -23,6 +23,7 @@
     "@types/degit": "^2.8.3",
     "@types/node": "^20.4.5",
     "@types/which": "^3.0.0",
+    "types-package-json": "^2.0.39",
     "typescript": "^5.0.4"
   }
 }
