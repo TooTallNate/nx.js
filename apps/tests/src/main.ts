@@ -138,3 +138,15 @@ test('FormData', async () => {
 	assert(file2.type === 'text/plain');
 	assert((await file2.text()) === 'contents');
 });
+
+test('Request - no `body` for `GET`', () => {
+	let err: Error | undefined;
+	try {
+		new Request('http://example.com', { body: 'bad' });
+	} catch (_err: any) {
+		err = _err;
+	}
+	assert(err);
+	assert(err.name === 'TypeError');
+	assert(err.message === 'Body not allowed for GET or HEAD requests');
+});
