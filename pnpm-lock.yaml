@@ -238,6 +238,9 @@ importers:
       '@types/which':
         specifier: ^3.0.0
         version: 3.0.0
+      types-package-json:
+        specifier: ^2.0.39
+        version: 2.0.39
       typescript:
         specifier: ^5.0.4
         version: 5.0.4
