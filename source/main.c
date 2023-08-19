@@ -596,5 +596,9 @@ wait_error:
 
     free(nx_ctx);
 
+    plExit();
+    romfsExit();
+    socketExit();
+
     return 0;
 }
