@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc",
     "bundle": "esbuild --bundle --main-fields=module,main --target=es2020 src/index.ts --outfile=runtime.js",
-    "docs": "typedoc && cp -r ../../assets/* public/assets"
+    "docs": "typedoc && cp -r ../../assets/* public/assets && cp ../../assets/logo.png public/favicon.ico"
   },
   "files": [
     "dist",
