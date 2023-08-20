@@ -98,7 +98,9 @@ function removeWorkspace(deps: Record<string, string> = {}) {
 // Patch the `package.json` file with the app name, and update any
 // dependencies that use "workspace:" in the version to the actual version
 const packageJsonUrl = new URL('package.json', appDir);
-const packageJson: PackageJson = JSON.parse(await fs.readFile(packageJsonUrl, 'utf8'));
+const packageJson: PackageJson = JSON.parse(
+	await fs.readFile(packageJsonUrl, 'utf8')
+);
 packageJson.name = appName;
 packageJson.description = '';
 removeWorkspace(packageJson.dependencies);

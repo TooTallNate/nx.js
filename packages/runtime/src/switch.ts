@@ -31,10 +31,25 @@ type CallbackArguments<T> = T extends (
 	: never;
 
 /**
+ * Specifies the port number and optional hostname for connecting
+ * to a remove server over the network.
  *
+ * {@link Switch.connect}
  */
 export interface ConnectOpts {
+	/**
+	 * The hostname of the destination server to connect to.
+	 *
+	 * If not defined, then `hostname` defaults to `127.0.0.1`.
+	 *
+	 * @example "example.com"
+	 */
 	hostname?: string;
+	/**
+	 * The port number to connect to.
+	 *
+	 * @example 80
+	 */
 	port: number;
 }
 
@@ -42,31 +57,31 @@ export interface ConnectOpts {
  * @private
  */
 export interface Native {
-	print: (str: string) => void;
-	cwd: () => string;
-	chdir: (dir: string) => void;
-	getInternalPromiseState: (p: Promise<unknown>) => [number, unknown];
-	getenv: (name: string) => string | undefined;
-	setenv: (name: string, value: string) => void;
-	unsetenv: (name: string) => void;
-	envToObject: () => Record<string, string>;
-	consoleInit: () => void;
-	consoleExit: () => void;
-	framebufferInit: (buf: CanvasRenderingContext2DState) => void;
-	framebufferExit: () => void;
+	print(str: string): void;
+	cwd(): string;
+	chdir(dir: string): void;
+	getInternalPromiseState(p: Promise<unknown>): [number, unknown];
+	getenv(name: string): string | undefined;
+	setenv(name: string, value: string): void;
+	unsetenv(name: string): void;
+	envToObject(): Record<string, string>;
+	consoleInit(): void;
+	consoleExit(): void;
+	framebufferInit(buf: CanvasRenderingContext2DState): void;
+	framebufferExit(): void;
 
 	// applet
-	appletGetAppletType: () => number;
-	appletGetOperationMode: () => number;
+	appletGetAppletType(): number;
+	appletGetOperationMode(): number;
 
 	// hid
-	hidInitializeKeyboard: () => void;
-	hidInitializeTouchScreen: () => void;
-	hidGetTouchScreenStates: () => Touch[] | undefined;
-	hidGetKeyboardStates: () => Keys;
+	hidInitializeKeyboard(): void;
+	hidInitializeTouchScreen(): void;
+	hidGetTouchScreenStates(): Touch[] | undefined;
+	hidGetKeyboardStates(): Keys;
 
 	// dns
-	resolveDns: (cb: Callback<string[]>, hostname: string) => void;
+	resolveDns(cb: Callback<string[]>, hostname: string): void;
 
 	// fs
 	readFile: (cb: Callback<ArrayBuffer>, path: string) => void;
@@ -81,14 +96,14 @@ export interface Native {
 	getSystemFont: () => ArrayBuffer;
 
 	// image
-	decodeImage: (
+	decodeImage(
 		cb: Callback<{
 			opaque: ImageOpaque;
 			width: number;
 			height: number;
 		}>,
 		b: ArrayBuffer
-	) => void;
+	): void;
 
 	// canvas
 	canvasNewContext(w: number, h: number): CanvasRenderingContext2DState;
@@ -488,11 +503,12 @@ export class Switch extends EventTarget {
 	}
 
 	/**
-	 * Prints the string `str` to the console, without a trailing newline.
+	 * Prints the string `str` to the console, _without_ a trailing newline.
 	 *
-	 * You should usually use the {@link console} methods instead.
+	 * > You will usually want to use the {@link console} methods instead.
 	 *
-	 * @note Invoking this method switches to _text rendering mode_, clearing any pixels previously drawn on the screen using the Canvas API.
+	 * @note Invoking this method switches the application to _text rendering mode_,
+	 * which clears any pixels previously drawn on the screen using the Canvas API.
 	 */
 	print(str: string) {
 		const internal = this[INTERNAL_SYMBOL];
@@ -504,6 +520,12 @@ export class Switch extends EventTarget {
 
 	/**
 	 * Returns the current working directory as a URL instance.
+	 *
+	 * @example
+	 *
+	 * ```typescript
+	 * const imagesDir = new URL('images/', Switch.cwd());
+	 * ```
 	 */
 	cwd() {
 		return new URL(`${this.native.cwd()}/`);
@@ -511,6 +533,12 @@ export class Switch extends EventTarget {
 
 	/**
 	 * Changes the current working directory to the specified path.
+	 *
+	 * @example
+	 *
+	 * ```typescript
+	 * Switch.chdir('sdmc:/switch/awesome-app/images');
+	 * ```
 	 */
 	chdir(dir: PathLike) {
 		return this.native.chdir(String(dir));
@@ -518,6 +546,12 @@ export class Switch extends EventTarget {
 
 	/**
 	 * Performs a DNS lookup to resolve a hostname to an array of IP addresses.
+	 *
+	 * @example
+	 *
+	 * ```typescript
+	 * const ipAddresses = await Switch.resolveDns('example.com');
+	 * ```
 	 */
 	resolveDns(hostname: string) {
 		return toPromise(this.native.resolveDns, hostname);
@@ -526,6 +560,13 @@ export class Switch extends EventTarget {
 	/**
 	 * Returns a Promise which resolves to an `ArrayBuffer` containing
 	 * the contents of the file at `path`.
+	 *
+	 * @example
+	 *
+	 * ```typescript
+	 * const buffer = await Switch.readFile('sdmc:/switch/awesome-app/state.json');
+	 * const gameState = JSON.parse(new TextDecoder().decode(buffer));
+	 * ```
 	 */
 	readFile(path: PathLike) {
 		return toPromise(this.native.readFile, String(path));
@@ -533,6 +574,14 @@ export class Switch extends EventTarget {
 
 	/**
 	 * Synchronously returns an array of the file names within `path`.
+	 *
+	 * @example
+	 *
+	 * ```typescript
+	 * for (const file of Switch.readDirSync('sdmc:/')) {
+	 *   // … do something with `file` …
+	 * }
+	 * ```
 	 */
 	readDirSync(path: PathLike) {
 		return this.native.readDirSync(String(path));
@@ -541,6 +590,13 @@ export class Switch extends EventTarget {
 	/**
 	 * Synchronously returns an `ArrayBuffer` containing the contents
 	 * of the file at `path`.
+	 *
+	 * @example
+	 *
+	 * ```typescript
+	 * const buffer = Switch.readFileSync('sdmc:/switch/awesome-app/state.json');
+	 * const appState = JSON.parse(new TextDecoder().decode(buffer));
+	 * ```
 	 */
 	readFileSync(path: PathLike) {
 		return this.native.readFileSync(String(path));
@@ -548,6 +604,11 @@ export class Switch extends EventTarget {
 
 	/**
 	 * Synchronously writes the contents of `data` to the file at `path`.
+	 *
+	 * ```typescript
+	 * const appStateJson = JSON.stringify(appState);
+	 * Switch.writeFileSync('sdmc:/switch/awesome-app/state.json', appStateJson);
+	 * ```
 	 */
 	writeFileSync(path: PathLike, data: string | BufferSource) {
 		const d = typeof data === 'string' ? encoder.encode(data) : data;

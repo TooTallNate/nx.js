@@ -1,6 +1,3 @@
-/**
- * https://developer.mozilla.org/en-US/docs/Web/API/HTMLImageElement
- */
 import { def } from './utils';
 import { INTERNAL_SYMBOL } from './types';
 import { toPromise, type Switch as _Switch } from './switch';
@@ -8,6 +5,30 @@ import type { ImageOpaque } from './switch';
 
 declare const Switch: _Switch;
 
+/**
+ * The `Image` class is the spiritual equivalent of the [`HTMLImageElement`](https://developer.mozilla.org/en-US/docs/Web/API/HTMLImageElement)
+ * class in web browsers. You can use it to load image data from the filesytem
+ * or remote source over the network. Once loaded, the image may be drawn onto the screen
+ * context or an offscreen canvas content using {@link CanvasRenderingContext2D.drawImage | `ctx.drawImage()`}.
+ *
+ * ### Currently Supported Image Formats
+ *
+ *  - `jpg` - JPEG image data using [libjpeg-turbo](https://github.com/libjpeg-turbo/libjpeg-turbo)
+ *  - `png` - PNG image data using [libpng](http://www.libpng.org/pub/png/libpng.html)
+ *  - `webp` - WebP image data using [libpng](https://github.com/webmproject/libwebp)
+ *
+ * @example
+ *
+ * ```typescript
+ * const ctx = Switch.screen.getContext('2d');
+ *
+ * const img = new Image();
+ * img.addEventListener('load', () => {
+ *   ctx.drawImage(img);
+ * });
+ * img.src = 'romfs:/logo.png';
+ * ```
+ */
 export class Image extends EventTarget {
 	onload: ((this: Image, ev: Event) => any) | null;
 	onerror: OnErrorEventHandler;

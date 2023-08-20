@@ -13,11 +13,18 @@ function _format(...input: unknown[]): string {
 }
 
 /**
- * The global `console` object contains functions for printing text to the screen, which can be useful for text-based applications, and is also useful for debugging.
+ * The global `console` object contains functions for printing text to the
+ * screen, which can be useful for text-based applications, and is also
+ * useful for debugging.
  *
- * All methods use the {@link Switch#inspect | Switch.inspect} method for formatting, and the {@link Switch#print | Switch.print} method to output to the screen.
+ * All methods use the {@link Switch#inspect | `Switch.inspect()`} method
+ * for formatting, and the {@link Switch#print | `Switch.print()`} method
+ * to output to the screen.
  *
- * @note Invoking any method on the `console` object switches to _text rendering mode_, clearing any pixels previously drawn on the screen using the Canvas API.
+ * > **NOTE:** Invoking any method on the `console` object switches the
+ * > application to _text rendering mode_, clearing any pixels previously
+ * > drawn on the screen using the Canvas API.
+ *
  * @see https://developer.mozilla.org/en-US/docs/Web/API/console
  */
 export const console = {
