@@ -84,16 +84,16 @@ export interface Native {
 	resolveDns(cb: Callback<string[]>, hostname: string): void;
 
 	// fs
-	readFile: (cb: Callback<ArrayBuffer>, path: string) => void;
-	readDirSync: (path: string) => string[];
-	readFileSync: (path: string) => ArrayBuffer;
-	writeFileSync: (path: string, data: ArrayBuffer) => void;
-	remove: (cb: Callback<void>, path: string) => void;
-	stat: (cb: Callback<Stats>, path: string) => void;
+	readFile(cb: Callback<ArrayBuffer>, path: string): void;
+	readDirSync(path: string): string[];
+	readFileSync(path: string): ArrayBuffer;
+	writeFileSync(path: string, data: ArrayBuffer): void;
+	remove(cb: Callback<void>, path: string): void;
+	stat(cb: Callback<Stats>, path: string): void;
 
 	// font
-	newFontFace: (data: ArrayBuffer) => FontFaceState;
-	getSystemFont: () => ArrayBuffer;
+	newFontFace(data: ArrayBuffer): FontFaceState;
+	getSystemFont(): ArrayBuffer;
 
 	// image
 	decodeImage(
