@@ -4,6 +4,7 @@
 #include <cairo-ft.h>
 #include <ft2build.h>
 #include <poll.h>
+#include <switch.h>
 #include "thpool.h"
 #include "poll.h"
 
@@ -43,6 +44,7 @@ typedef struct
     pthread_mutex_t async_done_mutex;
     nx_work_t *work_queue;
     FT_Library ft_library;
+    HidVibrationDeviceHandle vibration_device_handles[2];
 } nx_context_t;
 
 inline nx_context_t *nx_get_context(JSContext *ctx)

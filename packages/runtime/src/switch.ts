@@ -11,6 +11,14 @@ export type CanvasRenderingContext2DState =
 export type FontFaceState = Opaque<'FontFaceState'>;
 export type ImageOpaque = Opaque<'ImageOpaque'>;
 
+export interface Vibration {
+	duration: number;
+	lowAmp: number;
+	lowFreq: number;
+	highAmp: number;
+	highFreq: number;
+}
+
 type Keys = {
 	modifiers: bigint;
 	[i: number]: bigint;
@@ -77,8 +85,10 @@ export interface Native {
 	// hid
 	hidInitializeKeyboard(): void;
 	hidInitializeTouchScreen(): void;
+	hidInitializeVibrationDevices(): void;
 	hidGetTouchScreenStates(): Touch[] | undefined;
 	hidGetKeyboardStates(): Keys;
+	hidSendVibrationValues(v: VibrationValues): void;
 
 	// dns
 	resolveDns(cb: Callback<string[]>, hostname: string): void;
@@ -303,6 +313,9 @@ interface Internal {
 	previousTouches: Touch[];
 	keyboardInitialized?: boolean;
 	touchscreenInitialized?: boolean;
+	vibrationDevicesInitialized?: boolean;
+	vibrationPattern?: (number | Vibration)[];
+	vibrationTimeoutId?: number;
 	renderingMode?: RenderingMode;
 	setRenderingMode: (
 		mode: RenderingMode,
@@ -349,6 +362,21 @@ export function toPromise<
 		}, ...args);
 	});
 }
+
+type VibrationValues = Omit<Vibration, 'duration'>;
+const DEFAULT_VIBRATION: VibrationValues = {
+	lowAmp: 0.2,
+	lowFreq: 160,
+	highAmp: 0.2,
+	highFreq: 320,
+};
+
+const STOP_VIBRATION: VibrationValues = {
+	lowAmp: 0,
+	lowFreq: 160,
+	highAmp: 0,
+	highFreq: 320,
+};
 
 export class Switch extends EventTarget {
 	/**
@@ -657,6 +685,108 @@ export class Switch extends EventTarget {
 		const ab = bufferSourceToArrayBuffer(d);
 		return toPromise(this.native.write, fd, ab);
 	}
+
+	/**
+	 * Vibrates the main gamepad for the specified number of milliseconds or pattern.
+	 *
+	 * If a vibration pattern is already in progress when this method is called,
+	 * the previous pattern is halted and the new one begins instead.
+	 *
+	 * @example
+	 *
+	 * ```typescript
+	 * // Vibrate for 200ms with the default amplitude/frequency values
+	 * Switch.vibrate(200);
+	 *
+	 * // Vibrate 'SOS' in Morse Code
+	 * Switch.vibrate([
+	 *   100, 30, 100, 30, 100, 30, 200, 30, 200, 30, 200, 30, 100, 30, 100, 30, 100,
+	 * ]);
+	 *
+	 * // Specify amplitude/frequency values for the vibration
+	 * Switch.vibrate({
+	 *   duration: 500,
+	 *   lowAmp: 0.2
+	 *   lowFreq: 160,
+	 *   highAmp: 0.6,
+	 *   highFreq: 500
+	 * });
+	 * ```
+	 *
+	 * @param pattern Provides a pattern of vibration and pause intervals. Each value indicates a number of milliseconds to vibrate or pause, in alternation. You may provide either a single value (to vibrate once for that many milliseconds) or an array of values to alternately vibrate, pause, then vibrate again.
+	 *
+	 * @see https://developer.mozilla.org/en-US/docs/Web/API/Navigator/vibrate
+	 */
+	vibrate(pattern: number | Vibration | (number | Vibration)[]): boolean {
+		if (!Array.isArray(pattern)) {
+			pattern = [pattern];
+		}
+		const patternValues: (number | Vibration)[] = [];
+		for (let i = 0; i < pattern.length; i++) {
+			let p = pattern[i];
+			if (i % 2 === 0) {
+				// Even - vibration interval
+				if (typeof p === 'number') {
+					p = {
+						...DEFAULT_VIBRATION,
+						duration: p,
+					};
+				}
+				if (
+					p.highAmp < 0 ||
+					p.highAmp > 1 ||
+					p.lowAmp < 0 ||
+					p.lowAmp > 1
+				) {
+					return false;
+				}
+				patternValues.push(p);
+			} else {
+				// Odd - pause interval
+				if (typeof p !== 'number') return false;
+				patternValues.push(p);
+			}
+		}
+		const internal = this[INTERNAL_SYMBOL];
+		if (!internal.vibrationDevicesInitialized) {
+			this.native.hidInitializeVibrationDevices();
+			this.native.hidSendVibrationValues(DEFAULT_VIBRATION);
+			internal.vibrationDevicesInitialized = true;
+		}
+		clearTimeout(internal.vibrationTimeoutId);
+		internal.vibrationPattern = patternValues;
+		internal.vibrationTimeoutId = setTimeout(this.#processVibrations, 0);
+		return true;
+	}
+
+	/**
+	 * @ignore
+	 */
+	#processVibrations = () => {
+		const internal = this[INTERNAL_SYMBOL];
+		let next = internal.vibrationPattern?.shift();
+		if (typeof next === 'undefined') {
+			// Pattern completed
+			next = 0;
+		}
+		if (typeof next === 'number') {
+			// Pause interval
+			this.native.hidSendVibrationValues(STOP_VIBRATION);
+			if (next > 0) {
+				internal.vibrationTimeoutId = setTimeout(
+					this.#processVibrations,
+					next
+				);
+			}
+		} else {
+			// Vibration interval
+			this.native.hidSendVibrationValues(next);
+			internal.vibrationTimeoutId = setTimeout(
+				this.#processVibrations,
+				next.duration
+			);
+		}
+	};
 
 	inspect = inspect;
 }

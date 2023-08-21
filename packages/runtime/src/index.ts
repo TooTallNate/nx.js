@@ -5,7 +5,7 @@ import { INTERNAL_SYMBOL } from './types';
 import { createTimersFactory } from './timers';
 import { console } from './console';
 
-export type { Switch, Env, Versions, ConnectOpts } from './switch';
+export type { Switch, Env, Vibration, Versions, ConnectOpts } from './switch';
 export type { InspectOptions } from './inspect';
 export type * from './types';
 export type * from './console';

@@ -172,6 +172,54 @@ static JSValue js_hid_initialize_keyboard(JSContext *ctx, JSValueConst this_val,
     return JS_UNDEFINED;
 }
 
+static JSValue js_hid_initialize_vibration_devices(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
+    Result rc = hidInitializeVibrationDevices(
+        nx_ctx->vibration_device_handles,
+        2,
+        // TODO: handle No1 gamepad
+        HidNpadIdType_Handheld,
+        HidNpadStyleSet_NpadStandard
+        );
+    if (R_FAILED(rc))
+    {
+        // TODO: throw error
+    }
+    return JS_UNDEFINED;
+}
+
+static JSValue js_hid_send_vibration_values(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
+    HidVibrationValue VibrationValues[2];
+    JSValue low_amp_value = JS_GetPropertyStr(ctx, argv[0], "lowAmp");
+    JSValue low_freq_value = JS_GetPropertyStr(ctx, argv[0], "lowFreq");
+    JSValue high_amp_value = JS_GetPropertyStr(ctx, argv[0], "highAmp");
+    JSValue high_freq_value = JS_GetPropertyStr(ctx, argv[0], "highFreq");
+    double low_amp, low_freq, high_amp, high_freq;
+    if (JS_ToFloat64(ctx, &low_amp, low_amp_value) ||
+        JS_ToFloat64(ctx, &low_freq, low_freq_value) ||
+        JS_ToFloat64(ctx, &high_amp, high_amp_value) ||
+        JS_ToFloat64(ctx, &high_freq, high_freq_value))
+    {
+        JS_ThrowTypeError(ctx, "invalid input");
+        return JS_EXCEPTION;
+    }
+    VibrationValues[0].freq_low = low_freq;
+    VibrationValues[0].amp_low = low_amp;
+    VibrationValues[0].freq_high = high_freq;
+    VibrationValues[0].amp_high = high_amp;
+    memcpy(&VibrationValues[1], &VibrationValues[0], sizeof(HidVibrationValue));
+
+    Result rc = hidSendVibrationValues(nx_ctx->vibration_device_handles, VibrationValues, 2);
+    if (R_FAILED(rc))
+    {
+        // TODO: throw error
+    }
+    return JS_UNDEFINED;
+}
+
 static JSValue js_hid_get_touch_screen_states(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     HidTouchScreenState state = {0};
@@ -462,8 +510,10 @@ int main(int argc, char *argv[])
         // hid
         JS_CFUNC_DEF("hidInitializeKeyboard", 0, js_hid_initialize_keyboard),
         JS_CFUNC_DEF("hidInitializeTouchScreen", 0, js_hid_initialize_touch_screen),
+        JS_CFUNC_DEF("hidInitializeVibrationDevices", 0, js_hid_initialize_vibration_devices),
         JS_CFUNC_DEF("hidGetKeyboardStates", 0, js_hid_get_keyboard_states),
         JS_CFUNC_DEF("hidGetTouchScreenStates", 0, js_hid_get_touch_screen_states),
+        JS_CFUNC_DEF("hidSendVibrationValues", 0, js_hid_send_vibration_values),
 
         // console renderer
         JS_CFUNC_DEF("consoleInit", 0, js_console_init),
@@ -581,7 +631,8 @@ wait_error:
         {
             padUpdate(&pad);
             u64 kDown = padGetButtonsDown(&pad);
-            if (kDown & HidNpadButton_Plus) break;
+            if (kDown & HidNpadButton_Plus)
+                break;
             consoleUpdate(NULL);
         }
     }
