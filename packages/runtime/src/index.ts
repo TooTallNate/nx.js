@@ -12,6 +12,7 @@ export type * from './console';
 export type { Canvas, CanvasRenderingContext2D } from './canvas';
 export type * from './canvas/image-data';
 export type { Path2D } from './canvas/path2d';
+export type { EventTarget } from './polyfills/event-target';
 export type { URL } from './polyfills/url';
 export type * from './polyfills/event';
 export type * from './polyfills/blob';
