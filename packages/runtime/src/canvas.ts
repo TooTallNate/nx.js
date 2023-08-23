@@ -5,9 +5,9 @@ import { INTERNAL_SYMBOL } from './types';
 import { Image } from './image';
 import { ImageData } from './canvas/image-data';
 import { Path2D, applyPath } from './canvas/path2d';
+import { addSystemFont, findFont, fontFaceInternal } from './polyfills/font';
 import type { CanvasRenderingContext2DState, ImageOpaque } from './switch';
 import type { SwitchClass } from './switch';
-import { fontFaceInternal } from './polyfills/font';
 
 declare const Switch: SwitchClass;
 
@@ -675,10 +675,10 @@ export class CanvasRenderingContext2D
 			return;
 		}
 		const { native, fonts } = Switch;
-		let font = fonts._findFont(parsed);
+		let font = findFont(fonts, parsed);
 		if (!font) {
 			if (parsed.family.includes('system-ui')) {
-				font = fonts._addSystemFont();
+				font = addSystemFont(fonts);
 			} else {
 				return;
 			}

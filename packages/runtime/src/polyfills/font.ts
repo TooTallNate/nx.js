@@ -35,38 +35,36 @@ export class FontFaceSet extends EventTarget {
 		return this[INTERNAL_SYMBOL].fonts.values();
 	}
 
-	/**
-	 * @ignore
-	 */
-	_findFont(desired: IFont): FontFace | null {
-		if (!desired.family) {
-			throw new Error('No font-family was specified');
-		}
-		for (const family of desired.family) {
-			for (const fontFace of this[INTERNAL_SYMBOL].fonts) {
-				if (
-					family === fontFace.family &&
-					desired.stretch === fontFace.stretch &&
-					desired.style === fontFace.style &&
-					desired.variant === fontFace.variant &&
-					desired.weight === fontFace.weight
-				) {
-					return fontFace as FontFace;
-				}
+}
+
+export function findFont(
+	fontFaceSet: FontFaceSet,
+	desired: IFont
+): FontFace | null {
+	if (!desired.family) {
+		throw new Error('No font-family was specified');
+	}
+	for (const family of desired.family) {
+		for (const fontFace of fontFaceSet[INTERNAL_SYMBOL].fonts) {
+			if (
+				family === fontFace.family &&
+				desired.stretch === fontFace.stretch &&
+				desired.style === fontFace.style &&
+				desired.variant === fontFace.variant &&
+				desired.weight === fontFace.weight
+			) {
+				return fontFace;
 			}
 		}
-		return null;
 	}
+	return null;
+}
 
-	/**
-	 * @ignore
-	 */
-	_addSystemFont(): FontFace {
-		const data = Switch.native.getSystemFont();
-		const font = new FontFace('system-ui', data);
-		this.add(font);
-		return font;
-	}
+export function addSystemFont(fontFaceSet: FontFaceSet): FontFace {
+	const data = Switch.native.getSystemFont();
+	const font = new FontFace('system-ui', data);
+	fontFaceSet.add(font);
+	return font;
 }
 
 export const fontFaceInternal = new WeakMap<
