@@ -46,10 +46,17 @@ interface CanvasRenderingContext2DInternal {
 	currentStyle?: RGBA;
 }
 
-const ctxInternalMap = new WeakMap<CanvasRenderingContext2D, CanvasRenderingContext2DInternal>();
+const ctxInternalMap = new WeakMap<
+	CanvasRenderingContext2D,
+	CanvasRenderingContext2DInternal
+>();
 function internal(ctx: CanvasRenderingContext2D) {
-	const i= ctxInternalMap.get(ctx);
-	if (!i) throw new Error(`Failed to get CanvasRenderingContext2D internal state`);
+	const i = ctxInternalMap.get(ctx);
+	if (!i) {
+		throw new Error(
+			`Failed to get CanvasRenderingContext2D internal state`
+		);
+	}
 	return i;
 }
 export { internal as ctxInternal };
@@ -273,15 +280,7 @@ export class CanvasRenderingContext2D
 		e: number,
 		f: number
 	): void {
-		Switch.native.canvasTransform(
-			internal(this).ctx,
-			a,
-			b,
-			c,
-			d,
-			e,
-			f
-		);
+		Switch.native.canvasTransform(internal(this).ctx, a, b, c, d, e, f);
 	}
 
 	translate(x: number, y: number): void {
@@ -314,14 +313,7 @@ export class CanvasRenderingContext2D
 		y2: number,
 		radius: number
 	): void {
-		Switch.native.canvasArcTo(
-			internal(this).ctx,
-			x1,
-			y1,
-			x2,
-			y2,
-			radius
-		);
+		Switch.native.canvasArcTo(internal(this).ctx, x1, y1, x2, y2, radius);
 	}
 
 	bezierCurveTo(

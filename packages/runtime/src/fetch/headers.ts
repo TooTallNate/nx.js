@@ -56,11 +56,7 @@ export class Headers implements globalThis.Headers {
 	}
 
 	forEach(
-		callbackfn: (
-			value: string,
-			key: string,
-			parent: Headers
-		) => void,
+		callbackfn: (value: string, key: string, parent: Headers) => void,
 		thisArg?: any
 	): void {
 		const map = headerMaps.get(this)!;

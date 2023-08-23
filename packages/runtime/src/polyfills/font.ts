@@ -34,7 +34,6 @@ export class FontFaceSet extends EventTarget {
 	values(): IterableIterator<FontFace> {
 		return this[INTERNAL_SYMBOL].fonts.values();
 	}
-
 }
 
 export function findFont(

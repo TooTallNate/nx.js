@@ -5,7 +5,13 @@ import { INTERNAL_SYMBOL } from './types';
 import { createTimersFactory } from './timers';
 import { console } from './console';
 
-export type { SwitchClass, Env, Vibration, Versions, ConnectOpts } from './switch';
+export type {
+	SwitchClass,
+	Env,
+	Vibration,
+	Versions,
+	ConnectOpts,
+} from './switch';
 export type { InspectOptions } from './inspect';
 export type * from './types';
 export type * from './console';

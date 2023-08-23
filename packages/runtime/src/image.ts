@@ -32,9 +32,9 @@ declare const Switch: SwitchClass;
 export class Image extends EventTarget {
 	onload: ((this: Image, ev: Event) => any) | null;
 	onerror: OnErrorEventHandler;
-	decoding: "async" | "sync" | "auto";
+	decoding: 'async' | 'sync' | 'auto';
 	isMap: boolean;
-	loading: "eager" | "lazy";
+	loading: 'eager' | 'lazy';
 
 	/**
 	 * @ignore
