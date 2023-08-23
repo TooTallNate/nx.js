@@ -1,16 +1,15 @@
 {
   "name": "nxjs-runtime",
   "version": "0.0.15",
-  "description": "Runtime initialization code for nx.js",
-  "types": "./nxjs.env.d.ts",
+  "description": "nx.js runtime",
+  "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "tsc",
+    "build": "node build.mjs",
     "bundle": "esbuild --bundle --main-fields=module,main --target=es2020 src/index.ts --outfile=runtime.js",
     "docs": "typedoc && cp -r ../../assets/* public/assets && cp ../../assets/logo.png public/favicon.ico"
   },
   "files": [
-    "dist",
-    "nxjs.env.d.ts"
+    "dist"
   ],
   "author": "Nathan Rajlich <n@n8.io>",
   "license": "MIT",
@@ -20,6 +19,7 @@
     "@ungap/event-target": "^0.2.4",
     "color-rgba": "^2.4.0",
     "core-js": "^3.32.0",
+    "dts-bundle-generator": "^8.0.1",
     "esbuild": "^0.17.19",
     "kleur": "github:TooTallNate/kleur#rgb",
     "parse-css-font": "^4.0.0",
