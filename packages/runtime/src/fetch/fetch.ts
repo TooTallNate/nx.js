@@ -3,9 +3,9 @@ import { objectUrls } from '../polyfills/url';
 import { decoder } from '../polyfills/text-decoder';
 import { encoder } from '../polyfills/text-encoder';
 import { Response } from './response';
-import type { Switch as _Switch } from '../switch';
+import type { SwitchClass } from '../switch';
 
-declare const Switch: _Switch;
+declare const Switch: SwitchClass;
 
 function fdToStream(fd: number) {
 	return new ReadableStream<Uint8Array>({

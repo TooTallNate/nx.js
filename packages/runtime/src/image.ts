@@ -1,9 +1,9 @@
 import { def } from './utils';
 import { INTERNAL_SYMBOL } from './types';
-import { toPromise, type Switch as _Switch } from './switch';
+import { toPromise, type SwitchClass } from './switch';
 import type { ImageOpaque } from './switch';
 
-declare const Switch: _Switch;
+declare const Switch: SwitchClass;
 
 /**
  * The `Image` class is the spiritual equivalent of the [`HTMLImageElement`](https://developer.mozilla.org/en-US/docs/Web/API/HTMLImageElement)

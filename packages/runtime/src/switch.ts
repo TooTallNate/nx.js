@@ -42,7 +42,7 @@ type CallbackArguments<T> = T extends (
  * Specifies the port number and optional hostname for connecting
  * to a remove server over the network.
  *
- * {@link Switch.connect}
+ * {@link SwitchClass.connect}
  */
 export interface ConnectOpts {
 	/**
@@ -378,7 +378,7 @@ const STOP_VIBRATION: VibrationValues = {
 	highFreq: 320,
 };
 
-export class Switch extends EventTarget {
+export class SwitchClass extends EventTarget {
 	/**
 	 * A Map-like object providing methods to interact with the environment variables of the process.
 	 */
@@ -795,12 +795,12 @@ export class Env {
 	/**
 	 * @private
 	 */
-	[INTERNAL_SYMBOL]: Switch;
+	[INTERNAL_SYMBOL]: SwitchClass;
 
 	/**
 	 * @private
 	 */
-	constructor(s: Switch) {
+	constructor(s: SwitchClass) {
 		this[INTERNAL_SYMBOL] = s;
 	}
 
@@ -822,9 +822,9 @@ export class Env {
 }
 
 class Screen extends Canvas {
-	[INTERNAL_SYMBOL]: Switch;
+	[INTERNAL_SYMBOL]: SwitchClass;
 
-	constructor(s: Switch, w: number, h: number) {
+	constructor(s: SwitchClass, w: number, h: number) {
 		super(w, h);
 		this[INTERNAL_SYMBOL] = s;
 	}

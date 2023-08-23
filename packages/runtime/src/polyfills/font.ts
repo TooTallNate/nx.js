@@ -1,9 +1,9 @@
 import type { IFont } from 'parse-css-font';
 import { INTERNAL_SYMBOL } from '../types';
-import type { Switch as _Switch, FontFaceState } from '../switch';
+import type { SwitchClass, FontFaceState } from '../switch';
 import { def } from '../utils';
 
-declare const Switch: _Switch;
+declare const Switch: SwitchClass;
 
 /**
  * Manages the loading of font-faces and querying of their download status.

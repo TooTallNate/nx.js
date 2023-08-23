@@ -1,11 +1,11 @@
 import './polyfills';
 import { def } from './utils';
-import { Switch as _Switch } from './switch';
+import { SwitchClass } from './switch';
 import { INTERNAL_SYMBOL } from './types';
 import { createTimersFactory } from './timers';
 import { console } from './console';
 
-export type { Switch, Env, Vibration, Versions, ConnectOpts } from './switch';
+export type { SwitchClass, Env, Vibration, Versions, ConnectOpts } from './switch';
 export type { InspectOptions } from './inspect';
 export type * from './types';
 export type * from './console';
@@ -32,8 +32,8 @@ export type * from './image';
 /**
  * The `Switch` global object contains native interfaces to interact with the Switch hardware.
  */
-const Switch = new _Switch();
-export type { Switch as SwitchInstance };
+const Switch = new SwitchClass();
+export type { Switch };
 def('Switch', Switch);
 
 def('console', console);

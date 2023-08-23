@@ -1,7 +1,7 @@
 import { def } from './utils';
-import { type Switch as _Switch } from './switch';
+import { type SwitchClass } from './switch';
 
-declare const Switch: _Switch;
+declare const Switch: SwitchClass;
 
 /**
  * Basic cryptography features available in the current context.

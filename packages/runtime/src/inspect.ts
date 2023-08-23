@@ -1,7 +1,7 @@
 import { bold, cyan, green, magenta, red, rgb, yellow } from 'kleur/colors';
-import type { Switch as _Switch } from './switch';
+import type { SwitchClass } from './switch';
 
-declare const Switch: _Switch;
+declare const Switch: SwitchClass;
 
 const grey = rgb(100, 100, 100);
 

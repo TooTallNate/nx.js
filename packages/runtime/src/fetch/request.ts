@@ -1,9 +1,9 @@
 import { def } from '../utils';
 import { Body } from './body';
 import { AbortSignal } from '../polyfills/abort-controller';
-import type { Switch as _Switch } from '../switch';
+import type { SwitchClass } from '../switch';
 
-declare const Switch: _Switch;
+declare const Switch: SwitchClass;
 
 // HTTP methods whose capitalization should be normalized
 const methods = [

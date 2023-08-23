@@ -6,10 +6,10 @@ import { Image } from './image';
 import { ImageData } from './canvas/image-data';
 import { Path2D, applyPath } from './canvas/path2d';
 import type { CanvasRenderingContext2DState, ImageOpaque } from './switch';
-import type { Switch as _Switch } from './switch';
+import type { SwitchClass } from './switch';
 import { fontFaceInternal } from './polyfills/font';
 
-declare const Switch: _Switch;
+declare const Switch: SwitchClass;
 
 type RGBA = [number, number, number, number];
 
