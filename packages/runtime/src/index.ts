@@ -9,7 +9,7 @@ export type { SwitchClass, Env, Vibration, Versions, ConnectOpts } from './switc
 export type { InspectOptions } from './inspect';
 export type * from './types';
 export type * from './console';
-export type * from './canvas';
+export type { Canvas, CanvasRenderingContext2D } from './canvas';
 export type * from './canvas/image-data';
 export type { Path2D } from './canvas/path2d';
 export type * from './polyfills/url-stub';

@@ -39,33 +39,47 @@ export class Canvas {
 	}
 }
 
+interface CanvasRenderingContext2DInternal {
+	ctx: CanvasRenderingContext2DState;
+	fillStyle: RGBA;
+	strokeStyle: RGBA;
+	currentStyle?: RGBA;
+}
+
+const ctxInternalMap = new WeakMap<CanvasRenderingContext2D, CanvasRenderingContext2DInternal>();
+function internal(ctx: CanvasRenderingContext2D) {
+	const i= ctxInternalMap.get(ctx);
+	if (!i) throw new Error(`Failed to get CanvasRenderingContext2D internal state`);
+	return i;
+}
+export { internal as ctxInternal };
+
 export class CanvasRenderingContext2D
 	implements globalThis.CanvasRenderingContext2D
 {
-	/**
-	 * @ignore
-	 */
-	[INTERNAL_SYMBOL]: {
-		ctx: CanvasRenderingContext2DState;
-		fillStyle: RGBA;
-		strokeStyle: RGBA;
-		currentStyle?: RGBA;
-	};
 	canvas: HTMLCanvasElement;
 	direction: CanvasDirection;
 	fontKerning: CanvasFontKerning;
 	textAlign: CanvasTextAlign;
 	textBaseline: CanvasTextBaseline;
+	globalCompositeOperation: GlobalCompositeOperation;
+	filter: string;
+	imageSmoothingEnabled: boolean;
+	imageSmoothingQuality: ImageSmoothingQuality;
+	shadowBlur: number;
+	shadowColor: string;
+	shadowOffsetX: number;
+	shadowOffsetY: number;
 
 	constructor(canvas: Canvas) {
 		const { width: w, height: h } = canvas;
 		// @ts-expect-error `Canvas` does not implement all of `HTMLCanvasElement`
 		this.canvas = canvas;
-		this[INTERNAL_SYMBOL] = {
+		ctxInternalMap.set(this, {
 			ctx: Switch.native.canvasNewContext(w, h),
 			strokeStyle: [0, 0, 0, 1],
 			fillStyle: [0, 0, 0, 1],
-		};
+		});
 		this.font = '10px system-ui';
 
 		// TODO: implement
@@ -82,15 +96,6 @@ export class CanvasRenderingContext2D
 		this.shadowOffsetX = 0;
 		this.shadowOffsetY = 0;
 	}
-
-	globalCompositeOperation: GlobalCompositeOperation;
-	filter: string;
-	imageSmoothingEnabled: boolean;
-	imageSmoothingQuality: ImageSmoothingQuality;
-	shadowBlur: number;
-	shadowColor: string;
-	shadowOffsetX: number;
-	shadowOffsetY: number;
 
 	getContextAttributes(): CanvasRenderingContext2DSettings {
 		throw new Error('Method not implemented.');
@@ -147,7 +152,7 @@ export class CanvasRenderingContext2D
 			if (!ctx) {
 				throw new Error('Failed to get Canvas context');
 			}
-			opaque = ctx[INTERNAL_SYMBOL].ctx;
+			opaque = internal(ctx).ctx;
 			imageWidth = sw = image.width;
 			imageHeight = sh = image.height;
 			isCanvas = true;
@@ -183,7 +188,7 @@ export class CanvasRenderingContext2D
 		}
 
 		Switch.native.canvasDrawImage(
-			this[INTERNAL_SYMBOL].ctx,
+			internal(this).ctx,
 			opaque,
 			imageWidth,
 			imageHeight,
@@ -206,29 +211,29 @@ export class CanvasRenderingContext2D
 	}
 
 	restore(): void {
-		Switch.native.canvasRestore(this[INTERNAL_SYMBOL].ctx);
+		Switch.native.canvasRestore(internal(this).ctx);
 	}
 
 	save(): void {
-		Switch.native.canvasSave(this[INTERNAL_SYMBOL].ctx);
+		Switch.native.canvasSave(internal(this).ctx);
 	}
 
 	rotate(angle: number): void {
-		Switch.native.canvasRotate(this[INTERNAL_SYMBOL].ctx, angle);
+		Switch.native.canvasRotate(internal(this).ctx, angle);
 	}
 
 	scale(x: number, y: number): void {
-		Switch.native.canvasScale(this[INTERNAL_SYMBOL].ctx, x, y);
+		Switch.native.canvasScale(internal(this).ctx, x, y);
 	}
 
 	getTransform(): DOMMatrix {
 		return new DOMMatrix(
-			Switch.native.canvasGetTransform(this[INTERNAL_SYMBOL].ctx)
+			Switch.native.canvasGetTransform(internal(this).ctx)
 		);
 	}
 
 	resetTransform(): void {
-		Switch.native.canvasResetTransform(this[INTERNAL_SYMBOL].ctx);
+		Switch.native.canvasResetTransform(internal(this).ctx);
 	}
 
 	setTransform(
@@ -269,7 +274,7 @@ export class CanvasRenderingContext2D
 		f: number
 	): void {
 		Switch.native.canvasTransform(
-			this[INTERNAL_SYMBOL].ctx,
+			internal(this).ctx,
 			a,
 			b,
 			c,
@@ -280,7 +285,7 @@ export class CanvasRenderingContext2D
 	}
 
 	translate(x: number, y: number): void {
-		Switch.native.canvasTranslate(this[INTERNAL_SYMBOL].ctx, x, y);
+		Switch.native.canvasTranslate(internal(this).ctx, x, y);
 	}
 
 	arc(
@@ -292,7 +297,7 @@ export class CanvasRenderingContext2D
 		counterclockwise?: boolean
 	): void {
 		Switch.native.canvasArc(
-			this[INTERNAL_SYMBOL].ctx,
+			internal(this).ctx,
 			x,
 			y,
 			radius,
@@ -310,7 +315,7 @@ export class CanvasRenderingContext2D
 		radius: number
 	): void {
 		Switch.native.canvasArcTo(
-			this[INTERNAL_SYMBOL].ctx,
+			internal(this).ctx,
 			x1,
 			y1,
 			x2,
@@ -328,7 +333,7 @@ export class CanvasRenderingContext2D
 		y: number
 	): void {
 		Switch.native.canvasBezierCurveTo(
-			this[INTERNAL_SYMBOL].ctx,
+			internal(this).ctx,
 			cp1x,
 			cp1y,
 			cp2x,
@@ -340,7 +345,7 @@ export class CanvasRenderingContext2D
 
 	quadraticCurveTo(cpx: number, cpy: number, x: number, y: number): void {
 		Switch.native.canvasQuadraticCurveTo(
-			this[INTERNAL_SYMBOL].ctx,
+			internal(this).ctx,
 			cpx,
 			cpy,
 			x,
@@ -349,7 +354,7 @@ export class CanvasRenderingContext2D
 	}
 
 	closePath(): void {
-		Switch.native.canvasClosePath(this[INTERNAL_SYMBOL].ctx);
+		Switch.native.canvasClosePath(internal(this).ctx);
 	}
 
 	ellipse(
@@ -363,7 +368,7 @@ export class CanvasRenderingContext2D
 		counterclockwise?: boolean
 	): void {
 		Switch.native.canvasEllipse(
-			this[INTERNAL_SYMBOL].ctx,
+			internal(this).ctx,
 			x,
 			y,
 			radiusX,
@@ -376,15 +381,15 @@ export class CanvasRenderingContext2D
 	}
 
 	lineTo(x: number, y: number): void {
-		Switch.native.canvasLineTo(this[INTERNAL_SYMBOL].ctx, x, y);
+		Switch.native.canvasLineTo(internal(this).ctx, x, y);
 	}
 
 	moveTo(x: number, y: number): void {
-		Switch.native.canvasMoveTo(this[INTERNAL_SYMBOL].ctx, x, y);
+		Switch.native.canvasMoveTo(internal(this).ctx, x, y);
 	}
 
 	rect(x: number, y: number, w: number, h: number): void {
-		Switch.native.canvasRect(this[INTERNAL_SYMBOL].ctx, x, y, w, h);
+		Switch.native.canvasRect(internal(this).ctx, x, y, w, h);
 	}
 
 	/**
@@ -461,7 +466,7 @@ export class CanvasRenderingContext2D
 	}
 
 	beginPath(): void {
-		Switch.native.canvasBeginPath(this[INTERNAL_SYMBOL].ctx);
+		Switch.native.canvasBeginPath(internal(this).ctx);
 	}
 
 	clip(fillRule?: CanvasFillRule): void;
@@ -476,7 +481,7 @@ export class CanvasRenderingContext2D
 		} else {
 			fillRule = pathOrFillRule;
 		}
-		Switch.native.canvasClip(this[INTERNAL_SYMBOL].ctx, fillRule);
+		Switch.native.canvasClip(internal(this).ctx, fillRule);
 	}
 
 	fill(fillRule?: CanvasFillRule): void;
@@ -494,7 +499,7 @@ export class CanvasRenderingContext2D
 		if (path) {
 			applyPath(this, path);
 		}
-		const i = this[INTERNAL_SYMBOL];
+		const i = internal(this);
 		if (i.currentStyle !== i.fillStyle) {
 			Switch.native.canvasSetSourceRgba(i.ctx, ...i.fillStyle);
 			i.currentStyle = i.fillStyle;
@@ -545,7 +550,7 @@ export class CanvasRenderingContext2D
 		if (path) {
 			throw new Error('`path` param not implemented.');
 		}
-		const i = this[INTERNAL_SYMBOL];
+		const i = internal(this);
 		if (i.currentStyle !== i.strokeStyle) {
 			Switch.native.canvasSetSourceRgba(i.ctx, ...i.strokeStyle);
 			i.currentStyle = i.strokeStyle;
@@ -554,66 +559,66 @@ export class CanvasRenderingContext2D
 	}
 
 	getLineDash(): number[] {
-		return Switch.native.canvasGetLineDash(this[INTERNAL_SYMBOL].ctx);
+		return Switch.native.canvasGetLineDash(internal(this).ctx);
 	}
 
 	setLineDash(segments: Iterable<number>): void {
 		Switch.native.canvasSetLineDash(
-			this[INTERNAL_SYMBOL].ctx,
+			internal(this).ctx,
 			Array.from(segments)
 		);
 	}
 
 	get globalAlpha() {
-		return Switch.native.canvasGetGlobalAlpha(this[INTERNAL_SYMBOL].ctx);
+		return Switch.native.canvasGetGlobalAlpha(internal(this).ctx);
 	}
 
 	set globalAlpha(v: number) {
-		Switch.native.canvasSetGlobalAlpha(this[INTERNAL_SYMBOL].ctx, v);
+		Switch.native.canvasSetGlobalAlpha(internal(this).ctx, v);
 	}
 
 	get lineDashOffset() {
-		return Switch.native.canvasGetLineDashOffset(this[INTERNAL_SYMBOL].ctx);
+		return Switch.native.canvasGetLineDashOffset(internal(this).ctx);
 	}
 
 	set lineDashOffset(v: number) {
-		Switch.native.canvasSetLineDashOffset(this[INTERNAL_SYMBOL].ctx, v);
+		Switch.native.canvasSetLineDashOffset(internal(this).ctx, v);
 	}
 
 	get lineWidth() {
-		return Switch.native.canvasGetLineWidth(this[INTERNAL_SYMBOL].ctx);
+		return Switch.native.canvasGetLineWidth(internal(this).ctx);
 	}
 
 	set lineWidth(v: number) {
-		Switch.native.canvasSetLineWidth(this[INTERNAL_SYMBOL].ctx, v);
+		Switch.native.canvasSetLineWidth(internal(this).ctx, v);
 	}
 
 	get lineJoin() {
-		return Switch.native.canvasGetLineJoin(this[INTERNAL_SYMBOL].ctx);
+		return Switch.native.canvasGetLineJoin(internal(this).ctx);
 	}
 
 	set lineJoin(v: CanvasLineJoin) {
-		Switch.native.canvasSetLineJoin(this[INTERNAL_SYMBOL].ctx, v);
+		Switch.native.canvasSetLineJoin(internal(this).ctx, v);
 	}
 
 	get lineCap() {
-		return Switch.native.canvasGetLineCap(this[INTERNAL_SYMBOL].ctx);
+		return Switch.native.canvasGetLineCap(internal(this).ctx);
 	}
 
 	set lineCap(v: CanvasLineCap) {
-		Switch.native.canvasSetLineCap(this[INTERNAL_SYMBOL].ctx, v);
+		Switch.native.canvasSetLineCap(internal(this).ctx, v);
 	}
 
 	get miterLimit() {
-		return Switch.native.canvasGetMiterLimit(this[INTERNAL_SYMBOL].ctx);
+		return Switch.native.canvasGetMiterLimit(internal(this).ctx);
 	}
 
 	set miterLimit(v: number) {
-		Switch.native.canvasSetMiterLimit(this[INTERNAL_SYMBOL].ctx, v);
+		Switch.native.canvasSetMiterLimit(internal(this).ctx, v);
 	}
 
 	get fillStyle(): string | CanvasGradient | CanvasPattern {
-		return rgbaToString(this[INTERNAL_SYMBOL].fillStyle);
+		return rgbaToString(internal(this).fillStyle);
 	}
 
 	set fillStyle(v: string | CanvasGradient | CanvasPattern) {
@@ -622,14 +627,14 @@ export class CanvasRenderingContext2D
 			if (!parsed || parsed.length !== 4) {
 				return;
 			}
-			this[INTERNAL_SYMBOL].fillStyle = parsed;
+			internal(this).fillStyle = parsed;
 		} else {
 			throw new Error('CanvasGradient/CanvasPattern not implemented.');
 		}
 	}
 
 	get strokeStyle(): string | CanvasGradient | CanvasPattern {
-		return rgbaToString(this[INTERNAL_SYMBOL].strokeStyle);
+		return rgbaToString(internal(this).strokeStyle);
 	}
 
 	set strokeStyle(v: string | CanvasGradient | CanvasPattern) {
@@ -638,7 +643,7 @@ export class CanvasRenderingContext2D
 			if (!parsed || parsed.length !== 4) {
 				return;
 			}
-			this[INTERNAL_SYMBOL].strokeStyle = parsed;
+			internal(this).strokeStyle = parsed;
 		} else {
 			throw new Error('CanvasGradient/CanvasPattern not implemented.');
 		}
@@ -679,7 +684,7 @@ export class CanvasRenderingContext2D
 			}
 		}
 		native.canvasSetFont(
-			this[INTERNAL_SYMBOL].ctx,
+			internal(this).ctx,
 			fontFaceInternal.get(font)!.fontFace,
 			px
 		);
@@ -691,7 +696,7 @@ export class CanvasRenderingContext2D
 		y: number,
 		maxWidth?: number | undefined
 	): void {
-		const i = this[INTERNAL_SYMBOL];
+		const i = internal(this);
 		if (i.currentStyle !== i.fillStyle) {
 			Switch.native.canvasSetSourceRgba(i.ctx, ...i.fillStyle);
 			i.currentStyle = i.fillStyle;
@@ -700,7 +705,7 @@ export class CanvasRenderingContext2D
 	}
 
 	measureText(text: string): TextMetrics {
-		return Switch.native.canvasMeasureText(this[INTERNAL_SYMBOL].ctx, text);
+		return Switch.native.canvasMeasureText(internal(this).ctx, text);
 	}
 
 	strokeText(
@@ -752,7 +757,7 @@ export class CanvasRenderingContext2D
 	}
 
 	fillRect(x: number, y: number, w: number, h: number): void {
-		const i = this[INTERNAL_SYMBOL];
+		const i = internal(this);
 		if (i.currentStyle !== i.fillStyle) {
 			Switch.native.canvasSetSourceRgba(i.ctx, ...i.fillStyle);
 			i.currentStyle = i.strokeStyle;
@@ -761,7 +766,7 @@ export class CanvasRenderingContext2D
 	}
 
 	strokeRect(x: number, y: number, w: number, h: number): void {
-		const i = this[INTERNAL_SYMBOL];
+		const i = internal(this);
 		if (i.currentStyle !== i.strokeStyle) {
 			Switch.native.canvasSetSourceRgba(i.ctx, ...i.fillStyle);
 			i.currentStyle = i.strokeStyle;
@@ -810,7 +815,7 @@ export class CanvasRenderingContext2D
 		settings?: ImageDataSettings | undefined
 	): ImageData {
 		const buffer = Switch.native.canvasGetImageData(
-			this[INTERNAL_SYMBOL].ctx,
+			internal(this).ctx,
 			sx,
 			sy,
 			sw,
@@ -840,7 +845,7 @@ export class CanvasRenderingContext2D
 		dirtyHeight = imagedata.height
 	): void {
 		Switch.native.canvasPutImageData(
-			this[INTERNAL_SYMBOL].ctx,
+			internal(this).ctx,
 			imagedata.data.buffer,
 			imagedata.width,
 			imagedata.height,

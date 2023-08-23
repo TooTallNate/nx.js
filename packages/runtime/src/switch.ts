@@ -1,4 +1,4 @@
-import { Canvas, CanvasRenderingContext2D } from './canvas';
+import { Canvas, CanvasRenderingContext2D, ctxInternal } from './canvas';
 import { FontFaceSet } from './polyfills/font';
 import { INTERNAL_SYMBOL, PathLike, Stats } from './types';
 import { inspect } from './inspect';
@@ -836,7 +836,7 @@ class Screen extends Canvas {
 		if (internal.renderingMode !== RenderingMode.Framebuffer) {
 			internal.setRenderingMode(
 				RenderingMode.Framebuffer,
-				ctx[INTERNAL_SYMBOL].ctx
+				ctxInternal(ctx).ctx
 			);
 		}
 		return ctx;
