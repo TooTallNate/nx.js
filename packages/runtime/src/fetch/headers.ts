@@ -59,7 +59,7 @@ export class Headers implements globalThis.Headers {
 		callbackfn: (
 			value: string,
 			key: string,
-			parent: globalThis.Headers
+			parent: Headers
 		) => void,
 		thisArg?: any
 	): void {

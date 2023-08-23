@@ -17,7 +17,7 @@ export class FontFaceSet extends EventTarget {
 	 * @ignore
 	 */
 	[INTERNAL_SYMBOL]: {
-		fonts: Set<globalThis.FontFace>;
+		fonts: Set<FontFace>;
 	};
 
 	constructor() {
@@ -84,7 +84,7 @@ export class FontFace implements globalThis.FontFace {
 	family: string;
 	featureSettings: string;
 	lineGapOverride: string;
-	loaded: Promise<globalThis.FontFace>;
+	loaded: Promise<FontFace>;
 	status: FontFaceLoadStatus;
 	stretch: string;
 	style: string;

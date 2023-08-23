@@ -21,7 +21,7 @@ export class Response extends Body implements globalThis.Response {
 		return this.status >= 200 && this.status < 300;
 	}
 
-	clone(): globalThis.Response {
+	clone(): Response {
 		throw new Error('Method not implemented.');
 	}
 

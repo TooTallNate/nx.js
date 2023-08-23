@@ -72,7 +72,7 @@ export class FormData implements globalThis.FormData {
 		callbackfn: (
 			value: FormDataEntryValue,
 			key: string,
-			parent: globalThis.FormData
+			parent: FormData
 		) => void,
 		thisArg?: any
 	): void {

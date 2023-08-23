@@ -6,7 +6,7 @@ import { def } from '../utils';
 export class AbortSignal extends EventTarget implements globalThis.AbortSignal {
 	readonly reason!: any;
 	readonly aborted!: boolean;
-	onabort!: ((this: globalThis.AbortSignal, ev: Event) => any) | null;
+	onabort!: ((this: AbortSignal, ev: Event) => any) | null;
 
 	constructor() {
 		super();
@@ -43,7 +43,7 @@ export class AbortSignal extends EventTarget implements globalThis.AbortSignal {
 }
 
 export class AbortController implements globalThis.AbortController {
-	signal!: globalThis.AbortSignal;
+	signal!: AbortSignal;
 
 	constructor() {
 		Object.defineProperty(this, 'signal', {
