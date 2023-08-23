@@ -17,8 +17,8 @@ function _format(...input: unknown[]): string {
  * screen, which can be useful for text-based applications, and is also
  * useful for debugging.
  *
- * All methods use the {@link SwitchClass#inspect | `Switch.inspect()`} method
- * for formatting, and the {@link SwitchClass#print | `Switch.print()`} method
+ * All methods use the {@link SwitchClass.inspect | `Switch.inspect()`} method
+ * for formatting, and the {@link SwitchClass.print | `Switch.print()`} method
  * to output to the screen.
  *
  * > **NOTE:** Invoking any method on the `console` object switches the
