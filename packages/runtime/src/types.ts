@@ -14,3 +14,22 @@ export interface Stats {
 	uid: number;
 	gid: number;
 }
+
+export interface ArrayBufferView {
+	/**
+	 * The ArrayBuffer instance referenced by the array.
+	 */
+	buffer: ArrayBuffer;
+
+	/**
+	 * The length in bytes of the array.
+	 */
+	byteLength: number;
+
+	/**
+	 * The offset in bytes of the array.
+	 */
+	byteOffset: number;
+}
+
+export type BufferSource = ArrayBufferView | ArrayBuffer;

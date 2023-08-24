@@ -1,3 +1,5 @@
+import type { BufferSource } from './types';
+
 export const def = <T>(key: string, value: T) => {
 	const proto = (value as any).prototype;
 	if (typeof proto === 'object') {

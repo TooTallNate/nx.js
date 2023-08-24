@@ -2,11 +2,13 @@ import { def } from '../utils';
 
 const headerMaps = new WeakMap<Headers, Map<string, string>>();
 
+export type HeadersInit = [string, string][] | Record<string, string> | Headers;
+
 export class Headers implements globalThis.Headers {
 	constructor(init?: HeadersInit) {
 		headerMaps.set(this, new Map());
 
-		if (init instanceof globalThis.Headers) {
+		if (init instanceof Headers) {
 			for (const [name, value] of init) {
 				this.append(name, value);
 			}

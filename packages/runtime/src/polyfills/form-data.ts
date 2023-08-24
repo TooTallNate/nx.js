@@ -1,4 +1,5 @@
 import { def } from '../utils';
+import { File } from './file';
 
 const dataWm = new WeakMap<FormData, [string, FormDataEntryValue][]>();
 

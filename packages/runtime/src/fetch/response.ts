@@ -1,5 +1,12 @@
 import { def } from '../utils';
-import { Body } from './body';
+import { Body, type BodyInit } from './body';
+import { Headers, type HeadersInit } from './headers';
+
+export interface ResponseInit {
+	headers?: HeadersInit;
+	status?: number;
+	statusText?: string;
+}
 
 export class Response extends Body implements globalThis.Response {
 	redirected: boolean;

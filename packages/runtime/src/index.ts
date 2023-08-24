@@ -4,6 +4,7 @@ import { SwitchClass } from './switch';
 import { INTERNAL_SYMBOL } from './types';
 import { createTimersFactory } from './timers';
 import { console } from './console';
+import { KeyboardEvent, TouchEvent, UIEvent } from './polyfills/event';
 
 export type {
 	SwitchClass,
@@ -29,6 +30,7 @@ export type * from './polyfills/abort-controller';
 export type * from './polyfills/streams';
 export type { FontFace, FontFaceSet } from './polyfills/font';
 export type * from './polyfills/form-data';
+export type { BodyInit } from './fetch/body';
 export type * from './fetch/headers';
 export type * from './fetch/request';
 export type * from './fetch/response';

@@ -1,7 +1,14 @@
 import { decoder } from '../polyfills/text-decoder';
 import { encoder } from '../polyfills/text-encoder';
-import { Headers } from './headers';
+import { Headers, type HeadersInit } from './headers';
+import { crypto } from '../crypto';
 import { asyncIteratorToStream, bufferSourceToArrayBuffer } from '../utils';
+import { Blob } from '../polyfills/blob';
+import { File } from '../polyfills/file';
+import { FormData } from '../polyfills/form-data';
+// Can't import `URLSearchParams` since it comes from "core-js"
+//import { URLSearchParams } from '../polyfills/url';
+import type { BufferSource } from '../types';
 
 function indexOfSequence<T>(
 	haystack: ArrayLike<T>,
@@ -58,6 +65,14 @@ async function* formDataIterator(f: FormData, boundary: string) {
 	}
 	yield encoder.encode(`${boundary}--`);
 }
+
+export type BodyInit =
+	| ReadableStream<any>
+	| Blob
+	| BufferSource
+	| FormData
+	| URLSearchParams
+	| string;
 
 export abstract class Body implements globalThis.Body {
 	body: ReadableStream<Uint8Array> | null;

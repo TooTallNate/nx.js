@@ -48,7 +48,11 @@ export class Event implements globalThis.Event {
 	composedPath(): EventTarget[] {
 		throw new Error('Method not implemented.');
 	}
-	initEvent(): void {
+	initEvent(
+		type: string,
+		bubbles?: boolean | undefined,
+		cancelable?: boolean | undefined
+	): void {
 		throw new Error('Method not implemented.');
 	}
 	preventDefault(): void {

@@ -1,5 +1,7 @@
 import 'core-js/actual/url';
 import 'core-js/actual/url-search-params';
+import { Blob } from './blob';
+import { crypto } from '../crypto';
 
 /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/URLSearchParams) */
 export declare class URLSearchParams {

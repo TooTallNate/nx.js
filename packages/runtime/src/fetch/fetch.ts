@@ -1,8 +1,9 @@
 import { def } from '../utils';
 import { objectUrls } from '../polyfills/url';
 import { decoder } from '../polyfills/text-decoder';
-import { encoder } from '../polyfills/text-encoder';
+import { Request, type RequestInit } from './request';
 import { Response } from './response';
+import { Headers } from './headers';
 import type { SwitchClass } from '../switch';
 
 declare const Switch: SwitchClass;
@@ -264,7 +265,7 @@ const fetchers = new Map<string, (req: Request, url: URL) => Promise<Response>>(
  *
  * @see https://developer.mozilla.org/en-US/docs/Web/API/fetch
  */
-export function fetch(input: URL | RequestInfo, init?: RequestInit) {
+export function fetch(input: string | URL | Request, init?: RequestInit) {
 	const req = new Request(input, init);
 	const url = new URL(req.url);
 	const fetcher = fetchers.get(url.protocol);

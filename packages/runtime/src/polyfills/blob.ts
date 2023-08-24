@@ -1,5 +1,6 @@
 import { def } from '../utils';
 import { encoder } from './text-encoder';
+import { TextDecoder } from './text-decoder';
 
 /*! fetch-blob. MIT License. Jimmy Wärting <https://jimmy.warting.se/opensource> */
 
