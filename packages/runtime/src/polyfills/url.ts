@@ -4,7 +4,7 @@ import { Blob } from './blob';
 import { crypto } from '../crypto';
 
 /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/URLSearchParams) */
-export declare class URLSearchParams {
+export declare class URLSearchParams implements globalThis.URLSearchParams {
 	constructor(
 		init?: string[][] | Record<string, string> | string | URLSearchParams
 	);
@@ -72,9 +72,20 @@ export declare class URLSearchParams {
 		) => void,
 		thisArg?: any
 	): void;
+
+	/** Returns an array of key, value pairs for every entry in the search params. */
+	entries(): IterableIterator<[string, string]>;
+
+	/** Returns a list of keys in the search params. */
+	keys(): IterableIterator<string>;
+
+	/** Returns a list of values in the search params. */
+	values(): IterableIterator<string>;
+
+	[Symbol.iterator](): IterableIterator<[string, string]>;
 }
 
-export declare class URL {
+export declare class URL implements globalThis.URL {
 	constructor(url: string | URL, base?: string | URL);
 	hash: string;
 	host: string;

@@ -25,6 +25,7 @@ export type * from './canvas/image-data';
 export type { Path2D } from './canvas/path2d';
 export type { EventTarget } from './polyfills/event-target';
 export type { URL, URLSearchParams } from './polyfills/url';
+export type * from './polyfills/streams';
 export type * from './polyfills/event';
 export type * from './polyfills/blob';
 export type * from './polyfills/file';
