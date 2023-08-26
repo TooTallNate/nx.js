@@ -1,5 +1,11 @@
 # create-nxjs-app
 
+## 0.0.16
+
+### Patch Changes
+
+- Remove "workspace:" from dependencies ([`24fe9f8`](https://github.com/TooTallNate/nx.js/commit/24fe9f8ef8d53c76666e91f2d95ebdb79e52366e))
+
 ## 0.0.15
 
 ## 0.0.14

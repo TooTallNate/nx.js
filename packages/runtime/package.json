@@ -1,6 +1,6 @@
 {
   "name": "nxjs-runtime",
-  "version": "0.0.15",
+  "version": "0.0.16",
   "description": "nx.js runtime",
   "types": "./dist/index.d.ts",
   "scripts": {
