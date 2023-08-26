@@ -1,5 +1,43 @@
 # nxjs-runtime
 
+## 0.0.16
+
+### Patch Changes
+
+- Use TypeDoc to generate docs website ([`ef53cef`](https://github.com/TooTallNate/nx.js/commit/ef53cef1c57e66f0855df92977cc6f0d4a17de27))
+
+- Rename `Switch` class to `SwitchClass` ([`ef758a6`](https://github.com/TooTallNate/nx.js/commit/ef758a69df898a12ceaab809e9bd5327cb8c2041))
+
+- Add docs for `URLSearchParams` ([`4560eef`](https://github.com/TooTallNate/nx.js/commit/4560eef63b0edcc5ba40aeba5a0880e4ccc67287))
+
+- Remove `INTERNAL_SYMBOL` from `CanvasRenderingContext2D` ([`583cfd4`](https://github.com/TooTallNate/nx.js/commit/583cfd458e615264ae11a5a3a84f6c8450c2c38d))
+
+- Remove instances of `globalThis` from types ([`62ceed4`](https://github.com/TooTallNate/nx.js/commit/62ceed41402bcddfc2216c2782a702789f3204f9))
+
+- Disallow "body" for `GET`/`HEAD` requests ([`e60d92a`](https://github.com/TooTallNate/nx.js/commit/e60d92affebcb7a819d5f32c27aeabc52fc7b0b1))
+
+- Add `Switch.vibrate()` ([`e742556`](https://github.com/TooTallNate/nx.js/commit/e742556c9110f786be80a2b756cff7b1c32f4506))
+
+- Add "png", "turbojpeg" and "webp" to `Switch.version` ([`6596d91`](https://github.com/TooTallNate/nx.js/commit/6596d919f7ef8dd97f06cb1cb9ab48a4aed0bc32))
+
+- Remove "es2020.intl" since `Intl` is not implemented in QuickJS ([`69f38a2`](https://github.com/TooTallNate/nx.js/commit/69f38a24f1b1bc19d60361a125992b16f7cd27e3))
+
+- Begin moving DOM interfaces in-house ([`c45b11b`](https://github.com/TooTallNate/nx.js/commit/c45b11b172555b0970b6d2b2cd9efb1361e2d904))
+
+- Add `DOMPoint` and `DOMPointReadOnly` ([`8919b14`](https://github.com/TooTallNate/nx.js/commit/8919b14e5b8c41309cc131b371cc98cec1a95424))
+
+- Clean up some libnx services upon exit ([`3cfb62a`](https://github.com/TooTallNate/nx.js/commit/3cfb62a3894afccf15b24436725ed53c0e126c17))
+
+- Add docs for `EventTarget` ([`6dd003d`](https://github.com/TooTallNate/nx.js/commit/6dd003d15eaac45daec17f393b52d7e3ad5ba783))
+
+- Use `dts-bundle-generator` to create runtime type definitions ([`4da0301`](https://github.com/TooTallNate/nx.js/commit/4da0301296828119305d5c40539514901d2f9fee))
+
+- Add types for all Web Streams classes/interfaces ([`6f050e8`](https://github.com/TooTallNate/nx.js/commit/6f050e8560c628afdb565fa60347fc885f4b9156))
+
+- Fix buffer size compile warning ([`0860f46`](https://github.com/TooTallNate/nx.js/commit/0860f463e392ab34a66a8006fc035795a1903e69))
+
+- Add `Headers#getSetCookie()` ([`60ac070`](https://github.com/TooTallNate/nx.js/commit/60ac070d109aa89fb00ff800cf1f424d2614e1aa))
+
 ## 0.0.15
 
 ## 0.0.14
