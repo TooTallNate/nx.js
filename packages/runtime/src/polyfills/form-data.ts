@@ -1,7 +1,10 @@
 import { def } from '../utils';
 import { File } from './file';
+import type { Blob } from './blob';
 
 const dataWm = new WeakMap<FormData, [string, FormDataEntryValue][]>();
+
+export type FormDataEntryValue = string | File;
 
 export class FormData implements globalThis.FormData {
 	constructor() {

@@ -46,8 +46,24 @@ export declare class URLSearchParams {
 	set(name: string, value: string): void;
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/URLSearchParams/sort) */
 	sort(): void;
-	/** Returns a string containing a query string suitable for use in a URL. Does not include the question mark. */
+
+	/**
+	 * Returns a string containing a query string suitable for use in a URL. Does not include the question mark.
+	 *
+	 * @example
+	 *
+	 * ```typescript
+	 * const params = new URLSearchParams({ foo: '1', bar: '2' });
+	 *
+	 * // Add a second foo parameter.
+	 * params.append("foo", 4);
+	 *
+	 * params.toString();
+	 * // Returns "foo=1&bar=2&foo=4"
+	 * ```
+	 */
 	toString(): string;
+
 	forEach(
 		callbackfn: (
 			value: string,
@@ -75,8 +91,8 @@ export declare class URL {
 	username: string;
 	toJSON(): string;
 
-	static createObjectURL: (obj: Blob) => void;
-	static revokeObjectURL: (url: string) => void;
+	static createObjectURL(obj: Blob): void;
+	static revokeObjectURL(url: string): void;
 }
 
 export const objectUrls = new Map<string, Blob>();

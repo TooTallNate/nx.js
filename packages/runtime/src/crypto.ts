@@ -1,5 +1,6 @@
 import { def } from './utils';
 import { type SwitchClass } from './switch';
+import { type ArrayBufferView } from './types';
 
 declare const Switch: SwitchClass;
 

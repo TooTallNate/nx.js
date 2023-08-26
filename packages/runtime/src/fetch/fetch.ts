@@ -257,7 +257,7 @@ const fetchers = new Map<string, (req: Request, url: URL) => Promise<Response>>(
  *
  * ```typescript
  * fetch('http://jsonip.com')
- *   .then(res => res.json)
+ *   .then(res => res.json())
  *   .then(data => {
  *     console.log(`Current IP address: ${data.ip}`);
  *   });

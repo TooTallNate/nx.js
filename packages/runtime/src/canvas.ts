@@ -11,6 +11,8 @@ import type { SwitchClass } from './switch';
 
 declare const Switch: SwitchClass;
 
+export type CanvasImageSource = Image | Canvas;
+
 type RGBA = [number, number, number, number];
 
 const contexts = new WeakMap<Canvas, CanvasRenderingContext2D>();
@@ -61,10 +63,8 @@ function internal(ctx: CanvasRenderingContext2D) {
 }
 export { internal as ctxInternal };
 
-export class CanvasRenderingContext2D
-	implements globalThis.CanvasRenderingContext2D
-{
-	canvas: HTMLCanvasElement;
+export class CanvasRenderingContext2D {
+	canvas: Canvas;
 	direction: CanvasDirection;
 	fontKerning: CanvasFontKerning;
 	textAlign: CanvasTextAlign;
@@ -80,7 +80,6 @@ export class CanvasRenderingContext2D
 
 	constructor(canvas: Canvas) {
 		const { width: w, height: h } = canvas;
-		// @ts-expect-error `Canvas` does not implement all of `HTMLCanvasElement`
 		this.canvas = canvas;
 		ctxInternalMap.set(this, {
 			ctx: Switch.native.canvasNewContext(w, h),

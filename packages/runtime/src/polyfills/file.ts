@@ -1,5 +1,5 @@
 import { def } from '../utils';
-import { Blob } from './blob';
+import { Blob, type BlobPart } from './blob';
 
 export class File extends Blob implements globalThis.File {
 	name: string;

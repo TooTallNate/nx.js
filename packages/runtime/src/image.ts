@@ -33,7 +33,7 @@ declare const Switch: SwitchClass;
  */
 export class Image extends EventTarget {
 	onload: ((this: Image, ev: Event) => any) | null;
-	onerror: OnErrorEventHandler;
+	onerror: ((this: Image, ev: ErrorEvent) => any) | null;
 	decoding: 'async' | 'sync' | 'auto';
 	isMap: boolean;
 	loading: 'eager' | 'lazy';
@@ -70,7 +70,7 @@ export class Image extends EventTarget {
 			}
 		} else if (event.type === 'error') {
 			if (typeof this.onerror === 'function') {
-				this.onerror(event);
+				this.onerror(event as ErrorEvent);
 			}
 		}
 		return super.dispatchEvent(event);

@@ -1,5 +1,11 @@
 import { def } from '../utils';
 
+export type PredefinedColorSpace = 'display-p3' | 'srgb';
+
+export interface ImageDataSettings {
+	colorSpace?: PredefinedColorSpace;
+}
+
 export class ImageData implements globalThis.ImageData {
 	readonly colorSpace: PredefinedColorSpace;
 	readonly data: Uint8ClampedArray;

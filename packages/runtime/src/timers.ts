@@ -5,6 +5,8 @@ interface Timer {
 	interval?: number;
 }
 
+export type TimerHandler = string | Function;
+
 export function createTimersFactory() {
 	let nextId = 0;
 	const timers = new Map<number, Timer>();

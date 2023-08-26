@@ -1,6 +1,7 @@
 import { def } from '../utils';
 import { encoder } from './text-encoder';
 import { TextDecoder } from './text-decoder';
+import type { BufferSource } from '../types';
 
 /*! fetch-blob. MIT License. Jimmy Wärting <https://jimmy.warting.se/opensource> */
 
@@ -30,6 +31,13 @@ async function* toIterator(
 			yield* part.stream();
 		}
 	}
+}
+
+export type BlobPart = string | Blob | BufferSource;
+
+export interface BlobPropertyBag {
+	endings?: 'native' | 'transparent';
+	type?: string;
 }
 
 export class Blob implements globalThis.Blob {

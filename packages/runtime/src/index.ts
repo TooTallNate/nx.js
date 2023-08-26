@@ -16,7 +16,11 @@ export type {
 export type { InspectOptions } from './inspect';
 export type * from './types';
 export type * from './console';
-export type { Canvas, CanvasRenderingContext2D } from './canvas';
+export type {
+	CanvasImageSource,
+	Canvas,
+	CanvasRenderingContext2D,
+} from './canvas';
 export type * from './canvas/image-data';
 export type { Path2D } from './canvas/path2d';
 export type { EventTarget } from './polyfills/event-target';
@@ -37,6 +41,7 @@ export type * from './fetch/response';
 export type * from './fetch/fetch';
 export type * from './crypto';
 export type * from './image';
+export type { TimerHandler } from './timers';
 
 /**
  * The `Switch` global object contains native interfaces to interact with the Switch hardware.
