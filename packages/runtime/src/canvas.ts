@@ -8,6 +8,7 @@ import { Path2D, applyPath } from './canvas/path2d';
 import { addSystemFont, findFont, fontFaceInternal } from './polyfills/font';
 import type { CanvasRenderingContext2DState, ImageOpaque } from './switch';
 import type { SwitchClass } from './switch';
+import type { DOMPointInit } from './dompoint';
 
 declare const Switch: SwitchClass;
 
@@ -386,8 +387,8 @@ export class CanvasRenderingContext2D {
 	/**
 	 * Implementation from https://github.com/nilzona/path2d-polyfill
 	 *
-	 * Note: currently does not handle `DOMPoint` radii values,
-	 *       nor negative width/height values.
+	 * @note Currently does not handle `DOMPoint` radii values, nor
+	 * negative width/height values.
 	 */
 	roundRect(
 		x: number,

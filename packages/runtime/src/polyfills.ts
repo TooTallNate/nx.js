@@ -15,3 +15,4 @@ import './fetch/response';
 import './fetch/fetch';
 import './crypto';
 import './image';
+import './dompoint';

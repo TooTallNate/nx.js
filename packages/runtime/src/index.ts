@@ -41,6 +41,7 @@ export type * from './fetch/response';
 export type * from './fetch/fetch';
 export type * from './crypto';
 export type * from './image';
+export type * from './dompoint';
 export type { TimerHandler } from './timers';
 
 /**
