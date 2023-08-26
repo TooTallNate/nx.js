@@ -1,8 +1,29 @@
 import { def } from '../utils';
 import * as streams from 'web-streams-polyfill/ponyfill/es2018';
+import type { AbortSignal } from './abort-controller';
 
 for (const k of Object.keys(streams)) {
 	def(k, streams[k as keyof typeof streams]);
+}
+
+export type ReadableStreamController<T> =
+	| ReadableStreamDefaultController<T>
+	| ReadableByteStreamController;
+export type ReadableStreamReadResult<T> =
+	| ReadableStreamReadValueResult<T>
+	| ReadableStreamReadDoneResult<T>;
+export type ReadableStreamReader<T> =
+	| ReadableStreamDefaultReader<T>
+	| ReadableStreamBYOBReader;
+
+export interface ReadableStreamReadDoneResult<T> {
+	done: true;
+	value?: T;
+}
+
+export interface ReadableStreamReadValueResult<T> {
+	done: false;
+	value: T;
 }
 
 export interface UnderlyingByteSource {
