@@ -39,7 +39,16 @@ ${output}`;
 output = output.replace(/^export /gm, '');
 
 // 3) Remove all `implements globalThis.` statements.
-output = output.replace(/\bimplements globalThis\.\w+ /g, '');
+output = output.replace(/\bimplements (.*){/g, (_, matches) => {
+	const filtered = matches
+		.split(',')
+		.map(i => i.trim())
+		.filter((i) => !i.startsWith('globalThis.'));
+	if (filtered.length > 0) {
+		return `implements ${filtered.join(', ')} {`;
+	}
+	return '{'
+});
 
 // 4) `ctx.canvas` is marked as `HTMLCanvasElement` to make TypeScript
 // happy, but the class name in nx.js is `Canvas`. So let's fix that.
