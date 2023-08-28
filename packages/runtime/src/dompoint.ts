@@ -8,7 +8,7 @@ export interface DOMPointInit {
 }
 
 /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMPointReadOnly) */
-export class DOMPointReadOnly {
+export class DOMPointReadOnly implements globalThis.DOMPointReadOnly {
 	constructor(x?: number, y?: number, z?: number, w?: number) {
 		this.x = x || 0;
 		this.y = y || 0;
@@ -46,7 +46,7 @@ export class DOMPointReadOnly {
 def('DOMPointReadOnly', DOMPointReadOnly);
 
 /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMPoint) */
-export class DOMPoint extends DOMPointReadOnly {
+export class DOMPoint extends DOMPointReadOnly implements globalThis.DOMPoint {
 	constructor(x?: number, y?: number, z?: number, w?: number) {
 		super();
 		this.x = x || 0;
@@ -56,7 +56,7 @@ export class DOMPoint extends DOMPointReadOnly {
 	}
 
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMPoint/fromPoint) */
-	fromPoint(other?: DOMPointInit): DOMPoint {
+	static fromPoint(other?: DOMPointInit): DOMPoint {
 		return new DOMPoint(other?.x, other?.y, other?.z, other?.w);
 	}
 
