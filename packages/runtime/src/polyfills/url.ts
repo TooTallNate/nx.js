@@ -8,6 +8,7 @@ export declare class URLSearchParams implements globalThis.URLSearchParams {
 	constructor(
 		init?: string[][] | Record<string, string> | string | URLSearchParams
 	);
+	size: number;
 	/**
 	 * Appends a specified key/value pair as a new search parameter.
 	 *

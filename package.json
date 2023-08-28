@@ -11,9 +11,9 @@
     "@changesets/cli": "^2.26.2",
     "@svitejs/changesets-changelog-github-compact": "^1.1.0",
     "prettier": "^2.8.8",
-    "turbo": "^1.10.12",
+    "turbo": "^1.10.13",
     "typedoc": "^0.24.8",
-    "typedoc-plugin-mdn-links": "^3.0.3",
+    "typedoc-plugin-mdn-links": "^3.1.0",
     "yauzl": "^2.10.0"
   }
 }

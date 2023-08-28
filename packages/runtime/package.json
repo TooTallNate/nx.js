@@ -18,7 +18,7 @@
     "@types/to-px": "^1.1.2",
     "@ungap/event-target": "^0.2.4",
     "color-rgba": "^2.4.0",
-    "core-js": "^3.32.0",
+    "core-js": "^3.32.1",
     "dts-bundle-generator": "^8.0.1",
     "esbuild": "^0.17.19",
     "kleur": "github:TooTallNate/kleur#rgb",
