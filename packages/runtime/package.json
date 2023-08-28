@@ -5,7 +5,8 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "build": "node build.mjs",
-    "bundle": "esbuild --bundle --main-fields=module,main --target=es2020 src/index.ts --outfile=runtime.js",
+    "bundle": "node bundle.mjs",
+    "bundle-minify": "MINIFY=1 node bundle.mjs",
     "docs": "typedoc && cp -r ../../assets/* public/assets && cp ../../assets/logo.png public/favicon.ico"
   },
   "files": [
