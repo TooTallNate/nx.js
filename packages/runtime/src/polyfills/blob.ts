@@ -1,9 +1,21 @@
+/**
+ * Based on `fetch-blob`.
+ * MIT License.
+ * Jimmy Wärting <https://jimmy.warting.se/opensource>
+ */
 import { def } from '../utils';
 import { encoder } from './text-encoder';
 import { TextDecoder } from './text-decoder';
 import type { BufferSource } from '../types';
 
-/*! fetch-blob. MIT License. Jimmy Wärting <https://jimmy.warting.se/opensource> */
+interface BlobInternals {
+	parts: (Blob | Uint8Array)[];
+	type: string;
+	size: number;
+	endings: 'native' | 'transparent';
+}
+
+const blobInternalsMap = new WeakMap<Blob, BlobInternals>();
 
 // 64 KiB (same size chrome slice theirs blob into Uint8array's)
 const POOL_SIZE = 65536;
@@ -41,11 +53,6 @@ export interface BlobPropertyBag {
 }
 
 export class Blob implements globalThis.Blob {
-	#parts: (Blob | Uint8Array)[] = [];
-	#type = '';
-	#size = 0;
-	#endings = 'transparent';
-
 	constructor(blobParts: BlobPart[] = [], options: BlobPropertyBag = {}) {
 		if (typeof blobParts !== 'object' || blobParts === null) {
 			throw new TypeError(
@@ -64,6 +71,14 @@ export class Blob implements globalThis.Blob {
 				"Failed to construct 'Blob': parameter 2 cannot convert to dictionary."
 			);
 		}
+
+		const internals: BlobInternals = {
+			parts: [],
+			size: 0,
+			type: '',
+			endings: 'transparent',
+		};
+		blobInternalsMap.set(this, internals);
 
 		for (const element of blobParts) {
 			let part;
@@ -85,24 +100,27 @@ export class Blob implements globalThis.Blob {
 			const size = ArrayBuffer.isView(part) ? part.byteLength : part.size;
 			// Avoid pushing empty parts into the array to better GC them
 			if (size) {
-				this.#size += size;
-				this.#parts.push(part);
+				internals.size += size;
+				internals.parts.push(part);
 			}
 		}
 
-		this.#endings = `${
-			options.endings === undefined ? 'transparent' : options.endings
-		}`;
+		if (options.endings) {
+			internals.endings = options.endings;
+		}
+
 		const type = options.type === undefined ? '' : String(options.type);
-		this.#type = /^[\x20-\x7E]*$/.test(type) ? type : '';
+		if (/^[\x20-\x7E]*$/.test(type)) {
+			internals.type = type;
+		}
 	}
 
 	get size() {
-		return this.#size;
+		return blobInternalsMap.get(this)!.size;
 	}
 
 	get type() {
-		return this.#type;
+		return blobInternalsMap.get(this)!.type;
 	}
 
 	async text(): Promise<string> {
@@ -110,7 +128,8 @@ export class Blob implements globalThis.Blob {
 		// that requires twice as much ram
 		const decoder = new TextDecoder();
 		let str = '';
-		for await (const part of toIterator(this.#parts, false)) {
+		const parts = blobInternalsMap.get(this)!.parts;
+		for await (const part of toIterator(parts, false)) {
 			str += decoder.decode(part, { stream: true });
 		}
 		// Remaining
@@ -121,7 +140,8 @@ export class Blob implements globalThis.Blob {
 	async arrayBuffer(): Promise<ArrayBuffer> {
 		const data = new Uint8Array(this.size);
 		let offset = 0;
-		for await (const chunk of toIterator(this.#parts, false)) {
+		const parts = blobInternalsMap.get(this)!.parts;
+		for await (const chunk of toIterator(parts, false)) {
 			data.set(chunk, offset);
 			offset += chunk.length;
 		}
@@ -130,7 +150,8 @@ export class Blob implements globalThis.Blob {
 	}
 
 	stream() {
-		const it = toIterator(this.#parts, true);
+		const parts = blobInternalsMap.get(this)!.parts;
+		const it = toIterator(parts, true);
 
 		return new ReadableStream({
 			type: 'bytes',
@@ -155,7 +176,7 @@ export class Blob implements globalThis.Blob {
 			end < 0 ? Math.max(size + end, 0) : Math.min(end, size);
 
 		const span = Math.max(relativeEnd - relativeStart, 0);
-		const parts = this.#parts;
+		const parts = blobInternalsMap.get(this)!.parts;
 		const blobParts = [];
 		let added = 0;
 
@@ -193,8 +214,9 @@ export class Blob implements globalThis.Blob {
 		}
 
 		const blob = new Blob([], { type: `${type}` });
-		blob.#size = span;
-		blob.#parts = blobParts;
+		const internals = blobInternalsMap.get(blob)!;
+		internals.size = span;
+		internals.parts = blobParts;
 
 		return blob;
 	}
