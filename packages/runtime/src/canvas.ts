@@ -387,24 +387,24 @@ export class CanvasRenderingContext2D {
 	/**
 	 * Implementation from https://github.com/nilzona/path2d-polyfill
 	 *
-	 * @note Currently does not handle `DOMPoint` radii values, nor
-	 * negative width/height values.
+	 * @note Currently does not negative width / height values.
 	 */
 	roundRect(
 		x: number,
 		y: number,
 		width: number,
 		height: number,
-		_radii: number | DOMPointInit | Iterable<number | DOMPointInit> = 0
+		radii: number | DOMPointInit | Iterable<number | DOMPointInit> = 0
 	): void {
-		const radii: number[] = (
-			typeof _radii === 'number' || isDomPointInit(_radii)
-				? [_radii]
-				: Array.from(_radii)
+		const r: number[] = (
+			typeof radii === 'number' || isDomPointInit(radii)
+				? [radii]
+				: Array.from(radii)
 		).map<number>((v) => {
 			if (typeof v !== 'number') {
-				throw new TypeError(
-					'DOMPoint radii are not currently supported'
+				// DOMPoint
+				v = Math.sqrt(
+					(v.x || 0) * (v.x || 0) + (v.y || 0) * (v.y || 0)
 				);
 			}
 			if (v < 0) {
@@ -414,13 +414,13 @@ export class CanvasRenderingContext2D {
 		});
 
 		// check for range error
-		if (radii.length === 0 || radii.length > 4) {
+		if (r.length === 0 || r.length > 4) {
 			throw new RangeError(
-				`${radii.length} radii provided. Between one and four radii are necessary.`
+				`${r.length} radii provided. Between one and four radii are necessary.`
 			);
 		}
 
-		if (radii.length === 1 && radii[0] === 0) {
+		if (r.length === 1 && r[0] === 0) {
 			return this.rect(x, y, width, height);
 		}
 
@@ -431,29 +431,31 @@ export class CanvasRenderingContext2D {
 		// bl = bottom left radius
 		const minRadius = Math.min(width, height) / 2;
 		let tr, br, bl;
-		const tl = (tr = br = bl = Math.min(minRadius, radii[0]));
-		if (radii.length === 2) {
-			tr = bl = Math.min(minRadius, radii[1]);
+		const tl = (tr = br = bl = Math.min(minRadius, r[0]));
+		if (r.length === 2) {
+			tr = bl = Math.min(minRadius, r[1]);
 		}
-		if (radii.length === 3) {
-			tr = bl = Math.min(minRadius, radii[1]);
-			br = Math.min(minRadius, radii[2]);
+		if (r.length === 3) {
+			tr = bl = Math.min(minRadius, r[1]);
+			br = Math.min(minRadius, r[2]);
 		}
-		if (radii.length === 4) {
-			tr = Math.min(minRadius, radii[1]);
-			br = Math.min(minRadius, radii[2]);
-			bl = Math.min(minRadius, radii[3]);
+		if (r.length === 4) {
+			tr = Math.min(minRadius, r[1]);
+			br = Math.min(minRadius, r[2]);
+			bl = Math.min(minRadius, r[3]);
 		}
 
 		// begin with closing current path
-		// this.closePath();
-		// let's draw the rounded rectangle
+		this.closePath();
+
+		// draw the rounded rectangle
 		this.moveTo(x, y + height - bl);
 		this.arcTo(x, y, x + tl, y, tl);
 		this.arcTo(x + width, y, x + width, y + tr, tr);
 		this.arcTo(x + width, y + height, x + width - br, y + height, br);
 		this.arcTo(x, y + height, x, y + height - bl, bl);
-		// and move to rects control point for further path drawing
+
+		// move to rects control point for further path drawing
 		this.moveTo(x, y);
 	}
 
