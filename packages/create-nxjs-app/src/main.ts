@@ -95,12 +95,17 @@ try {
 	}
 
 	// Wait for cloning to complete
+	const spinner = clack.spinner();
+	spinner.start(
+		`Cloning \`${template}\` template into "${appName}" directory`
+	);
 	const cloneError = await clonePromise;
 	if (cloneError) {
 		console.error(`There was an error during the cloning process:`);
 		console.error(cloneError);
 		process.exit(1);
 	}
+	spinner.stop(`Cloned \`${template}\` template into "${appName}" directory`);
 
 	function removeWorkspace(deps: Record<string, string> = {}) {
 		for (const [name, value] of Object.entries(deps)) {
@@ -128,9 +133,9 @@ try {
 
 	// Install dependencies
 	if (packageManager !== 'skip') {
-		// TODO: figure out why `template` is not inferred as "string"
 		const spinner = clack.spinner();
-		spinner.start(`Installing via ${packageManager}`);
+		spinner.start(`Installing dependencies via ${packageManager}`);
+		// TODO: figure out why `packageManager` is not inferred as "string"
 		const cp = spawn(packageManager as string, ['install'], {
 			cwd: appDir,
 		});
@@ -138,7 +143,7 @@ try {
 		if (exitCode !== 0) {
 			process.exit(exitCode);
 		}
-		spinner.stop(`Installed via ${packageManager}`);
+		spinner.stop(`Installed dependencies via ${packageManager}`);
 	}
 
 	// Ok, we're done
@@ -149,7 +154,6 @@ try {
 			)} initialized successfully!`
 		)
 	);
-	console.log();
 	console.log(chalk.bold('Next steps'));
 	console.log();
 	const cmd = chalk.yellow;
