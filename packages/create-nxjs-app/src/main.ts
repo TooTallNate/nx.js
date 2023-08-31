@@ -54,6 +54,7 @@ try {
 		message: 'Enter the name of your application:',
 		// TODO: figure out why `template` is not inferred as "string"
 		defaultValue: template as string,
+		placeholder: template as string,
 	});
 	if (clack.isCancel(appName)) {
 		throw appName;
