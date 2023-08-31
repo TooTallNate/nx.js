@@ -1,5 +1,23 @@
 # nxjs-runtime
 
+## 0.0.17
+
+### Patch Changes
+
+- Mark `DOMPoint.fromPoint()` as static ([`2c31aea`](https://github.com/TooTallNate/nx.js/commit/2c31aea00700e7aff1785eac76017e4d720e2cc9))
+
+- Add esbuild bundle script ([`1e20a42`](https://github.com/TooTallNate/nx.js/commit/1e20a42b4c8f971fb72594682e691aca2fc56450))
+
+- Remove private class field usage from `Blob` ([`f1a4837`](https://github.com/TooTallNate/nx.js/commit/f1a483751f49cc1a766937f6e9e7c6efa2f372ca))
+
+- Move a few Event-related interfaces in-house ([`93c5c59`](https://github.com/TooTallNate/nx.js/commit/93c5c59603fa09269de1f4f7afea74d392bd154d))
+
+- Update `typescript` to v5.2.2 ([`7e03f10`](https://github.com/TooTallNate/nx.js/commit/7e03f10787a30087d40509fef563c1349bb9b860))
+
+- More robust filtering of `globalThis` interfaces on compiled type definitions ([`07801fe`](https://github.com/TooTallNate/nx.js/commit/07801fe9dbd1d04ed6e97ac5f8fdfb3fb1a0c349))
+
+- Add support for DOMPoint value for `radii` parameter in `Canvas#roundRect()` ([`deee32f`](https://github.com/TooTallNate/nx.js/commit/deee32fe4aa62beb10eb92f5d2f1ca8afb394066))
+
 ## 0.0.16
 
 ### Patch Changes

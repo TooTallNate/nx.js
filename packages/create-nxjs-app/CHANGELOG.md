@@ -1,5 +1,13 @@
 # create-nxjs-app
 
+## 0.0.17
+
+### Patch Changes
+
+- Use `@clack/prompts` instead of Inquirer ([`c946fe5`](https://github.com/TooTallNate/nx.js/commit/c946fe5d447826afaa25a5abaa24343c0e9d8892))
+
+- Update `typescript` to v5.2.2 ([`7e03f10`](https://github.com/TooTallNate/nx.js/commit/7e03f10787a30087d40509fef563c1349bb9b860))
+
 ## 0.0.16
 
 ### Patch Changes

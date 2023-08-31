@@ -1,5 +1,11 @@
 # nxjs-constants
 
+## 0.0.17
+
+### Patch Changes
+
+- Update `typescript` to v5.2.2 ([`7e03f10`](https://github.com/TooTallNate/nx.js/commit/7e03f10787a30087d40509fef563c1349bb9b860))
+
 ## 0.0.16
 
 ## 0.0.15
