@@ -1,6 +1,12 @@
 import { def } from '../utils';
 import { INTERNAL_SYMBOL } from '../types';
 
+export interface EventInit {
+	bubbles?: boolean;
+	cancelable?: boolean;
+	composed?: boolean;
+}
+
 export class Event implements globalThis.Event {
 	static readonly NONE = 0 as const;
 	static readonly CAPTURING_PHASE = 1 as const;
@@ -67,16 +73,19 @@ export class Event implements globalThis.Event {
 	}
 }
 
+export interface UIEventInit extends EventInit {
+	detail?: number;
+}
+
 export class UIEvent extends Event implements globalThis.UIEvent {
 	readonly detail: number;
-	readonly view!: Window | null;
-	readonly which!: number;
+	readonly view: null;
+	readonly which: number;
 	constructor(type: string, options?: UIEventInit) {
 		super(type, options);
-		this.detail = 0;
-		if (options) {
-			this.detail = options.detail ?? 0;
-		}
+		this.view = null;
+		this.which = -1;
+		this.detail = options?.detail ?? 0;
 	}
 	initUIEvent(): void {
 		throw new Error('Method not implemented.');
@@ -275,6 +284,35 @@ const keyboardKeyMap = new Map<KeyboardKey, string | [string, string]>([
 	[KeyboardKey.OSRight, 'Meta'],
 ]);
 
+export interface EventModifierInit extends UIEventInit {
+	altKey?: boolean;
+	ctrlKey?: boolean;
+	metaKey?: boolean;
+	modifierAltGraph?: boolean;
+	modifierCapsLock?: boolean;
+	modifierFn?: boolean;
+	modifierFnLock?: boolean;
+	modifierHyper?: boolean;
+	modifierNumLock?: boolean;
+	modifierScrollLock?: boolean;
+	modifierSuper?: boolean;
+	modifierSymbol?: boolean;
+	modifierSymbolLock?: boolean;
+	shiftKey?: boolean;
+}
+
+export interface KeyboardEventInit extends EventModifierInit {
+	/** @deprecated */
+	charCode?: number;
+	code?: string;
+	isComposing?: boolean;
+	key?: string;
+	/** @deprecated */
+	keyCode?: number;
+	location?: number;
+	repeat?: boolean;
+}
+
 export class KeyboardEvent extends UIEvent implements globalThis.KeyboardEvent {
 	readonly DOM_KEY_LOCATION_STANDARD = 0 as const;
 	readonly DOM_KEY_LOCATION_LEFT = 1 as const;
@@ -356,6 +394,58 @@ export class KeyboardEvent extends UIEvent implements globalThis.KeyboardEvent {
 		}
 		return code;
 	}
+}
+
+/**
+ * A single contact point on a touch-sensitive device. The contact point is commonly a finger or stylus and the device may be a touchscreen or trackpad.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Touch)
+ */
+export interface Touch {
+	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Touch/clientX) */
+	readonly clientX: number;
+	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Touch/clientY) */
+	readonly clientY: number;
+	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Touch/force) */
+	readonly force: number;
+	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Touch/identifier) */
+	readonly identifier: number;
+	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Touch/pageX) */
+	readonly pageX: number;
+	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Touch/pageY) */
+	readonly pageY: number;
+	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Touch/radiusX) */
+	readonly radiusX: number;
+	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Touch/radiusY) */
+	readonly radiusY: number;
+	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Touch/rotationAngle) */
+	readonly rotationAngle: number;
+	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Touch/screenX) */
+	readonly screenX: number;
+	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Touch/screenY) */
+	readonly screenY: number;
+	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Touch/target) */
+	readonly target: EventTarget;
+}
+
+/**
+ * A list of contact points on a touch surface. For example, if the user has three fingers on the touch surface (such as a screen or trackpad), the corresponding TouchList object would have one Touch object for each finger, for a total of three entries.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TouchList)
+ */
+export interface TouchList {
+	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/TouchList/length) */
+	readonly length: number;
+	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/TouchList/item) */
+	item(index: number): Touch | null;
+	[index: number]: Touch;
+	[Symbol.iterator](): IterableIterator<Touch>;
+}
+
+export interface TouchEventInit extends EventModifierInit {
+	changedTouches?: Touch[];
+	targetTouches?: Touch[];
+	touches?: Touch[];
 }
 
 export class TouchEvent extends UIEvent implements globalThis.TouchEvent {
