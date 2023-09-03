@@ -2,7 +2,7 @@
   "name": "canvas",
   "version": "0.0.0",
   "private": true,
-  "description": "nx.js example using the web `Canvas` API",
+  "description": "nx.js app using the web `Canvas` API",
   "scripts": {
     "build": "esbuild --bundle --target=es2020 src/main.ts --outfile=romfs/main.js",
     "nro": "nxjs-pack"

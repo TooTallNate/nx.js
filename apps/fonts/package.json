@@ -2,7 +2,7 @@
   "name": "fonts",
   "version": "0.0.0",
   "private": true,
-  "description": "nx.js example that uses customs fonts to write on the screen",
+  "description": "nx.js app using customs fonts",
   "scripts": {
     "build": "esbuild --bundle --target=es2020 src/main.ts --outfile=romfs/main.js",
     "nro": "nxjs-pack"

@@ -2,7 +2,7 @@
   "name": "starwars",
   "version": "0.0.0",
   "private": true,
-  "description": "nx.js example which renders the Star Wars ASCII text",
+  "description": "nx.js app that renders the Star Wars ASCII text",
   "scripts": {
     "build": "esbuild --bundle --target=es2020 src/main.ts --outfile=romfs/main.js",
     "nro": "nxjs-pack"

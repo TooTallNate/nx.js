@@ -2,7 +2,7 @@
   "name": "hello-world",
   "version": "0.0.0",
   "private": true,
-  "description": "Simple 'Hello World' app using nx.js",
+  "description": "Simple 'Hello World' nx.js app",
   "scripts": {
     "build": "esbuild --bundle --target=es2020 src/main.ts --outfile=romfs/main.js",
     "nro": "nxjs-pack"

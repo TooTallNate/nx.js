@@ -2,7 +2,7 @@
   "name": "2048",
   "version": "0.0.0",
   "private": true,
-  "description": "Port of the 2048 game using nx.js",
+  "description": "nx.js port of the 2048 game",
   "scripts": {
     "build": "esbuild --bundle --target=es2020 src/main.js --outfile=romfs/main.js",
     "nro": "nxjs-pack"

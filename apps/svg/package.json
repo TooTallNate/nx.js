@@ -2,7 +2,7 @@
   "name": "svg",
   "version": "0.0.0",
   "private": true,
-  "description": "nx.js example application which renders an SVG image to the screen",
+  "description": "nx.js app that renders an SVG image to the screen",
   "scripts": {
     "build": "esbuild --bundle --banner:js='globalThis.global = globalThis;' --target=es2020 src/main.ts --outfile=romfs/main.js",
     "nro": "nxjs-pack"
