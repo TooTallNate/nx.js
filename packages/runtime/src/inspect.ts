@@ -80,12 +80,12 @@ export const inspect = (v: unknown, opts?: InspectOptions): string => {
 		return `Promise { ${val} }`;
 	}
 	if (isError(v)) {
-		const stack = v.stack?.trim();
+		const { stack } = v;
 		const obj =
 			Object.keys(v).length > 0
 				? ` ${printObject(v, { ...opts, refs })}`
 				: '';
-		return stack ? `${v}\n${stack}${obj}` : `[${v}]${obj}`;
+		return stack ? `${v}\n${stack.trimEnd()}${obj}` : `[${v}]${obj}`;
 	}
 	if (isArrayBuffer(v)) {
 		const contents = new Uint8Array(v);
