@@ -205,6 +205,18 @@ importers:
         specifier: workspace:^
         version: link:../../packages/runtime
 
+  apps/vibrate:
+    devDependencies:
+      esbuild:
+        specifier: ^0.17.19
+        version: 0.17.19
+      nxjs-pack:
+        specifier: workspace:^
+        version: link:../../packages/pack
+      nxjs-runtime:
+        specifier: workspace:^
+        version: link:../../packages/runtime
+
   packages/constants:
     devDependencies:
       typescript:
