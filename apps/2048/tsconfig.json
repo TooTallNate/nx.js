@@ -6,11 +6,13 @@
     "forceConsistentCasingInFileNames": true,
     "strict": true,
     "skipLibCheck": true,
+    "allowJs": true,
     "types": [
       "nxjs-runtime"
     ]
   },
   "include": [
+    "src/**/*.js",
     "src/**/*.ts"
   ]
 }
