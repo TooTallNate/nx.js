@@ -547,16 +547,12 @@ export class SwitchClass extends EventTarget {
 	}
 
 	/**
-	 * Returns the current working directory as a URL instance.
+	 * Returns the current working directory as a URL string with a trailing slash.
 	 *
-	 * @example
-	 *
-	 * ```typescript
-	 * const imagesDir = new URL('images/', Switch.cwd());
-	 * ```
+	 * @example "sdmc:/switch/"
 	 */
 	cwd() {
-		return new URL(`${this.native.cwd()}/`);
+		return `${this.native.cwd()}/`;
 	}
 
 	/**

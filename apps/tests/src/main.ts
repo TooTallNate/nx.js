@@ -7,11 +7,11 @@ test('`Switch.entrypoint` is a string', () => {
 	assert(Switch.entrypoint.length > 0);
 });
 
-test('`Switch.cwd()` is a URL instance', () => {
+test('`Switch.cwd()` is a URL string representation', () => {
 	const cwd = Switch.cwd();
-	assert(cwd instanceof URL);
-	assert(cwd.href.startsWith('sdmc:/'));
-	assert(cwd.href.endsWith('/'));
+	assert(typeof cwd === 'string');
+	assert(cwd.startsWith('sdmc:/'));
+	assert(cwd.endsWith('/'));
 });
 
 test('`Switch.readDirSync()` works on relative path', () => {
