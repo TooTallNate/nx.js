@@ -1,11 +1,28 @@
 import { def } from '../utils';
 
+export interface TextEncoderEncodeIntoResult {
+	read: number;
+	written: number;
+}
+
+/**
+ * TextEncoder takes a UTF-8 encoded string of code points as input and return a stream of bytes.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextEncoder)
+ */
 export class TextEncoder implements globalThis.TextEncoder {
 	encoding: string;
+
 	constructor() {
 		this.encoding = 'utf-8';
 	}
-	encode(input?: string | undefined): Uint8Array {
+
+	/**
+	 * Returns the result of running UTF-8's encoder.
+	 *
+	 * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextEncoder/encode)
+	 */
+	encode(input?: string): Uint8Array {
 		if (!input) return new Uint8Array(0);
 		var pos = 0;
 		var len = input.length;
@@ -67,8 +84,16 @@ export class TextEncoder implements globalThis.TextEncoder {
 
 		return target.slice(0, at);
 	}
+
+	/**
+	 * Runs the UTF-8 encoder on source, stores the result of that operation into destination, and returns the progress made as an object wherein read is the number of converted code units of source and written is the number of bytes modified in destination.
+	 *
+	 * **Note:** Not currently supported.
+	 *
+	 * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextEncoder/encodeInto)
+	 */
 	encodeInto(
-		source: string,
+		input: string,
 		destination: Uint8Array
 	): TextEncoderEncodeIntoResult {
 		throw new Error('Method not implemented.');

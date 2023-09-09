@@ -29,8 +29,11 @@ export type * from './polyfills/streams';
 export type * from './polyfills/event';
 export type * from './polyfills/blob';
 export type * from './polyfills/file';
-export type { TextDecoder } from './polyfills/text-decoder';
-export type { TextEncoder } from './polyfills/text-encoder';
+export type { TextDecoder, TextDecodeOptions } from './polyfills/text-decoder';
+export type {
+	TextEncoder,
+	TextEncoderEncodeIntoResult,
+} from './polyfills/text-encoder';
 export type * from './polyfills/abort-controller';
 export type * from './polyfills/streams';
 export type { FontFace, FontFaceSet } from './polyfills/font';

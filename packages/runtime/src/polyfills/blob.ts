@@ -53,6 +53,13 @@ export interface BlobPropertyBag {
 }
 
 export class Blob implements globalThis.Blob {
+	/**
+	 * A file-like object of immutable, raw data. Blobs represent data that isn't
+	 * necessarily in a JavaScript-native format.
+	 *
+	 * @param blobParts - An array of BlobPart values that will be concatenated into a single Blob.
+	 * @param options - An optional object that specifies the `Content-Type` and endings of the Blob.
+	 */
 	constructor(blobParts: BlobPart[] = [], options: BlobPropertyBag = {}) {
 		if (typeof blobParts !== 'object' || blobParts === null) {
 			throw new TypeError(
@@ -115,14 +122,23 @@ export class Blob implements globalThis.Blob {
 		}
 	}
 
+	/**
+	 * Returns the size of the Blob object, in bytes.
+	 */
 	get size() {
 		return blobInternalsMap.get(this)!.size;
 	}
 
+	/**
+	 * Returns the MIME type of the Blob object.
+	 */
 	get type() {
 		return blobInternalsMap.get(this)!.type;
 	}
 
+	/**
+	 * Returns a promise that resolves with a string representation of the Blob object.
+	 */
 	async text(): Promise<string> {
 		// More optimized than using this.arrayBuffer()
 		// that requires twice as much ram
@@ -137,6 +153,9 @@ export class Blob implements globalThis.Blob {
 		return str;
 	}
 
+	/**
+	 * Returns a promise that resolves with an ArrayBuffer representing the Blob's data.
+	 */
 	async arrayBuffer(): Promise<ArrayBuffer> {
 		const data = new Uint8Array(this.size);
 		let offset = 0;
@@ -149,6 +168,9 @@ export class Blob implements globalThis.Blob {
 		return data.buffer;
 	}
 
+	/**
+	 * Returns a stream that can be used to read the contents of the Blob.
+	 */
 	stream() {
 		const parts = blobInternalsMap.get(this)!.parts;
 		const it = toIterator(parts, true);
@@ -167,6 +189,13 @@ export class Blob implements globalThis.Blob {
 		});
 	}
 
+	/**
+	 * Returns a new Blob object containing the data in the specified range of bytes of the source Blob.
+	 *
+	 * @param start - The start byte index.
+	 * @param end - The end byte index.
+	 * @param type - The content type of the new Blob.
+	 */
 	slice(start: number = 0, end: number = this.size, type: string = '') {
 		const { size } = this;
 

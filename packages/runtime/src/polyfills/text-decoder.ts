@@ -1,5 +1,9 @@
 import { def } from '../utils';
 
+export interface TextDecodeOptions {
+	stream?: boolean;
+}
+
 /**
  * The `TextDecoder` interface represents a decoder for a specific text encoding.
  * The implementation in nx.js only supports `"utf-8"` decoding.
@@ -23,6 +27,17 @@ export class TextDecoder implements globalThis.TextDecoder {
 		this.fatal = false;
 		this.ignoreBOM = false;
 	}
+
+	/**
+	 * Decodes a BufferSource into a string using the specified encoding.
+	 * If no input is provided, an empty string is returned.
+	 *
+	 * **Note:** Currently the `stream` option is not supported.
+	 *
+	 * @param input The BufferSource to decode.
+	 * @param options The options for decoding.
+	 * @returns The decoded string.
+	 */
 	decode(input?: BufferSource, options?: TextDecodeOptions): string {
 		if (!input) return '';
 		let bytes;
