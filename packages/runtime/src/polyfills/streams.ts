@@ -233,6 +233,8 @@ export declare class ReadableStream<R = any>
 	): Promise<void>;
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStream/tee) */
 	tee(): [ReadableStream<R>, ReadableStream<R>];
+
+	[Symbol.asyncIterator](): AsyncIterableIterator<R>;
 }
 
 /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStreamBYOBReader) */
