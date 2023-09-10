@@ -87,24 +87,59 @@ export declare class URLSearchParams implements globalThis.URLSearchParams {
 	[Symbol.iterator](): IterableIterator<[string, string]>;
 }
 
+/**
+ * The `URL` interface is used to parse, construct, normalize, and encode URLs.
+ * It works by providing properties which allow you to easily read and modify
+ * the components of a URL.
+ *
+ * You normally create a new `URL` object by specifying the URL as a string
+ * when calling its constructor, or by providing a relative URL and a base
+ * URL. You can then easily read the parsed components of the URL or make
+ * changes to the URL.
+ */
 export declare class URL implements globalThis.URL {
+	/**
+	 * Constructs a new URL object by parsing the specified URL.
+	 * @param url - The input URL to be parsed.
+	 * @param base - The base URL to use in case the input URL is a relative URL.
+	 */
 	constructor(url: string | URL, base?: string | URL);
-	hash: string;
-	host: string;
-	hostname: string;
-	href: string;
+
+	hash: string; // The 'fragment' part of the URL including the '#'.
+	host: string; // The host (that is the hostname, and the port if specified) of the URL.
+	hostname: string; // The domain of the URL.
+	href: string; // The entire URL.
+	origin: string; // The origin of the URL.
+	password: string; // The password specified before the domain name.
+	pathname: string; // The path (that is the URL itself, excluding any parameters or #fragment) of the URL.
+	port: string; // The port number of the URL.
+	protocol: string; // The protocol of the URL.
+	search: string; // The parameters of the URL.
+	searchParams: URLSearchParams; // An object allowing to access the GET query arguments contained in the URL.
+	username: string; // The username specified before the domain name.
+
+	/**
+	 * Returns a string containing the full URL. It is a synonym for the {@link URL.href} property, though it can't be used to modify the value.
+	 */
 	toString(): string;
-	origin: string;
-	password: string;
-	pathname: string;
-	port: string;
-	protocol: string;
-	search: string;
-	searchParams: URLSearchParams;
-	username: string;
+
+	/**
+	 * Returns a string containing the full URL. It is a synonym for the {@link URL.href} property.
+	 */
 	toJSON(): string;
 
-	static createObjectURL(obj: Blob): void;
+	/**
+	 * Returns a string containing a URL which represents the provided {@link Blob | `Blob`} object.
+	 *
+	 * @param obj - The object for which an object URL is to be created.
+	 */
+	static createObjectURL(obj: Blob): string;
+
+	/**
+	 * Revokes an object URL previously created using URL.createObjectURL().
+	 *
+	 * @param url - A string representing a URL that was created by calling URL.createObjectURL().
+	 */
 	static revokeObjectURL(url: string): void;
 }
 

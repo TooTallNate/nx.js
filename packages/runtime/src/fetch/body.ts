@@ -130,6 +130,11 @@ export abstract class Body implements globalThis.Body {
 		}
 	}
 
+	/**
+	 * Returns a promise that resolves with an ArrayBuffer representation of the body.
+	 * If the body is null, it returns an empty ArrayBuffer.
+	 * @returns {Promise<ArrayBuffer>}
+	 */
 	async arrayBuffer(): Promise<ArrayBuffer> {
 		if (!this.body) return new ArrayBuffer(0);
 		let bytes = 0;
@@ -151,12 +156,21 @@ export abstract class Body implements globalThis.Body {
 		return arr.buffer;
 	}
 
+	/**
+	 * Returns a promise that resolves with a Blob representation of the body.
+	 * The Blob's type will be the value of the 'content-type' header.
+	 * @returns {Promise<Blob>}
+	 */
 	async blob(): Promise<Blob> {
 		const buf = await this.arrayBuffer();
 		const type = this.headers.get('content-type') ?? undefined;
 		return new Blob([buf], { type });
 	}
 
+	/**
+	 * Returns a promise that resolves with a {@link FormData} representation of the body.
+	 * If the body cannot be decoded as form data, it throws a `TypeError`.
+	 */
 	async formData(): Promise<FormData> {
 		const boundary = this.headers
 			.get('content-type')
@@ -225,11 +239,18 @@ export abstract class Body implements globalThis.Body {
 		return form;
 	}
 
+	/**
+	 * Returns a promise that resolves with a JSON representation of the body.
+	 * If the body cannot be parsed as JSON, it throws a SyntaxError.
+	 */
 	async json(): Promise<any> {
 		const text = await this.text();
 		return JSON.parse(text);
 	}
 
+	/**
+	 * Returns a promise that resolves with a text representation of the body.
+	 */
 	async text(): Promise<string> {
 		const buf = await this.arrayBuffer();
 		return decoder.decode(buf);

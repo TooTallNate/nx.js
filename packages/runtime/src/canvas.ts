@@ -387,7 +387,7 @@ export class CanvasRenderingContext2D {
 	/**
 	 * Implementation from https://github.com/nilzona/path2d-polyfill
 	 *
-	 * @note Currently does not negative width / height values.
+	 * @note Currently does not support negative width / height values.
 	 */
 	roundRect(
 		x: number,

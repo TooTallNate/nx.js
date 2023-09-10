@@ -13,7 +13,7 @@ declare const Switch: SwitchClass;
  * or remote source over the network. Once loaded, the image may be drawn onto the screen
  * context or an offscreen canvas content using {@link CanvasRenderingContext2D.drawImage | `ctx.drawImage()`}.
  *
- * ### Currently Supported Image Formats
+ * ### Supported Image Formats
  *
  *  - `jpg` - JPEG image data using [libjpeg-turbo](https://github.com/libjpeg-turbo/libjpeg-turbo)
  *  - `png` - PNG image data using [libpng](http://www.libpng.org/pub/png/libpng.html)

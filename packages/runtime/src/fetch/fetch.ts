@@ -245,10 +245,10 @@ const fetchers = new Map<string, (req: Request, url: URL) => Promise<Response>>(
 /**
  * The global `fetch()` method starts the process of fetching a resource from the network, returning a promise which is fulfilled once the response is available.
  *
- * ### Currently Supported Protocols
+ * ### Supported Protocols
  *
  *  - `http:` - Fetch data from the network using the HTTP protocol
- *  - `blob:` - Fetch data from a URL constructed by `URL.createObjectURL()`
+ *  - `blob:` - Fetch data from a URL constructed by {@link URL.createObjectURL | `URL.createObjectURL()`}
  *  - `sdmc:` - Fetch data from a local file on the SD card
  *  - `romfs:` - Fetch data from the RomFS partition of the nx.js application
  *  - `file:` - Same as `sdmc:`
