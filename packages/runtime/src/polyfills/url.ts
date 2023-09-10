@@ -2,6 +2,7 @@ import 'core-js/actual/url';
 import 'core-js/actual/url-search-params';
 import { Blob } from './blob';
 import { crypto } from '../crypto';
+import { inspect } from '../inspect';
 
 /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/URLSearchParams) */
 export declare class URLSearchParams implements globalThis.URLSearchParams {
@@ -120,4 +121,22 @@ URL.createObjectURL = (obj) => {
 
 URL.revokeObjectURL = (url) => {
 	objectUrls.delete(url);
+};
+
+// @ts-expect-error `inspect.custom` is not defined on URL class
+URL.prototype[inspect.custom] = function (this: URL) {
+	return `URL ${inspect({
+		hash: this.hash,
+		host: this.host,
+		hostname: this.hostname,
+		href: this.href,
+		origin: this.origin,
+		password: this.password,
+		pathname: this.pathname,
+		port: this.port,
+		protocol: this.protocol,
+		search: this.search,
+		searchParams: this.searchParams,
+		username: this.username,
+	})}`;
 };
