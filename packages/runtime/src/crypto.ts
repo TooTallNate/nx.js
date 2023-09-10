@@ -15,10 +15,19 @@ export class Crypto implements globalThis.Crypto {
 	 */
 	constructor() {}
 
+	/**
+	 * The `crypto.subtle` interface is not yet implemented.
+	 * An error will be thrown if this property is accessed.
+	 */
 	get subtle(): SubtleCrypto {
 		throw new Error('`crypto.subtle` is not yet implemented');
 	}
 
+	/**
+	 * Fills the provided TypedArray with cryptographically strong random values.
+	 * @param array - The TypedArray to fill with random values.
+	 * @returns The same TypedArray filled with random values.
+	 */
 	getRandomValues<T extends ArrayBufferView | null>(array: T): T {
 		if (array) {
 			Switch.native.cryptoRandomBytes(
@@ -30,6 +39,10 @@ export class Crypto implements globalThis.Crypto {
 		return array;
 	}
 
+	/**
+	 * Generates a cryptographically strong random unique identifier (UUID).
+	 * @returns A string representation of a UUID.
+	 */
 	randomUUID(): `${string}-${string}-${string}-${string}-${string}` {
 		let i = 0;
 		const bytes = new Uint8Array(31);

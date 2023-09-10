@@ -2,7 +2,13 @@ import './polyfills';
 import { def } from './utils';
 import { SwitchClass } from './switch';
 import { INTERNAL_SYMBOL } from './types';
-import { createTimersFactory } from './timers';
+import {
+	setTimeout,
+	setInterval,
+	clearTimeout,
+	clearInterval,
+	processTimers,
+} from './timers';
 import { console } from './console';
 import { KeyboardEvent, TouchEvent, UIEvent } from './polyfills/event';
 
@@ -46,7 +52,13 @@ export type * from './fetch/fetch';
 export type * from './crypto';
 export type * from './image';
 export type * from './dompoint';
-export type { TimerHandler } from './timers';
+export type {
+	TimerHandler,
+	setTimeout,
+	setInterval,
+	clearTimeout,
+	clearInterval,
+} from './timers';
 
 /**
  * The `Switch` global object contains native interfaces to interact with the Switch hardware.
@@ -54,12 +66,7 @@ export type { TimerHandler } from './timers';
 const Switch = new SwitchClass();
 export type { Switch };
 def('Switch', Switch);
-
 def('console', console);
-
-const { setTimeout, setInterval, clearTimeout, clearInterval, processTimers } =
-	createTimersFactory();
-export type { setTimeout, setInterval, clearTimeout, clearInterval };
 def('setTimeout', setTimeout);
 def('setInterval', setInterval);
 def('clearTimeout', clearTimeout);
