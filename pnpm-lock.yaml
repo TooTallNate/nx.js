@@ -220,10 +220,10 @@ importers:
   apps/wasm:
     devDependencies:
       esbuild:
-        specifier: ^0.17.18
-        version: 0.17.18
+        specifier: ^0.17.19
+        version: 0.17.19
       nxjs-runtime:
-        specifier: ^0.0.8
+        specifier: ^0.0.17
         version: link:../../packages/runtime
 
   packages/constants:
