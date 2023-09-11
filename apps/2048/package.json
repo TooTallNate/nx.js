@@ -1,0 +1,19 @@
+{
+  "name": "2048",
+  "version": "0.0.0",
+  "private": true,
+  "description": "nx.js port of the 2048 game",
+  "scripts": {
+    "build": "esbuild --bundle --target=es2020 src/main.js --outfile=romfs/main.js",
+    "nro": "nxjs-pack"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "nxjs-constants": "workspace:*"
+  },
+  "devDependencies": {
+    "esbuild": "^0.17.19",
+    "nxjs-pack": "workspace:^",
+    "nxjs-runtime": "workspace:^"
+  }
+}

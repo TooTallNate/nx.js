@@ -1,3 +1,4 @@
 **/*/dist
 packages/runtime/runtime.js
+packages/runtime/public
 romfs

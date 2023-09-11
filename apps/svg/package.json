@@ -1,0 +1,21 @@
+{
+  "name": "svg",
+  "version": "0.0.0",
+  "private": true,
+  "description": "nx.js app that renders an SVG image to the screen",
+  "scripts": {
+    "build": "esbuild --bundle --banner:js='globalThis.global = globalThis;' --target=es2020 src/main.ts --outfile=romfs/main.js",
+    "nro": "nxjs-pack"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@types/xmldom": "^0.1.31",
+    "esbuild": "^0.17.19",
+    "nxjs-pack": "workspace:^",
+    "nxjs-runtime": "workspace:^"
+  },
+  "dependencies": {
+    "canvg": "^4.0.1",
+    "xmldom": "^0.6.0"
+  }
+}

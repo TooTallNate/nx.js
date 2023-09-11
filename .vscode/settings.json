@@ -2,12 +2,17 @@
     "files.associations": {
         "switch.h": "c",
         "quickjs.h": "c",
-        "stdio.h": "c",
         "cairo.h": "c",
         "ft2build.h": "c",
         "cairo-ft.h": "c",
         "types.h": "c",
-        "wasm.h": "c"
+        "wasm.h": "c",
+        "async.h": "c",
+        "thpool.h": "c",
+        "fs.h": "c",
+        "canvas.h": "c",
+        "font.h": "c",
+        "image.h": "c"
     },
     "C_Cpp.default.compilerPath": "/opt/devkitpro/devkitA64/bin/aarch64-none-elf-gcc"
 }

@@ -1,17 +1,19 @@
 {
-  "name": "nxjs-example-snake",
+  "name": "snake",
   "version": "0.0.0",
   "private": true,
   "description": "Classic 'snake' game using nx.js",
   "scripts": {
-    "build": "esbuild --bundle --target=es2020 src/main.ts --outfile=dist/main.js"
+    "build": "esbuild --bundle --target=es2020 src/main.ts --outfile=romfs/main.js",
+    "nro": "nxjs-pack"
   },
   "license": "MIT",
   "dependencies": {
-    "nxjs-constants": "0.0.8"
+    "nxjs-constants": "workspace:*"
   },
   "devDependencies": {
-    "esbuild": "^0.17.18",
-    "nxjs-runtime": "^0.0.8"
+    "esbuild": "^0.17.19",
+    "nxjs-pack": "workspace:^",
+    "nxjs-runtime": "workspace:^"
   }
 }

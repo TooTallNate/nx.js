@@ -2,9 +2,7 @@
   "compilerOptions": {
     "target": "es2020",
     "module": "commonjs",
-    "declaration": true,
-    "declarationMap": true,
-    "emitDeclarationOnly": true,
+    "noEmit": true,
     "outDir": "./dist",
     "forceConsistentCasingInFileNames": true,
     "strict": true,

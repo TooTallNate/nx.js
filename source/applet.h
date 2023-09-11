@@ -1,5 +1,4 @@
 #pragma once
-#include <quickjs/quickjs.h>
+#include "types.h"
 
-JSValue js_appletGetAppletType(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv);
-JSValue js_appletGetOperationMode(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv);
+void nx_init_applet(JSContext *ctx, JSValueConst native_obj);

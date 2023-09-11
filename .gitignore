@@ -1,12 +1,15 @@
-dist
 node_modules
 .turbo
+/packages/*/dist
 /lib/*/lib
 /lib/*/debug
 /lib/*/release
 
 /nxjs.*
+!/nxjs.jpg
 /build
 /romfs
 
-/?.html
+/?
+/?.*
+.vercel

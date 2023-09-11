@@ -8,9 +8,12 @@
     "ci:publish": "pnpm publish -r && node .github/scripts/create-git-tag.mjs"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.26.1",
+    "@changesets/cli": "^2.26.2",
+    "@svitejs/changesets-changelog-github-compact": "^1.1.0",
     "prettier": "^2.8.8",
-    "turbo": "^1.9.3",
+    "turbo": "^1.10.13",
+    "typedoc": "^0.24.8",
+    "typedoc-plugin-mdn-links": "^3.1.0",
     "yauzl": "^2.10.0"
   }
 }

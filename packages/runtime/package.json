@@ -1,30 +1,31 @@
 {
   "name": "nxjs-runtime",
-  "version": "0.0.8",
-  "description": "Runtime initialization code for nx.js",
-  "types": "./nxjs.env.d.ts",
+  "version": "0.0.17",
+  "description": "nx.js runtime",
+  "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "tsc",
-    "bundle": "esbuild --bundle --target=es2020 src/index.ts --outfile=runtime.js"
+    "build": "node build.mjs",
+    "bundle": "node bundle.mjs",
+    "bundle-minify": "MINIFY=1 node bundle.mjs",
+    "docs": "typedoc && cp -r ../../assets/* public/assets && cp ../../assets/logo.png public/favicon.ico"
   },
   "files": [
-    "dist",
-    "nxjs.env.d.ts"
+    "dist"
   ],
   "author": "Nathan Rajlich <n@n8.io>",
   "license": "MIT",
-  "dependencies": {
-    "@ungap/event-target": "^0.2.4",
-    "color-rgba": "^2.4.0",
-    "core-js": "^3.30.2",
-    "parse-css-font": "^4.0.0",
-    "to-px": "^1.1.0"
-  },
   "devDependencies": {
     "@types/color-rgba": "^2.1.0",
     "@types/to-px": "^1.1.2",
-    "esbuild": "^0.17.18",
-    "kleur": "TooTallNate/kleur#rgb",
-    "typescript": "^5.0.4"
+    "@ungap/event-target": "^0.2.4",
+    "color-rgba": "^2.4.0",
+    "core-js": "^3.32.1",
+    "dts-bundle-generator": "^8.0.1",
+    "esbuild": "^0.17.19",
+    "kleur": "github:TooTallNate/kleur#rgb",
+    "parse-css-font": "^4.0.0",
+    "to-px": "^1.1.0",
+    "typescript": "^5.2.2",
+    "web-streams-polyfill": "^3.2.1"
   }
 }

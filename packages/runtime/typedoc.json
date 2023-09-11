@@ -1,0 +1,9 @@
+{
+    "$schema": "https://typedoc.org/schema.json",
+    "name": "nx.js",
+    "entryPoints": ["./src/index.ts"],
+    "out": "public",
+    "plugin": [
+        "typedoc-plugin-mdn-links"
+    ]
+}

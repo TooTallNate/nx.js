@@ -1,8 +1,25 @@
 import { bold, cyan, green, magenta, red, rgb, yellow } from 'kleur/colors';
+import type { SwitchClass } from './switch';
+
+declare const Switch: SwitchClass;
 
 const grey = rgb(100, 100, 100);
 
-export const inspect = (v: unknown): string => {
+export interface InspectOptions {
+	refs?: Set<{}>;
+}
+
+/**
+ * Inspects a given value and returns a string representation of it.
+ * The function uses ANSI color codes to highlight different parts of the output.
+ * It can handle and correctly output different types of values including primitives, functions, arrays, and objects.
+ *
+ * @param v - The value to inspect.
+ * @param opts - Options which may modify the generated string representation of the value.
+ * @returns A string representation of `v` with ANSI color codes.
+ */
+export const inspect = (v: unknown, opts?: InspectOptions): string => {
+	// Primitives
 	if (v && typeof (v as any)[inspect.custom] === 'function') {
 		return (v as any)[inspect.custom]();
 	}
@@ -24,13 +41,26 @@ export const inspect = (v: unknown): string => {
 	if (v === null) {
 		return bold(String(v));
 	}
+
+	// After this point, all should be typeof "object" or
+	// "function", so they can have additional properties
+	// which may be circular references.
+	const refs = opts?.refs ?? new Set();
+	if (refs.has(v)) {
+		return cyan('[Circular]');
+	}
+
+	refs.add(v);
+
 	if (typeof v === 'function') {
 		const { name } = v;
 		return cyan(`[Function${name ? `: ${name}` : ' (anonymous)'}]`);
 	}
 	if (Array.isArray(v)) {
 		const contents =
-			v.length === 0 ? '' : ` ${v.map((e) => inspect(e)).join(', ')} `;
+			v.length === 0
+				? ''
+				: ` ${v.map((e) => inspect(e, { ...opts, refs })).join(', ')} `;
 		return `[${contents}]`;
 	}
 	if (isRegExp(v)) {
@@ -39,10 +69,26 @@ export const inspect = (v: unknown): string => {
 	if (isDate(v)) {
 		return magenta(v.toISOString());
 	}
+	if (isPromise(v)) {
+		let val = '';
+		const [state, result] = Switch.native.getInternalPromiseState(v);
+		if (state === 0) {
+			val = cyan('<pending>');
+		} else {
+			if (state === 2) {
+				val = `${red('<rejected>')} `;
+			}
+			val += inspect(result, { ...opts, refs });
+		}
+		return `Promise { ${val} }`;
+	}
 	if (isError(v)) {
-		const stack = v.stack?.trim();
-		const obj = Object.keys(v).length > 0 ? ` ${printObject(v)}` : '';
-		return stack ? `${v}\n${stack}${obj}` : `[${v}]${obj}`;
+		const { stack } = v;
+		const obj =
+			Object.keys(v).length > 0
+				? ` ${printObject(v, { ...opts, refs })}`
+				: '';
+		return stack ? `${v}\n${stack.trimEnd()}${obj}` : `[${v}]${obj}`;
 	}
 	if (isArrayBuffer(v)) {
 		const contents = new Uint8Array(v);
@@ -67,20 +113,23 @@ export const inspect = (v: unknown): string => {
 		return `${getClass(v)}(${v.length}) [${c}]`;
 	}
 	if (typeof v === 'object') {
-		return printObject(v);
+		return printObject(v, { ...opts, refs });
 	}
 	return `? ${v}`;
 };
 
 inspect.custom = Symbol('Switch.inspect.custom');
 
-function printObject(v: any) {
+function printObject(v: any, opts: InspectOptions) {
 	const keys = Object.keys(v);
+	const ctor = v.constructor;
+	const className =
+		ctor !== Object && typeof ctor.name === 'string' ? `${ctor.name} ` : '';
 	const contents =
 		keys.length === 0
 			? ''
-			: ` ${keys.map((k) => `${k}: ${inspect(v[k])}`).join(', ')} `;
-	return `{${contents}}`;
+			: ` ${keys.map((k) => `${k}: ${inspect(v[k], opts)}`).join(', ')} `;
+	return `${className}{${contents}}`;
 }
 
 function getClass(v: unknown) {
@@ -105,4 +154,8 @@ function isArrayBuffer(v: unknown): v is ArrayBuffer {
 
 function isTypedArray(v: unknown): v is ArrayLike<number> {
 	return getClass(v).endsWith('Array');
+}
+
+function isPromise(v: unknown): v is Promise<unknown> {
+	return getClass(v) === 'Promise';
 }

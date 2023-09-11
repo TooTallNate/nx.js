@@ -37,12 +37,14 @@ include $(DEVKITPRO)/libnx/switch_rules
 #   of a homebrew executable (.nro). This is intended to be used for sysmodules.
 #   NACP building is skipped as well.
 #---------------------------------------------------------------------------------
+APP_TITLE   :=  nx.js
 TARGET		:=	nxjs
 BUILD		:=	build
 SOURCES		:=	source
 DATA		:=	data
 INCLUDES	:=	include
 ROMFS		:=	romfs
+APP_VERSION :=  `jq -r .version < ../packages/runtime/package.json`
 
 #---------------------------------------------------------------------------------
 # options for code generation
@@ -50,7 +52,7 @@ ROMFS		:=	romfs
 ARCH	:=	-march=armv8-a+crc+crypto -mtune=cortex-a57 -mtp=soft -fPIE
 
 CFLAGS	:=	-g -Wall -O2 -ffunction-sections \
-			$(ARCH) $(DEFINES)
+			$(ARCH) $(DEFINES) -DNXJS_VERSION="\"${APP_VERSION}\""
 
 CFLAGS	+=	$(INCLUDE) -D__SWITCH__ `freetype-config --cflags` -I/opt/devkitpro/portlibs/switch/include/cairo -I/opt/devkitpro/portlibs/switch/include/pixman-1 -I/opt/devkitpro/portlibs/switch/include/freetype2 -I/opt/devkitpro/portlibs/switch/include/libpng16 -I/opt/devkitpro/portlibs/switch/include
 
@@ -59,7 +61,7 @@ CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions
 ASFLAGS	:=	-g $(ARCH)
 LDFLAGS	=	-specs=$(DEVKITPRO)/libnx/switch.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
 
-LIBS	:=  `freetype-config --libs` `aarch64-none-elf-pkg-config cairo --libs` -lquickjs -lm3 -lm
+LIBS	:=  -pthread `freetype-config --libs` `aarch64-none-elf-pkg-config cairo --libs` -lturbojpeg -lwebp -lquickjs -lm3 -lm
 
 #---------------------------------------------------------------------------------
 # list of directories containing libraries, this must be the top level containing

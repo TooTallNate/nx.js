@@ -1,54 +1,235 @@
-import { Canvas, CanvasRenderingContext2D } from './canvas';
-import { FontFaceSet } from './font';
-import { INTERNAL_SYMBOL } from './types';
+import { Canvas, CanvasRenderingContext2D, ctxInternal } from './canvas';
+import { FontFaceSet } from './polyfills/font';
+import { INTERNAL_SYMBOL, PathLike, Stats } from './types';
 import { inspect } from './inspect';
+import { bufferSourceToArrayBuffer } from './utils';
+import { encoder } from './polyfills/text-encoder';
 
 export type Opaque<T> = { __type: T };
 export type CanvasRenderingContext2DState =
 	Opaque<'CanvasRenderingContext2DState'>;
 export type FontFaceState = Opaque<'FontFaceState'>;
+export type ImageOpaque = Opaque<'ImageOpaque'>;
+
+export interface Vibration {
+	duration: number;
+	lowAmp: number;
+	lowFreq: number;
+	highAmp: number;
+	highFreq: number;
+}
 
 type Keys = {
 	modifiers: bigint;
 	[i: number]: bigint;
 };
 
+type Callback<T> = (err: Error | null, result: T) => void;
+type CallbackReturnType<T> = T extends (
+	fn: Callback<infer U>,
+	...args: any[]
+) => any
+	? U
+	: never;
+type CallbackArguments<T> = T extends (
+	fn: Callback<any>,
+	...args: infer U
+) => any
+	? U
+	: never;
+
+/**
+ * Specifies the port number and optional hostname for connecting
+ * to a remove server over the network.
+ *
+ * {@link SwitchClass.connect}
+ */
+export interface ConnectOpts {
+	/**
+	 * The hostname of the destination server to connect to.
+	 *
+	 * If not defined, then `hostname` defaults to `127.0.0.1`.
+	 *
+	 * @example "example.com"
+	 */
+	hostname?: string;
+	/**
+	 * The port number to connect to.
+	 *
+	 * @example 80
+	 */
+	port: number;
+}
+
+/**
+ * @private
+ */
 export interface Native {
-	print: (str: string) => void;
-	cwd: () => string;
-	getenv: (name: string) => string;
-	setenv: (name: string, value: string) => void;
-	envToObject: () => Record<string, string>;
-	consoleInit: () => void;
-	consoleExit: () => void;
-	framebufferInit: (buf: CanvasRenderingContext2DState) => void;
-	framebufferExit: () => void;
+	print(str: string): void;
+	cwd(): string;
+	chdir(dir: string): void;
+	getInternalPromiseState(p: Promise<unknown>): [number, unknown];
+	getenv(name: string): string | undefined;
+	setenv(name: string, value: string): void;
+	unsetenv(name: string): void;
+	envToObject(): Record<string, string>;
+	consoleInit(): void;
+	consoleExit(): void;
+	framebufferInit(buf: CanvasRenderingContext2DState): void;
+	framebufferExit(): void;
 
 	// applet
-	appletGetAppletType: () => number;
-	appletGetOperationMode: () => number;
+	appletGetAppletType(): number;
+	appletGetOperationMode(): number;
 
 	// hid
-	hidInitializeKeyboard: () => void;
-	hidInitializeTouchScreen: () => void;
-	hidGetTouchScreenStates: () => Touch[] | undefined;
-	hidGetKeyboardStates: () => Keys;
+	hidInitializeKeyboard(): void;
+	hidInitializeTouchScreen(): void;
+	hidInitializeVibrationDevices(): void;
+	hidGetTouchScreenStates(): Touch[] | undefined;
+	hidGetKeyboardStates(): Keys;
+	hidSendVibrationValues(v: VibrationValues): void;
+
+	// dns
+	resolveDns(cb: Callback<string[]>, hostname: string): void;
 
 	// fs
-	readDirSync: (path: string) => string[];
-	readFileSync: (path: string) => ArrayBuffer;
+	readFile(cb: Callback<ArrayBuffer>, path: string): void;
+	readDirSync(path: string): string[];
+	readFileSync(path: string): ArrayBuffer;
+	writeFileSync(path: string, data: ArrayBuffer): void;
+	remove(cb: Callback<void>, path: string): void;
+	stat(cb: Callback<Stats>, path: string): void;
 
 	// font
-	newFontFace: (data: ArrayBuffer) => FontFaceState;
-	getSystemFont: () => ArrayBuffer;
+	newFontFace(data: ArrayBuffer): FontFaceState;
+	getSystemFont(): ArrayBuffer;
+
+	// image
+	decodeImage(
+		cb: Callback<{
+			opaque: ImageOpaque;
+			width: number;
+			height: number;
+		}>,
+		b: ArrayBuffer
+	): void;
 
 	// canvas
-	canvasNewContext(
-		width: number,
-		height: number
-	): CanvasRenderingContext2DState;
+	canvasNewContext(w: number, h: number): CanvasRenderingContext2DState;
+	canvasGetGlobalAlpha(ctx: CanvasRenderingContext2DState): number;
+	canvasSetGlobalAlpha(ctx: CanvasRenderingContext2DState, n: number): void;
+	canvasGetLineWidth(ctx: CanvasRenderingContext2DState): number;
 	canvasSetLineWidth(ctx: CanvasRenderingContext2DState, n: number): void;
-	canvasSetFillStyle(
+	canvasGetLineJoin(ctx: CanvasRenderingContext2DState): CanvasLineJoin;
+	canvasSetLineJoin(
+		ctx: CanvasRenderingContext2DState,
+		n: CanvasLineJoin
+	): void;
+	canvasGetLineCap(ctx: CanvasRenderingContext2DState): CanvasLineCap;
+	canvasSetLineCap(
+		ctx: CanvasRenderingContext2DState,
+		n: CanvasLineCap
+	): void;
+	canvasGetLineDash(ctx: CanvasRenderingContext2DState): number[];
+	canvasSetLineDash(ctx: CanvasRenderingContext2DState, n: number[]): void;
+	canvasGetLineDashOffset(ctx: CanvasRenderingContext2DState): number;
+	canvasSetLineDashOffset(
+		ctx: CanvasRenderingContext2DState,
+		n: number
+	): void;
+	canvasGetMiterLimit(ctx: CanvasRenderingContext2DState): number;
+	canvasSetMiterLimit(ctx: CanvasRenderingContext2DState, n: number): void;
+	canvasBeginPath(ctx: CanvasRenderingContext2DState): void;
+	canvasClosePath(ctx: CanvasRenderingContext2DState): void;
+	canvasClip(
+		ctx: CanvasRenderingContext2DState,
+		fillRule?: CanvasFillRule
+	): void;
+	canvasFill(ctx: CanvasRenderingContext2DState): void;
+	canvasStroke(ctx: CanvasRenderingContext2DState): void;
+	canvasSave(ctx: CanvasRenderingContext2DState): void;
+	canvasRestore(ctx: CanvasRenderingContext2DState): void;
+	canvasMoveTo(
+		ctx: CanvasRenderingContext2DState,
+		x: number,
+		y: number
+	): void;
+	canvasLineTo(
+		ctx: CanvasRenderingContext2DState,
+		x: number,
+		y: number
+	): void;
+	canvasBezierCurveTo(
+		ctx: CanvasRenderingContext2DState,
+		cp1x: number,
+		cp1y: number,
+		cp2x: number,
+		cp2y: number,
+		x: number,
+		y: number
+	): void;
+	canvasQuadraticCurveTo(
+		ctx: CanvasRenderingContext2DState,
+		cpx: number,
+		cpy: number,
+		x: number,
+		y: number
+	): void;
+	canvasArc(
+		ctx: CanvasRenderingContext2DState,
+		x: number,
+		y: number,
+		radius: number,
+		startAngle: number,
+		endAngle: number,
+		counterclockwise: boolean
+	): void;
+	canvasArcTo(
+		ctx: CanvasRenderingContext2DState,
+		x1: number,
+		y1: number,
+		x2: number,
+		y2: number,
+		radius: number
+	): void;
+	canvasEllipse(
+		ctx: CanvasRenderingContext2DState,
+		x: number,
+		y: number,
+		radiusX: number,
+		radiusY: number,
+		rotation: number,
+		startAngle: number,
+		endAngle: number,
+		counterclockwise: boolean
+	): void;
+	canvasRect(
+		ctx: CanvasRenderingContext2DState,
+		x: number,
+		y: number,
+		w: number,
+		h: number
+	): void;
+	canvasRotate(ctx: CanvasRenderingContext2DState, n: number): void;
+	canvasScale(ctx: CanvasRenderingContext2DState, x: number, y: number): void;
+	canvasTranslate(
+		ctx: CanvasRenderingContext2DState,
+		x: number,
+		y: number
+	): void;
+	canvasTransform(
+		ctx: CanvasRenderingContext2DState,
+		a: number,
+		b: number,
+		c: number,
+		d: number,
+		e: number,
+		f: number
+	): void;
+	canvasGetTransform(ctx: CanvasRenderingContext2DState): number[];
+	canvasResetTransform(ctx: CanvasRenderingContext2DState): void;
+	canvasSetSourceRgba(
 		ctx: CanvasRenderingContext2DState,
 		r: number,
 		g: number,
@@ -61,6 +242,13 @@ export interface Native {
 		fontSize: number
 	): void;
 	canvasFillRect(
+		ctx: CanvasRenderingContext2DState,
+		x: number,
+		y: number,
+		w: number,
+		h: number
+	): void;
+	canvasStrokeRect(
 		ctx: CanvasRenderingContext2DState,
 		x: number,
 		y: number,
@@ -85,6 +273,8 @@ export interface Native {
 	canvasPutImageData(
 		ctx: CanvasRenderingContext2DState,
 		source: ArrayBuffer,
+		sourceWidth: number,
+		sourceHeight: number,
 		dx: number,
 		dy: number,
 		dirtyX: number,
@@ -92,6 +282,29 @@ export interface Native {
 		dirtyWidth: number,
 		dirtyHeight: number
 	): void;
+	canvasDrawImage(
+		ctx: CanvasRenderingContext2DState,
+		image: CanvasRenderingContext2DState | ImageOpaque,
+		imageWidth: number,
+		imageHeight: number,
+		sx: number,
+		sy: number,
+		sw: number,
+		sh: number,
+		dx: number,
+		dy: number,
+		dw: number,
+		dh: number,
+		isCanvas: boolean
+	): void;
+
+	// crypto
+	cryptoRandomBytes(buf: ArrayBuffer, offset: number, length: number): void;
+
+	// tcp
+	connect(cb: Callback<number>, ip: string, port: number): void;
+	write(cb: Callback<number>, fd: number, data: ArrayBuffer): void;
+	read(cb: Callback<number>, fd: number, buffer: ArrayBuffer): void;
 }
 
 interface Internal {
@@ -100,6 +313,9 @@ interface Internal {
 	previousTouches: Touch[];
 	keyboardInitialized?: boolean;
 	touchscreenInitialized?: boolean;
+	vibrationDevicesInitialized?: boolean;
+	vibrationPattern?: (number | Vibration)[];
+	vibrationTimeoutId?: number;
 	renderingMode?: RenderingMode;
 	setRenderingMode: (
 		mode: RenderingMode,
@@ -126,18 +342,95 @@ interface SwitchEventHandlersEventMap {
 	touchend: TouchEvent;
 }
 
-export class Switch extends EventTarget {
+export interface Versions {
+	cairo: string;
+	freetype2: string;
+	nxjs: string;
+	png: string;
+	quickjs: string;
+	turbojpeg: string;
+	webp: string;
+}
+
+export function toPromise<
+	Func extends (cb: Callback<any>, ...args: any[]) => any
+>(fn: Func, ...args: CallbackArguments<Func>) {
+	return new Promise<CallbackReturnType<Func>>((resolve, reject) => {
+		fn((err, result) => {
+			if (err) return reject(err);
+			resolve(result);
+		}, ...args);
+	});
+}
+
+type VibrationValues = Omit<Vibration, 'duration'>;
+const DEFAULT_VIBRATION: VibrationValues = {
+	lowAmp: 0.2,
+	lowFreq: 160,
+	highAmp: 0.2,
+	highFreq: 320,
+};
+
+const STOP_VIBRATION: VibrationValues = {
+	lowAmp: 0,
+	lowFreq: 160,
+	highAmp: 0,
+	highFreq: 320,
+};
+
+export class SwitchClass extends EventTarget {
+	/**
+	 * A Map-like object providing methods to interact with the environment variables of the process.
+	 */
 	env: Env;
+	/**
+	 * An instance of {@link Canvas} that will result in drawing to the screen.
+	 *
+	 * The `width` and `height` properties are set to the Switch screen resolution.
+	 *
+	 * @note Calling the `getContext('2d')` method on this canvas switches to _canvas rendering mode_. When in this mode, avoid using any {@link console} methods, as they will switch back to _text rendering mode_.
+	 */
 	screen: Canvas;
+	/**
+	 * @ignore
+	 */
 	native: Native;
+	/**
+	 * Contains the available fonts for use on the screen Canvas context.
+	 * By default, `"system-ui"` is the only font available, which is the system font provided by the Switch operating system.
+	 *
+	 * @demo See the [fonts](../apps/fonts/) application for an example of using custom fonts.
+	 */
 	fonts: FontFaceSet;
+	/**
+	 * @ignore
+	 */
 	[INTERNAL_SYMBOL]: Internal;
 
-	// Populated by the host process
+	// The following props are populated by the host process
+	/**
+	 * Array of the arguments passed to the process. Under normal circumstances, this array contains a single entry with the absolute path to the `.nro` file.
+	 * @example [ "sdmc:/switch/nxjs.nro" ]
+	 */
 	argv!: string[];
+	/**
+	 * String value of the entrypoint JavaScript file that was evaluated. If a `main.js` file is present on the application's RomFS, then that will be executed first, in which case the value will be `romfs:/main.js`. Otherwise, the value will be the path of the `.nro` file on the SD card, with the `.nro` extension replaced with `.js`.
+	 * @example "romfs:/main.js"
+	 * @example "sdmc:/switch/nxjs.js"
+	 */
 	entrypoint!: string;
+	/**
+	 * An Object containing the versions numbers of nx.js and all supporting C libraries.
+	 */
+	version!: Versions;
+	/**
+	 * Signals for the nx.js application process to exit. The "exit" event will be invoked once the event loop is stopped.
+	 */
 	exit!: () => never;
 
+	/**
+	 * @private
+	 */
 	constructor() {
 		super();
 		// @ts-expect-error Populated by the host process
@@ -238,7 +531,12 @@ export class Switch extends EventTarget {
 	}
 
 	/**
-	 * Prints `str` to the console.
+	 * Prints the string `str` to the console, _without_ a trailing newline.
+	 *
+	 * > You will usually want to use the {@link console} methods instead.
+	 *
+	 * @note Invoking this method switches the application to _text rendering mode_,
+	 * which clears any pixels previously drawn on the screen using the Canvas API.
 	 */
 	print(str: string) {
 		const internal = this[INTERNAL_SYMBOL];
@@ -249,52 +547,284 @@ export class Switch extends EventTarget {
 	}
 
 	/**
-	 * Returns the current working directory as a URL instance.
+	 * Returns the current working directory as a URL string with a trailing slash.
+	 *
+	 * @example "sdmc:/switch/"
 	 */
 	cwd() {
-		return new URL(`${this.native.cwd()}/`);
+		return `${this.native.cwd()}/`;
 	}
 
 	/**
-	 * Returns an array of the file names within `path`.
+	 * Changes the current working directory to the specified path.
+	 *
+	 * @example
+	 *
+	 * ```typescript
+	 * Switch.chdir('sdmc:/switch/awesome-app/images');
+	 * ```
 	 */
-	readDirSync(path: string | URL) {
+	chdir(dir: PathLike) {
+		return this.native.chdir(String(dir));
+	}
+
+	/**
+	 * Performs a DNS lookup to resolve a hostname to an array of IP addresses.
+	 *
+	 * @example
+	 *
+	 * ```typescript
+	 * const ipAddresses = await Switch.resolveDns('example.com');
+	 * ```
+	 */
+	resolveDns(hostname: string) {
+		return toPromise(this.native.resolveDns, hostname);
+	}
+
+	/**
+	 * Returns a Promise which resolves to an `ArrayBuffer` containing
+	 * the contents of the file at `path`.
+	 *
+	 * @example
+	 *
+	 * ```typescript
+	 * const buffer = await Switch.readFile('sdmc:/switch/awesome-app/state.json');
+	 * const gameState = JSON.parse(new TextDecoder().decode(buffer));
+	 * ```
+	 */
+	readFile(path: PathLike) {
+		return toPromise(this.native.readFile, String(path));
+	}
+
+	/**
+	 * Synchronously returns an array of the file names within `path`.
+	 *
+	 * @example
+	 *
+	 * ```typescript
+	 * for (const file of Switch.readDirSync('sdmc:/')) {
+	 *   // … do something with `file` …
+	 * }
+	 * ```
+	 */
+	readDirSync(path: PathLike) {
 		return this.native.readDirSync(String(path));
 	}
 
 	/**
-	 * Returns an `ArrayBuffer` containing the contents of the file at `path`.
+	 * Synchronously returns an `ArrayBuffer` containing the contents
+	 * of the file at `path`.
+	 *
+	 * @example
+	 *
+	 * ```typescript
+	 * const buffer = Switch.readFileSync('sdmc:/switch/awesome-app/state.json');
+	 * const appState = JSON.parse(new TextDecoder().decode(buffer));
+	 * ```
 	 */
-	readFileSync(path: string | URL) {
+	readFileSync(path: PathLike) {
 		return this.native.readFileSync(String(path));
 	}
+
+	/**
+	 * Synchronously writes the contents of `data` to the file at `path`.
+	 *
+	 * ```typescript
+	 * const appStateJson = JSON.stringify(appState);
+	 * Switch.writeFileSync('sdmc:/switch/awesome-app/state.json', appStateJson);
+	 * ```
+	 */
+	writeFileSync(path: PathLike, data: string | BufferSource) {
+		const d = typeof data === 'string' ? encoder.encode(data) : data;
+		const ab = bufferSourceToArrayBuffer(d);
+		return this.native.writeFileSync(String(path), ab);
+	}
+
+	/**
+	 * Removes the file or directory specified by `path`.
+	 */
+	remove(path: PathLike) {
+		return toPromise(this.native.remove, String(path));
+	}
+
+	/**
+	 * Returns a Promise which resolves to an object containing
+	 * information about the file pointed to by `path`.
+	 */
+	stat(path: PathLike) {
+		return toPromise(this.native.stat, String(path));
+	}
+
+	/**
+	 * Creates a TCP connection specified by the `hostname`
+	 * and `port`.
+	 *
+	 * @param connectOpts Object containing the `port` number and `hostname` (defaults to `127.0.0.1`) to connect to.
+	 * @returns Promise that is fulfilled once the connection has been successfully established.
+	 */
+	async connect(connectOpts: ConnectOpts) {
+		const { hostname = '127.0.0.1', port } = connectOpts;
+		const [ip] = await this.resolveDns(hostname);
+		if (!ip) {
+			throw new Error(`Could not resolve "${hostname}" to an IP address`);
+		}
+		return toPromise(this.native.connect, ip, port);
+	}
+
+	read(fd: number, buffer: BufferSource) {
+		const ab = bufferSourceToArrayBuffer(buffer);
+		return toPromise(this.native.read, fd, ab);
+	}
+
+	write(fd: number, data: string | BufferSource) {
+		const d = typeof data === 'string' ? encoder.encode(data) : data;
+		const ab = bufferSourceToArrayBuffer(d);
+		return toPromise(this.native.write, fd, ab);
+	}
+
+	/**
+	 * Vibrates the main gamepad for the specified number of milliseconds or pattern.
+	 *
+	 * If a vibration pattern is already in progress when this method is called,
+	 * the previous pattern is halted and the new one begins instead.
+	 *
+	 * @example
+	 *
+	 * ```typescript
+	 * // Vibrate for 200ms with the default amplitude/frequency values
+	 * Switch.vibrate(200);
+	 *
+	 * // Vibrate 'SOS' in Morse Code
+	 * Switch.vibrate([
+	 *   100, 30, 100, 30, 100, 30, 200, 30, 200, 30, 200, 30, 100, 30, 100, 30, 100,
+	 * ]);
+	 *
+	 * // Specify amplitude/frequency values for the vibration
+	 * Switch.vibrate({
+	 *   duration: 500,
+	 *   lowAmp: 0.2
+	 *   lowFreq: 160,
+	 *   highAmp: 0.6,
+	 *   highFreq: 500
+	 * });
+	 * ```
+	 *
+	 * @param pattern Provides a pattern of vibration and pause intervals. Each value indicates a number of milliseconds to vibrate or pause, in alternation. You may provide either a single value (to vibrate once for that many milliseconds) or an array of values to alternately vibrate, pause, then vibrate again.
+	 *
+	 * @see https://developer.mozilla.org/en-US/docs/Web/API/Navigator/vibrate
+	 */
+	vibrate(pattern: number | Vibration | (number | Vibration)[]): boolean {
+		if (!Array.isArray(pattern)) {
+			pattern = [pattern];
+		}
+		const patternValues: (number | Vibration)[] = [];
+		for (let i = 0; i < pattern.length; i++) {
+			let p = pattern[i];
+			if (i % 2 === 0) {
+				// Even - vibration interval
+				if (typeof p === 'number') {
+					p = {
+						...DEFAULT_VIBRATION,
+						duration: p,
+					};
+				}
+				if (
+					p.highAmp < 0 ||
+					p.highAmp > 1 ||
+					p.lowAmp < 0 ||
+					p.lowAmp > 1
+				) {
+					return false;
+				}
+				patternValues.push(p);
+			} else {
+				// Odd - pause interval
+				if (typeof p !== 'number') return false;
+				patternValues.push(p);
+			}
+		}
+		const internal = this[INTERNAL_SYMBOL];
+		if (!internal.vibrationDevicesInitialized) {
+			this.native.hidInitializeVibrationDevices();
+			this.native.hidSendVibrationValues(DEFAULT_VIBRATION);
+			internal.vibrationDevicesInitialized = true;
+		}
+		clearTimeout(internal.vibrationTimeoutId);
+		internal.vibrationPattern = patternValues;
+		internal.vibrationTimeoutId = setTimeout(this.#processVibrations, 0);
+		return true;
+	}
+
+	/**
+	 * @ignore
+	 */
+	#processVibrations = () => {
+		const internal = this[INTERNAL_SYMBOL];
+		let next = internal.vibrationPattern?.shift();
+		if (typeof next === 'undefined') {
+			// Pattern completed
+			next = 0;
+		}
+		if (typeof next === 'number') {
+			// Pause interval
+			this.native.hidSendVibrationValues(STOP_VIBRATION);
+			if (next > 0) {
+				internal.vibrationTimeoutId = setTimeout(
+					this.#processVibrations,
+					next
+				);
+			}
+		} else {
+			// Vibration interval
+			this.native.hidSendVibrationValues(next);
+			internal.vibrationTimeoutId = setTimeout(
+				this.#processVibrations,
+				next.duration
+			);
+		}
+	};
 
 	inspect = inspect;
 }
 
 export class Env {
-	[INTERNAL_SYMBOL]: Switch;
+	/**
+	 * @private
+	 */
+	[INTERNAL_SYMBOL]: SwitchClass;
 
-	constructor(s: Switch) {
+	/**
+	 * @private
+	 */
+	constructor(s: SwitchClass) {
 		this[INTERNAL_SYMBOL] = s;
 	}
 
-	get(name: string): string | undefined {
+	get(name: string) {
 		return this[INTERNAL_SYMBOL].native.getenv(name);
 	}
 
-	set(name: string, value: string): void {
+	set(name: string, value: string) {
 		this[INTERNAL_SYMBOL].native.setenv(name, value);
 	}
 
-	delete(name: string): void {}
+	delete(name: string) {
+		this[INTERNAL_SYMBOL].native.unsetenv(name);
+	}
 
-	toObject(): Record<string, string> {
+	toObject() {
 		return this[INTERNAL_SYMBOL].native.envToObject();
 	}
 }
 
 class Screen extends Canvas {
+	[INTERNAL_SYMBOL]: SwitchClass;
+
+	constructor(s: SwitchClass, w: number, h: number) {
+		super(w, h);
+		this[INTERNAL_SYMBOL] = s;
+	}
+
 	getContext(contextId: '2d'): CanvasRenderingContext2D {
 		const ctx = super.getContext(contextId);
 		const Switch = this[INTERNAL_SYMBOL];
@@ -302,7 +832,7 @@ class Screen extends Canvas {
 		if (internal.renderingMode !== RenderingMode.Framebuffer) {
 			internal.setRenderingMode(
 				RenderingMode.Framebuffer,
-				ctx[INTERNAL_SYMBOL]
+				ctxInternal(ctx).ctx
 			);
 		}
 		return ctx;
