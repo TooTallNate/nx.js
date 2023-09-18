@@ -54,5 +54,12 @@ export class Crypto implements globalThis.Crypto {
 	}
 }
 def('Crypto', Crypto);
+
+/**
+ * The global `crypto` property returns the {@link Crypto} object associated to the global object.
+ * This object allows your application to access to certain cryptographic related services.
+ *
+ * @see https://developer.mozilla.org/en-US/docs/Web/API/crypto_property
+ */
 export const crypto = new Crypto();
 def('crypto', crypto);
