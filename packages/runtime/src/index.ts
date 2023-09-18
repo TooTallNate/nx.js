@@ -59,6 +59,7 @@ export type {
 	clearTimeout,
 	clearInterval,
 } from './timers';
+export type * as WebAssembly from './wasm';
 
 /**
  * The `Switch` global object contains native interfaces to interact with the Switch hardware.
@@ -71,6 +72,9 @@ def('setTimeout', setTimeout);
 def('setInterval', setInterval);
 def('clearTimeout', clearTimeout);
 def('clearInterval', clearInterval);
+
+import * as WebAssembly from './wasm';
+def('WebAssembly', WebAssembly);
 
 function touchIsEqual(a: Touch, b: Touch) {
 	return (

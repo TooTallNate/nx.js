@@ -58,4 +58,16 @@ output = output.replace(/\bHTMLCanvasElement\b/g, 'Canvas');
 // hurt, but also isn't necessary. Clean that up.
 output = output.trim().split('\n').slice(0, -1).join('\n');
 
+let [output2] = generateDtsBundle(
+	[
+		{
+			filePath: './src/wasm.ts',
+		},
+	],
+	{
+		noBanner: true,
+	}
+);
+console.log({ output2 });
+
 fs.writeFileSync(new URL('index.d.ts', distDir), output);
