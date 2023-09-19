@@ -222,8 +222,11 @@ importers:
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
+      nxjs-pack:
+        specifier: workspace:^
+        version: link:../../packages/pack
       nxjs-runtime:
-        specifier: ^0.0.17
+        specifier: workspace:^
         version: link:../../packages/runtime
 
   packages/constants:
