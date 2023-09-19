@@ -1,5 +1,4 @@
 import type { SwitchClass } from './switch';
-import type { BufferSource } from './types';
 
 declare const Switch: SwitchClass;
 
