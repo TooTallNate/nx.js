@@ -106,39 +106,184 @@ static JSValue nx_wasm_new_module(JSContext *ctx, JSValueConst this_val, int arg
     return obj;
 }
 
+m3ApiRawFunction(nx_wasm_imported_func)
+{
+    IM3Function func = _ctx->function;
+    IM3FuncType funcType = func->funcType;
+    printf("num ret: %d\n", funcType->numRets);
+    printf("num params: %d\n", funcType->numArgs);
+
+    for (int i = 0; i < funcType->numRets; i++)
+    {
+    }
+
+    for (int i = 0; i < funcType->numArgs; i++)
+    {
+        u8 type = funcType->types[funcType->numRets + i];
+        if (type == c_m3Type_i32)
+        {
+            m3ApiGetArg(int32_t, param);
+            printf("Called imported function with arg %d as int32: %d\n", i, param);
+        }
+        else if (type == c_m3Type_i64)
+        {
+            m3ApiGetArg(int64_t, param);
+            printf("Called imported function with arg %d as int64: %ld\n", i, param);
+        }
+        else if (type == c_m3Type_f32)
+        {
+            m3ApiGetArg(float, param);
+            printf("Called imported function with arg %d as float: %f\n", i, param);
+        }
+        else if (type == c_m3Type_f32)
+        {
+            m3ApiGetArg(double, param);
+            printf("Called imported function with arg %d as double: %f\n", i, param);
+        }
+    }
+
+    // TODO: invoke JS function here
+
+    // m3ApiMultiValueReturnType(int32_t, one);
+    // m3ApiGetArg(int32_t, param);
+    //  m3ApiGetArg(int64_t, param)
+    //  m3ApiGetArg(float, param)
+    // m3ApiMultiValueReturn(one, 1);
+    m3ApiSuccess();
+}
+
+static JSValue nx__add_module_imports(JSContext *ctx, nx_wasm_instance_t *instance, const char *module_name, JSValueConst module_imports)
+{
+    if (!JS_IsObject(module_imports))
+        return JS_UNDEFINED;
+
+    JSPropertyEnum *tab;
+    uint32_t len;
+    int flags = JS_GPN_STRING_MASK | JS_GPN_ENUM_ONLY;
+
+    // Get the properties of the object
+    if (JS_GetOwnPropertyNames(ctx, &tab, &len, module_imports, flags) != 0)
+    {
+        // TODO: Handle the error
+        return JS_EXCEPTION;
+    }
+
+    // Iterate over the properties
+    for (uint32_t i = 0; i < len; i++)
+    {
+        JSValue key = JS_AtomToValue(ctx, tab[i].atom);
+        if (JS_IsException(key))
+        {
+            // Handle the error
+            return key;
+        }
+
+        const char *key_str = JS_ToCString(ctx, key);
+        if (key_str)
+        {
+            printf("Module: %s, Name: %s\n", module_name, key_str);
+            JSValue v = JS_GetPropertyStr(ctx, module_imports, key_str);
+            if (JS_IsFunction(ctx, v))
+            {
+                // TODO: add reference to user function using `Ex`
+                M3Result r = m3_LinkRawFunction(instance->module, module_name, key_str, NULL, nx_wasm_imported_func);
+                if (r)
+                {
+                    JS_FreeCString(ctx, key_str);
+                    JS_FreeValue(ctx, v);
+                    return nx_throw_wasm_error(ctx, "LinkError", r);
+                }
+            }
+            else
+            {
+                // TODO: handle other import types
+            }
+
+            JS_FreeCString(ctx, key_str);
+            JS_FreeValue(ctx, v);
+        }
+        JS_FreeValue(ctx, key);
+        JS_FreeAtom(ctx, tab[i].atom);
+    }
+
+    js_free(ctx, tab);
+    return JS_UNDEFINED;
+}
+
 static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
 
     JSValue obj = JS_NewObjectClass(ctx, nx_wasm_instance_class_id);
-    nx_wasm_instance_t *i = js_mallocz(ctx, sizeof(nx_wasm_instance_t));
+    nx_wasm_instance_t *instance = js_mallocz(ctx, sizeof(nx_wasm_instance_t));
     // TODO: OOM error handling
 
-    JS_SetOpaque(obj, i);
+    JS_SetOpaque(obj, instance);
 
     nx_wasm_module_t *m = nx_wasm_module_get(ctx, argv[0]);
 
-    M3Result r = m3_ParseModule(nx_ctx->wasm_env, &i->module, m->data, m->size);
+    M3Result r = m3_ParseModule(nx_ctx->wasm_env, &instance->module, m->data, m->size);
     // CHECK_NULL(r);  // Should never fail because we already parsed it. TODO: clone it?
 
     /* Create a runtime per module to avoid symbol clash. */
-    i->runtime = m3_NewRuntime(nx_ctx->wasm_env, /* TODO: adjust */ 512 * 1024, NULL);
-    if (!i->runtime)
+    instance->runtime = m3_NewRuntime(nx_ctx->wasm_env, /* TODO: adjust */ 512 * 1024, NULL);
+    if (!instance->runtime)
     {
         JS_FreeValue(ctx, obj);
         return JS_ThrowOutOfMemory(ctx);
     }
 
-    // TODO: add imports
-
-    r = m3_LoadModule(i->runtime, i->module);
+    r = m3_LoadModule(instance->runtime, instance->module);
     if (r)
     {
         JS_FreeValue(ctx, obj);
         return nx_throw_wasm_error(ctx, "LinkError", r);
     }
 
-    i->loaded = true;
+    // Add the provided imports into the runtime
+    JSValue imports = argv[1];
+    if (JS_IsObject(imports))
+    {
+        JSPropertyEnum *tab;
+        uint32_t len;
+        int flags = JS_GPN_STRING_MASK | JS_GPN_ENUM_ONLY;
+
+        // Get the properties of the object
+        if (JS_GetOwnPropertyNames(ctx, &tab, &len, imports, flags) != 0)
+        {
+            // TODO: Handle the error
+            return JS_EXCEPTION;
+        }
+
+        // Iterate over the properties
+        for (uint32_t i = 0; i < len; i++)
+        {
+            JSValue key = JS_AtomToValue(ctx, tab[i].atom);
+            if (JS_IsException(key))
+            {
+                // Handle the error
+                return key;
+            }
+
+            const char *key_str = JS_ToCString(ctx, key);
+            if (key_str)
+            {
+                JSValue result = nx__add_module_imports(ctx, instance, key_str, JS_GetPropertyStr(ctx, imports, key_str));
+                JS_FreeCString(ctx, key_str);
+                if (JS_IsException(result))
+                {
+                    return result;
+                }
+                JS_FreeValue(ctx, result);
+            }
+            JS_FreeValue(ctx, key);
+            JS_FreeAtom(ctx, tab[i].atom);
+        }
+
+        js_free(ctx, tab);
+    }
+
+    instance->loaded = true;
 
     return obj;
 }
