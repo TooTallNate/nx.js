@@ -2,12 +2,20 @@
 // which invokes the imported function `imported_func()` with
 // a single parameter containing the value 42.
 // https://github.com/mdn/webassembly-examples/blob/main/js-api-examples/simple.wat
-const wasm = Switch.readFileSync(new URL('simple.wasm', Switch.entrypoint));
-//const wasm = require('fs').readFileSync(__dirname + '/../romfs/simple.wasm');
+const wasm = Switch.readFileSync(new URL('add.wasm', Switch.entrypoint));
+//const wasm = require('fs').readFileSync(__dirname + '/../romfs/add.wasm');
 
 const mod = new WebAssembly.Module(wasm);
 console.log(WebAssembly.Module.exports(mod));
 console.log(WebAssembly.Module.imports(mod));
+
+WebAssembly.instantiate(mod).then((instance) => {
+	console.log(Object.keys(instance.exports));
+	if (typeof instance.exports.add === 'function') {
+		console.log(instance.exports.add(6, 9));
+	}
+});
+
 //const importObject = {
 //	imports: {
 //		imported_func(arg /* @type any */) {

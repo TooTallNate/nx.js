@@ -1,5 +1,9 @@
-import type { SwitchClass, WasmModuleOpaque } from './switch';
 import { bufferSourceToArrayBuffer } from './utils';
+import type {
+	SwitchClass,
+	WasmModuleOpaque,
+	WasmInstanceOpaque,
+} from './switch';
 
 declare const Switch: SwitchClass;
 
@@ -81,12 +85,45 @@ export class Global<T extends ValueType = ValueType>
 	}
 }
 
+interface InstanceInternals {
+	module: Module;
+	opaque: WasmInstanceOpaque;
+}
+
+const instanceInternalsMap = new WeakMap<Instance, InstanceInternals>();
+
+/** [MDN Reference](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/Instance) */
 export class Instance implements WebAssembly.Instance {
+	/** [MDN Reference](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/Instance/exports) */
 	readonly exports: Exports;
 
-	constructor(module: Module, importObject?: Imports) {
+	constructor(moduleObject: Module, importObject?: Imports) {
+		const modInternal = moduleInternalsMap.get(moduleObject);
+		if (!modInternal) throw new Error(`No internal state for Module`);
+
+		const op = Switch.native.wasmNewInstance(
+			modInternal.opaque,
+			importObject
+		);
+
 		this.exports = {};
+		for (const e of Module.exports(moduleObject)) {
+			if (e.kind === 'function') {
+				this.exports[e.name] = callFunc.bind(null, op, e.name);
+			}
+		}
+		Object.freeze(this.exports);
+
+		instanceInternalsMap.set(this, { module: moduleObject, opaque: op });
 	}
+}
+
+function callFunc(
+	op: WasmInstanceOpaque,
+	name: string,
+	...args: unknown[]
+): unknown {
+	return Switch.native.wasmCallFunc(op, name, ...args);
 }
 
 /**

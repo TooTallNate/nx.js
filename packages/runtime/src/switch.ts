@@ -11,6 +11,7 @@ export type CanvasRenderingContext2DState =
 export type FontFaceState = Opaque<'FontFaceState'>;
 export type ImageOpaque = Opaque<'ImageOpaque'>;
 export type WasmModuleOpaque = Opaque<'WasmModuleOpaque'>;
+export type WasmInstanceOpaque = Opaque<'WasmInstanceOpaque'>;
 
 export interface Vibration {
 	duration: number;
@@ -309,8 +310,14 @@ export interface Native {
 
 	// wasm
 	wasmNewModule(b: ArrayBuffer): WasmModuleOpaque;
+	wasmNewInstance(b: WasmModuleOpaque, imports: any): WasmInstanceOpaque;
 	wasmModuleExports(m: WasmModuleOpaque): any[];
 	wasmModuleImports(m: WasmModuleOpaque): any[];
+	wasmCallFunc(
+		b: WasmInstanceOpaque,
+		name: string,
+		...args: unknown[]
+	): unknown;
 }
 
 interface Internal {
