@@ -2,4 +2,4 @@
 'nxjs-runtime': patch
 ---
 
-Add initial WASM support
+Add `WebAssembly` (WASM) implementation
