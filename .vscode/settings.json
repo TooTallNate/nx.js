@@ -12,7 +12,8 @@
         "fs.h": "c",
         "canvas.h": "c",
         "font.h": "c",
-        "image.h": "c"
+        "image.h": "c",
+        "wasm3.h": "c"
     },
     "C_Cpp.default.compilerPath": "/opt/devkitpro/devkitA64/bin/aarch64-none-elf-gcc"
 }

@@ -1,4 +1,5 @@
-import type { SwitchClass } from './switch';
+import type { SwitchClass, WasmModuleOpaque } from './switch';
+import { bufferSourceToArrayBuffer } from './utils';
 
 declare const Switch: SwitchClass;
 
@@ -54,27 +55,36 @@ export type Imports = Record<string, ModuleImports>;
 export type ModuleImports = Record<string, ImportValue>;
 export type ValueType = keyof ValueTypeMap;
 
-export class CompileError extends Error implements WebAssembly.CompileError {}
-export class RuntimeError extends Error implements WebAssembly.RuntimeError {}
-export class LinkError extends Error implements WebAssembly.LinkError {}
+export class CompileError extends Error implements WebAssembly.CompileError {
+	name = 'CompileError';
+}
+export class RuntimeError extends Error implements WebAssembly.RuntimeError {
+	name = 'RuntimeError';
+}
+export class LinkError extends Error implements WebAssembly.LinkError {
+	name = 'LinkError';
+}
 
+/** [MDN Reference](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/Global) */
 export class Global<T extends ValueType = ValueType>
 	implements WebAssembly.Global
 {
-	value: any;
+	/** [MDN Reference](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/Global/value) */
+	value: ValueTypeMap[T];
 
 	constructor(descriptor: GlobalDescriptor<T>, v?: ValueTypeMap[T]) {
 		throw new Error('Method not implemented.');
 	}
 
 	valueOf() {
-		throw new Error('Method not implemented.');
+		return this.value;
 	}
 }
 
 export class Instance implements WebAssembly.Instance {
-	exports: Exports;
-	constructor() {
+	readonly exports: Exports;
+
+	constructor(module: Module, importObject?: Imports) {
 		this.exports = {};
 	}
 }
@@ -96,9 +106,21 @@ export class Memory implements WebAssembly.Memory {
 	}
 }
 
+interface ModuleInternals {
+	buffer: ArrayBuffer;
+	opaque: WasmModuleOpaque;
+}
+
+const moduleInternalsMap = new WeakMap<Module, ModuleInternals>();
+
+/** [MDN Reference](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/Module) */
 export class Module implements WebAssembly.Module {
 	constructor(bytes: BufferSource) {
-		throw new Error('Method not implemented.');
+		const buffer = bufferSourceToArrayBuffer(bytes);
+		moduleInternalsMap.set(this, {
+			buffer,
+			opaque: Switch.native.wasmNewModule(buffer),
+		});
 	}
 
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/Module/customSections) */
@@ -111,12 +133,16 @@ export class Module implements WebAssembly.Module {
 
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/Module/exports) */
 	static exports(moduleObject: Module): ModuleExportDescriptor[] {
-		throw new Error('Method not implemented.');
+		const i = moduleInternalsMap.get(moduleObject);
+		if (!i) throw new Error(`No internal state for Module`);
+		return Switch.native.wasmModuleExports(i.opaque);
 	}
 
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/Module/imports) */
 	static imports(moduleObject: Module): ModuleImportDescriptor[] {
-		throw new Error('Method not implemented.');
+		const i = moduleInternalsMap.get(moduleObject);
+		if (!i) throw new Error(`No internal state for Module`);
+		return Switch.native.wasmModuleImports(i.opaque);
 	}
 }
 
@@ -149,14 +175,19 @@ export class Table implements WebAssembly.Table {
  * [MDN Reference](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/compile)
  */
 export async function compile(bytes: BufferSource): Promise<Module> {
-	const buffer =
-		bytes instanceof ArrayBuffer
-			? bytes
-			: bytes.buffer.slice(
-					bytes.byteOffset,
-					bytes.byteOffset + bytes.byteLength
-			  );
-	return new Module(buffer);
+	return new Module(bytes);
+}
+
+/** [MDN Reference](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/compileStreaming) */
+export async function compileStreaming(
+	source: Response | PromiseLike<Response>
+): Promise<Module> {
+	const res = await source;
+	if (!res.ok) {
+		// TODO: throw error?
+	}
+	const buf = await res.arrayBuffer();
+	return compile(buf);
 }
 
 /** [MDN Reference](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/instantiate) */
@@ -173,11 +204,24 @@ export async function instantiate(
 	importObject?: Imports
 ) {
 	if (bytes instanceof Module) {
-		return new Instance();
+		return new Instance(bytes, importObject);
 	}
-	const module = await compile(bytes);
-	return {
-		instance: new Instance(),
-		module,
-	};
+	const m = await compile(bytes);
+	const instance = new Instance(m, importObject);
+	return { module: m, instance };
+}
+
+/** [MDN Reference](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/instantiateStreaming) */
+export async function instantiateStreaming(
+	source: Response | PromiseLike<Response>,
+	importObject?: Imports
+): Promise<WebAssemblyInstantiatedSource> {
+	const m = await compileStreaming(source);
+	const instance = await instantiate(m, importObject);
+	return { module: m, instance };
+}
+
+/** [MDN Reference](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/validate) */
+export function validate(bytes: BufferSource): boolean {
+	throw new Error('Method not implemented.');
 }

@@ -1,4 +1,4 @@
 #pragma once
-#include <quickjs/quickjs.h>
+#include "types.h"
 
-void js_wasm_init(JSContext *ctx, JSValueConst native_obj);
+void nx_init_wasm(JSContext *ctx, JSValueConst native_obj);

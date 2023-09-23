@@ -491,6 +491,7 @@ int main(int argc, char *argv[])
     nx_init_fs(ctx, native_obj);
     nx_init_image(ctx, native_obj);
     nx_init_tcp(ctx, native_obj);
+    nx_init_wasm(ctx, native_obj);
 
     JSValue exit_func = JS_NewCFunction(ctx, js_exit, "exit", 0);
     JS_SetPropertyStr(ctx, switch_obj, "exit", exit_func);
@@ -526,8 +527,6 @@ int main(int argc, char *argv[])
         // dns
         JS_CFUNC_DEF("resolveDns", 0, js_dns_resolve)};
     JS_SetPropertyFunctionList(ctx, native_obj, function_list, countof(function_list));
-
-    js_wasm_init(ctx, native_obj);
 
     // `Switch.entrypoint`
     JS_SetPropertyStr(ctx, switch_obj, "entrypoint", JS_NewString(ctx, js_path));
