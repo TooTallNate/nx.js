@@ -69,6 +69,20 @@ export class LinkError extends Error implements WebAssembly.LinkError {
 	name = 'LinkError';
 }
 
+function toWasmError(e: unknown) {
+	if (e && e instanceof Error && 'wasmError' in e) {
+		switch (e.wasmError) {
+			case 'CompileError':
+				return new CompileError(e.message);
+			case 'LinkError':
+				return new LinkError(e.message);
+			case 'RuntimeError':
+				return new RuntimeError(e.message);
+		}
+	}
+	return e;
+}
+
 /** [MDN Reference](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/Global) */
 export class Global<T extends ValueType = ValueType>
 	implements WebAssembly.Global
@@ -123,7 +137,11 @@ function callFunc(
 	name: string,
 	...args: unknown[]
 ): unknown {
-	return Switch.native.wasmCallFunc(op, name, ...args);
+	try {
+		return Switch.native.wasmCallFunc(op, name, ...args);
+	} catch (err: unknown) {
+		throw toWasmError(err);
+	}
 }
 
 /**

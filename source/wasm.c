@@ -7,6 +7,44 @@
 #include "wasm.h"
 #include <m3_env.h>
 
+static M3Result nx_wasm_js_error = "JS error was thrown";
+
+// https://webassembly.github.io/spec/js-api/index.html#towebassemblyvalue
+// static void nx__wasm_towebassemblyvalue(JSContext *ctx, M3ValueType type, const void *stack) {}
+
+// https://webassembly.github.io/spec/js-api/index.html#tojsvalue
+static JSValue nx__wasm_tojsvalue(JSContext *ctx, M3ValueType type, const void *stack)
+{
+    switch (type)
+    {
+    case c_m3Type_i32:
+    {
+        int32_t val = *(int32_t *)stack;
+        return JS_NewInt32(ctx, val);
+    }
+    case c_m3Type_i64:
+    {
+        int64_t val = *(int64_t *)stack;
+        if (val == (int32_t)val)
+            return JS_NewInt32(ctx, (int32_t)val);
+        else
+            return JS_NewBigInt64(ctx, val);
+    }
+    case c_m3Type_f32:
+    {
+        float val = *(float *)stack;
+        return JS_NewFloat64(ctx, (double)val);
+    }
+    case c_m3Type_f64:
+    {
+        double val = *(double *)stack;
+        return JS_NewFloat64(ctx, val);
+    }
+    default:
+        return JS_UNDEFINED;
+    }
+}
+
 JSValue nx_throw_wasm_error(JSContext *ctx, const char *name, M3Result r)
 {
     // CHECK_NOT_NULL(r);
@@ -85,7 +123,10 @@ static JSValue nx_wasm_new_module(JSContext *ctx, JSValueConst this_val, int arg
 
     JSValue obj = JS_NewObjectClass(ctx, nx_wasm_module_class_id);
     nx_wasm_module_t *m = js_mallocz(ctx, sizeof(nx_wasm_module_t));
-    // TODO: OOM error handling
+    if (!m)
+    {
+        return JS_ThrowOutOfMemory(ctx);
+    }
 
     JS_SetOpaque(obj, m);
 
@@ -106,49 +147,47 @@ static JSValue nx_wasm_new_module(JSContext *ctx, JSValueConst this_val, int arg
     return obj;
 }
 
+typedef struct
+{
+    JSContext *ctx;
+    JSValue func;
+} nx_wasm_imported_func_t;
+
 m3ApiRawFunction(nx_wasm_imported_func)
 {
     IM3Function func = _ctx->function;
     IM3FuncType funcType = func->funcType;
-    printf("num ret: %d\n", funcType->numRets);
-    printf("num params: %d\n", funcType->numArgs);
+    nx_wasm_imported_func_t *js = _ctx->userdata;
 
     for (int i = 0; i < funcType->numRets; i++)
     {
     }
 
+    // Map the WASM arguments to JS values
+    JSValue args[funcType->numArgs];
     for (int i = 0; i < funcType->numArgs; i++)
     {
         u8 type = funcType->types[funcType->numRets + i];
-        if (type == c_m3Type_i32)
-        {
-            m3ApiGetArg(int32_t, param);
-            printf("Called imported function with arg %d as int32: %d\n", i, param);
-        }
-        else if (type == c_m3Type_i64)
-        {
-            m3ApiGetArg(int64_t, param);
-            printf("Called imported function with arg %d as int64: %ld\n", i, param);
-        }
-        else if (type == c_m3Type_f32)
-        {
-            m3ApiGetArg(float, param);
-            printf("Called imported function with arg %d as float: %f\n", i, param);
-        }
-        else if (type == c_m3Type_f32)
-        {
-            m3ApiGetArg(double, param);
-            printf("Called imported function with arg %d as double: %f\n", i, param);
-        }
+        args[i] = nx__wasm_tojsvalue(js->ctx, type, _sp);
+        _sp++;
     }
 
-    // TODO: invoke JS function here
+    // Invoke the JavaScript user function
+    JSValue ret_val = JS_Call(js->ctx, js->func, JS_NULL, funcType->numArgs, args);
+    if (JS_IsException(ret_val))
+    {
+        JS_FreeValue(js->ctx, ret_val);
+        return nx_wasm_js_error;
+    }
 
+    // TODO: map JS return value back to WASM return value(s)
     // m3ApiMultiValueReturnType(int32_t, one);
     // m3ApiGetArg(int32_t, param);
     //  m3ApiGetArg(int64_t, param)
     //  m3ApiGetArg(float, param)
     // m3ApiMultiValueReturn(one, 1);
+
+    JS_FreeValue(js->ctx, ret_val);
     m3ApiSuccess();
 }
 
@@ -181,12 +220,30 @@ static JSValue nx__add_module_imports(JSContext *ctx, nx_wasm_instance_t *instan
         const char *key_str = JS_ToCString(ctx, key);
         if (key_str)
         {
-            printf("Module: %s, Name: %s\n", module_name, key_str);
+            // printf("Module: %s, Name: %s\n", module_name, key_str);
             JSValue v = JS_GetPropertyStr(ctx, module_imports, key_str);
             if (JS_IsFunction(ctx, v))
             {
                 // TODO: add reference to user function using `Ex`
-                M3Result r = m3_LinkRawFunction(instance->module, module_name, key_str, NULL, nx_wasm_imported_func);
+                nx_wasm_imported_func_t *js = js_malloc(ctx, sizeof(nx_wasm_imported_func_t));
+                if (!js)
+                {
+                    JS_FreeCString(ctx, key_str);
+                    JS_FreeValue(ctx, v);
+                    return JS_ThrowOutOfMemory(ctx);
+                }
+                js->ctx = ctx;
+
+                // TODO: when do we de-dup this func? probably when the instance is being finalized?
+                js->func = JS_DupValue(ctx, v);
+
+                M3Result r = m3_LinkRawFunctionEx(
+                    instance->module,
+                    module_name,
+                    key_str,
+                    NULL,
+                    nx_wasm_imported_func,
+                    js);
                 if (r)
                 {
                     JS_FreeCString(ctx, key_str);
@@ -216,7 +273,10 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val, int a
 
     JSValue obj = JS_NewObjectClass(ctx, nx_wasm_instance_class_id);
     nx_wasm_instance_t *instance = js_mallocz(ctx, sizeof(nx_wasm_instance_t));
-    // TODO: OOM error handling
+    if (!instance)
+    {
+        return JS_ThrowOutOfMemory(ctx);
+    }
 
     JS_SetOpaque(obj, instance);
 
@@ -345,38 +405,6 @@ static JSValue nx_wasm_module_imports(JSContext *ctx, JSValueConst this_val, int
     return imports;
 }
 
-static JSValue nx__wasm_result(JSContext *ctx, M3ValueType type, const void *stack)
-{
-    switch (type)
-    {
-    case c_m3Type_i32:
-    {
-        int32_t val = *(int32_t *)stack;
-        return JS_NewInt32(ctx, val);
-    }
-    case c_m3Type_i64:
-    {
-        int64_t val = *(int64_t *)stack;
-        if (val == (int32_t)val)
-            return JS_NewInt32(ctx, (int32_t)val);
-        else
-            return JS_NewBigInt64(ctx, val);
-    }
-    case c_m3Type_f32:
-    {
-        float val = *(float *)stack;
-        return JS_NewFloat64(ctx, (double)val);
-    }
-    case c_m3Type_f64:
-    {
-        double val = *(double *)stack;
-        return JS_NewFloat64(ctx, val);
-    }
-    default:
-        return JS_UNDEFINED;
-    }
-}
-
 static JSValue nx_wasm_call_func(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     nx_wasm_instance_t *i = nx_wasm_instance_get(ctx, argv[0]);
@@ -418,10 +446,18 @@ static JSValue nx_wasm_call_func(JSContext *ctx, JSValueConst this_val, int argc
     }
 
     if (r)
-        return nx_throw_wasm_error(ctx, "RuntimeError", r);
-
-    // https://webassembly.org/docs/js/ See "ToJSValue"
-    // NOTE: here we support returning BigInt, because we can.
+    {
+        if (r == nx_wasm_js_error)
+        {
+            // If a JavaScript error was returned then that means an
+            // imported function threw an error, so re-throw here
+            return JS_EXCEPTION;
+        }
+        else
+        {
+            return nx_throw_wasm_error(ctx, "RuntimeError", r);
+        }
+    }
 
     int ret_count = m3_GetRetCount(func);
 
@@ -444,14 +480,14 @@ static JSValue nx_wasm_call_func(JSContext *ctx, JSValueConst this_val, int argc
 
     if (ret_count == 1)
     {
-        return nx__wasm_result(ctx, m3_GetRetType(func, 0), valptrs[0]);
+        return nx__wasm_tojsvalue(ctx, m3_GetRetType(func, 0), valptrs[0]);
     }
     else
     {
         JSValue rets = JS_NewArray(ctx);
         for (int i = 0; i < ret_count; i++)
         {
-            JS_SetPropertyUint32(ctx, rets, i, nx__wasm_result(ctx, m3_GetRetType(func, i), valptrs[i]));
+            JS_SetPropertyUint32(ctx, rets, i, nx__wasm_tojsvalue(ctx, m3_GetRetType(func, i), valptrs[i]));
         }
         return rets;
     }
