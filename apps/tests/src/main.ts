@@ -1,6 +1,8 @@
 import { test } from 'uvu';
 import * as assert from 'uvu/assert';
 
+import './wasm';
+
 const ctx = Switch.screen.getContext('2d');
 
 test('`Switch.entrypoint` is a string', () => {
