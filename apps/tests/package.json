@@ -2,6 +2,7 @@
   "name": "nxjs-tests",
   "version": "0.0.0",
   "private": true,
+  "type": "module",
   "description": "nx.js API tests",
   "scripts": {
     "build": "esbuild --bundle --target=es2020 src/main.ts --outfile=romfs/main.js",
@@ -14,6 +15,6 @@
     "nxjs-runtime": "workspace:^"
   },
   "dependencies": {
-    "kleur": "github:TooTallNate/kleur#rgb"
+    "uvu": "github:TooTallNate/uvu#master"
   }
 }
