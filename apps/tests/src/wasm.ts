@@ -25,14 +25,9 @@ test('simple.wasm', async () => {
 			},
 		},
 	});
-	if (typeof instance.exports.exported_func === 'function') {
-		instance.exports.exported_func();
-	} else {
-		assert.ok(
-			false,
-			'Expected `instance.exports.exported_func` to be a "function"'
-		);
-	}
+	const exported_func = instance.exports.exported_func as Function;
+	assert.type(exported_func, 'function');
+	exported_func();
 	assert.equal(ifArg, 42);
 });
 
@@ -44,12 +39,10 @@ test('add.wasm', async () => {
 	assert.equal(WebAssembly.Module.exports(module), [
 		{ name: 'add', kind: 'function' },
 	]);
-	if (typeof instance.exports.add === 'function') {
-		assert.equal(instance.exports.add(1, 2), 3);
-		assert.equal(instance.exports.add(39, 3), 42);
-	} else {
-		assert.ok(false, 'Expected `instance.exports.add` to be a "function"');
-	}
+	const add = instance.exports.add as Function;
+	assert.type(add, 'function');
+	assert.equal(add(1, 2), 3);
+	assert.equal(add(39, 3), 42);
 });
 
 test('Imported function throws an Error is propagated', async () => {
@@ -65,17 +58,12 @@ test('Imported function throws an Error is propagated', async () => {
 		}
 	);
 	let err: Error | undefined;
-	if (typeof instance.exports.exported_func === 'function') {
-		try {
-			instance.exports.exported_func();
-		} catch (err_: any) {
-			err = err_;
-		}
-	} else {
-		assert.ok(
-			false,
-			'Expected `instance.exports.exported_func` to be a "function"'
-		);
+	const exported_func = instance.exports.exported_func as Function;
+	assert.type(exported_func, 'function');
+	try {
+		exported_func();
+	} catch (err_: any) {
+		err = err_;
 	}
 	assert.ok(err);
 	assert.equal(err.message, e.message);
