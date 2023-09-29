@@ -311,7 +311,10 @@ export interface Native {
 
 	// wasm
 	wasmNewModule(b: ArrayBuffer): WasmModuleOpaque;
-	wasmNewInstance(b: WasmModuleOpaque, imports: any): WasmInstanceOpaque;
+	wasmNewInstance(
+		m: WasmModuleOpaque,
+		imports: any[]
+	): [WasmInstanceOpaque, any[]];
 	wasmNewGlobal(): WasmGlobalOpaque;
 	wasmModuleExports(m: WasmModuleOpaque): any[];
 	wasmModuleImports(m: WasmModuleOpaque): any[];

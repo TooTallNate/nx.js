@@ -77,6 +77,33 @@ test('global.wasm', async () => {
 	assert.equal(g.value, 43, 'getting wasm-updated value from JS');
 });
 
+test('global-exported.wasm', async () => {
+	const { module, instance } = await WebAssembly.instantiateStreaming(
+		fetch(new URL('global-exported.wasm', Switch.entrypoint))
+	);
+	assert.equal(WebAssembly.Module.imports(module).length, 0);
+	assert.equal(WebAssembly.Module.exports(module), [
+		{ name: 'incGlobal', kind: 'function' },
+		{ name: 'getGlobal', kind: 'function' },
+		{ name: 'myGlobal', kind: 'global' },
+	]);
+
+	const getGlobal = instance.exports.getGlobal as Function;
+	assert.type(getGlobal, 'function');
+	const incGlobal = instance.exports.incGlobal as Function;
+	assert.type(incGlobal, 'function');
+	const myGlobal = instance.exports.myGlobal as WebAssembly.Global<'i32'>;
+	assert.instance(myGlobal, WebAssembly.Global);
+
+	assert.equal(myGlobal.value, 42, 'getting initial value from JS');
+	assert.equal(getGlobal(), 42, 'getting initial value from WASM');
+
+	incGlobal();
+
+	assert.equal(myGlobal.value, 43, 'getting updated value from JS');
+	assert.equal(getGlobal(), 43, 'getting updated value from WASM');
+});
+
 test('Imported function throws an Error is propagated', async () => {
 	const e = new Error('will be thrown');
 	const { instance } = await WebAssembly.instantiateStreaming(

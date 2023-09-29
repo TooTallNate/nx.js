@@ -312,84 +312,6 @@ m3ApiRawFunction(nx_wasm_imported_func)
     m3ApiSuccess();
 }
 
-/*
-static JSValue nx__add_module_imports(JSContext *ctx, nx_wasm_instance_t *instance, const char *module_name, JSValueConst module_imports)
-{
-    if (!JS_IsObject(module_imports))
-        return JS_UNDEFINED;
-
-    JSPropertyEnum *tab;
-    uint32_t len;
-    int flags = JS_GPN_STRING_MASK | JS_GPN_ENUM_ONLY;
-
-    // Get the properties of the object
-    if (JS_GetOwnPropertyNames(ctx, &tab, &len, module_imports, flags) != 0)
-    {
-        // TODO: Handle the error
-        return JS_EXCEPTION;
-    }
-
-    // Iterate over the properties
-    for (uint32_t i = 0; i < len; i++)
-    {
-        JSValue key = JS_AtomToValue(ctx, tab[i].atom);
-        if (JS_IsException(key))
-        {
-            // Handle the error
-            return key;
-        }
-
-        const char *key_str = JS_ToCString(ctx, key);
-        if (key_str)
-        {
-            // printf("Module: %s, Name: %s\n", module_name, key_str);
-            JSValue v = JS_GetPropertyStr(ctx, module_imports, key_str);
-            if (JS_IsFunction(ctx, v))
-            {
-                // TODO: add reference to user function using `Ex`
-                nx_wasm_imported_func_t *js = js_malloc(ctx, sizeof(nx_wasm_imported_func_t));
-                if (!js)
-                {
-                    JS_FreeCString(ctx, key_str);
-                    JS_FreeValue(ctx, v);
-                    return JS_ThrowOutOfMemory(ctx);
-                }
-                js->ctx = ctx;
-
-                // TODO: when do we de-dup this func? probably when the instance is being finalized?
-                js->func = JS_DupValue(ctx, v);
-
-                M3Result r = m3_LinkRawFunctionEx(
-                    instance->module,
-                    module_name,
-                    key_str,
-                    NULL,
-                    nx_wasm_imported_func,
-                    js);
-                if (r)
-                {
-                    JS_FreeCString(ctx, key_str);
-                    JS_FreeValue(ctx, v);
-                    return nx_throw_wasm_error(ctx, "LinkError", r);
-                }
-            }
-            else
-            {
-                // TODO: handle other import types
-            }
-
-            JS_FreeCString(ctx, key_str);
-            JS_FreeValue(ctx, v);
-        }
-        JS_FreeValue(ctx, key);
-        JS_FreeAtom(ctx, tab[i].atom);
-    }
-
-    js_free(ctx, tab);
-    return JS_UNDEFINED;
-}
-*/
-
 static JSValue find_matching_import(JSContext *ctx, M3ImportInfo *info, JSValue imports_array, size_t imports_array_length)
 {
     for (size_t i = 0; i < imports_array_length; i++)
@@ -423,14 +345,14 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val, int a
 {
     nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
 
-    JSValue obj = JS_NewObjectClass(ctx, nx_wasm_instance_class_id);
+    JSValue opaque = JS_NewObjectClass(ctx, nx_wasm_instance_class_id);
     nx_wasm_instance_t *instance = js_mallocz(ctx, sizeof(nx_wasm_instance_t));
     if (!instance)
     {
         return JS_ThrowOutOfMemory(ctx);
     }
 
-    JS_SetOpaque(obj, instance);
+    JS_SetOpaque(opaque, instance);
 
     nx_wasm_module_t *m = nx_wasm_module_get(ctx, argv[0]);
 
@@ -441,19 +363,22 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val, int a
     instance->runtime = m3_NewRuntime(nx_ctx->wasm_env, /* TODO: adjust */ 512 * 1024, NULL);
     if (!instance->runtime)
     {
-        JS_FreeValue(ctx, obj);
+        JS_FreeValue(ctx, opaque);
         return JS_ThrowOutOfMemory(ctx);
     }
 
     r = m3_LoadModule(instance->runtime, instance->module);
     if (r)
     {
-        JS_FreeValue(ctx, obj);
+        JS_FreeValue(ctx, opaque);
         return nx_throw_wasm_error(ctx, "LinkError", r);
     }
 
-    // Add the provided imports into the runtime
+    // Process the provided "imports" into the runtime,
+    // instantiate the defined "exports" from the runtime
     JSValue imports_array = argv[1];
+    JSValue exports_array = JS_NewArray(ctx);
+    size_t exports_index = 0;
 
     uint32_t imports_array_length;
     if (JS_ToUint32(ctx, &imports_array_length, JS_GetPropertyStr(ctx, imports_array, "length")))
@@ -466,6 +391,7 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val, int a
         IM3Function f = &instance->module->functions[i];
         if (f->import.moduleUtf8 && f->import.fieldUtf8)
         {
+            // Imported `Function`
             JSValue matching_import = find_matching_import(ctx, &f->import, imports_array, imports_array_length);
             if (JS_IsUndefined(matching_import))
             {
@@ -502,6 +428,16 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val, int a
                 }
             }
         }
+        else
+        {
+            // Exported `Function`
+            JSValue item = JS_NewObject(ctx);
+            JS_DefinePropertyValueStr(ctx, item, "kind", JS_NewString(ctx, "function"), JS_PROP_C_W_E);
+            JS_DefinePropertyValueStr(ctx, item, "name", JS_NewString(ctx, f->export_name), JS_PROP_C_W_E);
+            JS_DefinePropertyValueUint32(ctx, exports_array, exports_index++, item, JS_PROP_C_W_E);
+            // TODO: we can optimize exports by passing the function reference back to
+            // JS now, so that we don't need to call `FindFunction()` during every invoke
+        }
     }
 
     for (size_t i = 0; i < instance->module->numGlobals; i++)
@@ -509,6 +445,8 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val, int a
         const IM3Global g = &instance->module->globals[i];
         if (g->imported && g->import.moduleUtf8 && g->import.fieldUtf8)
         {
+            // Imported `Global`
+
             JSValue matching_import = find_matching_import(ctx, &g->import, imports_array, imports_array_length);
             if (JS_IsUndefined(matching_import))
             {
@@ -552,52 +490,37 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val, int a
             };
             }
         }
+        else
+        {
+            // Exported `Global`
+            JSValue op = nx_wasm_new_global(ctx, JS_UNDEFINED, 0, NULL);
+            if (JS_IsException(op))
+            {
+                return JS_EXCEPTION;
+            }
+            nx_wasm_global_t *nx_g = nx_wasm_global_get(ctx, op);
+            if (!nx_g)
+            {
+                return JS_EXCEPTION;
+            }
+            nx_g->global = g;
+
+            JSValue item = JS_NewObject(ctx);
+            JS_DefinePropertyValueStr(ctx, item, "kind", JS_NewString(ctx, "global"), JS_PROP_C_W_E);
+            JS_DefinePropertyValueStr(ctx, item, "name", JS_NewString(ctx, g->name), JS_PROP_C_W_E);
+            JS_DefinePropertyValueStr(ctx, item, "val", op, JS_PROP_C_W_E);
+            // TODO: value ("i32")
+            // TODO: mutable (true, false)
+            JS_DefinePropertyValueUint32(ctx, exports_array, exports_index++, item, JS_PROP_C_W_E);
+        }
     }
-
-    // if (JS_IsObject(imports))
-    //{
-    //     JSPropertyEnum *tab;
-    //     uint32_t len;
-    //     int flags = JS_GPN_STRING_MASK | JS_GPN_ENUM_ONLY;
-
-    //    // Get the properties of the object
-    //    if (JS_GetOwnPropertyNames(ctx, &tab, &len, imports, flags) != 0)
-    //    {
-    //        // TODO: Handle the error
-    //        return JS_EXCEPTION;
-    //    }
-
-    //    // Iterate over the properties
-    //    for (uint32_t i = 0; i < len; i++)
-    //    {
-    //        JSValue key = JS_AtomToValue(ctx, tab[i].atom);
-    //        if (JS_IsException(key))
-    //        {
-    //            // Handle the error
-    //            return key;
-    //        }
-
-    //        const char *key_str = JS_ToCString(ctx, key);
-    //        if (key_str)
-    //        {
-    //            JSValue result = nx__add_module_imports(ctx, instance, key_str, JS_GetPropertyStr(ctx, imports, key_str));
-    //            JS_FreeCString(ctx, key_str);
-    //            if (JS_IsException(result))
-    //            {
-    //                return result;
-    //            }
-    //            JS_FreeValue(ctx, result);
-    //        }
-    //        JS_FreeValue(ctx, key);
-    //        JS_FreeAtom(ctx, tab[i].atom);
-    //    }
-
-    //    js_free(ctx, tab);
-    //}
 
     instance->loaded = true;
 
-    return obj;
+    JSValue rtn = JS_NewArray(ctx);
+    JS_SetPropertyUint32(ctx, rtn, 0, opaque);
+    JS_SetPropertyUint32(ctx, rtn, 1, exports_array);
+    return rtn;
 }
 
 static JSValue nx_wasm_module_imports(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -660,7 +583,8 @@ static JSValue nx_wasm_module_exports(JSContext *ctx, JSValueConst this_val, int
     if (JS_IsException(exports))
         return exports;
 
-    for (size_t i = 0, j = 0; i < m->module->numFunctions; ++i)
+    size_t index = 0;
+    for (size_t i = 0; i < m->module->numFunctions; ++i)
     {
         IM3Function f = &m->module->functions[i];
         if (f->export_name)
@@ -668,21 +592,19 @@ static JSValue nx_wasm_module_exports(JSContext *ctx, JSValueConst this_val, int
             JSValue item = JS_NewObject(ctx);
             JS_DefinePropertyValueStr(ctx, item, "kind", JS_NewString(ctx, "function"), JS_PROP_C_W_E);
             JS_DefinePropertyValueStr(ctx, item, "name", JS_NewString(ctx, f->export_name), JS_PROP_C_W_E);
-            JS_DefinePropertyValueUint32(ctx, exports, j, item, JS_PROP_C_W_E);
-            j++;
+            JS_DefinePropertyValueUint32(ctx, exports, index++, item, JS_PROP_C_W_E);
         }
     }
 
-    for (size_t i = 0, j = 0; i < m->module->numGlobals; ++i)
+    for (size_t i = 0; i < m->module->numGlobals; ++i)
     {
         IM3Global g = &m->module->globals[i];
         if (!g->imported)
         {
             JSValue item = JS_NewObject(ctx);
-            JS_DefinePropertyValueStr(ctx, item, "kind", JS_NewString(ctx, "function"), JS_PROP_C_W_E);
+            JS_DefinePropertyValueStr(ctx, item, "kind", JS_NewString(ctx, "global"), JS_PROP_C_W_E);
             JS_DefinePropertyValueStr(ctx, item, "name", JS_NewString(ctx, g->name), JS_PROP_C_W_E);
-            JS_DefinePropertyValueUint32(ctx, exports, j, item, JS_PROP_C_W_E);
-            j++;
+            JS_DefinePropertyValueUint32(ctx, exports, index++, item, JS_PROP_C_W_E);
         }
     }
 

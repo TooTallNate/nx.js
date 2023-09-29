@@ -105,15 +105,11 @@ export class Global<T extends ValueType = ValueType>
 	 */
 	get value(): ValueTypeMap[T] {
 		const i = globalInternalsMap.get(this)!;
-		//console.log('get');
-		//console.log(i);
 		return i.opaque ? Switch.native.wasmGlobalGet(i.opaque) : i.value;
 	}
 
 	set value(v: ValueTypeMap[T]) {
 		const i = globalInternalsMap.get(this)!;
-		//console.log('set');
-		//console.log(i);
 		i.opaque ? Switch.native.wasmGlobalSet(i.opaque, v) : i.value;
 	}
 
@@ -160,6 +156,20 @@ function unwrapImports(importObject: Imports = {}) {
 	);
 }
 
+function wrapExports(op: WasmInstanceOpaque, ex: any[]): Exports {
+	const e: Exports = Object.create(null);
+	for (const v of ex) {
+		if (v.kind === 'function') {
+			e[v.name] = callFunc.bind(null, op, v.name);
+		} else if (v.kind === 'global') {
+			const g = new Global({ value: v.value, mutable: v.mutable });
+			bindGlobal(g, v.val);
+			e[v.name] = g;
+		}
+	}
+	return Object.freeze(e);
+}
+
 interface InstanceInternals {
 	module: Module;
 	opaque: WasmInstanceOpaque;
@@ -175,21 +185,12 @@ export class Instance implements WebAssembly.Instance {
 	constructor(moduleObject: Module, importObject?: Imports) {
 		const modInternal = moduleInternalsMap.get(moduleObject);
 		if (!modInternal) throw new Error(`No internal state for Module`);
-
-		const op = Switch.native.wasmNewInstance(
+		const [opaque, exp] = Switch.native.wasmNewInstance(
 			modInternal.opaque,
 			unwrapImports(importObject)
 		);
-
-		this.exports = {};
-		for (const e of Module.exports(moduleObject)) {
-			if (e.kind === 'function') {
-				this.exports[e.name] = callFunc.bind(null, op, e.name);
-			}
-		}
-		Object.freeze(this.exports);
-
-		instanceInternalsMap.set(this, { module: moduleObject, opaque: op });
+		instanceInternalsMap.set(this, { module: moduleObject, opaque });
+		this.exports = wrapExports(opaque, exp);
 	}
 }
 
