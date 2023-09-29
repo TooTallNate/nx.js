@@ -77,9 +77,9 @@ test('global.wasm', async () => {
 	assert.equal(g.value, 43, 'getting wasm-updated value from JS');
 });
 
-test('global-exported.wasm', async () => {
+test('global-export.wasm', async () => {
 	const { module, instance } = await WebAssembly.instantiateStreaming(
-		fetch(new URL('global-exported.wasm', Switch.entrypoint))
+		fetch(new URL('global-export.wasm', Switch.entrypoint))
 	);
 	assert.equal(WebAssembly.Module.imports(module).length, 0);
 	assert.equal(WebAssembly.Module.exports(module), [
@@ -102,6 +102,32 @@ test('global-exported.wasm', async () => {
 
 	assert.equal(myGlobal.value, 43, 'getting updated value from JS');
 	assert.equal(getGlobal(), 43, 'getting updated value from WASM');
+});
+
+test('memory-export.wasm', async () => {
+	const { module, instance } = await WebAssembly.instantiateStreaming(
+		fetch(new URL('memory-export.wasm', Switch.entrypoint))
+	);
+	assert.equal(WebAssembly.Module.imports(module).length, 0);
+
+	// TODO: this needs an `instance`
+	//assert.equal(WebAssembly.Module.exports(module), [
+	//	{ name: 'memory', kind: 'memory' },
+	//]);
+
+	const memory = instance.exports.memory as WebAssembly.Memory;
+	assert.instance(memory, WebAssembly.Memory);
+
+	let sum = 0;
+	const values = new Uint32Array(memory.buffer);
+
+	// Test the first ten elements of the WASM memory
+	for (let i = 0; i < 10; i++) {
+		assert.equal(values[i], i);
+		sum += values[i];
+	}
+
+	assert.equal(sum, 45);
 });
 
 test('Imported function throws an Error is propagated', async () => {

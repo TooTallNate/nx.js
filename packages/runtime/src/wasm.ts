@@ -165,6 +165,10 @@ function wrapExports(op: WasmInstanceOpaque, ex: any[]): Exports {
 			const g = new Global({ value: v.value, mutable: v.mutable });
 			bindGlobal(g, v.val);
 			e[v.name] = g;
+		} else if (v.kind === 'memory') {
+			const m = Object.create(Memory.prototype);
+			m.buffer = v.val;
+			e[v.name] = m;
 		}
 	}
 	return Object.freeze(e);
@@ -206,6 +210,14 @@ function callFunc(
 	}
 }
 
+const BYTES_PER_PAGE = 65536;
+
+interface MemoryInternals {
+	descriptor: MemoryDescriptor;
+}
+
+const memoryInternalsMap = new WeakMap<Memory, MemoryInternals>();
+
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/Memory)
  */
@@ -214,7 +226,11 @@ export class Memory implements WebAssembly.Memory {
 	readonly buffer: ArrayBuffer;
 
 	constructor(descriptor: MemoryDescriptor) {
-		throw new Error('Method not implemented.');
+		const bytes = descriptor.initial * BYTES_PER_PAGE;
+		this.buffer = descriptor.shared
+			? new SharedArrayBuffer(bytes)
+			: new ArrayBuffer(bytes);
+		memoryInternalsMap.set(this, { descriptor });
 	}
 
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/Memory/grow) */

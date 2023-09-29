@@ -367,6 +367,8 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val, int a
         return JS_ThrowOutOfMemory(ctx);
     }
 
+    // TODO: handle imported memory here?
+
     r = m3_LoadModule(instance->runtime, instance->module);
     if (r)
     {
@@ -513,6 +515,33 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val, int a
             // TODO: mutable (true, false)
             JS_DefinePropertyValueUint32(ctx, exports_array, exports_index++, item, JS_PROP_C_W_E);
         }
+    }
+
+    // Find the memory export
+    uint32_t memorySize;
+    // wasm3 currently only supports one memory region.
+    // `i_memoryIndex` must be zero.
+    uint32_t i_memoryIndex = 0;
+    uint8_t *memory = m3_GetMemory(instance->runtime, &memorySize, i_memoryIndex);
+
+    if (memory && !instance->module->memoryImported)
+    {
+        // Exported `Memory`
+        JSValue buf = JS_NewArrayBuffer(ctx, memory, memorySize, NULL, NULL, false);
+        if (JS_IsException(buf))
+        {
+            return buf;
+        }
+
+        // TODO: Seems like the exported name is not saved within wasm3 - assume "memory" for now
+        const char *name = "memory";
+
+        JSValue item = JS_NewObject(ctx);
+        JS_DefinePropertyValueStr(ctx, item, "kind", JS_NewString(ctx, "memory"), JS_PROP_C_W_E);
+        JS_DefinePropertyValueStr(ctx, item, "name", JS_NewString(ctx, name), JS_PROP_C_W_E);
+        JS_DefinePropertyValueStr(ctx, item, "val", buf, JS_PROP_C_W_E);
+        // TODO: maximum / shared?
+        JS_DefinePropertyValueUint32(ctx, exports_array, exports_index++, item, JS_PROP_C_W_E);
     }
 
     instance->loaded = true;
