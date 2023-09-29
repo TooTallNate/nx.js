@@ -81,6 +81,127 @@ static void finalizer_wasm_module(JSRuntime *rt, JSValue val)
     }
 }
 
+static JSClassID nx_wasm_global_class_id;
+
+typedef struct
+{
+    IM3Global global;
+} nx_wasm_global_t;
+
+static nx_wasm_global_t *nx_wasm_global_get(JSContext *ctx, JSValueConst obj)
+{
+    return JS_GetOpaque2(ctx, obj, nx_wasm_global_class_id);
+}
+
+static void finalizer_wasm_global(JSRuntime *rt, JSValue val)
+{
+    nx_wasm_global_t *g = JS_GetOpaque(val, nx_wasm_global_class_id);
+    if (g)
+    {
+        // Don't need to free `global` since the Runtime instance owns it
+        g->global = NULL;
+        js_free_rt(rt, g);
+    }
+}
+
+static JSValue nx_wasm_new_global(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    JSValue obj = JS_NewObjectClass(ctx, nx_wasm_global_class_id);
+    nx_wasm_global_t *g = js_mallocz(ctx, sizeof(nx_wasm_global_t));
+    if (!g)
+    {
+        return JS_ThrowOutOfMemory(ctx);
+    }
+
+    JS_SetOpaque(obj, g);
+
+    // Gets defined during import / export instantiation
+    g->global = NULL;
+
+    return obj;
+}
+
+static JSValue nx_wasm_global_value_get(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    nx_wasm_global_t *g = nx_wasm_global_get(ctx, argv[0]);
+    if (!g)
+        return JS_EXCEPTION;
+
+    IM3Global global = g->global;
+    if (!global)
+    {
+        // Not bound
+        // TODO: throw error
+        return JS_ThrowTypeError(ctx, "Global not defined");
+    }
+
+    M3TaggedValue val;
+    M3Result r = m3_GetGlobal(global, &val);
+    if (r)
+    {
+        return nx_throw_wasm_error(ctx, "LinkError", r);
+    }
+
+    return JS_NewInt32(ctx, val.value.i32);
+}
+
+static JSValue nx_wasm_global_value_set(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    nx_wasm_global_t *g = nx_wasm_global_get(ctx, argv[0]);
+    if (!g)
+        return JS_EXCEPTION;
+
+    IM3Global global = g->global;
+    if (!global)
+    {
+        // Not bound
+        // TODO: throw error
+        return JS_ThrowTypeError(ctx, "Global not defined");
+    }
+
+    // M3TaggedValue val;
+    // val.type = global->type;
+    // val.value.i32 = 123;
+
+    JSValue new_val = argv[1];
+    switch (global->type)
+    {
+    case c_m3Type_i32:
+    {
+        if (JS_ToInt32(ctx, &global->i32Value, new_val))
+        {
+            // TODO: handle error
+        }
+        break;
+    };
+    case c_m3Type_i64:
+    {
+        if (JS_ToInt64(ctx, &global->i64Value, new_val))
+        {
+            // TODO: handle error
+        }
+        break;
+    };
+    case c_m3Type_f32:
+    case c_m3Type_f64:
+    {
+        if (JS_ToFloat64(ctx, &global->f64Value, new_val))
+        {
+            // TODO: handle error
+        }
+        break;
+    };
+    }
+
+    // M3Result r = m3_SetGlobal(global, &val);
+    // if (r)
+    //{
+    //     return nx_throw_wasm_error(ctx, "LinkError", r);
+    // }
+
+    return JS_UNDEFINED;
+}
+
 static JSClassID nx_wasm_instance_class_id;
 
 typedef struct
@@ -191,6 +312,7 @@ m3ApiRawFunction(nx_wasm_imported_func)
     m3ApiSuccess();
 }
 
+/*
 static JSValue nx__add_module_imports(JSContext *ctx, nx_wasm_instance_t *instance, const char *module_name, JSValueConst module_imports)
 {
     if (!JS_IsObject(module_imports))
@@ -266,6 +388,36 @@ static JSValue nx__add_module_imports(JSContext *ctx, nx_wasm_instance_t *instan
     js_free(ctx, tab);
     return JS_UNDEFINED;
 }
+*/
+
+static JSValue find_matching_import(JSContext *ctx, M3ImportInfo *info, JSValue imports_array, size_t imports_array_length)
+{
+    for (size_t i = 0; i < imports_array_length; i++)
+    {
+        JSValue entry = JS_GetPropertyUint32(ctx, imports_array, i);
+
+        const char *module_name = JS_ToCString(ctx, JS_GetPropertyStr(ctx, entry, "module"));
+        if (strcmp(info->moduleUtf8, module_name) != 0)
+        {
+            JS_FreeCString(ctx, module_name);
+            continue;
+        }
+
+        const char *field_name = JS_ToCString(ctx, JS_GetPropertyStr(ctx, entry, "name"));
+        if (strcmp(info->fieldUtf8, field_name) != 0)
+        {
+            JS_FreeCString(ctx, module_name);
+            JS_FreeCString(ctx, field_name);
+            continue;
+        }
+
+        JS_FreeCString(ctx, module_name);
+        JS_FreeCString(ctx, field_name);
+        return entry;
+    }
+
+    return JS_UNDEFINED;
+}
 
 static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
@@ -301,51 +453,201 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val, int a
     }
 
     // Add the provided imports into the runtime
-    JSValue imports = argv[1];
-    if (JS_IsObject(imports))
+    JSValue imports_array = argv[1];
+
+    uint32_t imports_array_length;
+    if (JS_ToUint32(ctx, &imports_array_length, JS_GetPropertyStr(ctx, imports_array, "length")))
     {
-        JSPropertyEnum *tab;
-        uint32_t len;
-        int flags = JS_GPN_STRING_MASK | JS_GPN_ENUM_ONLY;
-
-        // Get the properties of the object
-        if (JS_GetOwnPropertyNames(ctx, &tab, &len, imports, flags) != 0)
-        {
-            // TODO: Handle the error
-            return JS_EXCEPTION;
-        }
-
-        // Iterate over the properties
-        for (uint32_t i = 0; i < len; i++)
-        {
-            JSValue key = JS_AtomToValue(ctx, tab[i].atom);
-            if (JS_IsException(key))
-            {
-                // Handle the error
-                return key;
-            }
-
-            const char *key_str = JS_ToCString(ctx, key);
-            if (key_str)
-            {
-                JSValue result = nx__add_module_imports(ctx, instance, key_str, JS_GetPropertyStr(ctx, imports, key_str));
-                JS_FreeCString(ctx, key_str);
-                if (JS_IsException(result))
-                {
-                    return result;
-                }
-                JS_FreeValue(ctx, result);
-            }
-            JS_FreeValue(ctx, key);
-            JS_FreeAtom(ctx, tab[i].atom);
-        }
-
-        js_free(ctx, tab);
+        return JS_EXCEPTION;
     }
+
+    for (size_t i = 0; i < instance->module->numFunctions; ++i)
+    {
+        IM3Function f = &instance->module->functions[i];
+        if (f->import.moduleUtf8 && f->import.fieldUtf8)
+        {
+            JSValue matching_import = find_matching_import(ctx, &f->import, imports_array, imports_array_length);
+            if (JS_IsUndefined(matching_import))
+            {
+                JS_ThrowTypeError(ctx, "Missing import function \"%s.%s\"", f->import.moduleUtf8, f->import.fieldUtf8);
+            }
+
+            // TODO: validate "kind === 'function'"
+
+            JSValue v = JS_GetPropertyStr(ctx, matching_import, "val");
+            if (JS_IsFunction(ctx, v))
+            {
+                nx_wasm_imported_func_t *js = js_malloc(ctx, sizeof(nx_wasm_imported_func_t));
+                if (!js)
+                {
+                    JS_FreeValue(ctx, v);
+                    return JS_ThrowOutOfMemory(ctx);
+                }
+                js->ctx = ctx;
+
+                // TODO: when do we de-dup this func? probably when the instance is being finalized?
+                js->func = JS_DupValue(ctx, v);
+
+                M3Result r = m3_LinkRawFunctionEx(
+                    instance->module,
+                    f->import.moduleUtf8,
+                    f->import.fieldUtf8,
+                    NULL,
+                    nx_wasm_imported_func,
+                    js);
+                if (r)
+                {
+                    JS_FreeValue(ctx, v);
+                    return nx_throw_wasm_error(ctx, "LinkError", r);
+                }
+            }
+        }
+    }
+
+    for (size_t i = 0; i < instance->module->numGlobals; i++)
+    {
+        const IM3Global g = &instance->module->globals[i];
+        if (g->imported && g->import.moduleUtf8 && g->import.fieldUtf8)
+        {
+            JSValue matching_import = find_matching_import(ctx, &g->import, imports_array, imports_array_length);
+            if (JS_IsUndefined(matching_import))
+            {
+                JS_ThrowTypeError(ctx, "Missing import global \"%s.%s\"", g->import.moduleUtf8, g->import.fieldUtf8);
+            }
+
+            // TODO: validate "kind === 'global'"
+
+            JSValue v = JS_GetPropertyStr(ctx, matching_import, "val");
+
+            nx_wasm_global_t *nx_g = nx_wasm_global_get(ctx, v);
+            nx_g->global = g;
+
+            JSValue initial_value = JS_GetPropertyStr(ctx, matching_import, "i");
+            switch (g->type)
+            {
+            case c_m3Type_i32:
+            {
+                if (JS_ToInt32(ctx, &g->i32Value, initial_value))
+                {
+                    // TODO: handle error
+                }
+                break;
+            };
+            case c_m3Type_i64:
+            {
+                if (JS_ToInt64(ctx, &g->i64Value, initial_value))
+                {
+                    // TODO: handle error
+                }
+                break;
+            };
+            case c_m3Type_f32:
+            case c_m3Type_f64:
+            {
+                if (JS_ToFloat64(ctx, &g->f64Value, initial_value))
+                {
+                    // TODO: handle error
+                }
+                break;
+            };
+            }
+        }
+    }
+
+    // if (JS_IsObject(imports))
+    //{
+    //     JSPropertyEnum *tab;
+    //     uint32_t len;
+    //     int flags = JS_GPN_STRING_MASK | JS_GPN_ENUM_ONLY;
+
+    //    // Get the properties of the object
+    //    if (JS_GetOwnPropertyNames(ctx, &tab, &len, imports, flags) != 0)
+    //    {
+    //        // TODO: Handle the error
+    //        return JS_EXCEPTION;
+    //    }
+
+    //    // Iterate over the properties
+    //    for (uint32_t i = 0; i < len; i++)
+    //    {
+    //        JSValue key = JS_AtomToValue(ctx, tab[i].atom);
+    //        if (JS_IsException(key))
+    //        {
+    //            // Handle the error
+    //            return key;
+    //        }
+
+    //        const char *key_str = JS_ToCString(ctx, key);
+    //        if (key_str)
+    //        {
+    //            JSValue result = nx__add_module_imports(ctx, instance, key_str, JS_GetPropertyStr(ctx, imports, key_str));
+    //            JS_FreeCString(ctx, key_str);
+    //            if (JS_IsException(result))
+    //            {
+    //                return result;
+    //            }
+    //            JS_FreeValue(ctx, result);
+    //        }
+    //        JS_FreeValue(ctx, key);
+    //        JS_FreeAtom(ctx, tab[i].atom);
+    //    }
+
+    //    js_free(ctx, tab);
+    //}
 
     instance->loaded = true;
 
     return obj;
+}
+
+static JSValue nx_wasm_module_imports(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    nx_wasm_module_t *m = nx_wasm_module_get(ctx, argv[0]);
+    if (!m)
+        return JS_EXCEPTION;
+
+    JSValue imports = JS_NewArray(ctx);
+    if (JS_IsException(imports))
+        return imports;
+
+    size_t index = 0;
+    for (size_t i = 0; i < m->module->numFunctions; ++i)
+    {
+        IM3Function f = &m->module->functions[i];
+        if (f->import.moduleUtf8 && f->import.fieldUtf8)
+        {
+            JSValue item = JS_NewObject(ctx);
+            JS_DefinePropertyValueStr(ctx, item, "kind", JS_NewString(ctx, "function"), JS_PROP_C_W_E);
+            JS_DefinePropertyValueStr(ctx, item, "module", JS_NewString(ctx, f->import.moduleUtf8), JS_PROP_C_W_E);
+            JS_DefinePropertyValueStr(ctx, item, "name", JS_NewString(ctx, f->import.fieldUtf8), JS_PROP_C_W_E);
+            JS_DefinePropertyValueUint32(ctx, imports, index++, item, JS_PROP_C_W_E);
+        }
+    }
+
+    for (size_t i = 0; i < m->module->numGlobals; i++)
+    {
+        IM3Global g = &m->module->globals[i];
+        if (g->imported && g->import.moduleUtf8 && g->import.fieldUtf8)
+        {
+            JSValue item = JS_NewObject(ctx);
+            JS_DefinePropertyValueStr(ctx, item, "kind", JS_NewString(ctx, "global"), JS_PROP_C_W_E);
+            JS_DefinePropertyValueStr(ctx, item, "module", JS_NewString(ctx, g->import.moduleUtf8), JS_PROP_C_W_E);
+            JS_DefinePropertyValueStr(ctx, item, "name", JS_NewString(ctx, g->import.fieldUtf8), JS_PROP_C_W_E);
+            JS_DefinePropertyValueUint32(ctx, imports, index++, item, JS_PROP_C_W_E);
+        }
+    }
+
+    // if (m->module->memoryImported) {
+    //     JSValue item = JS_NewObject(ctx);
+    //     JS_DefinePropertyValueStr(ctx, item, "kind", JS_NewString(ctx, "memory"), JS_PROP_C_W_E);
+    //     JS_DefinePropertyValueStr(ctx, item, "module", JS_NewString(ctx, "?"), JS_PROP_C_W_E);
+    //     JS_DefinePropertyValueStr(ctx, item, "name", JS_NewString(ctx, "?"), JS_PROP_C_W_E);
+    //     JS_DefinePropertyValueUint32(ctx, imports, index++, item, JS_PROP_C_W_E);
+    // }
+
+    // TODO: "table" import types (seems that perhaps wasm3 doesn't currently support?)
+
+    return imports;
 }
 
 static JSValue nx_wasm_module_exports(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -371,38 +673,22 @@ static JSValue nx_wasm_module_exports(JSContext *ctx, JSValueConst this_val, int
         }
     }
 
-    // TODO: other export types.
-
-    return exports;
-}
-
-static JSValue nx_wasm_module_imports(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
-    nx_wasm_module_t *m = nx_wasm_module_get(ctx, argv[0]);
-    if (!m)
-        return JS_EXCEPTION;
-
-    JSValue imports = JS_NewArray(ctx);
-    if (JS_IsException(imports))
-        return imports;
-
-    for (size_t i = 0, j = 0; i < m->module->numFunctions; ++i)
+    for (size_t i = 0, j = 0; i < m->module->numGlobals; ++i)
     {
-        IM3Function f = &m->module->functions[i];
-        if (f->import.moduleUtf8 && f->import.fieldUtf8)
+        IM3Global g = &m->module->globals[i];
+        if (!g->imported)
         {
             JSValue item = JS_NewObject(ctx);
             JS_DefinePropertyValueStr(ctx, item, "kind", JS_NewString(ctx, "function"), JS_PROP_C_W_E);
-            JS_DefinePropertyValueStr(ctx, item, "module", JS_NewString(ctx, f->import.moduleUtf8), JS_PROP_C_W_E);
-            JS_DefinePropertyValueStr(ctx, item, "name", JS_NewString(ctx, f->import.fieldUtf8), JS_PROP_C_W_E);
-            JS_DefinePropertyValueUint32(ctx, imports, j, item, JS_PROP_C_W_E);
+            JS_DefinePropertyValueStr(ctx, item, "name", JS_NewString(ctx, g->name), JS_PROP_C_W_E);
+            JS_DefinePropertyValueUint32(ctx, exports, j, item, JS_PROP_C_W_E);
             j++;
         }
     }
 
-    // TODO: other import types.
+    // TODO: other export types.
 
-    return imports;
+    return exports;
 }
 
 static JSValue nx_wasm_call_func(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -496,14 +782,25 @@ static JSValue nx_wasm_call_func(JSContext *ctx, JSValueConst this_val, int argc
 static const JSCFunctionListEntry function_list[] = {
     JS_CFUNC_DEF("wasmNewModule", 1, nx_wasm_new_module),
     JS_CFUNC_DEF("wasmNewInstance", 1, nx_wasm_new_instance),
+    JS_CFUNC_DEF("wasmNewGlobal", 1, nx_wasm_new_global),
     JS_CFUNC_DEF("wasmModuleExports", 1, nx_wasm_module_exports),
     JS_CFUNC_DEF("wasmModuleImports", 1, nx_wasm_module_imports),
+    JS_CFUNC_DEF("wasmGlobalGet", 1, nx_wasm_global_value_get),
+    JS_CFUNC_DEF("wasmGlobalSet", 1, nx_wasm_global_value_set),
     JS_CFUNC_DEF("wasmCallFunc", 1, nx_wasm_call_func),
 };
 
 void nx_init_wasm(JSContext *ctx, JSValueConst native_obj)
 {
     JSRuntime *rt = JS_GetRuntime(ctx);
+
+    /* WebAssembly.Global */
+    JS_NewClassID(&nx_wasm_global_class_id);
+    JSClassDef nx_wasm_global_class = {
+        "WebAssembly.Global",
+        .finalizer = finalizer_wasm_global,
+    };
+    JS_NewClass(rt, nx_wasm_global_class_id, &nx_wasm_global_class);
 
     /* WebAssembly.Module */
     JS_NewClassID(&nx_wasm_module_class_id);

@@ -3,6 +3,7 @@ import type {
 	SwitchClass,
 	WasmModuleOpaque,
 	WasmInstanceOpaque,
+	WasmGlobalOpaque,
 } from './switch';
 
 declare const Switch: SwitchClass;
@@ -83,20 +84,80 @@ function toWasmError(e: unknown) {
 	return e;
 }
 
+interface GlobalInternals<T extends ValueType = ValueType> {
+	descriptor: GlobalDescriptor<T>;
+	value?: ValueTypeMap[T];
+	opaque?: WasmGlobalOpaque;
+}
+
+const globalInternalsMap = new WeakMap<Global, GlobalInternals<any>>();
+
 /** [MDN Reference](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/Global) */
 export class Global<T extends ValueType = ValueType>
 	implements WebAssembly.Global
 {
-	/** [MDN Reference](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/Global/value) */
-	value: ValueTypeMap[T];
-
-	constructor(descriptor: GlobalDescriptor<T>, v?: ValueTypeMap[T]) {
-		throw new Error('Method not implemented.');
+	constructor(descriptor: GlobalDescriptor<T>, value?: ValueTypeMap[T]) {
+		globalInternalsMap.set(this, { descriptor, value });
 	}
 
+	/**
+	 * The value contained inside the global variable — this can be used to directly set and get the global's value.
+	 */
+	get value(): ValueTypeMap[T] {
+		const i = globalInternalsMap.get(this)!;
+		//console.log('get');
+		//console.log(i);
+		return i.opaque ? Switch.native.wasmGlobalGet(i.opaque) : i.value;
+	}
+
+	set value(v: ValueTypeMap[T]) {
+		const i = globalInternalsMap.get(this)!;
+		//console.log('set');
+		//console.log(i);
+		i.opaque ? Switch.native.wasmGlobalSet(i.opaque, v) : i.value;
+	}
+
+	/**
+	 * Old-style method that returns the value contained inside the global variable.
+	 */
 	valueOf() {
 		return this.value;
 	}
+}
+
+function bindGlobal(g: Global, opaque = Switch.native.wasmNewGlobal()) {
+	const i = globalInternalsMap.get(g);
+	if (!i) throw new Error(`No internal state for Global`);
+	i.opaque = opaque;
+	return opaque;
+}
+
+function unwrapImports(importObject: Imports = {}) {
+	return Object.entries(importObject).flatMap(([m, i]) =>
+		Object.entries(i).map(([n, v]) => {
+			let val;
+			let i;
+			let kind: ImportExportKind;
+			if (typeof v === 'function') {
+				kind = 'function';
+				val = v;
+			} else if (v instanceof Global) {
+				kind = 'global';
+				i = v.value;
+				val = bindGlobal(v);
+			} else {
+				// TODO: Handle "memory" / "table" types
+				throw new Error(`Unsupported import type`);
+			}
+			return {
+				module: m,
+				name: n,
+				kind,
+				val,
+				i,
+			};
+		})
+	);
 }
 
 interface InstanceInternals {
@@ -117,7 +178,7 @@ export class Instance implements WebAssembly.Instance {
 
 		const op = Switch.native.wasmNewInstance(
 			modInternal.opaque,
-			importObject
+			unwrapImports(importObject)
 		);
 
 		this.exports = {};
@@ -173,6 +234,7 @@ export class Module implements WebAssembly.Module {
 	constructor(bytes: BufferSource) {
 		const buffer = bufferSourceToArrayBuffer(bytes);
 		moduleInternalsMap.set(this, {
+			// Hold a reference to the bytes to prevent garbage collection
 			buffer,
 			opaque: Switch.native.wasmNewModule(buffer),
 		});

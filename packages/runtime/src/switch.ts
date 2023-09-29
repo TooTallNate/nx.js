@@ -12,6 +12,7 @@ export type FontFaceState = Opaque<'FontFaceState'>;
 export type ImageOpaque = Opaque<'ImageOpaque'>;
 export type WasmModuleOpaque = Opaque<'WasmModuleOpaque'>;
 export type WasmInstanceOpaque = Opaque<'WasmInstanceOpaque'>;
+export type WasmGlobalOpaque = Opaque<'WasmGlobalOpaque'>;
 
 export interface Vibration {
 	duration: number;
@@ -311,8 +312,11 @@ export interface Native {
 	// wasm
 	wasmNewModule(b: ArrayBuffer): WasmModuleOpaque;
 	wasmNewInstance(b: WasmModuleOpaque, imports: any): WasmInstanceOpaque;
+	wasmNewGlobal(): WasmGlobalOpaque;
 	wasmModuleExports(m: WasmModuleOpaque): any[];
 	wasmModuleImports(m: WasmModuleOpaque): any[];
+	wasmGlobalGet(g: WasmGlobalOpaque): any;
+	wasmGlobalSet(g: WasmGlobalOpaque, v: any): void;
 	wasmCallFunc(
 		b: WasmInstanceOpaque,
 		name: string,
