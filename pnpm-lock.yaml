@@ -323,6 +323,9 @@ importers:
       core-js:
         specifier: ^3.32.1
         version: 3.32.1
+      data-uri-to-buffer:
+        specifier: ^6.0.1
+        version: 6.0.1
       dts-bundle-generator:
         specifier: ^8.0.1
         version: 8.0.1
@@ -1237,6 +1240,11 @@ packages:
       csv-parse: 4.16.3
       csv-stringify: 5.6.5
       stream-transform: 2.1.3
+    dev: true
+
+  /data-uri-to-buffer@6.0.1:
+    resolution: {integrity: sha512-MZd3VlchQkp8rdend6vrx7MmVDJzSNTBvghvKjirLkD+WTChA3KUf0jkE68Q4UyctNqI11zZO9/x2Yx+ub5Cvg==}
+    engines: {node: '>= 14'}
     dev: true
 
   /dataloader@1.4.0:

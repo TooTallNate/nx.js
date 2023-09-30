@@ -1,3 +1,4 @@
+import { dataUriToBuffer } from 'data-uri-to-buffer';
 import { def } from '../utils';
 import { objectUrls } from '../polyfills/url';
 import { decoder } from '../polyfills/text-decoder';
@@ -217,6 +218,21 @@ async function fetchBlob(req: Request, url: URL) {
 	});
 }
 
+async function fetchData(req: Request, url: URL) {
+	if (req.method !== 'GET') {
+		throw new Error(
+			`GET method must be used when fetching "${url.protocol}" protocol (got "${req.method}")`
+		);
+	}
+	const parsed = dataUriToBuffer(url);
+	return new Response(parsed.buffer, {
+		headers: {
+			'content-length': String(parsed.buffer.byteLength),
+			'content-type': parsed.typeFull,
+		},
+	});
+}
+
 async function fetchFile(req: Request, url: URL) {
 	if (req.method !== 'GET') {
 		throw new Error(
@@ -236,6 +252,7 @@ const fetchers = new Map<string, (req: Request, url: URL) => Promise<Response>>(
 	[
 		['http:', fetchHttp],
 		['blob:', fetchBlob],
+		['data:', fetchData],
 		['file:', fetchFile],
 		['sdmc:', fetchFile],
 		['romfs:', fetchFile],
@@ -249,6 +266,7 @@ const fetchers = new Map<string, (req: Request, url: URL) => Promise<Response>>(
  *
  *  - `http:` - Fetch data from the network using the HTTP protocol
  *  - `blob:` - Fetch data from a URL constructed by {@link URL.createObjectURL | `URL.createObjectURL()`}
+ *  - `data:` - Fetch data from a Data URI (possibly base64-encoded)
  *  - `sdmc:` - Fetch data from a local file on the SD card
  *  - `romfs:` - Fetch data from the RomFS partition of the nx.js application
  *  - `file:` - Same as `sdmc:`
