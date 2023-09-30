@@ -124,7 +124,9 @@ function printObject(v: any, opts: InspectOptions) {
 	const keys = Object.keys(v);
 	const ctor = v.constructor;
 	const className =
-		ctor !== Object && typeof ctor.name === 'string' ? `${ctor.name} ` : '';
+		ctor && ctor !== Object && typeof ctor.name === 'string'
+			? `${ctor.name} `
+			: '';
 	const contents =
 		keys.length === 0
 			? ''
