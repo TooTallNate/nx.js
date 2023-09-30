@@ -45,6 +45,34 @@ test('add.wasm', async () => {
 	assert.equal(add(39, 3), 42);
 });
 
+test('fib.wasm', async () => {
+	const { module, instance } = await WebAssembly.instantiateStreaming(
+		fetch(new URL('fib.wasm', Switch.entrypoint))
+	);
+	assert.equal(WebAssembly.Module.imports(module).length, 0);
+
+	// TODO: "memory" kind not yet supported in `exports()`
+	//assert.equal(WebAssembly.Module.exports(module), [
+	//	{ name: 'memory', kind: 'memory' },
+	//	{ name: 'fib', kind: 'function' }
+	//]);
+
+	const fib = instance.exports.fib as (i: number) => number;
+	assert.type(fib, 'function');
+	assert.equal(fib(0), 0);
+	assert.equal(fib(1), 1);
+	assert.equal(fib(2), 1);
+	assert.equal(fib(3), 2);
+	assert.equal(fib(4), 3);
+	assert.equal(fib(5), 5);
+	assert.equal(fib(6), 8);
+	assert.equal(fib(7), 13);
+	assert.equal(fib(8), 21);
+	assert.equal(fib(9), 34);
+	assert.equal(fib(10), 55);
+	assert.equal(fib(11), 89);
+});
+
 test('global.wasm', async () => {
 	const g = new WebAssembly.Global({ value: 'i32', mutable: true }, 6);
 	assert.equal(g.value, 6, 'getting initial value from JS');
@@ -115,7 +143,7 @@ test('memory-export.wasm', async () => {
 	);
 	assert.equal(WebAssembly.Module.imports(module).length, 0);
 
-	// TODO: this needs an `instance`
+	// TODO: "memory" kind not yet supported in `exports()`
 	//assert.equal(WebAssembly.Module.exports(module), [
 	//	{ name: 'memory', kind: 'memory' },
 	//]);
