@@ -1,5 +1,27 @@
 # nxjs-runtime
 
+## 0.0.18
+
+### Patch Changes
+
+- Add `console.debug()` as an alias for `console.log()` ([`81c6692`](https://github.com/TooTallNate/nx.js/commit/81c669297868ca19e21287d4ffd6ba06443480a3))
+
+- Add custom inspector for `URL` instances ([`b44ff24`](https://github.com/TooTallNate/nx.js/commit/b44ff2480a55d7f8a7424fd0ede60b82c8eef732))
+
+- Add docs for global `crypto` instance ([`b0b02b7`](https://github.com/TooTallNate/nx.js/commit/b0b02b78ae5c705fb391f1b486cfad9f22561ced))
+
+- Add `WebAssembly` (WASM) implementation ([#12](https://github.com/TooTallNate/nx.js/pull/12))
+
+- Fix `setTimeout()` / `clearTimeout()` bundle defined name ([`05a0ad6`](https://github.com/TooTallNate/nx.js/commit/05a0ad65fe09e06c5f621335193a6f7692127561))
+
+- Fix spacing when rendering Error stack in `inspect()` ([`7d5d94c`](https://github.com/TooTallNate/nx.js/commit/7d5d94c205fe1039a7664e443dadbd0cd058601a))
+
+- Make `ReadableStream` work with `for await...of` loops ([`27cb966`](https://github.com/TooTallNate/nx.js/commit/27cb9661b232d0cfeb12745cc189a2662d57fab5))
+
+- Fix `inspect()` when `constructor` is falsy ([`daae521`](https://github.com/TooTallNate/nx.js/commit/daae52108957062ff37d13524b72321a58331060))
+
+- Make `Switch.cwd()` return a string ([`7acbfad`](https://github.com/TooTallNate/nx.js/commit/7acbfad091a8626771a3e98c1bb2e157133ea7ce))
+
 ## 0.0.17
 
 ### Patch Changes
