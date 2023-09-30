@@ -16,6 +16,7 @@
 #include "canvas.h"
 #include "font.h"
 #include "fs.h"
+#include "wasm.h"
 #include "image.h"
 #include "tcp.h"
 #include "poll.h"
@@ -180,8 +181,7 @@ static JSValue js_hid_initialize_vibration_devices(JSContext *ctx, JSValueConst 
         2,
         // TODO: handle No1 gamepad
         HidNpadIdType_Handheld,
-        HidNpadStyleSet_NpadStandard
-        );
+        HidNpadStyleSet_NpadStandard);
     if (R_FAILED(rc))
     {
         // TODO: throw error
@@ -491,6 +491,7 @@ int main(int argc, char *argv[])
     nx_init_fs(ctx, native_obj);
     nx_init_image(ctx, native_obj);
     nx_init_tcp(ctx, native_obj);
+    nx_init_wasm(ctx, native_obj);
 
     JSValue exit_func = JS_NewCFunction(ctx, js_exit, "exit", 0);
     JS_SetPropertyStr(ctx, switch_obj, "exit", exit_func);
@@ -640,6 +641,10 @@ wait_error:
     JS_FreeContext(ctx);
     JS_FreeRuntime(rt);
 
+    if (nx_ctx->wasm_env)
+    {
+        m3_FreeEnvironment(nx_ctx->wasm_env);
+    }
     if (nx_ctx->ft_library)
     {
         FT_Done_FreeType(nx_ctx->ft_library);

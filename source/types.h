@@ -1,4 +1,6 @@
 #pragma once
+#include <stdbool.h>
+#include <wasm3.h>
 #include <pthread.h>
 #include <quickjs/quickjs.h>
 #include <cairo-ft.h>
@@ -45,6 +47,7 @@ typedef struct
     nx_work_t *work_queue;
     FT_Library ft_library;
     HidVibrationDeviceHandle vibration_device_handles[2];
+    IM3Environment wasm_env;
 } nx_context_t;
 
 inline nx_context_t *nx_get_context(JSContext *ctx)

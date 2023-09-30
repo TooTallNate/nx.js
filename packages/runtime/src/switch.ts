@@ -11,6 +11,9 @@ export type CanvasRenderingContext2DState =
 	Opaque<'CanvasRenderingContext2DState'>;
 export type FontFaceState = Opaque<'FontFaceState'>;
 export type ImageOpaque = Opaque<'ImageOpaque'>;
+export type WasmModuleOpaque = Opaque<'WasmModuleOpaque'>;
+export type WasmInstanceOpaque = Opaque<'WasmInstanceOpaque'>;
+export type WasmGlobalOpaque = Opaque<'WasmGlobalOpaque'>;
 
 export interface Vibration {
 	duration: number;
@@ -306,6 +309,23 @@ export interface Native {
 	connect(cb: Callback<number>, ip: string, port: number): void;
 	write(cb: Callback<number>, fd: number, data: ArrayBuffer): void;
 	read(cb: Callback<number>, fd: number, buffer: ArrayBuffer): void;
+
+	// wasm
+	wasmNewModule(b: ArrayBuffer): WasmModuleOpaque;
+	wasmNewInstance(
+		m: WasmModuleOpaque,
+		imports: any[]
+	): [WasmInstanceOpaque, any[]];
+	wasmNewGlobal(): WasmGlobalOpaque;
+	wasmModuleExports(m: WasmModuleOpaque): any[];
+	wasmModuleImports(m: WasmModuleOpaque): any[];
+	wasmGlobalGet(g: WasmGlobalOpaque): any;
+	wasmGlobalSet(g: WasmGlobalOpaque, v: any): void;
+	wasmCallFunc(
+		b: WasmInstanceOpaque,
+		name: string,
+		...args: unknown[]
+	): unknown;
 }
 
 interface Internal {

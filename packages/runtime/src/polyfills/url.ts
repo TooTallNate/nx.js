@@ -9,6 +9,9 @@ export declare class URLSearchParams implements globalThis.URLSearchParams {
 	constructor(
 		init?: string[][] | Record<string, string> | string | URLSearchParams
 	);
+	/**
+	 * [MDN Reference](https://developer.mozilla.org/docs/Web/API/URLSearchParams/size)
+	 */
 	size: number;
 	/**
 	 * Appends a specified key/value pair as a new search parameter.
@@ -158,20 +161,22 @@ URL.revokeObjectURL = (url) => {
 	objectUrls.delete(url);
 };
 
-// @ts-expect-error `inspect.custom` is not defined on URL class
-URL.prototype[inspect.custom] = function (this: URL) {
-	return `URL ${inspect({
-		hash: this.hash,
-		host: this.host,
-		hostname: this.hostname,
-		href: this.href,
-		origin: this.origin,
-		password: this.password,
-		pathname: this.pathname,
-		port: this.port,
-		protocol: this.protocol,
-		search: this.search,
-		searchParams: this.searchParams,
-		username: this.username,
-	})}`;
-};
+Object.defineProperty(URL.prototype, inspect.custom, {
+	enumerable: false,
+	value(this: URL) {
+		return `URL ${inspect({
+			hash: this.hash,
+			host: this.host,
+			hostname: this.hostname,
+			href: this.href,
+			origin: this.origin,
+			password: this.password,
+			pathname: this.pathname,
+			port: this.port,
+			protocol: this.protocol,
+			search: this.search,
+			searchParams: this.searchParams,
+			username: this.username,
+		})}`;
+	},
+});

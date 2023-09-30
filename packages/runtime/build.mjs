@@ -58,4 +58,36 @@ output = output.replace(/\bHTMLCanvasElement\b/g, 'Canvas');
 // hurt, but also isn't necessary. Clean that up.
 output = output.trim().split('\n').slice(0, -1).join('\n');
 
+function generateNamespace(name, filePath) {
+	let [output] = generateDtsBundle(
+		[
+			{
+				filePath,
+			},
+		],
+		{
+			noBanner: true,
+		}
+	);
+	output = output.replace(/^export (declare )?/gm, '');
+	output = output.replace(/\bimplements (.*){/g, (_, matches) => {
+		const filtered = matches
+			.split(',')
+			.map((i) => i.trim())
+			.filter((i) => !i.startsWith(`${name}.`));
+		if (filtered.length > 0) {
+			return `implements ${filtered.join(', ')} {`;
+		}
+		return '{';
+	});
+	output = output.trim().split('\n').slice(2, -2).map(l => `  ${l}`).join('\n');
+	//console.log({ output });
+	return `declare namespace ${name} {\n${output}\n}\n`;
+}
+
+// `dts-bundle-generator` does not currently support namespaces,
+// so we need to add those in manually:
+// See: https://github.com/timocov/dts-bundle-generator/issues/134
+output += generateNamespace('WebAssembly', './src/wasm.ts');
+
 fs.writeFileSync(new URL('index.d.ts', distDir), output);
