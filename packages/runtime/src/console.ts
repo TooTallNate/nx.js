@@ -6,10 +6,41 @@ declare const Switch: SwitchClass;
 const bgRedDim = bgRgb(60, 0, 0);
 const bgYellowDim = bgRgb(60, 60, 0);
 
-// TODO: add support for multiple arguments, printf formatting
-function _format(...input: unknown[]): string {
+const formatters: Record<string, (v: unknown) => string> = {
+	s(v) {
+		return String(v);
+	},
+	d(v) {
+		return String(Number(v));
+	},
+	j(v) {
+		return JSON.stringify(v);
+	},
+	o(v) {
+		return Switch.inspect(v);
+	},
+	O(v) {
+		return Switch.inspect(v);
+	},
+};
+
+const RE = new RegExp(`\\%([${Object.keys(formatters).join('')}])`, 'g');
+
+function format(...input: unknown[]): string {
 	if (input.length === 0) return '';
-	return typeof input[0] === 'string' ? input[0] : Switch.inspect(input[0]);
+	let s = '';
+	if (typeof input[0] === 'string') {
+		const pre = input.shift() as string;
+		RE.lastIndex = 0;
+		s = pre.replace(RE, (_, f) => {
+			return formatters[f](input.shift());
+		});
+	}
+	if (input.length) {
+		if (s) s += ' ';
+		s += input.map((v) => Switch.inspect(v)).join(' ');
+	}
+	return s;
 }
 
 /**
@@ -32,21 +63,21 @@ export const console = {
 	 * Logs to the screen the formatted `input` as white text.
 	 */
 	log(...input: unknown[]) {
-		Switch.print(`${_format(...input)}\n`);
+		Switch.print(`${format(...input)}\n`);
 	},
 
 	/**
 	 * Logs to the screen the formatted `input` as yellow text.
 	 */
 	warn(...input: unknown[]) {
-		Switch.print(`${bold(bgYellowDim(yellow(_format(...input))))}\n`);
+		Switch.print(`${bold(bgYellowDim(yellow(format(...input))))}\n`);
 	},
 
 	/**
 	 * Logs to the screen the formatted `input` as red text.
 	 */
 	error(...input: unknown[]) {
-		Switch.print(`${bold(bgRedDim(red(_format(...input))))}\n`);
+		Switch.print(`${bold(bgRedDim(red(format(...input))))}\n`);
 	},
 
 	/**
