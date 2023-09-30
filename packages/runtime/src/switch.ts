@@ -3,6 +3,7 @@ import { FontFaceSet } from './polyfills/font';
 import { INTERNAL_SYMBOL, PathLike, Stats } from './types';
 import { inspect } from './inspect';
 import { bufferSourceToArrayBuffer } from './utils';
+import { setTimeout, clearTimeout } from './timers';
 import { encoder } from './polyfills/text-encoder';
 
 export type Opaque<T> = { __type: T };
@@ -749,7 +750,9 @@ export class SwitchClass extends EventTarget {
 			this.native.hidSendVibrationValues(DEFAULT_VIBRATION);
 			internal.vibrationDevicesInitialized = true;
 		}
-		clearTimeout(internal.vibrationTimeoutId);
+		if (typeof internal.vibrationTimeoutId === 'number') {
+			clearTimeout(internal.vibrationTimeoutId);
+		}
 		internal.vibrationPattern = patternValues;
 		internal.vibrationTimeoutId = setTimeout(this.#processVibrations, 0);
 		return true;
