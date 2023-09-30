@@ -98,10 +98,15 @@ test('global-export.wasm', async () => {
 	assert.equal(myGlobal.value, 42, 'getting initial value from JS');
 	assert.equal(getGlobal(), 42, 'getting initial value from WASM');
 
+	// Modify global from WASM
 	incGlobal();
-
 	assert.equal(myGlobal.value, 43, 'getting updated value from JS');
 	assert.equal(getGlobal(), 43, 'getting updated value from WASM');
+
+	// Modify global from JS
+	myGlobal.value = 6;
+	assert.equal(myGlobal.value, 6, 'getting updated value from JS');
+	assert.equal(getGlobal(), 6, 'getting updated value from WASM');
 });
 
 test('memory-export.wasm', async () => {
