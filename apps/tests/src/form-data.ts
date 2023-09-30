@@ -16,15 +16,16 @@ test('FormData', async () => {
 
 	const r = new Response(form);
 	const form2 = await r.formData();
-	assert.ok(form2 instanceof FormData);
-	assert.ok(form2.get('string') === 'string-value');
-	assert.ok(form2.get('missing') === null);
+	assert.instance(form2, FormData);
+	assert.equal(form2.get('string'), 'string-value');
+	assert.equal(form2.get('missing'), null);
 
 	const file2 = form2.get('file');
-	assert.ok(file2 instanceof File);
-	assert.ok(file2.name === 'file.txt');
-	assert.ok(file2.type === 'text/plain');
-	assert.ok((await file2.text()) === 'contents');
+	assert.ok(file2 && typeof file2 !== 'string');
+	assert.instance(file2, File);
+	assert.equal(file2.name, 'file.txt');
+	assert.equal(file2.type, 'text/plain');
+	assert.equal(await file2.text(), 'contents');
 });
 
 test.run();
