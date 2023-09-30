@@ -33,7 +33,7 @@ test('simple.wasm', async () => {
 
 test('add.wasm', async () => {
 	const { module, instance } = await WebAssembly.instantiateStreaming(
-		fetch(new URL('add.wasm', Switch.entrypoint))
+		fetch('add.wasm')
 	);
 	assert.equal(WebAssembly.Module.imports(module).length, 0);
 	assert.equal(WebAssembly.Module.exports(module), [
@@ -47,7 +47,7 @@ test('add.wasm', async () => {
 
 test('fib.wasm', async () => {
 	const { module, instance } = await WebAssembly.instantiateStreaming(
-		fetch(new URL('fib.wasm', Switch.entrypoint))
+		fetch('fib.wasm')
 	);
 	assert.equal(WebAssembly.Module.imports(module).length, 0);
 
@@ -78,7 +78,7 @@ test('global.wasm', async () => {
 	assert.equal(g.value, 6, 'getting initial value from JS');
 
 	const { module, instance } = await WebAssembly.instantiateStreaming(
-		fetch(new URL('global.wasm', Switch.entrypoint)),
+		fetch('global.wasm'),
 		{
 			js: { global: g },
 		}
@@ -107,7 +107,7 @@ test('global.wasm', async () => {
 
 test('global-export.wasm', async () => {
 	const { module, instance } = await WebAssembly.instantiateStreaming(
-		fetch(new URL('global-export.wasm', Switch.entrypoint))
+		fetch('global-export.wasm')
 	);
 	assert.equal(WebAssembly.Module.imports(module).length, 0);
 	assert.equal(WebAssembly.Module.exports(module), [
@@ -139,7 +139,7 @@ test('global-export.wasm', async () => {
 
 test('memory-export.wasm', async () => {
 	const { module, instance } = await WebAssembly.instantiateStreaming(
-		fetch(new URL('memory-export.wasm', Switch.entrypoint))
+		fetch('memory-export.wasm')
 	);
 	assert.equal(WebAssembly.Module.imports(module).length, 0);
 
@@ -166,7 +166,7 @@ test('memory-export.wasm', async () => {
 test('Imported function throws an Error is propagated', async () => {
 	const e = new Error('will be thrown');
 	const { instance } = await WebAssembly.instantiateStreaming(
-		fetch(new URL('simple.wasm', Switch.entrypoint)),
+		fetch('simple.wasm'),
 		{
 			imports: {
 				imported_func() {

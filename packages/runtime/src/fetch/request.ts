@@ -133,7 +133,7 @@ export class Request extends Body implements globalThis.Request {
 		} else {
 			const url =
 				typeof input === 'string'
-					? new URL(input, Switch.cwd())
+					? new URL(input, Switch.entrypoint)
 					: input;
 			this.url = url.href;
 			this.cache = init.cache || 'default';
