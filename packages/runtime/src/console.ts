@@ -48,4 +48,11 @@ export const console = {
 	error(...input: unknown[]) {
 		Switch.print(`${bold(bgRedDim(red(_format(...input))))}\n`);
 	},
+
+	/**
+	 * `console.debug()` is an alias for `console.log()`.
+	 */
+	debug(...input: unknown[]) {
+		console.log(...input);
+	},
 };
