@@ -56,7 +56,7 @@ function format(...input: unknown[]): string {
  * > application to _text rendering mode_, clearing any pixels previously
  * > drawn on the screen using the Canvas API.
  *
- * @see https://developer.mozilla.org/en-US/docs/Web/API/console
+ * @see https://developer.mozilla.org/docs/Web/API/console
  */
 export const console = {
 	/**

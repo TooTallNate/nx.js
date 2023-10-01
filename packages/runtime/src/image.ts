@@ -8,7 +8,7 @@ import type { ImageOpaque } from './switch';
 declare const Switch: SwitchClass;
 
 /**
- * The `Image` class is the spiritual equivalent of the [`HTMLImageElement`](https://developer.mozilla.org/en-US/docs/Web/API/HTMLImageElement)
+ * The `Image` class is the spiritual equivalent of the [`HTMLImageElement`](https://developer.mozilla.org/docs/Web/API/HTMLImageElement)
  * class in web browsers. You can use it to load image data from the filesytem
  * or remote source over the network. Once loaded, the image may be drawn onto the screen
  * context or an offscreen canvas content using {@link CanvasRenderingContext2D.drawImage | `ctx.drawImage()`}.

@@ -281,7 +281,7 @@ const fetchers = new Map<string, (req: Request, url: URL) => Promise<Response>>(
  *   });
  * ```
  *
- * @see https://developer.mozilla.org/en-US/docs/Web/API/fetch
+ * @see https://developer.mozilla.org/docs/Web/API/fetch
  */
 export function fetch(input: string | URL | Request, init?: RequestInit) {
 	const req = new Request(input, init);

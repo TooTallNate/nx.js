@@ -16,7 +16,7 @@ const timers = new Map<number, Timer>();
 /**
  * The global `setTimeout()` method sets a timer which executes a function or specified piece of code once the timer expires.
  *
- * @see https://developer.mozilla.org/en-US/docs/Web/API/setTimeout
+ * @see https://developer.mozilla.org/docs/Web/API/setTimeout
  * @param handler - The function or string to be executed after the timer expires.
  * @param timeout - The time, in milliseconds, the timer should wait before the specified function or code is executed. If this parameter is omitted, a value of 0 is used.
  * @param args - Additional arguments to be passed to the function specified by the handler parameter.
@@ -37,7 +37,7 @@ export function setTimeout(handler: TimerHandler, timeout = 0, ...args: any[]) {
 /**
  * The global `setInterval()` method repeatedly calls a function or executes a code snippet, with a fixed time delay between each call.
  *
- * @see https://developer.mozilla.org/en-US/docs/Web/API/setInterval
+ * @see https://developer.mozilla.org/docs/Web/API/setInterval
  * @param handler - The function or string to be executed every time the interval elapses.
  * @param timeout - The time, in milliseconds, the timer should delay in between executions of the specified function or code. If this parameter is omitted, a value of 0 is used.
  * @param args - Additional arguments to be passed to the function specified by the handler parameter.
@@ -63,7 +63,7 @@ export function setInterval(
 /**
  * The global `clearTimeout()` method clears a timer set with the {@link setTimeout | `setTimeout()`} method.
  *
- * @see https://developer.mozilla.org/en-US/docs/Web/API/clearTimeout
+ * @see https://developer.mozilla.org/docs/Web/API/clearTimeout
  * @param id - The ID of the timer you want to clear, as returned by {@link setTimeout | `setTimeout()`}.
  */
 export function clearTimeout(id: number) {
@@ -73,7 +73,7 @@ export function clearTimeout(id: number) {
 /**
  * The global `clearInterval()` method clears a timer set with the {@link setInterval | `setInterval()`} method.
  *
- * @see https://developer.mozilla.org/en-US/docs/Web/API/clearInterval
+ * @see https://developer.mozilla.org/docs/Web/API/clearInterval
  * @param id - The ID of the timer you want to clear, as returned by {@link setInterval | `setInterval()`}.
  */
 export function clearInterval(id: number) {

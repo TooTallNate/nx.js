@@ -732,7 +732,7 @@ export class SwitchClass extends EventTarget {
 	 *
 	 * @param pattern Provides a pattern of vibration and pause intervals. Each value indicates a number of milliseconds to vibrate or pause, in alternation. You may provide either a single value (to vibrate once for that many milliseconds) or an array of values to alternately vibrate, pause, then vibrate again.
 	 *
-	 * @see https://developer.mozilla.org/en-US/docs/Web/API/Navigator/vibrate
+	 * @see https://developer.mozilla.org/docs/Web/API/Navigator/vibrate
 	 */
 	vibrate(pattern: number | Vibration | (number | Vibration)[]): boolean {
 		if (!Array.isArray(pattern)) {

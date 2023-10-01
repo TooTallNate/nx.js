@@ -10,7 +10,7 @@ declare const Switch: SwitchClass;
  *
  * This property is available as {@link Switch.fonts | `Switch.fonts`}.
  *
- * @see https://developer.mozilla.org/en-US/docs/Web/API/FontFaceSet
+ * @see https://developer.mozilla.org/docs/Web/API/FontFaceSet
  */
 export class FontFaceSet extends EventTarget {
 	/**
@@ -74,6 +74,9 @@ export const fontFaceInternal = new WeakMap<
 	}
 >();
 
+/**
+ * @see https://developer.mozilla.org/docs/Web/API/FontFace
+ */
 export class FontFace implements globalThis.FontFace {
 	ascentOverride: string;
 	descentOverride: string;

@@ -22,9 +22,9 @@ right at home.
 -   **JavaScript Development**: Write homebrew applications for the Nintendo Switch using JavaScript, a popular and widely supported programming language.
 -   **High-Level API**: Benefit from a high-level JavaScript API designed specifically for the Nintendo Switch platform, providing easy access to console-specific features and functionality.
 -   **Input Handling**: Capture and process user input with ease, including buttons, touch screen, and motion controls, to create engaging gameplay experiences.
--   **Graphics and UI**: Create visually appealing and interactive user interfaces using the web [`Canvas`](https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API) API.
--   **Audio Support**: Integrate audio playback and sound effects into your applications using the web [`Audio`](https://developer.mozilla.org/en-US/docs/Web/API/HTMLAudioElement/Audio) API.
--   **No Compilation Necessary**: Just drop a `.js` file with the name matching the nx.js `.nro` file onto your SD card.
+-   **Graphics and UI**: Create visually appealing and interactive user interfaces using the web [`Canvas`](https://developer.mozilla.org/docs/Web/API/Canvas_API) API.
+-   **Audio Support**: Integrate audio playback and sound effects into your applications using the web [`Audio`](https://developer.mozilla.org/docs/Web/API/HTMLAudioElement/Audio) API.
+-   **WebAssembly**: Support for executing code compiled to [WebAssembly (WASM)](https://developer.mozilla.org/docs/WebAssembly).
 
 ## Getting Started
 
