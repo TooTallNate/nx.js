@@ -22,6 +22,7 @@ export type {
 export type { InspectOptions } from './inspect';
 export type * from './types';
 export type * from './console';
+export type * from './navigator';
 export type {
 	CanvasImageSource,
 	Canvas,
@@ -72,6 +73,8 @@ def('setTimeout', setTimeout);
 def('setInterval', setInterval);
 def('clearTimeout', clearTimeout);
 def('clearInterval', clearInterval);
+
+import './navigator';
 
 import * as WebAssembly from './wasm';
 def('WebAssembly', WebAssembly);

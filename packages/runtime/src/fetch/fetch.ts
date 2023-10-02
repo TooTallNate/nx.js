@@ -5,6 +5,7 @@ import { decoder } from '../polyfills/text-decoder';
 import { Request, type RequestInit } from './request';
 import { Response } from './response';
 import { Headers } from './headers';
+import { navigator } from '../navigator';
 import type { SwitchClass } from '../switch';
 
 declare const Switch: SwitchClass;
@@ -143,7 +144,7 @@ async function fetchHttp(req: Request, url: URL) {
 		req.headers.set('host', url.host);
 	}
 	if (!req.headers.has('user-agent')) {
-		req.headers.set('user-agent', `nx.js/${Switch.version.nxjs}`);
+		req.headers.set('user-agent', navigator.userAgent);
 	}
 	if (!req.headers.has('accept')) {
 		req.headers.set('accept', '*/*');
