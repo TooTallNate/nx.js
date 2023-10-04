@@ -576,7 +576,7 @@ int main(int argc, char *argv[])
         JSValue event_obj = JS_NewObject(ctx);
         JS_SetPropertyStr(ctx, event_obj, "type", JS_NewString(ctx, "frame"));
         JS_SetPropertyStr(ctx, event_obj, "detail", JS_NewUint32(ctx, kDown));
-        JSValue args[] = {event_obj};
+        JSValueConst args[] = {event_obj};
         JSValue ret_val = JS_Call(ctx, switch_dispatch_func, switch_obj, 1, args);
         JS_FreeValue(ctx, event_obj);
 
