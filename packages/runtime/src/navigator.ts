@@ -12,6 +12,9 @@ declare const Switch: SwitchClass;
  * @see https://developer.mozilla.org/docs/Web/API/Navigator
  */
 export class Navigator {
+	/**
+	 * @ignore
+	 */
 	constructor() {
 		throw new TypeError('Illegal constructor.');
 	}

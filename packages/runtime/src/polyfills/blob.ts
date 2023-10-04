@@ -52,11 +52,12 @@ export interface BlobPropertyBag {
 	type?: string;
 }
 
+/**
+ * A file-like object of immutable, raw data. Blobs represent data that isn't
+ * necessarily in a JavaScript-native format.
+ */
 export class Blob implements globalThis.Blob {
 	/**
-	 * A file-like object of immutable, raw data. Blobs represent data that isn't
-	 * necessarily in a JavaScript-native format.
-	 *
 	 * @param blobParts - An array of BlobPart values that will be concatenated into a single Blob.
 	 * @param options - An optional object that specifies the `Content-Type` and endings of the Blob.
 	 */

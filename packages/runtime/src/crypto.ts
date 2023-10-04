@@ -24,9 +24,22 @@ export class Crypto implements globalThis.Crypto {
 	}
 
 	/**
-	 * Fills the provided TypedArray with cryptographically strong random values.
-	 * @param array - The TypedArray to fill with random values.
-	 * @returns The same TypedArray filled with random values.
+	 * Fills the provided `TypedArray` with cryptographically strong random values.
+	 *
+	 * @example
+	 *
+	 * ```typescript
+	 * const array = new Uint32Array(10);
+	 * crypto.getRandomValues(array);
+	 *
+	 * console.log("Your lucky numbers:");
+	 * for (const num of array) {
+	 *   console.log(num);
+	 * }
+	 * ```
+	 *
+	 * @param array The `TypedArray` to fill with random values.
+	 * @returns The same `TypedArray` filled with random values.
 	 */
 	getRandomValues<T extends ArrayBufferView | null>(array: T): T {
 		if (array) {
@@ -41,6 +54,15 @@ export class Crypto implements globalThis.Crypto {
 
 	/**
 	 * Generates a cryptographically strong random unique identifier (UUID).
+	 *
+	 * @example
+	 *
+	 * ```typescript
+	 * const uuid = crypto.randomUUID();
+	 * console.log(uuid);
+	 * // for example "36b8f84d-df4e-4d49-b662-bcde71a8764f"
+	 * ```
+	 *
 	 * @returns A string representation of a UUID.
 	 */
 	randomUUID(): `${string}-${string}-${string}-${string}-${string}` {
