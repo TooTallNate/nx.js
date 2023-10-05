@@ -6,11 +6,6 @@ const fontData = Switch.readFileSync(
 const font = new FontFace('Hack', fontData);
 Switch.fonts.add(font);
 
-const ctx = Switch.screen.getContext('2d');
-const fontSize = 30.83;
-const yOffset = 180;
-ctx.font = `${fontSize}px Hack`;
-
 function fdToStream(fd: number) {
 	const decoder = new TextDecoder();
 	const buffer = new ArrayBuffer(102400);
@@ -45,7 +40,7 @@ async function main() {
 	// wait for prompt
 	while (true) {
 		const chunk = await reader.read();
-		if (chunk.value?.includes('More commands become available')) {
+		if (chunk.value?.includes('Press control-C')) {
 			break;
 		}
 	}
@@ -55,6 +50,11 @@ async function main() {
 
 	// next line is the "starwars" echo, which we can ignore
 	await reader.read();
+
+	const ctx = Switch.screen.getContext('2d');
+	const fontSize = 30.83;
+	const yOffset = 180;
+	ctx.font = `${fontSize}px Hack`;
 
 	// dump the movie to the console
 	let lineCount = 0;
