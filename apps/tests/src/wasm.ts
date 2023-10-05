@@ -103,6 +103,9 @@ test('global.wasm', async () => {
 	const g = new WebAssembly.Global({ value: 'i32', mutable: true }, 6);
 	assert.equal(g.value, 6, 'getting initial value from JS');
 
+	g.value = 12;
+	assert.equal(g.value, 12, 'reading updated value from JS');
+
 	const { module, instance } = await WebAssembly.instantiateStreaming(
 		fetch('global.wasm'),
 		{
@@ -121,8 +124,8 @@ test('global.wasm', async () => {
 	const incGlobal = instance.exports.incGlobal as Function;
 	assert.type(incGlobal, 'function');
 
-	assert.equal(g.value, 6, 'getting initial value from JS after init');
-	assert.equal(getGlobal(), 6, 'getting initial value from wasm');
+	assert.equal(g.value, 12, 'getting initial value from JS after init');
+	assert.equal(getGlobal(), 12, 'getting initial value from wasm');
 
 	g.value = 42;
 	assert.equal(getGlobal(), 42, 'getting JS-updated value from wasm');

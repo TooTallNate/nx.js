@@ -110,7 +110,11 @@ export class Global<T extends ValueType = ValueType>
 
 	set value(v: ValueTypeMap[T]) {
 		const i = globalInternalsMap.get(this)!;
-		i.opaque ? Switch.native.wasmGlobalSet(i.opaque, v) : i.value;
+		if (i.opaque) {
+			Switch.native.wasmGlobalSet(i.opaque, v);
+		} else {
+			i.value = v;
+		}
 	}
 
 	/**
