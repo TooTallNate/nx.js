@@ -370,6 +370,7 @@ export interface Versions {
 	png: string;
 	quickjs: string;
 	turbojpeg: string;
+	wasm3: string;
 	webp: string;
 }
 

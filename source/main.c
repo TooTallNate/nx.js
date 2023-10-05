@@ -478,6 +478,7 @@ int main(int argc, char *argv[])
     JS_SetPropertyStr(ctx, version_obj, "png", JS_NewString(ctx, PNG_LIBPNG_VER_STRING));
     JS_SetPropertyStr(ctx, version_obj, "quickjs", JS_NewString(ctx, QUICKJS_VERSION));
     JS_SetPropertyStr(ctx, version_obj, "turbojpeg", JS_NewString(ctx, LIBTURBOJPEG_VERSION));
+    JS_SetPropertyStr(ctx, version_obj, "wasm3", JS_NewString(ctx, M3_VERSION));
     const int webp_version = WebPGetDecoderVersion();
     char webp_version_str[12];
     snprintf(webp_version_str, 12, "%d.%d.%d", (webp_version >> 16) & 0xFF, (webp_version >> 8) & 0xFF, webp_version & 0xFF);
