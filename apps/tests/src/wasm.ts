@@ -51,11 +51,10 @@ test('fib.wasm', async () => {
 	);
 	assert.equal(WebAssembly.Module.imports(module).length, 0);
 
-	// TODO: "memory" kind not yet supported in `exports()`
-	//assert.equal(WebAssembly.Module.exports(module), [
-	//	{ name: 'memory', kind: 'memory' },
-	//	{ name: 'fib', kind: 'function' }
-	//]);
+	assert.equal(WebAssembly.Module.exports(module), [
+		{ name: 'fib', kind: 'function' },
+		{ name: 'memory', kind: 'memory' },
+	]);
 
 	const fib = instance.exports.fib as (i: number) => number;
 	assert.type(fib, 'function');
@@ -170,10 +169,9 @@ test('memory-export.wasm', async () => {
 	);
 	assert.equal(WebAssembly.Module.imports(module).length, 0);
 
-	// TODO: "memory" kind not yet supported in `exports()`
-	//assert.equal(WebAssembly.Module.exports(module), [
-	//	{ name: 'memory', kind: 'memory' },
-	//]);
+	assert.equal(WebAssembly.Module.exports(module), [
+		{ name: 'memory', kind: 'memory' },
+	]);
 
 	const memory = instance.exports.memory as WebAssembly.Memory;
 	assert.instance(memory, WebAssembly.Memory);

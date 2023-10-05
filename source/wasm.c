@@ -142,7 +142,7 @@ static JSValue nx_wasm_global_value_get(JSContext *ctx, JSValueConst this_val, i
         return nx_throw_wasm_error(ctx, "LinkError", r);
     }
 
-    return JS_NewInt32(ctx, val.value.i32);
+    return nx__wasm_tojsvalue(ctx, val.type, &val.value);
 }
 
 static JSValue nx_wasm_global_value_set(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -155,13 +155,8 @@ static JSValue nx_wasm_global_value_set(JSContext *ctx, JSValueConst this_val, i
     if (!global)
     {
         // Not bound
-        // TODO: throw error
         return JS_ThrowTypeError(ctx, "Global not defined");
     }
-
-    // M3TaggedValue val;
-    // val.type = global->type;
-    // val.value.i32 = 123;
 
     JSValue new_val = argv[1];
     switch (global->type)
@@ -192,12 +187,6 @@ static JSValue nx_wasm_global_value_set(JSContext *ctx, JSValueConst this_val, i
         break;
     };
     }
-
-    // M3Result r = m3_SetGlobal(global, &val);
-    // if (r)
-    //{
-    //     return nx_throw_wasm_error(ctx, "LinkError", r);
-    // }
 
     return JS_UNDEFINED;
 }
@@ -533,12 +522,9 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val, int a
             return buf;
         }
 
-        // TODO: Seems like the exported name is not saved within wasm3 - assume "memory" for now
-        const char *name = "memory";
-
         JSValue item = JS_NewObject(ctx);
         JS_DefinePropertyValueStr(ctx, item, "kind", JS_NewString(ctx, "memory"), JS_PROP_C_W_E);
-        JS_DefinePropertyValueStr(ctx, item, "name", JS_NewString(ctx, name), JS_PROP_C_W_E);
+        JS_DefinePropertyValueStr(ctx, item, "name", JS_NewString(ctx, instance->module->memoryExportName), JS_PROP_C_W_E);
         JS_DefinePropertyValueStr(ctx, item, "val", buf, JS_PROP_C_W_E);
         // TODO: maximum / shared?
         JS_DefinePropertyValueUint32(ctx, exports_array, exports_index++, item, JS_PROP_C_W_E);
@@ -589,15 +575,15 @@ static JSValue nx_wasm_module_imports(JSContext *ctx, JSValueConst this_val, int
         }
     }
 
-    // if (m->module->memoryImported) {
-    //     JSValue item = JS_NewObject(ctx);
-    //     JS_DefinePropertyValueStr(ctx, item, "kind", JS_NewString(ctx, "memory"), JS_PROP_C_W_E);
-    //     JS_DefinePropertyValueStr(ctx, item, "module", JS_NewString(ctx, "?"), JS_PROP_C_W_E);
-    //     JS_DefinePropertyValueStr(ctx, item, "name", JS_NewString(ctx, "?"), JS_PROP_C_W_E);
-    //     JS_DefinePropertyValueUint32(ctx, imports, index++, item, JS_PROP_C_W_E);
-    // }
+    if (m->module->memoryImported) {
+        JSValue item = JS_NewObject(ctx);
+        JS_DefinePropertyValueStr(ctx, item, "kind", JS_NewString(ctx, "memory"), JS_PROP_C_W_E);
+        JS_DefinePropertyValueStr(ctx, item, "module", JS_NewString(ctx, m->module->memoryImport.moduleUtf8), JS_PROP_C_W_E);
+        JS_DefinePropertyValueStr(ctx, item, "name", JS_NewString(ctx, m->module->memoryImport.fieldUtf8), JS_PROP_C_W_E);
+        JS_DefinePropertyValueUint32(ctx, imports, index++, item, JS_PROP_C_W_E);
+    }
 
-    // TODO: "table" import types (seems that perhaps wasm3 doesn't currently support?)
+    // TODO: "table" import types (wasm3 doesn't currently support)
 
     return imports;
 }
@@ -637,7 +623,14 @@ static JSValue nx_wasm_module_exports(JSContext *ctx, JSValueConst this_val, int
         }
     }
 
-    // TODO: other export types.
+    if (!m->module->memoryImported && m->module->memoryExportName) {
+        JSValue item = JS_NewObject(ctx);
+        JS_DefinePropertyValueStr(ctx, item, "kind", JS_NewString(ctx, "memory"), JS_PROP_C_W_E);
+        JS_DefinePropertyValueStr(ctx, item, "name", JS_NewString(ctx, m->module->memoryExportName), JS_PROP_C_W_E);
+        JS_DefinePropertyValueUint32(ctx, exports, index++, item, JS_PROP_C_W_E);
+    }
+
+    // TODO: "table" import types (wasm3 doesn't currently support)
 
     return exports;
 }
