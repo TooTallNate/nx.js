@@ -494,8 +494,7 @@ int main(int argc, char *argv[])
     nx_init_tcp(ctx, native_obj);
     nx_init_wasm(ctx, native_obj);
 
-    JSValue exit_func = JS_NewCFunction(ctx, js_exit, "exit", 0);
-    JS_SetPropertyStr(ctx, switch_obj, "exit", exit_func);
+    JS_SetPropertyStr(ctx, switch_obj, "exit", JS_NewCFunction(ctx, js_exit, "exit", 0));
 
     const JSCFunctionListEntry function_list[] = {
         JS_CFUNC_DEF("print", 1, js_print),
@@ -638,6 +637,11 @@ wait_error:
             consoleUpdate(NULL);
         }
     }
+
+    JS_FreeValue(ctx, switch_dispatch_func);
+    JS_FreeValue(ctx, native_obj);
+    JS_FreeValue(ctx, switch_obj);
+    JS_FreeValue(ctx, global_obj);
 
     JS_FreeContext(ctx);
     JS_FreeRuntime(rt);
