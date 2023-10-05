@@ -73,6 +73,33 @@ test('fib.wasm', async () => {
 	assert.equal(fib(11), 89);
 });
 
+test('fail.wasm', async () => {
+	const bin = await Switch.readFile(new URL('fail.wasm', Switch.entrypoint));
+	const mod = new WebAssembly.Module(bin);
+
+	assert.equal(WebAssembly.Module.imports(mod).length, 0);
+
+	assert.equal(WebAssembly.Module.exports(mod), [
+		{ name: 'fail_me', kind: 'function' },
+	]);
+
+	const instance = await WebAssembly.instantiate(mod);
+
+	let err: Error | undefined;
+	const fail_me = instance.exports.fail_me as Function;
+	assert.type(fail_me, 'function');
+
+	try {
+		fail_me();
+	} catch (err_: any) {
+		err = err_;
+	}
+	assert.ok(err);
+	assert.instance(err, WebAssembly.RuntimeError);
+	assert.equal(err.name, 'RuntimeError');
+	assert.equal(err.message, '[trap] integer divide by zero');
+});
+
 test('global.wasm', async () => {
 	const g = new WebAssembly.Global({ value: 'i32', mutable: true }, 6);
 	assert.equal(g.value, 6, 'getting initial value from JS');
