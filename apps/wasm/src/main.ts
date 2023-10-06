@@ -6,8 +6,10 @@
 const wasm = Switch.readFileSync(new URL('simple.wasm', Switch.entrypoint));
 
 const mod = new WebAssembly.Module(wasm);
-console.log(WebAssembly.Module.exports(mod));
-console.log(WebAssembly.Module.imports(mod));
+console.log({
+	imports: WebAssembly.Module.imports(mod),
+	exports: WebAssembly.Module.exports(mod),
+});
 
 const importObject = {
 	imports: {
