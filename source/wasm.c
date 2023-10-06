@@ -131,7 +131,6 @@ static JSValue nx_wasm_global_value_get(JSContext *ctx, JSValueConst this_val, i
     if (!global)
     {
         // Not bound
-        // TODO: throw error
         return JS_ThrowTypeError(ctx, "Global not defined");
     }
 
@@ -164,26 +163,20 @@ static JSValue nx_wasm_global_value_set(JSContext *ctx, JSValueConst this_val, i
     case c_m3Type_i32:
     {
         if (JS_ToInt32(ctx, &global->i32Value, new_val))
-        {
-            // TODO: handle error
-        }
+            return JS_EXCEPTION;
         break;
     };
     case c_m3Type_i64:
     {
         if (JS_ToInt64(ctx, &global->i64Value, new_val))
-        {
-            // TODO: handle error
-        }
+            return JS_EXCEPTION;
         break;
     };
     case c_m3Type_f32:
     case c_m3Type_f64:
     {
         if (JS_ToFloat64(ctx, &global->f64Value, new_val))
-        {
-            // TODO: handle error
-        }
+            return JS_EXCEPTION;
         break;
     };
     }
@@ -311,6 +304,7 @@ static JSValue find_matching_import(JSContext *ctx, M3ImportInfo *info, JSValue 
         if (strcmp(info->moduleUtf8, module_name) != 0)
         {
             JS_FreeCString(ctx, module_name);
+            JS_FreeValue(ctx, entry);
             continue;
         }
 
@@ -319,6 +313,7 @@ static JSValue find_matching_import(JSContext *ctx, M3ImportInfo *info, JSValue 
         {
             JS_FreeCString(ctx, module_name);
             JS_FreeCString(ctx, field_name);
+            JS_FreeValue(ctx, entry);
             continue;
         }
 
@@ -387,6 +382,7 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val, int a
             if (JS_IsUndefined(matching_import))
             {
                 JS_ThrowTypeError(ctx, "Missing import function \"%s.%s\"", f->import.moduleUtf8, f->import.fieldUtf8);
+                return JS_EXCEPTION;
             }
 
             // TODO: validate "kind === 'function'"
@@ -415,11 +411,15 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val, int a
                 if (r)
                 {
                     JS_FreeValue(ctx, v);
+                    JS_FreeValue(ctx, matching_import);
                     return nx_throw_wasm_error(ctx, "LinkError", r);
                 }
             }
+
+            JS_FreeValue(ctx, v);
+            JS_FreeValue(ctx, matching_import);
         }
-        else
+        else if (f->export_name)
         {
             // Exported `Function`
             JSValue item = JS_NewObject(ctx);
@@ -434,14 +434,14 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val, int a
     for (size_t i = 0; i < instance->module->numGlobals; i++)
     {
         const IM3Global g = &instance->module->globals[i];
-        if (g->imported && g->import.moduleUtf8 && g->import.fieldUtf8)
+        if (g->imported)
         {
             // Imported `Global`
-
             JSValue matching_import = find_matching_import(ctx, &g->import, imports_array, imports_array_length);
             if (JS_IsUndefined(matching_import))
             {
                 JS_ThrowTypeError(ctx, "Missing import global \"%s.%s\"", g->import.moduleUtf8, g->import.fieldUtf8);
+                return JS_EXCEPTION;
             }
 
             // TODO: validate "kind === 'global'"
@@ -457,31 +457,25 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val, int a
             case c_m3Type_i32:
             {
                 if (JS_ToInt32(ctx, &g->i32Value, initial_value))
-                {
-                    // TODO: handle error
-                }
+                    return JS_EXCEPTION;
                 break;
             };
             case c_m3Type_i64:
             {
                 if (JS_ToInt64(ctx, &g->i64Value, initial_value))
-                {
-                    // TODO: handle error
-                }
+                    return JS_EXCEPTION;
                 break;
             };
             case c_m3Type_f32:
             case c_m3Type_f64:
             {
                 if (JS_ToFloat64(ctx, &g->f64Value, initial_value))
-                {
-                    // TODO: handle error
-                }
+                    return JS_EXCEPTION;
                 break;
             };
             }
         }
-        else
+        else if (g->name)
         {
             // Exported `Global`
             JSValue op = nx_wasm_new_global(ctx, JS_UNDEFINED, 0, NULL);
@@ -575,7 +569,8 @@ static JSValue nx_wasm_module_imports(JSContext *ctx, JSValueConst this_val, int
         }
     }
 
-    if (m->module->memoryImported) {
+    if (m->module->memoryImported)
+    {
         JSValue item = JS_NewObject(ctx);
         JS_DefinePropertyValueStr(ctx, item, "kind", JS_NewString(ctx, "memory"), JS_PROP_C_W_E);
         JS_DefinePropertyValueStr(ctx, item, "module", JS_NewString(ctx, m->module->memoryImport.moduleUtf8), JS_PROP_C_W_E);
@@ -614,7 +609,7 @@ static JSValue nx_wasm_module_exports(JSContext *ctx, JSValueConst this_val, int
     for (size_t i = 0; i < m->module->numGlobals; ++i)
     {
         IM3Global g = &m->module->globals[i];
-        if (!g->imported)
+        if (!g->imported && g->name)
         {
             JSValue item = JS_NewObject(ctx);
             JS_DefinePropertyValueStr(ctx, item, "kind", JS_NewString(ctx, "global"), JS_PROP_C_W_E);
@@ -623,7 +618,8 @@ static JSValue nx_wasm_module_exports(JSContext *ctx, JSValueConst this_val, int
         }
     }
 
-    if (!m->module->memoryImported && m->module->memoryExportName) {
+    if (!m->module->memoryImported && m->module->memoryExportName)
+    {
         JSValue item = JS_NewObject(ctx);
         JS_DefinePropertyValueStr(ctx, item, "kind", JS_NewString(ctx, "memory"), JS_PROP_C_W_E);
         JS_DefinePropertyValueStr(ctx, item, "name", JS_NewString(ctx, m->module->memoryExportName), JS_PROP_C_W_E);
