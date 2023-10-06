@@ -638,6 +638,8 @@ wait_error:
         }
     }
 
+    FILE* leaks_fd = freopen("leaks.txt", "w", stdout);
+
     JS_FreeValue(ctx, switch_dispatch_func);
     JS_FreeValue(ctx, native_obj);
     JS_FreeValue(ctx, switch_obj);
@@ -660,6 +662,9 @@ wait_error:
     plExit();
     romfsExit();
     socketExit();
+
+    fflush(leaks_fd);
+    fclose(leaks_fd);
 
     return 0;
 }
