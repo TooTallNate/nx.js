@@ -254,11 +254,11 @@ void nx_init_image(JSContext *ctx, JSValueConst native_obj)
     JSRuntime *rt = JS_GetRuntime(ctx);
 
     JS_NewClassID(&nx_image_class_id);
-    JSClassDef font_face_class = {
+    JSClassDef image_class = {
         "nx_image_t",
         .finalizer = finalizer_image,
     };
-    JS_NewClass(rt, nx_image_class_id, &font_face_class);
+    JS_NewClass(rt, nx_image_class_id, &image_class);
 
     JS_SetPropertyFunctionList(ctx, native_obj, function_list, countof(function_list));
 }
