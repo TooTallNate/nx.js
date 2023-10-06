@@ -163,6 +163,7 @@ JSValue nx_read_file_sync(JSContext *ctx, JSValueConst this_val, int argc, JSVal
         JS_FreeCString(ctx, filename);
         return JS_EXCEPTION;
     }
+    JS_FreeCString(ctx, filename);
 
     fseek(file, 0, SEEK_END);
     size_t size = ftell(file);
@@ -171,7 +172,6 @@ JSValue nx_read_file_sync(JSContext *ctx, JSValueConst this_val, int argc, JSVal
     uint8_t *buffer = js_malloc(ctx, size);
     if (buffer == NULL)
     {
-        JS_FreeCString(ctx, filename);
         fclose(file);
         JS_ThrowOutOfMemory(ctx);
         return JS_EXCEPTION;
@@ -182,7 +182,6 @@ JSValue nx_read_file_sync(JSContext *ctx, JSValueConst this_val, int argc, JSVal
 
     if (result != size)
     {
-        JS_FreeCString(ctx, filename);
         js_free(ctx, buffer);
         JS_ThrowTypeError(ctx, "Failed to read entire file. Got %lu, expected %lu", result, size);
         return JS_EXCEPTION;
