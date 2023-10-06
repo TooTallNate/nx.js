@@ -1,5 +1,23 @@
 # nxjs-runtime
 
+## 0.0.19
+
+### Patch Changes
+
+- Add `navigator` global with `userAgent` property ([`2331b1e`](https://github.com/TooTallNate/nx.js/commit/2331b1e5ae8e3f0b13cfa03bb65997de4061dc91))
+
+- Add `Switch.version.wasm3` ([`8ad22c4`](https://github.com/TooTallNate/nx.js/commit/8ad22c470baf40db1099d306fa27af55f01b6329))
+
+- Make `data:` scheme URLs work with `fetch()` ([`9a9dee4`](https://github.com/TooTallNate/nx.js/commit/9a9dee4e819e9c623606e65aa54661cbd665d1d5))
+
+- Make the `console` functions handle printf formatters and multiple arguments ([`d22e5d2`](https://github.com/TooTallNate/nx.js/commit/d22e5d290107c0a200f1638e796fe57ac936a949))
+
+- Make `fetch()` URL resolve relative to `Switch.entrypoint` ([`cee00d0`](https://github.com/TooTallNate/nx.js/commit/cee00d0959fc163acbd1d989c5d9abdb19467c05))
+
+- Free JS references to make process exit cleanly ([`dfa97ae`](https://github.com/TooTallNate/nx.js/commit/dfa97ae8f87cf99680cae5f64661110b0e1de3e8))
+
+- Fix setting `WebAssembly.Global` value before being "bound" to a WASM module ([`0e3264e`](https://github.com/TooTallNate/nx.js/commit/0e3264e6a2ac6aaae7f01a7edca93d58aa409229))
+
 ## 0.0.18
 
 ### Patch Changes
