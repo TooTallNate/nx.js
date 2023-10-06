@@ -54,30 +54,3 @@ inline nx_context_t *nx_get_context(JSContext *ctx)
 {
     return JS_GetContextOpaque(ctx);
 }
-
-// DANGER: Internal Promise state from `quickjs.c`.
-// Verify that this is still accurate if/when QuickJS
-// ever gets updated.
-#define JS_CLASS_PROMISE 49
-
-struct list_head
-{
-    struct list_head *prev;
-    struct list_head *next;
-};
-
-typedef enum JSPromiseStateEnum
-{
-    JS_PROMISE_PENDING,
-    JS_PROMISE_FULFILLED,
-    JS_PROMISE_REJECTED,
-} JSPromiseStateEnum;
-
-typedef struct JSPromiseData
-{
-    JSPromiseStateEnum promise_state;
-    /* 0=fulfill, 1=reject, list of JSPromiseReactionData.link */
-    struct list_head promise_reactions[2];
-    BOOL is_handled; /* Note: only useful to debug */
-    JSValue promise_result;
-} JSPromiseData;

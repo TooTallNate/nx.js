@@ -337,12 +337,12 @@ static JSValue js_env_to_object(JSContext *ctx, JSValueConst this_val, int argc,
 // Returns the internal state of a Promise instance.
 static JSValue js_get_internal_promise_state(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-    JSPromiseData *promise_data = JS_GetOpaque(argv[0], JS_CLASS_PROMISE);
+    JSPromiseStateEnum state = JS_GetPromiseState(ctx, argv[0]);
     JSValue arr = JS_NewArray(ctx);
-    JS_SetPropertyUint32(ctx, arr, 0, JS_NewInt32(ctx, promise_data->promise_state));
-    if (promise_data->promise_state > 0)
+    JS_SetPropertyUint32(ctx, arr, 0, JS_NewUint32(ctx, state));
+    if (state > JS_PROMISE_PENDING)
     {
-        JS_SetPropertyUint32(ctx, arr, 1, promise_data->promise_result);
+        JS_SetPropertyUint32(ctx, arr, 1, JS_GetPromiseResult(ctx, argv[0]));
     }
     else
     {
