@@ -103,9 +103,6 @@ static JSValue js_canvas_new_context(JSContext *ctx, JSValueConst this_val, int 
         return obj;
     }
 
-    // TOOD: this probably needs to go into `framebuffer_init` instead
-    JS_DupValue(ctx, obj);
-
     // On Switch, the byte order seems to be BGRA
     cairo_surface_t *surface = cairo_image_surface_create_for_data(
         buffer, CAIRO_FORMAT_ARGB32, width, height, width * 4);
