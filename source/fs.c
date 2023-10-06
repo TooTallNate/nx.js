@@ -200,12 +200,12 @@ JSValue nx_write_file_sync(JSContext *ctx, JSValueConst this_val, int argc, JSVa
         JS_FreeCString(ctx, filename);
         return JS_EXCEPTION;
     }
+    JS_FreeCString(ctx, filename);
 
     size_t size;
     uint8_t *buffer = JS_GetArrayBuffer(ctx, &size, argv[1]);
     if (buffer == NULL)
     {
-        JS_FreeCString(ctx, filename);
         fclose(file);
         JS_ThrowOutOfMemory(ctx);
         return JS_EXCEPTION;
@@ -216,7 +216,6 @@ JSValue nx_write_file_sync(JSContext *ctx, JSValueConst this_val, int argc, JSVa
 
     if (result != size)
     {
-        JS_FreeCString(ctx, filename);
         JS_ThrowTypeError(ctx, "Failed to write entire file. Got %lu, expected %lu", result, result);
         return JS_EXCEPTION;
     }
