@@ -448,8 +448,8 @@ int main(int argc, char *argv[])
     /* The internal `$` object contains native functions that are wrapped in the JS runtime */
     JSValue global_obj = JS_GetGlobalObject(ctx);
     JSValue init_obj = JS_NewObject(ctx);
-    JS_SetPropertyStr(ctx, global_obj, "$", init_obj);
     nx_init_wasm(ctx, init_obj);
+    JS_SetPropertyStr(ctx, global_obj, "$", init_obj);
 
     // First try the `main.js` file on the RomFS
     size_t user_code_size;
@@ -681,7 +681,6 @@ wait_error:
     JS_FreeValue(ctx, dispatch_event_func);
     JS_FreeValue(ctx, native_obj);
     JS_FreeValue(ctx, switch_obj);
-    JS_FreeValue(ctx, init_obj);
     JS_FreeValue(ctx, global_obj);
 
     JS_FreeContext(ctx);
