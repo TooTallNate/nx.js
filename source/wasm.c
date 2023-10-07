@@ -62,7 +62,7 @@ typedef struct
 {
     IM3Memory mem;
     bool needs_free;
-    bool is_shared;
+    int is_shared;
 } nx_wasm_memory_t;
 
 static nx_wasm_memory_t *nx_wasm_memory_get(JSContext *ctx, JSValueConst obj)
@@ -831,6 +831,8 @@ static JSValue nx_wasm_memory_new(JSContext *ctx, JSValueConst this_val, int arg
     data->mem = mem;
     data->needs_free = true;
     data->is_shared = JS_ToBool(ctx, JS_GetPropertyStr(ctx, argv[0], "shared"));
+    if (data->is_shared == -1)
+        return JS_EXCEPTION;
 
     u32 initial;
     if (JS_ToUint32(ctx, &initial, JS_GetPropertyStr(ctx, argv[0], "initial")))
@@ -854,7 +856,7 @@ static JSValue nx_wasm_memory_new(JSContext *ctx, JSValueConst this_val, int arg
     return obj;
 }
 
-// Getter function
+// `Memory#buffer` getter function
 static JSValue nx_wasm_memory_buffer_get(JSContext *ctx, JSValueConst this_val)
 {
     nx_wasm_memory_t *data = nx_wasm_memory_get(ctx, this_val);
@@ -883,7 +885,7 @@ static JSValue nx_wasm_memory_buffer_get(JSContext *ctx, JSValueConst this_val)
     JSValue buf = JS_NewArrayBuffer(ctx, memory, size, NULL, NULL, data->is_shared);
     if (JS_IsException(buf))
     {
-        return buf;
+        return JS_EXCEPTION;
     }
     // TODO: return same instance. invalidate when size changes
     return buf;

@@ -222,6 +222,43 @@ test('memory-export.wasm', async () => {
 	assert.equal(sum, 45);
 });
 
+test('grow.wasm', async () => {
+	const { module, instance } = await WebAssembly.instantiateStreaming(
+		fetch('grow.wasm')
+	);
+	assert.equal(WebAssembly.Module.imports(module).length, 0);
+
+	assert.equal(WebAssembly.Module.exports(module), [
+		{ name: 'grow', kind: 'function' },
+		{ name: 'mem', kind: 'memory' },
+	]);
+
+	const grow = instance.exports.grow as Function;
+	const mem = instance.exports.mem as WebAssembly.Memory;
+	assert.instance(mem, WebAssembly.Memory);
+
+	const buf = mem.buffer;
+	assert.equal(buf.byteLength, 65536, 'Initially, page size = 1');
+	// TODO: make work
+	//assert.ok(buf === mem.buffer, 'Same size, same instance (size = 1)');
+
+	grow();
+	const buf2 = mem.buffer;
+	assert.equal(buf2.byteLength, 65536 * 2, 'Page size = 2');
+	assert.ok(buf !== buf2, 'Different size, different instance (size = 2)');
+	// TODO: make work
+	//assert.ok(buf2 === mem.buffer, 'Same size, same instance (size = 2)');
+
+	grow();
+	const buf3 = mem.buffer;
+	assert.equal(buf3.byteLength, 65536 * 3, 'Page size = 3');
+	assert.ok(buf2 !== buf3, 'Different size, different instance (size = 3)');
+	// TODO: make work
+	//assert.ok(buf3 === mem.buffer, 'Same size, same instance (size = 3)');
+
+	// TODO: `mem.grow(1)` test, once that function is implemented
+});
+
 test('Imported function throws an Error is propagated', async () => {
 	const e = new Error('will be thrown');
 	const { instance } = await WebAssembly.instantiateStreaming(
