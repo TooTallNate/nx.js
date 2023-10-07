@@ -1,5 +1,29 @@
 # nxjs-runtime
 
+## 0.0.20
+
+### Patch Changes
+
+- Handle `WebAssembly.Memory` buffer growing ([`b950962`](https://github.com/TooTallNate/nx.js/commit/b95096252ac58ef69bf26ec05c492731fc840456))
+
+- Delete the `leaks.txt` file when empty ([`11288bf`](https://github.com/TooTallNate/nx.js/commit/11288bfbc896042e9dc8dcc1a50024fdb6f8f513))
+
+- Fix string memory leak in `Switch.writeFileSync()` ([`aa87ace`](https://github.com/TooTallNate/nx.js/commit/aa87acede559dab6d7a75153521cfdee46d8d95a))
+
+- Fix NULL segfault when WASM module contains functions / globals without a name ([`d433882`](https://github.com/TooTallNate/nx.js/commit/d4338827bb0d0dc1407a35c1226032c46fbc6efd))
+
+- Write QuickJS leaks detection output to `leaks.txt` file ([`78e4790`](https://github.com/TooTallNate/nx.js/commit/78e4790f3a6782d2f3938e7f7316a4133528b733))
+
+- Implement WASM "memory" type import ([`ba0479a`](https://github.com/TooTallNate/nx.js/commit/ba0479a597ac160e05951fb38f50fa74300df959))
+
+- Use Promise introspection APIs from updated QuickJS fork ([`a7c23d7`](https://github.com/TooTallNate/nx.js/commit/a7c23d7d35b64becad2f4374c86314bcef99b2c5))
+
+- Fix string memory leak in `Switch.readFileSync()` ([`d5e032e`](https://github.com/TooTallNate/nx.js/commit/d5e032ebee780344e16e000da0e4d34b22e97b38))
+
+- Fix another crash-on-exit ref counting issue ([`254d799`](https://github.com/TooTallNate/nx.js/commit/254d799b230a86c6e05e505ab79949273d6c6c44))
+
+- Fix object memory leak in `CanvasRenderingContext2D` ([`cf578d8`](https://github.com/TooTallNate/nx.js/commit/cf578d8efe6ca7ccbe3baec9b15d04d36f1558d6))
+
 ## 0.0.19
 
 ### Patch Changes
