@@ -315,6 +315,8 @@ static JSValue js_canvas_arc(JSContext *ctx, JSValueConst this_val, int argc, JS
     }
 
     int counterclockwise = JS_ToBool(ctx, argv[6]);
+    if (counterclockwise == -1)
+        return JS_EXCEPTION;
 
     cairo_t *cr = context->ctx;
 
@@ -472,6 +474,8 @@ static JSValue js_canvas_ellipse(JSContext *ctx, JSValueConst this_val, int argc
     double startAngle = args[5];
     double endAngle = args[6];
     int anticlockwise = JS_ToBool(ctx, argv[8]);
+    if (anticlockwise == -1)
+        return JS_EXCEPTION;
 
     cairo_t *cr = context->ctx;
 
@@ -1193,6 +1197,9 @@ static JSValue js_canvas_draw_image(JSContext *ctx, JSValueConst this_val, int a
 
     cairo_surface_t *surface;
     int is_canvas = JS_ToBool(ctx, argv[12]);
+    if (is_canvas == -1)
+        return JS_EXCEPTION;
+
     if (is_canvas)
     {
         // Canvas
