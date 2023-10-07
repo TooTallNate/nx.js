@@ -121,6 +121,39 @@ uint8_t *read_file(const char *filename, size_t *out_size)
     return buffer;
 }
 
+bool delete_if_empty(const char *filename)
+{
+    FILE *file = fopen(filename, "rb");
+    if (!file)
+    {
+        return false;
+    }
+
+    // Seek to the end of the file
+    fseek(file, 0, SEEK_END);
+
+    // Get the file size
+    long size = ftell(file);
+
+    // Close the file
+    fclose(file);
+
+    // If the file is empty, delete it
+    if (size == 0)
+    {
+        if (remove(filename) == 0)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 static int is_running = 1;
 
 static JSValue js_exit(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -638,7 +671,7 @@ wait_error:
         }
     }
 
-    FILE* leaks_fd = freopen("leaks.txt", "w", stdout);
+    FILE *leaks_fd = freopen("leaks.txt", "w", stdout);
 
     JS_FreeValue(ctx, switch_dispatch_func);
     JS_FreeValue(ctx, native_obj);
@@ -665,6 +698,9 @@ wait_error:
 
     fflush(leaks_fd);
     fclose(leaks_fd);
+
+    /* If no leaks were detected then delete the log file */
+    delete_if_empty("leaks.txt");
 
     return 0;
 }
