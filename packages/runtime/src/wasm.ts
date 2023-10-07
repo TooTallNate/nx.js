@@ -1,3 +1,4 @@
+import { $ } from './$';
 import { bufferSourceToArrayBuffer } from './utils';
 import type {
 	SwitchClass,
@@ -145,8 +146,11 @@ function unwrapImports(importObject: Imports = {}) {
 				kind = 'global';
 				i = v.value;
 				val = bindGlobal(v);
+			} else if (v instanceof Memory) {
+				kind = 'memory';
+				val = v;
 			} else {
-				// TODO: Handle "memory" / "table" types
+				// TODO: Handle "table" type
 				throw new Error(`Unsupported import type`);
 			}
 			return {
@@ -170,9 +174,8 @@ function wrapExports(op: WasmInstanceOpaque, ex: any[]): Exports {
 			bindGlobal(g, v.val);
 			e[v.name] = g;
 		} else if (v.kind === 'memory') {
-			const m = Object.create(Memory.prototype);
-			m.buffer = v.val;
-			e[v.name] = m;
+			Object.setPrototypeOf(v.val, Memory.prototype);
+			e[v.name] = v.val;
 		}
 	}
 	return Object.freeze(e);
@@ -214,34 +217,25 @@ function callFunc(
 	}
 }
 
-const BYTES_PER_PAGE = 65536;
-
-interface MemoryInternals {
-	descriptor: MemoryDescriptor;
-}
-
-const memoryInternalsMap = new WeakMap<Memory, MemoryInternals>();
-
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/Memory)
  */
 export class Memory implements WebAssembly.Memory {
-	/** [MDN Reference](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/Memory/buffer) */
-	readonly buffer: ArrayBuffer;
-
 	constructor(descriptor: MemoryDescriptor) {
-		const bytes = descriptor.initial * BYTES_PER_PAGE;
-		this.buffer = descriptor.shared
-			? new SharedArrayBuffer(bytes)
-			: new ArrayBuffer(bytes);
-		memoryInternalsMap.set(this, { descriptor });
+		const that = $.wasmMemNew(descriptor);
+		Object.setPrototypeOf(that, Memory.prototype);
+		return that;
 	}
+
+	/** [MDN Reference](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/Memory/buffer) */
+	declare readonly buffer: ArrayBuffer;
 
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/Memory/grow) */
 	grow(delta: number): number {
 		throw new Error('Method not implemented.');
 	}
 }
+$.wasmMemProto(Memory);
 
 interface ModuleInternals {
 	buffer: ArrayBuffer;
@@ -313,6 +307,7 @@ export class Table implements WebAssembly.Table {
  * [MDN Reference](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/compile)
  */
 export async function compile(bytes: BufferSource): Promise<Module> {
+	// TODO: run this on the thread pool?
 	return new Module(bytes);
 }
 
@@ -345,7 +340,11 @@ export async function instantiate(
 		return new Instance(bytes, importObject);
 	}
 	const m = await compile(bytes);
+
+	// TODO: run this on the thread pool?
+	// maybe not, because we need to interact with JS here?
 	const instance = new Instance(m, importObject);
+
 	return { module: m, instance };
 }
 

@@ -56,6 +56,50 @@ JSValue nx_throw_wasm_error(JSContext *ctx, const char *name, M3Result r)
     return JS_Throw(ctx, obj);
 }
 
+static JSClassID nx_wasm_memory_class_id;
+
+typedef struct
+{
+    IM3Memory mem;
+    bool needs_free;
+    bool is_shared;
+} nx_wasm_memory_t;
+
+static nx_wasm_memory_t *nx_wasm_memory_get(JSContext *ctx, JSValueConst obj)
+{
+    return JS_GetOpaque2(ctx, obj, nx_wasm_memory_class_id);
+}
+
+static void finalizer_wasm_memory(JSRuntime *rt, JSValue val)
+{
+    nx_wasm_memory_t *data = JS_GetOpaque(val, nx_wasm_memory_class_id);
+    if (data)
+    {
+        if (data->needs_free && data->mem)
+        {
+            if (data->mem->mallocated)
+            {
+                m3_Free(data->mem->mallocated);
+            }
+            js_free_rt(rt, data->mem);
+        }
+        js_free_rt(rt, data);
+    }
+}
+
+static JSValue nx_wasm_memory_new_(JSContext *ctx)
+{
+    JSValue obj = JS_NewObjectClass(ctx, nx_wasm_memory_class_id);
+    nx_wasm_memory_t *data = js_mallocz(ctx, sizeof(nx_wasm_memory_t));
+    if (!data)
+    {
+        JS_ThrowOutOfMemory(ctx);
+        return JS_EXCEPTION;
+    }
+    JS_SetOpaque(obj, data);
+    return obj;
+}
+
 static JSClassID nx_wasm_module_class_id;
 
 typedef struct
@@ -110,7 +154,8 @@ static JSValue nx_wasm_new_global(JSContext *ctx, JSValueConst this_val, int arg
     nx_wasm_global_t *g = js_mallocz(ctx, sizeof(nx_wasm_global_t));
     if (!g)
     {
-        return JS_ThrowOutOfMemory(ctx);
+        JS_ThrowOutOfMemory(ctx);
+        return JS_EXCEPTION;
     }
 
     JS_SetOpaque(obj, g);
@@ -228,7 +273,8 @@ static JSValue nx_wasm_new_module(JSContext *ctx, JSValueConst this_val, int arg
     nx_wasm_module_t *m = js_mallocz(ctx, sizeof(nx_wasm_module_t));
     if (!m)
     {
-        return JS_ThrowOutOfMemory(ctx);
+        JS_ThrowOutOfMemory(ctx);
+        return JS_EXCEPTION;
     }
 
     JS_SetOpaque(obj, m);
@@ -333,7 +379,8 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val, int a
     nx_wasm_instance_t *instance = js_mallocz(ctx, sizeof(nx_wasm_instance_t));
     if (!instance)
     {
-        return JS_ThrowOutOfMemory(ctx);
+        JS_ThrowOutOfMemory(ctx);
+        return JS_EXCEPTION;
     }
 
     JS_SetOpaque(opaque, instance);
@@ -348,10 +395,30 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val, int a
     if (!instance->runtime)
     {
         JS_FreeValue(ctx, opaque);
-        return JS_ThrowOutOfMemory(ctx);
+        JS_ThrowOutOfMemory(ctx);
+        return JS_EXCEPTION;
     }
 
-    // TODO: handle imported memory here?
+    JSValue imports_array = argv[1];
+    uint32_t imports_array_length;
+    if (JS_ToUint32(ctx, &imports_array_length, JS_GetPropertyStr(ctx, imports_array, "length")))
+    {
+        return JS_EXCEPTION;
+    }
+
+    /* When the WASM module declares the memory as an import, we need to "map"
+       the provided `WebAssembly.Memory` data into the runtime here, before
+       loading the module. */
+    if (instance->module->memoryImported)
+    {
+        M3ImportInfo *import = &instance->module->memoryImport;
+        JSValue matching_import = find_matching_import(ctx, import, imports_array, imports_array_length);
+        if (JS_IsUndefined(matching_import))
+        {
+            JS_ThrowTypeError(ctx, "Missing import memory \"%s.%s\"", import->moduleUtf8, import->fieldUtf8);
+            return JS_EXCEPTION;
+        }
+    }
 
     r = m3_LoadModule(instance->runtime, instance->module);
     if (r)
@@ -362,15 +429,8 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val, int a
 
     // Process the provided "imports" into the runtime,
     // instantiate the defined "exports" from the runtime
-    JSValue imports_array = argv[1];
     JSValue exports_array = JS_NewArray(ctx);
     size_t exports_index = 0;
-
-    uint32_t imports_array_length;
-    if (JS_ToUint32(ctx, &imports_array_length, JS_GetPropertyStr(ctx, imports_array, "length")))
-    {
-        return JS_EXCEPTION;
-    }
 
     for (size_t i = 0; i < instance->module->numFunctions; ++i)
     {
@@ -394,12 +454,15 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val, int a
                 if (!js)
                 {
                     JS_FreeValue(ctx, v);
-                    return JS_ThrowOutOfMemory(ctx);
+                    JS_FreeValue(ctx, matching_import);
+                    JS_ThrowOutOfMemory(ctx);
+                    return JS_EXCEPTION;
                 }
                 js->ctx = ctx;
 
                 // TODO: when do we de-dup this func? probably when the instance is being finalized?
                 js->func = JS_DupValue(ctx, v);
+                // js->func = v;
 
                 M3Result r = m3_LinkRawFunctionEx(
                     instance->module,
@@ -500,27 +563,21 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val, int a
         }
     }
 
-    // Find the memory export
-    uint32_t memorySize;
-    // wasm3 currently only supports one memory region.
-    // `i_memoryIndex` must be zero.
-    uint32_t i_memoryIndex = 0;
-    uint8_t *memory = m3_GetMemory(instance->runtime, &memorySize, i_memoryIndex);
-
-    if (memory && !instance->module->memoryImported)
+    if (instance->module->memoryExportName)
     {
         // Exported `Memory`
-        JSValue buf = JS_NewArrayBuffer(ctx, memory, memorySize, NULL, NULL, false);
-        if (JS_IsException(buf))
-        {
-            return buf;
-        }
+        JSValue val = nx_wasm_memory_new_(ctx);
+        if (JS_IsException(val))
+            return JS_EXCEPTION;
+
+        nx_wasm_memory_t *data = nx_wasm_memory_get(ctx, val);
+        data->mem = &instance->runtime->memory;
+        data->needs_free = false;
 
         JSValue item = JS_NewObject(ctx);
         JS_DefinePropertyValueStr(ctx, item, "kind", JS_NewString(ctx, "memory"), JS_PROP_C_W_E);
         JS_DefinePropertyValueStr(ctx, item, "name", JS_NewString(ctx, instance->module->memoryExportName), JS_PROP_C_W_E);
-        JS_DefinePropertyValueStr(ctx, item, "val", buf, JS_PROP_C_W_E);
-        // TODO: maximum / shared?
+        JS_DefinePropertyValueStr(ctx, item, "val", val, JS_PROP_C_W_E);
         JS_DefinePropertyValueUint32(ctx, exports_array, exports_index++, item, JS_PROP_C_W_E);
     }
 
@@ -730,7 +787,101 @@ static const JSCFunctionListEntry function_list[] = {
     JS_CFUNC_DEF("wasmCallFunc", 1, nx_wasm_call_func),
 };
 
-void nx_init_wasm(JSContext *ctx, JSValueConst native_obj)
+static JSValue nx_wasm_memory_new(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    JSValue obj = nx_wasm_memory_new_(ctx);
+    if (JS_IsException(obj))
+        return JS_EXCEPTION;
+
+    nx_wasm_memory_t *data = nx_wasm_memory_get(ctx, obj);
+    if (!data)
+        return JS_EXCEPTION;
+
+    IM3Memory mem = js_mallocz(ctx, sizeof(M3Memory));
+    data->mem = mem;
+    data->needs_free = true;
+    data->is_shared = JS_ToBool(ctx, JS_GetPropertyStr(ctx, argv[0], "shared"));
+
+    u32 initial;
+    if (JS_ToUint32(ctx, &initial, JS_GetPropertyStr(ctx, argv[0], "initial")))
+        return JS_EXCEPTION;
+
+    u32 maxPages;
+    if (JS_ToUint32(ctx, &maxPages, JS_GetPropertyStr(ctx, argv[0], "maximum")))
+        return JS_EXCEPTION;
+
+    mem->numPages = initial;
+    mem->maxPages = maxPages ? maxPages : 65536;
+
+    size_t numBytes = d_m3MemPageSize * initial;
+    size_t numPreviousBytes = 0;
+    void *newMem = m3_Realloc("Wasm Linear Memory", mem->mallocated, numBytes, numPreviousBytes);
+    mem->mallocated = (M3MemoryHeader *)newMem;
+    mem->mallocated->length = numBytes;
+
+    // `runtime` and `maxStack` get set during import
+
+    return obj;
+}
+
+// Getter function
+static JSValue nx_wasm_memory_buffer_get(JSContext *ctx, JSValueConst this_val)
+{
+    nx_wasm_memory_t *data = nx_wasm_memory_get(ctx, this_val);
+    if (!data)
+    {
+        return JS_EXCEPTION;
+    }
+
+    IM3Memory mem = data->mem;
+    if (!mem)
+    {
+        JS_ThrowTypeError(ctx, "Memory not set");
+        return JS_EXCEPTION;
+    }
+
+    M3MemoryHeader *mallocated = mem->mallocated;
+    if (!mallocated)
+    {
+        JS_ThrowTypeError(ctx, "Memory not allocated");
+        return JS_EXCEPTION;
+    }
+
+    size_t size = mallocated->length;
+    uint8_t *memory = m3MemData(mallocated);
+
+    JSValue buf = JS_NewArrayBuffer(ctx, memory, size, NULL, NULL, data->is_shared);
+    if (JS_IsException(buf))
+    {
+        return buf;
+    }
+    // TODO: return same instance. invalidate when size changes
+    return buf;
+}
+
+/* Initialize the `Memory.prototype` */
+static JSValue nx_wasm_memory_proto(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    JSValue proto = JS_GetPropertyStr(ctx, argv[0], "prototype");
+    JSCFunctionListEntry js_myobject_proto_funcs[] = {
+        JS_CGETSET_DEF("buffer", nx_wasm_memory_buffer_get, NULL),
+    };
+    JS_SetPropertyFunctionList(ctx, proto, js_myobject_proto_funcs, countof(js_myobject_proto_funcs));
+    JS_FreeValue(ctx, proto);
+    return JS_UNDEFINED;
+}
+
+static const JSCFunctionListEntry init_function_list[] = {
+    JS_CFUNC_DEF("wasmMemNew", 1, nx_wasm_memory_new),
+    JS_CFUNC_DEF("wasmMemProto", 1, nx_wasm_memory_proto),
+};
+
+void nx_init_wasm_(JSContext *ctx, JSValueConst native_obj)
+{
+    JS_SetPropertyFunctionList(ctx, native_obj, function_list, countof(function_list));
+}
+
+void nx_init_wasm(JSContext *ctx, JSValueConst init_obj)
 {
     JSRuntime *rt = JS_GetRuntime(ctx);
 
@@ -741,6 +892,14 @@ void nx_init_wasm(JSContext *ctx, JSValueConst native_obj)
         .finalizer = finalizer_wasm_global,
     };
     JS_NewClass(rt, nx_wasm_global_class_id, &nx_wasm_global_class);
+
+    /* WebAssembly.Memory */
+    JS_NewClassID(&nx_wasm_memory_class_id);
+    JSClassDef nx_wasm_memory_class = {
+        "WebAssembly.Memory",
+        .finalizer = finalizer_wasm_memory,
+    };
+    JS_NewClass(rt, nx_wasm_memory_class_id, &nx_wasm_memory_class);
 
     /* WebAssembly.Module */
     JS_NewClassID(&nx_wasm_module_class_id);
@@ -758,5 +917,5 @@ void nx_init_wasm(JSContext *ctx, JSValueConst native_obj)
     };
     JS_NewClass(rt, nx_wasm_instance_class_id, &nx_wasm_instance_class);
 
-    JS_SetPropertyFunctionList(ctx, native_obj, function_list, countof(function_list));
+    JS_SetPropertyFunctionList(ctx, init_obj, init_function_list, countof(init_function_list));
 }

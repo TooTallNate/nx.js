@@ -445,6 +445,12 @@ int main(int argc, char *argv[])
     pthread_mutex_init(&(nx_ctx->async_done_mutex), NULL);
     JS_SetContextOpaque(ctx, nx_ctx);
 
+    /* The internal `$` object contains native functions that are wrapped in the JS runtime */
+    JSValue global_obj = JS_GetGlobalObject(ctx);
+    JSValue init_obj = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, global_obj, "$", init_obj);
+    nx_init_wasm(ctx, init_obj);
+
     // First try the `main.js` file on the RomFS
     size_t user_code_size;
     int js_path_needs_free = 0;
@@ -499,10 +505,9 @@ int main(int argc, char *argv[])
         goto wait_error;
     }
 
-    JSValue global_obj = JS_GetGlobalObject(ctx);
     JSValue switch_obj = JS_GetPropertyStr(ctx, global_obj, "Switch");
     JSValue native_obj = JS_GetPropertyStr(ctx, switch_obj, "native");
-    JSValue switch_dispatch_func = JS_GetPropertyStr(ctx, switch_obj, "dispatchEvent");
+    JSValue dispatch_event_func = JS_GetPropertyStr(ctx, switch_obj, "dispatchEvent");
 
     JSValue version_obj = JS_NewObject(ctx);
     JS_SetPropertyStr(ctx, version_obj, "cairo", JS_NewString(ctx, cairo_version_string()));
@@ -525,7 +530,7 @@ int main(int argc, char *argv[])
     nx_init_fs(ctx, native_obj);
     nx_init_image(ctx, native_obj);
     nx_init_tcp(ctx, native_obj);
-    nx_init_wasm(ctx, native_obj);
+    nx_init_wasm_(ctx, native_obj);
 
     JS_SetPropertyStr(ctx, switch_obj, "exit", JS_NewCFunction(ctx, js_exit, "exit", 0));
 
@@ -610,7 +615,7 @@ int main(int argc, char *argv[])
         JS_SetPropertyStr(ctx, event_obj, "type", JS_NewString(ctx, "frame"));
         JS_SetPropertyStr(ctx, event_obj, "detail", JS_NewUint32(ctx, kDown));
         JSValueConst args[] = {event_obj};
-        JSValue ret_val = JS_Call(ctx, switch_dispatch_func, switch_obj, 1, args);
+        JSValue ret_val = JS_Call(ctx, dispatch_event_func, switch_obj, 1, args);
         JS_FreeValue(ctx, event_obj);
 
         if (!is_running)
@@ -651,7 +656,7 @@ int main(int argc, char *argv[])
     JSValue event_type = JS_NewString(ctx, "exit");
     JS_SetPropertyStr(ctx, event_obj, "type", event_type);
     JSValue args[] = {event_obj};
-    JSValue ret_val = JS_Call(ctx, switch_dispatch_func, switch_obj, 1, args);
+    JSValue ret_val = JS_Call(ctx, dispatch_event_func, switch_obj, 1, args);
     JS_FreeValue(ctx, event_obj);
     JS_FreeValue(ctx, ret_val);
 
@@ -673,9 +678,10 @@ wait_error:
 
     FILE *leaks_fd = freopen("leaks.txt", "w", stdout);
 
-    JS_FreeValue(ctx, switch_dispatch_func);
+    JS_FreeValue(ctx, dispatch_event_func);
     JS_FreeValue(ctx, native_obj);
     JS_FreeValue(ctx, switch_obj);
+    JS_FreeValue(ctx, init_obj);
     JS_FreeValue(ctx, global_obj);
 
     JS_FreeContext(ctx);
