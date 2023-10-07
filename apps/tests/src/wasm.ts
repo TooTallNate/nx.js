@@ -166,6 +166,37 @@ test('global-export.wasm', async () => {
 	assert.equal(getGlobal(), 6, 'getting updated value from WASM');
 });
 
+test('memory.wasm', async () => {
+	const mem = new WebAssembly.Memory({ initial: 1 });
+	const values = new Uint32Array(mem.buffer);
+
+	// Fill the first ten elements of the WASM memory
+	for (let i = 0; i < 10; i++) {
+		values[i] = i;
+	}
+
+	const { module, instance } = await WebAssembly.instantiateStreaming(
+		fetch('memory.wasm'),
+		{ js: { mem } }
+	);
+
+	assert.equal(WebAssembly.Module.imports(module), [
+		{ module: 'js', name: 'mem', kind: 'memory' },
+	]);
+
+	assert.equal(WebAssembly.Module.exports(module), [
+		{ name: 'accumulate', kind: 'function' },
+	]);
+
+	const accumulate = instance.exports.accumulate as (
+		start: number,
+		end: number
+	) => number;
+	assert.type(accumulate, 'function');
+
+	assert.equal(accumulate(0, 10), 45);
+});
+
 test('memory-export.wasm', async () => {
 	const { module, instance } = await WebAssembly.instantiateStreaming(
 		fetch('memory-export.wasm')

@@ -391,13 +391,14 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val, int a
     // CHECK_NULL(r);  // Should never fail because we already parsed it. TODO: clone it?
 
     /* Create a runtime per module to avoid symbol clash. */
-    instance->runtime = m3_NewRuntime(nx_ctx->wasm_env, /* TODO: adjust */ 512 * 1024, NULL);
-    if (!instance->runtime)
+    IM3Runtime runtime = m3_NewRuntime(nx_ctx->wasm_env, /* TODO: adjust */ 512 * 1024, NULL);
+    if (!runtime)
     {
         JS_FreeValue(ctx, opaque);
         JS_ThrowOutOfMemory(ctx);
         return JS_EXCEPTION;
     }
+    instance->runtime = runtime;
 
     JSValue imports_array = argv[1];
     uint32_t imports_array_length;
@@ -418,9 +419,28 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val, int a
             JS_ThrowTypeError(ctx, "Missing import memory \"%s.%s\"", import->moduleUtf8, import->fieldUtf8);
             return JS_EXCEPTION;
         }
+
+        JSValue v = JS_GetPropertyStr(ctx, matching_import, "val");
+        nx_wasm_memory_t *data = nx_wasm_memory_get(ctx, v);
+
+        memcpy(&runtime->memory, data->mem, sizeof(M3Memory));
+        runtime->memory.mallocated->runtime = runtime;
+        runtime->memory.mallocated->maxStack = (m3slot_t *)runtime->stack + runtime->numStackSlots;
+
+        // TODO: what if "numPages" or "maxPages" conflict?
+
+        if (data->needs_free)
+        {
+            js_free(ctx, data->mem);
+        }
+        data->mem = &runtime->memory;
+        data->needs_free = false;
+
+        JS_FreeValue(ctx, v);
+        JS_FreeValue(ctx, matching_import);
     }
 
-    r = m3_LoadModule(instance->runtime, instance->module);
+    r = m3_LoadModule(runtime, instance->module);
     if (r)
     {
         JS_FreeValue(ctx, opaque);
@@ -520,23 +540,33 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val, int a
             case c_m3Type_i32:
             {
                 if (JS_ToInt32(ctx, &g->i32Value, initial_value))
+                {
+                    JS_FreeValue(ctx, initial_value);
                     return JS_EXCEPTION;
+                }
                 break;
             };
             case c_m3Type_i64:
             {
                 if (JS_ToInt64(ctx, &g->i64Value, initial_value))
+                {
+                    JS_FreeValue(ctx, initial_value);
                     return JS_EXCEPTION;
+                }
                 break;
             };
             case c_m3Type_f32:
             case c_m3Type_f64:
             {
                 if (JS_ToFloat64(ctx, &g->f64Value, initial_value))
+                {
+                    JS_FreeValue(ctx, initial_value);
                     return JS_EXCEPTION;
+                }
                 break;
             };
             }
+            JS_FreeValue(ctx, initial_value);
         }
         else if (g->name)
         {
@@ -571,7 +601,7 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val, int a
             return JS_EXCEPTION;
 
         nx_wasm_memory_t *data = nx_wasm_memory_get(ctx, val);
-        data->mem = &instance->runtime->memory;
+        data->mem = &runtime->memory;
         data->needs_free = false;
 
         JSValue item = JS_NewObject(ctx);
@@ -863,10 +893,10 @@ static JSValue nx_wasm_memory_buffer_get(JSContext *ctx, JSValueConst this_val)
 static JSValue nx_wasm_memory_proto(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     JSValue proto = JS_GetPropertyStr(ctx, argv[0], "prototype");
-    JSCFunctionListEntry js_myobject_proto_funcs[] = {
+    JSCFunctionListEntry memory_proto_funcs[] = {
         JS_CGETSET_DEF("buffer", nx_wasm_memory_buffer_get, NULL),
     };
-    JS_SetPropertyFunctionList(ctx, proto, js_myobject_proto_funcs, countof(js_myobject_proto_funcs));
+    JS_SetPropertyFunctionList(ctx, proto, memory_proto_funcs, countof(memory_proto_funcs));
     JS_FreeValue(ctx, proto);
     return JS_UNDEFINED;
 }
