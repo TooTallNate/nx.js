@@ -231,29 +231,8 @@ static JSValue nx_wasm_global_value_set(JSContext *ctx, JSValueConst this_val, i
         return JS_ThrowTypeError(ctx, "Global not defined");
     }
 
-    JSValue new_val = argv[1];
-    switch (global->type)
-    {
-    case c_m3Type_i32:
-    {
-        if (JS_ToInt32(ctx, &global->i32Value, new_val))
-            return JS_EXCEPTION;
-        break;
-    };
-    case c_m3Type_i64:
-    {
-        if (JS_ToInt64(ctx, &global->i64Value, new_val))
-            return JS_EXCEPTION;
-        break;
-    };
-    case c_m3Type_f32:
-    case c_m3Type_f64:
-    {
-        if (JS_ToFloat64(ctx, &global->f64Value, new_val))
-            return JS_EXCEPTION;
-        break;
-    };
-    }
+    if (nx__wasm_towebassemblyvalue(ctx, argv[1], global->type, &global->i32Value))
+        return JS_EXCEPTION;
 
     return JS_UNDEFINED;
 }
@@ -560,41 +539,21 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val, int a
             }
 
             JSValue v = JS_GetPropertyStr(ctx, matching_import, "val");
+
+            // TODO: handle "val" being a Number
+
             nx_wasm_global_t *nx_g = nx_wasm_global_get(ctx, v);
             nx_g->global = g;
 
             JSValue initial_value = JS_GetPropertyStr(ctx, matching_import, "i");
-            switch (g->type)
+            JS_FreeValue(ctx, v);
+
+            if (nx__wasm_towebassemblyvalue(ctx, initial_value, g->type, &g->i32Value))
             {
-            case c_m3Type_i32:
-            {
-                if (JS_ToInt32(ctx, &g->i32Value, initial_value))
-                {
-                    JS_FreeValue(ctx, initial_value);
-                    return JS_EXCEPTION;
-                }
-                break;
-            };
-            case c_m3Type_i64:
-            {
-                if (JS_ToInt64(ctx, &g->i64Value, initial_value))
-                {
-                    JS_FreeValue(ctx, initial_value);
-                    return JS_EXCEPTION;
-                }
-                break;
-            };
-            case c_m3Type_f32:
-            case c_m3Type_f64:
-            {
-                if (JS_ToFloat64(ctx, &g->f64Value, initial_value))
-                {
-                    JS_FreeValue(ctx, initial_value);
-                    return JS_EXCEPTION;
-                }
-                break;
-            };
+                JS_FreeValue(ctx, initial_value);
+                return JS_EXCEPTION;
             }
+
             JS_FreeValue(ctx, initial_value);
         }
         else if (g->name)
