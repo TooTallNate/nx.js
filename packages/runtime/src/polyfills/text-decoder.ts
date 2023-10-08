@@ -20,7 +20,11 @@ export class TextDecoder implements globalThis.TextDecoder {
 	fatal: boolean;
 	ignoreBOM: boolean;
 	constructor(encoding?: string) {
-		if (typeof encoding === 'string' && encoding !== 'utf-8' && encoding !== 'utf8') {
+		if (
+			typeof encoding === 'string' &&
+			encoding !== 'utf-8' &&
+			encoding !== 'utf8'
+		) {
 			throw new TypeError('Only "utf-8" decoding is supported');
 		}
 		this.encoding = 'utf-8';
