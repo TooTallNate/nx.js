@@ -10,7 +10,36 @@
 static M3Result nx_wasm_js_error = "JS error was thrown";
 
 // https://webassembly.github.io/spec/js-api/index.html#towebassemblyvalue
-// static void nx__wasm_towebassemblyvalue(JSContext *ctx, M3ValueType type, const void *stack) {}
+static int nx__wasm_towebassemblyvalue(JSContext *ctx, JSValueConst val, M3ValueType type, void *stack)
+{
+    int r = 0;
+    switch (type)
+    {
+    case c_m3Type_i32:
+    {
+        r = JS_ToInt32(ctx, (int32_t *)stack, val);
+        break;
+    };
+    case c_m3Type_i64:
+    {
+        r = JS_ToInt64(ctx, (int64_t *)stack, val);
+        break;
+    };
+    case c_m3Type_f32:
+    case c_m3Type_f64:
+    {
+        r = JS_ToFloat64(ctx, (double *)stack, val);
+        break;
+    };
+    case c_m3Type_none:
+    case c_m3Type_unknown:
+    {
+        /* shrug */
+        break;
+    }
+    }
+    return r;
+}
 
 // https://webassembly.github.io/spec/js-api/index.html#tojsvalue
 static JSValue nx__wasm_tojsvalue(JSContext *ctx, M3ValueType type, const void *stack)
@@ -308,9 +337,8 @@ m3ApiRawFunction(nx_wasm_imported_func)
     IM3FuncType funcType = func->funcType;
     nx_wasm_imported_func_t *js = _ctx->userdata;
 
-    for (int i = 0; i < funcType->numRets; i++)
-    {
-    }
+    uint64_t *retValAddr = _sp;
+    _sp += funcType->numRets;
 
     // Map the WASM arguments to JS values
     JSValue args[funcType->numArgs];
@@ -329,12 +357,16 @@ m3ApiRawFunction(nx_wasm_imported_func)
         return nx_wasm_js_error;
     }
 
-    // TODO: map JS return value back to WASM return value(s)
-    // m3ApiMultiValueReturnType(int32_t, one);
-    // m3ApiGetArg(int32_t, param);
-    //  m3ApiGetArg(int64_t, param)
-    //  m3ApiGetArg(float, param)
-    // m3ApiMultiValueReturn(one, 1);
+    // Map the JS return value to WASM
+    if (funcType->numRets > 0)
+    {
+        if (nx__wasm_towebassemblyvalue(js->ctx, ret_val, funcType->types[0], retValAddr))
+        {
+            JS_FreeValue(js->ctx, ret_val);
+            return nx_wasm_js_error;
+        }
+        // TODO: handle multi-return values when JS returns an Array?
+    }
 
     JS_FreeValue(js->ctx, ret_val);
     m3ApiSuccess();
@@ -465,8 +497,6 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val, int a
                 return JS_EXCEPTION;
             }
 
-            // TODO: validate "kind === 'function'"
-
             JSValue v = JS_GetPropertyStr(ctx, matching_import, "val");
             if (JS_IsFunction(ctx, v))
             {
@@ -495,6 +525,8 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val, int a
                 {
                     JS_FreeValue(ctx, v);
                     JS_FreeValue(ctx, matching_import);
+                    JS_FreeValue(ctx, js->func);
+                    js_free(ctx, js);
                     return nx_throw_wasm_error(ctx, "LinkError", r);
                 }
             }
@@ -527,10 +559,7 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val, int a
                 return JS_EXCEPTION;
             }
 
-            // TODO: validate "kind === 'global'"
-
             JSValue v = JS_GetPropertyStr(ctx, matching_import, "val");
-
             nx_wasm_global_t *nx_g = nx_wasm_global_get(ctx, v);
             nx_g->global = g;
 
@@ -735,10 +764,9 @@ static JSValue nx_wasm_call_func(JSContext *ctx, JSValueConst this_val, int argc
         JS_FreeCString(ctx, fname);
         return nx_throw_wasm_error(ctx, "RuntimeError", r);
     }
-
     JS_FreeCString(ctx, fname);
 
-    int nargs = argc - 2;
+    int nargs = m3_GetArgCount(func);
     if (nargs == 0)
     {
         r = m3_Call(func, 0, NULL);
@@ -773,7 +801,6 @@ static JSValue nx_wasm_call_func(JSContext *ctx, JSValueConst this_val, int argc
     }
 
     int ret_count = m3_GetRetCount(func);
-
     if (ret_count == 0)
     {
         return JS_UNDEFINED;

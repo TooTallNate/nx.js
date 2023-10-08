@@ -259,6 +259,55 @@ test('grow.wasm', async () => {
 	// TODO: `mem.grow(1)` test, once that function is implemented
 });
 
+test('compute.wasm', async () => {
+	let aVal = -1;
+	let bVal = -1;
+	const { module, instance } = await WebAssembly.instantiateStreaming(
+		fetch('compute.wasm'),
+		{
+			env: {
+				compute(a: number, b: number) {
+					aVal = a;
+					bVal = b;
+					return Math.round(a * b);
+				},
+			},
+		}
+	);
+	assert.equal(WebAssembly.Module.imports(module), [
+		{ module: 'env', name: 'compute', kind: 'function' },
+	]);
+
+	assert.equal(WebAssembly.Module.exports(module), [
+		{ name: 'invoke', kind: 'function' },
+		{ name: 'val', kind: 'global' },
+	]);
+
+	const invoke = instance.exports.invoke as Function;
+	assert.type(invoke, 'function');
+
+	const val = instance.exports.val as WebAssembly.Global<'i32'>;
+	assert.instance(val, WebAssembly.Global);
+
+	assert.equal(val.value, 0, 'Global value starts at `0`');
+	invoke(1.23, 3.45);
+	assert.equal(
+		aVal,
+		2.46,
+		'`compute()` should have been invoked with values doubled - a'
+	);
+	assert.equal(
+		bVal,
+		6.9,
+		'`compute()` should have been invoked with values doubled - b'
+	);
+	assert.equal(
+		val.value,
+		17,
+		'Global value should be result of `a * b` rounded to nearest'
+	);
+});
+
 test('Imported function throws an Error is propagated', async () => {
 	const e = new Error('will be thrown');
 	const { instance } = await WebAssembly.instantiateStreaming(
