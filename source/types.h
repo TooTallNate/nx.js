@@ -22,6 +22,16 @@
 // programatically, so it's hard-coded here
 #define QUICKJS_VERSION "2021-03-27"
 
+// Useful for functions defined on class `prototype`s
+#define JS_PROP_C_W  (JS_PROP_CONFIGURABLE | JS_PROP_WRITABLE)
+
+#define NX_DEF_GETTER(THISARG, NAME, FN) \
+   atom = JS_NewAtom(ctx, NAME); \
+   JS_DefinePropertyGetSet(ctx, THISARG, atom, JS_NewCFunction(ctx, FN, "get " NAME, 0), JS_NULL, JS_PROP_C_W); \
+   JS_FreeAtom(ctx, atom);
+
+#define NX_DEF_FUNC(THISARG, NAME, FN, LENGTH) (JS_DefinePropertyValueStr(ctx, THISARG, NAME, JS_NewCFunction(ctx, FN, NAME, LENGTH), JS_PROP_C_W))
+
 typedef int BOOL;
 
 typedef struct nx_work_s nx_work_t;

@@ -308,6 +308,40 @@ test('compute.wasm', async () => {
 	);
 });
 
+test('table.wasm', async () => {
+	const { module, instance } = await WebAssembly.instantiateStreaming(
+		fetch('table.wasm')
+	);
+	assert.equal(WebAssembly.Module.imports(module).length, 0);
+	assert.equal(WebAssembly.Module.exports(module), [
+		{ name: 'tbl', kind: 'table' },
+	]);
+
+	const tbl = instance.exports.tbl as WebAssembly.Table;
+	assert.instance(tbl, WebAssembly.Table);
+
+	assert.equal(tbl.length, 2);
+
+	const fn0 = tbl.get(0);
+	assert.equal(fn0(), 13);
+
+	const fn1 = tbl.get(1);
+	assert.equal(fn1(), 42);
+
+	let err: Error | undefined;
+	try {
+		tbl.get(2);
+	} catch (_err: any) {
+		err = _err;
+	}
+	assert.ok(err);
+	assert.instance(err, RangeError);
+	assert.equal(
+		err.message,
+		'WebAssembly.Table.get(): invalid index 2 into funcref table of size 2'
+	);
+});
+
 test('Imported function throws an Error is propagated', async () => {
 	const e = new Error('will be thrown');
 	const { instance } = await WebAssembly.instantiateStreaming(

@@ -129,6 +129,76 @@ static JSValue nx_wasm_memory_new_(JSContext *ctx)
     return obj;
 }
 
+static JSClassID nx_wasm_table_class_id;
+
+typedef struct
+{
+    IM3Function *table;
+    u32 *table_size;
+} nx_wasm_table_t;
+
+static nx_wasm_table_t *nx_wasm_table_get(JSContext *ctx, JSValueConst obj)
+{
+    return JS_GetOpaque2(ctx, obj, nx_wasm_table_class_id);
+}
+
+static void finalizer_wasm_table(JSRuntime *rt, JSValue val)
+{
+    nx_wasm_table_t *data = JS_GetOpaque(val, nx_wasm_table_class_id);
+    if (data)
+    {
+        js_free_rt(rt, data);
+    }
+}
+
+static JSValue nx_wasm_table_new_(JSContext *ctx)
+{
+    JSValue obj = JS_NewObjectClass(ctx, nx_wasm_table_class_id);
+    nx_wasm_table_t *data = js_mallocz(ctx, sizeof(nx_wasm_table_t));
+    if (!data)
+    {
+        JS_ThrowOutOfMemory(ctx);
+        return JS_EXCEPTION;
+    }
+    JS_SetOpaque(obj, data);
+    return obj;
+}
+
+static JSClassID nx_wasm_exported_func_class_id;
+
+typedef struct
+{
+    IM3Function function;
+} nx_wasm_exported_func_t;
+
+static nx_wasm_exported_func_t *nx_wasm_exported_func_get(JSContext *ctx, JSValueConst obj)
+{
+    return JS_GetOpaque2(ctx, obj, nx_wasm_exported_func_class_id);
+}
+
+static void finalizer_wasm_exported_func(JSRuntime *rt, JSValue val)
+{
+    nx_wasm_exported_func_t *data = JS_GetOpaque(val, nx_wasm_exported_func_class_id);
+    if (data)
+    {
+        js_free_rt(rt, data);
+    }
+}
+
+static JSValue nx_wasm_exported_func_new(JSContext *ctx, IM3Function func)
+{
+    JSValue obj = JS_NewObjectClass(ctx, nx_wasm_exported_func_class_id);
+    nx_wasm_exported_func_t *data = js_mallocz(ctx, sizeof(nx_wasm_exported_func_t));
+    if (!data)
+    {
+        JS_ThrowOutOfMemory(ctx);
+        return JS_EXCEPTION;
+    }
+    data->function = func;
+    JS_SetOpaque(obj, data);
+    return obj;
+}
+
 static JSClassID nx_wasm_module_class_id;
 
 typedef struct
@@ -246,10 +316,10 @@ typedef struct
     bool loaded;
 } nx_wasm_instance_t;
 
-static nx_wasm_instance_t *nx_wasm_instance_get(JSContext *ctx, JSValueConst obj)
-{
-    return JS_GetOpaque2(ctx, obj, nx_wasm_instance_class_id);
-}
+// static nx_wasm_instance_t *nx_wasm_instance_get(JSContext *ctx, JSValueConst obj)
+//{
+//     return JS_GetOpaque2(ctx, obj, nx_wasm_instance_class_id);
+// }
 
 static void finalizer_wasm_instance(JSRuntime *rt, JSValue val)
 {
@@ -516,12 +586,15 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val, int a
         else if (f->export_name)
         {
             // Exported `Function`
+            JSValue val = nx_wasm_exported_func_new(ctx, f);
+            if (JS_IsException(val))
+                return JS_EXCEPTION;
+
             JSValue item = JS_NewObject(ctx);
             JS_DefinePropertyValueStr(ctx, item, "kind", JS_NewString(ctx, "function"), JS_PROP_C_W_E);
             JS_DefinePropertyValueStr(ctx, item, "name", JS_NewString(ctx, f->export_name), JS_PROP_C_W_E);
+            JS_DefinePropertyValueStr(ctx, item, "val", val, JS_PROP_C_W_E);
             JS_DefinePropertyValueUint32(ctx, exports_array, exports_index++, item, JS_PROP_C_W_E);
-            // TODO: we can optimize exports by passing the function reference back to
-            // JS now, so that we don't need to call `FindFunction()` during every invoke
         }
     }
 
@@ -595,6 +668,24 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val, int a
         JSValue item = JS_NewObject(ctx);
         JS_DefinePropertyValueStr(ctx, item, "kind", JS_NewString(ctx, "memory"), JS_PROP_C_W_E);
         JS_DefinePropertyValueStr(ctx, item, "name", JS_NewString(ctx, instance->module->memoryExportName), JS_PROP_C_W_E);
+        JS_DefinePropertyValueStr(ctx, item, "val", val, JS_PROP_C_W_E);
+        JS_DefinePropertyValueUint32(ctx, exports_array, exports_index++, item, JS_PROP_C_W_E);
+    }
+
+    if (instance->module->table0ExportName)
+    {
+        // Exported `Table`
+        JSValue val = nx_wasm_table_new_(ctx);
+        if (JS_IsException(val))
+            return JS_EXCEPTION;
+
+        nx_wasm_table_t *data = nx_wasm_table_get(ctx, val);
+        data->table = instance->module->table0;
+        data->table_size = &instance->module->table0Size;
+
+        JSValue item = JS_NewObject(ctx);
+        JS_DefinePropertyValueStr(ctx, item, "kind", JS_NewString(ctx, "table"), JS_PROP_C_W_E);
+        JS_DefinePropertyValueStr(ctx, item, "name", JS_NewString(ctx, instance->module->table0ExportName), JS_PROP_C_W_E);
         JS_DefinePropertyValueStr(ctx, item, "val", val, JS_PROP_C_W_E);
         JS_DefinePropertyValueUint32(ctx, exports_array, exports_index++, item, JS_PROP_C_W_E);
     }
@@ -701,29 +792,38 @@ static JSValue nx_wasm_module_exports(JSContext *ctx, JSValueConst this_val, int
         JS_DefinePropertyValueUint32(ctx, exports, index++, item, JS_PROP_C_W_E);
     }
 
-    // TODO: "table" import types (wasm3 doesn't currently support)
+    if (m->module->table0ExportName)
+    {
+        JSValue item = JS_NewObject(ctx);
+        JS_DefinePropertyValueStr(ctx, item, "kind", JS_NewString(ctx, "table"), JS_PROP_C_W_E);
+        JS_DefinePropertyValueStr(ctx, item, "name", JS_NewString(ctx, m->module->table0ExportName), JS_PROP_C_W_E);
+        JS_DefinePropertyValueUint32(ctx, exports, index++, item, JS_PROP_C_W_E);
+    }
 
     return exports;
 }
 
 static JSValue nx_wasm_call_func(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-    nx_wasm_instance_t *i = nx_wasm_instance_get(ctx, argv[0]);
-    if (!i)
+    nx_wasm_exported_func_t *data = nx_wasm_exported_func_get(ctx, argv[0]);
+    if (!data)
         return JS_EXCEPTION;
 
-    const char *fname = JS_ToCString(ctx, argv[1]);
-    if (!fname)
-        return JS_EXCEPTION;
+    IM3Function func = data->function;
+    if (!func)
+    {
+        return nx_throw_wasm_error(ctx, "RuntimeError", "Missing function reference");
+    }
 
-    IM3Function func;
-    M3Result r = m3_FindFunction(&func, i->runtime, fname);
+    M3Result r = m3Err_none;
+    if (!func->compiled)
+    {
+        r = CompileFunction(func);
+    }
     if (r)
     {
-        JS_FreeCString(ctx, fname);
         return nx_throw_wasm_error(ctx, "RuntimeError", r);
     }
-    JS_FreeCString(ctx, fname);
 
     int nargs = m3_GetArgCount(func);
     if (nargs == 0)
@@ -735,7 +835,7 @@ static JSValue nx_wasm_call_func(JSContext *ctx, JSValueConst this_val, int argc
         const char *m3_argv[nargs + 1];
         for (int i = 0; i < nargs; i++)
         {
-            m3_argv[i] = JS_ToCString(ctx, argv[i + 2]);
+            m3_argv[i] = JS_ToCString(ctx, argv[i + 1]);
         }
         m3_argv[nargs] = NULL;
         r = m3_CallArgv(func, nargs, m3_argv);
@@ -800,8 +900,13 @@ static const JSCFunctionListEntry function_list[] = {
     JS_CFUNC_DEF("wasmModuleImports", 1, nx_wasm_module_imports),
     JS_CFUNC_DEF("wasmGlobalGet", 1, nx_wasm_global_value_get),
     JS_CFUNC_DEF("wasmGlobalSet", 1, nx_wasm_global_value_set),
-    JS_CFUNC_DEF("wasmCallFunc", 1, nx_wasm_call_func),
+
 };
+
+void nx_init_wasm_(JSContext *ctx, JSValueConst native_obj)
+{
+    JS_SetPropertyFunctionList(ctx, native_obj, function_list, countof(function_list));
+}
 
 static JSValue nx_wasm_memory_new(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
@@ -843,7 +948,7 @@ static JSValue nx_wasm_memory_new(JSContext *ctx, JSValueConst this_val, int arg
 }
 
 // `Memory#buffer` getter function
-static JSValue nx_wasm_memory_buffer_get(JSContext *ctx, JSValueConst this_val)
+static JSValue nx_wasm_memory_buffer_get(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     nx_wasm_memory_t *data = nx_wasm_memory_get(ctx, this_val);
     if (!data)
@@ -877,27 +982,80 @@ static JSValue nx_wasm_memory_buffer_get(JSContext *ctx, JSValueConst this_val)
     return buf;
 }
 
-/* Initialize the `Memory.prototype` */
-static JSValue nx_wasm_memory_proto(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+// `Table#get()` function
+static JSValue nx_wasm_table_get_fn(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
+    nx_wasm_table_t *data = nx_wasm_table_get(ctx, argv[0]);
+    if (!data)
+        return JS_EXCEPTION;
+
+    u32 index;
+    if (JS_ToUint32(ctx, &index, argv[1]))
+        return JS_EXCEPTION;
+
+    u32 size = *data->table_size;
+
+    if (index >= size)
+    {
+        JS_ThrowRangeError(ctx, "WebAssembly.Table.get(): invalid index %u into funcref table of size %u", index, size);
+        return JS_EXCEPTION;
+    }
+
+    IM3Function func = data->table[index];
+    if (!func)
+    {
+        return JS_NULL;
+    }
+
+    return nx_wasm_exported_func_new(ctx, func);
+}
+
+// `Table#length` getter function
+static JSValue nx_wasm_table_length_get(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    nx_wasm_table_t *data = nx_wasm_table_get(ctx, this_val);
+    if (!data)
+    {
+        return JS_EXCEPTION;
+    }
+
+    if (!data->table_size)
+    {
+        JS_ThrowTypeError(ctx, "Table size not set");
+        return JS_EXCEPTION;
+    }
+
+    return JS_NewUint32(ctx, *data->table_size);
+}
+
+/* Initialize the `Memory` class */
+static JSValue nx_wasm_init_memory_class(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    JSAtom atom;
     JSValue proto = JS_GetPropertyStr(ctx, argv[0], "prototype");
-    JSCFunctionListEntry memory_proto_funcs[] = {
-        JS_CGETSET_DEF("buffer", nx_wasm_memory_buffer_get, NULL),
-    };
-    JS_SetPropertyFunctionList(ctx, proto, memory_proto_funcs, countof(memory_proto_funcs));
+    NX_DEF_GETTER(proto, "buffer", nx_wasm_memory_buffer_get);
+    JS_FreeValue(ctx, proto);
+    return JS_UNDEFINED;
+}
+
+/* Initialize the `Table` class */
+static JSValue nx_wasm_init_table_class(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    JSAtom atom;
+    JSValue proto = JS_GetPropertyStr(ctx, argv[0], "prototype");
+    // NX_DEF_FUNC(proto, "get", nx_wasm_table_get_fn, 1);
+    NX_DEF_GETTER(proto, "length", nx_wasm_table_length_get);
     JS_FreeValue(ctx, proto);
     return JS_UNDEFINED;
 }
 
 static const JSCFunctionListEntry init_function_list[] = {
+    JS_CFUNC_DEF("wasmCallFunc", 1, nx_wasm_call_func),
     JS_CFUNC_DEF("wasmMemNew", 1, nx_wasm_memory_new),
-    JS_CFUNC_DEF("wasmMemProto", 1, nx_wasm_memory_proto),
+    JS_CFUNC_DEF("wasmTableGet", 2, nx_wasm_table_get_fn),
+    JS_CFUNC_DEF("wasmInitMemory", 1, nx_wasm_init_memory_class),
+    JS_CFUNC_DEF("wasmInitTable", 1, nx_wasm_init_table_class),
 };
-
-void nx_init_wasm_(JSContext *ctx, JSValueConst native_obj)
-{
-    JS_SetPropertyFunctionList(ctx, native_obj, function_list, countof(function_list));
-}
 
 void nx_init_wasm(JSContext *ctx, JSValueConst init_obj)
 {
@@ -918,6 +1076,22 @@ void nx_init_wasm(JSContext *ctx, JSValueConst init_obj)
         .finalizer = finalizer_wasm_memory,
     };
     JS_NewClass(rt, nx_wasm_memory_class_id, &nx_wasm_memory_class);
+
+    /* WebAssembly.Table */
+    JS_NewClassID(&nx_wasm_table_class_id);
+    JSClassDef nx_wasm_table_class = {
+        "WebAssembly.Table",
+        .finalizer = finalizer_wasm_table,
+    };
+    JS_NewClass(rt, nx_wasm_table_class_id, &nx_wasm_table_class);
+
+    /* WebAssembly.Function */
+    JS_NewClassID(&nx_wasm_exported_func_class_id);
+    JSClassDef nx_wasm_exported_func_class = {
+        "WebAssembly.Function",
+        .finalizer = finalizer_wasm_exported_func,
+    };
+    JS_NewClass(rt, nx_wasm_exported_func_class_id, &nx_wasm_exported_func_class);
 
     /* WebAssembly.Module */
     JS_NewClassID(&nx_wasm_module_class_id);

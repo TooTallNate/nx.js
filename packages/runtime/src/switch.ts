@@ -321,11 +321,6 @@ export interface Native {
 	wasmModuleImports(m: WasmModuleOpaque): any[];
 	wasmGlobalGet(g: WasmGlobalOpaque): any;
 	wasmGlobalSet(g: WasmGlobalOpaque, v: any): void;
-	wasmCallFunc(
-		b: WasmInstanceOpaque,
-		name: string,
-		...args: unknown[]
-	): unknown;
 }
 
 interface Internal {

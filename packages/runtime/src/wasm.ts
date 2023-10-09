@@ -151,7 +151,7 @@ function unwrapImports(importObject: Imports = {}) {
 				val = v;
 			} else {
 				// TODO: Handle "table" type
-				throw new Error(`Unsupported import type`);
+				throw new LinkError(`Unsupported import type for "${m}.${n}"`);
 			}
 			return {
 				module: m,
@@ -164,11 +164,13 @@ function unwrapImports(importObject: Imports = {}) {
 	);
 }
 
-function wrapExports(op: WasmInstanceOpaque, ex: any[]): Exports {
+function wrapExports(ex: any[]): Exports {
 	const e: Exports = Object.create(null);
 	for (const v of ex) {
 		if (v.kind === 'function') {
-			e[v.name] = callFunc.bind(null, op, v.name);
+			const fn = callFunc.bind(null, v.val);
+			Object.defineProperty(fn, 'name', { value: v.name });
+			e[v.name] = fn;
 		} else if (v.kind === 'global') {
 			const g = new Global({ value: v.value, mutable: v.mutable });
 			bindGlobal(g, v.val);
@@ -176,6 +178,11 @@ function wrapExports(op: WasmInstanceOpaque, ex: any[]): Exports {
 		} else if (v.kind === 'memory') {
 			Object.setPrototypeOf(v.val, Memory.prototype);
 			e[v.name] = v.val;
+		} else if (v.kind === 'table') {
+			Object.setPrototypeOf(v.val, Table.prototype);
+			e[v.name] = v.val;
+		} else {
+			throw new LinkError(`Unsupported export type "${v.kind}"`);
 		}
 	}
 	return Object.freeze(e);
@@ -201,17 +208,16 @@ export class Instance implements WebAssembly.Instance {
 			unwrapImports(importObject)
 		);
 		instanceInternalsMap.set(this, { module: moduleObject, opaque });
-		this.exports = wrapExports(opaque, exp);
+		this.exports = wrapExports(exp);
 	}
 }
 
 function callFunc(
-	op: WasmInstanceOpaque,
-	name: string,
+	func: any, // exported func
 	...args: unknown[]
 ): unknown {
 	try {
-		return Switch.native.wasmCallFunc(op, name, ...args);
+		return $.wasmCallFunc(func, ...args);
 	} catch (err: unknown) {
 		throw toWasmError(err);
 	}
@@ -235,7 +241,7 @@ export class Memory implements WebAssembly.Memory {
 		throw new Error('Method not implemented.');
 	}
 }
-$.wasmMemProto(Memory);
+$.wasmInitMemory(Memory);
 
 interface ModuleInternals {
 	buffer: ArrayBuffer;
@@ -281,15 +287,17 @@ export class Module implements WebAssembly.Module {
 /** [MDN Reference](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/Table) */
 export class Table implements WebAssembly.Table {
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/Table/length) */
-	readonly length: number;
+	declare readonly length: number;
 
 	constructor(descriptor: TableDescriptor, value?: any) {
 		throw new Error('Method not implemented.');
 	}
 
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/Table/get) */
-	get(index: number) {
-		throw new Error('Method not implemented.');
+	get(index: number): any {
+		// Only function refs are supported for now
+		const fn = $.wasmTableGet(this, index);
+		return callFunc.bind(null, fn);
 	}
 
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/Table/grow) */
@@ -302,6 +310,7 @@ export class Table implements WebAssembly.Table {
 		throw new Error('Method not implemented.');
 	}
 }
+$.wasmInitTable(Table);
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/compile)
