@@ -982,6 +982,56 @@ static JSValue nx_wasm_memory_buffer_get(JSContext *ctx, JSValueConst this_val, 
     return buf;
 }
 
+// `Memory#grow()` function
+static JSValue nx_wasm_memory_grow(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    nx_wasm_memory_t *data = nx_wasm_memory_get(ctx, this_val);
+    if (!data)
+        return JS_EXCEPTION;
+
+    IM3Memory memory = data->mem;
+    if (!memory)
+    {
+        JS_ThrowTypeError(ctx, "Memory not set");
+        return JS_EXCEPTION;
+    }
+
+    M3MemoryHeader *mallocated = memory->mallocated;
+    if (!mallocated)
+    {
+        JS_ThrowTypeError(ctx, "Memory not allocated");
+        return JS_EXCEPTION;
+    }
+
+    i32 numPagesToGrow;
+    if (JS_ToInt32(ctx, &numPagesToGrow, argv[0]))
+        return JS_EXCEPTION;
+
+    if (numPagesToGrow < 0)
+    {
+        JS_ThrowTypeError(ctx, "WebAssembly.Memory.grow(): Argument 0 must be non-negative");
+        return JS_EXCEPTION;
+    }
+
+    JSValue prevSize = JS_NewUint32(ctx, memory->numPages);
+
+    if (numPagesToGrow > 0)
+    {
+        IM3Runtime runtime = m3MemRuntime(mallocated);
+        if (!runtime)
+        {
+            JS_ThrowTypeError(ctx, "WebAssembly.Memory.grow(): Memory not bound to an instance");
+            return JS_EXCEPTION;
+        }
+        u32 requiredPages = memory->numPages + numPagesToGrow;
+        M3Result r = ResizeMemory(runtime, requiredPages);
+        if (r)
+            return nx_throw_wasm_error(ctx, "RuntimeError", r);
+    }
+
+    return prevSize;
+}
+
 // `Table#get()` function
 static JSValue nx_wasm_table_get_fn(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
@@ -1034,6 +1084,7 @@ static JSValue nx_wasm_init_memory_class(JSContext *ctx, JSValueConst this_val, 
     JSAtom atom;
     JSValue proto = JS_GetPropertyStr(ctx, argv[0], "prototype");
     NX_DEF_GETTER(proto, "buffer", nx_wasm_memory_buffer_get);
+    NX_DEF_FUNC(proto, "grow", nx_wasm_memory_grow, 1);
     JS_FreeValue(ctx, proto);
     return JS_UNDEFINED;
 }

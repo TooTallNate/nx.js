@@ -237,9 +237,8 @@ export class Memory implements WebAssembly.Memory {
 	declare readonly buffer: ArrayBuffer;
 
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/Memory/grow) */
-	grow(delta: number): number {
-		throw new Error('Method not implemented.');
-	}
+	// @ts-expect-error This is a native function
+	grow(delta: number): number {}
 }
 $.wasmInitMemory(Memory);
 
