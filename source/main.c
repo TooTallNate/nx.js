@@ -384,6 +384,23 @@ static JSValue js_get_internal_promise_state(JSContext *ctx, JSValueConst this_v
     return arr;
 }
 
+int nx_module_set_import_meta(JSContext *ctx, JSValueConst func_val,
+                              const char *url, JS_BOOL is_main)
+{
+    JSModuleDef *m = JS_VALUE_GET_PTR(func_val);
+    JSValue meta_obj = JS_GetImportMeta(ctx, m);
+    if (JS_IsException(meta_obj))
+        return -1;
+    JS_DefinePropertyValueStr(ctx, meta_obj, "url",
+                              JS_NewString(ctx, url),
+                              JS_PROP_C_W_E);
+    JS_DefinePropertyValueStr(ctx, meta_obj, "main",
+                              JS_NewBool(ctx, is_main),
+                              JS_PROP_C_W_E);
+    JS_FreeValue(ctx, meta_obj);
+    return 0;
+}
+
 void nx_process_pending_jobs(JSRuntime *rt)
 {
     JSContext *ctx;
@@ -578,11 +595,21 @@ int main(int argc, char *argv[])
     JS_SetPropertyStr(ctx, switch_obj, "argv", argv_array);
 
     // Run the user code
-    JSValue user_code_result = JS_Eval(ctx, user_code, user_code_size, js_path, JS_EVAL_TYPE_GLOBAL);
+    JSValue user_code_result = JS_Eval(ctx, user_code, user_code_size, js_path, JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY);
     if (JS_IsException(user_code_result))
     {
         print_js_error(ctx);
         had_error = 1;
+    }
+    else
+    {
+        nx_module_set_import_meta(ctx, user_code_result, js_path, true);
+        user_code_result = JS_EvalFunction(ctx, user_code_result);
+        if (JS_IsException(user_code_result))
+        {
+            print_js_error(ctx);
+            had_error = 1;
+        }
     }
     JS_FreeValue(ctx, user_code_result);
     free(user_code);

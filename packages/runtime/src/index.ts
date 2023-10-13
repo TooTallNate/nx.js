@@ -79,6 +79,24 @@ import './navigator';
 import * as WebAssembly from './wasm';
 def('WebAssembly', WebAssembly);
 
+/**
+ * The `import.meta` meta-property exposes context-specific metadata to a JavaScript module.
+ * It contains information about the module, such as the module's URL.
+ */
+export interface ImportMeta {
+	/**
+	 * Contains the absolute URL of the JavaScript module that is being executed.
+	 *
+	 * @example "romfs:/main.js"
+	 */
+	url: string;
+	/**
+	 * Set to `true` when the JavaScript module that is being executed is the
+	 * entrypoint file of the application.
+	 */
+	main: boolean;
+}
+
 function touchIsEqual(a: Touch, b: Touch) {
 	return (
 		a.screenX === b.screenX &&
