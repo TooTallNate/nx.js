@@ -86,4 +86,10 @@ export const console = {
 	debug(...input: unknown[]) {
 		console.log(...input);
 	},
+
+	trace(...input: unknown[]) {
+		const f = format(...input);
+		const s = new Error().stack!.split('\n').slice(1).join('\n');
+		Switch.print(`Trace${f ? `: ${f}` : ''}\n${s}`);
+	},
 };
