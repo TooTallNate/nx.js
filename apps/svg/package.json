@@ -9,13 +9,12 @@
   },
   "license": "MIT",
   "devDependencies": {
-    "@types/xmldom": "^0.1.31",
     "esbuild": "^0.17.19",
     "nxjs-pack": "workspace:^",
     "nxjs-runtime": "workspace:^"
   },
   "dependencies": {
-    "canvg": "^4.0.1",
-    "xmldom": "^0.6.0"
+    "@xmldom/xmldom": "^0.8.10",
+    "canvg": "^4.0.1"
   }
 }
