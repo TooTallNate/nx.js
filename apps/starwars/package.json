@@ -4,7 +4,7 @@
   "private": true,
   "description": "nx.js app that renders the Star Wars ASCII text",
   "scripts": {
-    "build": "esbuild --bundle --target=es2020 src/main.ts --outfile=romfs/main.js",
+    "build": "esbuild --bundle --sourcemap --sources-content=false --target=es2020 src/main.ts --outfile=romfs/main.js",
     "nro": "nxjs-pack"
   },
   "license": "MIT",

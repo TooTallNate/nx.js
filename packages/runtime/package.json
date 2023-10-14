@@ -15,6 +15,7 @@
   "author": "Nathan Rajlich <n@n8.io>",
   "license": "MIT",
   "devDependencies": {
+    "@jridgewell/trace-mapping": "^0.3.19",
     "@types/color-rgba": "^2.1.0",
     "@types/to-px": "^1.1.2",
     "@ungap/event-target": "^0.2.4",
