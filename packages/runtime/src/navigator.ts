@@ -26,8 +26,19 @@ export class Navigator {
 	 * @example "my-app/0.0.1 (Switch; en-us; rv:14.1.2|AMS 1.5.4|E) nx.js/0.0.18"
 	 * @see https://developer.mozilla.org/docs/Web/API/Navigator/userAgent
 	 */
-	get userAgent(): string {
+	get userAgent() {
 		return `nx.js/${Switch.version.nxjs}`;
+	}
+
+	/**
+	 * Returns the maximum number of simultaneous touch contact points are
+	 * supported by the current device.
+	 *
+	 * @example 10
+	 * @see https://developer.mozilla.org/docs/Web/API/Navigator/maxTouchPoints
+	 */
+	get maxTouchPoints() {
+		return 10;
 	}
 }
 def('Navigator', Navigator);
