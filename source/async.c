@@ -16,6 +16,8 @@ void nx_process_async(JSContext *ctx, nx_context_t *nx_ctx)
             JSValue args[] = {JS_UNDEFINED, JS_UNDEFINED};
             cur->after_work_cb(ctx, cur, args);
             JSValue ret_val = JS_Call(ctx, cur->js_callback, JS_NULL, 2, args);
+            JS_FreeValue(ctx, args[0]);
+            JS_FreeValue(ctx, args[1]);
             JS_FreeValue(ctx, cur->js_callback);
             if (JS_IsException(ret_val))
             {
