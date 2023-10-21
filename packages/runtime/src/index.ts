@@ -137,10 +137,10 @@ $.onError((e) => {
 		error: e,
 	});
 	dispatchEvent(ev);
-	if (!ev.defaultPrevented) {
-		console.error('Uncaught', e);
-		console.log('\nPress + to exit');
-	}
+	if (ev.defaultPrevented) return 0;
+	console.error('Uncaught', e);
+	console.log('\nPress + to exit');
+	return 1;
 });
 
 $.onUnhandledRejection((p, r) => {
@@ -149,10 +149,10 @@ $.onUnhandledRejection((p, r) => {
 		reason: r,
 	});
 	dispatchEvent(ev);
-	if (!ev.defaultPrevented) {
-		console.error('Uncaught (in promise)', r);
-		console.log('\nPress + to exit');
-	}
+	if (ev.defaultPrevented) return 0;
+	console.error('Uncaught (in promise)', r);
+	console.log('\nPress + to exit');
+	return 1;
 });
 
 Switch.addEventListener('frame', (event) => {

@@ -22,6 +22,8 @@
 #include "tcp.h"
 #include "poll.h"
 
+#define LOG_FILENAME "nxjs-debug.log"
+
 // Text renderer
 static PrintConsole *print_console = NULL;
 
@@ -43,7 +45,7 @@ static JSValue js_console_exit(JSContext *ctx, JSValueConst this_val, int argc, 
 {
     if (print_console != NULL)
     {
-        consoleExit(NULL);
+        consoleExit(print_console);
         print_console = NULL;
     }
     return JS_UNDEFINED;
@@ -413,7 +415,7 @@ void nx_process_pending_jobs(JSRuntime *rt)
         {
             if (err < 0)
             {
-                print_js_error(ctx);
+                nx_emit_error_event(ctx);
             }
             break;
         }
@@ -445,14 +447,14 @@ int main(int argc, char *argv[])
         diagAbortWithResult(rc);
     }
 
+    FILE *debug_fd = freopen(LOG_FILENAME, "w", stderr);
+
     // Configure our supported input layout: a single player with standard controller styles
     padConfigureInput(1, HidNpadStyleSet_NpadStandard);
 
     // Initialize the default gamepad (which reads handheld mode inputs as well as the first connected controller)
     PadState pad;
     padInitializeDefault(&pad);
-
-    int had_error = 0;
 
     JSRuntime *rt = JS_NewRuntime();
     JSContext *ctx = JS_NewContext(rt);
@@ -501,8 +503,8 @@ int main(int argc, char *argv[])
         {
             free(js_path);
         }
-        had_error = 1;
-        goto wait_error;
+        nx_ctx->had_error = 1;
+        goto main_loop;
     }
 
     size_t runtime_buffer_size;
@@ -511,21 +513,21 @@ int main(int argc, char *argv[])
     if (runtime_buffer == NULL)
     {
         printf("%s: %s\n", strerror(errno), runtime_path);
-        had_error = 1;
-        goto wait_error;
+        nx_ctx->had_error = 1;
+        goto main_loop;
     }
 
     JSValue runtime_init_result = JS_Eval(ctx, runtime_buffer, runtime_buffer_size, runtime_path, JS_EVAL_TYPE_GLOBAL);
     if (JS_IsException(runtime_init_result))
     {
         print_js_error(ctx);
-        had_error = 1;
+        nx_ctx->had_error = 1;
     }
     JS_FreeValue(ctx, runtime_init_result);
     free(runtime_buffer);
-    if (had_error)
+    if (nx_ctx->had_error)
     {
-        goto wait_error;
+        goto main_loop;
     }
 
     JSValue switch_obj = JS_GetPropertyStr(ctx, global_obj, "Switch");
@@ -604,9 +606,7 @@ int main(int argc, char *argv[])
     JSValue user_code_result = JS_Eval(ctx, user_code, user_code_size, js_path, JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY);
     if (JS_IsException(user_code_result))
     {
-        // print_js_error(ctx);
         nx_emit_error_event(ctx);
-        had_error = 1;
     }
     else
     {
@@ -614,9 +614,7 @@ int main(int argc, char *argv[])
         user_code_result = JS_EvalFunction(ctx, user_code_result);
         if (JS_IsException(user_code_result))
         {
-            // print_js_error(ctx);
             nx_emit_error_event(ctx);
-            had_error = 1;
         }
     }
     JS_FreeValue(ctx, user_code_result);
@@ -625,59 +623,73 @@ int main(int argc, char *argv[])
     {
         free(js_path);
     }
-    if (had_error)
-    {
-        goto wait_error;
-    }
 
-    // Main loop
+main_loop:
     while (appletMainLoop())
     {
-        // Check if any file descriptors have reported activity
-        nx_poll(&nx_ctx->poll);
+        if (!nx_ctx->had_error)
+        {
+            // Check if any file descriptors have reported activity
+            nx_poll(&nx_ctx->poll);
+        }
 
         // Check if any thread pool tasks have completed
-        nx_process_async(ctx, nx_ctx);
+        if (!nx_ctx->had_error)
+            nx_process_async(ctx, nx_ctx);
 
         // Process any Promises that need to be fulfilled
-        nx_process_pending_jobs(rt);
+        if (!nx_ctx->had_error)
+            nx_process_pending_jobs(rt);
 
         padUpdate(&pad);
         u64 kDown = padGetButtons(&pad);
 
-        // Dispatch "frame" event
-        JSValue event_obj = JS_NewObject(ctx);
-        JS_SetPropertyStr(ctx, event_obj, "type", JS_NewString(ctx, "frame"));
-        JS_SetPropertyStr(ctx, event_obj, "detail", JS_NewUint32(ctx, kDown));
-        JSValueConst args[] = {event_obj};
-        JSValue ret_val = JS_Call(ctx, dispatch_event_func, switch_obj, 1, args);
-        JS_FreeValue(ctx, event_obj);
-
-        if (!is_running)
+        if (nx_ctx->had_error)
         {
-            // `Switch.exit()` was called
+            if (kDown & HidNpadButton_Plus)
+            {
+                // When an initialization or unhandled error occurs,
+                // wait until the user presses "+" to fully exit so
+                // the user has a chance to read the error message.
+                break;
+            }
+        }
+        else
+        {
+            // Dispatch "frame" event
+            JSValue event_obj = JS_NewObject(ctx);
+            JS_SetPropertyStr(ctx, event_obj, "type", JS_NewString(ctx, "frame"));
+            JS_SetPropertyStr(ctx, event_obj, "detail", JS_NewUint32(ctx, kDown));
+            JSValueConst args[] = {event_obj};
+            JSValue ret_val = JS_Call(ctx, dispatch_event_func, switch_obj, 1, args);
+            JS_FreeValue(ctx, event_obj);
+
+            if (!is_running)
+            {
+                // `Switch.exit()` was called
+                JS_FreeValue(ctx, ret_val);
+                break;
+            }
+
+            if (JS_IsException(ret_val))
+            {
+                nx_emit_error_event(ctx);
+            }
             JS_FreeValue(ctx, ret_val);
-            break;
         }
 
-        if (JS_IsException(ret_val))
+        if (print_console != NULL)
         {
-            print_js_error(ctx);
+            // Update the console, sending a new frame to the display
+            consoleUpdate(print_console);
         }
-        JS_FreeValue(ctx, ret_val);
-
-        if (framebuffer != NULL)
+        else if (framebuffer != NULL)
         {
             // Copy the JS framebuffer to the current Switch buffer
             u32 stride;
             u8 *framebuf = (u8 *)framebufferBegin(framebuffer, &stride);
             memcpy(framebuf, js_framebuffer, 1280 * 720 * 4);
             framebufferEnd(framebuffer);
-        }
-        else if (print_console != NULL)
-        {
-            // Update the console, sending a new frame to the display
-            consoleUpdate(print_console);
         }
     }
 
@@ -695,23 +707,8 @@ int main(int argc, char *argv[])
     JS_FreeValue(ctx, event_obj);
     JS_FreeValue(ctx, ret_val);
 
-wait_error:
-    if (had_error)
-    {
-        // When an initialization or unhandled error occurs,
-        // wait until the user presses "+" to fully exit so
-        // the user has a chance to read the error message.
-        while (appletMainLoop())
-        {
-            padUpdate(&pad);
-            u64 kDown = padGetButtonsDown(&pad);
-            if (kDown & HidNpadButton_Plus)
-                break;
-            consoleUpdate(NULL);
-        }
-    }
-
-    FILE *leaks_fd = freopen("leaks.txt", "w", stdout);
+    fclose(debug_fd);
+    FILE *leaks_fd = freopen(LOG_FILENAME, "a", stdout);
 
     JS_FreeValue(ctx, dispatch_event_func);
     JS_FreeValue(ctx, native_obj);
@@ -742,7 +739,7 @@ wait_error:
     fclose(leaks_fd);
 
     /* If no leaks were detected then delete the log file */
-    delete_if_empty("leaks.txt");
+    delete_if_empty(LOG_FILENAME);
 
     return 0;
 }

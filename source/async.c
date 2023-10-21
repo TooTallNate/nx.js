@@ -21,7 +21,7 @@ void nx_process_async(JSContext *ctx, nx_context_t *nx_ctx)
             JS_FreeValue(ctx, cur->js_callback);
             if (JS_IsException(ret_val))
             {
-                print_js_error(ctx);
+                nx_emit_error_event(ctx);
             }
             JS_FreeValue(ctx, ret_val);
             if (cur->data)
@@ -40,6 +40,10 @@ void nx_process_async(JSContext *ctx, nx_context_t *nx_ctx)
             {
                 prev->next = cur;
             }
+
+            // If the callback threw a fatal error
+            // then don't process any more async callbacks
+            if (nx_ctx->had_error) break;
         }
         else
         {

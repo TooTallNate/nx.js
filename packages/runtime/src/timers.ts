@@ -84,12 +84,12 @@ export function processTimers() {
 	const now = Date.now();
 	for (const [id, timer] of timers) {
 		if (now >= timer.invokeAt) {
-			timer.callback.apply(null, timer.args);
 			if (typeof timer.interval === 'number') {
 				timer.invokeAt = now + timer.interval;
 			} else {
 				clearTimeout(id);
 			}
+			timer.callback.apply(null, timer.args);
 		}
 	}
 }

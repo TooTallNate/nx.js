@@ -7,9 +7,9 @@ export interface Init {
 	batteryExit(): void;
 
 	// error.c
-	onError(fn: (err: any) => void): void;
+	onError(fn: (err: any) => number): void;
 	onUnhandledRejection(
-		fn: (promise: Promise<unknown>, reason: any) => void
+		fn: (promise: Promise<unknown>, reason: any) => number
 	): void;
 
 	// wasm.c

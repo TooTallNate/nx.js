@@ -4,40 +4,32 @@ void print_js_error(JSContext *ctx)
 {
     JSValue exception_val = JS_GetException(ctx);
     const char *exception_str = JS_ToCString(ctx, exception_val);
+    printf("%s\n", exception_str);
     fprintf(stderr, "%s\n", exception_str);
     fflush(stderr);
-
-    printf("%s\n", exception_str);
     JS_FreeCString(ctx, exception_str);
 
     JSValue stack_val = JS_GetPropertyStr(ctx, exception_val, "stack");
     const char *stack_str = JS_ToCString(ctx, stack_val);
+    printf("%s\n", stack_str);
     fprintf(stderr, "%s\n", stack_str);
     fflush(stderr);
-    printf("%s\n", stack_str);
     JS_FreeCString(ctx, stack_str);
-
     JS_FreeValue(ctx, exception_val);
+    JS_FreeValue(ctx, stack_val);
 }
 
-int nx_emit_error_event(JSContext *ctx)
+void nx_emit_error_event(JSContext *ctx)
 {
     JSValue exception_val = JS_GetException(ctx);
-
     nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
     JSValueConst args[] = {exception_val};
     JSValue ret_val = JS_Call(ctx, nx_ctx->onerror_handler, JS_NULL, 1, args);
-
-    // TODO: what should happen here?
-    // if (JS_IsException(ret_val))
-    //{
-    //    print_js_error(ctx);
-    //}
-
     JS_FreeValue(ctx, exception_val);
+    if (JS_IsException(ret_val))
+        print_js_error(ctx);
+    JS_ToInt32(ctx, &nx_ctx->had_error, ret_val);
     JS_FreeValue(ctx, ret_val);
-
-    return 0;
 }
 
 static JSValue nx_set_onerror_handler(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -62,9 +54,8 @@ void nx_promise_rejection_handler(JSContext *ctx, JSValueConst promise,
     JSValueConst args[] = {promise, reason};
     JSValue ret_val = JS_Call(ctx, nx_ctx->unhandled_rejection_handler, JS_NULL, 2, args);
     if (JS_IsException(ret_val))
-    {
         print_js_error(ctx);
-    }
+    JS_ToInt32(ctx, &nx_ctx->had_error, ret_val);
     JS_FreeValue(ctx, ret_val);
 }
 

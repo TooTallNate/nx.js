@@ -3,7 +3,7 @@
 
 void print_js_error(JSContext *ctx);
 
-int nx_emit_error_event(JSContext *ctx);
+void nx_emit_error_event(JSContext *ctx);
 
 void nx_promise_rejection_handler(JSContext *ctx, JSValueConst promise,
                                   JSValueConst reason,

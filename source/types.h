@@ -23,12 +23,12 @@
 #define QUICKJS_VERSION "2021-03-27"
 
 // Useful for functions defined on class `prototype`s
-#define JS_PROP_C_W  (JS_PROP_CONFIGURABLE | JS_PROP_WRITABLE)
+#define JS_PROP_C_W (JS_PROP_CONFIGURABLE | JS_PROP_WRITABLE)
 
-#define NX_DEF_GETTER(THISARG, NAME, FN) \
-   atom = JS_NewAtom(ctx, NAME); \
-   JS_DefinePropertyGetSet(ctx, THISARG, atom, JS_NewCFunction(ctx, FN, "get " NAME, 0), JS_NULL, JS_PROP_C_W); \
-   JS_FreeAtom(ctx, atom);
+#define NX_DEF_GETTER(THISARG, NAME, FN)                                                                         \
+    atom = JS_NewAtom(ctx, NAME);                                                                                \
+    JS_DefinePropertyGetSet(ctx, THISARG, atom, JS_NewCFunction(ctx, FN, "get " NAME, 0), JS_NULL, JS_PROP_C_W); \
+    JS_FreeAtom(ctx, atom);
 
 #define NX_DEF_FUNC(THISARG, NAME, FN, LENGTH) (JS_DefinePropertyValueStr(ctx, THISARG, NAME, JS_NewCFunction(ctx, FN, NAME, LENGTH), JS_PROP_C_W))
 
@@ -51,6 +51,7 @@ struct nx_work_s
 
 typedef struct
 {
+    int had_error;
     nx_poll_t poll;
     threadpool thpool;
     pthread_mutex_t async_done_mutex;

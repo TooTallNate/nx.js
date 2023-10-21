@@ -32,7 +32,7 @@ void nx_on_connect(nx_poll_t *p, nx_connect_t *req)
     JS_FreeValue(req_cb->context, req_cb->callback);
     if (JS_IsException(ret_val))
     {
-        print_js_error(req_cb->context);
+        nx_emit_error_event(req_cb->context);
     }
     JS_FreeValue(req_cb->context, ret_val);
     free(req_cb);
@@ -81,7 +81,7 @@ void nx_on_read(nx_poll_t *p, nx_read_t *req)
     JS_FreeValue(req_cb->context, req_cb->callback);
     if (JS_IsException(ret_val))
     {
-        print_js_error(req_cb->context);
+        nx_emit_error_event(req_cb->context);
     }
     JS_FreeValue(req_cb->context, ret_val);
     free(req_cb);
@@ -131,7 +131,7 @@ void nx_on_write(nx_poll_t *p, nx_write_t *req)
     JS_FreeValue(req_cb->context, req_cb->callback);
     if (JS_IsException(ret_val))
     {
-        print_js_error(req_cb->context);
+        nx_emit_error_event(req_cb->context);
     }
     JS_FreeValue(req_cb->context, ret_val);
     free(req_cb);
