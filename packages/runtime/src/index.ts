@@ -139,6 +139,7 @@ $.onError((e) => {
 	dispatchEvent(ev);
 	if (!ev.defaultPrevented) {
 		console.error('Uncaught', e);
+		console.log('\nPress + to exit');
 	}
 });
 
@@ -150,6 +151,7 @@ $.onUnhandledRejection((p, r) => {
 	dispatchEvent(ev);
 	if (!ev.defaultPrevented) {
 		console.error('Uncaught (in promise)', r);
+		console.log('\nPress + to exit');
 	}
 });
 
