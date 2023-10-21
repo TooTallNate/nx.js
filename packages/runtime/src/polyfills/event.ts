@@ -469,6 +469,14 @@ export class TouchEvent extends UIEvent implements globalThis.TouchEvent {
 	}
 }
 
+export interface ErrorEventInit extends EventInit {
+	colno?: number;
+	error?: any;
+	filename?: string;
+	lineno?: number;
+	message?: string;
+}
+
 export class ErrorEvent extends Event implements globalThis.ErrorEvent {
 	colno: number;
 	error: any;
