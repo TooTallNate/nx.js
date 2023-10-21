@@ -1,6 +1,30 @@
 import { def } from '../utils';
 import ET from '@ungap/event-target';
+import type { Event } from './event';
+import type { AbortSignal } from './abort-controller';
 def('EventTarget', ET);
+
+export interface EventListener {
+	(evt: Event): void;
+}
+
+export interface EventListenerObject {
+	handleEvent(object: Event): void;
+}
+
+export type EventListenerOrEventListenerObject =
+	| EventListener
+	| EventListenerObject;
+
+export interface EventListenerOptions {
+	capture?: boolean;
+}
+
+export interface AddEventListenerOptions extends EventListenerOptions {
+	once?: boolean;
+	passive?: boolean;
+	signal?: AbortSignal;
+}
 
 /**
  * EventTarget is a DOM interface implemented by objects that can receive events and may have listeners for them.
