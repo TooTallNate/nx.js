@@ -460,6 +460,7 @@ int main(int argc, char *argv[])
     nx_context_t *nx_ctx = malloc(sizeof(nx_context_t));
     memset(nx_ctx, 0, sizeof(nx_context_t));
     nx_ctx->thpool = thpool_init(4);
+    nx_ctx->onerror_handler = JS_UNDEFINED;
     nx_ctx->unhandled_rejection_handler = JS_UNDEFINED;
     pthread_mutex_init(&(nx_ctx->async_done_mutex), NULL);
     JS_SetContextOpaque(ctx, nx_ctx);
@@ -603,7 +604,8 @@ int main(int argc, char *argv[])
     JSValue user_code_result = JS_Eval(ctx, user_code, user_code_size, js_path, JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY);
     if (JS_IsException(user_code_result))
     {
-        print_js_error(ctx);
+        // print_js_error(ctx);
+        nx_emit_error_event(ctx);
         had_error = 1;
     }
     else
@@ -612,7 +614,8 @@ int main(int argc, char *argv[])
         user_code_result = JS_EvalFunction(ctx, user_code_result);
         if (JS_IsException(user_code_result))
         {
-            print_js_error(ctx);
+            // print_js_error(ctx);
+            nx_emit_error_event(ctx);
             had_error = 1;
         }
     }
@@ -714,6 +717,7 @@ wait_error:
     JS_FreeValue(ctx, native_obj);
     JS_FreeValue(ctx, switch_obj);
     JS_FreeValue(ctx, global_obj);
+    JS_FreeValue(ctx, nx_ctx->onerror_handler);
     JS_FreeValue(ctx, nx_ctx->unhandled_rejection_handler);
 
     JS_FreeContext(ctx);

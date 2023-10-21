@@ -58,6 +58,7 @@ typedef struct
     FT_Library ft_library;
     HidVibrationDeviceHandle vibration_device_handles[2];
     IM3Environment wasm_env;
+    JSValue onerror_handler;
     JSValue unhandled_rejection_handler;
 } nx_context_t;
 

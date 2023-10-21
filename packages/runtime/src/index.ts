@@ -11,6 +11,7 @@ import {
 } from './timers';
 import { console } from './console';
 import {
+	ErrorEvent,
 	KeyboardEvent,
 	TouchEvent,
 	UIEvent,
@@ -130,6 +131,16 @@ def(
 	EventTarget.prototype.removeEventListener.bind(globalThis)
 );
 def('dispatchEvent', EventTarget.prototype.dispatchEvent.bind(globalThis));
+
+$.onError((e) => {
+	const ev = new ErrorEvent('error', {
+		error: e,
+	});
+	dispatchEvent(ev);
+	if (!ev.defaultPrevented) {
+		console.error('Uncaught', e);
+	}
+});
 
 $.onUnhandledRejection((p, r) => {
 	const ev = new PromiseRejectionEvent('unhandledrejection', {

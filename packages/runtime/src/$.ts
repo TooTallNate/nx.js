@@ -1,13 +1,18 @@
 import type { MemoryDescriptor, Memory } from './wasm';
 
 export interface Init {
-	onUnhandledRejection(
-		fn: (promise: Promise<unknown>, reason: any) => void
-	): void;
+	// battery.c
 	batteryInit(): void;
 	batteryInitClass(c: any): void;
 	batteryExit(): void;
 
+	// error.c
+	onError(fn: (err: any) => void): void;
+	onUnhandledRejection(
+		fn: (promise: Promise<unknown>, reason: any) => void
+	): void;
+
+	// wasm.c
 	wasmCallFunc(f: any, ...args: unknown[]): unknown;
 	wasmMemNew(descriptor: MemoryDescriptor): Memory;
 	wasmTableGet(t: any, i: number): Memory;
