@@ -493,8 +493,27 @@ export class ErrorEvent extends Event implements globalThis.ErrorEvent {
 	}
 }
 
+export interface PromiseRejectionEventInit extends EventInit {
+	promise: Promise<any>;
+	reason?: any;
+}
+
+export class PromiseRejectionEvent
+	extends Event
+	implements globalThis.PromiseRejectionEvent
+{
+	promise: Promise<any>;
+	reason: any;
+	constructor(type: string, options: PromiseRejectionEventInit) {
+		super(type, options);
+		this.promise = options.promise;
+		this.reason = options.reason;
+	}
+}
+
 def('Event', Event);
 def('ErrorEvent', ErrorEvent);
+def('PromiseRejectionEvent', PromiseRejectionEvent);
 def('UIEvent', UIEvent);
 def('KeyboardEvent', KeyboardEvent);
 def('TouchEvent', TouchEvent);

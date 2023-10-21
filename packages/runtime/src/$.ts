@@ -1,6 +1,9 @@
 import type { MemoryDescriptor, Memory } from './wasm';
 
 export interface Init {
+	onUnhandledRejection(
+		fn: (promise: Promise<unknown>, reason: any) => void
+	): void;
 	batteryInit(): void;
 	batteryInitClass(c: any): void;
 	batteryExit(): void;

@@ -460,14 +460,17 @@ int main(int argc, char *argv[])
     nx_context_t *nx_ctx = malloc(sizeof(nx_context_t));
     memset(nx_ctx, 0, sizeof(nx_context_t));
     nx_ctx->thpool = thpool_init(4);
+    nx_ctx->unhandled_rejection_handler = JS_UNDEFINED;
     pthread_mutex_init(&(nx_ctx->async_done_mutex), NULL);
     JS_SetContextOpaque(ctx, nx_ctx);
+    JS_SetHostPromiseRejectionTracker(rt, nx_promise_rejection_handler, ctx);
 
     /* The internal `$` object contains native functions that are wrapped in the JS runtime */
     JSValue global_obj = JS_GetGlobalObject(ctx);
     JSValue init_obj = JS_NewObject(ctx);
-    nx_init_wasm(ctx, init_obj);
+    nx_init_error(ctx, init_obj);
     nx_init_battery(ctx, init_obj);
+    nx_init_wasm(ctx, init_obj);
     JS_SetPropertyStr(ctx, global_obj, "$", init_obj);
 
     // First try the `main.js` file on the RomFS
@@ -711,6 +714,7 @@ wait_error:
     JS_FreeValue(ctx, native_obj);
     JS_FreeValue(ctx, switch_obj);
     JS_FreeValue(ctx, global_obj);
+    JS_FreeValue(ctx, nx_ctx->unhandled_rejection_handler);
 
     JS_FreeContext(ctx);
     JS_FreeRuntime(rt);

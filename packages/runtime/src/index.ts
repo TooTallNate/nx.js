@@ -10,7 +10,12 @@ import {
 	processTimers,
 } from './timers';
 import { console } from './console';
-import { KeyboardEvent, TouchEvent, UIEvent } from './polyfills/event';
+import {
+	KeyboardEvent,
+	TouchEvent,
+	UIEvent,
+	PromiseRejectionEvent,
+} from './polyfills/event';
 
 export type {
 	SwitchClass,
@@ -81,6 +86,7 @@ import * as WebAssembly from './wasm';
 def('WebAssembly', WebAssembly);
 
 import './source-map';
+import { $ } from './$';
 
 /**
  * The `import.meta` meta-property exposes context-specific metadata to a JavaScript module.
@@ -124,6 +130,17 @@ def(
 	EventTarget.prototype.removeEventListener.bind(globalThis)
 );
 def('dispatchEvent', EventTarget.prototype.dispatchEvent.bind(globalThis));
+
+$.onUnhandledRejection((p, r) => {
+	const ev = new PromiseRejectionEvent('unhandledrejection', {
+		promise: p,
+		reason: r,
+	});
+	dispatchEvent(ev);
+	if (!ev.defaultPrevented) {
+		console.error('Uncaught (in promise)', r);
+	}
+});
 
 Switch.addEventListener('frame', (event) => {
 	const {
