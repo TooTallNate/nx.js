@@ -1,5 +1,45 @@
 # nxjs-runtime
 
+## 0.0.21
+
+### Patch Changes
+
+- Add "utf8" as an accepted encoding for `TextDecoder` ([`b433831`](https://github.com/TooTallNate/nx.js/commit/b433831d7ad5491ebdfeff3ecc67b3f778c4d0da))
+
+- Add `console.trace()` ([`cc6a443`](https://github.com/TooTallNate/nx.js/commit/cc6a443ff4b1e89414f098acda05dba5d6df31dc))
+
+- Add `navigator.getBattery()` API ([`4d8f380`](https://github.com/TooTallNate/nx.js/commit/4d8f380357e2ce402b39ae8833d52d48fe6a7a0a))
+
+- Make `globalThis` inherit from `EventTarget` ([`7f7d961`](https://github.com/TooTallNate/nx.js/commit/7f7d9610d74446b9af924ce05d0cb904891a53a5))
+
+- Implement `WebAssembly.Memory#grow()` ([`ec79b19`](https://github.com/TooTallNate/nx.js/commit/ec79b199adb683d5f36a80b8c602dbe5b90176aa))
+
+- Add "unhandledrejection" global event when a Promise is not caught ([`4eff094`](https://github.com/TooTallNate/nx.js/commit/4eff094b21fb48fa097ef5606e0902ded8d04f43))
+
+- Fix reference to `BufferSource` type in WASM namespace ([`7541564`](https://github.com/TooTallNate/nx.js/commit/754156410b500159714c445e908b9bd2b9c72942))
+
+- Add `navigator.maxTouchPoints` ([`2ef1bf8`](https://github.com/TooTallNate/nx.js/commit/2ef1bf8126be35610719cb0ecff9243a57c26e14))
+
+- Add a few `EventTarget` related types / interfaces ([`a3b7ab6`](https://github.com/TooTallNate/nx.js/commit/a3b7ab664aad054a7081397c7df1a3a349d27fc0))
+
+- Implement `import.meta` ([`612a208`](https://github.com/TooTallNate/nx.js/commit/612a2080f441045a728c4f109ce68312d78691ec))
+
+- Free the arguments for thread pool callbacks ([`ddcc4b9`](https://github.com/TooTallNate/nx.js/commit/ddcc4b9ac093be4750b89d208c63019fe753b85c))
+
+- Add type definitions for `EventTarget` interface on `globalThis` ([`e0f2439`](https://github.com/TooTallNate/nx.js/commit/e0f243931a75cdc9a778995a3d099a440e66da11))
+
+- Continue event loop when `event.preventDefault()` is called for "error" or "unhandledrejection" ([`99ccc71`](https://github.com/TooTallNate/nx.js/commit/99ccc713db7f86ae99f6e3adc512df4f8a6b417f))
+
+- Add source map tracing in error stack traces ([#48](https://github.com/TooTallNate/nx.js/pull/48))
+
+- Add `ErrorEventInit` interface ([`99cf6dd`](https://github.com/TooTallNate/nx.js/commit/99cf6dd2989ea010d6763ebddaeb83310572c4ad))
+
+- Add "error" global event when an Error is not caught ([`436f4d2`](https://github.com/TooTallNate/nx.js/commit/436f4d26cf5c93921738c99db19adb5172a49382))
+
+- Implement initial `WebAssembly.Table` export functionality ([`9ef02b1`](https://github.com/TooTallNate/nx.js/commit/9ef02b117eac69b8563c0ac0877a52c6e639e2ed))
+
+- Implement WASM imported function return value ([`a4fb327`](https://github.com/TooTallNate/nx.js/commit/a4fb32771f11eba2f00f1060626c18e9547ff889))
+
 ## 0.0.20
 
 ### Patch Changes
