@@ -11,12 +11,17 @@ import {
 } from './timers';
 import { console } from './console';
 import {
+	type Event,
 	ErrorEvent,
 	KeyboardEvent,
 	TouchEvent,
 	UIEvent,
 	PromiseRejectionEvent,
 } from './polyfills/event';
+import type {
+	AddEventListenerOptions,
+	EventListenerOptions,
+} from './polyfills/event-target';
 
 export type {
 	SwitchClass,
@@ -37,7 +42,7 @@ export type {
 } from './canvas';
 export type * from './canvas/image-data';
 export type { Path2D } from './canvas/path2d';
-export type { EventTarget } from './polyfills/event-target';
+export type * from './polyfills/event-target';
 export type { URL, URLSearchParams } from './polyfills/url';
 export type * from './polyfills/streams';
 export type * from './polyfills/event';
@@ -117,8 +122,6 @@ function touchIsEqual(a: Touch, b: Touch) {
 	);
 }
 
-const btnPlus = 1 << 10; ///< Plus button
-
 // Make `globalThis` inherit from `EventTarget`
 Object.setPrototypeOf(globalThis, EventTarget.prototype);
 EventTarget.call(globalThis);
@@ -131,6 +134,50 @@ def(
 	EventTarget.prototype.removeEventListener.bind(globalThis)
 );
 def('dispatchEvent', EventTarget.prototype.dispatchEvent.bind(globalThis));
+
+export declare function addEventListener(
+	type: 'error',
+	callback: (ev: ErrorEvent) => any,
+	options?: AddEventListenerOptions | boolean
+): void;
+export declare function addEventListener(
+	type: 'unhandledrejection',
+	callback: (ev: PromiseRejectionEvent) => any,
+	options?: AddEventListenerOptions | boolean
+): void;
+export declare function addEventListener(
+	type: string,
+	callback: EventListenerOrEventListenerObject | null,
+	options?: AddEventListenerOptions | boolean
+): void;
+
+/**
+ * Removes the event listener in target's event listener list with the same type, callback, and options.
+ *
+ * @see {@link https://developer.mozilla.org/docs/Web/API/EventTarget/removeEventListener | MDN Reference}
+ */
+export declare function removeEventListener(
+	type: 'error',
+	callback: (ev: ErrorEvent) => any,
+	options?: EventListenerOptions | boolean
+): void;
+export declare function removeEventListener(
+	type: 'unhandledrejection',
+	callback: (ev: PromiseRejectionEvent) => any,
+	options?: EventListenerOptions | boolean
+): void;
+export declare function removeEventListener(
+	type: string,
+	callback: EventListenerOrEventListenerObject | null,
+	options?: EventListenerOptions | boolean
+): void;
+
+/**
+ * Dispatches a synthetic event event to target and returns true if either event's cancelable attribute value is false or its preventDefault() method was not invoked, and false otherwise.
+ *
+ * @see {@link https://developer.mozilla.org/docs/Web/API/EventTarget/dispatchEvent | MDN Reference}
+ */
+export declare function dispatchEvent(event: Event): boolean;
 
 $.onError((e) => {
 	const ev = new ErrorEvent('error', {
@@ -154,6 +201,8 @@ $.onUnhandledRejection((p, r) => {
 	console.log('\nPress + to exit');
 	return 1;
 });
+
+const btnPlus = 1 << 10; ///< Plus button
 
 Switch.addEventListener('frame', (event) => {
 	const {
