@@ -112,6 +112,19 @@ function touchIsEqual(a: Touch, b: Touch) {
 
 const btnPlus = 1 << 10; ///< Plus button
 
+// Make `globalThis` inherit from `EventTarget`
+Object.setPrototypeOf(globalThis, EventTarget.prototype);
+EventTarget.call(globalThis);
+def(
+	'addEventListener',
+	EventTarget.prototype.addEventListener.bind(globalThis)
+);
+def(
+	'removeEventListener',
+	EventTarget.prototype.removeEventListener.bind(globalThis)
+);
+def('dispatchEvent', EventTarget.prototype.dispatchEvent.bind(globalThis));
+
 Switch.addEventListener('frame', (event) => {
 	const {
 		keyboardInitialized,
