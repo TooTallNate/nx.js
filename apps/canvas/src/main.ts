@@ -9,5 +9,6 @@ ctx.fillRect(0, 0, 100, 100);
 ctx.fillStyle = 'green';
 ctx.fillRect(200, 200, 100, 100);
 
+ctx.font = '24px system-ui';
 ctx.fillStyle = 'white';
 ctx.fillText('Hello, from JS!', 100, 100);
