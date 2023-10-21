@@ -1,5 +1,6 @@
 import { $ } from './$';
 import { bufferSourceToArrayBuffer } from './utils';
+import type { BufferSource } from './types';
 import type {
 	SwitchClass,
 	WasmModuleOpaque,
