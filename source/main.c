@@ -8,8 +8,9 @@
 #include <quickjs/quickjs.h>
 
 #include "types.h"
-#include "async.h"
 #include "applet.h"
+#include "async.h"
+#include "battery.h"
 #include "crypto.h"
 #include "dns.h"
 #include "error.h"
@@ -466,6 +467,7 @@ int main(int argc, char *argv[])
     JSValue global_obj = JS_GetGlobalObject(ctx);
     JSValue init_obj = JS_NewObject(ctx);
     nx_init_wasm(ctx, init_obj);
+    nx_init_battery(ctx, init_obj);
     JS_SetPropertyStr(ctx, global_obj, "$", init_obj);
 
     // First try the `main.js` file on the RomFS

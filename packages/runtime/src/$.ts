@@ -1,6 +1,10 @@
 import type { MemoryDescriptor, Memory } from './wasm';
 
 export interface Init {
+	batteryInit(): void;
+	batteryInitClass(c: any): void;
+	batteryExit(): void;
+
 	wasmCallFunc(f: any, ...args: unknown[]): unknown;
 	wasmMemNew(descriptor: MemoryDescriptor): Memory;
 	wasmTableGet(t: any, i: number): Memory;

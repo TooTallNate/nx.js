@@ -23,6 +23,7 @@ export type { InspectOptions } from './inspect';
 export type * from './types';
 export type * from './console';
 export type * from './navigator';
+export type * from './navigator/battery';
 export type {
 	CanvasImageSource,
 	Canvas,

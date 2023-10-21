@@ -1,7 +1,15 @@
 import { def } from './utils';
+import { BatteryManager } from './navigator/battery';
+import { INTERNAL_SYMBOL } from './types';
 import type { SwitchClass } from './switch';
 
 declare const Switch: SwitchClass;
+
+interface NavigatorState {
+	battery?: BatteryManager;
+}
+
+const state: NavigatorState = {};
 
 /**
  * The `Navigator` interface represents the state and the identity of the user agent.
@@ -39,6 +47,21 @@ export class Navigator {
 	 */
 	get maxTouchPoints() {
 		return 10;
+	}
+
+	/**
+	 * Returns a battery promise, which is resolved in a {@link BatteryManager} object
+	 * providing also some new events you can handle to monitor the battery status.
+	 *
+	 * @see https://developer.mozilla.org/docs/Web/API/Navigator/getBattery
+	 */
+	async getBattery() {
+		let b = state.battery;
+		if (!b) {
+			// @ts-expect-error
+			b = state.battery = new BatteryManager(INTERNAL_SYMBOL);
+		}
+		return b;
 	}
 }
 def('Navigator', Navigator);
