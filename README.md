@@ -29,7 +29,7 @@ right at home.
 ## Getting Started
 
 1. Set up a custom firmware on your Switch, so that it can run homebrew applications ([instructions](https://nh-server.github.io/switch-guide/)).
-1. Download the `nxjs.nro` file from the Releases page.
+1. Download the `nxjs.nro` file from the [Releases](https://github.com/TooTallNate/nx.js/releases) page.
 1. Create a file called `nxjs.js` with the following contents:
     ```javascript
     console.log('Hello Switch, from JavaScript!');
