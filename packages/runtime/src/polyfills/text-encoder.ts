@@ -8,7 +8,7 @@ export interface TextEncoderEncodeIntoResult {
 /**
  * TextEncoder takes a UTF-8 encoded string of code points as input and return a stream of bytes.
  *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextEncoder)
+ * @link https://developer.mozilla.org/docs/Web/API/TextEncoder
  */
 export class TextEncoder implements globalThis.TextEncoder {
 	encoding: string;
@@ -20,7 +20,7 @@ export class TextEncoder implements globalThis.TextEncoder {
 	/**
 	 * Returns the result of running UTF-8's encoder.
 	 *
-	 * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextEncoder/encode)
+	 * @link https://developer.mozilla.org/docs/Web/API/TextEncoder/encode
 	 */
 	encode(input?: string): Uint8Array {
 		if (!input) return new Uint8Array(0);
@@ -90,7 +90,7 @@ export class TextEncoder implements globalThis.TextEncoder {
 	 *
 	 * **Note:** Not currently supported.
 	 *
-	 * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextEncoder/encodeInto)
+	 * @link https://developer.mozilla.org/docs/Web/API/TextEncoder/encodeInto
 	 */
 	encodeInto(
 		input: string,
