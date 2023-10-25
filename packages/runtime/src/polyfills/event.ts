@@ -511,9 +511,24 @@ export class PromiseRejectionEvent
 	}
 }
 
+export interface SocketEventInit extends EventInit {
+	fd: number;
+}
+
+export class SocketEvent extends Event {
+	fd: number;
+	constructor(type: string, init: SocketEventInit) {
+		super(type, init);
+		this.fd = init.fd;
+	}
+}
+
 def('Event', Event);
 def('ErrorEvent', ErrorEvent);
 def('PromiseRejectionEvent', PromiseRejectionEvent);
 def('UIEvent', UIEvent);
 def('KeyboardEvent', KeyboardEvent);
 def('TouchEvent', TouchEvent);
+
+// Non-standard
+def('SocketEvent', SocketEvent);

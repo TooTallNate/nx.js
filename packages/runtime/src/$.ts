@@ -1,3 +1,5 @@
+import type { Callback } from './types';
+import type { Server } from './tcp';
 import type { MemoryDescriptor, Memory } from './wasm';
 
 export interface Init {
@@ -11,6 +13,17 @@ export interface Init {
 	onUnhandledRejection(
 		fn: (promise: Promise<unknown>, reason: any) => number
 	): void;
+
+	// tcp.c
+	connect(cb: Callback<number>, ip: string, port: number): void;
+	write(cb: Callback<number>, fd: number, data: ArrayBuffer): void;
+	read(cb: Callback<number>, fd: number, buffer: ArrayBuffer): void;
+	tcpInitServer(c: any): void;
+	tcpServerNew(
+		ip: string,
+		port: number,
+		onAccept: (fd: number) => void
+	): Server;
 
 	// wasm.c
 	wasmCallFunc(f: any, ...args: unknown[]): unknown;

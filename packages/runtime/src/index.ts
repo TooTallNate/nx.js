@@ -23,13 +23,7 @@ import type {
 	EventListenerOptions,
 } from './polyfills/event-target';
 
-export type {
-	SwitchClass,
-	Env,
-	Vibration,
-	Versions,
-	ConnectOpts,
-} from './switch';
+export type { SwitchClass, Env, Vibration, Versions } from './switch';
 export type { InspectOptions } from './inspect';
 export type * from './types';
 export type * from './console';

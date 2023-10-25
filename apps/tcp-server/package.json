@@ -1,0 +1,16 @@
+{
+  "name": "tcp-server",
+  "version": "0.0.0",
+  "private": true,
+  "description": "nx.js app that binds a TCP server to a port",
+  "scripts": {
+    "build": "esbuild --bundle --sourcemap --sources-content=false --target=es2020 --format=esm src/main.ts --outfile=romfs/main.js",
+    "nro": "nxjs-pack"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "esbuild": "^0.17.19",
+    "nxjs-pack": "workspace:^",
+    "nxjs-runtime": "workspace:^"
+  }
+}
