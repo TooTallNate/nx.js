@@ -13,7 +13,8 @@
         "canvas.h": "c",
         "font.h": "c",
         "image.h": "c",
-        "wasm3.h": "c"
+        "wasm3.h": "c",
+        "poll.h": "c"
     },
     "C_Cpp.default.compilerPath": "/opt/devkitpro/devkitA64/bin/aarch64-none-elf-gcc"
 }
