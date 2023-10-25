@@ -22,7 +22,6 @@ void js_dns_resolve_do(nx_work_t *req)
     if (status != 0)
     {
         data->err = status;
-        // printf("Failed to resolve DNS: %s\n", gai_strerror(status));
         return;
     }
 
