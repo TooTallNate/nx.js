@@ -1,4 +1,4 @@
-import { def } from './utils';
+import { IllegalConstructor, def } from './utils';
 import { type SwitchClass } from './switch';
 import { type ArrayBufferView } from './types';
 
@@ -13,7 +13,9 @@ export class Crypto implements globalThis.Crypto {
 	/**
 	 * @ignore
 	 */
-	constructor() {}
+	constructor() {
+		throw new IllegalConstructor();
+	}
 
 	/**
 	 * The `crypto.subtle` interface is not yet implemented.
@@ -83,5 +85,5 @@ def('Crypto', Crypto);
  *
  * @see https://developer.mozilla.org/docs/Web/API/crypto_property
  */
-export const crypto = new Crypto();
+export const crypto: Crypto = Object.create(Crypto.prototype);
 def('crypto', crypto);

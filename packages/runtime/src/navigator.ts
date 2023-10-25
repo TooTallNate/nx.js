@@ -1,4 +1,4 @@
-import { def } from './utils';
+import { IllegalConstructor, def } from './utils';
 import { BatteryManager } from './navigator/battery';
 import { INTERNAL_SYMBOL } from './types';
 import type { SwitchClass } from './switch';
@@ -24,7 +24,7 @@ export class Navigator {
 	 * @ignore
 	 */
 	constructor() {
-		throw new TypeError('Illegal constructor.');
+		throw new IllegalConstructor();
 	}
 
 	/**
@@ -50,8 +50,7 @@ export class Navigator {
 	}
 
 	/**
-	 * Returns a battery promise, which is resolved in a {@link BatteryManager} object
-	 * providing also some new events you can handle to monitor the battery status.
+	 * Returns a promise which is resolved to a {@link BatteryManager} instance.
 	 *
 	 * @see https://developer.mozilla.org/docs/Web/API/Navigator/getBattery
 	 */

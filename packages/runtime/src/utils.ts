@@ -34,3 +34,9 @@ export function asyncIteratorToStream<T>(it: AsyncIterableIterator<T>) {
 		},
 	});
 }
+
+export class IllegalConstructor extends TypeError {
+	constructor() {
+		super('Illegal constructor');
+	}
+}

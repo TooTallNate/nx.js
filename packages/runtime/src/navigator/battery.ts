@@ -1,7 +1,8 @@
 import { $ } from '../$';
 import { INTERNAL_SYMBOL } from '../types';
-import { def } from '../utils';
+import { IllegalConstructor, def } from '../utils';
 import type { SwitchClass } from '../switch';
+import type { Navigator } from '../navigator';
 
 declare const Switch: SwitchClass;
 
@@ -18,7 +19,7 @@ export class BatteryManager extends EventTarget {
 	 */
 	constructor() {
 		if (arguments[0] !== INTERNAL_SYMBOL) {
-			throw new TypeError('Illegal constructor.');
+			throw new IllegalConstructor();
 		}
 		super();
 		$.batteryInit();
