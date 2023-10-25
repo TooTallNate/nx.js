@@ -10,16 +10,19 @@
 #include <arpa/inet.h>
 #include "poll.h"
 
-int set_nonblocking(int fd) {
+int set_nonblocking(int fd)
+{
     /* Retrieve current flags */
     int flags = fcntl(fd, F_GETFL, 0);
-    if (flags == -1) return -1;
+    if (flags == -1)
+        return -1;
 
     /* Set non-blocking flag */
     flags |= O_NONBLOCK;
 
     /* Update flags */
-    if (fcntl(fd, F_SETFL, flags) == -1) return -1;
+    if (fcntl(fd, F_SETFL, flags) == -1)
+        return -1;
 
     return 0;
 }
@@ -76,7 +79,8 @@ int nx_remove_watcher(nx_poll_t *p, nx_watcher_t *req)
         if (watcher->fd == req->fd)
         {
             fd_count++;
-            if (fd_count > 1) break;
+            if (fd_count > 1)
+                break;
         }
     }
 
@@ -163,7 +167,8 @@ int nx_tcp_connect(nx_poll_t *p, nx_connect_t *req, const char *ip, int port, nx
         return sockfd;
     }
 
-    if (set_nonblocking(sockfd) == -1) {
+    if (set_nonblocking(sockfd) == -1)
+    {
         close(sockfd);
         printf("fcntl() err: %s\n", strerror(errno));
         return -1;
@@ -286,7 +291,7 @@ int nx_write(nx_poll_t *p, nx_write_t *req, int fd, const uint8_t *data, size_t 
         {
             // The socket's output buffer is full, need to wait before trying again
             req->events = POLLOUT;
-            nx_add_watcher(p, (nx_watcher_t*)req);
+            nx_add_watcher(p, (nx_watcher_t *)req);
             return 0;
         }
         else
@@ -330,7 +335,8 @@ void nx_tcp_server_cb(nx_poll_t *p, nx_watcher_t *watcher, int revents)
     {
         req->err = 0;
 
-        if (set_nonblocking(client_fd) == -1) {
+        if (set_nonblocking(client_fd) == -1)
+        {
             close(client_fd);
             printf("fcntl() err: %s\n", strerror(errno));
             req->err = errno;
@@ -348,7 +354,8 @@ int nx_tcp_server(nx_poll_t *p, nx_server_t *req, const char *ip, int port, nx_s
         return sockfd;
     }
 
-    if (set_nonblocking(sockfd) == -1) {
+    if (set_nonblocking(sockfd) == -1)
+    {
         close(sockfd);
         printf("fcntl() err: %s\n", strerror(errno));
         return -1;
