@@ -10,6 +10,7 @@ typedef struct
 {
     JSContext *context;
     JSValue callback;
+    JSValue buffer;
 } nx_js_callback_t;
 
 void nx_on_connect(nx_poll_t *p, nx_connect_t *req)
@@ -54,9 +55,11 @@ JSValue nx_js_tcp_connect(JSContext *ctx, JSValueConst this_val, int argc, JSVal
     nx_js_callback_t *req_cb = malloc(sizeof(nx_js_callback_t));
     req_cb->context = ctx;
     req_cb->callback = JS_DupValue(ctx, argv[0]);
+    req_cb->buffer = JS_UNDEFINED;
     req->opaque = req_cb;
 
     nx_tcp_connect(&nx_ctx->poll, req, ip, port, nx_on_connect);
+    JS_FreeCString(ctx, ip);
 
     return JS_UNDEFINED;
 }
@@ -64,6 +67,8 @@ JSValue nx_js_tcp_connect(JSContext *ctx, JSValueConst this_val, int argc, JSVal
 void nx_on_read(nx_poll_t *p, nx_read_t *req)
 {
     nx_js_callback_t *req_cb = (nx_js_callback_t *)req->opaque;
+    JS_FreeValue(req_cb->context, req_cb->buffer);
+
     JSValue args[] = {JS_UNDEFINED, JS_UNDEFINED};
 
     if (req->err)
@@ -91,11 +96,11 @@ void nx_on_read(nx_poll_t *p, nx_read_t *req)
 JSValue nx_js_tcp_read(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     size_t buffer_size;
-    uint8_t *buffer = JS_GetArrayBuffer(ctx, &buffer_size, argv[2]);
+    JSValue buffer_value = JS_DupValue(ctx, argv[2]);
+    uint8_t *buffer = JS_GetArrayBuffer(ctx, &buffer_size, buffer_value);
     int fd;
     if (!buffer || JS_ToInt32(ctx, &fd, argv[1]))
     {
-        JS_ThrowTypeError(ctx, "invalid input");
         return JS_EXCEPTION;
     }
 
@@ -104,6 +109,7 @@ JSValue nx_js_tcp_read(JSContext *ctx, JSValueConst this_val, int argc, JSValueC
     nx_js_callback_t *req_cb = malloc(sizeof(nx_js_callback_t));
     req_cb->context = ctx;
     req_cb->callback = JS_DupValue(ctx, argv[0]);
+    req_cb->buffer = buffer_value;
     req->opaque = req_cb;
 
     nx_read(&nx_ctx->poll, req, fd, buffer, buffer_size, nx_on_read);
@@ -114,12 +120,15 @@ JSValue nx_js_tcp_read(JSContext *ctx, JSValueConst this_val, int argc, JSValueC
 void nx_on_write(nx_poll_t *p, nx_write_t *req)
 {
     nx_js_callback_t *req_cb = (nx_js_callback_t *)req->opaque;
+    JS_FreeValue(req_cb->context, req_cb->buffer);
+
     JSValue args[] = {JS_UNDEFINED, JS_UNDEFINED};
 
     if (req->err)
     {
-        /* Error during read. */
+        /* Error during write. */
         // printf("Error occurred during connect: %s\n", strerror(so_error));
+        args[0] = JS_NewError(req_cb->context);
     }
     else
     {
@@ -155,6 +164,7 @@ JSValue nx_js_tcp_write(JSContext *ctx, JSValueConst this_val, int argc, JSValue
     nx_js_callback_t *req_cb = malloc(sizeof(nx_js_callback_t));
     req_cb->context = ctx;
     req_cb->callback = JS_DupValue(ctx, argv[0]);
+    req_cb->buffer = buffer_val;
     req->opaque = req_cb;
 
     nx_write(&nx_ctx->poll, req, fd, buffer, buffer_size, nx_on_write);
