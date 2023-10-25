@@ -27,9 +27,19 @@ int nx_add_watcher(nx_poll_t *p, nx_watcher_t *req)
         }
         memset(p->poll_fds, 0, s);
     }
-    else
+    else if (p->poll_fds_used == p->poll_fds_size)
     {
-        // TODO: maybe resize array, if needed
+        // Double the size of the array
+        p->poll_fds_size *= 2;
+        size_t s = p->poll_fds_size * sizeof(struct pollfd);
+        struct pollfd *new_poll_fds = realloc(p->poll_fds, s);
+        if (new_poll_fds == NULL)
+        {
+            // out of memory
+            return -1;
+        }
+        // Assign the new array to poll_fds
+        p->poll_fds = new_poll_fds;
     }
 
     int index = 0;
