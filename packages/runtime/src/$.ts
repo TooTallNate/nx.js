@@ -1,4 +1,4 @@
-import type { Callback } from './types';
+import type { Callback, NetworkInfo } from './types';
 import type { Server } from './tcp';
 import type { MemoryDescriptor, Memory } from './wasm';
 
@@ -13,6 +13,10 @@ export interface Init {
 	onUnhandledRejection(
 		fn: (promise: Promise<unknown>, reason: any) => number
 	): void;
+
+	// nifm.c
+	nifmInitialize(): () => void;
+	networkInfo(): NetworkInfo;
 
 	// tcp.c
 	connect(cb: Callback<number>, ip: string, port: number): void;

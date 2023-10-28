@@ -294,6 +294,7 @@ interface Internal {
 	vibrationPattern?: (number | Vibration)[];
 	vibrationTimeoutId?: number;
 	renderingMode?: RenderingMode;
+	nifmInitialized?: boolean;
 	setRenderingMode: (
 		mode: RenderingMode,
 		ctx?: CanvasRenderingContext2DState
@@ -651,6 +652,14 @@ export class SwitchClass extends EventTarget {
 		const d = typeof data === 'string' ? encoder.encode(data) : data;
 		const ab = bufferSourceToArrayBuffer(d);
 		return toPromise($.write, fd, ab);
+	}
+
+	networkInfo() {
+		if (!this[INTERNAL_SYMBOL].nifmInitialized) {
+			this.addEventListener('exit', $.nifmInitialize());
+			this[INTERNAL_SYMBOL].nifmInitialized = true;
+		}
+		return $.networkInfo();
 	}
 
 	/**

@@ -17,6 +17,7 @@
 #include "canvas.h"
 #include "font.h"
 #include "fs.h"
+#include "nifm.h"
 #include "wasm.h"
 #include "image.h"
 #include "tcp.h"
@@ -468,11 +469,12 @@ int main(int argc, char *argv[])
     JS_SetContextOpaque(ctx, nx_ctx);
     JS_SetHostPromiseRejectionTracker(rt, nx_promise_rejection_handler, ctx);
 
-    /* The internal `$` object contains native functions that are wrapped in the JS runtime */
+    // The internal `$` object contains native functions that are wrapped in the JS runtime
     JSValue global_obj = JS_GetGlobalObject(ctx);
     JSValue init_obj = JS_NewObject(ctx);
     nx_init_error(ctx, init_obj);
     nx_init_battery(ctx, init_obj);
+    nx_init_nifm(ctx, init_obj);
     nx_init_tcp(ctx, init_obj);
     nx_init_wasm(ctx, init_obj);
     JS_SetPropertyStr(ctx, global_obj, "$", init_obj);

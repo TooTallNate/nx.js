@@ -72,3 +72,9 @@ export interface ConnectOpts {
 	 */
 	port: number;
 }
+
+export interface NetworkInfo {
+	ip: string;
+	subnetMask: string;
+	gateway: string;
+}
