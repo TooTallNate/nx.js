@@ -1,10 +1,13 @@
+import { $ } from './$';
 import { Canvas, CanvasRenderingContext2D, ctxInternal } from './canvas';
 import { FontFaceSet } from './polyfills/font';
-import { INTERNAL_SYMBOL, PathLike, Stats } from './types';
+import { INTERNAL_SYMBOL } from './types';
 import { inspect } from './inspect';
-import { bufferSourceToArrayBuffer } from './utils';
+import { bufferSourceToArrayBuffer, toPromise } from './utils';
 import { setTimeout, clearTimeout } from './timers';
 import { encoder } from './polyfills/text-encoder';
+import { createServer } from './tcp';
+import type { PathLike, Stats, Callback, ConnectOpts } from './types';
 
 export type Opaque<T> = { __type: T };
 export type CanvasRenderingContext2DState =
@@ -27,43 +30,6 @@ type Keys = {
 	modifiers: bigint;
 	[i: number]: bigint;
 };
-
-type Callback<T> = (err: Error | null, result: T) => void;
-type CallbackReturnType<T> = T extends (
-	fn: Callback<infer U>,
-	...args: any[]
-) => any
-	? U
-	: never;
-type CallbackArguments<T> = T extends (
-	fn: Callback<any>,
-	...args: infer U
-) => any
-	? U
-	: never;
-
-/**
- * Specifies the port number and optional hostname for connecting
- * to a remove server over the network.
- *
- * {@link SwitchClass.connect}
- */
-export interface ConnectOpts {
-	/**
-	 * The hostname of the destination server to connect to.
-	 *
-	 * If not defined, then `hostname` defaults to `127.0.0.1`.
-	 *
-	 * @example "example.com"
-	 */
-	hostname?: string;
-	/**
-	 * The port number to connect to.
-	 *
-	 * @example 80
-	 */
-	port: number;
-}
 
 /**
  * @private
@@ -305,11 +271,6 @@ export interface Native {
 	// crypto
 	cryptoRandomBytes(buf: ArrayBuffer, offset: number, length: number): void;
 
-	// tcp
-	connect(cb: Callback<number>, ip: string, port: number): void;
-	write(cb: Callback<number>, fd: number, data: ArrayBuffer): void;
-	read(cb: Callback<number>, fd: number, buffer: ArrayBuffer): void;
-
 	// wasm
 	wasmNewModule(b: ArrayBuffer): WasmModuleOpaque;
 	wasmNewInstance(
@@ -367,17 +328,6 @@ export interface Versions {
 	turbojpeg: string;
 	wasm3: string;
 	webp: string;
-}
-
-export function toPromise<
-	Func extends (cb: Callback<any>, ...args: any[]) => any
->(fn: Func, ...args: CallbackArguments<Func>) {
-	return new Promise<CallbackReturnType<Func>>((resolve, reject) => {
-		fn((err, result) => {
-			if (err) return reject(err);
-			resolve(result);
-		}, ...args);
-	});
 }
 
 type VibrationValues = Omit<Vibration, 'duration'>;
@@ -685,18 +635,22 @@ export class SwitchClass extends EventTarget {
 		if (!ip) {
 			throw new Error(`Could not resolve "${hostname}" to an IP address`);
 		}
-		return toPromise(this.native.connect, ip, port);
+		return toPromise($.connect, ip, port);
+	}
+
+	listen({ ip = '0.0.0.0', port }: { ip?: string; port: number }) {
+		return createServer(ip, port);
 	}
 
 	read(fd: number, buffer: BufferSource) {
 		const ab = bufferSourceToArrayBuffer(buffer);
-		return toPromise(this.native.read, fd, ab);
+		return toPromise($.read, fd, ab);
 	}
 
 	write(fd: number, data: string | BufferSource) {
 		const d = typeof data === 'string' ? encoder.encode(data) : data;
 		const ab = bufferSourceToArrayBuffer(d);
-		return toPromise(this.native.write, fd, ab);
+		return toPromise($.write, fd, ab);
 	}
 
 	/**

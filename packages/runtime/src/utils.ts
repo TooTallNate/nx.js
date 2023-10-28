@@ -1,4 +1,9 @@
-import type { BufferSource } from './types';
+import type {
+	BufferSource,
+	Callback,
+	CallbackArguments,
+	CallbackReturnType,
+} from './types';
 
 export const def = <T>(key: string, value: T) => {
 	const proto = (value as any).prototype;
@@ -32,6 +37,17 @@ export function asyncIteratorToStream<T>(it: AsyncIterableIterator<T>) {
 				controller.enqueue(next.value);
 			}
 		},
+	});
+}
+
+export function toPromise<
+	Func extends (cb: Callback<any>, ...args: any[]) => any
+>(fn: Func, ...args: CallbackArguments<Func>) {
+	return new Promise<CallbackReturnType<Func>>((resolve, reject) => {
+		fn((err, result) => {
+			if (err) return reject(err);
+			resolve(result);
+		}, ...args);
 	});
 }
 

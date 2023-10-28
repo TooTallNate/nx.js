@@ -1,6 +1,6 @@
-import { def } from './utils';
+import { def, toPromise } from './utils';
 import { INTERNAL_SYMBOL } from './types';
-import { toPromise, type SwitchClass } from './switch';
+import { type SwitchClass } from './switch';
 import { fetch } from './fetch/fetch';
 import { Event, ErrorEvent } from './polyfills/event';
 import type { ImageOpaque } from './switch';
