@@ -1,9 +1,9 @@
 import stripAnsi from 'strip-ansi';
 
 const fontData = Switch.readFileSync(
-	new URL('Hack-Regular.ttf', Switch.entrypoint)
+	new URL('GeistMono-Regular.otf', Switch.entrypoint)
 );
-const font = new FontFace('Hack', fontData);
+const font = new FontFace('Geist Mono', fontData);
 Switch.fonts.add(font);
 
 function fdToStream(fd: number) {
@@ -54,7 +54,7 @@ async function main() {
 	const ctx = Switch.screen.getContext('2d');
 	const fontSize = 30.83;
 	const yOffset = 180;
-	ctx.font = `${fontSize}px Hack`;
+	ctx.font = `${fontSize}px "Geist Mono"`;
 
 	// dump the movie to the console
 	let lineCount = 0;
