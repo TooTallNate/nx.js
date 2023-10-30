@@ -59,6 +59,7 @@ export type * from './fetch/fetch';
 export type * from './crypto';
 export type * from './image';
 export type * from './dompoint';
+export type * from './domrect';
 export type {
 	TimerHandler,
 	setTimeout,
