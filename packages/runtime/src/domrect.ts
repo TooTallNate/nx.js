@@ -1,3 +1,5 @@
+import { def } from './utils';
+
 export interface DOMRectInit {
 	height?: number;
 	width?: number;
@@ -7,20 +9,15 @@ export interface DOMRectInit {
 
 /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMRectReadOnly) */
 export class DOMRectReadOnly {
-	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMRectReadOnly/bottom) */
-	//readonly bottom: number;
-	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMRectReadOnly/height) */
-	readonly height: number;
-	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMRectReadOnly/left) */
-	//readonly left: number;
-	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMRectReadOnly/right) */
-	//readonly right: number;
-	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMRectReadOnly/top) */
-	//readonly top: number;
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMRectReadOnly/width) */
 	readonly width: number;
+
+	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMRectReadOnly/height) */
+	readonly height: number;
+
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMRectReadOnly/x) */
 	readonly x: number;
+
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMRectReadOnly/y) */
 	readonly y: number;
 
@@ -31,20 +28,50 @@ export class DOMRectReadOnly {
 		this.height = height ?? 0;
 	}
 
+	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMRectReadOnly/bottom) */
+	get bottom() {
+		return this.y + this.height;
+	}
+
+	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMRectReadOnly/left) */
+	get left() {
+		return this.x;
+	}
+
+	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMRectReadOnly/right) */
+	get right() {
+		return this.x + this.width;
+	}
+
+	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMRectReadOnly/top) */
+	get top() {
+		return this.y;
+	}
+
 	toJSON() {
-		return this;
+		return {
+			x: this.x,
+			y: this.y,
+			width: this.width,
+			height: this.height,
+			top: this.top,
+			right: this.right,
+			bottom: this.bottom,
+			left: this.left,
+		};
 	}
 
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMRectReadOnly/fromRect_static) */
-	static fromRect(other: DOMRectInit = {}): DOMRectReadOnly {
-		return new DOMRectReadOnly(other.x, other.y, other.width, other.height);
+	static fromRect(o: DOMRectInit = {}): DOMRectReadOnly {
+		return new DOMRectReadOnly(o.x, o.y, o.width, o.height);
 	}
 }
+def('DOMRectReadOnly', DOMRectReadOnly);
 
 /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMRect) */
 export class DOMRect extends DOMRectReadOnly {
-	height: number;
 	width: number;
+	height: number;
 	x: number;
 	y: number;
 
@@ -56,7 +83,8 @@ export class DOMRect extends DOMRectReadOnly {
 		this.height = height ?? 0;
 	}
 
-	static fromRect(other: DOMRectInit = {}): DOMRect {
-		return new DOMRect(other.x, other.y, other.width, other.height);
+	static fromRect(o: DOMRectInit = {}): DOMRect {
+		return new DOMRect(o.x, o.y, o.width, o.height);
 	}
 }
+def('DOMRect', DOMRect);
