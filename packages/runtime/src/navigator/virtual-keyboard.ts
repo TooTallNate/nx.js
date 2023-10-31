@@ -100,7 +100,6 @@ export class VirtualKeyboard extends EventTarget {
 	}
 
 	hide() {
-		Switch.removeEventListener('frame', update);
 		$.swkbdHide(this);
 		onHide(this);
 	}
@@ -108,6 +107,7 @@ export class VirtualKeyboard extends EventTarget {
 def('VirtualKeyboard', VirtualKeyboard);
 
 function onHide(k: VirtualKeyboard) {
+	Switch.removeEventListener('frame', update);
 	const b = k.boundingRect;
 	b.x = b.y = b.width = b.height = 0;
 	k.dispatchEvent(new Event('geometrychange'));
@@ -123,13 +123,15 @@ export function create() {
 			cursorPos = ci;
 			k.dispatchEvent(new Event('change'));
 		},
-		onCursorMove(str, cursorPos) {
+		onCursorMove(str, ci) {
+			value = str;
+			cursorPos = ci;
 			k.dispatchEvent(new Event('cursormove'));
 		},
 		onSubmit(str) {
 			value = str;
-			k.dispatchEvent(new Event('submit'));
 			onHide(k);
+			k.dispatchEvent(new Event('submit'));
 		},
 	});
 	Object.setPrototypeOf(k, VirtualKeyboard.prototype);
