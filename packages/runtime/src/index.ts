@@ -29,6 +29,7 @@ export type * from './types';
 export type * from './console';
 export type * from './navigator';
 export type * from './navigator/battery';
+export type { VirtualKeyboard } from './navigator/virtual-keyboard';
 export type {
 	CanvasImageSource,
 	Canvas,

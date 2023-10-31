@@ -1,6 +1,7 @@
 import type { Callback, NetworkInfo } from './types';
 import type { Server } from './tcp';
 import type { MemoryDescriptor, Memory } from './wasm';
+import type { VirtualKeyboard } from './navigator/virtual-keyboard';
 
 export interface Init {
 	// battery.c
@@ -17,6 +18,23 @@ export interface Init {
 	// nifm.c
 	nifmInitialize(): () => void;
 	networkInfo(): NetworkInfo;
+
+	// swkbd.c
+	swkbdCreate(fns: {
+		onCancel: () => void;
+		onChange: (
+			str: string,
+			cursorPos: number,
+			dicStartCursorPos: number,
+			dicEndCursorPos: number
+		) => void;
+		onSubmit: (str: string) => void;
+		onCursorMove: (str: string, cursorPos: number) => void;
+	}): VirtualKeyboard;
+	swkbdShow(s: VirtualKeyboard): [number, number, number, number];
+	swkbdHide(s: VirtualKeyboard): void;
+	swkbdExit(this: VirtualKeyboard): void;
+	swkbdUpdate(this: VirtualKeyboard): void;
 
 	// tcp.c
 	connect(cb: Callback<number>, ip: string, port: number): void;
