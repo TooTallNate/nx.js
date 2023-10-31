@@ -26,4 +26,5 @@ server.addEventListener('accept', async ({ fd }) => {
 	}
 });
 
-console.log('TCP server listening on "%s:%d"', Switch.networkInfo().ip, port);
+const { ip } = Switch.networkInfo();
+console.log('TCP server listening on "%s:%d"', ip, port);
