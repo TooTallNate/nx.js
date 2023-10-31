@@ -6,6 +6,8 @@ const ctx = Switch.screen.getContext('2d');
 const vk = navigator.virtualKeyboard;
 
 function render() {
+	const isOpen = vk.boundingRect.height > 0;
+
 	ctx.fillStyle = 'white';
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -15,12 +17,14 @@ function render() {
 	ctx.fillText('Press "ZR" to show text keyboard', 10, 68);
 
 	ctx.font = '32px system-ui';
-	ctx.fillStyle = 'black';
+	ctx.fillStyle = isOpen ? 'black' : '#550';
 	ctx.fillText(`${vk.value}`, 10, 120);
 
-	const { width } = ctx.measureText(vk.value.slice(0, vk.cursorIndex));
-	ctx.fillStyle = 'green';
-	ctx.fillRect(13 + width, 90, 3, 32);
+	if (isOpen) {
+		const { width } = ctx.measureText(vk.value.slice(0, vk.cursorIndex));
+		ctx.fillStyle = 'green';
+		ctx.fillRect(13 + width, 90, 3, 32);
+	}
 }
 
 Switch.addEventListener('buttondown', (e) => {
