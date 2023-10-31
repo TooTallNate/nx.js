@@ -2,11 +2,16 @@ import { IllegalConstructor, def } from './utils';
 import { BatteryManager } from './navigator/battery';
 import { INTERNAL_SYMBOL } from './types';
 import type { SwitchClass } from './switch';
+import {
+	type VirtualKeyboard,
+	create as newVirtualKeyboard,
+} from './navigator/virtual-keyboard';
 
 declare const Switch: SwitchClass;
 
 interface NavigatorState {
-	battery?: BatteryManager;
+	batt?: BatteryManager;
+	vk?: VirtualKeyboard;
 }
 
 const state: NavigatorState = {};
@@ -55,12 +60,24 @@ export class Navigator {
 	 * @see https://developer.mozilla.org/docs/Web/API/Navigator/getBattery
 	 */
 	async getBattery() {
-		let b = state.battery;
+		let b = state.batt;
 		if (!b) {
 			// @ts-expect-error
-			b = state.battery = new BatteryManager(INTERNAL_SYMBOL);
+			b = state.batt = new BatteryManager(INTERNAL_SYMBOL);
 		}
 		return b;
+	}
+
+	/**
+	 * A {@link VirtualKeyboard} instance to show or hide the virtual keyboard
+	 * programmatically, and get the current position and size of the virtual keyboard.
+	 *
+	 * @see https://developer.mozilla.org/docs/Web/API/Navigator/virtualKeyboard
+	 */
+	get virtualKeyboard() {
+		let vk = state.vk;
+		if (!vk) vk = state.vk = newVirtualKeyboard();
+		return vk;
 	}
 }
 def('Navigator', Navigator);
