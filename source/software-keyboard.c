@@ -134,10 +134,6 @@ static JSValue nx_swkbd_create(JSContext *ctx, JSValueConst this_val, int argc, 
     swkbdInlineSetDecidedEnterCallback(&data->kbdinline, decidedenter_cb);
     swkbdInlineSetDecidedCancelCallback(&data->kbdinline, decidedcancel_cb);
 
-    // Optionally set swkbd-inline state, this can also be done after the applet appears. swkbdInlineUpdate() must be called for changes to take affect.
-    // swkbdInlineSetInputText(&kbdinline, "test");
-    // swkbdInlineUpdate(&kbdinline, NULL);
-
     // Make the applet appear, can be used whenever.
     swkbdInlineMakeAppearArg(&data->appearArg, SwkbdType_Normal);
 
