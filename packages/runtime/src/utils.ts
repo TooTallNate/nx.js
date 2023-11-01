@@ -1,9 +1,9 @@
+import type { BufferSource } from './types';
 import type {
-	BufferSource,
 	Callback,
 	CallbackArguments,
 	CallbackReturnType,
-} from './types';
+} from './internal';
 
 export const def = <T>(key: string, value: T) => {
 	const proto = (value as any).prototype;

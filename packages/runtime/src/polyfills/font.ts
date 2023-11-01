@@ -1,5 +1,5 @@
 import type { IFont } from 'parse-css-font';
-import { INTERNAL_SYMBOL } from '../types';
+import { INTERNAL_SYMBOL } from '../internal';
 import type { SwitchClass, FontFaceState } from '../switch';
 import { def } from '../utils';
 

@@ -1,8 +1,3 @@
-/**
- * @private
- */
-export const INTERNAL_SYMBOL = Symbol('Internal');
-
 export type PathLike = string | URL;
 
 export interface Stats {
@@ -34,22 +29,6 @@ export interface ArrayBufferView {
 
 export type BufferSource = ArrayBufferView | ArrayBuffer;
 
-export type Callback<T> = (err: Error | null, result: T) => void;
-
-export type CallbackReturnType<T> = T extends (
-	fn: Callback<infer U>,
-	...args: any[]
-) => any
-	? U
-	: never;
-
-export type CallbackArguments<T> = T extends (
-	fn: Callback<any>,
-	...args: infer U
-) => any
-	? U
-	: never;
-
 /**
  * Specifies the port number and optional hostname for connecting
  * to a remove server over the network.
@@ -67,6 +46,30 @@ export interface ConnectOpts {
 	hostname?: string;
 	/**
 	 * The port number to connect to.
+	 *
+	 * @example 80
+	 */
+	port: number;
+}
+
+/**
+ * Specifies the port number and optional IP address
+ * for creating a TCP server.
+ *
+ * {@link SwitchClass.listen}
+ */
+export interface ListenOpts {
+	/**
+	 * The IP address of the network interface to bind to.
+	 *
+	 * If not defined, defaults to `0.0.0.0` to allow
+	 * connections on any network device.
+	 *
+	 * @example "127.0.0.1"
+	 */
+	ip?: string;
+	/**
+	 * The port number to accept TCP connection from.
 	 *
 	 * @example 80
 	 */

@@ -1,7 +1,7 @@
 import './polyfills';
 import { def } from './utils';
 import { SwitchClass } from './switch';
-import { INTERNAL_SYMBOL } from './types';
+import { INTERNAL_SYMBOL } from './internal';
 import {
 	setTimeout,
 	setInterval,

@@ -1,5 +1,5 @@
 import { def } from '../utils';
-import { INTERNAL_SYMBOL } from '../types';
+import { INTERNAL_SYMBOL } from '../internal';
 
 export interface EventInit {
 	bubbles?: boolean;

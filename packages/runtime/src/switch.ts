@@ -1,13 +1,13 @@
 import { $ } from './$';
 import { Canvas, CanvasRenderingContext2D, ctxInternal } from './canvas';
 import { FontFaceSet } from './polyfills/font';
-import { INTERNAL_SYMBOL } from './types';
+import { type Callback, INTERNAL_SYMBOL } from './internal';
 import { inspect } from './inspect';
 import { bufferSourceToArrayBuffer, toPromise } from './utils';
 import { setTimeout, clearTimeout } from './timers';
 import { encoder } from './polyfills/text-encoder';
 import { createServer } from './tcp';
-import type { PathLike, Stats, Callback, ConnectOpts } from './types';
+import type { PathLike, Stats, ConnectOpts, ListenOpts } from './types';
 
 export type Opaque<T> = { __type: T };
 export type CanvasRenderingContext2DState =
@@ -627,11 +627,11 @@ export class SwitchClass extends EventTarget {
 	 * Creates a TCP connection specified by the `hostname`
 	 * and `port`.
 	 *
-	 * @param connectOpts Object containing the `port` number and `hostname` (defaults to `127.0.0.1`) to connect to.
+	 * @param opts Object containing the `port` number and `hostname` (defaults to `127.0.0.1`) to connect to.
 	 * @returns Promise that is fulfilled once the connection has been successfully established.
 	 */
-	async connect(connectOpts: ConnectOpts) {
-		const { hostname = '127.0.0.1', port } = connectOpts;
+	async connect(opts: ConnectOpts) {
+		const { hostname = '127.0.0.1', port } = opts;
 		const [ip] = await this.resolveDns(hostname);
 		if (!ip) {
 			throw new Error(`Could not resolve "${hostname}" to an IP address`);
@@ -639,7 +639,8 @@ export class SwitchClass extends EventTarget {
 		return toPromise($.connect, ip, port);
 	}
 
-	listen({ ip = '0.0.0.0', port }: { ip?: string; port: number }) {
+	listen(opts: ListenOpts) {
+		const { ip = '0.0.0.0', port } = opts;
 		return createServer(ip, port);
 	}
 

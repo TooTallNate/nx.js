@@ -1,4 +1,5 @@
-import type { Callback, NetworkInfo } from './types';
+import type { NetworkInfo } from './types';
+import type { Callback } from './internal';
 import type { Server } from './tcp';
 import type { MemoryDescriptor, Memory } from './wasm';
 import type { VirtualKeyboard } from './navigator/virtual-keyboard';

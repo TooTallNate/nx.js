@@ -1,6 +1,6 @@
 import { IllegalConstructor, def } from './utils';
 import { BatteryManager } from './navigator/battery';
-import { INTERNAL_SYMBOL } from './types';
+import { INTERNAL_SYMBOL } from './internal';
 import type { SwitchClass } from './switch';
 import {
 	type VirtualKeyboard,

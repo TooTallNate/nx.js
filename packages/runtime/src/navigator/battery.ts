@@ -1,5 +1,5 @@
 import { $ } from '../$';
-import { INTERNAL_SYMBOL } from '../types';
+import { INTERNAL_SYMBOL } from '../internal';
 import { IllegalConstructor, def } from '../utils';
 import type { SwitchClass } from '../switch';
 import type { Navigator } from '../navigator';

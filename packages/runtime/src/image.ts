@@ -1,5 +1,5 @@
 import { def, toPromise } from './utils';
-import { INTERNAL_SYMBOL } from './types';
+import { INTERNAL_SYMBOL } from './internal';
 import { type SwitchClass } from './switch';
 import { fetch } from './fetch/fetch';
 import { Event, ErrorEvent } from './polyfills/event';

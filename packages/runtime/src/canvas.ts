@@ -1,7 +1,7 @@
 import toPx = require('to-px/index.js');
 import colorRgba = require('color-rgba');
 import parseCssFont from 'parse-css-font';
-import { INTERNAL_SYMBOL } from './types';
+import { INTERNAL_SYMBOL } from './internal';
 import { Image } from './image';
 import { ImageData } from './canvas/image-data';
 import { Path2D, applyPath } from './canvas/path2d';
