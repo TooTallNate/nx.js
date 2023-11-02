@@ -1,4 +1,4 @@
-import { IllegalConstructor, def } from './utils';
+import { assertInternalConstructor, def } from './utils';
 import { BatteryManager } from './navigator/battery';
 import { INTERNAL_SYMBOL } from './internal';
 import type { SwitchClass } from './switch';
@@ -29,7 +29,7 @@ export class Navigator {
 	 * @ignore
 	 */
 	constructor() {
-		throw new IllegalConstructor();
+		assertInternalConstructor(arguments);
 	}
 
 	/**
@@ -82,5 +82,6 @@ export class Navigator {
 }
 def('Navigator', Navigator);
 
-export const navigator: Navigator = Object.create(Navigator.prototype);
+// @ts-expect-error Internal constructor
+export const navigator = new Navigator(INTERNAL_SYMBOL);
 def('navigator', navigator);

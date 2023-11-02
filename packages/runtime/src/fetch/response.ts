@@ -81,7 +81,7 @@ export class Response extends Body implements globalThis.Response {
 	 * @param {number} status - The status code for the redirect, defaults to 302.
 	 * @returns {Response} - The new redirect response.
 	 */
-	static redirect(url: string | URL, status = 302): Response {
+	static redirect(url: string | URL, status: number = 302): Response {
 		return new Response(null, {
 			status,
 			headers: {

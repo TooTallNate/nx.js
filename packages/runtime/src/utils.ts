@@ -1,8 +1,9 @@
 import type { BufferSource } from './types';
-import type {
-	Callback,
-	CallbackArguments,
-	CallbackReturnType,
+import {
+	INTERNAL_SYMBOL,
+	type Callback,
+	type CallbackArguments,
+	type CallbackReturnType,
 } from './internal';
 
 export const def = <T>(key: string, value: T) => {
@@ -51,8 +52,19 @@ export function toPromise<
 	});
 }
 
-export class IllegalConstructor extends TypeError {
+export function assertInternalConstructor(a: ArrayLike<any>) {
+	if (a[0] !== INTERNAL_SYMBOL) throw new TypeError('Illegal constructor');
+}
+
+export class Deferred<T> {
+	pending = true;
+	promise: Promise<T>;
+	resolve!: (value: T | PromiseLike<T>) => void;
+	reject!: (v: any) => void;
 	constructor() {
-		super('Illegal constructor');
+		this.promise = new Promise<T>((res, rej) => {
+			this.resolve = res;
+			this.reject = rej;
+		});
 	}
 }

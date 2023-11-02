@@ -1,6 +1,5 @@
 import { $ } from '../$';
-import { INTERNAL_SYMBOL } from '../internal';
-import { IllegalConstructor, def } from '../utils';
+import { assertInternalConstructor, def } from '../utils';
 import type { SwitchClass } from '../switch';
 import type { Navigator } from '../navigator';
 
@@ -18,9 +17,7 @@ export class BatteryManager extends EventTarget {
 	 * @ignore
 	 */
 	constructor() {
-		if (arguments[0] !== INTERNAL_SYMBOL) {
-			throw new IllegalConstructor();
-		}
+		assertInternalConstructor(arguments);
 		super();
 		$.batteryInit();
 		Switch.addEventListener('exit', $.batteryExit);

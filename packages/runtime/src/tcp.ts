@@ -1,7 +1,16 @@
 import { $ } from './$';
 import { SocketEvent } from './polyfills/event';
+import { assertInternalConstructor } from './utils';
 
 export class Server extends EventTarget {
+	/**
+	 * @ignore
+	 */
+	constructor() {
+		assertInternalConstructor(arguments);
+		super();
+	}
+
 	/**
 	 * The "accept" event is fired when a new TCP client connection
 	 * has been established. Use the `fd` property to determine
@@ -28,7 +37,7 @@ export class Server extends EventTarget {
 	}
 
 	/**
-	 *
+	 * Shuts down the server and closes any existing client connections.
 	 */
 	close() {}
 }
@@ -36,8 +45,7 @@ $.tcpInitServer(Server);
 
 export function createServer(ip: string, port: number) {
 	const server = $.tcpServerNew(ip, port, function onAccept(fd) {
-		const event = new SocketEvent('accept', { fd });
-		server.dispatchEvent(event);
+		server.dispatchEvent(new SocketEvent('accept', { fd }));
 	});
 	Object.setPrototypeOf(server, Server.prototype);
 	EventTarget.call(server);

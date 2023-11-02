@@ -1,6 +1,6 @@
 import { $ } from '../$';
 import { DOMRect } from '../domrect';
-import { IllegalConstructor, def } from '../utils';
+import { assertInternalConstructor, def } from '../utils';
 import type { SwitchClass } from '../switch';
 import { Event } from '../polyfills/event';
 
@@ -19,7 +19,7 @@ export class VirtualKeyboard extends EventTarget {
 	 *
 	 * @see https://developer.mozilla.org/docs/Web/API/VirtualKeyboard/boundingRect
 	 */
-	readonly boundingRect: DOMRect;
+	readonly boundingRect!: DOMRect;
 
 	/**
 	 * Set the type of virtual keyboard.
@@ -77,8 +77,8 @@ export class VirtualKeyboard extends EventTarget {
 	 * @ignore
 	 */
 	constructor() {
+		assertInternalConstructor(arguments);
 		super();
-		throw new IllegalConstructor();
 	}
 
 	get overlaysContent() {

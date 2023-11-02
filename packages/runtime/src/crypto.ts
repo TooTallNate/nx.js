@@ -1,6 +1,7 @@
-import { IllegalConstructor, def } from './utils';
+import { assertInternalConstructor, def } from './utils';
 import { type SwitchClass } from './switch';
 import { type ArrayBufferView } from './types';
+import { INTERNAL_SYMBOL } from './internal';
 
 declare const Switch: SwitchClass;
 
@@ -14,7 +15,7 @@ export class Crypto implements globalThis.Crypto {
 	 * @ignore
 	 */
 	constructor() {
-		throw new IllegalConstructor();
+		assertInternalConstructor(arguments);
 	}
 
 	/**
@@ -85,5 +86,6 @@ def('Crypto', Crypto);
  *
  * @see https://developer.mozilla.org/docs/Web/API/crypto_property
  */
-export const crypto: Crypto = Object.create(Crypto.prototype);
+// @ts-expect-error Internal constructor
+export const crypto = new Crypto(INTERNAL_SYMBOL);
 def('crypto', crypto);
