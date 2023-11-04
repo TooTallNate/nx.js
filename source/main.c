@@ -475,6 +475,7 @@ int main(int argc, char *argv[])
     JSValue init_obj = JS_NewObject(ctx);
     nx_init_error(ctx, init_obj);
     nx_init_battery(ctx, init_obj);
+    nx_init_dns(ctx, init_obj);
     nx_init_nifm(ctx, init_obj);
     nx_init_tcp(ctx, init_obj);
     nx_init_swkbd(ctx, init_obj);
@@ -589,10 +590,7 @@ int main(int argc, char *argv[])
 
         // framebuffer renderer
         JS_CFUNC_DEF("framebufferInit", 0, js_framebuffer_init),
-        JS_CFUNC_DEF("framebufferExit", 0, js_framebuffer_exit),
-
-        // dns
-        JS_CFUNC_DEF("resolveDns", 0, js_dns_resolve)};
+        JS_CFUNC_DEF("framebufferExit", 0, js_framebuffer_exit)};
     JS_SetPropertyFunctionList(ctx, native_obj, function_list, countof(function_list));
 
     // `Switch.entrypoint`

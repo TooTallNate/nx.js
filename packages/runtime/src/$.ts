@@ -10,6 +10,9 @@ export interface Init {
 	batteryInitClass(c: any): void;
 	batteryExit(): void;
 
+	// dns.c
+	dnsResolve(cb: Callback<string[]>, hostname: string): void;
+
 	// error.c
 	onError(fn: (err: any) => number): void;
 	onUnhandledRejection(

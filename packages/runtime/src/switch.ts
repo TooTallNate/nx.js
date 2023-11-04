@@ -8,6 +8,7 @@ import { setTimeout, clearTimeout } from './timers';
 import { encoder } from './polyfills/text-encoder';
 import { createServer } from './tcp';
 import type { PathLike, Stats, ConnectOpts, ListenOpts } from './types';
+import { resolve as dnsResolve } from './dns';
 
 export type Opaque<T> = { __type: T };
 export type CanvasRenderingContext2DState =
@@ -59,9 +60,6 @@ export interface Native {
 	hidGetTouchScreenStates(): Touch[] | undefined;
 	hidGetKeyboardStates(): Keys;
 	hidSendVibrationValues(v: VibrationValues): void;
-
-	// dns
-	resolveDns(cb: Callback<string[]>, hostname: string): void;
 
 	// fs
 	readFile(cb: Callback<ArrayBuffer>, path: string): void;
@@ -536,18 +534,7 @@ export class SwitchClass extends EventTarget {
 		return this.native.chdir(String(dir));
 	}
 
-	/**
-	 * Performs a DNS lookup to resolve a hostname to an array of IP addresses.
-	 *
-	 * @example
-	 *
-	 * ```typescript
-	 * const ipAddresses = await Switch.resolveDns('example.com');
-	 * ```
-	 */
-	resolveDns(hostname: string) {
-		return toPromise(this.native.resolveDns, hostname);
-	}
+	resolveDns = dnsResolve;
 
 	/**
 	 * Returns a Promise which resolves to an `ArrayBuffer` containing
