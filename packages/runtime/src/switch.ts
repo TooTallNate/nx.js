@@ -6,9 +6,22 @@ import { inspect } from './inspect';
 import { bufferSourceToArrayBuffer, toPromise } from './utils';
 import { setTimeout, clearTimeout } from './timers';
 import { encoder } from './polyfills/text-encoder';
-import { createServer } from './tcp';
-import type { PathLike, Stats, ConnectOpts, ListenOpts } from './types';
+import {
+	Socket,
+	connect,
+	createServer,
+	parseAddress,
+	read,
+	write,
+} from './tcp';
 import { resolve as dnsResolve } from './dns';
+import type {
+	PathLike,
+	Stats,
+	ListenOpts,
+	SocketAddress,
+	SocketOptions,
+} from './types';
 
 export type Opaque<T> = { __type: T };
 export type CanvasRenderingContext2DState =
@@ -611,19 +624,22 @@ export class SwitchClass extends EventTarget {
 	}
 
 	/**
-	 * Creates a TCP connection specified by the `hostname`
-	 * and `port`.
+	 * Creates a TCP connection to the specified `address`.
 	 *
-	 * @param opts Object containing the `port` number and `hostname` (defaults to `127.0.0.1`) to connect to.
-	 * @returns Promise that is fulfilled once the connection has been successfully established.
+	 * @param address
+	 * @param opts
+	 * @see https://sockets-api.proposal.wintercg.org
 	 */
-	async connect(opts: ConnectOpts) {
-		const { hostname = '127.0.0.1', port } = opts;
-		const [ip] = await this.resolveDns(hostname);
-		if (!ip) {
-			throw new Error(`Could not resolve "${hostname}" to an IP address`);
-		}
-		return toPromise($.connect, ip, port);
+	connect2<Host extends string, Port extends string>(
+		address: `${Host}:${Port}` | SocketAddress,
+		opts: SocketOptions = {}
+	) {
+		return new Socket(
+			// @ts-expect-error Internal constructor
+			INTERNAL_SYMBOL,
+			typeof address === 'string' ? parseAddress(address) : address,
+			opts
+		);
 	}
 
 	listen(opts: ListenOpts) {
@@ -631,16 +647,9 @@ export class SwitchClass extends EventTarget {
 		return createServer(ip, port);
 	}
 
-	read(fd: number, buffer: BufferSource) {
-		const ab = bufferSourceToArrayBuffer(buffer);
-		return toPromise($.read, fd, ab);
-	}
-
-	write(fd: number, data: string | BufferSource) {
-		const d = typeof data === 'string' ? encoder.encode(data) : data;
-		const ab = bufferSourceToArrayBuffer(d);
-		return toPromise($.write, fd, ab);
-	}
+	connect = connect;
+	read = read;
+	write = write;
 
 	networkInfo() {
 		if (!this[INTERNAL_SYMBOL].nifmInitialized) {

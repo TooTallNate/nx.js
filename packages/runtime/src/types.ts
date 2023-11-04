@@ -29,26 +29,8 @@ export interface ArrayBufferView {
 
 export type BufferSource = ArrayBufferView | ArrayBuffer;
 
-/**
- * Specifies the port number and optional hostname for connecting
- * to a remove server over the network.
- *
- * {@link SwitchClass.connect}
- */
 export interface ConnectOpts {
-	/**
-	 * The hostname of the destination server to connect to.
-	 *
-	 * If not defined, then `hostname` defaults to `127.0.0.1`.
-	 *
-	 * @example "example.com"
-	 */
 	hostname?: string;
-	/**
-	 * The port number to connect to.
-	 *
-	 * @example 80
-	 */
 	port: number;
 }
 
@@ -80,4 +62,39 @@ export interface NetworkInfo {
 	ip: string;
 	subnetMask: string;
 	gateway: string;
+}
+
+/**
+ * Specifies the port number and optional hostname for connecting
+ * to a remove server over the network.
+ *
+ * {@link SwitchClass.connect}
+ */
+export interface SocketAddress {
+	/**
+	 * The hostname of the destination server to connect to.
+	 *
+	 * If not defined, then `hostname` defaults to `127.0.0.1`.
+	 *
+	 * @example "example.com"
+	 */
+	hostname: string;
+	/**
+	 * The port number to connect to.
+	 *
+	 * @example 80
+	 */
+	port: number;
+}
+
+export type SecureTransportKind = 'off' | 'on' | 'starttls';
+
+export interface SocketOptions {
+	secureTransport?: SecureTransportKind;
+	allowHalfOpen?: boolean;
+}
+
+export interface SocketInfo {
+	remoteAddress: string;
+	localAddress: string;
 }
