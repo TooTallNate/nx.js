@@ -32,6 +32,7 @@ typedef struct
 
 JSValue nx_readdir_sync(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
+    errno = 0;
     DIR *dir;
     struct dirent *entry;
 
@@ -155,6 +156,7 @@ JSValue nx_read_file(JSContext *ctx, JSValueConst this_val, int argc, JSValueCon
 
 JSValue nx_read_file_sync(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
+    errno = 0;
     const char *filename = JS_ToCString(ctx, argv[0]);
     FILE *file = fopen(filename, "rb");
     if (file == NULL)
@@ -192,6 +194,7 @@ JSValue nx_read_file_sync(JSContext *ctx, JSValueConst this_val, int argc, JSVal
 
 JSValue nx_write_file_sync(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
+    errno = 0;
     const char *filename = JS_ToCString(ctx, argv[0]);
     FILE *file = fopen(filename, "w");
     if (file == NULL)
