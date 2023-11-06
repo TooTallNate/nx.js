@@ -77,7 +77,7 @@ export class Socket {
 		const {
 			secureTransport = 'off',
 			allowHalfOpen = false,
-		}: SocketOptions = arguments[2];
+		}: SocketOptions = arguments[2] || {};
 		assertInternalConstructor(arguments);
 		const socket = this;
 		const i: SocketInternal = {
@@ -134,11 +134,21 @@ export class Socket {
 	 * Closes the socket and its underlying connection.
 	 */
 	close(reason?: any) {
-		this.readable.cancel(reason);
-		this.writable.abort(reason);
+		if (!this.readable.locked) {
+			this.readable.cancel(reason);
+		}
+		if (!this.writable.locked) {
+			this.writable.abort(reason);
+		}
 		const i = socketInternal.get(this);
-		if (i && i.opened.pending) {
-			i.opened.reject(reason);
+		if (i) {
+			if (i.opened.pending) {
+				i.opened.reject(reason);
+			}
+			if (i.fd !== -1) {
+				$.close(i.fd);
+				i.fd = -1;
+			}
 		}
 		return this.closed;
 	}

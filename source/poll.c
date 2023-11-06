@@ -179,8 +179,8 @@ int nx_tcp_connect(nx_poll_t *p, nx_connect_t *req, const char *ip, int port, nx
 
     if (set_nonblocking(sockfd) == -1)
     {
-        close(sockfd);
         printf("fcntl() err: %s\n", strerror(errno));
+        close(sockfd);
         return -1;
     }
 
@@ -198,9 +198,9 @@ int nx_tcp_connect(nx_poll_t *p, nx_connect_t *req, const char *ip, int port, nx
     int r = connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
     if (r < 0 && errno != EINPROGRESS)
     {
-        close(sockfd);
         req->err = errno;
         printf("connect() err: %s\n", strerror(errno));
+        close(sockfd);
         return -1;
     }
     if (r == 0)
@@ -209,6 +209,7 @@ int nx_tcp_connect(nx_poll_t *p, nx_connect_t *req, const char *ip, int port, nx
         req->err = -EINVAL;
         return -1;
     }
+    errno = 0;
 
     req->fd = sockfd;
     req->events = POLLOUT | POLLERR;

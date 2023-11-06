@@ -632,7 +632,7 @@ export class SwitchClass extends EventTarget {
 	 */
 	connect2<Host extends string, Port extends string>(
 		address: `${Host}:${Port}` | SocketAddress,
-		opts: SocketOptions = {}
+		opts?: SocketOptions
 	) {
 		return new Socket(
 			// @ts-expect-error Internal constructor

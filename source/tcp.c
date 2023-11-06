@@ -177,6 +177,20 @@ JSValue nx_js_tcp_write(JSContext *ctx, JSValueConst this_val, int argc, JSValue
     return JS_UNDEFINED;
 }
 
+JSValue nx_js_tcp_close(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    int fd;
+    if (JS_ToInt32(ctx, &fd, argv[0])) {
+        return JS_EXCEPTION;
+    }
+    if (close(fd)) {
+        // TODO: Throw a regular error
+        JS_ThrowTypeError(ctx, strerror(errno));
+        return JS_EXCEPTION;
+    }
+    return JS_UNDEFINED;
+}
+
 static JSClassID nx_tcp_server_class_id;
 
 typedef struct
@@ -278,6 +292,7 @@ static const JSCFunctionListEntry function_list[] = {
     JS_CFUNC_DEF("connect", 1, nx_js_tcp_connect),
     JS_CFUNC_DEF("read", 1, nx_js_tcp_read),
     JS_CFUNC_DEF("write", 1, nx_js_tcp_write),
+    JS_CFUNC_DEF("close", 1, nx_js_tcp_close),
 
     JS_CFUNC_DEF("tcpInitServer", 1, nx_js_tcp_init_server),
     JS_CFUNC_DEF("tcpServerNew", 3, nx_js_tcp_server_new)};

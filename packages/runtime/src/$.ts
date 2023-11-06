@@ -44,6 +44,7 @@ export interface Init {
 	connect(cb: Callback<number>, ip: string, port: number): void;
 	write(cb: Callback<number>, fd: number, data: ArrayBuffer): void;
 	read(cb: Callback<number>, fd: number, buffer: ArrayBuffer): void;
+	close(fd: number): void;
 	tcpInitServer(c: any): void;
 	tcpServerNew(
 		ip: string,
