@@ -33,7 +33,7 @@ export class Navigator {
 	}
 
 	/**
-	 * Returns the value used for the `User-Agent` HTTP request header for
+	 * The value used for the `User-Agent` request header for
 	 * HTTP requests initiated with {@link fetch | `fetch()`}.
 	 *
 	 * @example "my-app/0.0.1 (Switch; en-us; rv:14.1.2|AMS 1.5.4|E) nx.js/0.0.18"
@@ -62,7 +62,7 @@ export class Navigator {
 	async getBattery() {
 		let b = state.batt;
 		if (!b) {
-			// @ts-expect-error
+			// @ts-expect-error Internal constructor
 			b = state.batt = new BatteryManager(INTERNAL_SYMBOL);
 		}
 		return b;
