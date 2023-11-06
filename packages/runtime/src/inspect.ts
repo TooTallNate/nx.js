@@ -19,10 +19,18 @@ export interface InspectOptions {
  * @returns A string representation of `v` with ANSI color codes.
  */
 export const inspect = (v: unknown, opts?: InspectOptions): string => {
-	// Primitives
+	// If the value defines the `inspect.custom` symbol, then invoke
+	// the function. If the return value is a string, return that.
+	// Otherwise, treat the return value as the value to inspect
 	if (v && typeof (v as any)[inspect.custom] === 'function') {
-		return (v as any)[inspect.custom]();
+		const c = (v as any)[inspect.custom]();
+		if (typeof c === 'string') {
+			return c;
+		}
+		v = c;
 	}
+
+	// Primitives
 	if (typeof v === 'number' || typeof v === 'boolean') {
 		return bold(yellow(v));
 	}
@@ -54,6 +62,9 @@ export const inspect = (v: unknown, opts?: InspectOptions): string => {
 
 	if (typeof v === 'function') {
 		const { name } = v;
+		if (String(v).startsWith('class')) {
+			return cyan(`[class${name ? `: ${name}` : ''}]`);
+		}
 		return cyan(`[Function${name ? `: ${name}` : ' (anonymous)'}]`);
 	}
 	if (Array.isArray(v)) {
@@ -92,7 +103,7 @@ export const inspect = (v: unknown, opts?: InspectOptions): string => {
 	}
 	if (isArrayBuffer(v)) {
 		const contents = new Uint8Array(v);
-		const b = [];
+		const b: string[] = [];
 		for (let i = 0; i < Math.min(50, v.byteLength); i++) {
 			b.push(contents[i].toString(16).padStart(2, '0'));
 		}
@@ -104,7 +115,7 @@ export const inspect = (v: unknown, opts?: InspectOptions): string => {
 		)}: <${c}>, byteLength: ${len} }`;
 	}
 	if (isTypedArray(v)) {
-		const b = [];
+		const b: string[] = [];
 		for (let i = 0; i < Math.min(50, v.length); i++) {
 			b.push(inspect(v[i]));
 		}
@@ -127,10 +138,20 @@ function printObject(v: any, opts: InspectOptions) {
 		ctor && ctor !== Object && typeof ctor.name === 'string'
 			? `${ctor.name} `
 			: '';
-	const contents =
-		keys.length === 0
-			? ''
-			: ` ${keys.map((k) => `${k}: ${inspect(v[k], opts)}`).join(', ')} `;
+	let contents = '';
+	if (keys.length > 0) {
+		let len = 0;
+		const parts = keys.map((k) => {
+			const l = `${k}: ${inspect(v[k], opts)}`;
+			len += l.length;
+			return `${k}: ${inspect(v[k], opts)}`;
+		});
+		if (len > 60) {
+			contents = parts.map((p) => `\n  ${p}`).join('') + '\n';
+		} else {
+			contents = ` ${parts.join(', ')} `;
+		}
+	}
 	return `${className}{${contents}}`;
 }
 

@@ -69,6 +69,15 @@ export type {
 	clearTimeout,
 	clearInterval,
 } from './timers';
+
+/**
+ * The `WebAssembly` JavaScript object acts as the namespace for all
+ * {@link https://developer.mozilla.org/docs/WebAssembly | WebAssembly}-related functionality.
+ *
+ * Unlike most other global objects, `WebAssembly` is not a constructor (it is not a function object).
+ *
+ * @see https://developer.mozilla.org/docs/WebAssembly
+ */
 export type * as WebAssembly from './wasm';
 
 /**
@@ -140,7 +149,7 @@ def('dispatchEvent', EventTarget.prototype.dispatchEvent.bind(globalThis));
  * is executed. The user must then press the `+` button to exit the application.
  * Call `event.preventDefault()` to supress this default behavior.
  *
- * @see https://developer.mozilla.org/en-US/docs/Web/API/Window/error_event
+ * @see https://developer.mozilla.org/docs/Web/API/Window/error_event
  */
 export declare function addEventListener(
 	type: 'error',
@@ -157,7 +166,7 @@ export declare function addEventListener(
  * is executed. The user must then press the `+` button to exit the application.
  * Call `event.preventDefault()` to supress this default behavior.
  *
- * @see https://developer.mozilla.org/en-US/docs/Web/API/Window/unhandledrejection_event
+ * @see https://developer.mozilla.org/docs/Web/API/Window/unhandledrejection_event
  */
 export declare function addEventListener(
 	type: 'unhandledrejection',
