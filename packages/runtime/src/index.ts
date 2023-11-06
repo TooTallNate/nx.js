@@ -61,7 +61,7 @@ export type * from './crypto';
 export type * from './image';
 export type * from './dompoint';
 export type * from './domrect';
-export type { Server } from './tcp';
+export type { Socket, Server } from './tcp';
 export type {
 	TimerHandler,
 	setTimeout,

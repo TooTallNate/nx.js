@@ -63,8 +63,14 @@ export class Deferred<T> {
 	reject!: (v: any) => void;
 	constructor() {
 		this.promise = new Promise<T>((res, rej) => {
-			this.resolve = res;
-			this.reject = rej;
+			this.resolve = (v) => {
+				this.pending = false;
+				res(v);
+			};
+			this.reject = (v) => {
+				this.pending = false;
+				rej(v);
+			};
 		});
 	}
 }

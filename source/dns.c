@@ -8,7 +8,15 @@
 #include "dns.h"
 #include "async.h"
 
-void js_dns_resolve_do(nx_work_t *req)
+typedef struct
+{
+    int err;
+    const char *hostname;
+    char **entries;
+    size_t num_entries;
+} nx_dns_resolve_t;
+
+void nx_dns_resolve_do(nx_work_t *req)
 {
     nx_dns_resolve_t *data = (nx_dns_resolve_t *)req->data;
 
@@ -64,7 +72,7 @@ void js_dns_resolve_do(nx_work_t *req)
     freeaddrinfo(result);
 }
 
-void js_dns_resolve_cb(JSContext *ctx, nx_work_t *req, JSValue *args)
+void nx_dns_resolve_cb(JSContext *ctx, nx_work_t *req, JSValue *args)
 {
     nx_dns_resolve_t *data = (nx_dns_resolve_t *)req->data;
     JS_FreeCString(ctx, data->hostname);
@@ -86,10 +94,19 @@ void js_dns_resolve_cb(JSContext *ctx, nx_work_t *req, JSValue *args)
     args[1] = result;
 }
 
-JSValue js_dns_resolve(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+JSValue nx_dns_resolve(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     NX_INIT_WORK_T(nx_dns_resolve_t);
     data->hostname = JS_ToCString(ctx, argv[1]);
-    nx_queue_async(ctx, req, js_dns_resolve_do, js_dns_resolve_cb, argv[0]);
+    nx_queue_async(ctx, req, nx_dns_resolve_do, nx_dns_resolve_cb, argv[0]);
     return JS_UNDEFINED;
+}
+
+static const JSCFunctionListEntry function_list[] = {
+    JS_CFUNC_DEF("dnsResolve", 1, nx_dns_resolve),
+};
+
+void nx_init_dns(JSContext *ctx, JSValueConst init_obj)
+{
+    JS_SetPropertyFunctionList(ctx, init_obj, function_list, countof(function_list));
 }
