@@ -1,5 +1,33 @@
 # nxjs-runtime
 
+## 0.0.22
+
+### Patch Changes
+
+- Add `navigator.virtualKeyboard` ([#55](https://github.com/TooTallNate/nx.js/pull/55))
+
+- Fix memory leak in TCP `write()` function ([`8cffbfa`](https://github.com/TooTallNate/nx.js/commit/8cffbfab27e17c8c58cef49efed8510b50ec28fd))
+
+- Fix false-positive errors in FS sync functions ([`c40faa9`](https://github.com/TooTallNate/nx.js/commit/c40faa92718f8d2197c2045afbc5fd24451b510a))
+
+- Add initial TCP server API ([#54](https://github.com/TooTallNate/nx.js/pull/54))
+
+- Print with multiple lines when inspecting large objects ([`59beb73`](https://github.com/TooTallNate/nx.js/commit/59beb73b1e1fb49880b471f6a47438f7313e0021))
+
+- Add `DOMRectReadOnly` and `DOMRect` ([`ea2c8e9`](https://github.com/TooTallNate/nx.js/commit/ea2c8e9df3893f7b6ea7786a297c31308c3adb93))
+
+- Add `ListenOpts` interface ([`798d601`](https://github.com/TooTallNate/nx.js/commit/798d601236f60bb0bb06e7c94810e4aa57d11a97))
+
+- Add `Switch.networkInfo()` function ([`9dd5af9`](https://github.com/TooTallNate/nx.js/commit/9dd5af972c9459a5754bca4ae12094603399b00b))
+
+- Resize poll file descriptors array when necessary ([`a2dddad`](https://github.com/TooTallNate/nx.js/commit/a2dddadde942096836683c3306eb7b96d23da15f))
+
+- Detect `class` values in `inspect()` ([`4cc683e`](https://github.com/TooTallNate/nx.js/commit/4cc683e344da6c5f0c5c5578b88448d003a95b9d))
+
+- Add `Socket` class, which is returned by `Switch.connect()` ([#57](https://github.com/TooTallNate/nx.js/pull/57))
+
+- Support returning non-string in `inspect.custom` function ([`bde1ab0`](https://github.com/TooTallNate/nx.js/commit/bde1ab090be09a1fbc2a87a8fb959ca0133ab6e2))
+
 ## 0.0.21
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # nxjs-constants
 
+## 0.0.22
+
+### Patch Changes
+
+- Add `Swkbd.Type` enum ([#55](https://github.com/TooTallNate/nx.js/pull/55))
+
 ## 0.0.21
 
 ## 0.0.20
