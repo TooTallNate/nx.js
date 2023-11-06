@@ -7,7 +7,7 @@ import { Request, type RequestInit } from './request';
 import { Response } from './response';
 import { Headers } from './headers';
 import { navigator } from '../navigator';
-import { Socket } from '../tcp';
+import { Socket, connect } from '../tcp';
 import { INTERNAL_SYMBOL } from '../internal';
 import type { SwitchClass } from '../switch';
 
@@ -68,7 +68,6 @@ function createChunkedParseStream() {
 	return new TransformStream<Uint8Array, Uint8Array>({
 		transform(chunk, controller) {
 			buffer = buffer ? concat(buffer, chunk) : chunk;
-			//console.log({ c: this.buffer })
 
 			if (dataSize !== -1) {
 				if (buffer.length >= dataSize + 2) {
@@ -77,7 +76,6 @@ function createChunkedParseStream() {
 					controller.enqueue(chunkData);
 					dataSize = -1;
 				} else {
-					//console.log('waiting for more');
 					return; // not enough data, wait for more
 				}
 			}
@@ -85,7 +83,6 @@ function createChunkedParseStream() {
 			let pos;
 			while ((pos = indexOfEol(buffer, 0)) >= 0) {
 				// while we can find a chunk boundary
-				//console.log({ pos })
 				if (pos === 0) {
 					// skip empty chunks
 					buffer = buffer.slice(2);
@@ -93,7 +90,6 @@ function createChunkedParseStream() {
 				}
 
 				const size = parseInt(decoder.decode(buffer.slice(0, pos)), 16);
-				//console.log({ size });
 				if (isNaN(size)) {
 					throw new Error('Invalid chunk size');
 				}
@@ -102,12 +98,10 @@ function createChunkedParseStream() {
 				if (buffer.length >= size + 2) {
 					// we got a whole chunk
 					const chunkData = buffer.slice(0, size);
-					//console.log({ chunkData });
 					buffer = buffer.slice(size + 2);
 					controller.enqueue(chunkData);
 				} else {
 					dataSize = size;
-					//console.log(`waiting for more (needs: ${size}, has: ${buffer.length})`);
 					break; // not enough data, wait for more
 				}
 			}
@@ -127,7 +121,7 @@ async function fetchHttp(req: Request, url: URL) {
 	const { hostname } = url;
 	const port = +url.port || 80;
 	// @ts-expect-error Internal constructor
-	const socket = new Socket(INTERNAL_SYMBOL, { hostname, port });
+	const socket = new Socket(INTERNAL_SYMBOL, { hostname, port }, { connect });
 
 	req.headers.set('connection', 'close');
 	if (!req.headers.has('host')) {
@@ -146,7 +140,7 @@ async function fetchHttp(req: Request, url: URL) {
 	}
 	header += '\r\n';
 	const w = socket.writable.getWriter();
-	w.write(encoder.encode(header));
+	await w.write(encoder.encode(header));
 
 	const resHeaders = new Headers();
 	const r = socket.readable.getReader();

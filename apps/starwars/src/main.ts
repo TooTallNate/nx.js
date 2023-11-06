@@ -32,7 +32,7 @@ async function* frameIterator(
 async function main() {
 	// "towel.blinkenlights.nl" no longer works on IPv4, so we'll
 	// connect to "telehack.com" and type the "starwars" command
-	const socket = Switch.connect2('telehack.com:23');
+	const socket = Switch.connect('telehack.com:23');
 	const reader = socket.readable.getReader();
 
 	// wait for prompt

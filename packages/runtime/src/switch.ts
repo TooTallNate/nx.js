@@ -6,14 +6,7 @@ import { inspect } from './inspect';
 import { bufferSourceToArrayBuffer, toPromise } from './utils';
 import { setTimeout, clearTimeout } from './timers';
 import { encoder } from './polyfills/text-encoder';
-import {
-	Socket,
-	connect,
-	createServer,
-	parseAddress,
-	read,
-	write,
-} from './tcp';
+import { Socket, connect, createServer, parseAddress } from './tcp';
 import { resolve as dnsResolve } from './dns';
 import type {
 	PathLike,
@@ -630,7 +623,7 @@ export class SwitchClass extends EventTarget {
 	 * @param opts
 	 * @see https://sockets-api.proposal.wintercg.org
 	 */
-	connect2<Host extends string, Port extends string>(
+	connect<Host extends string, Port extends string>(
 		address: `${Host}:${Port}` | SocketAddress,
 		opts?: SocketOptions
 	) {
@@ -638,7 +631,7 @@ export class SwitchClass extends EventTarget {
 			// @ts-expect-error Internal constructor
 			INTERNAL_SYMBOL,
 			typeof address === 'string' ? parseAddress(address) : address,
-			opts
+			{ ...opts, connect }
 		);
 	}
 
@@ -646,10 +639,6 @@ export class SwitchClass extends EventTarget {
 		const { ip = '0.0.0.0', port } = opts;
 		return createServer(ip, port);
 	}
-
-	connect = connect;
-	read = read;
-	write = write;
 
 	networkInfo() {
 		if (!this[INTERNAL_SYMBOL].nifmInitialized) {

@@ -1,3 +1,6 @@
+import type { connect } from './tcp';
+import type { SocketOptions } from './types';
+
 export const INTERNAL_SYMBOL = Symbol('Internal');
 
 export type Callback<T> = (err: Error | null, result: T) => void;
@@ -15,3 +18,7 @@ export type CallbackArguments<T> = T extends (
 ) => any
 	? U
 	: never;
+
+export interface SocketOptionsInternal extends SocketOptions {
+	connect: typeof connect;
+}

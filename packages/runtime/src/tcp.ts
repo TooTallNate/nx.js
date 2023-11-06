@@ -1,6 +1,7 @@
 import { $ } from './$';
 import { encoder } from './polyfills/text-encoder';
 import { SocketEvent } from './polyfills/event';
+import { resolve } from './dns';
 import {
 	Deferred,
 	assertInternalConstructor,
@@ -13,9 +14,8 @@ import type {
 	SecureTransportKind,
 	SocketAddress,
 	SocketInfo,
-	SocketOptions,
 } from './types';
-import { resolve } from './dns';
+import { INTERNAL_SYMBOL, type SocketOptionsInternal } from './internal';
 
 interface SocketInternal {
 	fd: number;
@@ -77,7 +77,8 @@ export class Socket {
 		const {
 			secureTransport = 'off',
 			allowHalfOpen = false,
-		}: SocketOptions = arguments[2] || {};
+			connect,
+		}: SocketOptionsInternal = arguments[2] || {};
 		assertInternalConstructor(arguments);
 		const socket = this;
 		const i: SocketInternal = {
@@ -209,7 +210,13 @@ def('Server', Server);
 
 export function createServer(ip: string, port: number) {
 	const server = $.tcpServerNew(ip, port, function onAccept(fd) {
-		server.dispatchEvent(new SocketEvent('accept', { fd }));
+		// @ts-expect-error Internal constructor
+		const socket = new Socket(INTERNAL_SYMBOL, null, {
+			async connect() {
+				return fd;
+			},
+		});
+		server.dispatchEvent(new SocketEvent('accept', { socket }));
 	});
 	Object.setPrototypeOf(server, Server.prototype);
 	EventTarget.call(server);
