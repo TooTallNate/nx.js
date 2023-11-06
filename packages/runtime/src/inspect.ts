@@ -138,10 +138,20 @@ function printObject(v: any, opts: InspectOptions) {
 		ctor && ctor !== Object && typeof ctor.name === 'string'
 			? `${ctor.name} `
 			: '';
-	const contents =
-		keys.length === 0
-			? ''
-			: ` ${keys.map((k) => `${k}: ${inspect(v[k], opts)}`).join(', ')} `;
+	let contents = '';
+	if (keys.length > 0) {
+		let len = 0;
+		const parts = keys.map((k) => {
+			const l = `${k}: ${inspect(v[k], opts)}`;
+			len += l.length;
+			return `${k}: ${inspect(v[k], opts)}`;
+		});
+		if (len > 60) {
+			contents = parts.map((p) => `\n  ${p}`).join('') + '\n';
+		} else {
+			contents = ` ${parts.join(', ')} `;
+		}
+	}
 	return `${className}{${contents}}`;
 }
 
