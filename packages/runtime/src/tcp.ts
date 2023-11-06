@@ -62,6 +62,13 @@ export async function connect(opts: SocketAddress) {
 	return toPromise($.connect, ip, port);
 }
 
+/**
+ * The `Socket` class represents a TCP connection, from which you can
+ * read and write data. A socket begins in a _connected_ state (if the
+ * socket fails to connect, an error is thrown). While in a _connected_
+ * state, the socket’s `ReadableStream` and `WritableStream` can be
+ * read from and written to respectively.
+ */
 export class Socket {
 	readonly readable: ReadableStream<Uint8Array>;
 	readonly writable: WritableStream<Uint8Array>;
