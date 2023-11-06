@@ -19,10 +19,18 @@ export interface InspectOptions {
  * @returns A string representation of `v` with ANSI color codes.
  */
 export const inspect = (v: unknown, opts?: InspectOptions): string => {
-	// Primitives
+	// If the value defines the `inspect.custom` symbol, then invoke
+	// the function. If the return value is a string, return that.
+	// Otherwise, treat the return value as the value to inspect
 	if (v && typeof (v as any)[inspect.custom] === 'function') {
-		return (v as any)[inspect.custom]();
+		const c = (v as any)[inspect.custom]();
+		if (typeof c === 'string') {
+			return c;
+		}
+		v = c;
 	}
+
+	// Primitives
 	if (typeof v === 'number' || typeof v === 'boolean') {
 		return bold(yellow(v));
 	}
@@ -95,7 +103,7 @@ export const inspect = (v: unknown, opts?: InspectOptions): string => {
 	}
 	if (isArrayBuffer(v)) {
 		const contents = new Uint8Array(v);
-		const b = [];
+		const b: string[] = [];
 		for (let i = 0; i < Math.min(50, v.byteLength); i++) {
 			b.push(contents[i].toString(16).padStart(2, '0'));
 		}
@@ -107,7 +115,7 @@ export const inspect = (v: unknown, opts?: InspectOptions): string => {
 		)}: <${c}>, byteLength: ${len} }`;
 	}
 	if (isTypedArray(v)) {
-		const b = [];
+		const b: string[] = [];
 		for (let i = 0; i < Math.min(50, v.length); i++) {
 			b.push(inspect(v[i]));
 		}
