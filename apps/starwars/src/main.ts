@@ -3,6 +3,7 @@ import { lineIterator } from './line-iterator';
 
 const LINES_PER_FRAME = 13;
 const decoder = new TextDecoder();
+const encoder = new TextEncoder();
 
 // Register "Geist Mono" font
 const fontUrl = new URL('GeistMono-Regular.otf', Switch.entrypoint);
@@ -10,7 +11,9 @@ const fontData = Switch.readFileSync(fontUrl);
 const font = new FontFace('Geist Mono', fontData);
 Switch.fonts.add(font);
 
-async function* frameIterator(readable: ReadableStreamDefaultReader) {
+async function* frameIterator(
+	readable: ReadableStreamDefaultReader<Uint8Array>
+) {
 	const it = lineIterator(readable);
 
 	// first line is the "starwars" echo, which we can ignore
@@ -44,7 +47,7 @@ async function main() {
 
 	// write "starwars" command
 	const writer = socket.writable.getWriter();
-	await writer.write('starwars\r\n');
+	await writer.write(encoder.encode('starwars\r\n'));
 
 	const ctx = Switch.screen.getContext('2d');
 	const fontSize = 30.83;

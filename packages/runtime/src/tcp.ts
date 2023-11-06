@@ -63,8 +63,8 @@ export async function connect(opts: SocketAddress) {
 }
 
 export class Socket {
-	readonly readable: ReadableStream;
-	readonly writable: WritableStream;
+	readonly readable: ReadableStream<Uint8Array>;
+	readonly writable: WritableStream<Uint8Array>;
 
 	readonly opened: Promise<SocketInfo>;
 	readonly closed: Promise<void>;
@@ -105,7 +105,7 @@ export class Socket {
 					}
 					return;
 				}
-				controller.enqueue(readBuffer.slice(0, bytesRead));
+				controller.enqueue(new Uint8Array(readBuffer, 0, bytesRead));
 			},
 		});
 		this.writable = new WritableStream({

@@ -1,6 +1,8 @@
 const decoder = new TextDecoder();
 
-export async function* lineIterator(readable: ReadableStreamDefaultReader) {
+export async function* lineIterator(
+	readable: ReadableStreamDefaultReader<Uint8Array>
+) {
 	let buffer = '';
 	while (true) {
 		const chunk = await readable.read();

@@ -2,27 +2,16 @@ import { dataUriToBuffer } from 'data-uri-to-buffer';
 import { def } from '../utils';
 import { objectUrls } from '../polyfills/url';
 import { decoder } from '../polyfills/text-decoder';
+import { encoder } from '../polyfills/text-encoder';
 import { Request, type RequestInit } from './request';
 import { Response } from './response';
 import { Headers } from './headers';
 import { navigator } from '../navigator';
+import { Socket } from '../tcp';
+import { INTERNAL_SYMBOL } from '../internal';
 import type { SwitchClass } from '../switch';
 
 declare const Switch: SwitchClass;
-
-function fdToStream(fd: number) {
-	return new ReadableStream<Uint8Array>({
-		async pull(controller) {
-			const buffer = new ArrayBuffer(65536);
-			const bytesRead = await Switch.read(fd, buffer);
-			if (bytesRead === 0) {
-				controller.close();
-			} else {
-				controller.enqueue(new Uint8Array(buffer.slice(0, bytesRead)));
-			}
-		},
-	});
-}
 
 function indexOfEol(arr: ArrayLike<number>, offset: number): number {
 	for (let i = offset; i < arr.length - 1; i++) {
@@ -137,7 +126,8 @@ function createChunkedParseStream() {
 async function fetchHttp(req: Request, url: URL) {
 	const { hostname } = url;
 	const port = +url.port || 80;
-	const fd = await Switch.connect({ hostname, port });
+	// @ts-expect-error Internal constructor
+	const socket = new Socket(INTERNAL_SYMBOL, { hostname, port });
 
 	req.headers.set('connection', 'close');
 	if (!req.headers.has('host')) {
@@ -155,11 +145,11 @@ async function fetchHttp(req: Request, url: URL) {
 		header += `${name}: ${value}\r\n`;
 	}
 	header += '\r\n';
-	await Switch.write(fd, header);
+	const w = socket.writable.getWriter();
+	w.write(encoder.encode(header));
 
 	const resHeaders = new Headers();
-	const s = fdToStream(fd);
-	const r = s.getReader();
+	const r = socket.readable.getReader();
 
 	const hi = headersIterator(r);
 
@@ -193,7 +183,7 @@ async function fetchHttp(req: Request, url: URL) {
 		w.releaseLock();
 		leftover = undefined;
 	}
-	s.pipeThrough(resStream);
+	socket.readable.pipeThrough(resStream);
 
 	return new Response(resStream.readable, {
 		status: +status,
@@ -241,6 +231,7 @@ async function fetchFile(req: Request, url: URL) {
 		);
 	}
 	const path = url.protocol === 'file:' ? `sdmc:${url.pathname}` : url.href;
+	// TODO: Use streaming FS interface
 	const data = await Switch.readFile(path);
 	return new Response(data, {
 		headers: {
