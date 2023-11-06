@@ -54,6 +54,9 @@ export const inspect = (v: unknown, opts?: InspectOptions): string => {
 
 	if (typeof v === 'function') {
 		const { name } = v;
+		if (String(v).startsWith('class')) {
+			return cyan(`[class${name ? `: ${name}` : ''}]`);
+		}
 		return cyan(`[Function${name ? `: ${name}` : ' (anonymous)'}]`);
 	}
 	if (Array.isArray(v)) {
