@@ -9,23 +9,14 @@ import {
 	def,
 	toPromise,
 } from './utils';
-import type {
-	BufferSource,
-	SecureTransportKind,
-	SocketAddress,
-	SocketInfo,
-} from './types';
-import { INTERNAL_SYMBOL, type SocketOptionsInternal } from './internal';
+import type { BufferSource, SocketAddress, SocketInfo } from './types';
+import {
+	INTERNAL_SYMBOL,
+	Opaque,
+	type SocketOptionsInternal,
+} from './internal';
 
-interface SocketInternal {
-	fd: number;
-	opened: Deferred<SocketInfo>;
-	closed: Deferred<void>;
-	secureTransport: SecureTransportKind;
-	allowHalfOpen: boolean;
-}
-
-const socketInternal = new WeakMap<Socket, SocketInternal>();
+export type TlsContextOpaque = Opaque<'TlsContext'>;
 
 export function parseAddress(address: string): SocketAddress {
 	const firstColon = address.indexOf(':');
@@ -35,24 +26,6 @@ export function parseAddress(address: string): SocketAddress {
 	};
 }
 
-export function read(fd: number, buffer: BufferSource) {
-	const ab = bufferSourceToArrayBuffer(buffer);
-	return toPromise($.read, fd, ab);
-}
-
-export function write(fd: number, data: string | BufferSource) {
-	const d = typeof data === 'string' ? encoder.encode(data) : data;
-	const ab = bufferSourceToArrayBuffer(d);
-	return toPromise($.write, fd, ab);
-}
-
-/**
- * Creates a TCP connection specified by the `hostname`
- * and `port`.
- *
- * @param opts Object containing the `port` number and `hostname` (defaults to `127.0.0.1`) to connect to.
- * @returns Promise that is fulfilled once the connection has been successfully established.
- */
 export async function connect(opts: SocketAddress) {
 	const { hostname = '127.0.0.1', port } = opts;
 	const [ip] = await resolve(hostname);
@@ -61,6 +34,39 @@ export async function connect(opts: SocketAddress) {
 	}
 	return toPromise($.connect, ip, port);
 }
+
+function read(fd: number, buffer: BufferSource) {
+	const ab = bufferSourceToArrayBuffer(buffer);
+	return toPromise($.read, fd, ab);
+}
+
+function write(fd: number, data: BufferSource) {
+	const ab = bufferSourceToArrayBuffer(data);
+	return toPromise($.write, fd, ab);
+}
+
+function tlsHandshake(fd: number, hostname: string) {
+	return toPromise($.tlsHandshake, fd, hostname);
+}
+
+function tlsRead(ctx: TlsContextOpaque, buffer: BufferSource) {
+	const ab = bufferSourceToArrayBuffer(buffer);
+	return toPromise($.tlsRead, ctx, ab);
+}
+
+function tlsWrite(ctx: TlsContextOpaque, data: BufferSource) {
+	const ab = bufferSourceToArrayBuffer(data);
+	return toPromise($.tlsWrite, ctx, ab);
+}
+
+interface SocketInternal {
+	fd: number;
+	tls?: TlsContextOpaque;
+	opened: Deferred<SocketInfo>;
+	closed: Deferred<void>;
+}
+
+const socketInternal = new WeakMap<Socket, SocketInternal>();
 
 /**
  * The `Socket` class represents a TCP connection, from which you can
@@ -72,7 +78,6 @@ export async function connect(opts: SocketAddress) {
 export class Socket {
 	readonly readable: ReadableStream<Uint8Array>;
 	readonly writable: WritableStream<Uint8Array>;
-
 	readonly opened: Promise<SocketInfo>;
 	readonly closed: Promise<void>;
 
@@ -92,8 +97,6 @@ export class Socket {
 			fd: -1,
 			opened: new Deferred(),
 			closed: new Deferred(),
-			secureTransport,
-			allowHalfOpen,
 		};
 		socketInternal.set(this, i);
 		this.opened = i.opened.promise;
@@ -105,7 +108,10 @@ export class Socket {
 				if (i.opened.pending) {
 					await socket.opened;
 				}
-				const bytesRead = await read(i.fd, readBuffer);
+				const bytesRead = await (i.tls
+					? tlsRead(i.tls, readBuffer)
+					: read(i.fd, readBuffer));
+				//console.log('read %d bytes', bytesRead);
 				if (bytesRead === 0) {
 					controller.close();
 					if (!allowHalfOpen) {
@@ -113,21 +119,29 @@ export class Socket {
 					}
 					return;
 				}
-				controller.enqueue(new Uint8Array(readBuffer, 0, bytesRead));
+				//controller.enqueue(new Uint8Array(readBuffer, 0, bytesRead));
+				controller.enqueue(new Uint8Array(readBuffer.slice(0, bytesRead)));
 			},
 		});
 		this.writable = new WritableStream({
-			async write(chunk, controller) {
+			async write(chunk) {
 				if (i.opened.pending) {
 					await socket.opened;
 				}
-				await write(i.fd, chunk);
+				const n = await (i.tls ? tlsWrite(i.tls, chunk) : write(i.fd, chunk));
+				//console.log('Wrote %d bytes', n);
 			},
 		});
 
 		connect(address)
 			.then((fd) => {
 				i.fd = fd;
+				if (secureTransport === 'on') {
+					return tlsHandshake(fd, address.hostname);
+				}
+			})
+			.then((tls) => {
+				i.tls = tls;
 				i.opened.resolve({
 					localAddress: '',
 					remoteAddress: '',

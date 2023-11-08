@@ -6,13 +6,6 @@
 #include "poll.h"
 #include "error.h"
 
-typedef struct
-{
-    JSContext *context;
-    JSValue callback;
-    JSValue buffer;
-} nx_js_callback_t;
-
 void nx_on_connect(nx_poll_t *p, nx_connect_t *req)
 {
     nx_js_callback_t *req_cb = (nx_js_callback_t *)req->opaque;
@@ -42,8 +35,8 @@ void nx_on_connect(nx_poll_t *p, nx_connect_t *req)
 
 JSValue nx_js_tcp_connect(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-    const char *ip = JS_ToCString(ctx, argv[1]);
     int port;
+    const char *ip = JS_ToCString(ctx, argv[1]);
     if (!ip || JS_ToInt32(ctx, &port, argv[2]))
     {
         JS_ThrowTypeError(ctx, "invalid input");

@@ -45,10 +45,14 @@ export function toPromise<
 	Func extends (cb: Callback<any>, ...args: any[]) => any
 >(fn: Func, ...args: CallbackArguments<Func>) {
 	return new Promise<CallbackReturnType<Func>>((resolve, reject) => {
-		fn((err, result) => {
-			if (err) return reject(err);
-			resolve(result);
-		}, ...args);
+		try {
+			fn((err, result) => {
+				if (err) return reject(err);
+				resolve(result);
+			}, ...args);
+		} catch (err) {
+			reject(err);
+		}
 	});
 }
 

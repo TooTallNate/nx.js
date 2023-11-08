@@ -1,7 +1,7 @@
 import { $ } from './$';
 import { Canvas, CanvasRenderingContext2D, ctxInternal } from './canvas';
 import { FontFaceSet } from './polyfills/font';
-import { type Callback, INTERNAL_SYMBOL } from './internal';
+import { type Callback, INTERNAL_SYMBOL, type Opaque } from './internal';
 import { inspect } from './inspect';
 import { bufferSourceToArrayBuffer, toPromise } from './utils';
 import { setTimeout, clearTimeout } from './timers';
@@ -16,7 +16,6 @@ import type {
 	SocketOptions,
 } from './types';
 
-export type Opaque<T> = { __type: T };
 export type CanvasRenderingContext2DState =
 	Opaque<'CanvasRenderingContext2DState'>;
 export type FontFaceState = Opaque<'FontFaceState'>;
