@@ -144,7 +144,7 @@ function printObject(v: any, opts: InspectOptions) {
 		const parts = keys.map((k) => {
 			const l = `${k}: ${inspect(v[k], opts)}`;
 			len += l.length;
-			return `${k}: ${inspect(v[k], opts)}`;
+			return l;
 		});
 		if (len > 60) {
 			contents = parts.map((p) => `\n  ${p}`).join('') + '\n';
