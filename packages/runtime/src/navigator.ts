@@ -33,6 +33,16 @@ export class Navigator {
 	}
 
 	/**
+	 * Identifies the platform on which the application is running.
+	 *
+	 * @example "Horizon arm64"
+	 * @see https://developer.mozilla.org/docs/Web/API/Navigator/platform
+	 */
+	get platform() {
+		return 'Horizon arm64';
+	}
+
+	/**
 	 * The value used for the `User-Agent` request header for
 	 * HTTP requests initiated with {@link fetch | `fetch()`}.
 	 *
