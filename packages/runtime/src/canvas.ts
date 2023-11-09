@@ -47,6 +47,7 @@ interface CanvasRenderingContext2DInternal {
 	fillStyle: RGBA;
 	strokeStyle: RGBA;
 	currentStyle?: RGBA;
+	font: string;
 }
 
 const ctxInternalMap = new WeakMap<
@@ -86,6 +87,7 @@ export class CanvasRenderingContext2D {
 			ctx: Switch.native.canvasNewContext(w, h),
 			strokeStyle: [0, 0, 0, 1],
 			fillStyle: [0, 0, 0, 1],
+			font: ''
 		});
 		this.font = '10px system-ui';
 
@@ -644,12 +646,14 @@ export class CanvasRenderingContext2D {
 	}
 
 	get font(): string {
-		// TODO: implement
-		return '';
+		return internal(this).font;
 	}
 
 	set font(v: string) {
 		if (!v) return;
+		const i = internal(this);
+		if (i.font === v) return;
+
 		const parsed = parseCssFont(v);
 		if ('system' in parsed) {
 			// "system" fonts are not supported
@@ -677,8 +681,9 @@ export class CanvasRenderingContext2D {
 				return;
 			}
 		}
+		i.font = v;
 		native.canvasSetFont(
-			internal(this).ctx,
+			i.ctx,
 			fontFaceInternal.get(font)!.fontFace,
 			px
 		);
