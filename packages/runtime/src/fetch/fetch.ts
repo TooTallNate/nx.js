@@ -118,10 +118,15 @@ function createChunkedParseStream() {
 }
 
 async function fetchHttp(req: Request, url: URL) {
+	const isHttps = url.protocol === 'https:';
 	const { hostname } = url;
-	const port = +url.port || 80;
-	// @ts-expect-error Internal constructor
-	const socket = new Socket(INTERNAL_SYMBOL, { hostname, port }, { connect });
+	const port = +url.port || (isHttps ? 443 : 80);
+	const socket = new Socket(
+		// @ts-expect-error Internal constructor
+		INTERNAL_SYMBOL,
+		{ hostname, port },
+		{ secureTransport: isHttps ? 'on' : 'off', connect }
+	);
 
 	req.headers.set('connection', 'close');
 	if (!req.headers.has('host')) {
@@ -237,6 +242,7 @@ async function fetchFile(req: Request, url: URL) {
 const fetchers = new Map<string, (req: Request, url: URL) => Promise<Response>>(
 	[
 		['http:', fetchHttp],
+		['https:', fetchHttp],
 		['blob:', fetchBlob],
 		['data:', fetchData],
 		['file:', fetchFile],
@@ -251,6 +257,7 @@ const fetchers = new Map<string, (req: Request, url: URL) => Promise<Response>>(
  * ### Supported Protocols
  *
  *  - `http:` - Fetch data from the network using the HTTP protocol
+ *  - `https:` - Fetch data from the network using the HTTPS protocol
  *  - `blob:` - Fetch data from a URL constructed by {@link URL.createObjectURL | `URL.createObjectURL()`}
  *  - `data:` - Fetch data from a Data URI (possibly base64-encoded)
  *  - `sdmc:` - Fetch data from a local file on the SD card
