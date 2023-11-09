@@ -618,8 +618,8 @@ export class SwitchClass extends EventTarget {
 	/**
 	 * Creates a TCP connection to the specified `address`.
 	 *
-	 * @param address
-	 * @param opts
+	 * @param address Hostname and port number of the destination TCP server to connect to.
+	 * @param opts Optional
 	 * @see https://sockets-api.proposal.wintercg.org
 	 */
 	connect<Host extends string, Port extends string>(

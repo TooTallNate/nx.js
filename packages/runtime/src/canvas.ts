@@ -87,7 +87,7 @@ export class CanvasRenderingContext2D {
 			ctx: Switch.native.canvasNewContext(w, h),
 			strokeStyle: [0, 0, 0, 1],
 			fillStyle: [0, 0, 0, 1],
-			font: ''
+			font: '',
 		});
 		this.font = '10px system-ui';
 
@@ -682,11 +682,7 @@ export class CanvasRenderingContext2D {
 			}
 		}
 		i.font = v;
-		native.canvasSetFont(
-			i.ctx,
-			fontFaceInternal.get(font)!.fontFace,
-			px
-		);
+		native.canvasSetFont(i.ctx, fontFaceInternal.get(font)!.fontFace, px);
 	}
 
 	fillText(

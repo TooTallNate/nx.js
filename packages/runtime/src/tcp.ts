@@ -120,7 +120,9 @@ export class Socket {
 					return;
 				}
 				//controller.enqueue(new Uint8Array(readBuffer, 0, bytesRead));
-				controller.enqueue(new Uint8Array(readBuffer.slice(0, bytesRead)));
+				controller.enqueue(
+					new Uint8Array(readBuffer.slice(0, bytesRead))
+				);
 			},
 		});
 		this.writable = new WritableStream({
@@ -128,7 +130,9 @@ export class Socket {
 				if (i.opened.pending) {
 					await socket.opened;
 				}
-				const n = await (i.tls ? tlsWrite(i.tls, chunk) : write(i.fd, chunk));
+				const n = await (i.tls
+					? tlsWrite(i.tls, chunk)
+					: write(i.fd, chunk));
 				//console.log('Wrote %d bytes', n);
 			},
 		});
