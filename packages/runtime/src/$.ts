@@ -1,6 +1,6 @@
 import type { NetworkInfo } from './types';
 import type { Callback } from './internal';
-import type { Server } from './tcp';
+import type { Server, TlsContextOpaque } from './tcp';
 import type { MemoryDescriptor, Memory } from './wasm';
 import type { VirtualKeyboard } from './navigator/virtual-keyboard';
 
@@ -51,6 +51,23 @@ export interface Init {
 		port: number,
 		onAccept: (fd: number) => void
 	): Server;
+
+	// tls.c
+	tlsHandshake(
+		cb: Callback<TlsContextOpaque>,
+		fd: number,
+		hostname: string
+	): void;
+	tlsWrite(
+		cb: Callback<number>,
+		ctx: TlsContextOpaque,
+		data: ArrayBuffer
+	): void;
+	tlsRead(
+		cb: Callback<number>,
+		ctx: TlsContextOpaque,
+		buffer: ArrayBuffer
+	): void;
 
 	// wasm.c
 	wasmCallFunc(f: any, ...args: unknown[]): unknown;

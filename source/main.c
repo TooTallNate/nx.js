@@ -22,6 +22,7 @@
 #include "wasm.h"
 #include "image.h"
 #include "tcp.h"
+#include "tls.h"
 #include "poll.h"
 
 #define LOG_FILENAME "nxjs-debug.log"
@@ -478,6 +479,7 @@ int main(int argc, char *argv[])
     nx_init_dns(ctx, init_obj);
     nx_init_nifm(ctx, init_obj);
     nx_init_tcp(ctx, init_obj);
+    nx_init_tls(ctx, init_obj);
     nx_init_swkbd(ctx, init_obj);
     nx_init_wasm(ctx, init_obj);
     JS_SetPropertyStr(ctx, global_obj, "$", init_obj);

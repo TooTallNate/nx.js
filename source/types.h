@@ -7,6 +7,8 @@
 #include <ft2build.h>
 #include <poll.h>
 #include <switch.h>
+#include <mbedtls/entropy.h>
+#include <mbedtls/ctr_drbg.h>
 #include "thpool.h"
 #include "poll.h"
 
@@ -32,7 +34,12 @@
 
 #define NX_DEF_FUNC(THISARG, NAME, FN, LENGTH) (JS_DefinePropertyValueStr(ctx, THISARG, NAME, JS_NewCFunction(ctx, FN, NAME, LENGTH), JS_PROP_C_W))
 
-typedef int BOOL;
+typedef struct
+{
+    JSContext *context;
+    JSValue callback;
+    JSValue buffer;
+} nx_js_callback_t;
 
 typedef struct nx_work_s nx_work_t;
 typedef void (*nx_work_cb)(nx_work_t *req);
@@ -61,6 +68,11 @@ typedef struct
     IM3Environment wasm_env;
     JSValue onerror_handler;
     JSValue unhandled_rejection_handler;
+
+    // mbedtls structures shared by all TLS connections
+    bool mbedtls_initialized;
+    mbedtls_entropy_context entropy;
+    mbedtls_ctr_drbg_context ctr_drbg;
 } nx_context_t;
 
 inline nx_context_t *nx_get_context(JSContext *ctx)

@@ -3,6 +3,8 @@ import type { SocketOptions } from './types';
 
 export const INTERNAL_SYMBOL = Symbol('Internal');
 
+export type Opaque<T> = { __type: T };
+
 export type Callback<T> = (err: Error | null, result: T) => void;
 
 export type CallbackReturnType<T> = T extends (
