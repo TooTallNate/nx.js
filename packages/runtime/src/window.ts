@@ -1,3 +1,4 @@
+import type { console } from './console';
 import { assertInternalConstructor, def } from './utils';
 
 export class Window extends EventTarget {
