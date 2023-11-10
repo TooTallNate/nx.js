@@ -6,3 +6,4 @@ import './import';
 import './navigator';
 import './switch';
 import './wasm';
+import './window';
