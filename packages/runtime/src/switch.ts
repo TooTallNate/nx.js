@@ -539,7 +539,18 @@ export class SwitchClass extends EventTarget {
 		return this.native.chdir(String(dir));
 	}
 
-	resolveDns = dnsResolve;
+	/**
+	 * Performs a DNS lookup to resolve a hostname to an array of IP addresses.
+	 *
+	 * @example
+	 *
+	 * ```typescript
+	 * const ipAddresses = await Switch.resolveDns('example.com');
+	 * ```
+	 */
+	resolveDns(hostname: string) {
+		return dnsResolve(hostname);
+	}
 
 	/**
 	 * Returns a Promise which resolves to an `ArrayBuffer` containing
