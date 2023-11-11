@@ -471,9 +471,9 @@ export class CanvasRenderingContext2D {
 		pathOrFillRule?: CanvasFillRule | Path2D,
 		fillRule?: CanvasFillRule
 	): void {
-		let path: Path2D | undefined;
+		//let path: Path2D | undefined;
 		if (typeof pathOrFillRule === 'object') {
-			path = pathOrFillRule;
+			//path = pathOrFillRule;
 		} else {
 			fillRule = pathOrFillRule;
 		}
@@ -516,23 +516,23 @@ export class CanvasRenderingContext2D {
 		yOrFillRule?: number | CanvasFillRule,
 		fillRule?: CanvasFillRule
 	): boolean {
-		let path: Path2D | undefined;
-		let x: number;
-		let y: number;
-		if (typeof pathOrX === 'object') {
-			path = pathOrX;
-			x = xOrY;
-			if (typeof yOrFillRule !== 'number') {
-				throw new TypeError('Expected third argument to be "number"');
-			}
-			y = yOrFillRule;
-		} else {
-			x = pathOrX;
-			y = xOrY;
-			if (typeof yOrFillRule === 'string') {
-				fillRule = yOrFillRule;
-			}
-		}
+		//let path: Path2D | undefined;
+		//let x: number;
+		//let y: number;
+		//if (typeof pathOrX === 'object') {
+		//	path = pathOrX;
+		//	x = xOrY;
+		//	if (typeof yOrFillRule !== 'number') {
+		//		throw new TypeError('Expected third argument to be "number"');
+		//	}
+		//	y = yOrFillRule;
+		//} else {
+		//	x = pathOrX;
+		//	y = xOrY;
+		//	if (typeof yOrFillRule === 'string') {
+		//		fillRule = yOrFillRule;
+		//	}
+		//}
 		throw new Error('Method not implemented.');
 	}
 

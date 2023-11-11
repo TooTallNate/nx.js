@@ -1,5 +1,4 @@
 import { $ } from './$';
-import { encoder } from './polyfills/text-encoder';
 import { SocketEvent } from './polyfills/event';
 import { resolve } from './dns';
 import {
@@ -111,7 +110,6 @@ export class Socket {
 				const bytesRead = await (i.tls
 					? tlsRead(i.tls, readBuffer)
 					: read(i.fd, readBuffer));
-				//console.log('read %d bytes', bytesRead);
 				if (bytesRead === 0) {
 					controller.close();
 					if (!allowHalfOpen) {
@@ -119,7 +117,6 @@ export class Socket {
 					}
 					return;
 				}
-				//controller.enqueue(new Uint8Array(readBuffer, 0, bytesRead));
 				controller.enqueue(
 					new Uint8Array(readBuffer.slice(0, bytesRead))
 				);
@@ -130,10 +127,7 @@ export class Socket {
 				if (i.opened.pending) {
 					await socket.opened;
 				}
-				const n = await (i.tls
-					? tlsWrite(i.tls, chunk)
-					: write(i.fd, chunk));
-				//console.log('Wrote %d bytes', n);
+				await (i.tls ? tlsWrite(i.tls, chunk) : write(i.fd, chunk));
 			},
 		});
 
