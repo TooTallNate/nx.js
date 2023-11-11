@@ -20,7 +20,7 @@ export class BatteryManager extends EventTarget {
 		assertInternalConstructor(arguments);
 		super();
 		$.batteryInit();
-		Switch.addEventListener('exit', $.batteryExit);
+		addEventListener('unload', $.batteryExit);
 	}
 
 	/**

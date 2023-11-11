@@ -390,6 +390,20 @@ static JSValue js_get_internal_promise_state(JSContext *ctx, JSValueConst this_v
     return arr;
 }
 
+static JSValue nx_set_frame_handler(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
+    nx_ctx->frame_handler = JS_DupValue(ctx, argv[0]);
+    return JS_UNDEFINED;
+}
+
+static JSValue nx_set_exit_handler(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
+    nx_ctx->exit_handler = JS_DupValue(ctx, argv[0]);
+    return JS_UNDEFINED;
+}
+
 int nx_module_set_import_meta(JSContext *ctx, JSValueConst func_val,
                               const char *url, JS_BOOL is_main)
 {
@@ -465,7 +479,9 @@ int main(int argc, char *argv[])
     nx_context_t *nx_ctx = malloc(sizeof(nx_context_t));
     memset(nx_ctx, 0, sizeof(nx_context_t));
     nx_ctx->thpool = thpool_init(4);
-    nx_ctx->onerror_handler = JS_UNDEFINED;
+    nx_ctx->frame_handler = JS_UNDEFINED;
+    nx_ctx->exit_handler = JS_UNDEFINED;
+    nx_ctx->error_handler = JS_UNDEFINED;
     nx_ctx->unhandled_rejection_handler = JS_UNDEFINED;
     pthread_mutex_init(&(nx_ctx->async_done_mutex), NULL);
     JS_SetContextOpaque(ctx, nx_ctx);
@@ -482,6 +498,10 @@ int main(int argc, char *argv[])
     nx_init_tls(ctx, init_obj);
     nx_init_swkbd(ctx, init_obj);
     nx_init_wasm(ctx, init_obj);
+    const JSCFunctionListEntry init_function_list[] = {
+        JS_CFUNC_DEF("onExit", 1, nx_set_exit_handler),
+        JS_CFUNC_DEF("onFrame", 1, nx_set_frame_handler)};
+    JS_SetPropertyFunctionList(ctx, init_obj, init_function_list, countof(init_function_list));
     JS_SetPropertyStr(ctx, global_obj, "$", init_obj);
 
     // First try the `main.js` file on the RomFS
@@ -540,7 +560,6 @@ int main(int argc, char *argv[])
 
     JSValue switch_obj = JS_GetPropertyStr(ctx, global_obj, "Switch");
     JSValue native_obj = JS_GetPropertyStr(ctx, switch_obj, "native");
-    JSValue dispatch_event_func = JS_GetPropertyStr(ctx, switch_obj, "dispatchEvent");
 
     JSValue version_obj = JS_NewObject(ctx);
     JS_SetPropertyStr(ctx, version_obj, "cairo", JS_NewString(ctx, cairo_version_string()));
@@ -661,26 +680,21 @@ main_loop:
         }
         else
         {
-            // Dispatch "frame" event
-            JSValue event_obj = JS_NewObject(ctx);
-            JS_SetPropertyStr(ctx, event_obj, "type", JS_NewString(ctx, "frame"));
-            JS_SetPropertyStr(ctx, event_obj, "detail", JS_NewUint32(ctx, kDown));
-            JSValueConst args[] = {event_obj};
-            JSValue ret_val = JS_Call(ctx, dispatch_event_func, switch_obj, 1, args);
-            JS_FreeValue(ctx, event_obj);
-
-            if (!is_running)
-            {
-                // `Switch.exit()` was called
-                JS_FreeValue(ctx, ret_val);
-                break;
-            }
+            // Call frame handler
+            JSValueConst args[] = {JS_NewUint32(ctx, kDown)};
+            JSValue ret_val = JS_Call(ctx, nx_ctx->frame_handler, JS_NULL, 1, args);
 
             if (JS_IsException(ret_val))
             {
                 nx_emit_error_event(ctx);
             }
             JS_FreeValue(ctx, ret_val);
+
+            if (!is_running)
+            {
+                // `Switch.exit()` was called
+                break;
+            }
         }
 
         if (print_console != NULL)
@@ -703,23 +717,19 @@ main_loop:
     thpool_wait(nx_ctx->thpool);
     thpool_destroy(nx_ctx->thpool);
 
-    // Dispatch "exit" event
-    JSValue event_obj = JS_NewObject(ctx);
-    JSValue event_type = JS_NewString(ctx, "exit");
-    JS_SetPropertyStr(ctx, event_obj, "type", event_type);
-    JSValue args[] = {event_obj};
-    JSValue ret_val = JS_Call(ctx, dispatch_event_func, switch_obj, 1, args);
-    JS_FreeValue(ctx, event_obj);
+    // Call exit handler
+    JSValue ret_val = JS_Call(ctx, nx_ctx->exit_handler, JS_NULL, 0, NULL);
     JS_FreeValue(ctx, ret_val);
 
     fclose(debug_fd);
     FILE *leaks_fd = freopen(LOG_FILENAME, "a", stdout);
 
-    JS_FreeValue(ctx, dispatch_event_func);
     JS_FreeValue(ctx, native_obj);
     JS_FreeValue(ctx, switch_obj);
     JS_FreeValue(ctx, global_obj);
-    JS_FreeValue(ctx, nx_ctx->onerror_handler);
+    JS_FreeValue(ctx, nx_ctx->frame_handler);
+    JS_FreeValue(ctx, nx_ctx->exit_handler);
+    JS_FreeValue(ctx, nx_ctx->error_handler);
     JS_FreeValue(ctx, nx_ctx->unhandled_rejection_handler);
 
     JS_FreeContext(ctx);

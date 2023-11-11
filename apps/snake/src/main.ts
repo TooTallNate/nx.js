@@ -240,10 +240,6 @@ function update() {
 	}
 }
 
-Switch.addEventListener('frame', () => {
-	if (state === State.Playing) draw();
-});
-
 function positionsEqual(a: Position, b: Position) {
 	return a.x === b.x && a.y === b.y;
 }
@@ -344,6 +340,11 @@ fps.addEventListener('update', () => {
 	ctx.fillText(`FPS: ${Math.round(fps.rate)}`, Switch.screen.width - 104, 26);
 });
 
-Switch.addEventListener('frame', fps.tick);
+function step() {
+	fps.tick();
+	if (state === State.Playing) draw();
+	requestAnimationFrame(step);
+}
+requestAnimationFrame(step);
 
 start();

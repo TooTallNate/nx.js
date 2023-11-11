@@ -1,6 +1,8 @@
 import type { SwitchClass } from './switch';
 import type { Socket } from './tcp';
 
+export type DOMHighResTimeStamp = number;
+
 export type PathLike = string | URL;
 
 export interface Stats {

@@ -652,7 +652,7 @@ export class SwitchClass extends EventTarget {
 
 	networkInfo() {
 		if (!this[INTERNAL_SYMBOL].nifmInitialized) {
-			this.addEventListener('exit', $.nifmInitialize());
+			addEventListener('unload', $.nifmInitialize());
 			this[INTERNAL_SYMBOL].nifmInitialized = true;
 		}
 		return $.networkInfo();

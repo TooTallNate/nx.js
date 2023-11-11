@@ -66,7 +66,9 @@ typedef struct
     FT_Library ft_library;
     HidVibrationDeviceHandle vibration_device_handles[2];
     IM3Environment wasm_env;
-    JSValue onerror_handler;
+    JSValue frame_handler;
+    JSValue exit_handler;
+    JSValue error_handler;
     JSValue unhandled_rejection_handler;
 
     // mbedtls structures shared by all TLS connections

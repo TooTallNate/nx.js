@@ -19,6 +19,10 @@ export interface Init {
 		fn: (promise: Promise<unknown>, reason: any) => number
 	): void;
 
+	// main.c
+	onFrame(fn: (kDown: number) => void): void;
+	onExit(fn: () => void): void;
+
 	// nifm.c
 	nifmInitialize(): () => void;
 	networkInfo(): NetworkInfo;

@@ -19,4 +19,9 @@ const printTime = (move = true) => {
 };
 console.log();
 printTime(false);
-Switch.addEventListener('frame', () => printTime());
+
+function loop() {
+	printTime();
+	requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);

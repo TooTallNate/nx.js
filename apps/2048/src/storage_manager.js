@@ -14,7 +14,7 @@ export class StorageManager {
 		this.gameState = saved?.gameState ?? null;
 
 		// Store game state on the SD card upon exit
-		Switch.addEventListener('exit', this.onExit.bind(this));
+		addEventListener('unload', this.onExit.bind(this));
 	}
 	// Best score getters/setters
 	getBestScore() {

@@ -3,10 +3,12 @@ import { DOMRect } from '../domrect';
 import { assertInternalConstructor, def } from '../utils';
 import type { SwitchClass } from '../switch';
 import { Event } from '../polyfills/event';
+import { requestAnimationFrame, cancelAnimationFrame } from '../raf';
 
 declare const Switch: SwitchClass;
 
 let update: () => void;
+let id = -1;
 let value = '';
 let cursorPos = 0;
 
@@ -94,9 +96,9 @@ export class VirtualKeyboard extends EventTarget {
 	}
 
 	show() {
-		Switch.addEventListener('frame', update);
 		Object.assign(this.boundingRect, $.swkbdShow(this));
 		this.dispatchEvent(new Event('geometrychange'));
+		id = requestAnimationFrame(update);
 	}
 
 	hide() {
@@ -107,7 +109,7 @@ export class VirtualKeyboard extends EventTarget {
 def('VirtualKeyboard', VirtualKeyboard);
 
 function onHide(k: VirtualKeyboard) {
-	Switch.removeEventListener('frame', update);
+	cancelAnimationFrame(id);
 	const b = k.boundingRect;
 	b.x = b.y = b.width = b.height = 0;
 	k.dispatchEvent(new Event('geometrychange'));
@@ -138,7 +140,10 @@ export function create() {
 	EventTarget.call(k);
 	// @ts-expect-error
 	k.boundingRect = new DOMRect();
-	update = $.swkbdUpdate.bind(k);
-	Switch.addEventListener('exit', $.swkbdExit.bind(k));
+	update = () => {
+		$.swkbdUpdate.call(k);
+		id = requestAnimationFrame(update);
+	};
+	addEventListener('unload', $.swkbdExit.bind(k));
 	return k;
 }

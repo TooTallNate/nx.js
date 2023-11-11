@@ -9,19 +9,16 @@ import {
 	clearInterval,
 	processTimers,
 } from './timers';
+import { callRafCallbacks } from './raf';
 import { console } from './console';
 import {
-	type Event,
+	Event,
 	ErrorEvent,
 	KeyboardEvent,
 	TouchEvent,
 	UIEvent,
 	PromiseRejectionEvent,
 } from './polyfills/event';
-import type {
-	AddEventListenerOptions,
-	EventListenerOptions,
-} from './polyfills/event-target';
 
 export type { SwitchClass, Env, Vibration, Versions } from './switch';
 export type { InspectOptions } from './inspect';
@@ -69,6 +66,11 @@ export type {
 	clearTimeout,
 	clearInterval,
 } from './timers';
+export type {
+	FrameRequestCallback,
+	requestAnimationFrame,
+	cancelAnimationFrame,
+} from './raf';
 
 /**
  * The `WebAssembly` JavaScript object acts as the namespace for all
@@ -158,7 +160,7 @@ $.onUnhandledRejection((p, r) => {
 
 const btnPlus = 1 << 10; ///< Plus button
 
-Switch.addEventListener('frame', (event) => {
+$.onFrame((kDown) => {
 	const {
 		keyboardInitialized,
 		touchscreenInitialized,
@@ -167,10 +169,11 @@ Switch.addEventListener('frame', (event) => {
 		previousTouches,
 	} = Switch[INTERNAL_SYMBOL];
 	processTimers();
+	callRafCallbacks();
 
-	const buttonsDown = ~previousButtons & event.detail;
-	const buttonsUp = previousButtons & ~event.detail;
-	Switch[INTERNAL_SYMBOL].previousButtons = event.detail;
+	const buttonsDown = ~previousButtons & kDown;
+	const buttonsUp = previousButtons & ~kDown;
+	Switch[INTERNAL_SYMBOL].previousButtons = kDown;
 
 	if (buttonsDown !== 0) {
 		const ev = new UIEvent('buttondown', {
@@ -291,6 +294,7 @@ Switch.addEventListener('frame', (event) => {
 	}
 });
 
-Switch.addEventListener('exit', () => {
+$.onExit(() => {
+	dispatchEvent(new Event('unload'));
 	Switch[INTERNAL_SYMBOL].cleanup();
 });
