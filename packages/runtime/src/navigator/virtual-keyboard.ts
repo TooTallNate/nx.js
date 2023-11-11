@@ -1,11 +1,8 @@
 import { $ } from '../$';
 import { DOMRect } from '../domrect';
 import { assertInternalConstructor, def } from '../utils';
-import type { SwitchClass } from '../switch';
 import { Event } from '../polyfills/event';
 import { requestAnimationFrame, cancelAnimationFrame } from '../raf';
-
-declare const Switch: SwitchClass;
 
 let update: () => void;
 let id = -1;
