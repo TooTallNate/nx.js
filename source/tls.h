@@ -1,6 +1,7 @@
 #pragma once
 #include <mbedtls/net_sockets.h>
 #include <mbedtls/ssl.h>
+#include <mbedtls/version.h>
 #include "types.h"
 
 typedef struct
