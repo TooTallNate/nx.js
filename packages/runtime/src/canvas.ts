@@ -24,6 +24,7 @@ export class Canvas extends EventTarget {
 	height: number;
 
 	constructor(width: number, height: number) {
+		super();
 		this.width = width;
 		this.height = height;
 	}
