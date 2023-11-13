@@ -1,4 +1,9 @@
 import type { console } from './console';
+import type {
+	Event,
+	ErrorEvent,
+	PromiseRejectionEvent,
+} from './polyfills/event';
 import { assertInternalConstructor, def } from './utils';
 
 export class Window extends EventTarget {
@@ -54,6 +59,21 @@ export declare function addEventListener(
 	callback: (event: PromiseRejectionEvent) => any,
 	options?: AddEventListenerOptions | boolean
 ): void;
+
+/**
+ * The `unload` event is fired when the application is exiting.
+ *
+ * By the time this event occurs, the event loop has already been stopped,
+ * so no async operations may be scheduled in the event handler.
+ *
+ * @see https://developer.mozilla.org/docs/Web/API/Window/unload_event
+ */
+export declare function addEventListener(
+	type: 'unload',
+	callback: (event: Event) => any,
+	options?: AddEventListenerOptions | boolean
+): void;
+
 export declare function addEventListener(
 	type: string,
 	callback: EventListenerOrEventListenerObject | null,
