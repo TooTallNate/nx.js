@@ -312,8 +312,6 @@ enum RenderingMode {
 }
 
 interface SwitchEventHandlersEventMap {
-	frame: UIEvent;
-	exit: Event;
 	buttondown: UIEvent;
 	buttonup: UIEvent;
 	keydown: KeyboardEvent;
