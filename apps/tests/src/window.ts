@@ -26,7 +26,7 @@ test('supports global events', () => {
 		gotEvent = true;
 		e.preventDefault();
 	});
-	const e = new Event('test');
+	const e = new Event('test', { cancelable: true });
 	dispatchEvent(e);
 	assert.ok(gotEvent);
 	assert.ok(e.defaultPrevented);
