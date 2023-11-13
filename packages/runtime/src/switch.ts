@@ -6,6 +6,7 @@ import { inspect } from './inspect';
 import { bufferSourceToArrayBuffer, toPromise, pathToString } from './utils';
 import { setTimeout, clearTimeout } from './timers';
 import { encoder } from './polyfills/text-encoder';
+import { EventTarget } from './polyfills/event-target';
 import { Socket, connect, createServer, parseAddress } from './tcp';
 import { resolve as dnsResolve } from './dns';
 import type {

@@ -3,6 +3,7 @@ import { INTERNAL_SYMBOL } from './internal';
 import { type SwitchClass } from './switch';
 import { fetch } from './fetch/fetch';
 import { Event, ErrorEvent } from './polyfills/event';
+import { EventTarget } from './polyfills/event-target';
 import type { ImageOpaque } from './switch';
 
 declare const Switch: SwitchClass;

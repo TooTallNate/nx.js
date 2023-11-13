@@ -6,6 +6,7 @@ import { Image } from './image';
 import { ImageData } from './canvas/image-data';
 import { Path2D, applyPath } from './canvas/path2d';
 import { addSystemFont, findFont, fontFaceInternal } from './polyfills/font';
+import { EventTarget } from './polyfills/event-target';
 import type { CanvasRenderingContext2DState, ImageOpaque } from './switch';
 import type { SwitchClass } from './switch';
 import type { DOMPointInit } from './dompoint';
@@ -18,7 +19,7 @@ type RGBA = [number, number, number, number];
 
 const contexts = new WeakMap<Canvas, CanvasRenderingContext2D>();
 
-export class Canvas {
+export class Canvas extends EventTarget {
 	width: number;
 	height: number;
 

@@ -2,6 +2,7 @@ import { $ } from '../$';
 import { DOMRect } from '../domrect';
 import { assertInternalConstructor, def } from '../utils';
 import { Event } from '../polyfills/event';
+import { EventTarget } from '../polyfills/event-target';
 import { requestAnimationFrame, cancelAnimationFrame } from '../raf';
 
 let update: () => void;
@@ -134,7 +135,6 @@ export function create() {
 		},
 	});
 	Object.setPrototypeOf(k, VirtualKeyboard.prototype);
-	EventTarget.call(k);
 	// @ts-expect-error
 	k.boundingRect = new DOMRect();
 	update = () => {

@@ -1,5 +1,6 @@
 import { $ } from './$';
 import { SocketEvent } from './polyfills/event';
+import { EventTarget } from './polyfills/event-target';
 import { resolve } from './dns';
 import {
 	Deferred,
@@ -238,6 +239,5 @@ export function createServer(ip: string, port: number) {
 		server.dispatchEvent(new SocketEvent('accept', { socket }));
 	});
 	Object.setPrototypeOf(server, Server.prototype);
-	EventTarget.call(server);
 	return server;
 }

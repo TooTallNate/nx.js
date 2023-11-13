@@ -5,7 +5,13 @@ import type {
 	PromiseRejectionEvent,
 } from './polyfills/event';
 import { assertInternalConstructor, def } from './utils';
+import { EventTarget } from './polyfills/event-target';
 
+/**
+ * The `Window` class represents the global scope within the application.
+ *
+ * @see https://developer.mozilla.org/docs/Web/API/Window
+ */
 export class Window extends EventTarget {
 	/**
 	 * @ignore
@@ -20,12 +26,6 @@ def('Window', Window);
 export const window: Window & typeof globalThis = globalThis;
 def('window', window);
 Object.setPrototypeOf(window, Window.prototype);
-EventTarget.call(window);
-
-// Temporary band-aid since EventTarget does not default `this` to `globalThis`
-def('addEventListener', window.addEventListener.bind(window));
-def('removeEventListener', window.removeEventListener.bind(window));
-def('dispatchEvent', window.dispatchEvent.bind(window));
 
 /**
  * The `error` event is sent to the global scope when an unhandled error is thrown.

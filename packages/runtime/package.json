@@ -18,7 +18,6 @@
     "@jridgewell/trace-mapping": "^0.3.19",
     "@types/color-rgba": "^2.1.0",
     "@types/to-px": "^1.1.2",
-    "@ungap/event-target": "^0.2.4",
     "color-rgba": "^2.4.0",
     "core-js": "^3.32.1",
     "data-uri-to-buffer": "^6.0.1",

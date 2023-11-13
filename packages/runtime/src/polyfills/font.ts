@@ -1,7 +1,8 @@
-import type { IFont } from 'parse-css-font';
-import { INTERNAL_SYMBOL } from '../internal';
-import type { SwitchClass, FontFaceState } from '../switch';
 import { def } from '../utils';
+import { INTERNAL_SYMBOL } from '../internal';
+import { EventTarget } from './event-target';
+import type { IFont } from 'parse-css-font';
+import type { SwitchClass, FontFaceState } from '../switch';
 
 declare const Switch: SwitchClass;
 

@@ -353,9 +353,6 @@ importers:
       '@types/to-px':
         specifier: ^1.1.2
         version: 1.1.2
-      '@ungap/event-target':
-        specifier: ^0.2.4
-        version: 0.2.4
       color-rgba:
         specifier: ^2.4.0
         version: 2.4.0
@@ -966,10 +963,6 @@ packages:
 
   /@types/which@3.0.0:
     resolution: {integrity: sha512-ASCxdbsrwNfSMXALlC3Decif9rwDMu+80KGp5zI2RLRotfMsTv7fHL8W8VDp24wymzDyIFudhUeSCugrgRFfHQ==}
-    dev: true
-
-  /@ungap/event-target@0.2.4:
-    resolution: {integrity: sha512-u9Fd3k2qfMtn+0dxbCn/y0pzQ9Ucw6lWR984CrHcbxc+WzcMkJE4VjWHWSb9At40MjwMyHCkJNXroS55Osshhw==}
     dev: true
 
   /@xmldom/xmldom@0.8.10:

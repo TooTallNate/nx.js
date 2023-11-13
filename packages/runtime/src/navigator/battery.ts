@@ -1,9 +1,7 @@
 import { $ } from '../$';
 import { assertInternalConstructor, def } from '../utils';
-import type { SwitchClass } from '../switch';
+import { EventTarget } from '../polyfills/event-target';
 import type { Navigator } from '../navigator';
-
-declare const Switch: SwitchClass;
 
 /**
  * Provides information about the system's battery charge level.

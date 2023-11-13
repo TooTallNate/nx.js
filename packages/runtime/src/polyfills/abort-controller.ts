@@ -3,6 +3,7 @@
 
 import { def } from '../utils';
 import { Event } from './event';
+import { EventTarget } from './event-target';
 
 export class AbortSignal extends EventTarget implements globalThis.AbortSignal {
 	readonly reason!: any;
