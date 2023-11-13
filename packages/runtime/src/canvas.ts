@@ -1,6 +1,7 @@
 import toPx = require('to-px/index.js');
 import colorRgba = require('color-rgba');
 import parseCssFont from 'parse-css-font';
+import { Blob } from './polyfills/blob';
 import { INTERNAL_SYMBOL } from './internal';
 import { Image } from './image';
 import { ImageData } from './canvas/image-data';
@@ -41,6 +42,71 @@ export class Canvas extends EventTarget {
 			contexts.set(this, ctx);
 		}
 		return ctx;
+	}
+
+	/**
+	 * Creates a {@link Blob} object representing the image contained in the canvas.
+	 *
+	 * @example
+	 *
+	 * ```typescript
+	 * canvas.toBlob(blob => {
+	 *   blob.arrayBuffer().then(buffer => {
+	 *     Switch.writeFileSync('out.png', buffer);
+	 *   });
+	 * });
+	 * ```
+	 *
+	 * @param callback A callback function with the resulting {@link Blob} object as a single argument. `null` may be passed if the image cannot be created for any reason.
+	 * @param type A string indicating the image format. The default type is `image/png`. This image format will be also used if the specified type is not supported.
+	 * @param quality A number between `0` and `1` indicating the image quality to be used when creating images using file formats that support lossy compression (such as `image/jpeg`). A user agent will use its default quality value if this option is not specified, or if the number is outside the allowed range.
+	 */
+	toBlob(
+		callback: (blob: Blob | null) => void,
+		type = 'image/png',
+		quality = 0.8
+	) {
+		throw new Error('Method not implemented.');
+	}
+
+	/**
+	 * Returns a `data:` URL containing a representation of the image in the format specified by the type parameter.
+	 *
+	 * @example
+	 *
+	 * ```typescript
+	 * const url = canvas.toDataURL();
+	 * fetch(url)
+	 *   .then(res => res.arrayBuffer())
+	 *   .then(buffer => {
+	 *     Switch.writeFileSync('out.png', buffer);
+	 *   });
+	 * ```
+	 *
+	 * @param type A string indicating the image format. The default type is `image/png`. This image format will be also used if the specified type is not supported.
+	 * @param quality A number between `0` and `1` indicating the image quality to be used when creating images using file formats that support lossy compression (such as `image/jpeg`). A user agent will use its default quality value if this option is not specified, or if the number is outside the allowed range.
+	 * @see https://developer.mozilla.org/docs/Web/API/HTMLCanvasElement/toDataURL
+	 */
+	toDataURL(type = 'image/png', quality = 0.8) {
+		throw new Error('Method not implemented.');
+	}
+
+	// Compat with HTML DOM interface
+	className = '';
+	get nodeType() {
+		return 1;
+	}
+	get nodeName() {
+		return 'CANVAS';
+	}
+	getAttribute(name: string) {
+		if (name === 'width') return this.width;
+		if (name === 'height') return this.height;
+		return null;
+	}
+	setAttribute(name: string, value: string | number) {
+		if (name === 'width') this.width = +value;
+		else if (name === 'height') this.height = +value;
 	}
 }
 
