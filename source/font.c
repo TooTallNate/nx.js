@@ -31,7 +31,7 @@ static JSValue nx_new_font_face(JSContext *ctx, JSValueConst this_val, int argc,
                        &context->ft_face);
 
     // Create a Cairo font face from the FreeType face
-    context->cairo_font = cairo_ft_font_face_create_for_ft_face(context->ft_face, 0);
+    context->cairo_font = cairo_ft_font_face_create_for_ft_face(context->ft_face, FT_LOAD_COLOR | FT_LOAD_RENDER);
 
     JSValue obj = JS_NewObjectClass(ctx, nx_font_face_class_id);
     if (JS_IsException(obj))

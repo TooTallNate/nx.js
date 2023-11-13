@@ -6,7 +6,7 @@ const decoder = new TextDecoder();
 const encoder = new TextEncoder();
 
 // Register "Geist Mono" font
-const fontUrl = new URL('GeistMono-Regular.otf', Switch.entrypoint);
+const fontUrl = new URL('fonts/GeistMono-Regular.otf', Switch.entrypoint);
 const fontData = Switch.readFileSync(fontUrl);
 const font = new FontFace('Geist Mono', fontData);
 Switch.fonts.add(font);
