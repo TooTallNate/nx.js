@@ -1,4 +1,4 @@
-import type { BufferSource } from './types';
+import type { BufferSource, PathLike } from './types';
 import {
 	INTERNAL_SYMBOL,
 	type Callback,
@@ -58,6 +58,10 @@ export function toPromise<
 
 export function assertInternalConstructor(a: ArrayLike<any>) {
 	if (a[0] !== INTERNAL_SYMBOL) throw new TypeError('Illegal constructor');
+}
+
+export function pathToString(p: PathLike): string {
+	return typeof p === 'string' ? p : decodeURI(p.href);
 }
 
 export class Deferred<T> {

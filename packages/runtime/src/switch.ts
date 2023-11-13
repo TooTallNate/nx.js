@@ -3,7 +3,7 @@ import { Canvas, CanvasRenderingContext2D, ctxInternal } from './canvas';
 import { FontFaceSet } from './polyfills/font';
 import { type Callback, INTERNAL_SYMBOL, type Opaque } from './internal';
 import { inspect } from './inspect';
-import { bufferSourceToArrayBuffer, toPromise } from './utils';
+import { bufferSourceToArrayBuffer, toPromise, pathToString } from './utils';
 import { setTimeout, clearTimeout } from './timers';
 import { encoder } from './polyfills/text-encoder';
 import { Socket, connect, createServer, parseAddress } from './tcp';
@@ -534,7 +534,7 @@ export class SwitchClass extends EventTarget {
 	 * ```
 	 */
 	chdir(dir: PathLike) {
-		return this.native.chdir(String(dir));
+		return this.native.chdir(pathToString(dir));
 	}
 
 	/**
@@ -562,7 +562,7 @@ export class SwitchClass extends EventTarget {
 	 * ```
 	 */
 	readFile(path: PathLike) {
-		return toPromise(this.native.readFile, String(path));
+		return toPromise(this.native.readFile, pathToString(path));
 	}
 
 	/**
@@ -577,7 +577,7 @@ export class SwitchClass extends EventTarget {
 	 * ```
 	 */
 	readDirSync(path: PathLike) {
-		return this.native.readDirSync(String(path));
+		return this.native.readDirSync(pathToString(path));
 	}
 
 	/**
@@ -592,7 +592,7 @@ export class SwitchClass extends EventTarget {
 	 * ```
 	 */
 	readFileSync(path: PathLike) {
-		return this.native.readFileSync(String(path));
+		return this.native.readFileSync(pathToString(path));
 	}
 
 	/**
@@ -606,14 +606,14 @@ export class SwitchClass extends EventTarget {
 	writeFileSync(path: PathLike, data: string | BufferSource) {
 		const d = typeof data === 'string' ? encoder.encode(data) : data;
 		const ab = bufferSourceToArrayBuffer(d);
-		return this.native.writeFileSync(String(path), ab);
+		return this.native.writeFileSync(pathToString(path), ab);
 	}
 
 	/**
 	 * Removes the file or directory specified by `path`.
 	 */
 	remove(path: PathLike) {
-		return toPromise(this.native.remove, String(path));
+		return toPromise(this.native.remove, pathToString(path));
 	}
 
 	/**
@@ -621,7 +621,7 @@ export class SwitchClass extends EventTarget {
 	 * information about the file pointed to by `path`.
 	 */
 	stat(path: PathLike) {
-		return toPromise(this.native.stat, String(path));
+		return toPromise(this.native.stat, pathToString(path));
 	}
 
 	/**
