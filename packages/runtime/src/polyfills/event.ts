@@ -63,8 +63,10 @@ export class Event implements globalThis.Event {
 		throw new Error('Method not implemented.');
 	}
 	preventDefault(): void {
-		// @ts-expect-error - `defaultPrevented` is readonly
-		this.defaultPrevented = true;
+		if (this.cancelable) {
+			// @ts-expect-error - `defaultPrevented` is readonly
+			this.defaultPrevented = true;
+		}
 	}
 	stopImmediatePropagation(): void {
 		throw new Error('Method not implemented.');
