@@ -93,12 +93,24 @@ export class VirtualKeyboard extends EventTarget {
 		return cursorPos;
 	}
 
+	/**
+	 * Shows the on-screen virtual keyboard.
+	 * 
+	 * @returns `undefined` and triggers a `"geometrychange"` event.
+	 * @see https://developer.mozilla.org/docs/Web/API/VirtualKeyboard/show
+	 */
 	show() {
 		Object.assign(this.boundingRect, $.swkbdShow(this));
 		this.dispatchEvent(new Event('geometrychange'));
 		id = requestAnimationFrame(update);
 	}
 
+	/**
+	 * Hides the on-screen virtual keyboard.
+	 * 
+	 * @returns `undefined` and triggers a `"geometrychange"` event.
+	 * @see https://developer.mozilla.org/docs/Web/API/VirtualKeyboard/hide
+	 */
 	hide() {
 		$.swkbdHide(this);
 		onHide(this);
