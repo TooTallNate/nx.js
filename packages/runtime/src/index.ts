@@ -133,6 +133,9 @@ function touchIsEqual(a: Touch, b: Touch) {
 import './window';
 export type * from './window';
 
+import './screen';
+export type * from './screen';
+
 $.onError((e) => {
 	const ev = new ErrorEvent('error', {
 		cancelable: true,
