@@ -95,7 +95,7 @@ export class VirtualKeyboard extends EventTarget {
 
 	/**
 	 * Shows the on-screen virtual keyboard.
-	 * 
+	 *
 	 * @returns `undefined` and triggers a `"geometrychange"` event.
 	 * @see https://developer.mozilla.org/docs/Web/API/VirtualKeyboard/show
 	 */
@@ -107,7 +107,7 @@ export class VirtualKeyboard extends EventTarget {
 
 	/**
 	 * Hides the on-screen virtual keyboard.
-	 * 
+	 *
 	 * @returns `undefined` and triggers a `"geometrychange"` event.
 	 * @see https://developer.mozilla.org/docs/Web/API/VirtualKeyboard/hide
 	 */
