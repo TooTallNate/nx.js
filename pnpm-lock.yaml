@@ -265,6 +265,25 @@ importers:
         specifier: workspace:^
         version: link:../../packages/runtime
 
+  apps/xterm:
+    dependencies:
+      nxjs-constants:
+        specifier: workspace:*
+        version: link:../../packages/constants
+      xterm-headless:
+        specifier: ^5.3.0
+        version: 5.3.0
+    devDependencies:
+      esbuild:
+        specifier: ^0.17.19
+        version: 0.17.19
+      nxjs-pack:
+        specifier: workspace:^
+        version: link:../../packages/pack
+      nxjs-runtime:
+        specifier: workspace:^
+        version: link:../../packages/runtime
+
   packages/constants:
     devDependencies:
       typescript:
@@ -2929,6 +2948,10 @@ packages:
       string-width: 4.2.3
       strip-ansi: 6.0.1
     dev: true
+
+  /xterm-headless@5.3.0:
+    resolution: {integrity: sha512-HjKkEgvjlyXfZvI0LdQChOqGL5nDiXge6X2IvoQbOn+oavAKUCX9hKHtDxmWVwxgNCCvXDnfQCYL+3wyHQ9PXA==}
+    dev: false
 
   /y18n@4.0.3:
     resolution: {integrity: sha512-JKhqTOwSrqNA1NY5lSztJ1GrBiUodLMmIZuLiDaMRJ+itFd+ABVE8XBjOvIWL+rSqNDC74LCSFmlb/U4UZ4hJQ==}
