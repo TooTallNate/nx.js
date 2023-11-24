@@ -2,13 +2,35 @@ import type { NetworkInfo } from './types';
 import type { Callback } from './internal';
 import type { Server, TlsContextOpaque } from './tcp';
 import type { MemoryDescriptor, Memory } from './wasm';
+import type { BatteryManager } from './navigator/battery';
 import type { VirtualKeyboard } from './navigator/virtual-keyboard';
+import type { OffscreenCanvas } from './canvas/offscreen-canvas';
+import type { OffscreenCanvasRenderingContext2D } from './canvas/offscreen-canvas-rendering-context-2d';
+
+type ClassOf<T> = {
+	new (...args: any[]): T;
+};
 
 export interface Init {
 	// battery.c
 	batteryInit(): void;
-	batteryInitClass(c: any): void;
+	batteryInitClass(c: ClassOf<BatteryManager>): void;
 	batteryExit(): void;
+
+	// canvas.c
+	canvasNew(width: number, height: number): OffscreenCanvas;
+	canvasInitClass(c: ClassOf<OffscreenCanvas>): void;
+	canvasContext2dNew(c: OffscreenCanvas): OffscreenCanvasRenderingContext2D;
+	canvasContext2dInitClass(
+		c: ClassOf<OffscreenCanvasRenderingContext2D>
+	): void;
+	canvasContext2dGetImageData(
+		ctx: OffscreenCanvasRenderingContext2D,
+		sx: number,
+		sy: number,
+		sw: number,
+		sh: number
+	): ArrayBuffer;
 
 	// dns.c
 	dnsResolve(cb: Callback<string[]>, hostname: string): void;
@@ -27,7 +49,7 @@ export interface Init {
 	nifmInitialize(): () => void;
 	networkInfo(): NetworkInfo;
 
-	// swkbd.c
+	// software-keyboard.c
 	swkbdCreate(fns: {
 		onCancel: () => void;
 		onChange: (
@@ -49,7 +71,7 @@ export interface Init {
 	write(cb: Callback<number>, fd: number, data: ArrayBuffer): void;
 	read(cb: Callback<number>, fd: number, buffer: ArrayBuffer): void;
 	close(fd: number): void;
-	tcpInitServer(c: any): void;
+	tcpServerInit(c: any): void;
 	tcpServerNew(
 		ip: string,
 		port: number,

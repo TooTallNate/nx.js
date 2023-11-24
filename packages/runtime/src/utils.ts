@@ -82,3 +82,19 @@ export class Deferred<T> {
 		});
 	}
 }
+
+export const createInternal = <K extends WeakKey, V>() => {
+	const wm = new WeakMap<K, V>();
+	const _ = (k: K): V => {
+		const v = wm.get(k);
+		if (!v)
+			throw new Error(
+				`Failed to get \`${k.constructor.name}\` internal state`
+			);
+		return v;
+	};
+	_.set = (k: K, v: V) => {
+		wm.set(k, v);
+	};
+	return _;
+};

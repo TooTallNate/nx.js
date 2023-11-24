@@ -16,6 +16,11 @@
         return JS_EXCEPTION;                                                                   \
     }
 
+#define CANVAS_CONTEXT_THIS                                                                     \
+    nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, this_val, nx_canvas_context_class_id); \
+    if (!context)                                                                               \
+        return JS_EXCEPTION;
+
 #define RECT_ARGS                                        \
     double args[4];                                      \
     if (js_validate_doubles_args(ctx, argv, args, 4, 1)) \
@@ -28,6 +33,18 @@
     double width = args[2];                              \
     double height = args[3];
 
+#define RECT_ARGS2                                       \
+    double args[4];                                      \
+    if (js_validate_doubles_args(ctx, argv, args, 4, 0)) \
+    {                                                    \
+        return JS_EXCEPTION;                             \
+    }                                                    \
+    double x = args[0];                                  \
+    double y = args[1];                                  \
+    double width = args[2];                              \
+    double height = args[3];
+
+static JSClassID nx_canvas_class_id;
 static JSClassID nx_canvas_context_class_id;
 
 static inline int min(int a, int b)
@@ -88,8 +105,7 @@ static JSValue js_canvas_new_context(JSContext *ctx, JSValueConst this_val, int 
     memset(buffer, 0, buf_size);
 
     nx_canvas_context_2d_t *context = js_malloc(ctx, sizeof(nx_canvas_context_2d_t));
-    nx_canvas_state_t *state = js_malloc(ctx, sizeof(nx_canvas_state_t));
-    if (!context || !state)
+    if (!context)
     {
         JS_ThrowOutOfMemory(ctx);
         return JS_EXCEPTION;
@@ -107,7 +123,6 @@ static JSValue js_canvas_new_context(JSContext *ctx, JSValueConst this_val, int 
     cairo_surface_t *surface = cairo_image_surface_create_for_data(
         buffer, CAIRO_FORMAT_ARGB32, width, height, width * 4);
 
-    context->state = state;
     context->width = width;
     context->height = height;
     context->data = buffer;
@@ -116,7 +131,7 @@ static JSValue js_canvas_new_context(JSContext *ctx, JSValueConst this_val, int 
 
     // Match browser defaults
     cairo_set_line_width(context->ctx, 1);
-    state->globalAlpha = 1.0;
+    context->global_alpha = 1.0;
 
     JS_SetOpaque(obj, context);
     return obj;
@@ -542,10 +557,10 @@ static JSValue js_canvas_set_source_rgba(JSContext *ctx, JSValueConst this_val, 
     }
     cairo_set_source_rgba(
         context->ctx,
-        args[0] / 255.,                       // r
-        args[1] / 255.,                       // g
-        args[2] / 255.,                       // b
-        args[3] * context->state->globalAlpha // a
+        args[0] / 255.,                 // r
+        args[1] / 255.,                 // g
+        args[2] / 255.,                 // b
+        args[3] * context->global_alpha // a
     );
     return JS_UNDEFINED;
 }
@@ -732,7 +747,7 @@ static JSValue js_canvas_set_line_dash(JSContext *ctx, JSValueConst this_val, in
 static JSValue js_canvas_get_global_alpha(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     CANVAS_CONTEXT;
-    return JS_NewFloat64(ctx, context->state->globalAlpha);
+    return JS_NewFloat64(ctx, context->global_alpha);
 }
 
 static JSValue js_canvas_set_global_alpha(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -744,7 +759,7 @@ static JSValue js_canvas_set_global_alpha(JSContext *ctx, JSValueConst this_val,
         JS_ThrowTypeError(ctx, "invalid input");
         return JS_EXCEPTION;
     }
-    context->state->globalAlpha = value;
+    context->global_alpha = value;
     return JS_UNDEFINED;
 }
 
@@ -930,122 +945,6 @@ static JSValue js_canvas_measure_text(JSContext *ctx, JSValueConst this_val, int
 static void js_free_array_buffer(JSRuntime *rt, void *opaque, void *ptr)
 {
     js_free_rt(rt, ptr);
-}
-
-static JSValue js_canvas_get_image_data(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
-    CANVAS_CONTEXT;
-    uint32_t width = context->width;
-    uint32_t height = context->height;
-
-    int sx;
-    int sy;
-    int sw;
-    int sh;
-    if (JS_ToInt32(ctx, &sx, argv[1]) ||
-        JS_ToInt32(ctx, &sy, argv[2]) ||
-        JS_ToInt32(ctx, &sw, argv[3]) ||
-        JS_ToInt32(ctx, &sh, argv[4]))
-    {
-        JS_ThrowTypeError(ctx, "invalid input");
-        return JS_EXCEPTION;
-    }
-
-    // WebKit and Firefox have this behavior:
-    // Flip the coordinates so the origin is top/left-most:
-    if (sw < 0)
-    {
-        sx += sw;
-        sw = -sw;
-    }
-    if (sh < 0)
-    {
-        sy += sh;
-        sh = -sh;
-    }
-
-    if (sx + sw > width)
-        sw = width - sx;
-    if (sy + sh > height)
-        sh = height - sy;
-
-    // WebKit/moz functionality
-    if (sw <= 0)
-        sw = 1;
-    if (sh <= 0)
-        sh = 1;
-
-    // Non-compliant. "Pixels outside the canvas must be returned as transparent
-    // black." This instead clips the returned array to the canvas area.
-    if (sx < 0)
-    {
-        sw += sx;
-        sx = 0;
-    }
-    if (sy < 0)
-    {
-        sh += sy;
-        sy = 0;
-    }
-
-    int srcStride = width * 4;
-    int bpp = srcStride / width;
-    size_t size = sw * sh * bpp;
-    int dstStride = sw * bpp;
-
-    uint8_t *src = context->data;
-
-    uint8_t *dst = js_malloc(ctx, size);
-    if (!dst)
-    {
-        JS_ThrowOutOfMemory(ctx);
-        return JS_EXCEPTION;
-    }
-
-    JSValue ab = JS_NewArrayBuffer(ctx, dst, size, js_free_array_buffer, NULL, 0);
-
-    if (JS_IsException(ab))
-    {
-        js_free(ctx, dst); // Free data in case of exception
-        return ab;
-    }
-
-    // Rearrange alpha (argb -> rgba), undo alpha pre-multiplication,
-    // and store in big-endian format
-    for (int y = 0; y < sh; ++y)
-    {
-        uint32_t *row = (uint32_t *)(src + srcStride * (y + sy));
-        for (int x = 0; x < sw; ++x)
-        {
-            int bx = x * 4;
-            uint32_t *pixel = row + x + sx;
-            uint8_t a = *pixel >> 24;
-            uint8_t r = *pixel >> 16;
-            uint8_t g = *pixel >> 8;
-            uint8_t b = *pixel;
-            dst[bx + 3] = a;
-
-            // Performance optimization: fully transparent/opaque pixels can be
-            // processed more efficiently.
-            if (a == 0 || a == 255)
-            {
-                dst[bx + 0] = r;
-                dst[bx + 1] = g;
-                dst[bx + 2] = b;
-            }
-            else
-            {
-                // Undo alpha pre-multiplication
-                float alphaR = (float)255 / a;
-                dst[bx + 0] = (int)((float)r * alphaR);
-                dst[bx + 1] = (int)((float)g * alphaR);
-                dst[bx + 2] = (int)((float)b * alphaR);
-            }
-        }
-        dst += dstStride;
-    }
-
-    return ab;
 }
 
 static JSValue js_canvas_put_image_data(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -1362,7 +1261,7 @@ static JSValue js_canvas_draw_image(JSContext *ctx, JSValueConst this_val, int a
     cairo_pattern_set_filter(cairo_get_source(context->ctx), CAIRO_FILTER_GOOD);
     cairo_pattern_set_extend(cairo_get_source(context->ctx), CAIRO_EXTEND_NONE);
 
-    cairo_paint_with_alpha(context->ctx, context->state->globalAlpha);
+    cairo_paint_with_alpha(context->ctx, context->global_alpha);
 
     cairo_restore(context->ctx);
 
@@ -1382,7 +1281,6 @@ static void finalizer_canvas_context_2d(JSRuntime *rt, JSValue val)
     {
         cairo_destroy(context->ctx);
         cairo_surface_destroy(context->surface);
-        js_free_rt(rt, context->state);
         js_free_rt(rt, context->data);
         js_free_rt(rt, context);
     }
@@ -1391,6 +1289,122 @@ static void finalizer_canvas_context_2d(JSRuntime *rt, JSValue val)
 nx_canvas_context_2d_t *nx_get_canvas_context_2d(JSContext *ctx, JSValueConst obj)
 {
     return JS_GetOpaque2(ctx, obj, nx_canvas_context_class_id);
+}
+
+static JSValue js_canvas_get_image_data(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    CANVAS_CONTEXT;
+    uint32_t width = context->width;
+    uint32_t height = context->height;
+
+    int sx;
+    int sy;
+    int sw;
+    int sh;
+    if (JS_ToInt32(ctx, &sx, argv[1]) ||
+        JS_ToInt32(ctx, &sy, argv[2]) ||
+        JS_ToInt32(ctx, &sw, argv[3]) ||
+        JS_ToInt32(ctx, &sh, argv[4]))
+    {
+        JS_ThrowTypeError(ctx, "invalid input");
+        return JS_EXCEPTION;
+    }
+
+    // WebKit and Firefox have this behavior:
+    // Flip the coordinates so the origin is top/left-most:
+    if (sw < 0)
+    {
+        sx += sw;
+        sw = -sw;
+    }
+    if (sh < 0)
+    {
+        sy += sh;
+        sh = -sh;
+    }
+
+    if (sx + sw > width)
+        sw = width - sx;
+    if (sy + sh > height)
+        sh = height - sy;
+
+    // WebKit/moz functionality
+    if (sw <= 0)
+        sw = 1;
+    if (sh <= 0)
+        sh = 1;
+
+    // Non-compliant. "Pixels outside the canvas must be returned as transparent
+    // black." This instead clips the returned array to the canvas area.
+    if (sx < 0)
+    {
+        sw += sx;
+        sx = 0;
+    }
+    if (sy < 0)
+    {
+        sh += sy;
+        sy = 0;
+    }
+
+    int srcStride = width * 4;
+    int bpp = srcStride / width;
+    size_t size = sw * sh * bpp;
+    int dstStride = sw * bpp;
+
+    uint8_t *src = context->data;
+
+    uint8_t *dst = js_malloc(ctx, size);
+    if (!dst)
+    {
+        JS_ThrowOutOfMemory(ctx);
+        return JS_EXCEPTION;
+    }
+
+    JSValue ab = JS_NewArrayBuffer(ctx, dst, size, js_free_array_buffer, NULL, 0);
+
+    if (JS_IsException(ab))
+    {
+        js_free(ctx, dst); // Free data in case of exception
+        return ab;
+    }
+
+    // Rearrange alpha (argb -> rgba), undo alpha pre-multiplication,
+    // and store in big-endian format
+    for (int y = 0; y < sh; ++y)
+    {
+        uint32_t *row = (uint32_t *)(src + srcStride * (y + sy));
+        for (int x = 0; x < sw; ++x)
+        {
+            int bx = x * 4;
+            uint32_t *pixel = row + x + sx;
+            uint8_t a = *pixel >> 24;
+            uint8_t r = *pixel >> 16;
+            uint8_t g = *pixel >> 8;
+            uint8_t b = *pixel;
+            dst[bx + 3] = a;
+
+            // Performance optimization: fully transparent/opaque pixels can be
+            // processed more efficiently.
+            if (a == 0 || a == 255)
+            {
+                dst[bx + 0] = r;
+                dst[bx + 1] = g;
+                dst[bx + 2] = b;
+            }
+            else
+            {
+                // Undo alpha pre-multiplication
+                float alphaR = (float)255 / a;
+                dst[bx + 0] = (int)((float)r * alphaR);
+                dst[bx + 1] = (int)((float)g * alphaR);
+                dst[bx + 2] = (int)((float)b * alphaR);
+            }
+        }
+        dst += dstStride;
+    }
+
+    return ab;
 }
 
 static const JSCFunctionListEntry function_list[] = {
@@ -1440,9 +1454,509 @@ static const JSCFunctionListEntry function_list[] = {
     JS_CFUNC_DEF("canvasPutImageData", 0, js_canvas_put_image_data),
     JS_CFUNC_DEF("canvasDrawImage", 0, js_canvas_draw_image)};
 
+void nx_init_canvas_(JSContext *ctx, JSValueConst native_obj)
+{
+    JS_SetPropertyFunctionList(ctx, native_obj, function_list, countof(function_list));
+}
+
+nx_canvas_t *nx_get_canvas(JSContext *ctx, JSValueConst obj)
+{
+    return JS_GetOpaque2(ctx, obj, nx_canvas_class_id);
+}
+
+static JSValue nx_canvas_new(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    int width;
+    int height;
+    if (JS_ToInt32(ctx, &width, argv[0]))
+        return JS_EXCEPTION;
+    if (JS_ToInt32(ctx, &height, argv[1]))
+        return JS_EXCEPTION;
+
+    size_t buf_size = width * height * 4;
+    uint8_t *buffer = js_mallocz(ctx, buf_size);
+    if (!buffer)
+        return JS_EXCEPTION;
+
+    nx_canvas_t *context = js_mallocz(ctx, sizeof(nx_canvas_t));
+    if (!context)
+        return JS_EXCEPTION;
+
+    JSValue obj = JS_NewObjectClass(ctx, nx_canvas_class_id);
+    if (JS_IsException(obj))
+    {
+        js_free(ctx, context);
+        return obj;
+    }
+
+    // On Switch, the byte order seems to be BGRA
+    cairo_surface_t *surface = cairo_image_surface_create_for_data(
+        buffer, CAIRO_FORMAT_ARGB32, width, height, width * 4);
+
+    context->width = width;
+    context->height = height;
+    context->data = buffer;
+    context->surface = surface;
+
+    JS_SetOpaque(obj, context);
+    return obj;
+}
+
+static JSValue nx_canvas_get_width(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    nx_canvas_t *canvas = nx_get_canvas(ctx, this_val);
+    if (!canvas)
+        return JS_EXCEPTION;
+    return JS_NewUint32(ctx, canvas->width);
+}
+
+static JSValue nx_canvas_set_width(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    return JS_UNDEFINED;
+}
+
+static JSValue nx_canvas_get_height(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    nx_canvas_t *canvas = nx_get_canvas(ctx, this_val);
+    return JS_NewUint32(ctx, canvas->height);
+}
+
+static JSValue nx_canvas_set_height(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    return JS_UNDEFINED;
+}
+
+static JSValue nx_canvas_init_class(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    JSAtom atom;
+    JSValue proto = JS_GetPropertyStr(ctx, argv[0], "prototype");
+    NX_DEF_GETSET(proto, "width", nx_canvas_get_width, nx_canvas_set_width);
+    NX_DEF_GETSET(proto, "height", nx_canvas_get_height, nx_canvas_set_height);
+    JS_FreeValue(ctx, proto);
+    return JS_UNDEFINED;
+}
+
+static JSValue nx_canvas_context_2d_get_fill_style(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    CANVAS_CONTEXT_THIS;
+    return JS_UNDEFINED;
+}
+
+static JSValue nx_canvas_context_2d_set_fill_style(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    CANVAS_CONTEXT_THIS;
+    return JS_UNDEFINED;
+}
+
+static JSValue nx_canvas_context_2d_fill_rect(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    CANVAS_CONTEXT_THIS;
+    RECT_ARGS2;
+    if (width && height)
+    {
+        // save path
+        context->path = cairo_copy_path_flat(context->ctx);
+        cairo_new_path(context->ctx);
+
+        cairo_rectangle(context->ctx, x, y, width, height);
+
+        // TODO: support gradient / pattern
+        cairo_set_source_rgba(
+            context->ctx,
+            context->fill_style.r,
+            context->fill_style.g,
+            context->fill_style.b,
+            context->fill_style.a * context->global_alpha);
+        cairo_fill(context->ctx);
+
+        // restore path
+        cairo_new_path(context->ctx);
+        cairo_append_path(context->ctx, context->path);
+        cairo_path_destroy(context->path);
+    }
+    return JS_UNDEFINED;
+}
+
+static JSValue nx_canvas_context_2d_get_line_width(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    CANVAS_CONTEXT_THIS;
+    return JS_NewFloat64(ctx, cairo_get_line_width(context->ctx));
+}
+
+static JSValue nx_canvas_context_2d_set_line_width(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    CANVAS_CONTEXT_THIS;
+    double n;
+    if (JS_ToFloat64(ctx, &n, argv[0]))
+        return JS_EXCEPTION;
+    cairo_set_line_width(context->ctx, n);
+    return JS_UNDEFINED;
+}
+
+static JSValue nx_canvas_context_2d_get_line_join(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    CANVAS_CONTEXT_THIS;
+    const char *join;
+    switch (cairo_get_line_join(context->ctx))
+    {
+    case CAIRO_LINE_JOIN_BEVEL:
+        join = "bevel";
+        break;
+    case CAIRO_LINE_JOIN_ROUND:
+        join = "round";
+        break;
+    default:
+        join = "miter";
+    }
+    return JS_NewString(ctx, join);
+}
+
+static JSValue nx_canvas_context_2d_set_line_join(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    CANVAS_CONTEXT_THIS;
+    const char *type = JS_ToCString(ctx, argv[0]);
+    if (!type)
+        return JS_EXCEPTION;
+    cairo_line_join_t line_join;
+    if (0 == strcmp("round", type))
+    {
+        line_join = CAIRO_LINE_JOIN_ROUND;
+    }
+    else if (0 == strcmp("bevel", type))
+    {
+        line_join = CAIRO_LINE_JOIN_BEVEL;
+    }
+    else
+    {
+        line_join = CAIRO_LINE_JOIN_MITER;
+    }
+    JS_FreeCString(ctx, type);
+    cairo_set_line_join(context->ctx, line_join);
+    return JS_UNDEFINED;
+}
+
+static JSValue nx_canvas_context_2d_get_line_cap(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    CANVAS_CONTEXT_THIS;
+    const char *cap;
+    switch (cairo_get_line_cap(context->ctx))
+    {
+    case CAIRO_LINE_CAP_ROUND:
+        cap = "round";
+        break;
+    case CAIRO_LINE_CAP_SQUARE:
+        cap = "square";
+        break;
+    default:
+        cap = "butt";
+    }
+    return JS_NewString(ctx, cap);
+}
+
+static JSValue nx_canvas_context_2d_set_line_cap(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    CANVAS_CONTEXT_THIS;
+    const char *type = JS_ToCString(ctx, argv[0]);
+    if (!type)
+        return JS_EXCEPTION;
+    cairo_line_cap_t line_cap;
+    if (0 == strcmp("round", type))
+    {
+        line_cap = CAIRO_LINE_CAP_ROUND;
+    }
+    else if (0 == strcmp("square", type))
+    {
+        line_cap = CAIRO_LINE_CAP_SQUARE;
+    }
+    else
+    {
+        line_cap = CAIRO_LINE_CAP_BUTT;
+    }
+    JS_FreeCString(ctx, type);
+    cairo_set_line_cap(context->ctx, line_cap);
+    return JS_UNDEFINED;
+}
+
+static JSValue nx_canvas_context_2d_get_line_dash(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    CANVAS_CONTEXT_THIS;
+    int count = cairo_get_dash_count(context->ctx);
+    double dashes[count];
+    cairo_get_dash(context->ctx, dashes, NULL);
+
+    JSValue array = JS_NewArray(ctx);
+    for (int i = 0; i < count; i++)
+    {
+        JS_SetPropertyUint32(ctx, array, i, JS_NewFloat64(ctx, dashes[i]));
+    }
+    return array;
+}
+
+static JSValue nx_canvas_context_2d_set_line_dash(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    CANVAS_CONTEXT_THIS;
+    JSValue length_val = JS_GetPropertyStr(ctx, argv[0], "length");
+    uint32_t length;
+    if (JS_ToUint32(ctx, &length, length_val))
+    {
+        JS_ThrowTypeError(ctx, "invalid input");
+        return JS_EXCEPTION;
+    }
+    uint32_t num_dashes = length & 1 ? length * 2 : length;
+    uint32_t zero_dashes = 0;
+    double dashes[num_dashes];
+    for (uint32_t i = 0; i < num_dashes; i++)
+    {
+        if (JS_ToFloat64(ctx, &dashes[i], JS_GetPropertyUint32(ctx, argv[1], i % length)))
+        {
+            return JS_UNDEFINED;
+        }
+        if (dashes[i] == 0)
+            zero_dashes++;
+    }
+    double offset;
+    cairo_get_dash(context->ctx, NULL, &offset);
+    if (zero_dashes == num_dashes)
+    {
+        cairo_set_dash(context->ctx, NULL, 0, offset);
+    }
+    else
+    {
+        cairo_set_dash(context->ctx, dashes, num_dashes, offset);
+    }
+    return JS_UNDEFINED;
+}
+
+static JSValue nx_canvas_context_2d_get_global_alpha(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    CANVAS_CONTEXT_THIS;
+    return JS_NewFloat64(ctx, context->global_alpha);
+}
+
+static JSValue nx_canvas_context_2d_set_global_alpha(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    CANVAS_CONTEXT_THIS;
+    double value;
+    if (JS_ToFloat64(ctx, &value, argv[0]))
+        return JS_EXCEPTION;
+    if (value >= 0 && value <= 1)
+    {
+        context->global_alpha = value;
+    }
+    return JS_UNDEFINED;
+}
+
+static JSValue nx_canvas_context_2d_get_image_data(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    CANVAS_CONTEXT;
+    uint32_t width = context->canvas->width;
+    uint32_t height = context->canvas->height;
+
+    int sx;
+    int sy;
+    int sw;
+    int sh;
+    if (JS_ToInt32(ctx, &sx, argv[1]) ||
+        JS_ToInt32(ctx, &sy, argv[2]) ||
+        JS_ToInt32(ctx, &sw, argv[3]) ||
+        JS_ToInt32(ctx, &sh, argv[4]))
+    {
+        JS_ThrowTypeError(ctx, "invalid input");
+        return JS_EXCEPTION;
+    }
+
+    // WebKit and Firefox have this behavior:
+    // Flip the coordinates so the origin is top/left-most:
+    if (sw < 0)
+    {
+        sx += sw;
+        sw = -sw;
+    }
+    if (sh < 0)
+    {
+        sy += sh;
+        sh = -sh;
+    }
+
+    if (sx + sw > width)
+        sw = width - sx;
+    if (sy + sh > height)
+        sh = height - sy;
+
+    // WebKit/moz functionality
+    if (sw <= 0)
+        sw = 1;
+    if (sh <= 0)
+        sh = 1;
+
+    // Non-compliant. "Pixels outside the canvas must be returned as transparent
+    // black." This instead clips the returned array to the canvas area.
+    if (sx < 0)
+    {
+        sw += sx;
+        sx = 0;
+    }
+    if (sy < 0)
+    {
+        sh += sy;
+        sy = 0;
+    }
+
+    int srcStride = width * 4;
+    int bpp = srcStride / width;
+    size_t size = sw * sh * bpp;
+    int dstStride = sw * bpp;
+
+    uint8_t *src = context->canvas->data;
+
+    uint8_t *dst = js_malloc(ctx, size);
+    if (!dst)
+    {
+        JS_ThrowOutOfMemory(ctx);
+        return JS_EXCEPTION;
+    }
+
+    JSValue ab = JS_NewArrayBuffer(ctx, dst, size, js_free_array_buffer, NULL, 0);
+
+    if (JS_IsException(ab))
+    {
+        js_free(ctx, dst); // Free data in case of exception
+        return ab;
+    }
+
+    // Rearrange alpha (argb -> rgba), undo alpha pre-multiplication,
+    // and store in big-endian format
+    for (int y = 0; y < sh; ++y)
+    {
+        uint32_t *row = (uint32_t *)(src + srcStride * (y + sy));
+        for (int x = 0; x < sw; ++x)
+        {
+            int bx = x * 4;
+            uint32_t *pixel = row + x + sx;
+            uint8_t a = *pixel >> 24;
+            uint8_t r = *pixel >> 16;
+            uint8_t g = *pixel >> 8;
+            uint8_t b = *pixel;
+            dst[bx + 3] = a;
+
+            // Performance optimization: fully transparent/opaque pixels can be
+            // processed more efficiently.
+            if (a == 0 || a == 255)
+            {
+                dst[bx + 0] = r;
+                dst[bx + 1] = g;
+                dst[bx + 2] = b;
+            }
+            else
+            {
+                // Undo alpha pre-multiplication
+                float alphaR = (float)255 / a;
+                dst[bx + 0] = (int)((float)r * alphaR);
+                dst[bx + 1] = (int)((float)g * alphaR);
+                dst[bx + 2] = (int)((float)b * alphaR);
+            }
+        }
+        dst += dstStride;
+    }
+
+    return ab;
+}
+
+static JSValue nx_canvas_context_2d_get_miter_limit(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    CANVAS_CONTEXT_THIS;
+    return JS_NewFloat64(ctx, cairo_get_miter_limit(context->ctx));
+}
+
+static JSValue nx_canvas_context_2d_set_miter_limit(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    CANVAS_CONTEXT_THIS;
+    double limit;
+    if (JS_ToFloat64(ctx, &limit, argv[0]))
+        return JS_EXCEPTION;
+    if (limit > 0)
+    {
+        cairo_set_miter_limit(context->ctx, limit);
+    }
+    return JS_UNDEFINED;
+}
+
+static JSValue nx_canvas_context_2d_init_class(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    JSAtom atom;
+    JSValue proto = JS_GetPropertyStr(ctx, argv[0], "prototype");
+    // NX_DEF_GETSET(proto, "fillStyle", nx_canvas_context_2d_get_fill_style, nx_canvas_context_2d_set_fill_style);
+    NX_DEF_GETSET(proto, "globalAlpha", nx_canvas_context_2d_get_global_alpha, nx_canvas_context_2d_set_global_alpha);
+    NX_DEF_GETSET(proto, "miterLimit", nx_canvas_context_2d_get_miter_limit, nx_canvas_context_2d_set_miter_limit);
+    NX_DEF_GETSET(proto, "lineCap", nx_canvas_context_2d_get_line_cap, nx_canvas_context_2d_set_line_cap);
+    NX_DEF_GETSET(proto, "lineDash", nx_canvas_context_2d_get_line_dash, nx_canvas_context_2d_set_line_dash);
+    NX_DEF_GETSET(proto, "lineJoin", nx_canvas_context_2d_get_line_join, nx_canvas_context_2d_set_line_join);
+    NX_DEF_GETSET(proto, "lineWidth", nx_canvas_context_2d_get_line_width, nx_canvas_context_2d_set_line_width);
+    NX_DEF_FUNC(proto, "fillRect", nx_canvas_context_2d_fill_rect, 4);
+    JS_FreeValue(ctx, proto);
+    return JS_UNDEFINED;
+}
+
+static JSValue nx_canvas_context_2d_new(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    nx_canvas_t *canvas = nx_get_canvas(ctx, argv[0]);
+
+    nx_canvas_context_2d_t *context = js_mallocz(ctx, sizeof(nx_canvas_context_2d_t));
+    if (!context)
+        return JS_EXCEPTION;
+
+    JSValue obj = JS_NewObjectClass(ctx, nx_canvas_context_class_id);
+    if (JS_IsException(obj))
+    {
+        js_free(ctx, context);
+        return obj;
+    }
+
+    context->canvas = canvas;
+    context->ctx = cairo_create(canvas->surface);
+
+    // Match browser defaults
+    cairo_set_line_width(context->ctx, 1);
+    context->global_alpha = 1.0;
+
+    context->fill_style.r = 1.;
+    context->fill_style.a = 1.;
+
+    JS_SetOpaque(obj, context);
+    return obj;
+}
+
+static void finalizer_canvas(JSRuntime *rt, JSValue val)
+{
+    nx_canvas_t *context = JS_GetOpaque(val, nx_canvas_class_id);
+    if (context)
+    {
+        if (context->surface)
+            cairo_surface_destroy(context->surface);
+        if (context->data)
+            js_free_rt(rt, context->data);
+        js_free_rt(rt, context);
+    }
+}
+
+static const JSCFunctionListEntry init_function_list[] = {
+    JS_CFUNC_DEF("canvasNew", 0, nx_canvas_new),
+    JS_CFUNC_DEF("canvasInitClass", 0, nx_canvas_init_class),
+    JS_CFUNC_DEF("canvasContext2dNew", 0, nx_canvas_context_2d_new),
+    JS_CFUNC_DEF("canvasContext2dInitClass", 0, nx_canvas_context_2d_init_class),
+    JS_CFUNC_DEF("canvasContext2dGetImageData", 0, nx_canvas_context_2d_get_image_data),
+};
+
 void nx_init_canvas(JSContext *ctx, JSValueConst native_obj)
 {
     JSRuntime *rt = JS_GetRuntime(ctx);
+
+    JS_NewClassID(&nx_canvas_class_id);
+    JSClassDef canvas_class = {
+        "nx_canvas_t",
+        .finalizer = finalizer_canvas,
+    };
+    JS_NewClass(rt, nx_canvas_class_id, &canvas_class);
 
     JS_NewClassID(&nx_canvas_context_class_id);
     JSClassDef canvas_context_2d_class = {
@@ -1451,5 +1965,5 @@ void nx_init_canvas(JSContext *ctx, JSValueConst native_obj)
     };
     JS_NewClass(rt, nx_canvas_context_class_id, &canvas_context_2d_class);
 
-    JS_SetPropertyFunctionList(ctx, native_obj, function_list, countof(function_list));
+    JS_SetPropertyFunctionList(ctx, native_obj, init_function_list, countof(init_function_list));
 }

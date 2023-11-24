@@ -287,7 +287,7 @@ static const JSCFunctionListEntry function_list[] = {
     JS_CFUNC_DEF("write", 1, nx_js_tcp_write),
     JS_CFUNC_DEF("close", 1, nx_js_tcp_close),
 
-    JS_CFUNC_DEF("tcpInitServer", 1, nx_js_tcp_init_server),
+    JS_CFUNC_DEF("tcpServerInit", 1, nx_js_tcp_init_server),
     JS_CFUNC_DEF("tcpServerNew", 3, nx_js_tcp_server_new)};
 
 void nx_init_tcp(JSContext *ctx, JSValueConst init_obj)

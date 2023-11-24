@@ -115,3 +115,8 @@ export interface SocketInfo {
 	remoteAddress: string;
 	localAddress: string;
 }
+
+export interface ImageEncodeOptions {
+	quality?: number;
+	type?: string;
+}

@@ -58,7 +58,7 @@ export class Image extends EventTarget {
 		this.isMap = false;
 		this.loading = 'eager';
 		this[INTERNAL_SYMBOL] = {
-			complete: false,
+			complete: true,
 			width: 0,
 			height: 0,
 		};
@@ -66,13 +66,9 @@ export class Image extends EventTarget {
 
 	dispatchEvent(event: Event): boolean {
 		if (event.type === 'load') {
-			if (typeof this.onload === 'function') {
-				this.onload(event);
-			}
+			this.onload?.(event);
 		} else if (event.type === 'error') {
-			if (typeof this.onerror === 'function') {
-				this.onerror(event as ErrorEvent);
-			}
+			this.onerror?.(event as ErrorEvent);
 		}
 		return super.dispatchEvent(event);
 	}
@@ -82,11 +78,11 @@ export class Image extends EventTarget {
 	}
 
 	get width() {
-		return this[INTERNAL_SYMBOL].width;
+		return this.naturalWidth;
 	}
 
 	get height() {
-		return this[INTERNAL_SYMBOL].height;
+		return this.naturalHeight;
 	}
 
 	get naturalWidth() {
@@ -105,6 +101,7 @@ export class Image extends EventTarget {
 		const url = new URL(val, Switch.entrypoint);
 		const internal = this[INTERNAL_SYMBOL];
 		internal.src = url;
+		internal.complete = false;
 		fetch(url)
 			.then((res) => {
 				if (!res.ok) {
@@ -124,10 +121,25 @@ export class Image extends EventTarget {
 					this.dispatchEvent(new Event('load'));
 				},
 				(error) => {
-					internal.complete = true;
+					internal.complete = false;
 					this.dispatchEvent(new ErrorEvent('error', { error }));
 				}
 			);
 	}
+
+	// Compat with HTML DOM interface
+	className = '';
+	get nodeType() {
+		return 1;
+	}
+	get nodeName() {
+		return 'IMG';
+	}
+	getAttribute(name: string): string | null {
+		if (name === 'width') return String(this.width);
+		if (name === 'height') return String(this.height);
+		return null;
+	}
+	setAttribute(name: string, value: string | number) {}
 }
 def('Image', Image);

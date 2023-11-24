@@ -6,6 +6,7 @@ import {
 	Deferred,
 	assertInternalConstructor,
 	bufferSourceToArrayBuffer,
+	createInternal,
 	def,
 	toPromise,
 } from './utils';
@@ -66,7 +67,7 @@ interface SocketInternal {
 	closed: Deferred<void>;
 }
 
-const socketInternal = new WeakMap<Socket, SocketInternal>();
+const _ = createInternal<Socket, SocketInternal>();
 
 /**
  * The `Socket` class represents a TCP connection, from which you can
@@ -98,7 +99,7 @@ export class Socket {
 			opened: new Deferred(),
 			closed: new Deferred(),
 		};
-		socketInternal.set(this, i);
+		_.set(this, i);
 		this.opened = i.opened.promise;
 		this.closed = i.closed.promise;
 
@@ -161,15 +162,13 @@ export class Socket {
 		if (!this.writable.locked) {
 			this.writable.abort(reason);
 		}
-		const i = socketInternal.get(this);
-		if (i) {
-			if (i.opened.pending) {
-				i.opened.reject(reason);
-			}
-			if (i.fd !== -1) {
-				$.close(i.fd);
-				i.fd = -1;
-			}
+		const i = _(this);
+		if (i.opened.pending) {
+			i.opened.reject(reason);
+		}
+		if (i.fd !== -1) {
+			$.close(i.fd);
+			i.fd = -1;
 		}
 		return this.closed;
 	}
@@ -225,7 +224,7 @@ export class Server extends EventTarget {
 	 */
 	close() {}
 }
-$.tcpInitServer(Server);
+$.tcpServerInit(Server);
 def('Server', Server);
 
 export function createServer(ip: string, port: number) {

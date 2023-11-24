@@ -136,6 +136,12 @@ export type * from './window';
 import './screen';
 export type * from './screen';
 
+import './canvas/offscreen-canvas';
+export type * from './canvas/offscreen-canvas';
+
+import './canvas/offscreen-canvas-rendering-context-2d';
+export type * from './canvas/offscreen-canvas-rendering-context-2d';
+
 $.onError((e) => {
 	const ev = new ErrorEvent('error', {
 		cancelable: true,
