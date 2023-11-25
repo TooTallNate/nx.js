@@ -1,6 +1,17 @@
-import { assertInternalConstructor, def } from './utils';
+import { $ } from './$';
+import { assertInternalConstructor, createInternal, def } from './utils';
 import { EventTarget } from './polyfills/event-target';
 import { INTERNAL_SYMBOL } from './internal';
+import { RenderingMode, type SwitchClass } from './switch';
+import { CanvasRenderingContext2D } from './canvas/canvas-rendering-context-2d';
+
+declare const Switch: SwitchClass;
+
+interface ScreenInternal {
+	context2d?: CanvasRenderingContext2D;
+}
+
+const _ = createInternal<Screen, ScreenInternal>();
 
 export class Screen extends EventTarget implements globalThis.Screen {
 	/**
@@ -9,6 +20,10 @@ export class Screen extends EventTarget implements globalThis.Screen {
 	constructor() {
 		assertInternalConstructor(arguments);
 		super();
+		const c = $.canvasNew(1280, 720) as Screen;
+		Object.setPrototypeOf(c, Screen.prototype);
+		_.set(c, {});
+		return c;
 	}
 
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Screen/availWidth) */
@@ -38,27 +53,15 @@ export class Screen extends EventTarget implements globalThis.Screen {
 
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Screen/width) */
 	get width() {
-		return 1280;
+		// stub
+		return 0;
 	}
 
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Screen/height) */
 	get height() {
-		return 720;
+		// stub
+		return 0;
 	}
-
-	//getContext(contextId: '2d'): CanvasRenderingContext2D {
-	//	if (contextId !== '2d') {
-	//		throw new TypeError(
-	//			`"${contextId}" is not supported. Must be "2d".`
-	//		);
-	//	}
-	//	let ctx = contexts.get(this);
-	//	if (!ctx) {
-	//		ctx = new CanvasRenderingContext2D(this);
-	//		contexts.set(this, ctx);
-	//	}
-	//	return ctx;
-	//}
 
 	/**
 	 * Creates a {@link Blob} object representing the image contained on the screen.
@@ -121,7 +124,30 @@ export class Screen extends EventTarget implements globalThis.Screen {
 		return null;
 	}
 	setAttribute(name: string, value: string | number) {}
+
+	getContext(contextId: '2d'): CanvasRenderingContext2D {
+		if (contextId !== '2d') {
+			throw new TypeError('Only "2d" rendering context is supported');
+		}
+
+		const i = _(this);
+		if (!i.context2d) {
+			i.context2d = new CanvasRenderingContext2D(
+				// @ts-expect-error Internal constructor
+				INTERNAL_SYMBOL,
+				this
+			);
+		}
+
+		const internal = Switch[INTERNAL_SYMBOL];
+		if (internal.renderingMode !== RenderingMode.Framebuffer) {
+			internal.setRenderingMode(RenderingMode.Framebuffer, this);
+		}
+
+		return i.context2d;
+	}
 }
+$.canvasInitClass(Screen);
 def('Screen', Screen);
 
 // @ts-expect-error Internal constructor

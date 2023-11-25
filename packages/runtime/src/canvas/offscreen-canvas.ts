@@ -19,8 +19,19 @@ export class OffscreenCanvas
 	extends EventTarget
 	implements Omit<globalThis.OffscreenCanvas, 'getContext'>
 {
-	height!: number;
-	width!: number;
+	/**
+	 * Specifies the width (in pixels) of the canvas.
+	 *
+	 * @see https://developer.mozilla.org/docs/Web/API/OffscreenCanvas/height
+	 */
+	declare width: number;
+
+	/**
+	 * Specifies the height (in pixels) of the canvas.
+	 *
+	 * @see https://developer.mozilla.org/docs/Web/API/OffscreenCanvas/height
+	 */
+	declare height: number;
 
 	/**
 	 * @param width The width of the offscreen canvas.
@@ -28,10 +39,10 @@ export class OffscreenCanvas
 	 */
 	constructor(width: number, height: number) {
 		super();
-		const c = $.canvasNew(width, height);
+		const c = $.canvasNew(width, height) as OffscreenCanvas;
 		Object.setPrototypeOf(c, OffscreenCanvas.prototype);
 		_.set(c, {});
-		return c;
+		return c as OffscreenCanvas;
 	}
 
 	convertToBlob(options?: ImageEncodeOptions | undefined): Promise<Blob> {

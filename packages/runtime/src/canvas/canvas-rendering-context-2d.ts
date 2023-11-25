@@ -1,33 +1,33 @@
 import { $ } from '../$';
 import { ImageData } from './image-data';
 import { createInternal, assertInternalConstructor, def } from '../utils';
-import type { OffscreenCanvas } from './offscreen-canvas';
+import type { Screen } from '../screen';
 import type { CanvasLineCap, CanvasLineJoin } from '../types';
 
-interface OffscreenCanvasRenderingContext2DInternal {
-	canvas: OffscreenCanvas;
+interface CanvasRenderingContext2DInternal {
+	canvas: Screen;
 }
 
 const _ = createInternal<
-	OffscreenCanvasRenderingContext2D,
-	OffscreenCanvasRenderingContext2DInternal
+	CanvasRenderingContext2D,
+	CanvasRenderingContext2DInternal
 >();
 
-export class OffscreenCanvasRenderingContext2D {
+export class CanvasRenderingContext2D {
 	/**
 	 * @ignore
 	 */
 	constructor() {
 		assertInternalConstructor(arguments);
-		const canvas: OffscreenCanvas = arguments[1];
+		const canvas: Screen = arguments[1];
 		const ctx = $.canvasContext2dNew(canvas);
-		Object.setPrototypeOf(ctx, OffscreenCanvasRenderingContext2D.prototype);
+		Object.setPrototypeOf(ctx, CanvasRenderingContext2D.prototype);
 		_.set(ctx, { canvas });
 		return ctx;
 	}
 
 	/**
-	 * A read-only reference to the {@link OffscreenCanvas | `OffscreenCanvas`} object
+	 * A read-only reference to the {@link Screen | `Canvas`} object
 	 * that is associated with the context.
 	 */
 	get canvas() {
@@ -260,5 +260,5 @@ export class OffscreenCanvasRenderingContext2D {
 		);
 	}
 }
-$.canvasContext2dInitClass(OffscreenCanvasRenderingContext2D);
-def('OffscreenCanvasRenderingContext2D', OffscreenCanvasRenderingContext2D);
+$.canvasContext2dInitClass(CanvasRenderingContext2D);
+def('CanvasRenderingContext2D', CanvasRenderingContext2D);

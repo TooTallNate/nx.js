@@ -5,7 +5,9 @@ import type { MemoryDescriptor, Memory } from './wasm';
 import type { BatteryManager } from './navigator/battery';
 import type { VirtualKeyboard } from './navigator/virtual-keyboard';
 import type { OffscreenCanvas } from './canvas/offscreen-canvas';
+import type { CanvasRenderingContext2D } from './canvas/canvas-rendering-context-2d';
 import type { OffscreenCanvasRenderingContext2D } from './canvas/offscreen-canvas-rendering-context-2d';
+import type { Screen } from './screen';
 
 type ClassOf<T> = {
 	new (...args: any[]): T;
@@ -18,19 +20,23 @@ export interface Init {
 	batteryExit(): void;
 
 	// canvas.c
-	canvasNew(width: number, height: number): OffscreenCanvas;
-	canvasInitClass(c: ClassOf<OffscreenCanvas>): void;
+	canvasNew(width: number, height: number): Screen | OffscreenCanvas;
+	canvasInitClass(c: ClassOf<Screen | OffscreenCanvas>): void;
+	canvasContext2dNew(c: Screen): CanvasRenderingContext2D;
 	canvasContext2dNew(c: OffscreenCanvas): OffscreenCanvasRenderingContext2D;
 	canvasContext2dInitClass(
-		c: ClassOf<OffscreenCanvasRenderingContext2D>
+		c: ClassOf<CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D>
 	): void;
 	canvasContext2dGetImageData(
-		ctx: OffscreenCanvasRenderingContext2D,
+		ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
 		sx: number,
 		sy: number,
 		sw: number,
 		sh: number
 	): ArrayBuffer;
+	canvasContext2dGetTransform(
+		ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D
+	): number[];
 
 	// dns.c
 	dnsResolve(cb: Callback<string[]>, hostname: string): void;

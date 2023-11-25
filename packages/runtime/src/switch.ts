@@ -9,6 +9,7 @@ import { encoder } from './polyfills/text-encoder';
 import { EventTarget } from './polyfills/event-target';
 import { Socket, connect, createServer, parseAddress } from './tcp';
 import { resolve as dnsResolve } from './dns';
+import type { Screen as _Screen } from './screen';
 import type {
 	PathLike,
 	Stats,
@@ -52,7 +53,7 @@ export interface Native {
 	envToObject(): Record<string, string>;
 	consoleInit(): void;
 	consoleExit(): void;
-	framebufferInit(buf: CanvasRenderingContext2DState): void;
+	framebufferInit(buf: _Screen | CanvasRenderingContext2DState): void;
 	framebufferExit(): void;
 
 	// applet
@@ -301,12 +302,12 @@ interface Internal {
 	nifmInitialized?: boolean;
 	setRenderingMode: (
 		mode: RenderingMode,
-		ctx?: CanvasRenderingContext2DState
+		ctx?: _Screen | CanvasRenderingContext2DState
 	) => void;
 	cleanup: () => void;
 }
 
-enum RenderingMode {
+export enum RenderingMode {
 	Init,
 	Console,
 	Framebuffer,
@@ -420,7 +421,7 @@ export class SwitchClass extends EventTarget {
 			renderingMode: RenderingMode.Init,
 			setRenderingMode(
 				mode: RenderingMode,
-				ctx?: CanvasRenderingContext2DState
+				ctx?: _Screen | CanvasRenderingContext2DState
 			) {
 				if (mode === RenderingMode.Console) {
 					native.framebufferExit();

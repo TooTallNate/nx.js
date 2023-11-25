@@ -66,15 +66,27 @@ static JSValue js_framebuffer_init(JSContext *ctx, JSValueConst this_val, int ar
         framebufferClose(framebuffer);
         free(framebuffer);
     }
-    framebuffer = malloc(sizeof(Framebuffer));
-    nx_canvas_context_2d_t *context = nx_get_canvas_context_2d(ctx, argv[0]);
-    if (!context)
+    u32 width, height;
+    nx_canvas_t *canvas = nx_get_canvas(ctx, argv[0]);
+    if (canvas)
     {
-        return JS_EXCEPTION;
+        width = canvas->width;
+        height = canvas->height;
+        js_framebuffer = canvas->data;
     }
-    framebufferCreate(framebuffer, win, context->width, context->height, PIXEL_FORMAT_BGRA_8888, 2);
+    else
+    {
+        // TODO: remove
+        nx_canvas_context_2d_t *context = nx_get_canvas_context_2d(ctx, argv[0]);
+        if (!context)
+            return JS_EXCEPTION;
+        width = context->width;
+        height = context->height;
+        js_framebuffer = context->data;
+    }
+    framebuffer = malloc(sizeof(Framebuffer));
+    framebufferCreate(framebuffer, win, width, height, PIXEL_FORMAT_BGRA_8888, 2);
     framebufferMakeLinear(framebuffer);
-    js_framebuffer = context->data;
     return JS_UNDEFINED;
 }
 

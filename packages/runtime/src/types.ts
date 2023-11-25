@@ -120,3 +120,7 @@ export interface ImageEncodeOptions {
 	quality?: number;
 	type?: string;
 }
+
+export type CanvasLineCap = 'butt' | 'round' | 'square';
+
+export type CanvasLineJoin = 'bevel' | 'miter' | 'round';
