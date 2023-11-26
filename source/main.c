@@ -499,9 +499,6 @@ int main(int argc, char *argv[])
     JS_SetContextOpaque(ctx, nx_ctx);
     JS_SetHostPromiseRejectionTracker(rt, nx_promise_rejection_handler, ctx);
 
-    printf("1\n");
-    consoleUpdate(NULL);
-
     // The internal `$` object contains native functions that are wrapped in the JS runtime
     JSValue global_obj = JS_GetGlobalObject(ctx);
     JSValue init_obj = JS_NewObject(ctx);
@@ -520,9 +517,6 @@ int main(int argc, char *argv[])
         JS_CFUNC_DEF("onFrame", 1, nx_set_frame_handler)};
     JS_SetPropertyFunctionList(ctx, init_obj, init_function_list, countof(init_function_list));
     JS_SetPropertyStr(ctx, global_obj, "$", init_obj);
-
-    printf("2\n");
-    consoleUpdate(NULL);
 
     // First try the `main.js` file on the RomFS
     size_t user_code_size;
@@ -554,8 +548,6 @@ int main(int argc, char *argv[])
         nx_ctx->had_error = 1;
         goto main_loop;
     }
-    printf("2.5\n");
-    consoleUpdate(NULL);
 
     size_t runtime_buffer_size;
     char *runtime_path = "romfs:/runtime.js";
@@ -563,24 +555,14 @@ int main(int argc, char *argv[])
     if (runtime_buffer == NULL)
     {
         printf("%s: %s\n", strerror(errno), runtime_path);
-        consoleUpdate(NULL);
         nx_ctx->had_error = 1;
         goto main_loop;
     }
-    printf("2.6\n");
-    consoleUpdate(NULL);
 
     JSValue runtime_init_result = JS_Eval(ctx, runtime_buffer, runtime_buffer_size, runtime_path, JS_EVAL_TYPE_GLOBAL);
-    printf("2.7\n");
-    consoleUpdate(NULL);
-
     if (JS_IsException(runtime_init_result))
     {
-        printf("2.71\n");
-        consoleUpdate(NULL);
-
         print_js_error(ctx);
-        consoleUpdate(NULL);
         nx_ctx->had_error = 1;
     }
     JS_FreeValue(ctx, runtime_init_result);
@@ -590,8 +572,6 @@ int main(int argc, char *argv[])
         goto main_loop;
     }
 
-    printf("2.8\n");
-    consoleUpdate(NULL);
     JSValue switch_obj = JS_GetPropertyStr(ctx, global_obj, "Switch");
     JSValue native_obj = JS_GetPropertyStr(ctx, switch_obj, "native");
 
@@ -610,9 +590,6 @@ int main(int argc, char *argv[])
     JS_SetPropertyStr(ctx, version_obj, "webp", JS_NewString(ctx, webp_version_str));
     JS_SetPropertyStr(ctx, switch_obj, "version", version_obj);
 
-    printf("3\n");
-    consoleUpdate(NULL);
-
     nx_init_applet(ctx, native_obj);
     nx_init_crypto(ctx, native_obj);
     nx_init_canvas_(ctx, native_obj);
@@ -621,9 +598,6 @@ int main(int argc, char *argv[])
     nx_init_wasm_(ctx, native_obj);
 
     JS_SetPropertyStr(ctx, switch_obj, "exit", JS_NewCFunction(ctx, js_exit, "exit", 0));
-
-    printf("4\n");
-    consoleUpdate(NULL);
 
     const JSCFunctionListEntry function_list[] = {
         JS_CFUNC_DEF("print", 1, js_print),
@@ -688,9 +662,6 @@ int main(int argc, char *argv[])
     }
 
 main_loop:
-    printf("main_loop\n");
-    consoleUpdate(NULL);
-
     while (appletMainLoop())
     {
         if (!nx_ctx->had_error)
