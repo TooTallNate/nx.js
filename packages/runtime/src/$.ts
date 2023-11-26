@@ -8,6 +8,7 @@ import type { OffscreenCanvas } from './canvas/offscreen-canvas';
 import type { CanvasRenderingContext2D } from './canvas/canvas-rendering-context-2d';
 import type { OffscreenCanvasRenderingContext2D } from './canvas/offscreen-canvas-rendering-context-2d';
 import type { Screen } from './screen';
+import type { FontFace } from './font/font-face';
 
 type ClassOf<T> = {
 	new (...args: any[]): T;
@@ -37,6 +38,11 @@ export interface Init {
 	canvasContext2dGetTransform(
 		ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D
 	): number[];
+	canvasContext2dSetFont(
+		ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
+		font: FontFace,
+		size: number
+	): number[];
 
 	// dns.c
 	dnsResolve(cb: Callback<string[]>, hostname: string): void;
@@ -46,6 +52,10 @@ export interface Init {
 	onUnhandledRejection(
 		fn: (promise: Promise<unknown>, reason: any) => number
 	): void;
+
+	// font.c
+	fontFaceNew(data: ArrayBuffer): FontFace;
+	getSystemFont(): ArrayBuffer;
 
 	// main.c
 	onFrame(fn: (kDown: number) => void): void;

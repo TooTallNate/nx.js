@@ -83,7 +83,7 @@ export class Deferred<T> {
 	}
 }
 
-export const createInternal = <K extends WeakKey, V>() => {
+export const createInternal = <K extends object, V>() => {
 	const wm = new WeakMap<K, V>();
 	const _ = (k: K): V => {
 		const v = wm.get(k);

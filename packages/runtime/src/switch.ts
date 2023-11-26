@@ -1,6 +1,5 @@
 import { $ } from './$';
-import { Canvas, CanvasRenderingContext2D, ctxInternal } from './canvas';
-import { FontFaceSet } from './polyfills/font';
+import { FontFaceSet } from './font/font-face-set';
 import { type Callback, INTERNAL_SYMBOL, type Opaque } from './internal';
 import { inspect } from './inspect';
 import { bufferSourceToArrayBuffer, toPromise, pathToString } from './utils';
@@ -20,7 +19,6 @@ import type {
 
 export type CanvasRenderingContext2DState =
 	Opaque<'CanvasRenderingContext2DState'>;
-export type FontFaceState = Opaque<'FontFaceState'>;
 export type ImageOpaque = Opaque<'ImageOpaque'>;
 export type WasmModuleOpaque = Opaque<'WasmModuleOpaque'>;
 export type WasmInstanceOpaque = Opaque<'WasmInstanceOpaque'>;
@@ -76,10 +74,6 @@ export interface Native {
 	remove(cb: Callback<void>, path: string): void;
 	stat(cb: Callback<Stats>, path: string): void;
 
-	// font
-	newFontFace(data: ArrayBuffer): FontFaceState;
-	getSystemFont(): ArrayBuffer;
-
 	// image
 	decodeImage(
 		cb: Callback<{
@@ -92,35 +86,6 @@ export interface Native {
 
 	// canvas
 	canvasNewContext(w: number, h: number): CanvasRenderingContext2DState;
-	canvasGetGlobalAlpha(ctx: CanvasRenderingContext2DState): number;
-	canvasSetGlobalAlpha(ctx: CanvasRenderingContext2DState, n: number): void;
-	canvasGetLineWidth(ctx: CanvasRenderingContext2DState): number;
-	canvasSetLineWidth(ctx: CanvasRenderingContext2DState, n: number): void;
-	canvasGetLineJoin(ctx: CanvasRenderingContext2DState): CanvasLineJoin;
-	canvasSetLineJoin(
-		ctx: CanvasRenderingContext2DState,
-		n: CanvasLineJoin
-	): void;
-	canvasGetLineCap(ctx: CanvasRenderingContext2DState): CanvasLineCap;
-	canvasSetLineCap(
-		ctx: CanvasRenderingContext2DState,
-		n: CanvasLineCap
-	): void;
-	canvasGetLineDash(ctx: CanvasRenderingContext2DState): number[];
-	canvasSetLineDash(ctx: CanvasRenderingContext2DState, n: number[]): void;
-	canvasGetLineDashOffset(ctx: CanvasRenderingContext2DState): number;
-	canvasSetLineDashOffset(
-		ctx: CanvasRenderingContext2DState,
-		n: number
-	): void;
-	canvasGetMiterLimit(ctx: CanvasRenderingContext2DState): number;
-	canvasSetMiterLimit(ctx: CanvasRenderingContext2DState, n: number): void;
-	canvasBeginPath(ctx: CanvasRenderingContext2DState): void;
-	canvasClosePath(ctx: CanvasRenderingContext2DState): void;
-	canvasClip(
-		ctx: CanvasRenderingContext2DState,
-		fillRule?: CanvasFillRule
-	): void;
 	canvasFill(ctx: CanvasRenderingContext2DState): void;
 	canvasStroke(ctx: CanvasRenderingContext2DState): void;
 	canvasSave(ctx: CanvasRenderingContext2DState): void;
@@ -186,22 +151,6 @@ export interface Native {
 		w: number,
 		h: number
 	): void;
-	canvasRotate(ctx: CanvasRenderingContext2DState, n: number): void;
-	canvasScale(ctx: CanvasRenderingContext2DState, x: number, y: number): void;
-	canvasTranslate(
-		ctx: CanvasRenderingContext2DState,
-		x: number,
-		y: number
-	): void;
-	canvasTransform(
-		ctx: CanvasRenderingContext2DState,
-		a: number,
-		b: number,
-		c: number,
-		d: number,
-		e: number,
-		f: number
-	): void;
 	canvasGetTransform(ctx: CanvasRenderingContext2DState): number[];
 	canvasResetTransform(ctx: CanvasRenderingContext2DState): void;
 	canvasSetSourceRgba(
@@ -210,18 +159,6 @@ export interface Native {
 		g: number,
 		b: number,
 		a: number
-	): void;
-	canvasSetFont(
-		ctx: CanvasRenderingContext2DState,
-		face: FontFaceState,
-		fontSize: number
-	): void;
-	canvasFillRect(
-		ctx: CanvasRenderingContext2DState,
-		x: number,
-		y: number,
-		w: number,
-		h: number
 	): void;
 	canvasStrokeRect(
 		ctx: CanvasRenderingContext2DState,
@@ -238,13 +175,6 @@ export interface Native {
 		maxWidth?: number | undefined
 	): void;
 	canvasMeasureText(ctx: CanvasRenderingContext2DState, text: string): any;
-	canvasGetImageData(
-		ctx: CanvasRenderingContext2DState,
-		sx: number,
-		sy: number,
-		sw: number,
-		sh: number
-	): ArrayBuffer;
 	canvasPutImageData(
 		ctx: CanvasRenderingContext2DState,
 		source: ArrayBuffer,
@@ -355,14 +285,6 @@ export class SwitchClass extends EventTarget {
 	 */
 	env: Env;
 	/**
-	 * An instance of {@link Canvas} that will result in drawing to the screen.
-	 *
-	 * The `width` and `height` properties are set to the Switch screen resolution.
-	 *
-	 * @note Calling the `getContext('2d')` method on this canvas switches to _canvas rendering mode_. When in this mode, avoid using any {@link console} methods, as they will switch back to _text rendering mode_.
-	 */
-	screen: Canvas;
-	/**
 	 * @ignore
 	 */
 	native: Native;
@@ -444,9 +366,10 @@ export class SwitchClass extends EventTarget {
 		};
 
 		// Framebuffer mode uses the HTML5 Canvas API
-		this.screen = new Screen(this, 1280, 720);
+		//this.screen = new Screen(this, 1280, 720);
 
-		this.fonts = new FontFaceSet();
+		// @ts-expect-error Internal constructor
+		this.fonts = new FontFaceSet(INTERNAL_SYMBOL);
 	}
 
 	addEventListener<K extends keyof SwitchEventHandlersEventMap>(
@@ -795,24 +718,24 @@ export class Env {
 	}
 }
 
-class Screen extends Canvas {
-	[INTERNAL_SYMBOL]: SwitchClass;
-
-	constructor(s: SwitchClass, w: number, h: number) {
-		super(w, h);
-		this[INTERNAL_SYMBOL] = s;
-	}
-
-	getContext(contextId: '2d'): CanvasRenderingContext2D {
-		const ctx = super.getContext(contextId);
-		const Switch = this[INTERNAL_SYMBOL];
-		const internal = Switch[INTERNAL_SYMBOL];
-		if (internal.renderingMode !== RenderingMode.Framebuffer) {
-			internal.setRenderingMode(
-				RenderingMode.Framebuffer,
-				ctxInternal(ctx).ctx
-			);
-		}
-		return ctx;
-	}
-}
+//class Screen extends Canvas {
+//	[INTERNAL_SYMBOL]: SwitchClass;
+//
+//	constructor(s: SwitchClass, w: number, h: number) {
+//		super(w, h);
+//		this[INTERNAL_SYMBOL] = s;
+//	}
+//
+//	getContext(contextId: '2d'): CanvasRenderingContext2D {
+//		const ctx = super.getContext(contextId);
+//		const Switch = this[INTERNAL_SYMBOL];
+//		const internal = Switch[INTERNAL_SYMBOL];
+//		if (internal.renderingMode !== RenderingMode.Framebuffer) {
+//			internal.setRenderingMode(
+//				RenderingMode.Framebuffer,
+//				ctxInternal(ctx).ctx
+//			);
+//		}
+//		return ctx;
+//	}
+//}

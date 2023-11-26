@@ -5,6 +5,7 @@ import { fetch } from './fetch/fetch';
 import { Event, ErrorEvent } from './polyfills/event';
 import { EventTarget } from './polyfills/event-target';
 import type { ImageOpaque } from './switch';
+import type { CanvasRenderingContext2D } from './canvas/canvas-rendering-context-2d';
 
 declare const Switch: SwitchClass;
 
@@ -23,7 +24,7 @@ declare const Switch: SwitchClass;
  * @example
  *
  * ```typescript
- * const ctx = Switch.screen.getContext('2d');
+ * const ctx = screen.getContext('2d');
  *
  * const img = new Image();
  * img.addEventListener('load', () => {

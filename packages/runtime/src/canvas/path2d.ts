@@ -1,5 +1,5 @@
 import { createInternal, def } from '../utils';
-import type { CanvasRenderingContext2D } from '../canvas';
+import type { CanvasRenderingContext2D } from '../canvas/canvas-rendering-context-2d';
 
 /**
  * Modified from: https://github.com/nilzona/path2d-polyfill
