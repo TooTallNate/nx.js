@@ -12,7 +12,7 @@ const _ = createInternal<FontFaceSet, Set<FontFace>>();
  *
  * @see https://developer.mozilla.org/docs/Web/API/FontFaceSet
  */
-export class FontFaceSet extends EventTarget implements globalThis.FontFaceSet {
+export class FontFaceSet extends EventTarget {
 	/**
 	 * @ignore
 	 */
@@ -24,7 +24,6 @@ export class FontFaceSet extends EventTarget implements globalThis.FontFaceSet {
 		this.status = 'loaded';
 	}
 
-	[Symbol.toStringTag] = 'FontFaceSet';
 	onloading: ((this: FontFaceSet, ev: Event) => any) | null = null;
 	onloadingdone: ((this: FontFaceSet, ev: Event) => any) | null = null;
 	onloadingerror: ((this: FontFaceSet, ev: Event) => any) | null = null;

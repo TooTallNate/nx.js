@@ -365,9 +365,7 @@ export class SwitchClass extends EventTarget {
 			},
 		};
 
-		// Framebuffer mode uses the HTML5 Canvas API
-		//this.screen = new Screen(this, 1280, 720);
-
+		// TODO: Move to `document`
 		// @ts-expect-error Internal constructor
 		this.fonts = new FontFaceSet(INTERNAL_SYMBOL);
 	}
@@ -717,25 +715,3 @@ export class Env {
 		return this[INTERNAL_SYMBOL].native.envToObject();
 	}
 }
-
-//class Screen extends Canvas {
-//	[INTERNAL_SYMBOL]: SwitchClass;
-//
-//	constructor(s: SwitchClass, w: number, h: number) {
-//		super(w, h);
-//		this[INTERNAL_SYMBOL] = s;
-//	}
-//
-//	getContext(contextId: '2d'): CanvasRenderingContext2D {
-//		const ctx = super.getContext(contextId);
-//		const Switch = this[INTERNAL_SYMBOL];
-//		const internal = Switch[INTERNAL_SYMBOL];
-//		if (internal.renderingMode !== RenderingMode.Framebuffer) {
-//			internal.setRenderingMode(
-//				RenderingMode.Framebuffer,
-//				ctxInternal(ctx).ctx
-//			);
-//		}
-//		return ctx;
-//	}
-//}
