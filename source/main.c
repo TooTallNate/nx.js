@@ -592,7 +592,6 @@ int main(int argc, char *argv[])
 
     nx_init_applet(ctx, native_obj);
     nx_init_crypto(ctx, native_obj);
-    nx_init_canvas_(ctx, native_obj);
     nx_init_fs(ctx, native_obj);
     nx_init_image(ctx, native_obj);
     nx_init_wasm_(ctx, native_obj);

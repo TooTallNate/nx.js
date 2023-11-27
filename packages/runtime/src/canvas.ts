@@ -1,10 +1,6 @@
-import toPx = require('to-px/index.js');
-import colorRgba = require('color-rgba');
-import parseCssFont from 'parse-css-font';
 import { INTERNAL_SYMBOL } from './internal';
 import { Image } from './image';
 import { Path2D, applyPath } from './canvas/path2d';
-import { addSystemFont, findFont, fontFaceInternal } from './polyfills/font';
 import type { CanvasRenderingContext2DState, ImageOpaque } from './switch';
 import type { SwitchClass } from './switch';
 
@@ -307,151 +303,11 @@ export class CanvasRenderingContext2D {
 		Switch.native.canvasStroke(i.ctx);
 	}
 
-	get fillStyle(): string | CanvasGradient | CanvasPattern {
-		return rgbaToString(internal(this).fillStyle);
-	}
-
-	set fillStyle(v: string | CanvasGradient | CanvasPattern) {
-		if (typeof v === 'string') {
-			const parsed = colorRgba(v);
-			if (!parsed || parsed.length !== 4) {
-				return;
-			}
-			internal(this).fillStyle = parsed;
-		} else {
-			throw new Error('CanvasGradient/CanvasPattern not implemented.');
-		}
-	}
-
-	get strokeStyle(): string | CanvasGradient | CanvasPattern {
-		return rgbaToString(internal(this).strokeStyle);
-	}
-
-	set strokeStyle(v: string | CanvasGradient | CanvasPattern) {
-		if (typeof v === 'string') {
-			const parsed = colorRgba(v);
-			if (!parsed || parsed.length !== 4) {
-				return;
-			}
-			internal(this).strokeStyle = parsed;
-		} else {
-			throw new Error('CanvasGradient/CanvasPattern not implemented.');
-		}
-	}
-
-	get font(): string {
-		return internal(this).font;
-	}
-
-	set font(v: string) {
-		if (!v) return;
-		const i = internal(this);
-		if (i.font === v) return;
-
-		const parsed = parseCssFont(v);
-		if ('system' in parsed) {
-			// "system" fonts are not supported
-			return;
-		}
-		if (typeof parsed.size !== 'string') {
-			// Missing required font size
-			return;
-		}
-		if (!parsed.family) {
-			// Missing required font name
-			return;
-		}
-		const px = toPx(parsed.size);
-		if (typeof px !== 'number') {
-			// Invalid font size
-			return;
-		}
-		const { native, fonts } = Switch;
-		let font = findFont(fonts, parsed);
-		if (!font) {
-			if (parsed.family.includes('system-ui')) {
-				font = addSystemFont(fonts);
-			} else {
-				return;
-			}
-		}
-		i.font = v;
-		native.canvasSetFont(i.ctx, fontFaceInternal.get(font)!.fontFace, px);
-	}
-
-	fillText(
-		text: string,
-		x: number,
-		y: number,
-		maxWidth?: number | undefined
-	): void {
-		const i = internal(this);
-		if (i.currentStyle !== i.fillStyle) {
-			Switch.native.canvasSetSourceRgba(i.ctx, ...i.fillStyle);
-			i.currentStyle = i.fillStyle;
-		}
-		Switch.native.canvasFillText(i.ctx, text, x, y, maxWidth);
-	}
-
-	measureText(text: string): TextMetrics {
-		return Switch.native.canvasMeasureText(internal(this).ctx, text);
-	}
-
-	strokeText(
-		text: string,
-		x: number,
-		y: number,
-		maxWidth?: number | undefined
-	): void {
-		throw new Error('Method not implemented.');
-	}
-
-	createConicGradient(
-		startAngle: number,
-		x: number,
-		y: number
-	): CanvasGradient {
-		throw new Error('Method not implemented.');
-	}
-	createLinearGradient(
-		x0: number,
-		y0: number,
-		x1: number,
-		y1: number
-	): CanvasGradient {
-		throw new Error('Method not implemented.');
-	}
-	createPattern(
-		image: CanvasImageSource,
-		repetition: string | null
-	): CanvasPattern | null {
-		throw new Error('Method not implemented.');
-	}
-	createRadialGradient(
-		x0: number,
-		y0: number,
-		r0: number,
-		x1: number,
-		y1: number,
-		r1: number
-	): CanvasGradient {
-		throw new Error('Method not implemented.');
-	}
-
 	clearRect(x: number, y: number, w: number, h: number): void {
 		this.save();
 		this.fillStyle = 'rgba(0,0,0,0)';
 		this.fillRect(x, y, w, h);
 		this.restore();
-	}
-
-	fillRect(x: number, y: number, w: number, h: number): void {
-		const i = internal(this);
-		if (i.currentStyle !== i.fillStyle) {
-			Switch.native.canvasSetSourceRgba(i.ctx, ...i.fillStyle);
-			i.currentStyle = i.strokeStyle;
-		}
-		Switch.native.canvasFillRect(i.ctx, x, y, w, h);
 	}
 
 	strokeRect(x: number, y: number, w: number, h: number): void {
@@ -462,14 +318,4 @@ export class CanvasRenderingContext2D {
 		}
 		Switch.native.canvasStrokeRect(i.ctx, x, y, w, h);
 	}
-}
-
-function rgbaToString(rgba: RGBA) {
-	if (rgba[3] < 1) {
-		return `rgba(${rgba.join(', ')})`;
-	}
-	return `#${rgba
-		.slice(0, -1)
-		.map((v) => v.toString(16).padStart(2, '0'))
-		.join('')}`;
 }

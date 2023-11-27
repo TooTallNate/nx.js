@@ -1,4 +1,5 @@
 import { $ } from '../$';
+import { window } from '../window';
 import { bufferSourceToArrayBuffer, def } from '../utils';
 import type { FontFaceLoadStatus, FontDisplay } from '../types';
 
@@ -43,7 +44,7 @@ export class FontFace implements globalThis.FontFace {
 		f.featureSettings = descriptors.featureSettings ?? 'normal';
 		f.lineGapOverride = descriptors.lineGapOverride ?? 'normal';
 		// @ts-expect-error Readonly
-		f.loaded = Promise.resolve(this);
+		f.loaded = Promise.resolve(f);
 		// @ts-expect-error Readonly
 		f.status = 'loaded';
 		f.stretch = descriptors.stretch ?? 'normal';
@@ -51,6 +52,7 @@ export class FontFace implements globalThis.FontFace {
 		f.unicodeRange = descriptors.unicodeRange ?? '';
 		f.variant = descriptors.variant ?? 'normal';
 		f.weight = descriptors.weight ?? 'normal';
+		window.addEventListener('unload', $.fontFaceDispose.bind(f));
 		return f;
 	}
 

@@ -1,5 +1,5 @@
 import type { NetworkInfo } from './types';
-import type { Callback } from './internal';
+import type { Callback, RGBA } from './internal';
 import type { Server, TlsContextOpaque } from './tcp';
 import type { MemoryDescriptor, Memory } from './wasm';
 import type { BatteryManager } from './navigator/battery';
@@ -43,6 +43,14 @@ export interface Init {
 		font: FontFace,
 		size: number
 	): number[];
+	canvasContext2dSetFillStyle(
+		ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
+		...rgba: RGBA
+	): number[];
+	canvasContext2dSetStrokeStyle(
+		ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
+		...rgba: RGBA
+	): number[];
 
 	// dns.c
 	dnsResolve(cb: Callback<string[]>, hostname: string): void;
@@ -55,6 +63,7 @@ export interface Init {
 
 	// font.c
 	fontFaceNew(data: ArrayBuffer): FontFace;
+	fontFaceDispose(this: FontFace): void;
 	getSystemFont(): ArrayBuffer;
 
 	// main.c

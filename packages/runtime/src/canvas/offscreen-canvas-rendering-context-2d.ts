@@ -1,11 +1,29 @@
+import toPx = require('to-px/index.js');
+import colorRgba = require('color-rgba');
+import parseCssFont from 'parse-css-font';
 import { $ } from '../$';
 import { ImageData } from './image-data';
-import { createInternal, assertInternalConstructor, def } from '../utils';
+import {
+	createInternal,
+	assertInternalConstructor,
+	def,
+	rgbaToString,
+	stub,
+} from '../utils';
+import { isDomPointInit, type DOMPointInit } from '../dompoint';
+import { addSystemFont, findFont } from '../font/font-face-set';
 import type { OffscreenCanvas } from './offscreen-canvas';
 import type { CanvasLineCap, CanvasLineJoin } from '../types';
+import type { RGBA } from '../internal';
+import type { SwitchClass } from '../switch';
+
+declare const Switch: SwitchClass;
 
 interface OffscreenCanvasRenderingContext2DInternal {
 	canvas: OffscreenCanvas;
+	fillStyle: RGBA;
+	strokeStyle: RGBA;
+	font: string;
 }
 
 const _ = createInternal<
@@ -22,7 +40,13 @@ export class OffscreenCanvasRenderingContext2D {
 		const canvas: OffscreenCanvas = arguments[1];
 		const ctx = $.canvasContext2dNew(canvas);
 		Object.setPrototypeOf(ctx, OffscreenCanvasRenderingContext2D.prototype);
-		_.set(ctx, { canvas });
+		_.set(ctx, {
+			canvas,
+			strokeStyle: [0, 0, 0, 1],
+			fillStyle: [0, 0, 0, 1],
+			font: '',
+		});
+		ctx.font = '10px system-ui';
 		return ctx;
 	}
 
@@ -35,6 +59,98 @@ export class OffscreenCanvasRenderingContext2D {
 	}
 
 	/**
+	 * Specifies the current text style to use when drawing text.
+	 * This string uses the same syntax as the
+	 * [CSS font](https://developer.mozilla.org/docs/Web/CSS/font) specifier.
+	 *
+	 * @default "10px system-ui"
+	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/font
+	 */
+	get font(): string {
+		return _(this).font;
+	}
+	set font(v: string) {
+		if (!v) return;
+		const i = _(this);
+		if (i.font === v) return;
+
+		const parsed = parseCssFont(v);
+		if ('system' in parsed) {
+			// "system" fonts are not supported
+			return;
+		}
+		if (typeof parsed.size !== 'string') {
+			// Missing required font size
+			return;
+		}
+		if (!parsed.family) {
+			// Missing required font name
+			return;
+		}
+		const px = toPx(parsed.size);
+		if (typeof px !== 'number') {
+			// Invalid font size
+			return;
+		}
+		const { fonts } = Switch;
+		let font = findFont(fonts, parsed);
+		if (!font) {
+			if (parsed.family.includes('system-ui')) {
+				font = addSystemFont(fonts);
+			} else {
+				return;
+			}
+		}
+		i.font = v;
+		console.log({ font, px });
+		$.canvasContext2dSetFont(this, font, px);
+	}
+
+	/**
+	 * Specifies the color, gradient, or pattern to use inside shapes.
+	 *
+	 * @default "#000" (black)
+	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/fillStyle
+	 */
+	get fillStyle(): string {
+		return rgbaToString(_(this).fillStyle);
+	}
+	set fillStyle(v: string) {
+		if (typeof v === 'string') {
+			const parsed = colorRgba(v);
+			if (!parsed || parsed.length !== 4) {
+				return;
+			}
+			_(this).fillStyle = parsed;
+			$.canvasContext2dSetFillStyle(this, ...parsed);
+		} else {
+			throw new Error('CanvasGradient/CanvasPattern not implemented.');
+		}
+	}
+
+	/**
+	 * Specifies the color, gradient, or pattern to use for the strokes (outlines) around shapes.
+	 *
+	 * @default "#000" (black)
+	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/strokeStyle
+	 */
+	get strokeStyle(): string {
+		return rgbaToString(_(this).strokeStyle);
+	}
+	set strokeStyle(v: string) {
+		if (typeof v === 'string') {
+			const parsed = colorRgba(v);
+			if (!parsed || parsed.length !== 4) {
+				return;
+			}
+			_(this).strokeStyle = parsed;
+			$.canvasContext2dSetStrokeStyle(this, ...parsed);
+		} else {
+			throw new Error('CanvasGradient/CanvasPattern not implemented.');
+		}
+	}
+
+	/**
 	 * Specifies the alpha (transparency) value that is applied to shapes and images
 	 * before they are drawn onto the canvas.
 	 *
@@ -42,7 +158,7 @@ export class OffscreenCanvasRenderingContext2D {
 	 * Values outside that range, including `Infinity` and `NaN`, will not be set, and
 	 * `globalAlpha` will retain its previous value.
 	 *
-	 * @default `1.0`
+	 * @default 1.0
 	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/globalAlpha
 	 */
 	declare globalAlpha: number;
@@ -50,7 +166,7 @@ export class OffscreenCanvasRenderingContext2D {
 	/**
 	 * Determines the shape used to draw the end points of lines.
 	 *
-	 * @default `"butt"`
+	 * @default "butt"
 	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/lineCap
 	 */
 	declare lineCap: CanvasLineCap;
@@ -70,7 +186,7 @@ export class OffscreenCanvasRenderingContext2D {
 	 * segments with a length of zero (i.e. with all endpoints and control points
 	 * at the exact same position) are also ignored.
 	 *
-	 * @default `"miter"`
+	 * @default "miter"
 	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/lineJoin
 	 */
 	declare lineJoin: CanvasLineJoin;
@@ -78,7 +194,7 @@ export class OffscreenCanvasRenderingContext2D {
 	/**
 	 * Determines the thickness of lines.
 	 *
-	 * @default `1.0`
+	 * @default 1.0
 	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/lineWidth
 	 */
 	declare lineWidth: number;
@@ -87,10 +203,36 @@ export class OffscreenCanvasRenderingContext2D {
 	 * Specifies the miter limit ratio, in coordinate space units. Zero, negative,
 	 * `Infinity`, and `NaN` values are ignored.
 	 *
-	 * @default `10.0`
+	 * @default 10.0
 	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/miterLimit
 	 */
 	declare miterLimit: number;
+
+	/**
+	 * Starts a new path by emptying the list of sub-paths.
+	 * Call this method when you want to create a new path.
+	 *
+	 * @note To create a new sub-path (i.e. one matching the current canvas state),
+	 * you can use `CanvasRenderingContext2D.moveTo()`.
+	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/beginPath
+	 */
+	beginPath(): void {
+		stub();
+	}
+
+	/**
+	 * Attempts to add a straight line from the current point to the start of
+	 * the current sub-path. If the shape has already been closed or has only
+	 * one point, this function does nothing.
+	 *
+	 * This method doesn't draw anything to the canvas directly. You can render
+	 * the path using the stroke() or fill() methods.
+	 *
+	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/closePath
+	 */
+	closePath(): void {
+		stub();
+	}
 
 	/**
 	 * Saves the entire state of the canvas by pushing the current state onto a stack.
@@ -98,7 +240,7 @@ export class OffscreenCanvasRenderingContext2D {
 	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/save
 	 */
 	restore(): void {
-		// stub
+		stub();
 	}
 
 	/**
@@ -108,7 +250,7 @@ export class OffscreenCanvasRenderingContext2D {
 	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/restore
 	 */
 	save(): void {
-		// stub
+		stub();
 	}
 
 	/**
@@ -118,7 +260,7 @@ export class OffscreenCanvasRenderingContext2D {
 	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/rotate
 	 */
 	rotate(angle: number): void {
-		// stub
+		stub();
 	}
 
 	/**
@@ -135,7 +277,7 @@ export class OffscreenCanvasRenderingContext2D {
 	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/scale
 	 */
 	scale(x: number, y: number): void {
-		// stub
+		stub();
 	}
 
 	/**
@@ -167,7 +309,7 @@ export class OffscreenCanvasRenderingContext2D {
 		e: number,
 		f: number
 	): void {
-		// stub
+		stub();
 	}
 
 	/**
@@ -179,7 +321,7 @@ export class OffscreenCanvasRenderingContext2D {
 	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/translate
 	 */
 	translate(x: number, y: number): void {
-		// stub
+		stub();
 	}
 
 	/**
@@ -188,7 +330,7 @@ export class OffscreenCanvasRenderingContext2D {
 	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/resetTransform
 	 */
 	resetTransform(): void {
-		// stub
+		stub();
 	}
 
 	/**
@@ -209,7 +351,7 @@ export class OffscreenCanvasRenderingContext2D {
 	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/setLineDash
 	 */
 	setLineDash(segments: number[]): void {
-		// stub
+		stub();
 	}
 
 	/**
@@ -225,7 +367,40 @@ export class OffscreenCanvasRenderingContext2D {
 	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/fillRect
 	 */
 	fillRect(x: number, y: number, width: number, height: number): void {
-		// stub
+		stub();
+	}
+
+	createImageData(
+		sw: number,
+		sh: number,
+		settings?: ImageDataSettings
+	): ImageData;
+	createImageData(imagedata: ImageData): ImageData;
+	createImageData(
+		sw: number | ImageData,
+		sh?: number,
+		settings?: ImageDataSettings
+	): ImageData {
+		let width: number;
+		let height: number;
+		if (typeof sw === 'number') {
+			if (typeof sh !== 'number') {
+				throw new TypeError(
+					'CanvasRenderingContext2D.createImageData: Argument 1 is not an object.'
+				);
+			}
+			width = sw;
+			height = sh;
+		} else {
+			width = sw.width;
+			height = sw.height;
+		}
+		if (width <= 0 || height <= 0) {
+			throw new TypeError(
+				'CanvasRenderingContext2D.createImageData: Invalid width or height'
+			);
+		}
+		return new ImageData(width, height, settings);
 	}
 
 	/**
@@ -258,6 +433,245 @@ export class OffscreenCanvasRenderingContext2D {
 			sh,
 			settings
 		);
+	}
+
+	putImageData(imagedata: ImageData, dx: number, dy: number): void;
+	putImageData(
+		imagedata: ImageData,
+		dx: number,
+		dy: number,
+		dirtyX: number,
+		dirtyY: number,
+		dirtyWidth: number,
+		dirtyHeight: number
+	): void;
+	putImageData(
+		imagedata: ImageData,
+		dx: number,
+		dy: number,
+		dirtyX = 0,
+		dirtyY = 0,
+		dirtyWidth = imagedata.width,
+		dirtyHeight = imagedata.height
+	): void {
+		stub();
+		//Switch.native.canvasPutImageData(
+		//	internal(this).ctx,
+		//	imagedata,
+		//	dx,
+		//	dy,
+		//	dirtyX,
+		//	dirtyY,
+		//	dirtyWidth,
+		//	dirtyHeight
+		//);
+	}
+
+	lineTo(x: number, y: number): void {
+		stub();
+	}
+
+	moveTo(x: number, y: number): void {
+		stub();
+	}
+
+	rect(x: number, y: number, w: number, h: number): void {
+		stub();
+	}
+
+	arc(
+		x: number,
+		y: number,
+		radius: number,
+		startAngle: number,
+		endAngle: number,
+		counterclockwise?: boolean
+	): void {
+		stub();
+	}
+
+	arcTo(
+		x1: number,
+		y1: number,
+		x2: number,
+		y2: number,
+		radius: number
+	): void {
+		stub();
+	}
+
+	bezierCurveTo(
+		cp1x: number,
+		cp1y: number,
+		cp2x: number,
+		cp2y: number,
+		x: number,
+		y: number
+	): void {
+		stub();
+	}
+
+	quadraticCurveTo(cpx: number, cpy: number, x: number, y: number): void {
+		stub();
+	}
+
+	ellipse(
+		x: number,
+		y: number,
+		radiusX: number,
+		radiusY: number,
+		rotation: number,
+		startAngle: number,
+		endAngle: number,
+		counterclockwise?: boolean
+	): void {
+		stub();
+	}
+
+	/**
+	 * Implementation from https://github.com/nilzona/path2d-polyfill
+	 *
+	 * @note Currently does not support negative width / height values.
+	 */
+	roundRect(
+		x: number,
+		y: number,
+		width: number,
+		height: number,
+		radii: number | DOMPointInit | Iterable<number | DOMPointInit> = 0
+	): void {
+		const r: number[] = (
+			typeof radii === 'number' || isDomPointInit(radii)
+				? [radii]
+				: Array.from(radii)
+		).map<number>((v) => {
+			if (typeof v !== 'number') {
+				// DOMPoint
+				v = Math.sqrt(
+					(v.x || 0) * (v.x || 0) + (v.y || 0) * (v.y || 0)
+				);
+			}
+			if (v < 0) {
+				throw new RangeError(`Radius value ${v} is negative.`);
+			}
+			return v;
+		});
+
+		// check for range error
+		if (r.length === 0 || r.length > 4) {
+			throw new RangeError(
+				`${r.length} radii provided. Between one and four radii are necessary.`
+			);
+		}
+
+		if (r.length === 1 && r[0] === 0) {
+			return this.rect(x, y, width, height);
+		}
+
+		// set the corners
+		// tl = top left radius
+		// tr = top right radius
+		// br = bottom right radius
+		// bl = bottom left radius
+		const minRadius = Math.min(width, height) / 2;
+		let tr, br, bl;
+		const tl = (tr = br = bl = Math.min(minRadius, r[0]));
+		if (r.length === 2) {
+			tr = bl = Math.min(minRadius, r[1]);
+		}
+		if (r.length === 3) {
+			tr = bl = Math.min(minRadius, r[1]);
+			br = Math.min(minRadius, r[2]);
+		}
+		if (r.length === 4) {
+			tr = Math.min(minRadius, r[1]);
+			br = Math.min(minRadius, r[2]);
+			bl = Math.min(minRadius, r[3]);
+		}
+
+		// begin with closing current path
+		this.closePath();
+
+		// draw the rounded rectangle
+		this.moveTo(x, y + height - bl);
+		this.arcTo(x, y, x + tl, y, tl);
+		this.arcTo(x + width, y, x + width, y + tr, tr);
+		this.arcTo(x + width, y + height, x + width - br, y + height, br);
+		this.arcTo(x, y + height, x, y + height - bl, bl);
+
+		// move to rects control point for further path drawing
+		this.moveTo(x, y);
+	}
+
+	strokeText(
+		text: string,
+		x: number,
+		y: number,
+		maxWidth?: number | undefined
+	): void {
+		throw new Error('Method not implemented.');
+	}
+
+	createConicGradient(
+		startAngle: number,
+		x: number,
+		y: number
+	): CanvasGradient {
+		throw new Error('Method not implemented.');
+	}
+	createLinearGradient(
+		x0: number,
+		y0: number,
+		x1: number,
+		y1: number
+	): CanvasGradient {
+		throw new Error('Method not implemented.');
+	}
+	createPattern(
+		image: CanvasImageSource,
+		repetition: string | null
+	): CanvasPattern | null {
+		throw new Error('Method not implemented.');
+	}
+	createRadialGradient(
+		x0: number,
+		y0: number,
+		r0: number,
+		x1: number,
+		y1: number,
+		r1: number
+	): CanvasGradient {
+		throw new Error('Method not implemented.');
+	}
+
+	/**
+	 * Draws a text string at the specified coordinates, filling the string's
+	 * characters with the current {@link CanvasRenderingContext2D.fillStyle | `fillStyle`}.
+	 *
+	 * @param text A string specifying the text string to render into the context.
+	 * @param x The x-axis coordinate of the point at which to begin drawing the text, in pixels.
+	 * @param y The y-axis coordinate of the baseline on which to begin drawing the text, in pixels.
+	 * @param maxWidth The maximum number of pixels wide the text may be once rendered. If not specified, there is no limit to the width of the text.
+	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/fillText
+	 */
+	fillText(
+		text: string,
+		x: number,
+		y: number,
+		maxWidth?: number | undefined
+	): void {
+		stub();
+	}
+
+	/**
+	 * Returns a `TextMetrics` object that contains information about
+	 * the measured text (such as its width, for example).
+	 *
+	 * @param text The text string to measure.
+	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/measureText
+	 */
+	measureText(text: string): TextMetrics {
+		stub();
 	}
 }
 $.canvasContext2dInitClass(OffscreenCanvasRenderingContext2D);

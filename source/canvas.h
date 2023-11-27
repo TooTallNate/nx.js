@@ -44,8 +44,4 @@ typedef struct
 
 nx_canvas_context_2d_t *nx_get_canvas_context_2d(JSContext *ctx, JSValueConst obj);
 
-// `Switch.native`
-void nx_init_canvas_(JSContext *ctx, JSValueConst native_obj);
-
-// `$`
 void nx_init_canvas(JSContext *ctx, JSValueConst init_obj);

@@ -4,6 +4,7 @@ import {
 	type Callback,
 	type CallbackArguments,
 	type CallbackReturnType,
+	type RGBA,
 } from './internal';
 
 export const def = <T>(key: string, value: T) => {
@@ -98,3 +99,19 @@ export const createInternal = <K extends object, V>() => {
 	};
 	return _;
 };
+
+export function rgbaToString(rgba: RGBA) {
+	if (rgba[3] < 1) {
+		return `rgba(${rgba.join(', ')})`;
+	}
+	return `#${rgba
+		.slice(0, -1)
+		.map((v) => v.toString(16).padStart(2, '0'))
+		.join('')}`;
+}
+
+export function stub(): never {
+	throw new Error(
+		'This is a stub function which should have been replaced by a native implementation'
+	);
+}

@@ -1,8 +1,15 @@
 import toPx = require('to-px/index.js');
+import colorRgba = require('color-rgba');
 import parseCssFont from 'parse-css-font';
 import { $ } from '../$';
 import { ImageData } from './image-data';
-import { createInternal, assertInternalConstructor, def } from '../utils';
+import {
+	createInternal,
+	assertInternalConstructor,
+	def,
+	rgbaToString,
+	stub,
+} from '../utils';
 import { isDomPointInit, type DOMPointInit } from '../dompoint';
 import { addSystemFont, findFont } from '../font/font-face-set';
 import type { Screen } from '../screen';
@@ -39,7 +46,7 @@ export class CanvasRenderingContext2D {
 			fillStyle: [0, 0, 0, 1],
 			font: '',
 		});
-		this.font = '10px system-ui';
+		ctx.font = '10px system-ui';
 		return ctx;
 	}
 
@@ -98,6 +105,50 @@ export class CanvasRenderingContext2D {
 		}
 		i.font = v;
 		$.canvasContext2dSetFont(this, font, px);
+	}
+
+	/**
+	 * Specifies the color, gradient, or pattern to use inside shapes.
+	 *
+	 * @default "#000" (black)
+	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/fillStyle
+	 */
+	get fillStyle(): string {
+		return rgbaToString(_(this).fillStyle);
+	}
+	set fillStyle(v: string) {
+		if (typeof v === 'string') {
+			const parsed = colorRgba(v);
+			if (!parsed || parsed.length !== 4) {
+				return;
+			}
+			_(this).fillStyle = parsed;
+			$.canvasContext2dSetFillStyle(this, ...parsed);
+		} else {
+			throw new Error('CanvasGradient/CanvasPattern not implemented.');
+		}
+	}
+
+	/**
+	 * Specifies the color, gradient, or pattern to use for the strokes (outlines) around shapes.
+	 *
+	 * @default "#000" (black)
+	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/strokeStyle
+	 */
+	get strokeStyle(): string {
+		return rgbaToString(_(this).strokeStyle);
+	}
+	set strokeStyle(v: string) {
+		if (typeof v === 'string') {
+			const parsed = colorRgba(v);
+			if (!parsed || parsed.length !== 4) {
+				return;
+			}
+			_(this).strokeStyle = parsed;
+			$.canvasContext2dSetStrokeStyle(this, ...parsed);
+		} else {
+			throw new Error('CanvasGradient/CanvasPattern not implemented.');
+		}
 	}
 
 	/**
@@ -167,7 +218,7 @@ export class CanvasRenderingContext2D {
 	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/beginPath
 	 */
 	beginPath(): void {
-		// stub
+		stub();
 	}
 
 	/**
@@ -181,7 +232,7 @@ export class CanvasRenderingContext2D {
 	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/closePath
 	 */
 	closePath(): void {
-		// stub
+		stub();
 	}
 
 	/**
@@ -190,7 +241,7 @@ export class CanvasRenderingContext2D {
 	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/save
 	 */
 	restore(): void {
-		// stub
+		stub();
 	}
 
 	/**
@@ -200,7 +251,7 @@ export class CanvasRenderingContext2D {
 	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/restore
 	 */
 	save(): void {
-		// stub
+		stub();
 	}
 
 	/**
@@ -210,7 +261,7 @@ export class CanvasRenderingContext2D {
 	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/rotate
 	 */
 	rotate(angle: number): void {
-		// stub
+		stub();
 	}
 
 	/**
@@ -227,7 +278,7 @@ export class CanvasRenderingContext2D {
 	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/scale
 	 */
 	scale(x: number, y: number): void {
-		// stub
+		stub();
 	}
 
 	/**
@@ -259,7 +310,7 @@ export class CanvasRenderingContext2D {
 		e: number,
 		f: number
 	): void {
-		// stub
+		stub();
 	}
 
 	/**
@@ -271,7 +322,7 @@ export class CanvasRenderingContext2D {
 	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/translate
 	 */
 	translate(x: number, y: number): void {
-		// stub
+		stub();
 	}
 
 	/**
@@ -280,7 +331,7 @@ export class CanvasRenderingContext2D {
 	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/resetTransform
 	 */
 	resetTransform(): void {
-		// stub
+		stub();
 	}
 
 	/**
@@ -301,7 +352,7 @@ export class CanvasRenderingContext2D {
 	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/setLineDash
 	 */
 	setLineDash(segments: number[]): void {
-		// stub
+		stub();
 	}
 
 	/**
@@ -317,7 +368,7 @@ export class CanvasRenderingContext2D {
 	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/fillRect
 	 */
 	fillRect(x: number, y: number, width: number, height: number): void {
-		// stub
+		stub();
 	}
 
 	createImageData(
@@ -404,7 +455,7 @@ export class CanvasRenderingContext2D {
 		dirtyWidth = imagedata.width,
 		dirtyHeight = imagedata.height
 	): void {
-		// stub
+		stub();
 		//Switch.native.canvasPutImageData(
 		//	internal(this).ctx,
 		//	imagedata,
@@ -418,15 +469,15 @@ export class CanvasRenderingContext2D {
 	}
 
 	lineTo(x: number, y: number): void {
-		// stub
+		stub();
 	}
 
 	moveTo(x: number, y: number): void {
-		// stub
+		stub();
 	}
 
 	rect(x: number, y: number, w: number, h: number): void {
-		// stub
+		stub();
 	}
 
 	arc(
@@ -437,7 +488,7 @@ export class CanvasRenderingContext2D {
 		endAngle: number,
 		counterclockwise?: boolean
 	): void {
-		// stub
+		stub();
 	}
 
 	arcTo(
@@ -447,7 +498,7 @@ export class CanvasRenderingContext2D {
 		y2: number,
 		radius: number
 	): void {
-		// stub
+		stub();
 	}
 
 	bezierCurveTo(
@@ -458,11 +509,11 @@ export class CanvasRenderingContext2D {
 		x: number,
 		y: number
 	): void {
-		// stub
+		stub();
 	}
 
 	quadraticCurveTo(cpx: number, cpy: number, x: number, y: number): void {
-		// stub
+		stub();
 	}
 
 	ellipse(
@@ -475,7 +526,7 @@ export class CanvasRenderingContext2D {
 		endAngle: number,
 		counterclockwise?: boolean
 	): void {
-		// stub
+		stub();
 	}
 
 	/**
@@ -551,6 +602,77 @@ export class CanvasRenderingContext2D {
 
 		// move to rects control point for further path drawing
 		this.moveTo(x, y);
+	}
+
+	strokeText(
+		text: string,
+		x: number,
+		y: number,
+		maxWidth?: number | undefined
+	): void {
+		throw new Error('Method not implemented.');
+	}
+
+	createConicGradient(
+		startAngle: number,
+		x: number,
+		y: number
+	): CanvasGradient {
+		throw new Error('Method not implemented.');
+	}
+	createLinearGradient(
+		x0: number,
+		y0: number,
+		x1: number,
+		y1: number
+	): CanvasGradient {
+		throw new Error('Method not implemented.');
+	}
+	createPattern(
+		image: CanvasImageSource,
+		repetition: string | null
+	): CanvasPattern | null {
+		throw new Error('Method not implemented.');
+	}
+	createRadialGradient(
+		x0: number,
+		y0: number,
+		r0: number,
+		x1: number,
+		y1: number,
+		r1: number
+	): CanvasGradient {
+		throw new Error('Method not implemented.');
+	}
+
+	/**
+	 * Draws a text string at the specified coordinates, filling the string's
+	 * characters with the current {@link CanvasRenderingContext2D.fillStyle | `fillStyle`}.
+	 *
+	 * @param text A string specifying the text string to render into the context.
+	 * @param x The x-axis coordinate of the point at which to begin drawing the text, in pixels.
+	 * @param y The y-axis coordinate of the baseline on which to begin drawing the text, in pixels.
+	 * @param maxWidth The maximum number of pixels wide the text may be once rendered. If not specified, there is no limit to the width of the text.
+	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/fillText
+	 */
+	fillText(
+		text: string,
+		x: number,
+		y: number,
+		maxWidth?: number | undefined
+	): void {
+		stub();
+	}
+
+	/**
+	 * Returns a `TextMetrics` object that contains information about
+	 * the measured text (such as its width, for example).
+	 *
+	 * @param text The text string to measure.
+	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/measureText
+	 */
+	measureText(text: string): TextMetrics {
+		stub();
 	}
 }
 $.canvasContext2dInitClass(CanvasRenderingContext2D);

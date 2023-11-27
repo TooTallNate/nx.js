@@ -51,17 +51,19 @@ export class Screen extends EventTarget implements globalThis.Screen {
 		return 24;
 	}
 
-	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Screen/width) */
-	get width() {
-		// stub
-		return 0;
-	}
+	/**
+	 * The width of the screen in CSS pixels.
+	 *
+	 * @see https://developer.mozilla.org/docs/Web/API/Screen/width
+	 */
+	declare readonly width: number;
 
-	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Screen/height) */
-	get height() {
-		// stub
-		return 0;
-	}
+	/**
+	 * The height of the screen in CSS pixels.
+	 *
+	 * @see https://developer.mozilla.org/docs/Web/API/Screen/height
+	 */
+	declare readonly height: number;
 
 	/**
 	 * Creates a {@link Blob} object representing the image contained on the screen.
