@@ -13,7 +13,11 @@ import {
 import { isDomPointInit, type DOMPointInit } from '../dompoint';
 import { addSystemFont, findFont } from '../font/font-face-set';
 import type { Screen } from '../screen';
-import type { CanvasLineCap, CanvasLineJoin } from '../types';
+import type {
+	CanvasLineCap,
+	CanvasLineJoin,
+	CanvasImageSource,
+} from '../types';
 import type { RGBA } from '../internal';
 import type { SwitchClass } from '../switch';
 
@@ -436,36 +440,82 @@ export class CanvasRenderingContext2D {
 		);
 	}
 
-	putImageData(imagedata: ImageData, dx: number, dy: number): void;
+	putImageData(imageData: ImageData, dx: number, dy: number): void;
 	putImageData(
-		imagedata: ImageData,
+		imageData: ImageData,
 		dx: number,
 		dy: number,
-		dirtyX: number,
-		dirtyY: number,
-		dirtyWidth: number,
-		dirtyHeight: number
-	): void;
-	putImageData(
-		imagedata: ImageData,
-		dx: number,
-		dy: number,
-		dirtyX = 0,
-		dirtyY = 0,
-		dirtyWidth = imagedata.width,
-		dirtyHeight = imagedata.height
+		dirtyX?: number,
+		dirtyY?: number,
+		dirtyWidth?: number,
+		dirtyHeight?: number
 	): void {
 		stub();
-		//Switch.native.canvasPutImageData(
-		//	internal(this).ctx,
-		//	imagedata,
-		//	dx,
-		//	dy,
-		//	dirtyX,
-		//	dirtyY,
-		//	dirtyWidth,
-		//	dirtyHeight
-		//);
+	}
+
+	/**
+	 * Draws an image onto the canvas.
+	 * 
+	 * @param image The image to draw onto the canvas.
+	 * @param dx The x-axis coordinate in the destination canvas at which to place the top-left corner of the source `image`.
+	 * @param dy The y-axis coordinate in the destination canvas at which to place the top-left corner of the source `image`.
+	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/drawImage
+	 */
+	drawImage(image: CanvasImageSource, dx: number, dy: number): void;
+	/**
+	 * Draws an image onto the canvas.
+	 * 
+	 * @param image The image to draw onto the canvas.
+	 * @param dx The x-axis coordinate in the destination canvas at which to place the top-left corner of the source `image`.
+	 * @param dy The y-axis coordinate in the destination canvas at which to place the top-left corner of the source `image`.
+	 * @param dWidth The width to draw the `image` in the destination canvas. This allows scaling of the drawn image.
+	 * @param dHeight The height to draw the `image` in the destination canvas. This allows scaling of the drawn image.
+	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/drawImage
+	 */
+	drawImage(
+		image: CanvasImageSource,
+		dx: number,
+		dy: number,
+		dWidth: number,
+		dHeight: number
+	): void;
+	/**
+	 * Draws an image onto the canvas.
+	 * 
+	 * @param image The image to draw onto the canvas.
+	 * @param sx The x-axis coordinate of the top left corner of the sub-rectangle of the source `image` to draw into the destination context.
+	 * @param sy The y-axis coordinate of the top left corner of the sub-rectangle of the source `image` to draw into the destination context.
+	 * @param sWidth The width of the sub-rectangle of the source `image` to draw into the destination context.
+	 * @param sHeight The height of the sub-rectangle of the source `image` to draw into the destination context.
+	 * @param dx The x-axis coordinate in the destination canvas at which to place the top-left corner of the source `image`.
+	 * @param dy The y-axis coordinate in the destination canvas at which to place the top-left corner of the source `image`.
+	 * @param dWidth The width to draw the `image` in the destination canvas. This allows scaling of the drawn image.
+	 * @param dHeight The height to draw the `image` in the destination canvas. This allows scaling of the drawn image.
+	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/drawImage
+	 */
+	drawImage(
+		image: CanvasImageSource,
+		sx: number,
+		sy: number,
+		sWidth: number,
+		sHeight: number,
+		dx: number,
+		dy: number,
+		dWidth: number,
+		dHeight: number
+	): void;
+	drawImage(
+		image: CanvasImageSource,
+		dxOrSx: number,
+		dyOrSy: number,
+		dwOrSw?: number,
+		dhOrSh?: number,
+		dx?: number,
+		dy?: number,
+		dw?: number,
+		dh?: number
+	): void {
+		stub();
 	}
 
 	lineTo(x: number, y: number): void {

@@ -7,6 +7,7 @@ import type { VirtualKeyboard } from './navigator/virtual-keyboard';
 import type { OffscreenCanvas } from './canvas/offscreen-canvas';
 import type { CanvasRenderingContext2D } from './canvas/canvas-rendering-context-2d';
 import type { OffscreenCanvasRenderingContext2D } from './canvas/offscreen-canvas-rendering-context-2d';
+import type { Image } from './image';
 import type { Screen } from './screen';
 import type { FontFace } from './font/font-face';
 
@@ -65,6 +66,17 @@ export interface Init {
 	fontFaceNew(data: ArrayBuffer): FontFace;
 	fontFaceDispose(this: FontFace): void;
 	getSystemFont(): ArrayBuffer;
+
+	// image.c
+	imageNew(): Image;
+	imageDecode(
+		cb: Callback<{
+			width: number;
+			height: number;
+		}>,
+		img: Image,
+		data: ArrayBuffer
+	): void;
 
 	// main.c
 	onFrame(fn: (kDown: number) => void): void;

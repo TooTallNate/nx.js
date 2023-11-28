@@ -14,11 +14,11 @@ typedef struct
 {
     int err;
     char *err_str;
+    nx_image_t *image;
+    JSValue image_val;
+    JSValue buffer_val;
     uint8_t *input;
     size_t input_size;
-    nx_image_t *output;
-    int width;
-    int height;
 } nx_decode_image_async_t;
 
 struct buffer_state
@@ -39,11 +39,11 @@ void free_image(nx_image_t *image)
         cairo_surface_destroy(image->surface);
         if (image->format == FORMAT_JPEG)
         {
-            tjFree(image->buffer);
+            tjFree(image->data);
         }
         else
         {
-            free(image->buffer);
+            free(image->data);
         }
         free(image);
     }
@@ -73,7 +73,7 @@ enum ImageFormat identify_image_format(uint8_t *data, size_t size)
     return FORMAT_UNKNOWN;
 }
 
-uint8_t *decode_png(uint8_t *input, size_t input_size, int *width, int *height)
+uint8_t *decode_png(uint8_t *input, size_t input_size, u32 *width, u32 *height)
 {
     png_structp png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
     png_infop info_ptr = png_create_info_struct(png_ptr);
@@ -156,41 +156,39 @@ uint8_t *decode_webp(uint8_t *webp_data, size_t data_size, int *width, int *heig
 void nx_decode_image_do(nx_work_t *req)
 {
     nx_decode_image_async_t *data = (nx_decode_image_async_t *)req->data;
-    nx_image_t *image = malloc(sizeof(nx_image_t));
-    memset(image, 0, sizeof(nx_image_t));
-    image->format = identify_image_format(data->input, data->input_size);
-    if (image->format == FORMAT_PNG)
+    data->image->format = identify_image_format(data->input, data->input_size);
+    if (data->image->format == FORMAT_PNG)
     {
-        image->buffer = decode_png(data->input, data->input_size, &data->width, &data->height);
+        data->image->data = decode_png(data->input, data->input_size, &data->image->width, &data->image->height);
     }
-    else if (image->format == FORMAT_JPEG)
+    else if (data->image->format == FORMAT_JPEG)
     {
-        if (decode_jpeg(data->input, data->input_size, &image->buffer, &data->width, &data->height))
+        if (decode_jpeg(data->input, data->input_size, &data->image->data, (int*)&data->image->width, (int*)&data->image->height))
         {
-            free(image);
             data->err_str = tjGetErrorStr();
             return;
         }
     }
-    else if (image->format == FORMAT_WEBP)
+    else if (data->image->format == FORMAT_WEBP)
     {
-        image->buffer = decode_webp(data->input, data->input_size, &data->width, &data->height);
+        data->image->data = decode_webp(data->input, data->input_size, (int*)&data->image->width, (int*)&data->image->height);
     }
     else
     {
-        free(image);
         data->err_str = "Unsupported image format";
         return;
     }
-    if (image->buffer == NULL)
+    if (data->image->data == NULL)
     {
-        free(image);
         data->err_str = "Image decode was not initialized";
         return;
     }
-    image->surface = cairo_image_surface_create_for_data(
-        image->buffer, CAIRO_FORMAT_ARGB32, data->width, data->height, data->width * 4);
-    data->output = image;
+    data->image->surface = cairo_image_surface_create_for_data(
+        data->image->data,
+        CAIRO_FORMAT_ARGB32,
+        data->image->width,
+        data->image->height,
+        data->image->width * 4);
 }
 
 void nx_decode_image_cb(JSContext *ctx, nx_work_t *req, JSValue *args)
@@ -201,42 +199,49 @@ void nx_decode_image_cb(JSContext *ctx, nx_work_t *req, JSValue *args)
     {
         args[0] = JS_NewError(ctx);
         JS_DefinePropertyValueStr(ctx, args[0], "message", JS_NewString(ctx, strerror(data->err)), JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+        JS_FreeValue(ctx, data->image_val);
+        JS_FreeValue(ctx, data->buffer_val);
         return;
     }
     else if (data->err_str)
     {
         args[0] = JS_NewError(ctx);
         JS_DefinePropertyValueStr(ctx, args[0], "message", JS_NewString(ctx, data->err_str), JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+        JS_FreeValue(ctx, data->image_val);
+        JS_FreeValue(ctx, data->buffer_val);
         return;
     }
 
-    nx_image_t *image = data->output;
     JSValue obj = JS_NewObject(ctx);
-    JSValue opaque = JS_NewObjectClass(ctx, nx_image_class_id);
-    if (JS_IsException(opaque))
-    {
-        free_image(image);
-        args[0] = opaque;
-        return;
-    }
+    JS_SetPropertyStr(ctx, obj, "width", JS_NewInt32(ctx, data->image->width));
+    JS_SetPropertyStr(ctx, obj, "height", JS_NewInt32(ctx, data->image->height));
 
-    JS_SetOpaque(opaque, image);
-    JS_SetPropertyStr(ctx, obj, "opaque", opaque);
-    JS_SetPropertyStr(ctx, obj, "width", JS_NewInt32(ctx, data->width));
-    JS_SetPropertyStr(ctx, obj, "height", JS_NewInt32(ctx, data->height));
+    JS_FreeValue(ctx, data->image_val);
+    JS_FreeValue(ctx, data->buffer_val);
     args[1] = obj;
 }
 
-JSValue nx_decode_image(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+JSValue nx_image_decode(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-    size_t buffer_size;
-    JSValue buffer_val = JS_DupValue(ctx, argv[1]);
     NX_INIT_WORK_T(nx_decode_image_async_t);
-    data->input = JS_GetArrayBuffer(ctx, &buffer_size, buffer_val);
-    data->input_size = buffer_size;
-
+    data->image = nx_get_image(ctx, argv[1]);
+    data->image_val = JS_DupValue(ctx, argv[1]);
+    data->buffer_val = JS_DupValue(ctx, argv[2]);
+    data->input = JS_GetArrayBuffer(ctx, &data->input_size, data->buffer_val);
     nx_queue_async(ctx, req, nx_decode_image_do, nx_decode_image_cb, argv[0]);
     return JS_UNDEFINED;
+}
+
+JSValue nx_image_new(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    JSValue img = JS_NewObjectClass(ctx, nx_image_class_id);
+    if (JS_IsException(img))
+    {
+        return img;
+    }
+    nx_image_t *data = js_mallocz(ctx, sizeof(nx_image_t));
+    JS_SetOpaque(img, data);
+    return img;
 }
 
 static void finalizer_image(JSRuntime *rt, JSValue val)
@@ -246,19 +251,20 @@ static void finalizer_image(JSRuntime *rt, JSValue val)
 }
 
 static const JSCFunctionListEntry function_list[] = {
-    JS_CFUNC_DEF("decodeImage", 0, nx_decode_image),
+    JS_CFUNC_DEF("imageNew", 0, nx_image_new),
+    JS_CFUNC_DEF("imageDecode", 0, nx_image_decode),
 };
 
-void nx_init_image(JSContext *ctx, JSValueConst native_obj)
+void nx_init_image(JSContext *ctx, JSValueConst init_obj)
 {
     JSRuntime *rt = JS_GetRuntime(ctx);
 
     JS_NewClassID(&nx_image_class_id);
     JSClassDef image_class = {
-        "nx_image_t",
+        "Image",
         .finalizer = finalizer_image,
     };
     JS_NewClass(rt, nx_image_class_id, &image_class);
 
-    JS_SetPropertyFunctionList(ctx, native_obj, function_list, countof(function_list));
+    JS_SetPropertyFunctionList(ctx, init_obj, function_list, countof(function_list));
 }

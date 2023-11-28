@@ -74,16 +74,6 @@ export interface Native {
 	remove(cb: Callback<void>, path: string): void;
 	stat(cb: Callback<Stats>, path: string): void;
 
-	// image
-	decodeImage(
-		cb: Callback<{
-			opaque: ImageOpaque;
-			width: number;
-			height: number;
-		}>,
-		b: ArrayBuffer
-	): void;
-
 	// canvas
 	canvasNewContext(w: number, h: number): CanvasRenderingContext2DState;
 	canvasFill(ctx: CanvasRenderingContext2DState): void;

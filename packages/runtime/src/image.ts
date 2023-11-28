@@ -1,13 +1,21 @@
-import { def, toPromise } from './utils';
-import { INTERNAL_SYMBOL } from './internal';
+import { $ } from './$';
+import { createInternal, def, toPromise } from './utils';
 import { type SwitchClass } from './switch';
 import { fetch } from './fetch/fetch';
 import { Event, ErrorEvent } from './polyfills/event';
 import { EventTarget } from './polyfills/event-target';
-import type { ImageOpaque } from './switch';
 import type { CanvasRenderingContext2D } from './canvas/canvas-rendering-context-2d';
 
 declare const Switch: SwitchClass;
+
+interface ImageInternal {
+	complete: boolean;
+	width: number;
+	height: number;
+	src?: URL;
+}
+
+const _ = createInternal<Image, ImageInternal>();
 
 /**
  * The `Image` class is the spiritual equivalent of the [`HTMLImageElement`](https://developer.mozilla.org/docs/Web/API/HTMLImageElement)
@@ -34,35 +42,27 @@ declare const Switch: SwitchClass;
  * ```
  */
 export class Image extends EventTarget {
-	onload: ((this: Image, ev: Event) => any) | null;
-	onerror: ((this: Image, ev: ErrorEvent) => any) | null;
-	decoding: 'async' | 'sync' | 'auto';
-	isMap: boolean;
-	loading: 'eager' | 'lazy';
-
-	/**
-	 * @ignore
-	 */
-	[INTERNAL_SYMBOL]: {
-		complete: boolean;
-		width: number;
-		height: number;
-		opaque?: ImageOpaque;
-		src?: URL;
-	};
+	declare onload: ((this: Image, ev: Event) => any) | null;
+	declare onerror: ((this: Image, ev: ErrorEvent) => any) | null;
+	declare decoding: 'async' | 'sync' | 'auto';
+	declare isMap: boolean;
+	declare loading: 'eager' | 'lazy';
 
 	constructor() {
 		super();
-		this.onload = null;
-		this.onerror = null;
-		this.decoding = 'auto';
-		this.isMap = false;
-		this.loading = 'eager';
-		this[INTERNAL_SYMBOL] = {
+		const i = $.imageNew();
+		Object.setPrototypeOf(i, Image.prototype);
+		i.onload = null;
+		i.onerror = null;
+		i.decoding = 'auto';
+		i.isMap = false;
+		i.loading = 'eager';
+		_.set(i, {
 			complete: true,
 			width: 0,
 			height: 0,
-		};
+		});
+		return i;
 	}
 
 	dispatchEvent(event: Event): boolean {
@@ -75,7 +75,7 @@ export class Image extends EventTarget {
 	}
 
 	get complete() {
-		return this[INTERNAL_SYMBOL].complete;
+		return _(this).complete;
 	}
 
 	get width() {
@@ -87,20 +87,20 @@ export class Image extends EventTarget {
 	}
 
 	get naturalWidth() {
-		return this[INTERNAL_SYMBOL].width;
+		return _(this).width;
 	}
 
 	get naturalHeight() {
-		return this[INTERNAL_SYMBOL].height;
+		return _(this).height;
 	}
 
 	get src() {
-		return this[INTERNAL_SYMBOL].src?.href ?? '';
+		return _(this).src?.href ?? '';
 	}
 
 	set src(val: string) {
 		const url = new URL(val, Switch.entrypoint);
-		const internal = this[INTERNAL_SYMBOL];
+		const internal = _(this);
 		internal.src = url;
 		internal.complete = false;
 		fetch(url)
@@ -111,11 +111,10 @@ export class Image extends EventTarget {
 				return res.arrayBuffer();
 			})
 			.then((buf) => {
-				return toPromise(Switch.native.decodeImage, buf);
+				return toPromise($.imageDecode, this, buf);
 			})
 			.then(
 				(r) => {
-					internal.opaque = r.opaque;
 					internal.width = r.width;
 					internal.height = r.height;
 					internal.complete = true;
