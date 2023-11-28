@@ -12,8 +12,10 @@ import {
 } from '../utils';
 import { isDomPointInit, type DOMPointInit } from '../dompoint';
 import { addSystemFont, findFont } from '../font/font-face-set';
+import type { Path2D } from './path2d';
 import type { Screen } from '../screen';
 import type {
+	CanvasFillRule,
 	CanvasLineCap,
 	CanvasLineJoin,
 	CanvasImageSource,
@@ -109,6 +111,31 @@ export class CanvasRenderingContext2D {
 		}
 		i.font = v;
 		$.canvasContext2dSetFont(this, font, px);
+	}
+
+	/**
+	 * Strokes (outlines) the current or given path with the current stroke style.
+	 *
+	 * @param path A {@link Path2D | `Path2D`} path to stroke.
+	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/stroke
+	 */
+	stroke(path?: Path2D): void {
+		stub();
+	}
+
+	/**
+	 * Fills the current or given path with the current {@link CanvasRenderingContext2D.fillStyle | `fillStyle`}.
+	 *
+	 * @param fillRule
+	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/fill
+	 */
+	fill(fillRule?: CanvasFillRule): void;
+	fill(path: Path2D, fillRule?: CanvasFillRule): void;
+	fill(
+		fillRuleOrPath?: CanvasFillRule | Path2D,
+		fillRule?: CanvasFillRule
+	): void {
+		stub();
 	}
 
 	/**
@@ -455,7 +482,7 @@ export class CanvasRenderingContext2D {
 
 	/**
 	 * Draws an image onto the canvas.
-	 * 
+	 *
 	 * @param image The image to draw onto the canvas.
 	 * @param dx The x-axis coordinate in the destination canvas at which to place the top-left corner of the source `image`.
 	 * @param dy The y-axis coordinate in the destination canvas at which to place the top-left corner of the source `image`.
@@ -464,7 +491,7 @@ export class CanvasRenderingContext2D {
 	drawImage(image: CanvasImageSource, dx: number, dy: number): void;
 	/**
 	 * Draws an image onto the canvas.
-	 * 
+	 *
 	 * @param image The image to draw onto the canvas.
 	 * @param dx The x-axis coordinate in the destination canvas at which to place the top-left corner of the source `image`.
 	 * @param dy The y-axis coordinate in the destination canvas at which to place the top-left corner of the source `image`.
@@ -481,7 +508,7 @@ export class CanvasRenderingContext2D {
 	): void;
 	/**
 	 * Draws an image onto the canvas.
-	 * 
+	 *
 	 * @param image The image to draw onto the canvas.
 	 * @param sx The x-axis coordinate of the top left corner of the sub-rectangle of the source `image` to draw into the destination context.
 	 * @param sy The y-axis coordinate of the top left corner of the sub-rectangle of the source `image` to draw into the destination context.

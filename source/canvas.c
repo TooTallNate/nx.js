@@ -25,7 +25,6 @@
     double args[4];                                      \
     if (js_validate_doubles_args(ctx, argv, args, 4, 1)) \
     {                                                    \
-        JS_ThrowTypeError(ctx, "invalid input");         \
         return JS_EXCEPTION;                             \
     }                                                    \
     double x = args[0];                                  \
@@ -66,16 +65,14 @@ static int js_validate_doubles_args(JSContext *ctx, JSValueConst *argv, double *
     return result;
 }
 
-static void js_set_fill_rule(JSContext *ctx, JSValueConst fill_rule, cairo_t *cctx)
+static void set_fill_rule(JSContext *ctx, JSValueConst fill_rule, cairo_t *cctx)
 {
     cairo_fill_rule_t rule = CAIRO_FILL_RULE_WINDING;
     if (JS_IsString(fill_rule))
     {
         const char *str = JS_ToCString(ctx, fill_rule);
         if (!str)
-        {
-            // TODO: error handling
-        }
+            return;
         if (strcmp(str, "evenodd") == 0)
         {
             rule = CAIRO_FILL_RULE_EVEN_ODD;
@@ -85,56 +82,28 @@ static void js_set_fill_rule(JSContext *ctx, JSValueConst fill_rule, cairo_t *cc
     cairo_set_fill_rule(cctx, rule);
 }
 
-static JSValue js_canvas_new_context(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+static void fill(nx_canvas_context_2d_t *context)
 {
-    int width;
-    int height;
-    if (JS_ToInt32(ctx, &width, argv[0]) ||
-        JS_ToInt32(ctx, &height, argv[1]))
-    {
-        JS_ThrowTypeError(ctx, "invalid input");
-        return JS_EXCEPTION;
-    }
-    size_t buf_size = width * height * 4;
-    uint8_t *buffer = js_malloc(ctx, buf_size);
-    if (!buffer)
-    {
-        JS_ThrowOutOfMemory(ctx);
-        return JS_EXCEPTION;
-    }
-    memset(buffer, 0, buf_size);
+    // TODO: support fill pattern / fill gradient / shadow
+    cairo_set_source_rgba(
+        context->ctx,
+        context->fill_style.r,
+        context->fill_style.g,
+        context->fill_style.b,
+        context->fill_style.a * context->global_alpha);
+    cairo_fill(context->ctx);
+}
 
-    nx_canvas_context_2d_t *context = js_malloc(ctx, sizeof(nx_canvas_context_2d_t));
-    if (!context)
-    {
-        JS_ThrowOutOfMemory(ctx);
-        return JS_EXCEPTION;
-    }
-    memset(context, 0, sizeof(nx_canvas_context_2d_t));
-
-    JSValue obj = JS_NewObjectClass(ctx, nx_canvas_context_class_id);
-    if (JS_IsException(obj))
-    {
-        js_free(ctx, context);
-        return obj;
-    }
-
-    // On Switch, the byte order seems to be BGRA
-    cairo_surface_t *surface = cairo_image_surface_create_for_data(
-        buffer, CAIRO_FORMAT_ARGB32, width, height, width * 4);
-
-    context->width = width;
-    context->height = height;
-    context->data = buffer;
-    context->surface = surface;
-    context->ctx = cairo_create(surface);
-
-    // Match browser defaults
-    cairo_set_line_width(context->ctx, 1);
-    context->global_alpha = 1.0;
-
-    JS_SetOpaque(obj, context);
-    return obj;
+static void stroke(nx_canvas_context_2d_t *context)
+{
+    // TODO: support stroke pattern / stroke gradient / shadow
+    cairo_set_source_rgba(
+        context->ctx,
+        context->stroke_style.r,
+        context->stroke_style.g,
+        context->stroke_style.b,
+        context->stroke_style.a * context->global_alpha);
+    cairo_stroke(context->ctx);
 }
 
 static JSValue nx_canvas_context_2d_move_to(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -416,7 +385,7 @@ static JSValue nx_canvas_context_2d_ellipse(JSContext *ctx, JSValueConst this_va
     double rotation = args[4];
     double startAngle = args[5];
     double endAngle = args[6];
-    int anticlockwise = JS_ToBool(ctx, argv[8]);
+    int anticlockwise = argc >= 8 ? JS_ToBool(ctx, argv[7]) : 0;
     if (anticlockwise == -1)
         return JS_EXCEPTION;
 
@@ -507,14 +476,14 @@ static JSValue nx_canvas_context_2d_get_transform(JSContext *ctx, JSValueConst t
     return array;
 }
 
-static JSValue js_canvas_stroke_rect(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+static JSValue nx_canvas_context_2d_stroke_rect(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     CANVAS_CONTEXT;
     RECT_ARGS;
     if (width && height)
     {
         cairo_rectangle(context->ctx, x, y, width, height);
-        cairo_stroke(context->ctx);
+        stroke(context);
     }
     return JS_UNDEFINED;
 }
@@ -547,8 +516,8 @@ static JSValue nx_canvas_context_2d_fill_text(JSContext *ctx, JSValueConst this_
 
 static JSValue nx_canvas_context_2d_measure_text(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-    CANVAS_CONTEXT;
-    const char *text = JS_ToCString(ctx, argv[1]);
+    CANVAS_CONTEXT_THIS;
+    const char *text = JS_ToCString(ctx, argv[0]);
     cairo_text_extents_t extents;
     cairo_text_extents(context->ctx, text, &extents);
     JS_FreeCString(ctx, text);
@@ -929,16 +898,6 @@ nx_canvas_context_2d_t *nx_get_canvas_context_2d(JSContext *ctx, JSValueConst ob
     return JS_GetOpaque2(ctx, obj, nx_canvas_context_class_id);
 }
 
-static const JSCFunctionListEntry function_list[] = {
-    JS_CFUNC_DEF("canvasNewContext", 0, js_canvas_new_context),
-    JS_CFUNC_DEF("canvasStrokeRect", 0, js_canvas_stroke_rect),
-};
-
-void nx_init_canvas_(JSContext *ctx, JSValueConst native_obj)
-{
-    JS_SetPropertyFunctionList(ctx, native_obj, function_list, countof(function_list));
-}
-
 nx_canvas_t *nx_get_canvas(JSContext *ctx, JSValueConst obj)
 {
     return JS_GetOpaque2(ctx, obj, nx_canvas_class_id);
@@ -1059,7 +1018,7 @@ static JSValue nx_canvas_context_2d_close_path(JSContext *ctx, JSValueConst this
 static JSValue nx_canvas_context_2d_clip(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     CANVAS_CONTEXT_THIS;
-    js_set_fill_rule(ctx, argv[0], context->ctx);
+    set_fill_rule(ctx, argv[0], context->ctx);
     cairo_clip_preserve(context->ctx);
     return JS_UNDEFINED;
 }
@@ -1067,15 +1026,15 @@ static JSValue nx_canvas_context_2d_clip(JSContext *ctx, JSValueConst this_val, 
 static JSValue nx_canvas_context_2d_fill(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     CANVAS_CONTEXT_THIS;
-    js_set_fill_rule(ctx, argv[0], context->ctx);
-    cairo_fill(context->ctx);
+    set_fill_rule(ctx, argv[0], context->ctx);
+    fill(context);
     return JS_UNDEFINED;
 }
 
 static JSValue nx_canvas_context_2d_stroke(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     CANVAS_CONTEXT_THIS;
-    cairo_stroke(context->ctx);
+    stroke(context);
     return JS_UNDEFINED;
 }
 
@@ -1106,13 +1065,7 @@ static JSValue nx_canvas_context_2d_fill_rect(JSContext *ctx, JSValueConst this_
         cairo_rectangle(context->ctx, x, y, width, height);
 
         // TODO: support gradient / pattern
-        cairo_set_source_rgba(
-            context->ctx,
-            context->fill_style.r,
-            context->fill_style.g,
-            context->fill_style.b,
-            context->fill_style.a * context->global_alpha);
-        cairo_fill(context->ctx);
+        fill(context);
 
         // restore path
         cairo_new_path(context->ctx);
@@ -1274,7 +1227,7 @@ static JSValue nx_canvas_context_2d_set_line_dash(JSContext *ctx, JSValueConst t
     double dashes[num_dashes];
     for (uint32_t i = 0; i < num_dashes; i++)
     {
-        if (JS_ToFloat64(ctx, &dashes[i], JS_GetPropertyUint32(ctx, argv[1], i % length)))
+        if (JS_ToFloat64(ctx, &dashes[i], JS_GetPropertyUint32(ctx, argv[0], i % length)))
         {
             return JS_UNDEFINED;
         }
@@ -1328,7 +1281,6 @@ static JSValue nx_canvas_context_2d_get_image_data(JSContext *ctx, JSValueConst 
         JS_ToInt32(ctx, &sw, argv[3]) ||
         JS_ToInt32(ctx, &sh, argv[4]))
     {
-        JS_ThrowTypeError(ctx, "invalid input");
         return JS_EXCEPTION;
     }
 
@@ -1532,6 +1484,7 @@ static JSValue nx_canvas_context_2d_init_class(JSContext *ctx, JSValueConst this
     NX_DEF_FUNC(proto, "scale", nx_canvas_context_2d_scale, 2);
     NX_DEF_FUNC(proto, "setLineDash", nx_canvas_context_2d_set_line_dash, 1);
     NX_DEF_FUNC(proto, "stroke", nx_canvas_context_2d_stroke, 0);
+    NX_DEF_FUNC(proto, "strokeRect", nx_canvas_context_2d_stroke_rect, 0);
     NX_DEF_FUNC(proto, "transform", nx_canvas_context_2d_transform, 6);
     NX_DEF_FUNC(proto, "translate", nx_canvas_context_2d_translate, 2);
     JS_FreeValue(ctx, proto);
