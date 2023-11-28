@@ -1,7 +1,7 @@
 import ColorHash from 'color-hash';
 
 const hash = new ColorHash();
-const ctx = Switch.screen.getContext('2d');
+const ctx = screen.getContext('2d');
 
 ctx.fillStyle = 'white';
 ctx.font = '48px system-ui';
@@ -11,7 +11,7 @@ Switch.addEventListener(
 	'touchstart',
 	(e) => {
 		ctx.fillStyle = 'black';
-		ctx.fillRect(0, 0, Switch.screen.width, Switch.screen.height);
+		ctx.fillRect(0, 0, screen.width, screen.height);
 	},
 	{ once: true }
 );

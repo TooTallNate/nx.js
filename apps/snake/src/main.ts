@@ -24,14 +24,14 @@ enum State {
 	Gameover,
 }
 
-const ctx = Switch.screen.getContext('2d');
+const ctx = screen.getContext('2d');
 
 const snakeBody: SnakeBodyPart[] = [];
 const gridSize = 16;
 const boardWidth = 76;
 const boardHeight = 40;
-const boardX = Switch.screen.width / 2 - (boardWidth * gridSize) / 2;
-const boardY = Switch.screen.height / 2 - (boardHeight * gridSize) / 2;
+const boardX = screen.width / 2 - (boardWidth * gridSize) / 2;
+const boardY = screen.height / 2 - (boardHeight * gridSize) / 2;
 const updateRate = 100;
 let updatedAt = 0;
 let food: Position = { x: 0, y: 0 };
@@ -62,8 +62,8 @@ function pause() {
 
 	const boxWidth = 400;
 	const boxHeight = 200;
-	const boxX = Switch.screen.width / 2 - boxWidth / 2;
-	const boxY = Switch.screen.height / 2 - boxHeight / 2;
+	const boxX = screen.width / 2 - boxWidth / 2;
+	const boxY = screen.height / 2 - boxHeight / 2;
 	ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
 	ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
 	// TODO: use `ctx.measureText()` to properly center text
@@ -264,8 +264,8 @@ function gameOver() {
 	clearInterval(interval);
 	const boxWidth = 500;
 	const boxHeight = 300;
-	const boxX = Switch.screen.width / 2 - boxWidth / 2;
-	const boxY = Switch.screen.height / 2 - boxHeight / 2;
+	const boxX = screen.width / 2 - boxWidth / 2;
+	const boxY = screen.height / 2 - boxHeight / 2;
 	ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
 	ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
 	ctx.fillStyle = 'red';
@@ -333,11 +333,11 @@ const fps = new FPS();
 
 fps.addEventListener('update', () => {
 	ctx.fillStyle = 'black';
-	ctx.fillRect(Switch.screen.width - 104, 0, 90, 26);
+	ctx.fillRect(screen.width - 104, 0, 90, 26);
 
 	ctx.fillStyle = 'white';
 	ctx.font = '20px system-ui';
-	ctx.fillText(`FPS: ${Math.round(fps.rate)}`, Switch.screen.width - 104, 26);
+	ctx.fillText(`FPS: ${Math.round(fps.rate)}`, screen.width - 104, 26);
 });
 
 function step() {

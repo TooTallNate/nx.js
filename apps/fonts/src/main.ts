@@ -1,4 +1,4 @@
-const ctx = Switch.screen.getContext('2d');
+const ctx = screen.getContext('2d');
 
 const fontUrl = new URL('fonts/Alexandria.ttf', Switch.entrypoint);
 const fontData = Switch.readFileSync(fontUrl);
@@ -30,4 +30,4 @@ ctx.fillText('🏀', 790, 600);
 
 ctx.font = '24px system-ui';
 ctx.fillStyle = 'rgb(200, 200, 230)';
-ctx.fillText('Press + to exit', Switch.screen.width - 190, 30);
+ctx.fillText('Press + to exit', screen.width - 190, 30);

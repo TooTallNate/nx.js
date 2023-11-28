@@ -2,29 +2,28 @@ import { Slider } from './slider';
 
 const MAX_FREQ = 320;
 
-const canvas = Switch.screen;
-const ctx = canvas.getContext('2d');
+const ctx = screen.getContext('2d');
 ctx.fillStyle = 'black';
-ctx.fillRect(0, 0, canvas.width, canvas.height);
+ctx.fillRect(0, 0, screen.width, screen.height);
 
 ctx.fillStyle = 'white';
 ctx.font = '48px system-ui';
 const m = ctx.measureText('Vibration Demo');
-ctx.fillText('Vibration Demo', canvas.width / 2 - m.width / 2, 50);
+ctx.fillText('Vibration Demo', screen.width / 2 - m.width / 2, 50);
 
-const lowAmpX = (canvas.width / 5) * 1;
+const lowAmpX = (screen.width / 5) * 1;
 const lowAmpSlider = new Slider(ctx, lowAmpX, 100, 400);
 lowAmpSlider.value = 0.2;
 
-const lowFreqX = (canvas.width / 5) * 2;
+const lowFreqX = (screen.width / 5) * 2;
 const lowFreqSlider = new Slider(ctx, lowFreqX, 100, 400);
 lowFreqSlider.value = 0.5;
 
-const highAmpX = (canvas.width / 5) * 3;
+const highAmpX = (screen.width / 5) * 3;
 const highAmpSlider = new Slider(ctx, highAmpX, 100, 400);
 highAmpSlider.value = 0.2;
 
-const highFreqX = (canvas.width / 5) * 4;
+const highFreqX = (screen.width / 5) * 4;
 const highFreqSlider = new Slider(ctx, highFreqX, 100, 400);
 highFreqSlider.value = 0.5;
 

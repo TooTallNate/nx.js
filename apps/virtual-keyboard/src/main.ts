@@ -1,8 +1,8 @@
 import { Hid, Swkbd } from 'nxjs-constants';
 const { Button } = Hid;
 
-const canvas = Switch.screen;
-const ctx = Switch.screen.getContext('2d');
+const canvas = screen;
+const ctx = screen.getContext('2d');
 const vk = navigator.virtualKeyboard;
 
 function render() {
