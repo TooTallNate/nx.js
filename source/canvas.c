@@ -840,8 +840,7 @@ static JSValue nx_canvas_context_2d_draw_image(JSContext *ctx, JSValueConst this
             translate_y = sy;
         }
         cairo_set_source_surface(ctxTemp, surface, -translate_x, -translate_y);
-        // cairo_pattern_set_filter(cairo_get_source(ctxTemp), context->state->imageSmoothingEnabled ? context->state->patternQuality : CAIRO_FILTER_NEAREST);
-        cairo_pattern_set_filter(cairo_get_source(ctxTemp), CAIRO_FILTER_GOOD);
+        cairo_pattern_set_filter(cairo_get_source(ctxTemp), context->image_smoothing_enabled ? context->pattern_quality : CAIRO_FILTER_NEAREST);
         cairo_pattern_set_extend(cairo_get_source(ctxTemp), CAIRO_EXTEND_REFLECT);
         cairo_paint_with_alpha(ctxTemp, 1);
         surface = surfTemp;
@@ -895,8 +894,7 @@ static JSValue nx_canvas_context_2d_draw_image(JSContext *ctx, JSValueConst this
     // Paint
     cairo_set_source_surface(context->ctx, surface, scaled_dx + extra_dx, scaled_dy + extra_dy);
 
-    // TODO: support imageSmoothingEnabled
-    // cairo_pattern_set_filter(cairo_get_source(ctx), context->state->imageSmoothingEnabled ? context->state->patternQuality : CAIRO_FILTER_NEAREST);
+    cairo_pattern_set_filter(cairo_get_source(context->ctx), context->image_smoothing_enabled ? context->pattern_quality : CAIRO_FILTER_NEAREST);
     cairo_pattern_set_filter(cairo_get_source(context->ctx), CAIRO_FILTER_GOOD);
     cairo_pattern_set_extend(cairo_get_source(context->ctx), CAIRO_EXTEND_NONE);
 
@@ -1533,6 +1531,22 @@ static JSValue nx_canvas_context_2d_set_global_composite_operation(JSContext *ct
     return JS_UNDEFINED;
 }
 
+static JSValue nx_canvas_context_2d_get_image_smoothing_enabled(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    CANVAS_CONTEXT_THIS;
+    return JS_NewBool(ctx, context->image_smoothing_enabled);
+}
+
+static JSValue nx_canvas_context_2d_set_image_smoothing_enabled(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    CANVAS_CONTEXT_THIS;
+    int value = JS_ToBool(ctx, argv[0]);
+    if (value == -1)
+        return JS_EXCEPTION;
+    context->image_smoothing_enabled = value;
+    return JS_UNDEFINED;
+}
+
 static JSValue nx_canvas_context_2d_get_image_data(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     CANVAS_CONTEXT;
@@ -1722,6 +1736,7 @@ static JSValue nx_canvas_context_2d_init_class(JSContext *ctx, JSValueConst this
     JSValue proto = JS_GetPropertyStr(ctx, argv[0], "prototype");
     NX_DEF_GETSET(proto, "globalAlpha", nx_canvas_context_2d_get_global_alpha, nx_canvas_context_2d_set_global_alpha);
     NX_DEF_GETSET(proto, "globalCompositeOperation", nx_canvas_context_2d_get_global_composite_operation, nx_canvas_context_2d_set_global_composite_operation);
+    NX_DEF_GETSET(proto, "imageSmoothingEnabled", nx_canvas_context_2d_get_image_smoothing_enabled, nx_canvas_context_2d_set_image_smoothing_enabled);
     NX_DEF_GETSET(proto, "lineCap", nx_canvas_context_2d_get_line_cap, nx_canvas_context_2d_set_line_cap);
     NX_DEF_GETSET(proto, "lineDashOffset", nx_canvas_context_2d_get_line_dash_offset, nx_canvas_context_2d_set_line_dash_offset);
     NX_DEF_GETSET(proto, "lineJoin", nx_canvas_context_2d_get_line_join, nx_canvas_context_2d_set_line_join);
@@ -1781,6 +1796,8 @@ static JSValue nx_canvas_context_2d_new(JSContext *ctx, JSValueConst this_val, i
     // Match browser defaults
     cairo_set_line_width(context->ctx, 1.);
     context->global_alpha = 1.;
+    context->pattern_quality = CAIRO_FILTER_GOOD;
+    context->image_smoothing_enabled = true;
 
     JS_SetOpaque(obj, context);
     return obj;

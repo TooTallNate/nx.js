@@ -121,7 +121,7 @@ export class OffscreenCanvasRenderingContext2D {
 	}
 
 	/**
-	 * Fills the current or given path with the current {@link CanvasRenderingContext2D.fillStyle | `fillStyle`}.
+	 * Fills the current or given path with the current {@link OffscreenCanvasRenderingContext2D.fillStyle | `fillStyle`}.
 	 *
 	 * @param fillRule
 	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/fill
@@ -199,6 +199,14 @@ export class OffscreenCanvasRenderingContext2D {
 	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/globalCompositeOperation
 	 */
 	declare globalCompositeOperation: GlobalCompositeOperation;
+
+	/**
+	 * Determines whether scaled images are smoothed (`true`) or not (`false`).
+	 *
+	 * @default true
+	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/imageSmoothingEnabled
+	 */
+	declare imageSmoothingEnabled: boolean;
 
 	/**
 	 * Determines the shape used to draw the end points of lines.
@@ -406,11 +414,11 @@ export class OffscreenCanvasRenderingContext2D {
 
 	/**
 	 * Draws a rectangle that is filled according to the current
-	 * {@link CanvasRenderingContext2D.fillStyle | `fillStyle`}.
+	 * {@link OffscreenCanvasRenderingContext2D.fillStyle | `fillStyle`}.
 	 *
 	 * This method draws directly to the canvas without modifying the current path,
-	 * so any subsequent {@link CanvasRenderingContext2D.fill | `fill()`} or
-	 * {@link CanvasRenderingContext2D.stroke | `stroke()`} calls will have no effect on it.
+	 * so any subsequent {@link OffscreenCanvasRenderingContext2D.fill | `fill()`} or
+	 * {@link OffscreenCanvasRenderingContext2D.stroke | `stroke()`} calls will have no effect on it.
 	 *
 	 * @param x The x-axis coordinate of the rectangle's starting point.
 	 * @param y The y-axis coordinate of the rectangle's starting point.
@@ -424,11 +432,11 @@ export class OffscreenCanvasRenderingContext2D {
 
 	/**
 	 * Draws a rectangle that is stroked (outlined) according to the current
-	 * {@link CanvasRenderingContext2D.strokeStyle | `strokeStyle`} and other context settings.
+	 * {@link OffscreenCanvasRenderingContext2D.strokeStyle | `strokeStyle`} and other context settings.
 	 *
 	 * This method draws directly to the canvas without modifying the current path,
-	 * so any subsequent {@link CanvasRenderingContext2D.fill | `fill()`} or
-	 * {@link CanvasRenderingContext2D.stroke | `stroke()`} calls will have no effect on it.
+	 * so any subsequent {@link OffscreenCanvasRenderingContext2D.fill | `fill()`} or
+	 * {@link OffscreenCanvasRenderingContext2D.stroke | `stroke()`} calls will have no effect on it.
 	 *
 	 * @param x The x-axis coordinate of the rectangle's starting point.
 	 * @param y The y-axis coordinate of the rectangle's starting point.
@@ -456,7 +464,7 @@ export class OffscreenCanvasRenderingContext2D {
 		if (typeof sw === 'number') {
 			if (typeof sh !== 'number') {
 				throw new TypeError(
-					'CanvasRenderingContext2D.createImageData: Argument 1 is not an object.'
+					'OffscreenCanvasRenderingContext2D.createImageData: Argument 1 is not an object.'
 				);
 			}
 			width = sw;
@@ -467,7 +475,7 @@ export class OffscreenCanvasRenderingContext2D {
 		}
 		if (width <= 0 || height <= 0) {
 			throw new TypeError(
-				'CanvasRenderingContext2D.createImageData: Invalid width or height'
+				'OffscreenCanvasRenderingContext2D.createImageData: Invalid width or height'
 			);
 		}
 		return new ImageData(width, height, settings);

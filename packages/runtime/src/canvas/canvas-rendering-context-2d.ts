@@ -205,6 +205,14 @@ export class CanvasRenderingContext2D {
 	declare globalCompositeOperation: GlobalCompositeOperation;
 
 	/**
+	 * Determines whether scaled images are smoothed (`true`) or not (`false`).
+	 *
+	 * @default true
+	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/imageSmoothingEnabled
+	 */
+	declare imageSmoothingEnabled: boolean;
+
+	/**
 	 * Determines the shape used to draw the end points of lines.
 	 *
 	 * @default "butt"
