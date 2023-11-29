@@ -82,6 +82,19 @@ static void set_fill_rule(JSContext *ctx, JSValueConst fill_rule, cairo_t *cctx)
     cairo_set_fill_rule(cctx, rule);
 }
 
+static void save_path(nx_canvas_context_2d_t *context)
+{
+    context->path = cairo_copy_path_flat(context->ctx);
+    cairo_new_path(context->ctx);
+}
+
+static void restore_path(nx_canvas_context_2d_t *context)
+{
+    cairo_new_path(context->ctx);
+    cairo_append_path(context->ctx, context->path);
+    cairo_path_destroy(context->path);
+}
+
 static void fill(nx_canvas_context_2d_t *context)
 {
     // TODO: support fill pattern / fill gradient / shadow
@@ -478,12 +491,31 @@ static JSValue nx_canvas_context_2d_get_transform(JSContext *ctx, JSValueConst t
 
 static JSValue nx_canvas_context_2d_stroke_rect(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-    CANVAS_CONTEXT;
-    RECT_ARGS;
+    CANVAS_CONTEXT_THIS;
+    RECT_ARGS2;
     if (width && height)
     {
+        save_path(context);
         cairo_rectangle(context->ctx, x, y, width, height);
         stroke(context);
+        restore_path(context);
+    }
+    return JS_UNDEFINED;
+}
+
+static JSValue nx_canvas_context_2d_clear_rect(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    CANVAS_CONTEXT_THIS;
+    RECT_ARGS2;
+    if (width && height)
+    {
+        cairo_save(context->ctx);
+        save_path(context);
+        cairo_rectangle(context->ctx, x, y, width, height);
+        cairo_set_operator(context->ctx, CAIRO_OPERATOR_CLEAR);
+        cairo_fill(context->ctx);
+        restore_path(context);
+        cairo_restore(context->ctx);
     }
     return JS_UNDEFINED;
 }
@@ -1056,19 +1088,13 @@ static JSValue nx_canvas_context_2d_fill_rect(JSContext *ctx, JSValueConst this_
     RECT_ARGS2;
     if (width && height)
     {
-        // save path
-        context->path = cairo_copy_path_flat(context->ctx);
-        cairo_new_path(context->ctx);
-
+        save_path(context);
         cairo_rectangle(context->ctx, x, y, width, height);
 
         // TODO: support gradient / pattern
         fill(context);
 
-        // restore path
-        cairo_new_path(context->ctx);
-        cairo_append_path(context->ctx, context->path);
-        cairo_path_destroy(context->path);
+        restore_path(context);
     }
     return JS_UNDEFINED;
 }
@@ -1705,6 +1731,7 @@ static JSValue nx_canvas_context_2d_init_class(JSContext *ctx, JSValueConst this
     NX_DEF_FUNC(proto, "arcTo", nx_canvas_context_2d_arc_to, 5);
     NX_DEF_FUNC(proto, "beginPath", nx_canvas_context_2d_begin_path, 0);
     NX_DEF_FUNC(proto, "bezierCurveTo", nx_canvas_context_2d_bezier_curve_to, 6);
+    NX_DEF_FUNC(proto, "clearRect", nx_canvas_context_2d_clear_rect, 4);
     NX_DEF_FUNC(proto, "closePath", nx_canvas_context_2d_close_path, 0);
     NX_DEF_FUNC(proto, "clip", nx_canvas_context_2d_clip, 0);
     NX_DEF_FUNC(proto, "drawImage", nx_canvas_context_2d_draw_image, 3);
@@ -1726,7 +1753,7 @@ static JSValue nx_canvas_context_2d_init_class(JSContext *ctx, JSValueConst this
     NX_DEF_FUNC(proto, "scale", nx_canvas_context_2d_scale, 2);
     NX_DEF_FUNC(proto, "setLineDash", nx_canvas_context_2d_set_line_dash, 1);
     NX_DEF_FUNC(proto, "stroke", nx_canvas_context_2d_stroke, 0);
-    NX_DEF_FUNC(proto, "strokeRect", nx_canvas_context_2d_stroke_rect, 0);
+    NX_DEF_FUNC(proto, "strokeRect", nx_canvas_context_2d_stroke_rect, 4);
     NX_DEF_FUNC(proto, "transform", nx_canvas_context_2d_transform, 6);
     NX_DEF_FUNC(proto, "translate", nx_canvas_context_2d_translate, 2);
     JS_FreeValue(ctx, proto);

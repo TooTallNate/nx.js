@@ -111,6 +111,31 @@ export class OffscreenCanvasRenderingContext2D {
 	}
 
 	/**
+	 * Strokes (outlines) the current or given path with the current stroke style.
+	 *
+	 * @param path A {@link Path2D | `Path2D`} path to stroke.
+	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/stroke
+	 */
+	stroke(path?: Path2D): void {
+		stub();
+	}
+
+	/**
+	 * Fills the current or given path with the current {@link CanvasRenderingContext2D.fillStyle | `fillStyle`}.
+	 *
+	 * @param fillRule
+	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/fill
+	 */
+	fill(fillRule?: CanvasFillRule): void;
+	fill(path: Path2D, fillRule?: CanvasFillRule): void;
+	fill(
+		fillRuleOrPath?: CanvasFillRule | Path2D,
+		fillRule?: CanvasFillRule
+	): void {
+		stub();
+	}
+
+	/**
 	 * Specifies the color, gradient, or pattern to use inside shapes.
 	 *
 	 * @default "#000" (black)
@@ -367,10 +392,25 @@ export class OffscreenCanvasRenderingContext2D {
 	}
 
 	/**
-	 * Draws a rectangle that is filled according to the current `fillStyle`.
+	 * Erases the pixels in a rectangular area by setting them to transparent black.
+	 *
+	 * @param x The x-axis coordinate of the rectangle's starting point.
+	 * @param y The y-axis coordinate of the rectangle's starting point.
+	 * @param width The rectangle's width. Positive values are to the right, and negative to the left.
+	 * @param height The rectangle's height. Positive values are down, and negative are up.
+	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/clearRect
+	 */
+	clearRect(x: number, y: number, width: number, height: number): void {
+		stub();
+	}
+
+	/**
+	 * Draws a rectangle that is filled according to the current
+	 * {@link CanvasRenderingContext2D.fillStyle | `fillStyle`}.
 	 *
 	 * This method draws directly to the canvas without modifying the current path,
-	 * so any subsequent `fill()` or `stroke()` calls will have no effect on it.
+	 * so any subsequent {@link CanvasRenderingContext2D.fill | `fill()`} or
+	 * {@link CanvasRenderingContext2D.stroke | `stroke()`} calls will have no effect on it.
 	 *
 	 * @param x The x-axis coordinate of the rectangle's starting point.
 	 * @param y The y-axis coordinate of the rectangle's starting point.
@@ -379,6 +419,24 @@ export class OffscreenCanvasRenderingContext2D {
 	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/fillRect
 	 */
 	fillRect(x: number, y: number, width: number, height: number): void {
+		stub();
+	}
+
+	/**
+	 * Draws a rectangle that is stroked (outlined) according to the current
+	 * {@link CanvasRenderingContext2D.strokeStyle | `strokeStyle`} and other context settings.
+	 *
+	 * This method draws directly to the canvas without modifying the current path,
+	 * so any subsequent {@link CanvasRenderingContext2D.fill | `fill()`} or
+	 * {@link CanvasRenderingContext2D.stroke | `stroke()`} calls will have no effect on it.
+	 *
+	 * @param x The x-axis coordinate of the rectangle's starting point.
+	 * @param y The y-axis coordinate of the rectangle's starting point.
+	 * @param width The rectangle's width. Positive values are to the right, and negative to the left.
+	 * @param height The rectangle's height. Positive values are down, and negative are up.
+	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/strokeRect
+	 */
+	strokeRect(x: number, y: number, width: number, height: number): void {
 		stub();
 	}
 
