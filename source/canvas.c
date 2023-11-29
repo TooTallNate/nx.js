@@ -560,9 +560,9 @@ static JSValue nx_canvas_context_2d_put_image_data(JSContext *ctx, JSValueConst 
 
     size_t src_length;
     uint8_t *src = JS_GetArrayBuffer(ctx, &src_length, image_data_value);
-    uint8_t *dst = context->data;
+    uint8_t *dst = context->canvas->data;
 
-    int dstStride = context->width * 4;
+    int dstStride = context->canvas->width * 4;
     int srcStride = image_data_width * 4;
 
     // fix up negative height, width
@@ -591,8 +591,8 @@ static JSValue nx_canvas_context_2d_put_image_data(JSContext *ctx, JSValueConst 
         sh += dy, sy -= dy, dy = 0;
 
     // clamp width at canvas size
-    cols = min(sw, context->width - dx);
-    rows = min(sh, context->height - dy);
+    cols = min(sw, context->canvas->width - dx);
+    rows = min(sh, context->canvas->height - dy);
 
     if (cols <= 0 || rows <= 0)
         return JS_UNDEFINED;
@@ -642,7 +642,7 @@ static JSValue nx_canvas_context_2d_put_image_data(JSContext *ctx, JSValueConst 
     }
 
     cairo_surface_mark_dirty_rectangle(
-        context->surface, dx, dy, cols, rows);
+        context->canvas->surface, dx, dy, cols, rows);
 
     return JS_UNDEFINED;
 }
@@ -749,7 +749,7 @@ static JSValue nx_canvas_context_2d_draw_image(JSContext *ctx, JSValueConst this
     double fy = dh / sh * current_scale_y; // transforms[2] is scale on X
     bool needScale = dw != sw || dh != sh;
     bool needCut = sw != source_w || sh != source_h || sx < 0 || sy < 0;
-    bool sameCanvas = surface == context->surface;
+    bool sameCanvas = surface == context->canvas->surface;
     bool needsExtraSurface = sameCanvas || needCut || needScale;
     cairo_surface_t *surfTemp = NULL;
     cairo_t *ctxTemp = NULL;
@@ -887,8 +887,6 @@ static void finalizer_canvas_context_2d(JSRuntime *rt, JSValue val)
     if (context)
     {
         cairo_destroy(context->ctx);
-        cairo_surface_destroy(context->surface);
-        js_free_rt(rt, context->data);
         js_free_rt(rt, context);
     }
 }

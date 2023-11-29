@@ -27,11 +27,6 @@ export type * from './console';
 export type * from './navigator';
 export type * from './navigator/battery';
 export type { VirtualKeyboard } from './navigator/virtual-keyboard';
-//export type {
-//	CanvasImageSource,
-//	Canvas,
-//	CanvasRenderingContext2D,
-//} from './canvas';
 export type * from './canvas/image-data';
 export type { Path2D } from './canvas/path2d';
 export type * from './polyfills/event-target';

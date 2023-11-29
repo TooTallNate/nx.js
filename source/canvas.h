@@ -34,12 +34,6 @@ typedef struct
     double global_alpha;
     nx_rgba_t fill_style;
     nx_rgba_t stroke_style;
-
-    // TODO: remove
-    uint32_t width;
-    uint32_t height;
-    uint8_t *data;
-    cairo_surface_t *surface;
 } nx_canvas_context_2d_t;
 
 nx_canvas_context_2d_t *nx_get_canvas_context_2d(JSContext *ctx, JSValueConst obj);
