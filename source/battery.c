@@ -47,10 +47,8 @@ static JSValue nx_battery_init_class(JSContext *ctx, JSValueConst this_val, int 
 {
     JSAtom atom;
     JSValue proto = JS_GetPropertyStr(ctx, argv[0], "prototype");
-    NX_DEF_GETTER(proto, "charging", nx_battery_charging);
-    // NX_DEF_GETTER(proto, "chargingTime", nx_battery_charging_time);
-    // NX_DEF_GETTER(proto, "dischargingTime", nx_battery_discharging_time);
-    NX_DEF_GETTER(proto, "level", nx_battery_level);
+    NX_DEF_GET(proto, "charging", nx_battery_charging);
+    NX_DEF_GET(proto, "level", nx_battery_level);
     JS_FreeValue(ctx, proto);
     return JS_UNDEFINED;
 }

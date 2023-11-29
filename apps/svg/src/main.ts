@@ -7,7 +7,7 @@ const svgData = Switch.readFileSync(
 );
 const svg = new TextDecoder().decode(svgData);
 
-const canvas = Switch.screen;
+const canvas = screen;
 const ctx = canvas.getContext('2d');
 
 ctx.fillStyle = '#333';

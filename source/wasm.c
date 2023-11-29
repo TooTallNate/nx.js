@@ -1083,7 +1083,7 @@ static JSValue nx_wasm_init_memory_class(JSContext *ctx, JSValueConst this_val, 
 {
     JSAtom atom;
     JSValue proto = JS_GetPropertyStr(ctx, argv[0], "prototype");
-    NX_DEF_GETTER(proto, "buffer", nx_wasm_memory_buffer_get);
+    NX_DEF_GET(proto, "buffer", nx_wasm_memory_buffer_get);
     NX_DEF_FUNC(proto, "grow", nx_wasm_memory_grow, 1);
     JS_FreeValue(ctx, proto);
     return JS_UNDEFINED;
@@ -1095,7 +1095,7 @@ static JSValue nx_wasm_init_table_class(JSContext *ctx, JSValueConst this_val, i
     JSAtom atom;
     JSValue proto = JS_GetPropertyStr(ctx, argv[0], "prototype");
     // NX_DEF_FUNC(proto, "get", nx_wasm_table_get_fn, 1);
-    NX_DEF_GETTER(proto, "length", nx_wasm_table_length_get);
+    NX_DEF_GET(proto, "length", nx_wasm_table_length_get);
     JS_FreeValue(ctx, proto);
     return JS_UNDEFINED;
 }

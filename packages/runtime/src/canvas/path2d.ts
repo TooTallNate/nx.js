@@ -1,5 +1,5 @@
-import { def } from '../utils';
-import type { CanvasRenderingContext2D } from '../canvas';
+import { createInternal, def } from '../utils';
+import type { CanvasRenderingContext2D } from '../canvas/canvas-rendering-context-2d';
 
 /**
  * Modified from: https://github.com/nilzona/path2d-polyfill
@@ -198,16 +198,12 @@ function scalePoint(point: Point, s: number) {
 	point.y *= s;
 }
 
-const commandsMap = new WeakMap<Path2D, PathCommand[]>();
-
-function getCommands(p: Path2D) {
-	const commands = commandsMap.get(p);
-	if (!commands) throw new Error('No commands');
-	return commands;
-}
+const _ = createInternal<Path2D, PathCommand[]>();
 
 /**
- * This Canvas 2D API interface is used to declare a path that can then be used on a CanvasRenderingContext2D object. The path methods of the CanvasRenderingContext2D interface are also present on this interface, which gives you the convenience of being able to retain and replay your path whenever desired.
+ * Declares a path that can then be used on a {@link CanvasRenderingContext2D | `CanvasRenderingContext2D`} object.
+ * The path methods of the `CanvasRenderingContext2D` interface are also present on this interface, which gives you
+ * the convenience of being able to retain and replay your path whenever desired.
  *
  * @see https://developer.mozilla.org/docs/Web/API/Path2D
  */
@@ -215,25 +211,25 @@ export class Path2D implements globalThis.Path2D {
 	constructor(path?: Path2D | string) {
 		let commands: PathCommand[] | undefined;
 		if (path && path instanceof Path2D) {
-			commands = [...getCommands(path)];
+			commands = [..._(path)];
 		} else if (path) {
 			commands = parsePath(path);
 		}
-		commandsMap.set(this, commands || []);
+		_.set(this, commands || []);
 	}
 
 	addPath(path: Path2D) {
 		if (path && path instanceof Path2D) {
-			getCommands(this).push(...getCommands(path));
+			_(this).push(..._(path));
 		}
 	}
 
 	moveTo(x: number, y: number) {
-		getCommands(this).push(['M', x, y]);
+		_(this).push(['M', x, y]);
 	}
 
 	lineTo(x: number, y: number) {
-		getCommands(this).push(['L', x, y]);
+		_(this).push(['L', x, y]);
 	}
 
 	arc(
@@ -244,11 +240,11 @@ export class Path2D implements globalThis.Path2D {
 		end: number,
 		ccw: boolean
 	) {
-		getCommands(this).push(['AC', x, y, r, start, end, !!ccw]);
+		_(this).push(['AC', x, y, r, start, end, !!ccw]);
 	}
 
 	arcTo(x1: number, y1: number, x2: number, y2: number, r: number) {
-		getCommands(this).push(['AT', x1, y1, x2, y2, r]);
+		_(this).push(['AT', x1, y1, x2, y2, r]);
 	}
 
 	ellipse(
@@ -261,11 +257,11 @@ export class Path2D implements globalThis.Path2D {
 		end: number,
 		ccw: boolean
 	) {
-		getCommands(this).push(['E', x, y, rx, ry, angle, start, end, !!ccw]);
+		_(this).push(['E', x, y, rx, ry, angle, start, end, !!ccw]);
 	}
 
 	closePath() {
-		getCommands(this).push(['Z']);
+		_(this).push(['Z']);
 	}
 
 	bezierCurveTo(
@@ -276,15 +272,15 @@ export class Path2D implements globalThis.Path2D {
 		x: number,
 		y: number
 	) {
-		getCommands(this).push(['C', cp1x, cp1y, cp2x, cp2y, x, y]);
+		_(this).push(['C', cp1x, cp1y, cp2x, cp2y, x, y]);
 	}
 
 	quadraticCurveTo(cpx: number, cpy: number, x: number, y: number) {
-		getCommands(this).push(['Q', cpx, cpy, x, y]);
+		_(this).push(['Q', cpx, cpy, x, y]);
 	}
 
 	rect(x: number, y: number, width: number, height: number) {
-		getCommands(this).push(['R', x, y, width, height]);
+		_(this).push(['R', x, y, width, height]);
 	}
 
 	roundRect(
@@ -295,15 +291,15 @@ export class Path2D implements globalThis.Path2D {
 		radii?: number | number[]
 	) {
 		if (typeof radii === 'undefined') {
-			getCommands(this).push(['RR', x, y, width, height, 0]);
+			_(this).push(['RR', x, y, width, height, 0]);
 		} else {
-			getCommands(this).push(['RR', x, y, width, height, radii]);
+			_(this).push(['RR', x, y, width, height, radii]);
 		}
 	}
 }
 
 export function applyPath(ctx: CanvasRenderingContext2D, path: Path2D) {
-	const commands = getCommands(path);
+	const commands = _(path);
 	let x = 0;
 	let y = 0;
 	let endAngle: number;

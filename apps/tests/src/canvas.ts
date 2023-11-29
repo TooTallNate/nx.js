@@ -3,7 +3,7 @@ import * as assert from 'uvu/assert';
 
 const test = suite('Canvas');
 
-const ctx = Switch.screen.getContext('2d');
+const ctx = screen.getContext('2d');
 
 test('`CanvasContext2D#getImageData()`', () => {
 	ctx.fillStyle = 'red';

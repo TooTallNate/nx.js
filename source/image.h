@@ -15,9 +15,11 @@ enum ImageFormat
 
 typedef struct
 {
-    enum ImageFormat format;
-    uint8_t *buffer;
+    uint32_t width;
+    uint32_t height;
+    uint8_t *data;
     cairo_surface_t *surface;
+    enum ImageFormat format;
 } nx_image_t;
 
 nx_image_t *nx_get_image(JSContext *ctx, JSValueConst obj);

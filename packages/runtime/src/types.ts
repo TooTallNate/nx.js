@@ -1,3 +1,6 @@
+import type { Image } from './image';
+import type { Screen } from './screen';
+import type { OffscreenCanvas } from './canvas/offscreen-canvas';
 import type { SwitchClass } from './switch';
 import type { Socket } from './tcp';
 
@@ -115,3 +118,17 @@ export interface SocketInfo {
 	remoteAddress: string;
 	localAddress: string;
 }
+
+export interface ImageEncodeOptions {
+	quality?: number;
+	type?: string;
+}
+
+export type CanvasFillRule = 'evenodd' | 'nonzero';
+export type CanvasImageSource = Image | Screen | OffscreenCanvas;
+export type CanvasLineCap = 'butt' | 'round' | 'square';
+export type CanvasLineJoin = 'bevel' | 'miter' | 'round';
+
+export type FontDisplay = 'auto' | 'block' | 'fallback' | 'optional' | 'swap';
+export type FontFaceLoadStatus = 'error' | 'loaded' | 'loading' | 'unloaded';
+export type FontFaceSetLoadStatus = 'loaded' | 'loading';

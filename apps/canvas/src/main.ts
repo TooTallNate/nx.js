@@ -1,14 +1,15 @@
-const ctx = Switch.screen.getContext('2d');
+const ctx = screen.getContext('2d');
 
-ctx.fillStyle = 'rgb(0, 0, 76.5)';
-ctx.fillRect(0, 0, Switch.screen.width, Switch.screen.height);
+ctx.strokeStyle = 'red';
 
-ctx.fillStyle = 'red';
-ctx.fillRect(0, 0, 100, 100);
+// Draw the ellipse
+ctx.beginPath();
+ctx.ellipse(100, 100, 50, 75, Math.PI / 4, 0, 2 * Math.PI);
+ctx.stroke();
 
-ctx.fillStyle = 'green';
-ctx.fillRect(200, 200, 100, 100);
-
-ctx.font = '24px system-ui';
-ctx.fillStyle = 'white';
-ctx.fillText('Hello, from JS!', 100, 100);
+// Draw the ellipse's line of reflection
+ctx.beginPath();
+ctx.setLineDash([5, 5]);
+ctx.moveTo(0, 200);
+ctx.lineTo(200, 0);
+ctx.stroke();

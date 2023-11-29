@@ -46,7 +46,7 @@ export class CanvasActuator {
 		/**
 		 * @type CanvasRenderingContext2D
 		 */
-		this.ctx = Switch.screen.getContext('2d');
+		this.ctx = screen.getContext('2d');
 
 		// Draw background
 		this.ctx.fillStyle = bgColor;

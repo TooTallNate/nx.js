@@ -1,14 +1,57 @@
 import type { NetworkInfo } from './types';
-import type { Callback } from './internal';
+import type { Callback, RGBA } from './internal';
 import type { Server, TlsContextOpaque } from './tcp';
 import type { MemoryDescriptor, Memory } from './wasm';
+import type { BatteryManager } from './navigator/battery';
 import type { VirtualKeyboard } from './navigator/virtual-keyboard';
+import type { OffscreenCanvas } from './canvas/offscreen-canvas';
+import type { CanvasRenderingContext2D } from './canvas/canvas-rendering-context-2d';
+import type { OffscreenCanvasRenderingContext2D } from './canvas/offscreen-canvas-rendering-context-2d';
+import type { Image } from './image';
+import type { Screen } from './screen';
+import type { FontFace } from './font/font-face';
+
+type ClassOf<T> = {
+	new (...args: any[]): T;
+};
 
 export interface Init {
 	// battery.c
 	batteryInit(): void;
-	batteryInitClass(c: any): void;
+	batteryInitClass(c: ClassOf<BatteryManager>): void;
 	batteryExit(): void;
+
+	// canvas.c
+	canvasNew(width: number, height: number): Screen | OffscreenCanvas;
+	canvasInitClass(c: ClassOf<Screen | OffscreenCanvas>): void;
+	canvasContext2dNew(c: Screen): CanvasRenderingContext2D;
+	canvasContext2dNew(c: OffscreenCanvas): OffscreenCanvasRenderingContext2D;
+	canvasContext2dInitClass(
+		c: ClassOf<CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D>
+	): void;
+	canvasContext2dGetImageData(
+		ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
+		sx: number,
+		sy: number,
+		sw: number,
+		sh: number
+	): ArrayBuffer;
+	canvasContext2dGetTransform(
+		ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D
+	): number[];
+	canvasContext2dSetFont(
+		ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
+		font: FontFace,
+		size: number
+	): number[];
+	canvasContext2dSetFillStyle(
+		ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
+		...rgba: RGBA
+	): number[];
+	canvasContext2dSetStrokeStyle(
+		ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
+		...rgba: RGBA
+	): number[];
 
 	// dns.c
 	dnsResolve(cb: Callback<string[]>, hostname: string): void;
@@ -19,6 +62,22 @@ export interface Init {
 		fn: (promise: Promise<unknown>, reason: any) => number
 	): void;
 
+	// font.c
+	fontFaceNew(data: ArrayBuffer): FontFace;
+	fontFaceDispose(this: FontFace): void;
+	getSystemFont(): ArrayBuffer;
+
+	// image.c
+	imageNew(): Image;
+	imageDecode(
+		cb: Callback<{
+			width: number;
+			height: number;
+		}>,
+		img: Image,
+		data: ArrayBuffer
+	): void;
+
 	// main.c
 	onFrame(fn: (kDown: number) => void): void;
 	onExit(fn: () => void): void;
@@ -27,7 +86,7 @@ export interface Init {
 	nifmInitialize(): () => void;
 	networkInfo(): NetworkInfo;
 
-	// swkbd.c
+	// software-keyboard.c
 	swkbdCreate(fns: {
 		onCancel: () => void;
 		onChange: (
@@ -49,7 +108,7 @@ export interface Init {
 	write(cb: Callback<number>, fd: number, data: ArrayBuffer): void;
 	read(cb: Callback<number>, fd: number, buffer: ArrayBuffer): void;
 	close(fd: number): void;
-	tcpInitServer(c: any): void;
+	tcpServerInit(c: any): void;
 	tcpServerNew(
 		ip: string,
 		port: number,

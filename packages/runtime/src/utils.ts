@@ -4,6 +4,7 @@ import {
 	type Callback,
 	type CallbackArguments,
 	type CallbackReturnType,
+	type RGBA,
 } from './internal';
 
 export const def = <T>(key: string, value: T) => {
@@ -81,4 +82,36 @@ export class Deferred<T> {
 			};
 		});
 	}
+}
+
+export const createInternal = <K extends object, V>() => {
+	const wm = new WeakMap<K, V>();
+	const _ = (k: K): V => {
+		const v = wm.get(k);
+		if (!v)
+			throw new Error(
+				`Failed to get \`${k.constructor.name}\` internal state`
+			);
+		return v;
+	};
+	_.set = (k: K, v: V) => {
+		wm.set(k, v);
+	};
+	return _;
+};
+
+export function rgbaToString(rgba: RGBA) {
+	if (rgba[3] < 1) {
+		return `rgba(${rgba.join(', ')})`;
+	}
+	return `#${rgba
+		.slice(0, -1)
+		.map((v) => v.toString(16).padStart(2, '0'))
+		.join('')}`;
+}
+
+export function stub(): never {
+	throw new Error(
+		'This is a stub function which should have been replaced by a native implementation'
+	);
 }

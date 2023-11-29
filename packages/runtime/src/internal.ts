@@ -24,3 +24,5 @@ export type CallbackArguments<T> = T extends (
 export interface SocketOptionsInternal extends SocketOptions {
 	connect: typeof connect;
 }
+
+export type RGBA = [number, number, number, number];

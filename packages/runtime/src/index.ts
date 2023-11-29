@@ -27,11 +27,6 @@ export type * from './console';
 export type * from './navigator';
 export type * from './navigator/battery';
 export type { VirtualKeyboard } from './navigator/virtual-keyboard';
-export type {
-	CanvasImageSource,
-	Canvas,
-	CanvasRenderingContext2D,
-} from './canvas';
 export type * from './canvas/image-data';
 export type { Path2D } from './canvas/path2d';
 export type * from './polyfills/event-target';
@@ -47,7 +42,8 @@ export type {
 } from './polyfills/text-encoder';
 export type * from './polyfills/abort-controller';
 export type * from './polyfills/streams';
-export type { FontFace, FontFaceSet } from './polyfills/font';
+export type { FontFaceSet } from './font/font-face-set';
+export type { FontFace } from './font/font-face';
 export type * from './polyfills/form-data';
 export type { BodyInit } from './fetch/body';
 export type * from './fetch/headers';
@@ -56,7 +52,7 @@ export type * from './fetch/response';
 export type * from './fetch/fetch';
 export type * from './crypto';
 export type * from './image';
-export type * from './dompoint';
+export type { DOMPoint, DOMPointInit, DOMPointReadOnly } from './dompoint';
 export type * from './domrect';
 export type { Socket, Server } from './tcp';
 export type {
@@ -135,6 +131,15 @@ export type * from './window';
 
 import './screen';
 export type * from './screen';
+
+import './canvas/canvas-rendering-context-2d';
+export type * from './canvas/canvas-rendering-context-2d';
+
+import './canvas/offscreen-canvas';
+export type * from './canvas/offscreen-canvas';
+
+import './canvas/offscreen-canvas-rendering-context-2d';
+export type * from './canvas/offscreen-canvas-rendering-context-2d';
 
 $.onError((e) => {
 	const ev = new ErrorEvent('error', {

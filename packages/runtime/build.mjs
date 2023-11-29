@@ -38,12 +38,38 @@ ${output}`;
 // 2) Remove all `export` declarations.
 output = output.replace(/^export /gm, '');
 
+function splitOnComma(str) {
+    let result = [];
+    let depth = 0;
+    let start = 0;
+
+    for (let i = 0; i < str.length; i++) {
+        switch (str[i]) {
+            case '<':
+                depth++;
+                break;
+            case '>':
+                depth--;
+                break;
+            case ',':
+                if (depth === 0) {
+                    result.push(str.slice(start, i).trim());
+                    start = i + 1;
+                }
+                break;
+        }
+    }
+
+    result.push(str.slice(start).trim()); // Add the last segment
+
+    return result;
+}
+
 // 3) Remove all `implements globalThis.` statements.
 output = output.replace(/\bimplements (.*){/g, (_, matches) => {
-	const filtered = matches
-		.split(',')
-		.map((i) => i.trim())
-		.filter((i) => !i.startsWith('globalThis.'));
+	const filtered = splitOnComma(matches).filter(
+		(i) => !i.includes('globalThis.')
+	);
 	if (filtered.length > 0) {
 		return `implements ${filtered.join(', ')} {`;
 	}

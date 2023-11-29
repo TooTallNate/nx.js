@@ -66,15 +66,16 @@ static JSValue js_framebuffer_init(JSContext *ctx, JSValueConst this_val, int ar
         framebufferClose(framebuffer);
         free(framebuffer);
     }
-    framebuffer = malloc(sizeof(Framebuffer));
-    nx_canvas_context_2d_t *context = nx_get_canvas_context_2d(ctx, argv[0]);
-    if (!context)
-    {
+    u32 width, height;
+    nx_canvas_t *canvas = nx_get_canvas(ctx, argv[0]);
+    if (!canvas)
         return JS_EXCEPTION;
-    }
-    framebufferCreate(framebuffer, win, context->width, context->height, PIXEL_FORMAT_BGRA_8888, 2);
+    width = canvas->width;
+    height = canvas->height;
+    js_framebuffer = canvas->data;
+    framebuffer = malloc(sizeof(Framebuffer));
+    framebufferCreate(framebuffer, win, width, height, PIXEL_FORMAT_BGRA_8888, 2);
     framebufferMakeLinear(framebuffer);
-    js_framebuffer = context->data;
     return JS_UNDEFINED;
 }
 
@@ -490,9 +491,12 @@ int main(int argc, char *argv[])
     // The internal `$` object contains native functions that are wrapped in the JS runtime
     JSValue global_obj = JS_GetGlobalObject(ctx);
     JSValue init_obj = JS_NewObject(ctx);
-    nx_init_error(ctx, init_obj);
     nx_init_battery(ctx, init_obj);
+    nx_init_canvas(ctx, init_obj);
     nx_init_dns(ctx, init_obj);
+    nx_init_error(ctx, init_obj);
+    nx_init_font(ctx, init_obj);
+    nx_init_image(ctx, init_obj);
     nx_init_nifm(ctx, init_obj);
     nx_init_tcp(ctx, init_obj);
     nx_init_tls(ctx, init_obj);
@@ -578,10 +582,7 @@ int main(int argc, char *argv[])
 
     nx_init_applet(ctx, native_obj);
     nx_init_crypto(ctx, native_obj);
-    nx_init_canvas(ctx, native_obj);
-    nx_init_font(ctx, native_obj);
     nx_init_fs(ctx, native_obj);
-    nx_init_image(ctx, native_obj);
     nx_init_wasm_(ctx, native_obj);
 
     JS_SetPropertyStr(ctx, switch_obj, "exit", JS_NewCFunction(ctx, js_exit, "exit", 0));
