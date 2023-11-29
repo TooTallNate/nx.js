@@ -1,7 +1,6 @@
 import { Hid, Swkbd } from 'nxjs-constants';
 const { Button } = Hid;
 
-const canvas = screen;
 const ctx = screen.getContext('2d');
 const vk = navigator.virtualKeyboard;
 
@@ -9,7 +8,7 @@ function render() {
 	const isOpen = vk.boundingRect.height > 0;
 
 	ctx.fillStyle = 'white';
-	ctx.fillRect(0, 0, canvas.width, canvas.height);
+	ctx.fillRect(0, 0, screen.width, screen.height);
 
 	ctx.font = '24px system-ui';
 	ctx.fillStyle = '#444';
