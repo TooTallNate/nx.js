@@ -1,5 +1,56 @@
 # nxjs-runtime
 
+## 0.0.23
+
+### Patch Changes
+
+- Add `CanvasRenderingContext2D#font` getter ([`e81ae48`](https://github.com/TooTallNate/nx.js/commit/e81ae48a71444249fb3bc96c20632af689144260))
+
+- Log unhandled errors / promise rejections to the debug log file ([`2055162`](https://github.com/TooTallNate/nx.js/commit/20551622ae681174cccaaebc23346562907e3eb2))
+
+- Add `Switch.version.mbedtls` ([`6c18661`](https://github.com/TooTallNate/nx.js/commit/6c18661fbf60d3472e5f411fa64276b7eb16935a))
+
+- Use mbedtls to support Socket TLS `secureTransport: 'on'` ([#58](https://github.com/TooTallNate/nx.js/pull/58))
+
+- Fix `resolve()` being inadventently added as a global function ([`275602f`](https://github.com/TooTallNate/nx.js/commit/275602f1404cd4a650cbf0c9d29b6b0f6a292221))
+
+- Make `Event#preventDefault()` only work when `cancelable: true` ([`28addd4`](https://github.com/TooTallNate/nx.js/commit/28addd49da71cd710cad6b475dea5828b438f018))
+
+- - Make `screen` implement the Canvas API ([#63](https://github.com/TooTallNate/nx.js/pull/63))
+  - Add `OffscreenCanvas` and `OffscreenCanvasRenderingContext2D`
+  - Remove `Switch.screen`
+
+- Add Canvas `imageSmoothingQuality` ([`885de44`](https://github.com/TooTallNate/nx.js/commit/885de447309826af5c8a510d862cd953dcdda605))
+
+- Add Canvas `imageSmoothingEnabled` ([`a55fcf2`](https://github.com/TooTallNate/nx.js/commit/a55fcf2612f69788ca694e7684c615f02b774e93))
+
+- Add Canvas `globalCompositeOperation` ([`50e4168`](https://github.com/TooTallNate/nx.js/commit/50e4168707595f755111bafac3f4e0a02e066834))
+
+- Add Canvas `clearRect()`, fix `strokeRect()` ([`94697da`](https://github.com/TooTallNate/nx.js/commit/94697da04d5449af9abd23a653b2d71f55a7a833))
+
+- Add initial global `screen` object ([`057c5bf`](https://github.com/TooTallNate/nx.js/commit/057c5bf76290b8444c86eb1370320ee2bf61a035))
+
+- Fix bug where `inspect()` would print "[Circular]" for object sub-properties ([`a197c84`](https://github.com/TooTallNate/nx.js/commit/a197c84d48badab5e0443bdf70e3c8a0d1222d6f))
+
+- Add `navigator.platform` ([`79b5f00`](https://github.com/TooTallNate/nx.js/commit/79b5f00756bc71207500d51347adebd10096094d))
+
+- Vendor `EventTarget` implementation ([`56189ae`](https://github.com/TooTallNate/nx.js/commit/56189ae177241296bf261d85eef817d8ed2cbd22))
+
+- Add support for `https:` protocol in `fetch()` ([`cd8557b`](https://github.com/TooTallNate/nx.js/commit/cd8557b6a913e5db7b38f12ceba6d1123f0bd925))
+
+- Enable color (emoji) fonts ([`412adc1`](https://github.com/TooTallNate/nx.js/commit/412adc1a5cdc5df4148a1b06c774aede029d5c93))
+
+- Add `window` as alias to `globalThis` ([`06bdc88`](https://github.com/TooTallNate/nx.js/commit/06bdc88f4fd6119212efce69d0500087f604da42))
+
+- Add `requestAnimationFrame()`, `cancelAnimationFrame()`, and global "unload" event ([`4e4f6ec`](https://github.com/TooTallNate/nx.js/commit/4e4f6ec13872b65f8d17e53ed2d4a5164f5d61f0))
+
+  This is technically a breaking change since the `Switch` "frame" and "exit" events are no longer dispatched.
+
+  To migrate from the "frame" event, use a `requestAnimationFrame` loop.
+  To migrate from the Switch "exit" event, use a global "unload" event.
+
+- Decode file path URL in filesystem operations ([`9fa8051`](https://github.com/TooTallNate/nx.js/commit/9fa8051a608876e7d6d4fd642c2e89f216ca5f8c))
+
 ## 0.0.22
 
 ### Patch Changes
