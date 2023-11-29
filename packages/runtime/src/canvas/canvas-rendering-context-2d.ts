@@ -20,6 +20,7 @@ import type {
 	CanvasLineJoin,
 	CanvasImageSource,
 	GlobalCompositeOperation,
+	ImageSmoothingQuality,
 } from '../types';
 import type { RGBA } from '../internal';
 import type { SwitchClass } from '../switch';
@@ -211,6 +212,15 @@ export class CanvasRenderingContext2D {
 	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/imageSmoothingEnabled
 	 */
 	declare imageSmoothingEnabled: boolean;
+
+	/**
+	 * Determines the quality of image smoothing.
+	 *
+	 * @default "low"
+	 * @note For this property to have an effect, {@link CanvasRenderingContext2D.imageSmoothingEnabled | `imageSmoothingEnabled`} must be true.
+	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/imageSmoothingQuality
+	 */
+	declare imageSmoothingQuality: ImageSmoothingQuality;
 
 	/**
 	 * Determines the shape used to draw the end points of lines.

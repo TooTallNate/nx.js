@@ -156,6 +156,7 @@ export type GlobalCompositeOperation =
 	| 'source-out'
 	| 'source-over'
 	| 'xor';
+export type ImageSmoothingQuality = 'high' | 'low' | 'medium';
 
 export type FontDisplay = 'auto' | 'block' | 'fallback' | 'optional' | 'swap';
 export type FontFaceLoadStatus = 'error' | 'loaded' | 'loading' | 'unloaded';

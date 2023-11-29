@@ -30,7 +30,7 @@ typedef struct
     nx_canvas_t *canvas;
     cairo_t *ctx;
     cairo_path_t *path;
-    cairo_filter_t pattern_quality;
+    cairo_filter_t image_smoothing_quality;
     FT_Face ft_face;
     bool image_smoothing_enabled;
     double global_alpha;
