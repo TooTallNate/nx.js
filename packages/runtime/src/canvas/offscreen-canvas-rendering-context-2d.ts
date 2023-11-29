@@ -17,6 +17,7 @@ import type {
 	CanvasLineCap,
 	CanvasLineJoin,
 	CanvasImageSource,
+	GlobalCompositeOperation,
 } from '../types';
 import type { RGBA } from '../internal';
 import type { SwitchClass } from '../switch';
@@ -165,6 +166,14 @@ export class OffscreenCanvasRenderingContext2D {
 	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/globalAlpha
 	 */
 	declare globalAlpha: number;
+
+	/**
+	 * Specifies the type of compositing operation to apply when drawing new shapes.
+	 *
+	 * @default "source-over"
+	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/globalCompositeOperation
+	 */
+	declare globalCompositeOperation: GlobalCompositeOperation;
 
 	/**
 	 * Determines the shape used to draw the end points of lines.

@@ -1264,6 +1264,249 @@ static JSValue nx_canvas_context_2d_set_global_alpha(JSContext *ctx, JSValueCons
     return JS_UNDEFINED;
 }
 
+static JSValue nx_canvas_context_2d_get_global_composite_operation(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    CANVAS_CONTEXT_THIS;
+    const char *op;
+    switch (cairo_get_operator(context->ctx))
+    {
+    // composite modes:
+    case CAIRO_OPERATOR_CLEAR:
+        op = "clear";
+        break;
+    case CAIRO_OPERATOR_SOURCE:
+        op = "copy";
+        break;
+    case CAIRO_OPERATOR_DEST:
+        op = "destination";
+        break;
+    case CAIRO_OPERATOR_OVER:
+        op = "source-over";
+        break;
+    case CAIRO_OPERATOR_DEST_OVER:
+        op = "destination-over";
+        break;
+    case CAIRO_OPERATOR_IN:
+        op = "source-in";
+        break;
+    case CAIRO_OPERATOR_DEST_IN:
+        op = "destination-in";
+        break;
+    case CAIRO_OPERATOR_OUT:
+        op = "source-out";
+        break;
+    case CAIRO_OPERATOR_DEST_OUT:
+        op = "destination-out";
+        break;
+    case CAIRO_OPERATOR_ATOP:
+        op = "source-atop";
+        break;
+    case CAIRO_OPERATOR_DEST_ATOP:
+        op = "destination-atop";
+        break;
+    case CAIRO_OPERATOR_XOR:
+        op = "xor";
+        break;
+    case CAIRO_OPERATOR_ADD:
+        op = "lighter";
+        break;
+    // blend modes:
+    // Note: "source-over" and "normal" are synonyms. Chrome and FF both report
+    // "source-over" after setting gCO to "normal".
+    // case CAIRO_OPERATOR_OVER: op = "normal";
+    case CAIRO_OPERATOR_MULTIPLY:
+        op = "multiply";
+        break;
+    case CAIRO_OPERATOR_SCREEN:
+        op = "screen";
+        break;
+    case CAIRO_OPERATOR_OVERLAY:
+        op = "overlay";
+        break;
+    case CAIRO_OPERATOR_DARKEN:
+        op = "darken";
+        break;
+    case CAIRO_OPERATOR_LIGHTEN:
+        op = "lighten";
+        break;
+    case CAIRO_OPERATOR_COLOR_DODGE:
+        op = "color-dodge";
+        break;
+    case CAIRO_OPERATOR_COLOR_BURN:
+        op = "color-burn";
+        break;
+    case CAIRO_OPERATOR_HARD_LIGHT:
+        op = "hard-light";
+        break;
+    case CAIRO_OPERATOR_SOFT_LIGHT:
+        op = "soft-light";
+        break;
+    case CAIRO_OPERATOR_DIFFERENCE:
+        op = "difference";
+        break;
+    case CAIRO_OPERATOR_EXCLUSION:
+        op = "exclusion";
+        break;
+    case CAIRO_OPERATOR_HSL_HUE:
+        op = "hue";
+        break;
+    case CAIRO_OPERATOR_HSL_SATURATION:
+        op = "saturation";
+        break;
+    case CAIRO_OPERATOR_HSL_COLOR:
+        op = "color";
+        break;
+    case CAIRO_OPERATOR_HSL_LUMINOSITY:
+        op = "luminosity";
+        break;
+    // non-standard:
+    case CAIRO_OPERATOR_SATURATE:
+        op = "saturate";
+        break;
+    default:
+        op = "source-over";
+    }
+
+    return JS_NewString(ctx, op);
+}
+
+static JSValue nx_canvas_context_2d_set_global_composite_operation(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    CANVAS_CONTEXT_THIS;
+    int op = -1;
+    const char *str = JS_ToCString(ctx, argv[0]);
+    if (!str)
+        return JS_EXCEPTION;
+    if (strcmp(str, "clear") == 0)
+    {
+        // composite modes:
+        op = CAIRO_OPERATOR_CLEAR;
+    }
+    else if (strcmp(str, "copy") == 0)
+    {
+        op = CAIRO_OPERATOR_SOURCE;
+    }
+    else if (strcmp(str, "destination") == 0)
+    {
+        op = CAIRO_OPERATOR_DEST; // this seems to have been omitted from the spec
+    }
+    else if (strcmp(str, "source-over") == 0)
+    {
+        op = CAIRO_OPERATOR_OVER;
+    }
+    else if (strcmp(str, "destination-over") == 0)
+    {
+        op = CAIRO_OPERATOR_DEST_OVER;
+    }
+    else if (strcmp(str, "source-in") == 0)
+    {
+        op = CAIRO_OPERATOR_IN;
+    }
+    else if (strcmp(str, "destination-in") == 0)
+    {
+        op = CAIRO_OPERATOR_DEST_IN;
+    }
+    else if (strcmp(str, "source-out") == 0)
+    {
+        op = CAIRO_OPERATOR_OUT;
+    }
+    else if (strcmp(str, "destination-out") == 0)
+    {
+        op = CAIRO_OPERATOR_DEST_OUT;
+    }
+    else if (strcmp(str, "source-atop") == 0)
+    {
+        op = CAIRO_OPERATOR_ATOP;
+    }
+    else if (strcmp(str, "destination-atop") == 0)
+    {
+        op = CAIRO_OPERATOR_DEST_ATOP;
+    }
+    else if (strcmp(str, "xor") == 0)
+    {
+        op = CAIRO_OPERATOR_XOR;
+    }
+    else if (strcmp(str, "lighter") == 0)
+    {
+        op = CAIRO_OPERATOR_ADD;
+    }
+    else if (strcmp(str, "normal") == 0)
+    {
+        // blend modes:
+        op = CAIRO_OPERATOR_OVER;
+    }
+    else if (strcmp(str, "multiply") == 0)
+    {
+        op = CAIRO_OPERATOR_MULTIPLY;
+    }
+    else if (strcmp(str, "screen") == 0)
+    {
+        op = CAIRO_OPERATOR_SCREEN;
+    }
+    else if (strcmp(str, "overlay") == 0)
+    {
+        op = CAIRO_OPERATOR_OVERLAY;
+    }
+    else if (strcmp(str, "darken") == 0)
+    {
+        op = CAIRO_OPERATOR_DARKEN;
+    }
+    else if (strcmp(str, "lighten") == 0)
+    {
+        op = CAIRO_OPERATOR_LIGHTEN;
+    }
+    else if (strcmp(str, "color-dodge") == 0)
+    {
+        op = CAIRO_OPERATOR_COLOR_DODGE;
+    }
+    else if (strcmp(str, "color-burn") == 0)
+    {
+        op = CAIRO_OPERATOR_COLOR_BURN;
+    }
+    else if (strcmp(str, "hard-light") == 0)
+    {
+        op = CAIRO_OPERATOR_HARD_LIGHT;
+    }
+    else if (strcmp(str, "soft-light") == 0)
+    {
+        op = CAIRO_OPERATOR_SOFT_LIGHT;
+    }
+    else if (strcmp(str, "difference") == 0)
+    {
+        op = CAIRO_OPERATOR_DIFFERENCE;
+    }
+    else if (strcmp(str, "exclusion") == 0)
+    {
+        op = CAIRO_OPERATOR_EXCLUSION;
+    }
+    else if (strcmp(str, "hue") == 0)
+    {
+        op = CAIRO_OPERATOR_HSL_HUE;
+    }
+    else if (strcmp(str, "saturation") == 0)
+    {
+        op = CAIRO_OPERATOR_HSL_SATURATION;
+    }
+    else if (strcmp(str, "color") == 0)
+    {
+        op = CAIRO_OPERATOR_HSL_COLOR;
+    }
+    else if (strcmp(str, "luminosity") == 0)
+    {
+        op = CAIRO_OPERATOR_HSL_LUMINOSITY;
+    }
+    else if (strcmp(str, "saturate") == 0)
+    {
+        // non-standard:
+        op = CAIRO_OPERATOR_SATURATE;
+    }
+    if (op != -1)
+    {
+        cairo_set_operator(context->ctx, op);
+    }
+    return JS_UNDEFINED;
+}
+
 static JSValue nx_canvas_context_2d_get_image_data(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     CANVAS_CONTEXT;
@@ -1452,6 +1695,7 @@ static JSValue nx_canvas_context_2d_init_class(JSContext *ctx, JSValueConst this
     JSAtom atom;
     JSValue proto = JS_GetPropertyStr(ctx, argv[0], "prototype");
     NX_DEF_GETSET(proto, "globalAlpha", nx_canvas_context_2d_get_global_alpha, nx_canvas_context_2d_set_global_alpha);
+    NX_DEF_GETSET(proto, "globalCompositeOperation", nx_canvas_context_2d_get_global_composite_operation, nx_canvas_context_2d_set_global_composite_operation);
     NX_DEF_GETSET(proto, "lineCap", nx_canvas_context_2d_get_line_cap, nx_canvas_context_2d_set_line_cap);
     NX_DEF_GETSET(proto, "lineDashOffset", nx_canvas_context_2d_get_line_dash_offset, nx_canvas_context_2d_set_line_dash_offset);
     NX_DEF_GETSET(proto, "lineJoin", nx_canvas_context_2d_get_line_join, nx_canvas_context_2d_set_line_join);

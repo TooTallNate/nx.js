@@ -128,6 +128,34 @@ export type CanvasFillRule = 'evenodd' | 'nonzero';
 export type CanvasImageSource = Image | Screen | OffscreenCanvas;
 export type CanvasLineCap = 'butt' | 'round' | 'square';
 export type CanvasLineJoin = 'bevel' | 'miter' | 'round';
+export type GlobalCompositeOperation =
+	| 'color'
+	| 'color-burn'
+	| 'color-dodge'
+	| 'copy'
+	| 'darken'
+	| 'destination-atop'
+	| 'destination-in'
+	| 'destination-out'
+	| 'destination-over'
+	| 'difference'
+	| 'exclusion'
+	| 'hard-light'
+	| 'hue'
+	| 'lighten'
+	| 'lighter'
+	| 'luminosity'
+	| 'multiply'
+	| 'overlay'
+	| 'saturate'
+	| 'saturation'
+	| 'screen'
+	| 'soft-light'
+	| 'source-atop'
+	| 'source-in'
+	| 'source-out'
+	| 'source-over'
+	| 'xor';
 
 export type FontDisplay = 'auto' | 'block' | 'fallback' | 'optional' | 'swap';
 export type FontFaceLoadStatus = 'error' | 'loaded' | 'loading' | 'unloaded';
