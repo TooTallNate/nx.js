@@ -9,7 +9,7 @@
 #include "image.h"
 #include "canvas.h"
 
-#define CANVAS_CONTEXT                                                                         \
+#define CANVAS_CONTEXT_ARGV0                                                                   \
     nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id); \
     if (!context)                                                                              \
     {                                                                                          \
@@ -22,17 +22,6 @@
         return JS_EXCEPTION;
 
 #define RECT_ARGS                                        \
-    double args[4];                                      \
-    if (js_validate_doubles_args(ctx, argv, args, 4, 1)) \
-    {                                                    \
-        return JS_EXCEPTION;                             \
-    }                                                    \
-    double x = args[0];                                  \
-    double y = args[1];                                  \
-    double width = args[2];                              \
-    double height = args[3];
-
-#define RECT_ARGS2                                       \
     double args[4];                                      \
     if (js_validate_doubles_args(ctx, argv, args, 4, 0)) \
     {                                                    \
@@ -438,7 +427,7 @@ static JSValue nx_canvas_context_2d_ellipse(JSContext *ctx, JSValueConst this_va
 static JSValue nx_canvas_context_2d_rect(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     CANVAS_CONTEXT_THIS;
-    RECT_ARGS2;
+    RECT_ARGS;
     if (width == 0)
     {
         cairo_move_to(context->ctx, x, y);
@@ -458,7 +447,7 @@ static JSValue nx_canvas_context_2d_rect(JSContext *ctx, JSValueConst this_val, 
 
 static JSValue nx_canvas_context_2d_set_font(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-    CANVAS_CONTEXT;
+    CANVAS_CONTEXT_ARGV0;
 
     nx_font_face_t *face = nx_get_font_face(ctx, argv[1]);
     if (!face)
@@ -476,7 +465,7 @@ static JSValue nx_canvas_context_2d_set_font(JSContext *ctx, JSValueConst this_v
 
 static JSValue nx_canvas_context_2d_get_transform(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-    CANVAS_CONTEXT;
+    CANVAS_CONTEXT_ARGV0;
     cairo_matrix_t matrix;
     cairo_get_matrix(context->ctx, &matrix);
     JSValue array = JS_NewArray(ctx);
@@ -492,7 +481,7 @@ static JSValue nx_canvas_context_2d_get_transform(JSContext *ctx, JSValueConst t
 static JSValue nx_canvas_context_2d_stroke_rect(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     CANVAS_CONTEXT_THIS;
-    RECT_ARGS2;
+    RECT_ARGS;
     if (width && height)
     {
         save_path(context);
@@ -506,7 +495,7 @@ static JSValue nx_canvas_context_2d_stroke_rect(JSContext *ctx, JSValueConst thi
 static JSValue nx_canvas_context_2d_clear_rect(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     CANVAS_CONTEXT_THIS;
-    RECT_ARGS2;
+    RECT_ARGS;
     if (width && height)
     {
         cairo_save(context->ctx);
@@ -572,49 +561,74 @@ static JSValue nx_canvas_context_2d_put_image_data(JSContext *ctx, JSValueConst 
 {
     CANVAS_CONTEXT_THIS;
 
-    int sx, sy, sw, sh, dx, dy, image_data_width, image_data_height, rows, cols;
+    int sx = 0, sy = 0, sw = 0, sh = 0, dx, dy, image_data_width, image_data_height, rows, cols;
+    size_t src_offset, src_length, bytes_per_element;
 
-    JSValue image_data_value = JS_GetPropertyStr(ctx, argv[0], "data");
+    JSValue image_data_array_value = JS_GetPropertyStr(ctx, argv[0], "data");
     JSValue image_data_width_value = JS_GetPropertyStr(ctx, argv[0], "width");
     JSValue image_data_height_value = JS_GetPropertyStr(ctx, argv[0], "height");
+    JSValue image_data_buffer_value = JS_GetTypedArrayBuffer(ctx, image_data_array_value, &src_offset, &src_length, &bytes_per_element);
+    JS_FreeValue(ctx, image_data_array_value);
+    if (JS_IsException(image_data_buffer_value))
+        return image_data_buffer_value;
 
-    if (JS_ToInt32(ctx, &image_data_width, image_data_width_value) ||
+    uint8_t *src = JS_GetArrayBuffer(ctx, &src_length, image_data_buffer_value);
+    JS_FreeValue(ctx, image_data_buffer_value);
+    src += src_offset;
+
+    if (
+        JS_ToInt32(ctx, &image_data_width, image_data_width_value) ||
         JS_ToInt32(ctx, &image_data_height, image_data_height_value) ||
         JS_ToInt32(ctx, &dx, argv[1]) ||
-        JS_ToInt32(ctx, &dy, argv[2]) ||
-        JS_ToInt32(ctx, &sx, argv[3]) ||
-        JS_ToInt32(ctx, &sy, argv[4]) ||
-        JS_ToInt32(ctx, &sw, argv[5]) ||
-        JS_ToInt32(ctx, &sh, argv[6]))
+        JS_ToInt32(ctx, &dy, argv[2]))
     {
         return JS_EXCEPTION;
     }
 
-    size_t src_length;
-    uint8_t *src = JS_GetArrayBuffer(ctx, &src_length, image_data_value);
     uint8_t *dst = context->canvas->data;
-
     int dstStride = context->canvas->width * 4;
     int srcStride = image_data_width * 4;
 
-    // fix up negative height, width
-    if (sw < 0)
-        sx += sw, sw = -sw;
-    if (sh < 0)
-        sy += sh, sh = -sh;
-    // clamp the left edge
-    if (sx < 0)
-        sw += sx, sx = 0;
-    if (sy < 0)
-        sh += sy, sy = 0;
-    // clamp the right edge
-    if (sx + sw > image_data_width)
-        sw = image_data_width - sx;
-    if (sy + sh > image_data_height)
-        sh = image_data_height - sy;
-    // start destination at source offset
-    dx += sx;
-    dy += sy;
+    switch (argc)
+    {
+    case 3:
+        // imageData, dx, dy
+        sw = image_data_width;
+        sh = image_data_height;
+        break;
+    case 7:
+        // imageData, dx, dy, sx, sy, sw, sh
+        if (
+            JS_ToInt32(ctx, &sx, argv[3]) ||
+            JS_ToInt32(ctx, &sy, argv[4]) ||
+            JS_ToInt32(ctx, &sw, argv[5]) ||
+            JS_ToInt32(ctx, &sh, argv[6]))
+        {
+            return JS_EXCEPTION;
+        }
+        // fix up negative height, width
+        if (sw < 0)
+            sx += sw, sw = -sw;
+        if (sh < 0)
+            sy += sh, sh = -sh;
+        // clamp the left edge
+        if (sx < 0)
+            sw += sx, sx = 0;
+        if (sy < 0)
+            sh += sy, sy = 0;
+        // clamp the right edge
+        if (sx + sw > image_data_width)
+            sw = image_data_width - sx;
+        if (sy + sh > image_data_height)
+            sh = image_data_height - sy;
+        // start destination at source offset
+        dx += sx;
+        dy += sy;
+        break;
+    default:
+        JS_ThrowTypeError(ctx, "Invalid argument count: %d", argc);
+        return JS_EXCEPTION;
+    }
 
     // chop off outlying source data
     if (dx < 0)
@@ -1005,7 +1019,7 @@ static JSValue nx_canvas_init_class(JSContext *ctx, JSValueConst this_val, int a
 
 static JSValue nx_canvas_context_2d_set_fill_style(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-    CANVAS_CONTEXT;
+    CANVAS_CONTEXT_ARGV0;
     double args[4];
     if (js_validate_doubles_args(ctx, argv, args, 4, 1))
         return JS_EXCEPTION;
@@ -1018,7 +1032,7 @@ static JSValue nx_canvas_context_2d_set_fill_style(JSContext *ctx, JSValueConst 
 
 static JSValue nx_canvas_context_2d_set_stroke_style(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-    CANVAS_CONTEXT;
+    CANVAS_CONTEXT_ARGV0;
     double args[4];
     if (js_validate_doubles_args(ctx, argv, args, 4, 1))
         return JS_EXCEPTION;
@@ -1083,7 +1097,7 @@ static JSValue nx_canvas_context_2d_restore(JSContext *ctx, JSValueConst this_va
 static JSValue nx_canvas_context_2d_fill_rect(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     CANVAS_CONTEXT_THIS;
-    RECT_ARGS2;
+    RECT_ARGS;
     if (width && height)
     {
         save_path(context);
@@ -1571,11 +1585,16 @@ static JSValue nx_canvas_context_2d_set_image_smoothing_quality(JSContext *ctx, 
     const char *str = JS_ToCString(ctx, argv[0]);
     if (!str)
         return JS_EXCEPTION;
-    if (strcmp(str, "high") == 0) {
+    if (strcmp(str, "high") == 0)
+    {
         context->image_smoothing_quality = CAIRO_FILTER_BEST;
-    } else if (strcmp(str, "medium") == 0) {
+    }
+    else if (strcmp(str, "medium") == 0)
+    {
         context->image_smoothing_quality = CAIRO_FILTER_GOOD;
-    } else if (strcmp(str, "low") == 0) {
+    }
+    else if (strcmp(str, "low") == 0)
+    {
         context->image_smoothing_quality = CAIRO_FILTER_FAST;
     }
     return JS_UNDEFINED;
@@ -1583,7 +1602,7 @@ static JSValue nx_canvas_context_2d_set_image_smoothing_quality(JSContext *ctx, 
 
 static JSValue nx_canvas_context_2d_get_image_data(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-    CANVAS_CONTEXT;
+    CANVAS_CONTEXT_ARGV0;
     uint32_t width = context->canvas->width;
     uint32_t height = context->canvas->height;
 
