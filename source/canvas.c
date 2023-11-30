@@ -909,7 +909,6 @@ static JSValue nx_canvas_context_2d_draw_image(JSContext *ctx, JSValueConst this
     cairo_set_source_surface(context->ctx, surface, scaled_dx + extra_dx, scaled_dy + extra_dy);
 
     cairo_pattern_set_filter(cairo_get_source(context->ctx), context->image_smoothing_enabled ? context->image_smoothing_quality : CAIRO_FILTER_NEAREST);
-    cairo_pattern_set_filter(cairo_get_source(context->ctx), CAIRO_FILTER_GOOD);
     cairo_pattern_set_extend(cairo_get_source(context->ctx), CAIRO_EXTEND_NONE);
 
     cairo_paint_with_alpha(context->ctx, context->global_alpha);
@@ -1538,6 +1537,7 @@ static JSValue nx_canvas_context_2d_set_global_composite_operation(JSContext *ct
         // non-standard:
         op = CAIRO_OPERATOR_SATURATE;
     }
+    JS_FreeCString(ctx, str);
     if (op != -1)
     {
         cairo_set_operator(context->ctx, op);
