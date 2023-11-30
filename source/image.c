@@ -73,6 +73,18 @@ enum ImageFormat identify_image_format(uint8_t *data, size_t size)
     return FORMAT_UNKNOWN;
 }
 
+void premultiply_alpha(uint8_t *image_data, int width, int height)
+{
+    for (int i = 0; i < width * height; ++i)
+    {
+        uint8_t *pixel = &image_data[i * 4];
+        uint8_t alpha = pixel[3];
+        pixel[0] = (pixel[0] * alpha) / 255;
+        pixel[1] = (pixel[1] * alpha) / 255;
+        pixel[2] = (pixel[2] * alpha) / 255;
+    }
+}
+
 uint8_t *decode_png(uint8_t *input, size_t input_size, u32 *width, u32 *height)
 {
     png_structp png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
@@ -88,7 +100,11 @@ uint8_t *decode_png(uint8_t *input, size_t input_size, u32 *width, u32 *height)
 
     png_set_bgr(png_ptr);
     png_set_expand(png_ptr);
-    png_set_add_alpha(png_ptr, 0xff, PNG_FILLER_AFTER);
+    bool has_alpha = png_get_color_type(png_ptr, info_ptr) == PNG_COLOR_TYPE_RGBA;
+    if (!has_alpha)
+    {
+        png_set_add_alpha(png_ptr, 0xff, PNG_FILLER_AFTER);
+    }
 
     uint8_t *image_data = malloc(4 * (*width) * (*height));
     png_bytep rows[*height];
@@ -100,6 +116,11 @@ uint8_t *decode_png(uint8_t *input, size_t input_size, u32 *width, u32 *height)
     png_read_image(png_ptr, rows);
 
     png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
+
+    if (has_alpha)
+    {
+        premultiply_alpha(image_data, *width, *height);
+    }
 
     return image_data;
 }
@@ -150,6 +171,8 @@ uint8_t *decode_webp(uint8_t *webp_data, size_t data_size, int *width, int *heig
         return NULL;
     }
 
+    premultiply_alpha(bgra_data, *width, *height);
+
     return bgra_data;
 }
 
@@ -163,7 +186,7 @@ void nx_decode_image_do(nx_work_t *req)
     }
     else if (data->image->format == FORMAT_JPEG)
     {
-        if (decode_jpeg(data->input, data->input_size, &data->image->data, (int*)&data->image->width, (int*)&data->image->height))
+        if (decode_jpeg(data->input, data->input_size, &data->image->data, (int *)&data->image->width, (int *)&data->image->height))
         {
             data->err_str = tjGetErrorStr();
             return;
@@ -171,7 +194,7 @@ void nx_decode_image_do(nx_work_t *req)
     }
     else if (data->image->format == FORMAT_WEBP)
     {
-        data->image->data = decode_webp(data->input, data->input_size, (int*)&data->image->width, (int*)&data->image->height);
+        data->image->data = decode_webp(data->input, data->input_size, (int *)&data->image->width, (int *)&data->image->height);
     }
     else
     {
