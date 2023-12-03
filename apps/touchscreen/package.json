@@ -9,7 +9,7 @@
   },
   "license": "MIT",
   "devDependencies": {
-    "@types/color-hash": "^1.0.2",
+    "@types/color-hash": "^1.0.5",
     "esbuild": "^0.17.19",
     "nxjs-pack": "workspace:^",
     "nxjs-runtime": "workspace:^"
