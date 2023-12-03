@@ -84,7 +84,7 @@ static void restore_path(nx_canvas_context_2d_t *context)
     cairo_path_destroy(context->path);
 }
 
-static void fill(nx_canvas_context_2d_t *context)
+static void fill(nx_canvas_context_2d_t *context, bool preserve)
 {
     // TODO: support fill pattern / fill gradient / shadow
     cairo_set_source_rgba(
@@ -93,10 +93,14 @@ static void fill(nx_canvas_context_2d_t *context)
         context->fill_style.g,
         context->fill_style.b,
         context->fill_style.a * context->global_alpha);
-    cairo_fill(context->ctx);
+    if (preserve) {
+        cairo_fill_preserve(context->ctx);
+    } else {
+        cairo_fill(context->ctx);
+    }
 }
 
-static void stroke(nx_canvas_context_2d_t *context)
+static void stroke(nx_canvas_context_2d_t *context, bool preserve)
 {
     // TODO: support stroke pattern / stroke gradient / shadow
     cairo_set_source_rgba(
@@ -105,7 +109,11 @@ static void stroke(nx_canvas_context_2d_t *context)
         context->stroke_style.g,
         context->stroke_style.b,
         context->stroke_style.a * context->global_alpha);
-    cairo_stroke(context->ctx);
+    if (preserve) {
+        cairo_stroke_preserve(context->ctx);
+    } else {
+        cairo_stroke(context->ctx);
+    }
 }
 
 static JSValue nx_canvas_context_2d_move_to(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -486,7 +494,7 @@ static JSValue nx_canvas_context_2d_stroke_rect(JSContext *ctx, JSValueConst thi
     {
         save_path(context);
         cairo_rectangle(context->ctx, x, y, width, height);
-        stroke(context);
+        stroke(context, false);
         restore_path(context);
     }
     return JS_UNDEFINED;
@@ -1068,14 +1076,14 @@ static JSValue nx_canvas_context_2d_fill(JSContext *ctx, JSValueConst this_val, 
 {
     CANVAS_CONTEXT_THIS;
     set_fill_rule(ctx, argv[0], context->ctx);
-    fill(context);
+    fill(context, true);
     return JS_UNDEFINED;
 }
 
 static JSValue nx_canvas_context_2d_stroke(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     CANVAS_CONTEXT_THIS;
-    stroke(context);
+    stroke(context, true);
     return JS_UNDEFINED;
 }
 
@@ -1103,7 +1111,7 @@ static JSValue nx_canvas_context_2d_fill_rect(JSContext *ctx, JSValueConst this_
         cairo_rectangle(context->ctx, x, y, width, height);
 
         // TODO: support gradient / pattern
-        fill(context);
+        fill(context, false);
 
         restore_path(context);
     }
