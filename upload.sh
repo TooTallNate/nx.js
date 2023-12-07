@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 APP="${1-hello-world}"
-SWITCH_HOST="${2-192.168.86.109:5000}"
+SWITCH_HOST="${2-192.168.86.107:5000}"
 #SWITCH_HOST="${2-172.20.10.8:5000}"
 
 ARGS=(
