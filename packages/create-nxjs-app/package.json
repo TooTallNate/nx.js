@@ -21,7 +21,7 @@
   },
   "devDependencies": {
     "@types/degit": "^2.8.6",
-    "@types/node": "^20.10.2",
+    "@types/node": "^20.10.3",
     "@types/which": "^3.0.3",
     "types-package-json": "^2.0.39",
     "typescript": "^5.3.2"
