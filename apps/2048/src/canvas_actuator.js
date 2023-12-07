@@ -128,7 +128,7 @@ export class CanvasActuator {
 
 	drawGridContainer(grid) {
 		// Draw grid container
-		this.ctx.fillStyle = gridContainerColor;
+		this.ctx.beginPath();
 		this.ctx.roundRect(
 			this.gridX,
 			this.gridY,
@@ -136,6 +136,7 @@ export class CanvasActuator {
 			this.gridSize,
 			8
 		);
+		this.ctx.fillStyle = gridContainerColor;
 		this.ctx.fill();
 
 		// Draw empty cells
@@ -206,8 +207,9 @@ export class CanvasActuator {
 		if (tile?.value) {
 			fillStyle = tileColors[tile.value] || tileColorMax;
 		}
-		ctx.fillStyle = fillStyle;
+		ctx.beginPath();
 		ctx.roundRect(x, y, this.tileSize, this.tileSize, 6);
+		ctx.fillStyle = fillStyle;
 		ctx.fill();
 
 		if (tile?.value) {
@@ -244,6 +246,7 @@ export class CanvasActuator {
 		ctx.fillStyle = bgColor;
 		ctx.fillRect(scoreX, scoreY - 80, scoreWidth, scoreHeight + 80);
 
+		ctx.beginPath();
 		ctx.fillStyle = '#bbada0';
 		ctx.roundRect(scoreX, scoreY, scoreWidth, scoreHeight, 6);
 		ctx.fill();
@@ -292,6 +295,7 @@ export class CanvasActuator {
 		const t = Math.min(delta / messageFadeAnimationDuration, 1);
 		const e = ease(t);
 
+		this.ctx.beginPath();
 		this.ctx.fillStyle = `rgba(255, 255, 255, ${e.y / 2})`;
 		this.ctx.roundRect(
 			this.gridX,
