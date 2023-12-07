@@ -1,5 +1,6 @@
 #pragma once
 #include <cairo.h>
+#include <harfbuzz/hb.h>
 #include "types.h"
 
 /**
@@ -31,6 +32,7 @@ typedef struct
     cairo_t *ctx;
     cairo_path_t *path;
     cairo_filter_t image_smoothing_quality;
+    hb_font_t *hb_font;
     FT_Face ft_face;
     bool image_smoothing_enabled;
     double global_alpha;

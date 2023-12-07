@@ -568,6 +568,7 @@ int main(int argc, char *argv[])
     JSValue version_obj = JS_NewObject(ctx);
     JS_SetPropertyStr(ctx, version_obj, "cairo", JS_NewString(ctx, cairo_version_string()));
     JS_SetPropertyStr(ctx, version_obj, "freetype2", JS_NewString(ctx, FREETYPE_VERSION_STR));
+    JS_SetPropertyStr(ctx, version_obj, "harfbuzz", JS_NewString(ctx, HB_VERSION_STRING));
     JS_SetPropertyStr(ctx, version_obj, "mbedtls", JS_NewString(ctx, MBEDTLS_VERSION_STRING));
     JS_SetPropertyStr(ctx, version_obj, "nxjs", JS_NewString(ctx, NXJS_VERSION));
     JS_SetPropertyStr(ctx, version_obj, "png", JS_NewString(ctx, PNG_LIBPNG_VER_STRING));

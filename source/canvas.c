@@ -468,6 +468,7 @@ static JSValue nx_canvas_context_2d_set_font(JSContext *ctx, JSValueConst this_v
     cairo_set_font_face(context->ctx, face->cairo_font);
     cairo_set_font_size(context->ctx, font_size);
     context->ft_face = face->ft_face;
+    context->hb_font = face->hb_font;
     return JS_UNDEFINED;
 }
 
@@ -540,6 +541,109 @@ static JSValue nx_canvas_context_2d_fill_text(JSContext *ctx, JSValueConst this_
 
     cairo_show_text(context->ctx, text);
     JS_FreeCString(ctx, text);
+    return JS_UNDEFINED;
+}
+
+static JSValue nx_canvas_context_2d_stroke_text(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    CANVAS_CONTEXT_THIS;
+    double args[2];
+    if (js_validate_doubles_args(ctx, argv, args, 2, 1))
+        return JS_EXCEPTION;
+
+    const char *text = JS_ToCString(ctx, argv[0]);
+    if (!text)
+        return JS_EXCEPTION;
+
+    save_path(context);
+    cairo_move_to(context->ctx, args[0], args[1]);
+
+    cairo_text_path(context->ctx, text);
+    // Create a buffer for harfbuzz to use
+//    hb_buffer_t *hb_buffer = hb_buffer_create();
+//
+//    // Add text to buffer
+//    hb_buffer_add_utf8(hb_buffer, text, -1, 0, -1);
+//	//hb_buffer_guess_segment_properties(hb_buffer);
+//
+//    // Set script, language and direction of the text
+//    hb_buffer_set_direction(hb_buffer, HB_DIRECTION_LTR);
+//    hb_buffer_set_script(hb_buffer, HB_SCRIPT_LATIN);
+//    hb_buffer_set_language(hb_buffer, hb_language_from_string("en", -1));
+//
+//    // Shape the text
+//    hb_shape(context->hb_font, hb_buffer, NULL, 0);
+//
+//	// Convert HarfBuzz buffer to Cairo glyphs
+//    unsigned int num_glyphs;
+//    hb_glyph_info_t *glyph_info = hb_buffer_get_glyph_infos(hb_buffer, &num_glyphs);
+//    hb_glyph_position_t *glyph_pos = hb_buffer_get_glyph_positions(hb_buffer, &num_glyphs);
+//
+//    //cairo_glyph_t *cairo_glyphs = (cairo_glyph_t *)calloc(num_glyphs, sizeof(cairo_glyph_t));
+//    //for (unsigned int i = 0; i < num_glyphs; ++i) {
+//    //    cairo_glyphs[i].index = glyph_info[i].codepoint;
+//    //    cairo_glyphs[i].x = ((i + 1) * 25) + glyph_pos[i].x_offset / 64.0;
+//    //    cairo_glyphs[i].y = 100 + -glyph_pos[i].y_offset / 64.0;
+//    //}
+//        // Draw each glyph out one at a time
+//	double cursor_x = args[0];
+//    double cursor_y = args[1];
+//    for (unsigned int i = 0; i < num_glyphs; i++) {
+//        hb_codepoint_t glyph = glyph_info[i].codepoint;
+//        double x_advance =glyph_pos[i].x_advance / 64.;
+//        double y_advance =glyph_pos[i].y_advance / 64.;
+//        double x_offset = glyph_pos[i].x_offset / 64.;
+//        double y_offset = glyph_pos[i].y_offset / 64.;
+//		fprintf(stderr, "i: %u, glyph: %d, x_advance: %f, y_advance: %f, x_offset: %f, y_offset: %f\n", i, glyph, x_advance, y_advance, x_offset, y_offset);
+//
+//        // Draw the glyph at its position
+//        cairo_glyph_t cairo_glyph;
+//        cairo_glyph.index = glyph;
+//        cairo_glyph.x = x_offset;
+//        cairo_glyph.y = -y_offset;
+//        cairo_show_glyphs(context->ctx, &cairo_glyph, 1);
+//
+//        // Move the cairo cursor forward
+//        //cairo_rel_move_to(context->ctx, x_advance, -y_advance);
+//		cursor_x += x_advance;
+//        cursor_y += y_advance;
+//    }
+
+	// Convert HarfBuzz buffer to Cairo glyphs
+//    cairo_glyph_t *cairo_glyphs;
+//    unsigned int num_glyphs;
+//	cairo_text_cluster_t *clusters;
+//    unsigned int num_clusters;
+//    cairo_text_cluster_flags_t cluster_flags;
+//
+//	hb_cairo_glyphs_from_buffer(
+//        hb_buffer,
+//        true, // utf8_clusters
+//        10.0, // x_scale_factor
+//        10.0, // y_scale_factor
+//        500.0, // x
+//        500.0, // y
+//        text, // utf8
+//        -1, // utf8_len (auto-detect length)
+//        &cairo_glyphs,
+//        &num_glyphs,
+//        &clusters,
+//        &num_clusters,
+//        &cluster_flags
+//    );
+
+    // Draw the text onto the Cairo surface
+    //cairo_glyph_path(context->ctx, cairo_glyphs, num_glyphs);
+
+    stroke(context, false);
+
+    restore_path(context);
+
+    //cairo_glyph_free(cairo_glyphs);
+    //cairo_text_cluster_free(clusters);
+    //hb_buffer_destroy(hb_buffer);
+    JS_FreeCString(ctx, text);
+
     return JS_UNDEFINED;
 }
 
@@ -1831,6 +1935,7 @@ static JSValue nx_canvas_context_2d_init_class(JSContext *ctx, JSValueConst this
     NX_DEF_FUNC(proto, "setLineDash", nx_canvas_context_2d_set_line_dash, 1);
     NX_DEF_FUNC(proto, "stroke", nx_canvas_context_2d_stroke, 0);
     NX_DEF_FUNC(proto, "strokeRect", nx_canvas_context_2d_stroke_rect, 4);
+    NX_DEF_FUNC(proto, "strokeText", nx_canvas_context_2d_stroke_text, 3);
     NX_DEF_FUNC(proto, "transform", nx_canvas_context_2d_transform, 6);
     NX_DEF_FUNC(proto, "translate", nx_canvas_context_2d_translate, 2);
     JS_FreeValue(ctx, proto);

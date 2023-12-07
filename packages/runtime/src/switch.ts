@@ -127,6 +127,7 @@ interface SwitchEventHandlersEventMap {
 export interface Versions {
 	cairo: string;
 	freetype2: string;
+	harfbuzz: string;
 	nxjs: string;
 	png: string;
 	quickjs: string;

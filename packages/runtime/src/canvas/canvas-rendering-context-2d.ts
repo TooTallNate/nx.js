@@ -747,7 +747,7 @@ export class CanvasRenderingContext2D {
 		y: number,
 		maxWidth?: number | undefined
 	): void {
-		throw new Error('Method not implemented.');
+		stub();
 	}
 
 	createConicGradient(

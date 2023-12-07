@@ -1,7 +1,9 @@
 #pragma once
 #include <quickjs/quickjs.h>
-#include <cairo-ft.h>
 #include <ft2build.h>
+#include <harfbuzz/hb.h>
+#include <harfbuzz/hb-ft.h>
+#include <harfbuzz/hb-cairo.h>
 
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
@@ -10,6 +12,7 @@
 typedef struct
 {
     FT_Face ft_face;
+    hb_font_t *hb_font;
     cairo_font_face_t *cairo_font;
     JSValue font_buffer;
 } nx_font_face_t;
