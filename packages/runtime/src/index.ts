@@ -27,8 +27,6 @@ export type * from './console';
 export type * from './navigator';
 export type * from './navigator/battery';
 export type { VirtualKeyboard } from './navigator/virtual-keyboard';
-export type * from './canvas/image-data';
-export type { Path2D } from './canvas/path2d';
 export type * from './polyfills/event-target';
 export type { URL, URLSearchParams } from './polyfills/url';
 export type * from './polyfills/streams';
@@ -131,6 +129,11 @@ export type * from './window';
 
 import './screen';
 export type * from './screen';
+
+export type * from './canvas/image-data';
+
+import './canvas/path2d';
+export type { Path2D } from './canvas/path2d';
 
 import './canvas/canvas-rendering-context-2d';
 export type * from './canvas/canvas-rendering-context-2d';
