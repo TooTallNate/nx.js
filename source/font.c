@@ -1,4 +1,5 @@
 #include <switch.h>
+#include <harfbuzz/hb-ot.h>
 #include "types.h"
 #include "font.h"
 
@@ -29,21 +30,15 @@ static JSValue nx_new_font_face(JSContext *ctx, JSValueConst this_val, int argc,
                        0,         /* face_index           */
                        &context->ft_face);
 
-	FT_Set_Char_Size(
-        context->ft_face,    /* handle to face object           */
-        0,          /* char_width in 1/64th of points  */
-        1*64,    /* char_height in 1/64th of points */
-        0,          /* horizontal device resolution    */
-        0);         /* vertical device resolution      */
+	// For CAIRO, load using FreeType
+    context->cairo_font = cairo_ft_font_face_create_for_ft_face(context->ft_face, 0);
 
-    // Create a HarfBuzz font
-    context->hb_font = NULL;
-    //context->hb_font = hb_ft_font_create(context->ft_face, NULL);
-
-    // Create a Cairo font face from the FreeType face
-	//context->cairo_font = hb_cairo_font_face_create_for_font(context->hb_font);
-    context->cairo_font = cairo_ft_font_face_create_for_ft_face(context->ft_face, FT_LOAD_COLOR | FT_LOAD_RENDER);
-    // printf("ft_face %p, cairo_font: %p\n", context->ft_face, context->cairo_font);
+	// For Harfbuzz, load using OpenType (HarfBuzz FT does not support bitmap font)
+	hb_blob_t *blob = hb_blob_create((const char*)font_data, bytes, 0, NULL, NULL);
+	hb_face_t *face = hb_face_create(blob, 0);
+	context->hb_font = hb_font_create(face);
+	hb_ot_font_set_funcs(context->hb_font);
+	hb_font_set_scale(context->hb_font, 30*64, 30*64);
 
     JSValue obj = JS_NewObjectClass(ctx, nx_font_face_class_id);
     if (JS_IsException(obj))
@@ -60,11 +55,6 @@ static JSValue nx_font_face_dispose(JSContext *ctx, JSValueConst this_val, int a
 {
     nx_font_face_t *context = JS_GetOpaque2(ctx, this_val, nx_font_face_class_id);
     JS_FreeValue(ctx, context->font_buffer);
-    if (context->ft_face)
-    {
-        FT_Done_Face(context->ft_face);
-        context->ft_face = NULL;
-    }
     if (context->hb_font) {
         hb_font_destroy(context->hb_font);
         context->hb_font = NULL;
@@ -73,6 +63,11 @@ static JSValue nx_font_face_dispose(JSContext *ctx, JSValueConst this_val, int a
     {
         cairo_font_face_destroy(context->cairo_font);
         context->cairo_font = NULL;
+    }
+    if (context->ft_face)
+    {
+        FT_Done_Face(context->ft_face);
+        context->ft_face = NULL;
     }
     return JS_UNDEFINED;
 }
@@ -94,11 +89,6 @@ static void finalizer_font_face(JSRuntime *rt, JSValue val)
     nx_font_face_t *context = JS_GetOpaque(val, nx_font_face_class_id);
     if (context)
     {
-        JS_FreeValueRT(rt, context->font_buffer);
-        if (context->ft_face)
-        {
-            FT_Done_Face(context->ft_face);
-        }
         if (context->hb_font) {
             hb_font_destroy(context->hb_font);
         }
@@ -106,6 +96,11 @@ static void finalizer_font_face(JSRuntime *rt, JSValue val)
         {
             cairo_font_face_destroy(context->cairo_font);
         }
+        if (context->ft_face)
+        {
+            FT_Done_Face(context->ft_face);
+        }
+        JS_FreeValueRT(rt, context->font_buffer);
         js_free_rt(rt, context);
     }
 }

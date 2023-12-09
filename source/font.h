@@ -1,9 +1,9 @@
 #pragma once
 #include <quickjs/quickjs.h>
+#include <cairo.h>
 #include <ft2build.h>
 #include <harfbuzz/hb.h>
 #include <harfbuzz/hb-ft.h>
-#include <harfbuzz/hb-cairo.h>
 
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
