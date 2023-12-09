@@ -465,9 +465,11 @@ static JSValue nx_canvas_context_2d_set_font(JSContext *ctx, JSValueConst this_v
     if (JS_ToFloat64(ctx, &font_size, argv[2]))
         return JS_EXCEPTION;
 
+    context->ft_face = face->ft_face;
+    context->hb_font = face->hb_font;
     cairo_set_font_face(context->ctx, face->cairo_font);
     cairo_set_font_size(context->ctx, font_size);
-    context->ft_face = face->ft_face;
+	hb_font_set_scale(context->hb_font, font_size*64, font_size*64);
     return JS_UNDEFINED;
 }
 
@@ -528,7 +530,40 @@ static JSValue nx_canvas_context_2d_fill_text(JSContext *ctx, JSValueConst this_
     if (!text)
         return JS_EXCEPTION;
 
-    cairo_move_to(context->ctx, args[0], args[1]);
+	// Create HarfBuzz buffer
+    hb_buffer_t *buf = hb_buffer_create();
+
+	// Set buffer to LTR direction, common script and default language
+	hb_buffer_set_direction(buf, HB_DIRECTION_LTR);
+	hb_buffer_set_script(buf, HB_SCRIPT_COMMON);
+	hb_buffer_set_language(buf, hb_language_get_default());
+
+	// Add text and layout it
+	hb_buffer_add_utf8(buf, text, -1, 0, -1);
+	hb_shape(context->hb_font, buf, NULL, 0);
+
+	// Get buffer data
+	unsigned int        glyph_count = hb_buffer_get_length (buf);
+	hb_glyph_info_t     *glyph_info   = hb_buffer_get_glyph_infos(buf, NULL);
+	hb_glyph_position_t *glyph_pos    = hb_buffer_get_glyph_positions(buf, NULL);
+
+	// Shape glyph for Cairo
+	cairo_glyph_t *cairo_glyphs = cairo_glyph_allocate(glyph_count);
+	int x = 0;
+	int y = 0;
+	for (int i = 0 ; i < glyph_count ; ++i) {
+		cairo_glyphs[i].index = glyph_info[i].codepoint;
+		cairo_glyphs[i].x = x + (glyph_pos[i].x_offset / (64.0));
+		cairo_glyphs[i].y = -(y + glyph_pos[i].y_offset / (64.0));
+		x += glyph_pos[i].x_advance / (64.0);
+		y += glyph_pos[i].y_advance / (64.0);
+	}
+
+    // Move glyphs to the correct positions
+	for (int i = 0 ; i < glyph_count ; ++i) {
+		cairo_glyphs[i].x += args[0];
+		cairo_glyphs[i].y += args[1];
+	}
 
     // TODO: support gradient / pattern
     cairo_set_source_rgba(
@@ -538,8 +573,12 @@ static JSValue nx_canvas_context_2d_fill_text(JSContext *ctx, JSValueConst this_
         context->fill_style.b,
         context->fill_style.a * context->global_alpha);
 
-    cairo_show_text(context->ctx, text);
+    cairo_show_glyphs(context->ctx, cairo_glyphs, glyph_count);
+
+	cairo_glyph_free(cairo_glyphs);
+    hb_buffer_destroy(buf);
     JS_FreeCString(ctx, text);
+
     return JS_UNDEFINED;
 }
 
@@ -547,17 +586,52 @@ static JSValue nx_canvas_context_2d_measure_text(JSContext *ctx, JSValueConst th
 {
     CANVAS_CONTEXT_THIS;
     const char *text = JS_ToCString(ctx, argv[0]);
-    cairo_text_extents_t extents;
-    cairo_text_extents(context->ctx, text, &extents);
+
+		// Create HarfBuzz buffer
+    hb_buffer_t *buf = hb_buffer_create();
+
+	// Set buffer to LTR direction, common script and default language
+	hb_buffer_set_direction(buf, HB_DIRECTION_LTR);
+	hb_buffer_set_script(buf, HB_SCRIPT_COMMON);
+	hb_buffer_set_language(buf, hb_language_get_default());
+
+	// Add text and layout it
+	hb_buffer_add_utf8(buf, text, -1, 0, -1);
+	hb_shape(context->hb_font, buf, NULL, 0);
+
+	// Get buffer data
+	unsigned int        glyph_count = hb_buffer_get_length (buf);
+	hb_glyph_position_t *glyph_pos    = hb_buffer_get_glyph_positions(buf, NULL);
+
+	double width = 0;
+    // Calculate the width of the text
+    for (int i = 0; i < glyph_count; ++i) {
+        width += glyph_pos[i].x_advance / 64.0;
+    }
+
+    // Create the TextMetrics object
+    JSValue metrics = JS_NewObject(ctx);
+
+    // Set the width property
+    JS_SetPropertyStr(ctx, metrics, "width", JS_NewFloat64(ctx, width));
+
+    // Set the rest of the properties to 0 for now
+    JS_SetPropertyStr(ctx, metrics, "actualBoundingBoxLeft", JS_NewFloat64(ctx, 0));
+    JS_SetPropertyStr(ctx, metrics, "actualBoundingBoxRight", JS_NewFloat64(ctx, 0));
+    JS_SetPropertyStr(ctx, metrics, "fontBoundingBoxAscent", JS_NewFloat64(ctx, 0));
+    JS_SetPropertyStr(ctx, metrics, "fontBoundingBoxDescent", JS_NewFloat64(ctx, 0));
+    JS_SetPropertyStr(ctx, metrics, "actualBoundingBoxAscent", JS_NewFloat64(ctx, 0));
+    JS_SetPropertyStr(ctx, metrics, "actualBoundingBoxDescent", JS_NewFloat64(ctx, 0));
+    JS_SetPropertyStr(ctx, metrics, "emHeightAscent", JS_NewFloat64(ctx, 0));
+    JS_SetPropertyStr(ctx, metrics, "emHeightDescent", JS_NewFloat64(ctx, 0));
+    JS_SetPropertyStr(ctx, metrics, "hangingBaseline", JS_NewFloat64(ctx, 0));
+    JS_SetPropertyStr(ctx, metrics, "alphabeticBaseline", JS_NewFloat64(ctx, 0));
+    JS_SetPropertyStr(ctx, metrics, "ideographicBaseline", JS_NewFloat64(ctx, 0));
+
     JS_FreeCString(ctx, text);
-    JSValue obj = JS_NewObject(ctx);
-    JS_SetPropertyStr(ctx, obj, "xBearing", JS_NewFloat64(ctx, extents.x_bearing));
-    JS_SetPropertyStr(ctx, obj, "yBearing", JS_NewFloat64(ctx, extents.y_bearing));
-    JS_SetPropertyStr(ctx, obj, "xAdvance", JS_NewFloat64(ctx, extents.x_advance));
-    JS_SetPropertyStr(ctx, obj, "yAdvance", JS_NewFloat64(ctx, extents.y_advance));
-    JS_SetPropertyStr(ctx, obj, "width", JS_NewFloat64(ctx, extents.width));
-    JS_SetPropertyStr(ctx, obj, "height", JS_NewFloat64(ctx, extents.height));
-    return obj;
+	hb_buffer_destroy(buf);
+
+    return metrics;
 }
 
 static void js_free_array_buffer(JSRuntime *rt, void *opaque, void *ptr)
