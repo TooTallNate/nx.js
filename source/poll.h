@@ -15,57 +15,56 @@ typedef void (*nx_connect_cb)(nx_poll_t *p, nx_connect_t *req);
 typedef void (*nx_server_cb)(nx_poll_t *p, nx_server_t *req, int client_fd);
 
 #define NX_WATCHER_FIELDS           \
-    int fd;                         \
-    int events;                     \
-    int err;                        \
-    nx_watcher_cb watcher_callback; \
-    void *opaque;                   \
-    SLIST_ENTRY(nx_watcher_s)       \
-    next;
+	int fd;                         \
+	int events;                     \
+	int err;                        \
+	nx_watcher_cb watcher_callback; \
+	void *opaque;                   \
+	SLIST_ENTRY(nx_watcher_s)       \
+	next;
 
 struct nx_watcher_s
 {
-    NX_WATCHER_FIELDS
+	NX_WATCHER_FIELDS
 };
 
 struct nx_read_s
 {
-    NX_WATCHER_FIELDS
-    const uint8_t *buffer;
-    size_t buffer_size;
-    size_t bytes_read;
-    nx_read_cb callback;
+	NX_WATCHER_FIELDS
+	const uint8_t *buffer;
+	size_t buffer_size;
+	size_t bytes_read;
+	nx_read_cb callback;
 };
 
 struct nx_write_s
 {
-    NX_WATCHER_FIELDS
-    const uint8_t *buffer;
-    size_t buffer_size;
-    size_t bytes_written;
-    nx_write_cb callback;
+	NX_WATCHER_FIELDS
+	const uint8_t *buffer;
+	size_t buffer_size;
+	size_t bytes_written;
+	nx_write_cb callback;
 };
 
 struct nx_connect_s
 {
-    NX_WATCHER_FIELDS
-    nx_connect_cb callback;
+	NX_WATCHER_FIELDS
+	nx_connect_cb callback;
 };
 
 struct nx_server_s
 {
-    NX_WATCHER_FIELDS
-    nx_server_cb callback;
+	NX_WATCHER_FIELDS
+	nx_server_cb callback;
 };
-
 
 struct nx_poll_s
 {
-    struct pollfd *poll_fds;
-    nfds_t poll_fds_used;
-    nfds_t poll_fds_size;
-    SLIST_HEAD(slisthead, nx_watcher_s)
-    watchers_head;
+	struct pollfd *poll_fds;
+	nfds_t poll_fds_used;
+	nfds_t poll_fds_size;
+	SLIST_HEAD(slisthead, nx_watcher_s)
+	watchers_head;
 };
 
 // High-level API
