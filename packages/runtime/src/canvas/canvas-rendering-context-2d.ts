@@ -741,13 +741,23 @@ export class CanvasRenderingContext2D {
 		this.moveTo(x, y);
 	}
 
+	/**
+	 * Draws the outlines of the characters of the text string at the specified coordinates,
+	 * stroking the string's characters with the current {@link CanvasRenderingContext2D.strokeStyle | `strokeStyle`}.
+	 *
+	 * @param text A string specifying the text string to render into the context.
+	 * @param x The x-axis coordinate of the point at which to begin drawing the text, in pixels.
+	 * @param y The y-axis coordinate of the baseline on which to begin drawing the text, in pixels.
+	 * @param maxWidth The maximum number of pixels wide the text may be once rendered. If not specified, there is no limit to the width of the text.
+	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/strokeText
+	 */
 	strokeText(
 		text: string,
 		x: number,
 		y: number,
 		maxWidth?: number | undefined
 	): void {
-		throw new Error('Method not implemented.');
+		stub();
 	}
 
 	createConicGradient(
