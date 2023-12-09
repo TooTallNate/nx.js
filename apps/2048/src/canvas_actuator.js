@@ -221,7 +221,7 @@ export class CanvasActuator {
 			ctx.fillText(
 				val,
 				x + this.tileSize / 2 - m.width / 2,
-				y + this.tileSize / 2 + m.height / 2
+				y + this.tileSize / 2 + fontSize / 2
 			);
 		}
 	}
@@ -257,7 +257,7 @@ export class CanvasActuator {
 		const scoreMeasure = ctx.measureText(scoreStr);
 		const scoreTextX = scoreX + (scoreWidth / 2 - scoreMeasure.width / 2);
 		const scoreTextY =
-			10 + scoreY + (scoreHeight / 2 + scoreMeasure.height / 2);
+			10 + scoreY + (scoreHeight / 2 + 36 / 2);
 		ctx.fillText(scoreStr, scoreTextX, scoreTextY);
 
 		const now = Date.now();
@@ -311,7 +311,7 @@ export class CanvasActuator {
 		const message = won ? 'You win!' : 'Game over!';
 		const m = this.ctx.measureText(message);
 		const x = this.gridX + (this.gridSize / 2 - m.width / 2);
-		const y = this.gridY + (this.gridSize / 2 + m.height / 2);
+		const y = this.gridY + (this.gridSize / 2 + 64 / 2);
 		this.ctx.fillText(message, x, y);
 	}
 }
