@@ -582,68 +582,6 @@ static JSValue nx_canvas_context_2d_fill_text(JSContext *ctx, JSValueConst this_
     return JS_UNDEFINED;
 }
 
-static JSValue nx_canvas_context_2d_stroke_text(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
-    CANVAS_CONTEXT_THIS;
-    double args[2];
-    if (js_validate_doubles_args(ctx, argv, args, 2, 1))
-        return JS_EXCEPTION;
-
-    const char *text = JS_ToCString(ctx, argv[0]);
-    if (!text)
-        return JS_EXCEPTION;
-
-    save_path(context);
-
-	// Create HarfBuzz buffer
-	hb_buffer_t *buf = hb_buffer_create();
-
-	// Set buffer to LTR direction, common script and default language
-	hb_buffer_set_direction(buf, HB_DIRECTION_LTR);
-	hb_buffer_set_script(buf, HB_SCRIPT_COMMON);
-	hb_buffer_set_language(buf, hb_language_get_default());
-
-	// Add text and layout it
-	hb_buffer_add_utf8(buf, text, -1, 0, -1);
-	hb_shape(context->hb_font, buf, NULL, 0);
-
-	// Get buffer data
-	unsigned int        glyph_count = hb_buffer_get_length (buf);
-	hb_glyph_info_t     *glyph_info   = hb_buffer_get_glyph_infos(buf, NULL);
-	hb_glyph_position_t *glyph_pos    = hb_buffer_get_glyph_positions(buf, NULL);
-
-	// Shape glyph for Cairo
-	cairo_glyph_t *cairo_glyphs = cairo_glyph_allocate(glyph_count);
-	int x = 0;
-	int y = 0;
-	for (int i = 0 ; i < glyph_count ; ++i) {
-		cairo_glyphs[i].index = glyph_info[i].codepoint;
-		cairo_glyphs[i].x = x + (glyph_pos[i].x_offset / (64.0));
-		cairo_glyphs[i].y = -(y + glyph_pos[i].y_offset / (64.0));
-		x += glyph_pos[i].x_advance / (64.0);
-		y += glyph_pos[i].y_advance / (64.0);
-	}
-
-    // Move glyphs to the correct positions
-	for (int i = 0 ; i < glyph_count ; ++i) {
-		cairo_glyphs[i].x += args[0];
-		cairo_glyphs[i].y += args[1];
-	}
-
-    // Draw the text onto the Cairo surface
-    cairo_glyph_path(context->ctx, cairo_glyphs, glyph_count);
-
-    stroke(context, false);
-
-    restore_path(context);
-
-    cairo_glyph_free(cairo_glyphs);
-    hb_buffer_destroy(buf);
-    JS_FreeCString(ctx, text);
-
-    return JS_UNDEFINED;
-}
-
 static JSValue nx_canvas_context_2d_measure_text(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     CANVAS_CONTEXT_THIS;
@@ -1967,7 +1905,6 @@ static JSValue nx_canvas_context_2d_init_class(JSContext *ctx, JSValueConst this
     NX_DEF_FUNC(proto, "setLineDash", nx_canvas_context_2d_set_line_dash, 1);
     NX_DEF_FUNC(proto, "stroke", nx_canvas_context_2d_stroke, 0);
     NX_DEF_FUNC(proto, "strokeRect", nx_canvas_context_2d_stroke_rect, 4);
-    NX_DEF_FUNC(proto, "strokeText", nx_canvas_context_2d_stroke_text, 3);
     NX_DEF_FUNC(proto, "transform", nx_canvas_context_2d_transform, 6);
     NX_DEF_FUNC(proto, "translate", nx_canvas_context_2d_translate, 2);
     JS_FreeValue(ctx, proto);
