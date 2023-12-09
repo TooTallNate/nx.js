@@ -1,5 +1,21 @@
 # nxjs-runtime
 
+## 0.0.24
+
+### Patch Changes
+
+- Make Canvas `fill()` and `stroke()` preserve the drawing path ([`b6b8423c37f81cd8f48b8248f1cd0618f810af5b`](https://github.com/TooTallNate/nx.js/commit/b6b8423c37f81cd8f48b8248f1cd0618f810af5b))
+
+- Use HarfBuzz for Canvas text placement and measurement ([#67](https://github.com/TooTallNate/nx.js/pull/67))
+
+- Ensure `Path2D` constructor is defined globally ([`20cfe438e5985aab12c2660698b31c8f6468cf69`](https://github.com/TooTallNate/nx.js/commit/20cfe438e5985aab12c2660698b31c8f6468cf69))
+
+- Fix Canvas `putImageData()` ([`1bb003b5a9eaecb2f996666e83ef97741a1e766f`](https://github.com/TooTallNate/nx.js/commit/1bb003b5a9eaecb2f996666e83ef97741a1e766f))
+
+- Add Canvas `strokeText()` ([`f3c52b6567522a32869467e840e599d678c0fdbb`](https://github.com/TooTallNate/nx.js/commit/f3c52b6567522a32869467e840e599d678c0fdbb))
+
+- Fix PNG and WebP image alpha channel handling ([`60c1f0bfe17c062f6294f10801dfe16aad046536`](https://github.com/TooTallNate/nx.js/commit/60c1f0bfe17c062f6294f10801dfe16aad046536))
+
 ## 0.0.23
 
 ### Patch Changes
