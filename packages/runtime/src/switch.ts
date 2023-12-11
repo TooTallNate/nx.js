@@ -1,6 +1,7 @@
 import { $ } from './$';
 import { FontFaceSet } from './font/font-face-set';
 import { type Callback, INTERNAL_SYMBOL, type Opaque } from './internal';
+import { Env } from './env';
 import { inspect } from './inspect';
 import { bufferSourceToArrayBuffer, toPromise, pathToString } from './utils';
 import { setTimeout, clearTimeout } from './timers';
@@ -43,10 +44,6 @@ type Keys = {
 export interface Native {
 	cwd(): string;
 	chdir(dir: string): void;
-	getenv(name: string): string | undefined;
-	setenv(name: string, value: string): void;
-	unsetenv(name: string): void;
-	envToObject(): Record<string, string>;
 	consoleInit(): void;
 	consoleExit(): void;
 	framebufferInit(buf: _Screen | CanvasRenderingContext2DState): void;
@@ -199,7 +196,7 @@ export class SwitchClass extends EventTarget {
 		// @ts-expect-error Populated by the host process
 		const native: Native = {};
 		this.native = native;
-		this.env = new Env(this);
+		this.env = new Env();
 		this[INTERNAL_SYMBOL] = {
 			previousButtons: 0,
 			previousTouches: [],
@@ -554,34 +551,4 @@ export class SwitchClass extends EventTarget {
 	};
 
 	inspect = inspect;
-}
-
-export class Env {
-	/**
-	 * @private
-	 */
-	[INTERNAL_SYMBOL]: SwitchClass;
-
-	/**
-	 * @private
-	 */
-	constructor(s: SwitchClass) {
-		this[INTERNAL_SYMBOL] = s;
-	}
-
-	get(name: string) {
-		return this[INTERNAL_SYMBOL].native.getenv(name);
-	}
-
-	set(name: string, value: string) {
-		this[INTERNAL_SYMBOL].native.setenv(name, value);
-	}
-
-	delete(name: string) {
-		this[INTERNAL_SYMBOL].native.unsetenv(name);
-	}
-
-	toObject() {
-		return this[INTERNAL_SYMBOL].native.envToObject();
-	}
 }

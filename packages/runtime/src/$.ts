@@ -81,6 +81,10 @@ export interface Init {
 	// main.c
 	print(v: string): void;
 	getInternalPromiseState(p: Promise<unknown>): [number, unknown];
+	getenv(name: string): string | undefined;
+	setenv(name: string, value: string): void;
+	unsetenv(name: string): void;
+	envToObject(): Record<string, string>;
 	onFrame(fn: (kDown: number) => void): void;
 	onExit(fn: () => void): void;
 

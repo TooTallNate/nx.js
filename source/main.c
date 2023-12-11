@@ -504,7 +504,14 @@ int main(int argc, char *argv[])
 	nx_init_wasm(ctx, init_obj);
 	const JSCFunctionListEntry init_function_list[] = {
 		JS_CFUNC_DEF("print", 1, js_print),
-		JS_CFUNC_DEF("getInternalPromiseState", 0, js_get_internal_promise_state),
+		JS_CFUNC_DEF("getInternalPromiseState", 1, js_get_internal_promise_state),
+
+		// env vars
+		JS_CFUNC_DEF("getenv", 1, js_getenv),
+		JS_CFUNC_DEF("setenv", 2, js_setenv),
+		JS_CFUNC_DEF("unsetenv", 1, js_unsetenv),
+		JS_CFUNC_DEF("envToObject", 0, js_env_to_object),
+
 		JS_CFUNC_DEF("onExit", 1, nx_set_exit_handler),
 		JS_CFUNC_DEF("onFrame", 1, nx_set_frame_handler)};
 	JS_SetPropertyFunctionList(ctx, init_obj, init_function_list, countof(init_function_list));
@@ -593,12 +600,6 @@ int main(int argc, char *argv[])
 	const JSCFunctionListEntry function_list[] = {
 		JS_CFUNC_DEF("cwd", 0, js_cwd),
 		JS_CFUNC_DEF("chdir", 1, js_chdir),
-
-		// env vars
-		JS_CFUNC_DEF("getenv", 1, js_getenv),
-		JS_CFUNC_DEF("setenv", 2, js_setenv),
-		JS_CFUNC_DEF("unsetenv", 1, js_unsetenv),
-		JS_CFUNC_DEF("envToObject", 0, js_env_to_object),
 
 		// hid
 		JS_CFUNC_DEF("hidInitializeKeyboard", 0, js_hid_initialize_keyboard),
