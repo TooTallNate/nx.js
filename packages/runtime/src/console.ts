@@ -102,10 +102,12 @@ export const console = {
 	},
 
 	/**
-	 * `console.debug()` is an alias for `console.log()`.
+	 * Logs to the debug log file the formatted `input`.
+	 *
+	 * @note This function **does not** invoke _text rendering mode_, so it can safely be used when rendering with the Canvas API.
 	 */
 	debug(...input: unknown[]) {
-		console.log(...input);
+		$.printErr(`${format(...input)}\n`);
 	},
 
 	trace(...input: unknown[]) {
