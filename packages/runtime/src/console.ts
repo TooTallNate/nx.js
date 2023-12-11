@@ -1,7 +1,7 @@
 import { bgRgb, bold, red, yellow } from 'kleur/colors';
+import { $ } from './$';
+import { inspect } from './inspect';
 import type { SwitchClass } from './switch';
-
-declare const Switch: SwitchClass;
 
 const bgRedDim = bgRgb(60, 0, 0);
 const bgYellowDim = bgRgb(60, 60, 0);
@@ -17,10 +17,10 @@ const formatters: Record<string, (v: unknown) => string> = {
 		return JSON.stringify(v);
 	},
 	o(v) {
-		return Switch.inspect(v);
+		return inspect(v);
 	},
 	O(v) {
-		return Switch.inspect(v);
+		return inspect(v);
 	},
 };
 
@@ -38,7 +38,7 @@ function format(...input: unknown[]): string {
 	}
 	if (input.length) {
 		if (s) s += ' ';
-		s += input.map((v) => Switch.inspect(v)).join(' ');
+		s += input.map((v) => inspect(v)).join(' ');
 	}
 	return s;
 }
@@ -63,21 +63,21 @@ export const console = {
 	 * Logs to the screen the formatted `input` as white text.
 	 */
 	log(...input: unknown[]) {
-		Switch.print(`${format(...input)}\n`);
+		$.print(`${format(...input)}\n`);
 	},
 
 	/**
 	 * Logs to the screen the formatted `input` as yellow text.
 	 */
 	warn(...input: unknown[]) {
-		Switch.print(`${bold(bgYellowDim(yellow(format(...input))))}\n`);
+		$.print(`${bold(bgYellowDim(yellow(format(...input))))}\n`);
 	},
 
 	/**
 	 * Logs to the screen the formatted `input` as red text.
 	 */
 	error(...input: unknown[]) {
-		Switch.print(`${bold(bgRedDim(red(format(...input))))}\n`);
+		$.print(`${bold(bgRedDim(red(format(...input))))}\n`);
 	},
 
 	/**
@@ -90,6 +90,6 @@ export const console = {
 	trace(...input: unknown[]) {
 		const f = format(...input);
 		const s = new Error().stack!.split('\n').slice(1).join('\n');
-		Switch.print(`Trace${f ? `: ${f}` : ''}\n${s}`);
+		$.print(`Trace${f ? `: ${f}` : ''}\n${s}`);
 	},
 };

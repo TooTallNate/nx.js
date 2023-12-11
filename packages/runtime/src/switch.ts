@@ -41,10 +41,8 @@ type Keys = {
  * @private
  */
 export interface Native {
-	print(str: string): void;
 	cwd(): string;
 	chdir(dir: string): void;
-	getInternalPromiseState(p: Promise<unknown>): [number, unknown];
 	getenv(name: string): string | undefined;
 	setenv(name: string, value: string): void;
 	unsetenv(name: string): void;
@@ -307,7 +305,7 @@ export class SwitchClass extends EventTarget {
 		if (internal.renderingMode !== RenderingMode.Console) {
 			internal.setRenderingMode(RenderingMode.Console);
 		}
-		this.native.print(str);
+		$.print(str);
 	}
 
 	/**

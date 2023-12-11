@@ -79,6 +79,8 @@ export interface Init {
 	): void;
 
 	// main.c
+	print(v: string): void;
+	getInternalPromiseState(p: Promise<unknown>): [number, unknown];
 	onFrame(fn: (kDown: number) => void): void;
 	onExit(fn: () => void): void;
 

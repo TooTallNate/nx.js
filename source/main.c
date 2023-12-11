@@ -503,6 +503,8 @@ int main(int argc, char *argv[])
 	nx_init_swkbd(ctx, init_obj);
 	nx_init_wasm(ctx, init_obj);
 	const JSCFunctionListEntry init_function_list[] = {
+		JS_CFUNC_DEF("print", 1, js_print),
+		JS_CFUNC_DEF("getInternalPromiseState", 0, js_get_internal_promise_state),
 		JS_CFUNC_DEF("onExit", 1, nx_set_exit_handler),
 		JS_CFUNC_DEF("onFrame", 1, nx_set_frame_handler)};
 	JS_SetPropertyFunctionList(ctx, init_obj, init_function_list, countof(init_function_list));
@@ -589,10 +591,8 @@ int main(int argc, char *argv[])
 	JS_SetPropertyStr(ctx, switch_obj, "exit", JS_NewCFunction(ctx, js_exit, "exit", 0));
 
 	const JSCFunctionListEntry function_list[] = {
-		JS_CFUNC_DEF("print", 1, js_print),
 		JS_CFUNC_DEF("cwd", 0, js_cwd),
 		JS_CFUNC_DEF("chdir", 1, js_chdir),
-		JS_CFUNC_DEF("getInternalPromiseState", 0, js_get_internal_promise_state),
 
 		// env vars
 		JS_CFUNC_DEF("getenv", 1, js_getenv),
