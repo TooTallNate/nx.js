@@ -9,7 +9,6 @@ import { encoder } from './polyfills/text-encoder';
 import { EventTarget } from './polyfills/event-target';
 import { Socket, connect, createServer, parseAddress } from './tcp';
 import { resolve as dnsResolve } from './dns';
-import type { Screen as Screen } from './screen';
 import type {
 	PathLike,
 	Stats,
@@ -41,10 +40,6 @@ type Keys = {
 export interface Native {
 	cwd(): string;
 	chdir(dir: string): void;
-	consoleInit(): void;
-	consoleExit(): void;
-	framebufferInit(buf: Screen): void;
-	framebufferExit(): void;
 
 	// applet
 	appletGetAppletType(): number;
@@ -91,16 +86,7 @@ interface Internal {
 	vibrationDevicesInitialized?: boolean;
 	vibrationPattern?: (number | Vibration)[];
 	vibrationTimeoutId?: number;
-	renderingMode?: RenderingMode;
 	nifmInitialized?: boolean;
-	setRenderingMode: (mode: RenderingMode, ctx?: Screen) => void;
-	cleanup: () => void;
-}
-
-export enum RenderingMode {
-	Init,
-	Console,
-	Framebuffer,
 }
 
 interface SwitchEventHandlersEventMap {
@@ -201,26 +187,6 @@ export class SwitchClass extends EventTarget {
 				[3]: 0n,
 				modifiers: 0n,
 			},
-			renderingMode: RenderingMode.Init,
-			setRenderingMode(mode: RenderingMode, ctx?: Screen) {
-				if (mode === RenderingMode.Console) {
-					native.framebufferExit();
-					native.consoleInit();
-				} else if (mode === RenderingMode.Framebuffer && ctx) {
-					native.consoleExit();
-					native.framebufferInit(ctx);
-				} else {
-					throw new Error('Unsupported rendering mode');
-				}
-				this.renderingMode = mode;
-			},
-			cleanup() {
-				if (this.renderingMode === RenderingMode.Console) {
-					native.consoleExit();
-				} else if (this.renderingMode === RenderingMode.Framebuffer) {
-					native.framebufferExit();
-				}
-			},
 		};
 
 		// TODO: Move to `document`
@@ -289,10 +255,6 @@ export class SwitchClass extends EventTarget {
 	 * which clears any pixels previously drawn on the screen using the Canvas API.
 	 */
 	print(str: string) {
-		const internal = this[INTERNAL_SYMBOL];
-		if (internal.renderingMode !== RenderingMode.Console) {
-			internal.setRenderingMode(RenderingMode.Console);
-		}
 		$.print(str);
 	}
 

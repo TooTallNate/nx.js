@@ -23,7 +23,6 @@ static nx_swkbd_t *nx_swkbd_get(JSContext *ctx, JSValueConst obj)
 
 static void finalizer_swkbd(JSRuntime *rt, JSValue val)
 {
-	fprintf(stderr, "finalizer_swkbd\n");
 	nx_swkbd_t *data = JS_GetOpaque(val, nx_swkbd_class_id);
 	if (data)
 	{

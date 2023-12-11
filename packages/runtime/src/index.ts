@@ -308,5 +308,4 @@ $.onFrame((kDown) => {
 
 $.onExit(() => {
 	dispatchEvent(new Event('unload'));
-	Switch[INTERNAL_SYMBOL].cleanup();
 });

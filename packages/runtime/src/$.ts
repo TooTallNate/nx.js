@@ -64,7 +64,6 @@ export interface Init {
 
 	// font.c
 	fontFaceNew(data: ArrayBuffer): FontFace;
-	fontFaceDispose(this: FontFace): void;
 	getSystemFont(): ArrayBuffer;
 
 	// image.c
@@ -88,6 +87,7 @@ export interface Init {
 	envToObject(): Record<string, string>;
 	onFrame(fn: (kDown: number) => void): void;
 	onExit(fn: () => void): void;
+	framebufferInit(screen: Screen): void;
 
 	// nifm.c
 	nifmInitialize(): () => void;
