@@ -35,29 +35,25 @@ typedef struct nx_canvas_context_2d_state_s
 
 	nx_rgba_t fill;
 	nx_rgba_t stroke;
-	//nx_rgba_t shadow;
-	//double shadowOffsetX;
-	//double shadowOffsetY;
-	//cairo_pattern_t *fillPattern;
-	//cairo_pattern_t *strokePattern;
-	//cairo_pattern_t *fillGradient;
-	//cairo_pattern_t *strokeGradient;
-	// PangoFontDescription *fontDescription;
-	// std::string fontStr;
-	//cairo_filter_t image;
-	//int shadowBlur;
+	// nx_rgba_t shadow;
+	// double shadowOffsetX;
+	// double shadowOffsetY;
+	// cairo_pattern_t *fillPattern;
+	// cairo_pattern_t *strokePattern;
+	// cairo_pattern_t *fillGradient;
+	// cairo_pattern_t *strokeGradient;
+	// int shadowBlur;
 	// text_align_t textAlignment = TEXT_ALIGNMENT_LEFT; // TODO default is supposed to be START
 	// text_baseline_t textBaseline = TEXT_BASELINE_ALPHABETIC;
 	// canvas_draw_mode_t textDrawingMode;
 	cairo_filter_t image_smoothing_quality;
 	JSValue font;
 	double font_size;
-	const char* font_string;
+	const char *font_string;
 	hb_font_t *hb_font;
-	//FT_Face ft_face;
 	bool image_smoothing_enabled;
 	double global_alpha;
-	struct nx_canvas_context_2d_state_s* next;
+	struct nx_canvas_context_2d_state_s *next;
 } nx_canvas_context_2d_state_t;
 
 /**

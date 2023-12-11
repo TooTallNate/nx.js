@@ -469,6 +469,8 @@ static JSValue nx_canvas_context_2d_set_font(JSContext *ctx, JSValueConst this_v
 {
 	CANVAS_CONTEXT_ARGV0;
 
+	JS_FreeValue(ctx, context->state->font);
+
 	context->state->font = JS_DupValue(ctx, argv[1]);
 	nx_font_face_t *face = nx_get_font_face(ctx, context->state->font);
 	if (!face)
