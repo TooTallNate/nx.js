@@ -9,7 +9,7 @@ import { encoder } from './polyfills/text-encoder';
 import { EventTarget } from './polyfills/event-target';
 import { Socket, connect, createServer, parseAddress } from './tcp';
 import { resolve as dnsResolve } from './dns';
-import type { Screen as _Screen } from './screen';
+import type { Screen as Screen } from './screen';
 import type {
 	PathLike,
 	Stats,
@@ -18,9 +18,6 @@ import type {
 	SocketOptions,
 } from './types';
 
-export type CanvasRenderingContext2DState =
-	Opaque<'CanvasRenderingContext2DState'>;
-export type ImageOpaque = Opaque<'ImageOpaque'>;
 export type WasmModuleOpaque = Opaque<'WasmModuleOpaque'>;
 export type WasmInstanceOpaque = Opaque<'WasmInstanceOpaque'>;
 export type WasmGlobalOpaque = Opaque<'WasmGlobalOpaque'>;
@@ -46,7 +43,7 @@ export interface Native {
 	chdir(dir: string): void;
 	consoleInit(): void;
 	consoleExit(): void;
-	framebufferInit(buf: _Screen | CanvasRenderingContext2DState): void;
+	framebufferInit(buf: Screen): void;
 	framebufferExit(): void;
 
 	// applet
@@ -96,10 +93,7 @@ interface Internal {
 	vibrationTimeoutId?: number;
 	renderingMode?: RenderingMode;
 	nifmInitialized?: boolean;
-	setRenderingMode: (
-		mode: RenderingMode,
-		ctx?: _Screen | CanvasRenderingContext2DState
-	) => void;
+	setRenderingMode: (mode: RenderingMode, ctx?: Screen) => void;
 	cleanup: () => void;
 }
 
@@ -208,10 +202,7 @@ export class SwitchClass extends EventTarget {
 				modifiers: 0n,
 			},
 			renderingMode: RenderingMode.Init,
-			setRenderingMode(
-				mode: RenderingMode,
-				ctx?: _Screen | CanvasRenderingContext2DState
-			) {
+			setRenderingMode(mode: RenderingMode, ctx?: Screen) {
 				if (mode === RenderingMode.Console) {
 					native.framebufferExit();
 					native.consoleInit();
