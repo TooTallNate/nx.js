@@ -81,28 +81,28 @@ export const console = {
 	},
 
 	/**
-	 * Logs to the screen the formatted `input` as white text.
+	 * Logs the formatted `input` to the screen as white text.
 	 */
 	log(...input: unknown[]) {
 		$.print(`${format(...input)}\n`);
 	},
 
 	/**
-	 * Logs to the screen the formatted `input` as yellow text.
+	 * Logs the formatted `input` to the screen as yellow text.
 	 */
 	warn(...input: unknown[]) {
 		$.print(`${bold(bgYellowDim(yellow(format(...input))))}\n`);
 	},
 
 	/**
-	 * Logs to the screen the formatted `input` as red text.
+	 * Logs the formatted `input` to the screen as red text.
 	 */
 	error(...input: unknown[]) {
 		$.print(`${bold(bgRedDim(red(format(...input))))}\n`);
 	},
 
 	/**
-	 * Logs to the debug log file the formatted `input`.
+	 * Writes the formatted `input` to the debug log file.
 	 *
 	 * @note This function **does not** invoke _text rendering mode_, so it can safely be used when rendering with the Canvas API.
 	 */
@@ -110,6 +110,10 @@ export const console = {
 		$.printErr(`${format(...input)}\n`);
 	},
 
+	/**
+	 * Logs the formatted `input` to the screen as white text,
+	 * including a stack trace of where the function was invoked.
+	 */
 	trace(...input: unknown[]) {
 		const f = format(...input);
 		const s = new Error().stack!.split('\n').slice(1).join('\n');
