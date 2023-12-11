@@ -95,19 +95,23 @@ export interface Init {
 
 	// software-keyboard.c
 	swkbdCreate(fns: {
-		onCancel: () => void;
+		onCancel: (this: VirtualKeyboard) => void;
 		onChange: (
+			this: VirtualKeyboard,
 			str: string,
 			cursorPos: number,
 			dicStartCursorPos: number,
 			dicEndCursorPos: number
 		) => void;
-		onSubmit: (str: string) => void;
-		onCursorMove: (str: string, cursorPos: number) => void;
+		onSubmit: (this: VirtualKeyboard, str: string) => void;
+		onCursorMove: (
+			this: VirtualKeyboard,
+			str: string,
+			cursorPos: number
+		) => void;
 	}): VirtualKeyboard;
 	swkbdShow(s: VirtualKeyboard): [number, number, number, number];
 	swkbdHide(s: VirtualKeyboard): void;
-	swkbdExit(this: VirtualKeyboard): void;
 	swkbdUpdate(this: VirtualKeyboard): void;
 
 	// tcp.c

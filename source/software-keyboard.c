@@ -8,6 +8,7 @@ typedef struct
 	SwkbdInline kbdinline;
 	SwkbdAppearArg appearArg;
 	JSContext *ctx;
+	JSValue instance;
 	JSValue cancel_func;
 	JSValue change_func;
 	JSValue submit_func;
@@ -26,6 +27,7 @@ static void finalizer_swkbd(JSRuntime *rt, JSValue val)
 	nx_swkbd_t *data = JS_GetOpaque(val, nx_swkbd_class_id);
 	if (data)
 	{
+		swkbdInlineClose(&data->kbdinline);
 		js_free_rt(rt, data);
 	}
 }
@@ -36,7 +38,7 @@ void finishinit_cb(void)
 
 void decidedcancel_cb(void)
 {
-	JSValue result = JS_Call(current_kbd->ctx, current_kbd->cancel_func, JS_NULL, 0, NULL);
+	JSValue result = JS_Call(current_kbd->ctx, current_kbd->cancel_func, current_kbd->instance, 0, NULL);
 	if (JS_IsException(result))
 	{
 		nx_emit_error_event(current_kbd->ctx);
@@ -54,7 +56,7 @@ void strchange_cb(const char *str, SwkbdChangedStringArg *arg)
 		JS_NewInt32(current_kbd->ctx, arg->dicStartCursorPos),
 		JS_NewInt32(current_kbd->ctx, arg->dicEndCursorPos),
 	};
-	JSValue result = JS_Call(current_kbd->ctx, current_kbd->change_func, JS_NULL, countof(args), args);
+	JSValue result = JS_Call(current_kbd->ctx, current_kbd->change_func, current_kbd->instance, countof(args), args);
 	if (JS_IsException(result))
 	{
 		nx_emit_error_event(current_kbd->ctx);
@@ -70,7 +72,7 @@ void movedcursor_cb(const char *str, SwkbdMovedCursorArg *arg)
 		JS_NewStringLen(current_kbd->ctx, str, arg->stringLen),
 		JS_NewInt32(current_kbd->ctx, arg->cursorPos),
 	};
-	JSValue result = JS_Call(current_kbd->ctx, current_kbd->cursor_move_func, JS_NULL, countof(args), args);
+	JSValue result = JS_Call(current_kbd->ctx, current_kbd->cursor_move_func, current_kbd->instance, countof(args), args);
 	if (JS_IsException(result))
 	{
 		nx_emit_error_event(current_kbd->ctx);
@@ -85,7 +87,7 @@ void decidedenter_cb(const char *str, SwkbdDecidedEnterArg *arg)
 	JSValue args[] = {
 		JS_NewStringLen(current_kbd->ctx, str, arg->stringLen),
 	};
-	JSValue result = JS_Call(current_kbd->ctx, current_kbd->submit_func, JS_NULL, countof(args), args);
+	JSValue result = JS_Call(current_kbd->ctx, current_kbd->submit_func, current_kbd->instance, countof(args), args);
 	if (JS_IsException(result))
 	{
 		nx_emit_error_event(current_kbd->ctx);
@@ -107,10 +109,15 @@ static JSValue nx_swkbd_create(JSContext *ctx, JSValueConst this_val, int argc, 
 	JS_SetOpaque(obj, data);
 
 	data->ctx = ctx;
+	data->instance = obj;
 	data->cancel_func = JS_GetPropertyStr(ctx, argv[0], "onCancel");
 	data->change_func = JS_GetPropertyStr(ctx, argv[0], "onChange");
 	data->submit_func = JS_GetPropertyStr(ctx, argv[0], "onSubmit");
 	data->cursor_move_func = JS_GetPropertyStr(ctx, argv[0], "onCursorMove");
+	JS_FreeValue(ctx, data->cancel_func);
+	JS_FreeValue(ctx, data->change_func);
+	JS_FreeValue(ctx, data->submit_func);
+	JS_FreeValue(ctx, data->cursor_move_func);
 
 	Result rc = swkbdInlineCreate(&data->kbdinline);
 	if (R_FAILED(rc))
@@ -235,23 +242,11 @@ static JSValue nx_swkbd_update(JSContext *ctx, JSValueConst this_val, int argc, 
 	return JS_UNDEFINED;
 }
 
-static JSValue nx_swkbd_exit(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
-	nx_swkbd_t *data = nx_swkbd_get(ctx, this_val);
-	swkbdInlineClose(&data->kbdinline);
-	JS_FreeValue(data->ctx, data->cancel_func);
-	JS_FreeValue(data->ctx, data->change_func);
-	JS_FreeValue(data->ctx, data->submit_func);
-	JS_FreeValue(data->ctx, data->cursor_move_func);
-	return JS_UNDEFINED;
-}
-
 static const JSCFunctionListEntry function_list[] = {
 	JS_CFUNC_DEF("swkbdCreate", 1, nx_swkbd_create),
 	JS_CFUNC_DEF("swkbdShow", 1, nx_swkbd_show),
 	JS_CFUNC_DEF("swkbdHide", 1, nx_swkbd_hide),
 	JS_CFUNC_DEF("swkbdUpdate", 1, nx_swkbd_update),
-	JS_CFUNC_DEF("swkbdExit", 1, nx_swkbd_exit),
 };
 
 void nx_init_swkbd(JSContext *ctx, JSValueConst init_obj)
