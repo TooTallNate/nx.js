@@ -177,6 +177,14 @@ static JSValue js_print(JSContext *ctx, JSValueConst this_val, int argc, JSValue
 	return JS_UNDEFINED;
 }
 
+static JSValue js_print_err(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	const char *str = JS_ToCString(ctx, argv[0]);
+	fprintf(stderr, "%s", str);
+	JS_FreeCString(ctx, str);
+	return JS_UNDEFINED;
+}
+
 static JSValue js_cwd(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	char cwd[1024]; // buffer to hold current working directory
@@ -504,6 +512,7 @@ int main(int argc, char *argv[])
 	nx_init_wasm(ctx, init_obj);
 	const JSCFunctionListEntry init_function_list[] = {
 		JS_CFUNC_DEF("print", 1, js_print),
+		JS_CFUNC_DEF("printErr", 1, js_print_err),
 		JS_CFUNC_DEF("getInternalPromiseState", 1, js_get_internal_promise_state),
 
 		// env vars

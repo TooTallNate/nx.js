@@ -80,6 +80,7 @@ export interface Init {
 
 	// main.c
 	print(v: string): void;
+	printErr(v: string): void;
 	getInternalPromiseState(p: Promise<unknown>): [number, unknown];
 	getenv(name: string): string | undefined;
 	setenv(name: string, value: string): void;

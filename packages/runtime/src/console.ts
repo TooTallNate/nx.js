@@ -60,6 +60,17 @@ function format(...input: unknown[]): string {
  */
 export const console = {
 	/**
+	 * Prints string `s` to the debug log file, without any formatting applied.
+	 * Newline is _not_ appending to the end of the string.
+	 *
+	 * @param s The text to print to the log file.
+	 * @note This function **does not** invoke _text rendering mode_, so it can safely be used when rendering with the Canvas API.
+	 */
+	printErr(s: string) {
+		$.printErr(s);
+	},
+
+	/**
 	 * Logs to the screen the formatted `input` as white text.
 	 */
 	log(...input: unknown[]) {
