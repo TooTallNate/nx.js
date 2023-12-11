@@ -60,6 +60,16 @@ function format(...input: unknown[]): string {
  */
 export const console = {
 	/**
+	 * Prints string `s` to the console on the screen, without any formatting applied.
+	 * Newline is _not_ appending to the end of the string.
+	 *
+	 * @param s The text to print to the console.
+	 */
+	print(s: string) {
+		$.print(s);
+	},
+
+	/**
 	 * Prints string `s` to the debug log file, without any formatting applied.
 	 * Newline is _not_ appending to the end of the string.
 	 *
