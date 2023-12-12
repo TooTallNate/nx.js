@@ -507,6 +507,7 @@ int main(int argc, char *argv[])
 	nx_init_dns(ctx, init_obj);
 	nx_init_error(ctx, init_obj);
 	nx_init_font(ctx, init_obj);
+	nx_init_fs(ctx, init_obj);
 	nx_init_image(ctx, init_obj);
 	nx_init_nifm(ctx, init_obj);
 	nx_init_tcp(ctx, init_obj);
@@ -608,7 +609,6 @@ int main(int argc, char *argv[])
 
 	nx_init_applet(ctx, native_obj);
 	nx_init_crypto(ctx, native_obj);
-	nx_init_fs(ctx, native_obj);
 	nx_init_wasm_(ctx, native_obj);
 
 	JS_SetPropertyStr(ctx, switch_obj, "exit", JS_NewCFunction(ctx, js_exit, "exit", 0));

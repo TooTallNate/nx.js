@@ -1,4 +1,4 @@
-import type { NetworkInfo } from './types';
+import type { NetworkInfo, Stats } from './types';
 import type { Callback, RGBA } from './internal';
 import type { Server, TlsContextOpaque } from './tcp';
 import type { MemoryDescriptor, Memory } from './wasm';
@@ -65,6 +65,14 @@ export interface Init {
 	// font.c
 	fontFaceNew(data: ArrayBuffer): FontFace;
 	getSystemFont(): ArrayBuffer;
+
+	// fs.c
+	readFile(cb: Callback<ArrayBuffer>, path: string): void;
+	readDirSync(path: string): string[];
+	readFileSync(path: string): ArrayBuffer;
+	writeFileSync(path: string, data: ArrayBuffer): void;
+	remove(cb: Callback<void>, path: string): void;
+	stat(cb: Callback<Stats>, path: string): void;
 
 	// image.c
 	imageNew(): Image;

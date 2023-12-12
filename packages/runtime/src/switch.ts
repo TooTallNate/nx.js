@@ -1,6 +1,6 @@
 import { $ } from './$';
 import { FontFaceSet } from './font/font-face-set';
-import { type Callback, INTERNAL_SYMBOL, type Opaque } from './internal';
+import { INTERNAL_SYMBOL, type Opaque } from './internal';
 import { Env } from './env';
 import { inspect } from './inspect';
 import { bufferSourceToArrayBuffer, toPromise, pathToString } from './utils';
@@ -11,7 +11,6 @@ import { Socket, connect, createServer, parseAddress } from './tcp';
 import { resolve as dnsResolve } from './dns';
 import type {
 	PathLike,
-	Stats,
 	ListenOpts,
 	SocketAddress,
 	SocketOptions,
@@ -52,14 +51,6 @@ export interface Native {
 	hidGetTouchScreenStates(): Touch[] | undefined;
 	hidGetKeyboardStates(): Keys;
 	hidSendVibrationValues(v: VibrationValues): void;
-
-	// fs
-	readFile(cb: Callback<ArrayBuffer>, path: string): void;
-	readDirSync(path: string): string[];
-	readFileSync(path: string): ArrayBuffer;
-	writeFileSync(path: string, data: ArrayBuffer): void;
-	remove(cb: Callback<void>, path: string): void;
-	stat(cb: Callback<Stats>, path: string): void;
 
 	// crypto
 	cryptoRandomBytes(buf: ArrayBuffer, offset: number, length: number): void;
@@ -305,7 +296,7 @@ export class SwitchClass extends EventTarget {
 	 * ```
 	 */
 	readFile(path: PathLike) {
-		return toPromise(this.native.readFile, pathToString(path));
+		return toPromise($.readFile, pathToString(path));
 	}
 
 	/**
@@ -320,7 +311,7 @@ export class SwitchClass extends EventTarget {
 	 * ```
 	 */
 	readDirSync(path: PathLike) {
-		return this.native.readDirSync(pathToString(path));
+		return $.readDirSync(pathToString(path));
 	}
 
 	/**
@@ -335,7 +326,7 @@ export class SwitchClass extends EventTarget {
 	 * ```
 	 */
 	readFileSync(path: PathLike) {
-		return this.native.readFileSync(pathToString(path));
+		return $.readFileSync(pathToString(path));
 	}
 
 	/**
@@ -349,14 +340,14 @@ export class SwitchClass extends EventTarget {
 	writeFileSync(path: PathLike, data: string | BufferSource) {
 		const d = typeof data === 'string' ? encoder.encode(data) : data;
 		const ab = bufferSourceToArrayBuffer(d);
-		return this.native.writeFileSync(pathToString(path), ab);
+		return $.writeFileSync(pathToString(path), ab);
 	}
 
 	/**
 	 * Removes the file or directory specified by `path`.
 	 */
 	remove(path: PathLike) {
-		return toPromise(this.native.remove, pathToString(path));
+		return toPromise($.remove, pathToString(path));
 	}
 
 	/**
@@ -364,7 +355,7 @@ export class SwitchClass extends EventTarget {
 	 * information about the file pointed to by `path`.
 	 */
 	stat(path: PathLike) {
-		return toPromise(this.native.stat, pathToString(path));
+		return toPromise($.stat, pathToString(path));
 	}
 
 	/**
