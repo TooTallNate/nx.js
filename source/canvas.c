@@ -1293,6 +1293,10 @@ static JSValue nx_canvas_context_2d_save(JSContext *ctx, JSValueConst this_val, 
 	memcpy(state, context->state, sizeof(nx_canvas_context_2d_state_t));
 	state->next = context->state;
 	state->font = context->state->font;
+	if (context->state->font_string)
+	{
+		state->font_string = strdup(context->state->font_string);
+	}
 	context->state = state;
 	return JS_UNDEFINED;
 }
@@ -2078,6 +2082,7 @@ static JSValue nx_canvas_context_2d_new(JSContext *ctx, JSValueConst this_val, i
 	context->ctx = cairo_create(canvas->surface);
 
 	// Match browser defaults
+	state->next = NULL;
 	state->font = JS_UNDEFINED;
 	state->font_size = 10.;
 	state->fill.a = 1.;
