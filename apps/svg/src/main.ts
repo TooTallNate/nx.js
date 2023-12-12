@@ -7,11 +7,9 @@ const svgData = Switch.readFileSync(
 );
 const svg = new TextDecoder().decode(svgData);
 
-const canvas = screen;
-const ctx = canvas.getContext('2d');
-
-ctx.fillStyle = '#333';
-ctx.fillRect(0, 0, canvas.width, canvas.height);
+const ctx = screen.getContext('2d');
+ctx.fillStyle = '#555';
+ctx.fillRect(0, 0, screen.width, screen.height);
 
 const v = Canvg.fromString(ctx, svg, { DOMParser });
-v.render();
+v.render({ ignoreClear: true });
