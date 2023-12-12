@@ -84,22 +84,16 @@ function play() {
 }
 
 function draw() {
-	// Draw border
-	// TODO: use `strokeRect()` instead
-	ctx.fillStyle = 'white';
-	ctx.fillRect(
-		boardX - 1,
-		boardY - 1,
-		boardWidth * gridSize + 2,
-		boardHeight * gridSize + 2
-	);
-
 	// Reset board
+	ctx.beginPath();
+	ctx.rect(boardX, boardY, boardWidth * gridSize, boardHeight * gridSize);
 	ctx.fillStyle = 'rgb(0, 0, 70)';
-	ctx.fillRect(boardX, boardY, boardWidth * gridSize, boardHeight * gridSize);
+	ctx.fill();
+	ctx.strokeStyle = 'white';
+	ctx.stroke();
 
 	// Draw food
-	ctx.fillStyle = 'green';
+	ctx.beginPath();
 	ctx.arc(
 		boardX + gridSize / 2 + food.x * gridSize,
 		boardY + gridSize / 2 + food.y * gridSize,
@@ -107,10 +101,11 @@ function draw() {
 		0,
 		2 * Math.PI
 	);
+	ctx.fillStyle = 'green';
 	ctx.fill();
 
 	// Draw snake
-	ctx.fillStyle = 'red';
+	ctx.beginPath();
 	const now = Date.now();
 	const diff = now - updatedAt;
 	const pos = (diff / updateRate) * gridSize;
@@ -118,28 +113,28 @@ function draw() {
 	// Snake tail
 	const tail = snakeBody[0];
 	if (tail.direction === Direction.Right) {
-		ctx.fillRect(
+		ctx.rect(
 			pos + boardX + tail.x * gridSize,
 			boardY + tail.y * gridSize,
 			gridSize - pos,
 			gridSize
 		);
 	} else if (tail.direction === Direction.Left) {
-		ctx.fillRect(
+		ctx.rect(
 			boardX + tail.x * gridSize,
 			boardY + tail.y * gridSize,
 			gridSize - pos,
 			gridSize
 		);
 	} else if (tail.direction === Direction.Up) {
-		ctx.fillRect(
+		ctx.rect(
 			boardX + tail.x * gridSize,
 			boardY + tail.y * gridSize,
 			gridSize,
 			gridSize - pos
 		);
 	} else {
-		ctx.fillRect(
+		ctx.rect(
 			boardX + tail.x * gridSize,
 			pos + boardY + tail.y * gridSize,
 			gridSize,
@@ -149,7 +144,7 @@ function draw() {
 
 	// Snake body
 	for (let i = 1; i < snakeBody.length - 1; i++) {
-		ctx.fillRect(
+		ctx.rect(
 			boardX + snakeBody[i].x * gridSize,
 			boardY + snakeBody[i].y * gridSize,
 			gridSize,
@@ -160,34 +155,36 @@ function draw() {
 	// Snake head
 	const head = snakeBody[snakeBody.length - 1];
 	if (head.direction === Direction.Right) {
-		ctx.fillRect(
+		ctx.rect(
 			boardX + head.x * gridSize,
 			boardY + head.y * gridSize,
 			pos,
 			gridSize
 		);
 	} else if (head.direction === Direction.Left) {
-		ctx.fillRect(
+		ctx.rect(
 			gridSize - pos + boardX + head.x * gridSize,
 			boardY + head.y * gridSize,
 			pos,
 			gridSize
 		);
 	} else if (head.direction === Direction.Up) {
-		ctx.fillRect(
+		ctx.rect(
 			boardX + head.x * gridSize,
 			gridSize - pos + boardY + head.y * gridSize,
 			gridSize,
 			pos
 		);
 	} else {
-		ctx.fillRect(
+		ctx.rect(
 			boardX + head.x * gridSize,
 			boardY + head.y * gridSize,
 			gridSize,
 			pos
 		);
 	}
+	ctx.fillStyle = 'red';
+	ctx.fill();
 }
 
 function update() {
