@@ -84,22 +84,15 @@ function play() {
 }
 
 function draw() {
-	// Draw border
-	// TODO: use `strokeRect()` instead
-	ctx.fillStyle = 'white';
-	ctx.fillRect(
-		boardX - 1,
-		boardY - 1,
-		boardWidth * gridSize + 2,
-		boardHeight * gridSize + 2
-	);
-
 	// Reset board
+	ctx.beginPath();
+	ctx.rect(boardX, boardY, boardWidth * gridSize, boardHeight * gridSize);
 	ctx.fillStyle = 'rgb(0, 0, 70)';
-	ctx.fillRect(boardX, boardY, boardWidth * gridSize, boardHeight * gridSize);
+	ctx.fill();
+	ctx.strokeStyle = 'white';
+	ctx.stroke();
 
 	// Draw food
-	ctx.fillStyle = 'green';
 	ctx.beginPath();
 	ctx.arc(
 		boardX + gridSize / 2 + food.x * gridSize,
@@ -108,11 +101,11 @@ function draw() {
 		0,
 		2 * Math.PI
 	);
+	ctx.fillStyle = 'green';
 	ctx.fill();
 
 	// Draw snake
 	ctx.beginPath();
-	ctx.fillStyle = 'red';
 	const now = Date.now();
 	const diff = now - updatedAt;
 	const pos = (diff / updateRate) * gridSize;
@@ -190,6 +183,7 @@ function draw() {
 			pos
 		);
 	}
+	ctx.fillStyle = 'red';
 	ctx.fill();
 }
 
