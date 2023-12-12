@@ -39,15 +39,25 @@ export interface Init {
 	canvasContext2dGetTransform(
 		ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D
 	): number[];
+	canvasContext2dGetFont(
+		ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D
+	): string;
 	canvasContext2dSetFont(
 		ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
 		font: FontFace,
-		size: number
+		size: number,
+		fontString: string
 	): number[];
+	canvasContext2dGetFillStyle(
+		ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D
+	): RGBA;
 	canvasContext2dSetFillStyle(
 		ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
 		...rgba: RGBA
 	): number[];
+	canvasContext2dGetStrokeStyle(
+		ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D
+	): RGBA;
 	canvasContext2dSetStrokeStyle(
 		ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
 		...rgba: RGBA

@@ -20,16 +20,12 @@ import type {
 	GlobalCompositeOperation,
 	ImageSmoothingQuality,
 } from '../types';
-import type { RGBA } from '../internal';
 import type { SwitchClass } from '../switch';
 
 declare const Switch: SwitchClass;
 
 interface OffscreenCanvasRenderingContext2DInternal {
 	canvas: OffscreenCanvas;
-	fillStyle: RGBA;
-	strokeStyle: RGBA;
-	font: string;
 }
 
 const _ = createInternal<
@@ -46,12 +42,7 @@ export class OffscreenCanvasRenderingContext2D {
 		const canvas: OffscreenCanvas = arguments[1];
 		const ctx = $.canvasContext2dNew(canvas);
 		Object.setPrototypeOf(ctx, OffscreenCanvasRenderingContext2D.prototype);
-		_.set(ctx, {
-			canvas,
-			strokeStyle: [0, 0, 0, 1],
-			fillStyle: [0, 0, 0, 1],
-			font: '',
-		});
+		_.set(ctx, { canvas });
 		ctx.font = '10px system-ui';
 		return ctx;
 	}
@@ -73,12 +64,10 @@ export class OffscreenCanvasRenderingContext2D {
 	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/font
 	 */
 	get font(): string {
-		return _(this).font;
+		return $.canvasContext2dGetFont(this);
 	}
 	set font(v: string) {
-		if (!v) return;
-		const i = _(this);
-		if (i.font === v) return;
+		if (!v || this.font === v) return;
 
 		const parsed = parseCssFont(v);
 		if ('system' in parsed) {
@@ -107,8 +96,7 @@ export class OffscreenCanvasRenderingContext2D {
 				return;
 			}
 		}
-		i.font = v;
-		$.canvasContext2dSetFont(this, font, px);
+		$.canvasContext2dSetFont(this, font, px, v);
 	}
 
 	/**
@@ -143,7 +131,7 @@ export class OffscreenCanvasRenderingContext2D {
 	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/fillStyle
 	 */
 	get fillStyle(): string {
-		return rgbaToString(_(this).fillStyle);
+		return rgbaToString($.canvasContext2dGetFillStyle(this));
 	}
 	set fillStyle(v: string) {
 		if (typeof v === 'string') {
@@ -151,7 +139,6 @@ export class OffscreenCanvasRenderingContext2D {
 			if (!parsed || parsed.length !== 4) {
 				return;
 			}
-			_(this).fillStyle = parsed;
 			$.canvasContext2dSetFillStyle(this, ...parsed);
 		} else {
 			throw new Error('CanvasGradient/CanvasPattern not implemented.');
@@ -165,7 +152,7 @@ export class OffscreenCanvasRenderingContext2D {
 	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/strokeStyle
 	 */
 	get strokeStyle(): string {
-		return rgbaToString(_(this).strokeStyle);
+		return rgbaToString($.canvasContext2dGetStrokeStyle(this));
 	}
 	set strokeStyle(v: string) {
 		if (typeof v === 'string') {
@@ -173,7 +160,6 @@ export class OffscreenCanvasRenderingContext2D {
 			if (!parsed || parsed.length !== 4) {
 				return;
 			}
-			_(this).strokeStyle = parsed;
 			$.canvasContext2dSetStrokeStyle(this, ...parsed);
 		} else {
 			throw new Error('CanvasGradient/CanvasPattern not implemented.');
