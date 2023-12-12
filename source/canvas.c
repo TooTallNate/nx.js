@@ -469,9 +469,7 @@ static JSValue nx_canvas_context_2d_set_font(JSContext *ctx, JSValueConst this_v
 {
 	CANVAS_CONTEXT_ARGV0;
 
-	JS_FreeValue(ctx, context->state->font);
-
-	context->state->font = JS_DupValue(ctx, argv[1]);
+	context->state->font = argv[1];
 	nx_font_face_t *face = nx_get_font_face(ctx, context->state->font);
 	if (!face)
 		return JS_EXCEPTION;
@@ -1096,14 +1094,10 @@ static JSValue nx_canvas_context_2d_draw_image(JSContext *ctx, JSValueConst this
 
 static void finalizer_canvas_context_2d_state(JSRuntime *rt, nx_canvas_context_2d_state_t *state)
 {
-	fprintf(stderr, "finalizer_canvas_context_2d_state\n");
+	// printf("finalizer_canvas_context_2d_state\n");
 	if (state->next)
 	{
 		finalizer_canvas_context_2d_state(rt, state->next);
-	}
-	if (!JS_IsUndefined(state->font))
-	{
-		JS_FreeValueRT(rt, state->font);
 	}
 	if (state->font_string)
 	{
@@ -1114,7 +1108,7 @@ static void finalizer_canvas_context_2d_state(JSRuntime *rt, nx_canvas_context_2
 
 static void finalizer_canvas_context_2d(JSRuntime *rt, JSValue val)
 {
-	fprintf(stderr, "finalizer_canvas_context_2d\n");
+	// printf("finalizer_canvas_context_2d\n");
 	nx_canvas_context_2d_t *context = JS_GetOpaque(val, nx_canvas_context_class_id);
 	if (context)
 	{
@@ -1298,7 +1292,7 @@ static JSValue nx_canvas_context_2d_save(JSContext *ctx, JSValueConst this_val, 
 	nx_canvas_context_2d_state_t *state = js_mallocz(ctx, sizeof(nx_canvas_context_2d_state_t));
 	memcpy(state, context->state, sizeof(nx_canvas_context_2d_state_t));
 	state->next = context->state;
-	state->font = JS_DupValue(ctx, context->state->font);
+	state->font = context->state->font;
 	context->state = state;
 	return JS_UNDEFINED;
 }
@@ -1311,7 +1305,6 @@ static JSValue nx_canvas_context_2d_restore(JSContext *ctx, JSValueConst this_va
 		cairo_restore(cr);
 		nx_canvas_context_2d_state_t *prev = context->state;
 		context->state = prev->next;
-		JS_FreeValue(ctx, prev->font);
 		if (prev->font_string)
 		{
 			free((void *)prev->font_string);
