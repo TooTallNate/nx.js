@@ -1,7 +1,6 @@
 import './polyfills';
 import { def } from './utils';
-import { SwitchClass } from './switch';
-import { INTERNAL_SYMBOL } from './internal';
+import { SwitchClass, internal } from './switch';
 import {
 	setTimeout,
 	setInterval,
@@ -179,13 +178,13 @@ $.onFrame((kDown) => {
 		previousButtons,
 		previousKeys,
 		previousTouches,
-	} = Switch[INTERNAL_SYMBOL];
+	} = internal;
 	processTimers();
 	callRafCallbacks();
 
 	const buttonsDown = ~previousButtons & kDown;
 	const buttonsUp = previousButtons & ~kDown;
-	Switch[INTERNAL_SYMBOL].previousButtons = kDown;
+	internal.previousButtons = kDown;
 
 	if (buttonsDown !== 0) {
 		const ev = new UIEvent('buttondown', {
@@ -228,7 +227,7 @@ $.onFrame((kDown) => {
 				}
 			}
 		}
-		Switch[INTERNAL_SYMBOL].previousKeys = keys;
+		internal.previousKeys = keys;
 	}
 
 	if (touchscreenInitialized) {
@@ -261,7 +260,7 @@ $.onFrame((kDown) => {
 				}
 			}
 
-			Switch[INTERNAL_SYMBOL].previousTouches = touches;
+			internal.previousTouches = touches;
 
 			for (const prevTouch of previousTouches) {
 				if (!touchIds.has(prevTouch.identifier)) {
@@ -301,7 +300,7 @@ $.onFrame((kDown) => {
 					changedTouches: previousTouches,
 				})
 			);
-			Switch[INTERNAL_SYMBOL].previousTouches = [];
+			internal.previousTouches = [];
 		}
 	}
 });

@@ -68,7 +68,7 @@ export interface Native {
 	wasmGlobalSet(g: WasmGlobalOpaque, v: any): void;
 }
 
-interface Internal {
+interface SwitchInternal {
 	previousButtons: number;
 	previousKeys: Keys;
 	previousTouches: Touch[];
@@ -117,6 +117,18 @@ const STOP_VIBRATION: VibrationValues = {
 	highFreq: 320,
 };
 
+export const internal: SwitchInternal = {
+	previousButtons: 0,
+	previousTouches: [],
+	previousKeys: {
+		[0]: 0n,
+		[1]: 0n,
+		[2]: 0n,
+		[3]: 0n,
+		modifiers: 0n,
+	},
+};
+
 export class SwitchClass extends EventTarget {
 	/**
 	 * A Map-like object providing methods to interact with the environment variables of the process.
@@ -133,10 +145,6 @@ export class SwitchClass extends EventTarget {
 	 * @demo See the [fonts](../apps/fonts/) application for an example of using custom fonts.
 	 */
 	fonts: FontFaceSet;
-	/**
-	 * @ignore
-	 */
-	[INTERNAL_SYMBOL]: Internal;
 
 	// The following props are populated by the host process
 	/**
@@ -168,17 +176,6 @@ export class SwitchClass extends EventTarget {
 		const native: Native = {};
 		this.native = native;
 		this.env = new Env();
-		this[INTERNAL_SYMBOL] = {
-			previousButtons: 0,
-			previousTouches: [],
-			previousKeys: {
-				[0]: 0n,
-				[1]: 0n,
-				[2]: 0n,
-				[3]: 0n,
-				modifiers: 0n,
-			},
-		};
 
 		// TODO: Move to `document`
 		// @ts-expect-error Internal constructor
@@ -201,20 +198,20 @@ export class SwitchClass extends EventTarget {
 		options?: boolean | AddEventListenerOptions | undefined
 	): void {
 		if (
-			!this[INTERNAL_SYMBOL].keyboardInitialized &&
+			!internal.keyboardInitialized &&
 			(type === 'keydown' || type === 'keyup')
 		) {
 			this.native.hidInitializeKeyboard();
-			this[INTERNAL_SYMBOL].keyboardInitialized = true;
+			internal.keyboardInitialized = true;
 		}
 		if (
-			!this[INTERNAL_SYMBOL].touchscreenInitialized &&
+			!internal.touchscreenInitialized &&
 			(type === 'touchstart' ||
 				type === 'touchmove' ||
 				type === 'touchend')
 		) {
 			this.native.hidInitializeTouchScreen();
-			this[INTERNAL_SYMBOL].touchscreenInitialized = true;
+			internal.touchscreenInitialized = true;
 		}
 		super.addEventListener(type, callback, options);
 	}
@@ -383,9 +380,9 @@ export class SwitchClass extends EventTarget {
 	}
 
 	networkInfo() {
-		if (!this[INTERNAL_SYMBOL].nifmInitialized) {
+		if (!internal.nifmInitialized) {
 			addEventListener('unload', $.nifmInitialize());
-			this[INTERNAL_SYMBOL].nifmInitialized = true;
+			internal.nifmInitialized = true;
 		}
 		return $.networkInfo();
 	}
@@ -451,7 +448,6 @@ export class SwitchClass extends EventTarget {
 				patternValues.push(p);
 			}
 		}
-		const internal = this[INTERNAL_SYMBOL];
 		if (!internal.vibrationDevicesInitialized) {
 			this.native.hidInitializeVibrationDevices();
 			this.native.hidSendVibrationValues(DEFAULT_VIBRATION);
@@ -469,7 +465,6 @@ export class SwitchClass extends EventTarget {
 	 * @ignore
 	 */
 	#processVibrations = () => {
-		const internal = this[INTERNAL_SYMBOL];
 		let next = internal.vibrationPattern?.shift();
 		if (typeof next === 'undefined') {
 			// Pattern completed

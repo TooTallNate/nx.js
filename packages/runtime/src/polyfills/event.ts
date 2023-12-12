@@ -1,5 +1,4 @@
-import { def } from '../utils';
-import { INTERNAL_SYMBOL } from '../internal';
+import { createInternal, def } from '../utils';
 import type { Socket } from '../tcp';
 
 export interface EventInit {
@@ -316,6 +315,8 @@ export interface KeyboardEventInit extends EventModifierInit {
 	repeat?: boolean;
 }
 
+const _ = createInternal<KeyboardEvent, bigint>();
+
 export class KeyboardEvent extends UIEvent implements globalThis.KeyboardEvent {
 	readonly DOM_KEY_LOCATION_STANDARD = 0 as const;
 	readonly DOM_KEY_LOCATION_LEFT = 1 as const;
@@ -327,14 +328,9 @@ export class KeyboardEvent extends UIEvent implements globalThis.KeyboardEvent {
 	readonly location: number;
 	readonly repeat: boolean;
 
-	/**
-	 * modifiers
-	 * @private
-	 */
-	[INTERNAL_SYMBOL]: bigint;
-
 	constructor(type: string, options?: KeyboardEventInit) {
 		super(type, options);
+		let modifiers = 0n;
 		if (options) {
 			this.charCode = options.charCode ?? -1;
 			this.isComposing = options.isComposing ?? false;
@@ -342,12 +338,12 @@ export class KeyboardEvent extends UIEvent implements globalThis.KeyboardEvent {
 			this.location = options.location ?? -1;
 			this.repeat = options.repeat ?? false;
 			// @ts-expect-error
-			this[INTERNAL_SYMBOL] = options.modifiers;
+			modifiers = options.modifiers;
 		} else {
 			this.charCode = this.keyCode = this.location = -1;
 			this.isComposing = this.repeat = false;
-			this[INTERNAL_SYMBOL] = 0n;
 		}
+		_.set(this, modifiers);
 	}
 
 	getModifierState(): boolean {
@@ -359,19 +355,19 @@ export class KeyboardEvent extends UIEvent implements globalThis.KeyboardEvent {
 	}
 
 	get ctrlKey(): boolean {
-		return (this[INTERNAL_SYMBOL] & CTRL) !== 0n;
+		return (_(this) & CTRL) !== 0n;
 	}
 
 	get shiftKey(): boolean {
-		return (this[INTERNAL_SYMBOL] & SHIFT) !== 0n;
+		return (_(this) & SHIFT) !== 0n;
 	}
 
 	get altKey(): boolean {
-		return (this[INTERNAL_SYMBOL] & ALT) !== 0n;
+		return (_(this) & ALT) !== 0n;
 	}
 
 	get metaKey(): boolean {
-		return (this[INTERNAL_SYMBOL] & META) !== 0n;
+		return (_(this) & META) !== 0n;
 	}
 
 	get code(): string {
