@@ -304,7 +304,7 @@ static const JSCFunctionListEntry function_list[] = {
 	JS_CFUNC_DEF("stat", 2, nx_stat),
 	JS_CFUNC_DEF("remove", 2, nx_remove)};
 
-void nx_init_fs(JSContext *ctx, JSValueConst native_obj)
+void nx_init_fs(JSContext *ctx, JSValueConst init_obj)
 {
-	JS_SetPropertyFunctionList(ctx, native_obj, function_list, countof(function_list));
+	JS_SetPropertyFunctionList(ctx, init_obj, function_list, countof(function_list));
 }

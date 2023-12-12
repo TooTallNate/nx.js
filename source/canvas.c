@@ -2104,9 +2104,13 @@ static void finalizer_canvas(JSRuntime *rt, JSValue val)
 	if (context)
 	{
 		if (context->surface)
+		{
 			cairo_surface_destroy(context->surface);
+		}
 		if (context->data)
+		{
 			js_free_rt(rt, context->data);
+		}
 		js_free_rt(rt, context);
 	}
 }

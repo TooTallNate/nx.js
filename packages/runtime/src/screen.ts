@@ -2,10 +2,7 @@ import { $ } from './$';
 import { assertInternalConstructor, createInternal, def } from './utils';
 import { EventTarget } from './polyfills/event-target';
 import { INTERNAL_SYMBOL } from './internal';
-import { RenderingMode, type SwitchClass } from './switch';
 import { CanvasRenderingContext2D } from './canvas/canvas-rendering-context-2d';
-
-declare const Switch: SwitchClass;
 
 interface ScreenInternal {
 	context2d?: CanvasRenderingContext2D;
@@ -139,11 +136,8 @@ export class Screen extends EventTarget implements globalThis.Screen {
 				INTERNAL_SYMBOL,
 				this
 			);
-		}
 
-		const internal = Switch[INTERNAL_SYMBOL];
-		if (internal.renderingMode !== RenderingMode.Framebuffer) {
-			internal.setRenderingMode(RenderingMode.Framebuffer, this);
+			$.framebufferInit(this);
 		}
 
 		return i.context2d;

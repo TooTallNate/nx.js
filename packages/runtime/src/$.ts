@@ -1,4 +1,4 @@
-import type { NetworkInfo } from './types';
+import type { NetworkInfo, Stats } from './types';
 import type { Callback, RGBA } from './internal';
 import type { Server, TlsContextOpaque } from './tcp';
 import type { MemoryDescriptor, Memory } from './wasm';
@@ -74,8 +74,15 @@ export interface Init {
 
 	// font.c
 	fontFaceNew(data: ArrayBuffer): FontFace;
-	fontFaceDispose(this: FontFace): void;
 	getSystemFont(): ArrayBuffer;
+
+	// fs.c
+	readFile(cb: Callback<ArrayBuffer>, path: string): void;
+	readDirSync(path: string): string[];
+	readFileSync(path: string): ArrayBuffer;
+	writeFileSync(path: string, data: ArrayBuffer): void;
+	remove(cb: Callback<void>, path: string): void;
+	stat(cb: Callback<Stats>, path: string): void;
 
 	// image.c
 	imageNew(): Image;
@@ -89,8 +96,16 @@ export interface Init {
 	): void;
 
 	// main.c
+	print(v: string): void;
+	printErr(v: string): void;
+	getInternalPromiseState(p: Promise<unknown>): [number, unknown];
+	getenv(name: string): string | undefined;
+	setenv(name: string, value: string): void;
+	unsetenv(name: string): void;
+	envToObject(): Record<string, string>;
 	onFrame(fn: (kDown: number) => void): void;
 	onExit(fn: () => void): void;
+	framebufferInit(screen: Screen): void;
 
 	// nifm.c
 	nifmInitialize(): () => void;
@@ -98,19 +113,23 @@ export interface Init {
 
 	// software-keyboard.c
 	swkbdCreate(fns: {
-		onCancel: () => void;
+		onCancel: (this: VirtualKeyboard) => void;
 		onChange: (
+			this: VirtualKeyboard,
 			str: string,
 			cursorPos: number,
 			dicStartCursorPos: number,
 			dicEndCursorPos: number
 		) => void;
-		onSubmit: (str: string) => void;
-		onCursorMove: (str: string, cursorPos: number) => void;
+		onSubmit: (this: VirtualKeyboard, str: string) => void;
+		onCursorMove: (
+			this: VirtualKeyboard,
+			str: string,
+			cursorPos: number
+		) => void;
 	}): VirtualKeyboard;
 	swkbdShow(s: VirtualKeyboard): [number, number, number, number];
 	swkbdHide(s: VirtualKeyboard): void;
-	swkbdExit(this: VirtualKeyboard): void;
 	swkbdUpdate(this: VirtualKeyboard): void;
 
 	// tcp.c

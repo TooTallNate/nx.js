@@ -35,27 +35,19 @@ static NWindow *win = NULL;
 static Framebuffer *framebuffer = NULL;
 static uint8_t *js_framebuffer = NULL;
 
-static JSValue js_console_init(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
-	if (print_console == NULL)
-	{
-		print_console = consoleInit(NULL);
-	}
-	return JS_UNDEFINED;
-}
-
-static JSValue js_console_exit(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+void nx_console_exit()
 {
 	if (print_console != NULL)
 	{
 		consoleExit(print_console);
 		print_console = NULL;
 	}
-	return JS_UNDEFINED;
 }
 
-static JSValue js_framebuffer_init(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+static JSValue nx_framebuffer_init(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
+	nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
+	nx_console_exit();
 	if (win == NULL)
 	{
 		// Retrieve the default window
@@ -76,10 +68,11 @@ static JSValue js_framebuffer_init(JSContext *ctx, JSValueConst this_val, int ar
 	framebuffer = malloc(sizeof(Framebuffer));
 	framebufferCreate(framebuffer, win, width, height, PIXEL_FORMAT_BGRA_8888, 2);
 	framebufferMakeLinear(framebuffer);
+	nx_ctx->rendering_mode = NX_RENDERING_MODE_CANVAS;
 	return JS_UNDEFINED;
 }
 
-static JSValue js_framebuffer_exit(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+void nx_framebuffer_exit()
 {
 	if (framebuffer != NULL)
 	{
@@ -88,7 +81,6 @@ static JSValue js_framebuffer_exit(JSContext *ctx, JSValueConst this_val, int ar
 		framebuffer = NULL;
 		js_framebuffer = NULL;
 	}
-	return JS_UNDEFINED;
 }
 
 uint8_t *read_file(const char *filename, size_t *out_size)
@@ -171,8 +163,26 @@ static JSValue js_exit(JSContext *ctx, JSValueConst this_val, int argc, JSValueC
 
 static JSValue js_print(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
+	nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
+	if (nx_ctx->rendering_mode != NX_RENDERING_MODE_CONSOLE)
+	{
+		nx_framebuffer_exit();
+		if (print_console == NULL)
+		{
+			print_console = consoleInit(NULL);
+		}
+		nx_ctx->rendering_mode = NX_RENDERING_MODE_CONSOLE;
+	}
 	const char *str = JS_ToCString(ctx, argv[0]);
 	printf("%s", str);
+	JS_FreeCString(ctx, str);
+	return JS_UNDEFINED;
+}
+
+static JSValue js_print_err(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	const char *str = JS_ToCString(ctx, argv[0]);
+	fprintf(stderr, "%s", str);
 	JS_FreeCString(ctx, str);
 	return JS_UNDEFINED;
 }
@@ -479,6 +489,7 @@ int main(int argc, char *argv[])
 
 	nx_context_t *nx_ctx = malloc(sizeof(nx_context_t));
 	memset(nx_ctx, 0, sizeof(nx_context_t));
+	nx_ctx->rendering_mode = NX_RENDERING_MODE_INIT;
 	nx_ctx->thpool = thpool_init(4);
 	nx_ctx->frame_handler = JS_UNDEFINED;
 	nx_ctx->exit_handler = JS_UNDEFINED;
@@ -496,6 +507,7 @@ int main(int argc, char *argv[])
 	nx_init_dns(ctx, init_obj);
 	nx_init_error(ctx, init_obj);
 	nx_init_font(ctx, init_obj);
+	nx_init_fs(ctx, init_obj);
 	nx_init_image(ctx, init_obj);
 	nx_init_nifm(ctx, init_obj);
 	nx_init_tcp(ctx, init_obj);
@@ -503,8 +515,22 @@ int main(int argc, char *argv[])
 	nx_init_swkbd(ctx, init_obj);
 	nx_init_wasm(ctx, init_obj);
 	const JSCFunctionListEntry init_function_list[] = {
+		JS_CFUNC_DEF("print", 1, js_print),
+		JS_CFUNC_DEF("printErr", 1, js_print_err),
+		JS_CFUNC_DEF("getInternalPromiseState", 1, js_get_internal_promise_state),
+
+		// env vars
+		JS_CFUNC_DEF("getenv", 1, js_getenv),
+		JS_CFUNC_DEF("setenv", 2, js_setenv),
+		JS_CFUNC_DEF("unsetenv", 1, js_unsetenv),
+		JS_CFUNC_DEF("envToObject", 0, js_env_to_object),
+
 		JS_CFUNC_DEF("onExit", 1, nx_set_exit_handler),
-		JS_CFUNC_DEF("onFrame", 1, nx_set_frame_handler)};
+		JS_CFUNC_DEF("onFrame", 1, nx_set_frame_handler),
+
+		// framebuffer renderer
+		JS_CFUNC_DEF("framebufferInit", 1, nx_framebuffer_init),
+	};
 	JS_SetPropertyFunctionList(ctx, init_obj, init_function_list, countof(init_function_list));
 	JS_SetPropertyStr(ctx, global_obj, "$", init_obj);
 
@@ -583,22 +609,13 @@ int main(int argc, char *argv[])
 
 	nx_init_applet(ctx, native_obj);
 	nx_init_crypto(ctx, native_obj);
-	nx_init_fs(ctx, native_obj);
 	nx_init_wasm_(ctx, native_obj);
 
 	JS_SetPropertyStr(ctx, switch_obj, "exit", JS_NewCFunction(ctx, js_exit, "exit", 0));
 
 	const JSCFunctionListEntry function_list[] = {
-		JS_CFUNC_DEF("print", 1, js_print),
 		JS_CFUNC_DEF("cwd", 0, js_cwd),
 		JS_CFUNC_DEF("chdir", 1, js_chdir),
-		JS_CFUNC_DEF("getInternalPromiseState", 0, js_get_internal_promise_state),
-
-		// env vars
-		JS_CFUNC_DEF("getenv", 1, js_getenv),
-		JS_CFUNC_DEF("setenv", 2, js_setenv),
-		JS_CFUNC_DEF("unsetenv", 1, js_unsetenv),
-		JS_CFUNC_DEF("envToObject", 0, js_env_to_object),
 
 		// hid
 		JS_CFUNC_DEF("hidInitializeKeyboard", 0, js_hid_initialize_keyboard),
@@ -607,14 +624,7 @@ int main(int argc, char *argv[])
 		JS_CFUNC_DEF("hidGetKeyboardStates", 0, js_hid_get_keyboard_states),
 		JS_CFUNC_DEF("hidGetTouchScreenStates", 0, js_hid_get_touch_screen_states),
 		JS_CFUNC_DEF("hidSendVibrationValues", 0, js_hid_send_vibration_values),
-
-		// console renderer
-		JS_CFUNC_DEF("consoleInit", 0, js_console_init),
-		JS_CFUNC_DEF("consoleExit", 0, js_console_exit),
-
-		// framebuffer renderer
-		JS_CFUNC_DEF("framebufferInit", 0, js_framebuffer_init),
-		JS_CFUNC_DEF("framebufferExit", 0, js_framebuffer_exit)};
+	};
 	JS_SetPropertyFunctionList(ctx, native_obj, function_list, countof(function_list));
 
 	// `Switch.entrypoint`
@@ -699,12 +709,12 @@ main_loop:
 			}
 		}
 
-		if (print_console != NULL)
+		if (nx_ctx->rendering_mode == NX_RENDERING_MODE_CONSOLE)
 		{
 			// Update the console, sending a new frame to the display
 			consoleUpdate(print_console);
 		}
-		else if (framebuffer != NULL)
+		else if (nx_ctx->rendering_mode == NX_RENDERING_MODE_CANVAS)
 		{
 			// Copy the JS framebuffer to the current Switch buffer
 			u32 stride;
@@ -722,6 +732,15 @@ main_loop:
 	// Call exit handler
 	JSValue ret_val = JS_Call(ctx, nx_ctx->exit_handler, JS_NULL, 0, NULL);
 	JS_FreeValue(ctx, ret_val);
+
+	if (nx_ctx->rendering_mode == NX_RENDERING_MODE_CONSOLE)
+	{
+		nx_console_exit();
+	}
+	else if (nx_ctx->rendering_mode == NX_RENDERING_MODE_CANVAS)
+	{
+		nx_framebuffer_exit();
+	}
 
 	fclose(debug_fd);
 	FILE *leaks_fd = freopen(LOG_FILENAME, "a", stdout);
@@ -755,7 +774,7 @@ main_loop:
 	fflush(leaks_fd);
 	fclose(leaks_fd);
 
-	/* If no leaks were detected then delete the log file */
+	/* If nothing was written to the debug log file, then delete it */
 	delete_if_empty(LOG_FILENAME);
 
 	return 0;

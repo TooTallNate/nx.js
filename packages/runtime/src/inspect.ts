@@ -1,7 +1,5 @@
 import { bold, cyan, green, magenta, red, rgb, yellow } from 'kleur/colors';
-import type { SwitchClass } from './switch';
-
-declare const Switch: SwitchClass;
+import { $ } from './$';
 
 const grey = rgb(100, 100, 100);
 
@@ -82,7 +80,7 @@ export const inspect = (v: unknown, opts?: InspectOptions): string => {
 	}
 	if (isPromise(v)) {
 		let val = '';
-		const [state, result] = Switch.native.getInternalPromiseState(v);
+		const [state, result] = $.getInternalPromiseState(v);
 		if (state === 0) {
 			val = cyan('<pending>');
 		} else {

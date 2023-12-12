@@ -14,7 +14,7 @@ typedef struct
 	FT_Face ft_face;
 	hb_font_t *hb_font;
 	cairo_font_face_t *cairo_font;
-	JSValue font_buffer;
+	FT_Byte *font_buffer;
 } nx_font_face_t;
 
 nx_font_face_t *nx_get_font_face(JSContext *ctx, JSValueConst obj);

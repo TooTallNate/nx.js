@@ -66,9 +66,17 @@ struct nx_work_s
 	void *data;
 };
 
+enum nx_rendering_mode
+{
+	NX_RENDERING_MODE_INIT,
+	NX_RENDERING_MODE_CONSOLE,
+	NX_RENDERING_MODE_CANVAS
+};
+
 typedef struct
 {
 	int had_error;
+	enum nx_rendering_mode rendering_mode;
 	nx_poll_t poll;
 	threadpool thpool;
 	pthread_mutex_t async_done_mutex;

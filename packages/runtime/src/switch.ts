@@ -1,6 +1,7 @@
 import { $ } from './$';
 import { FontFaceSet } from './font/font-face-set';
-import { type Callback, INTERNAL_SYMBOL, type Opaque } from './internal';
+import { INTERNAL_SYMBOL, type Opaque } from './internal';
+import { Env } from './env';
 import { inspect } from './inspect';
 import { bufferSourceToArrayBuffer, toPromise, pathToString } from './utils';
 import { setTimeout, clearTimeout } from './timers';
@@ -8,18 +9,13 @@ import { encoder } from './polyfills/text-encoder';
 import { EventTarget } from './polyfills/event-target';
 import { Socket, connect, createServer, parseAddress } from './tcp';
 import { resolve as dnsResolve } from './dns';
-import type { Screen as _Screen } from './screen';
 import type {
 	PathLike,
-	Stats,
 	ListenOpts,
 	SocketAddress,
 	SocketOptions,
 } from './types';
 
-export type CanvasRenderingContext2DState =
-	Opaque<'CanvasRenderingContext2DState'>;
-export type ImageOpaque = Opaque<'ImageOpaque'>;
 export type WasmModuleOpaque = Opaque<'WasmModuleOpaque'>;
 export type WasmInstanceOpaque = Opaque<'WasmInstanceOpaque'>;
 export type WasmGlobalOpaque = Opaque<'WasmGlobalOpaque'>;
@@ -41,18 +37,8 @@ type Keys = {
  * @private
  */
 export interface Native {
-	print(str: string): void;
 	cwd(): string;
 	chdir(dir: string): void;
-	getInternalPromiseState(p: Promise<unknown>): [number, unknown];
-	getenv(name: string): string | undefined;
-	setenv(name: string, value: string): void;
-	unsetenv(name: string): void;
-	envToObject(): Record<string, string>;
-	consoleInit(): void;
-	consoleExit(): void;
-	framebufferInit(buf: _Screen | CanvasRenderingContext2DState): void;
-	framebufferExit(): void;
 
 	// applet
 	appletGetAppletType(): number;
@@ -65,14 +51,6 @@ export interface Native {
 	hidGetTouchScreenStates(): Touch[] | undefined;
 	hidGetKeyboardStates(): Keys;
 	hidSendVibrationValues(v: VibrationValues): void;
-
-	// fs
-	readFile(cb: Callback<ArrayBuffer>, path: string): void;
-	readDirSync(path: string): string[];
-	readFileSync(path: string): ArrayBuffer;
-	writeFileSync(path: string, data: ArrayBuffer): void;
-	remove(cb: Callback<void>, path: string): void;
-	stat(cb: Callback<Stats>, path: string): void;
 
 	// crypto
 	cryptoRandomBytes(buf: ArrayBuffer, offset: number, length: number): void;
@@ -90,7 +68,7 @@ export interface Native {
 	wasmGlobalSet(g: WasmGlobalOpaque, v: any): void;
 }
 
-interface Internal {
+interface SwitchInternal {
 	previousButtons: number;
 	previousKeys: Keys;
 	previousTouches: Touch[];
@@ -99,19 +77,7 @@ interface Internal {
 	vibrationDevicesInitialized?: boolean;
 	vibrationPattern?: (number | Vibration)[];
 	vibrationTimeoutId?: number;
-	renderingMode?: RenderingMode;
 	nifmInitialized?: boolean;
-	setRenderingMode: (
-		mode: RenderingMode,
-		ctx?: _Screen | CanvasRenderingContext2DState
-	) => void;
-	cleanup: () => void;
-}
-
-export enum RenderingMode {
-	Init,
-	Console,
-	Framebuffer,
 }
 
 interface SwitchEventHandlersEventMap {
@@ -151,6 +117,18 @@ const STOP_VIBRATION: VibrationValues = {
 	highFreq: 320,
 };
 
+export const internal: SwitchInternal = {
+	previousButtons: 0,
+	previousTouches: [],
+	previousKeys: {
+		[0]: 0n,
+		[1]: 0n,
+		[2]: 0n,
+		[3]: 0n,
+		modifiers: 0n,
+	},
+};
+
 export class SwitchClass extends EventTarget {
 	/**
 	 * A Map-like object providing methods to interact with the environment variables of the process.
@@ -167,10 +145,6 @@ export class SwitchClass extends EventTarget {
 	 * @demo See the [fonts](../apps/fonts/) application for an example of using custom fonts.
 	 */
 	fonts: FontFaceSet;
-	/**
-	 * @ignore
-	 */
-	[INTERNAL_SYMBOL]: Internal;
 
 	// The following props are populated by the host process
 	/**
@@ -201,41 +175,7 @@ export class SwitchClass extends EventTarget {
 		// @ts-expect-error Populated by the host process
 		const native: Native = {};
 		this.native = native;
-		this.env = new Env(this);
-		this[INTERNAL_SYMBOL] = {
-			previousButtons: 0,
-			previousTouches: [],
-			previousKeys: {
-				[0]: 0n,
-				[1]: 0n,
-				[2]: 0n,
-				[3]: 0n,
-				modifiers: 0n,
-			},
-			renderingMode: RenderingMode.Init,
-			setRenderingMode(
-				mode: RenderingMode,
-				ctx?: _Screen | CanvasRenderingContext2DState
-			) {
-				if (mode === RenderingMode.Console) {
-					native.framebufferExit();
-					native.consoleInit();
-				} else if (mode === RenderingMode.Framebuffer && ctx) {
-					native.consoleExit();
-					native.framebufferInit(ctx);
-				} else {
-					throw new Error('Unsupported rendering mode');
-				}
-				this.renderingMode = mode;
-			},
-			cleanup() {
-				if (this.renderingMode === RenderingMode.Console) {
-					native.consoleExit();
-				} else if (this.renderingMode === RenderingMode.Framebuffer) {
-					native.framebufferExit();
-				}
-			},
-		};
+		this.env = new Env();
 
 		// TODO: Move to `document`
 		// @ts-expect-error Internal constructor
@@ -258,20 +198,20 @@ export class SwitchClass extends EventTarget {
 		options?: boolean | AddEventListenerOptions | undefined
 	): void {
 		if (
-			!this[INTERNAL_SYMBOL].keyboardInitialized &&
+			!internal.keyboardInitialized &&
 			(type === 'keydown' || type === 'keyup')
 		) {
 			this.native.hidInitializeKeyboard();
-			this[INTERNAL_SYMBOL].keyboardInitialized = true;
+			internal.keyboardInitialized = true;
 		}
 		if (
-			!this[INTERNAL_SYMBOL].touchscreenInitialized &&
+			!internal.touchscreenInitialized &&
 			(type === 'touchstart' ||
 				type === 'touchmove' ||
 				type === 'touchend')
 		) {
 			this.native.hidInitializeTouchScreen();
-			this[INTERNAL_SYMBOL].touchscreenInitialized = true;
+			internal.touchscreenInitialized = true;
 		}
 		super.addEventListener(type, callback, options);
 	}
@@ -303,11 +243,7 @@ export class SwitchClass extends EventTarget {
 	 * which clears any pixels previously drawn on the screen using the Canvas API.
 	 */
 	print(str: string) {
-		const internal = this[INTERNAL_SYMBOL];
-		if (internal.renderingMode !== RenderingMode.Console) {
-			internal.setRenderingMode(RenderingMode.Console);
-		}
-		this.native.print(str);
+		$.print(str);
 	}
 
 	/**
@@ -357,7 +293,7 @@ export class SwitchClass extends EventTarget {
 	 * ```
 	 */
 	readFile(path: PathLike) {
-		return toPromise(this.native.readFile, pathToString(path));
+		return toPromise($.readFile, pathToString(path));
 	}
 
 	/**
@@ -372,7 +308,7 @@ export class SwitchClass extends EventTarget {
 	 * ```
 	 */
 	readDirSync(path: PathLike) {
-		return this.native.readDirSync(pathToString(path));
+		return $.readDirSync(pathToString(path));
 	}
 
 	/**
@@ -387,7 +323,7 @@ export class SwitchClass extends EventTarget {
 	 * ```
 	 */
 	readFileSync(path: PathLike) {
-		return this.native.readFileSync(pathToString(path));
+		return $.readFileSync(pathToString(path));
 	}
 
 	/**
@@ -401,14 +337,14 @@ export class SwitchClass extends EventTarget {
 	writeFileSync(path: PathLike, data: string | BufferSource) {
 		const d = typeof data === 'string' ? encoder.encode(data) : data;
 		const ab = bufferSourceToArrayBuffer(d);
-		return this.native.writeFileSync(pathToString(path), ab);
+		return $.writeFileSync(pathToString(path), ab);
 	}
 
 	/**
 	 * Removes the file or directory specified by `path`.
 	 */
 	remove(path: PathLike) {
-		return toPromise(this.native.remove, pathToString(path));
+		return toPromise($.remove, pathToString(path));
 	}
 
 	/**
@@ -416,7 +352,7 @@ export class SwitchClass extends EventTarget {
 	 * information about the file pointed to by `path`.
 	 */
 	stat(path: PathLike) {
-		return toPromise(this.native.stat, pathToString(path));
+		return toPromise($.stat, pathToString(path));
 	}
 
 	/**
@@ -444,9 +380,9 @@ export class SwitchClass extends EventTarget {
 	}
 
 	networkInfo() {
-		if (!this[INTERNAL_SYMBOL].nifmInitialized) {
+		if (!internal.nifmInitialized) {
 			addEventListener('unload', $.nifmInitialize());
-			this[INTERNAL_SYMBOL].nifmInitialized = true;
+			internal.nifmInitialized = true;
 		}
 		return $.networkInfo();
 	}
@@ -512,7 +448,6 @@ export class SwitchClass extends EventTarget {
 				patternValues.push(p);
 			}
 		}
-		const internal = this[INTERNAL_SYMBOL];
 		if (!internal.vibrationDevicesInitialized) {
 			this.native.hidInitializeVibrationDevices();
 			this.native.hidSendVibrationValues(DEFAULT_VIBRATION);
@@ -530,7 +465,6 @@ export class SwitchClass extends EventTarget {
 	 * @ignore
 	 */
 	#processVibrations = () => {
-		const internal = this[INTERNAL_SYMBOL];
 		let next = internal.vibrationPattern?.shift();
 		if (typeof next === 'undefined') {
 			// Pattern completed
@@ -556,34 +490,4 @@ export class SwitchClass extends EventTarget {
 	};
 
 	inspect = inspect;
-}
-
-export class Env {
-	/**
-	 * @private
-	 */
-	[INTERNAL_SYMBOL]: SwitchClass;
-
-	/**
-	 * @private
-	 */
-	constructor(s: SwitchClass) {
-		this[INTERNAL_SYMBOL] = s;
-	}
-
-	get(name: string) {
-		return this[INTERNAL_SYMBOL].native.getenv(name);
-	}
-
-	set(name: string, value: string) {
-		this[INTERNAL_SYMBOL].native.setenv(name, value);
-	}
-
-	delete(name: string) {
-		this[INTERNAL_SYMBOL].native.unsetenv(name);
-	}
-
-	toObject() {
-		return this[INTERNAL_SYMBOL].native.envToObject();
-	}
 }
