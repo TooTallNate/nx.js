@@ -110,6 +110,17 @@ export function rgbaToString(rgba: RGBA) {
 		.join('')}`;
 }
 
+export function returnOnThrow<T extends (...args: any[]) => any>(
+	fn: T,
+	...args: Parameters<T>
+): ReturnType<T> | Error {
+	try {
+		return fn(...args);
+	} catch (err: any) {
+		return err;
+	}
+}
+
 export function stub(): never {
 	throw new Error(
 		'This is a stub function which should have been replaced by a native implementation'

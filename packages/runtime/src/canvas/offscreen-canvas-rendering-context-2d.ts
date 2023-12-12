@@ -9,6 +9,7 @@ import {
 	def,
 	rgbaToString,
 	stub,
+	returnOnThrow,
 } from '../utils';
 import { isDomPointInit, type DOMPointInit } from '../dompoint';
 import { addSystemFont, findFont } from '../font/font-face-set';
@@ -69,7 +70,10 @@ export class OffscreenCanvasRenderingContext2D {
 	set font(v: string) {
 		if (!v || this.font === v) return;
 
-		const parsed = parseCssFont(v);
+		const parsed = returnOnThrow(parseCssFont, v);
+		if (parsed instanceof Error) {
+			return;
+		}
 		if ('system' in parsed) {
 			// "system" fonts are not supported
 			return;
