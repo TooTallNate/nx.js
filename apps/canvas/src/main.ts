@@ -1,5 +1,11 @@
 const ctx = screen.getContext('2d');
-ctx.scale(4, 4);
+
+const scaleFactor = 4.8;
+ctx.translate(
+	screen.width / 2 - (150 * scaleFactor) / 2,
+	screen.height / 2 - (150 * scaleFactor) / 2
+);
+ctx.scale(scaleFactor, scaleFactor);
 
 function clock() {
 	const now = new Date();
