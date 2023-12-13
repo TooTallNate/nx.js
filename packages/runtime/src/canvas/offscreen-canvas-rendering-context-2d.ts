@@ -18,6 +18,7 @@ import type {
 	CanvasLineCap,
 	CanvasLineJoin,
 	CanvasImageSource,
+	CanvasTextAlign,
 	GlobalCompositeOperation,
 	ImageSmoothingQuality,
 } from '../types';
@@ -252,6 +253,19 @@ export class OffscreenCanvasRenderingContext2D {
 	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/miterLimit
 	 */
 	declare miterLimit: number;
+
+	/**
+	 * Specifies the current text alignment used when drawing text.
+	 *
+	 * The alignment is relative to the `x` value of the {@link CanvasRenderingContext2D.fillText | `fillText()`} /
+	 * {@link CanvasRenderingContext2D.strokeText | `strokeText()`} methods.
+	 * For example, if `textAlign` is `"center"`, then the text's left
+	 * edge will be at `x - (textWidth / 2)`.
+	 *
+	 * @default "start"
+	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/textAlign
+	 */
+	declare textAlign: CanvasTextAlign;
 
 	/**
 	 * Starts a new path by emptying the list of sub-paths.

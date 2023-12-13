@@ -24,6 +24,15 @@ typedef struct
 	double a;
 } nx_rgba_t;
 
+typedef enum
+{
+	TEXT_ALIGN_LEFT,
+	TEXT_ALIGN_CENTER,
+	TEXT_ALIGN_RIGHT,
+	TEXT_ALIGN_START,
+	TEXT_ALIGN_END
+} text_align_t;
+
 /*
  * State struct.
  *
@@ -43,13 +52,13 @@ typedef struct nx_canvas_context_2d_state_s
 	// cairo_pattern_t *fillGradient;
 	// cairo_pattern_t *strokeGradient;
 	// int shadowBlur;
-	// text_align_t textAlignment = TEXT_ALIGNMENT_LEFT; // TODO default is supposed to be START
 	// text_baseline_t textBaseline = TEXT_BASELINE_ALPHABETIC;
 	// canvas_draw_mode_t textDrawingMode;
 	cairo_filter_t image_smoothing_quality;
 	JSValue font;
 	double font_size;
 	const char *font_string;
+	text_align_t text_align;
 	hb_font_t *hb_font;
 	bool image_smoothing_enabled;
 	double global_alpha;

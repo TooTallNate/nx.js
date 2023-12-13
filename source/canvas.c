@@ -568,8 +568,8 @@ static JSValue nx_canvas_context_2d_fill_text(JSContext *ctx, JSValueConst this_
 
 	// Shape glyph for Cairo
 	cairo_glyph_t *cairo_glyphs = cairo_glyph_allocate(glyph_count);
-	int x = 0;
-	int y = 0;
+	double x = 0;
+	double y = 0;
 	for (int i = 0; i < glyph_count; ++i)
 	{
 		cairo_glyphs[i].index = glyph_info[i].codepoint;
@@ -582,7 +582,15 @@ static JSValue nx_canvas_context_2d_fill_text(JSContext *ctx, JSValueConst this_
 	// Move glyphs to the correct positions
 	for (int i = 0; i < glyph_count; ++i)
 	{
-		cairo_glyphs[i].x += args[0];
+		// TODO: consider RTL fonts / `direction` property for START / END mode
+		if (context->state->text_align == TEXT_ALIGN_START || context->state->text_align == TEXT_ALIGN_LEFT) {
+			cairo_glyphs[i].x += args[0];
+		} else if (context->state->text_align == TEXT_ALIGN_END || context->state->text_align == TEXT_ALIGN_RIGHT) {
+			cairo_glyphs[i].x += args[0] - x;
+		} else if (context->state->text_align == TEXT_ALIGN_CENTER) {
+			cairo_glyphs[i].x += args[0] - (x / 2);
+		}
+
 		cairo_glyphs[i].y += args[1];
 	}
 
@@ -635,8 +643,8 @@ static JSValue nx_canvas_context_2d_stroke_text(JSContext *ctx, JSValueConst thi
 
 	// Shape glyph for Cairo
 	cairo_glyph_t *cairo_glyphs = cairo_glyph_allocate(glyph_count);
-	int x = 0;
-	int y = 0;
+	double x = 0;
+	double y = 0;
 	for (int i = 0; i < glyph_count; ++i)
 	{
 		cairo_glyphs[i].index = glyph_info[i].codepoint;
@@ -649,7 +657,15 @@ static JSValue nx_canvas_context_2d_stroke_text(JSContext *ctx, JSValueConst thi
 	// Move glyphs to the correct positions
 	for (int i = 0; i < glyph_count; ++i)
 	{
-		cairo_glyphs[i].x += args[0];
+		// TODO: consider RTL fonts / `direction` property for START / END mode
+		if (context->state->text_align == TEXT_ALIGN_START || context->state->text_align == TEXT_ALIGN_LEFT) {
+			cairo_glyphs[i].x += args[0];
+		} else if (context->state->text_align == TEXT_ALIGN_END || context->state->text_align == TEXT_ALIGN_RIGHT) {
+			cairo_glyphs[i].x += args[0] - x;
+		} else if (context->state->text_align == TEXT_ALIGN_CENTER) {
+			cairo_glyphs[i].x += args[0] - (x / 2);
+		}
+
 		cairo_glyphs[i].y += args[1];
 	}
 
@@ -1827,6 +1843,7 @@ static JSValue nx_canvas_context_2d_set_image_smoothing_quality(JSContext *ctx, 
 	{
 		context->state->image_smoothing_quality = CAIRO_FILTER_FAST;
 	}
+	JS_FreeCString(ctx, str);
 	return JS_UNDEFINED;
 }
 
@@ -1964,6 +1981,62 @@ static JSValue nx_canvas_context_2d_set_miter_limit(JSContext *ctx, JSValueConst
 	return JS_UNDEFINED;
 }
 
+static JSValue nx_canvas_context_2d_get_text_align(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	CANVAS_CONTEXT_THIS;
+	const char *align;
+	switch (context->state->text_align)
+	{
+	default:
+	case TEXT_ALIGN_START:
+		align = "start";
+		break;
+	case TEXT_ALIGN_LEFT:
+		align = "left";
+		break;
+	case TEXT_ALIGN_CENTER:
+		align = "center";
+		break;
+	case TEXT_ALIGN_RIGHT:
+		align = "right";
+		break;
+	case TEXT_ALIGN_END:
+		align = "end";
+		break;
+	}
+	return JS_NewString(ctx, align);
+}
+
+static JSValue nx_canvas_context_2d_set_text_align(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	CANVAS_CONTEXT_THIS;
+	const char *str = JS_ToCString(ctx, argv[0]);
+	if (!str)
+		return JS_EXCEPTION;
+	if (strcmp(str, "start") == 0)
+	{
+		context->state->text_align = TEXT_ALIGN_START;
+	}
+	else if (strcmp(str, "left") == 0)
+	{
+		context->state->text_align = TEXT_ALIGN_LEFT;
+	}
+	else if (strcmp(str, "center") == 0)
+	{
+		context->state->text_align = TEXT_ALIGN_CENTER;
+	}
+	else if (strcmp(str, "right") == 0)
+	{
+		context->state->text_align = TEXT_ALIGN_RIGHT;
+	}
+	else if (strcmp(str, "end") == 0)
+	{
+		context->state->text_align = TEXT_ALIGN_END;
+	}
+	JS_FreeCString(ctx, str);
+	return JS_UNDEFINED;
+}
+
 static JSValue nx_canvas_context_2d_rotate(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	CANVAS_CONTEXT_THIS;
@@ -2026,6 +2099,7 @@ static JSValue nx_canvas_context_2d_init_class(JSContext *ctx, JSValueConst this
 	NX_DEF_GETSET(proto, "lineJoin", nx_canvas_context_2d_get_line_join, nx_canvas_context_2d_set_line_join);
 	NX_DEF_GETSET(proto, "lineWidth", nx_canvas_context_2d_get_line_width, nx_canvas_context_2d_set_line_width);
 	NX_DEF_GETSET(proto, "miterLimit", nx_canvas_context_2d_get_miter_limit, nx_canvas_context_2d_set_miter_limit);
+	NX_DEF_GETSET(proto, "textAlign", nx_canvas_context_2d_get_text_align, nx_canvas_context_2d_set_text_align);
 	NX_DEF_FUNC(proto, "arc", nx_canvas_context_2d_arc, 5);
 	NX_DEF_FUNC(proto, "arcTo", nx_canvas_context_2d_arc_to, 5);
 	NX_DEF_FUNC(proto, "beginPath", nx_canvas_context_2d_begin_path, 0);
@@ -2090,6 +2164,7 @@ static JSValue nx_canvas_context_2d_new(JSContext *ctx, JSValueConst this_val, i
 	state->global_alpha = 1.;
 	state->image_smoothing_quality = CAIRO_FILTER_FAST;
 	state->image_smoothing_enabled = true;
+	state->text_align = TEXT_ALIGN_START;
 	cairo_set_line_width(context->ctx, 1.);
 
 	JS_SetOpaque(obj, context);
