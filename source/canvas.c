@@ -484,7 +484,9 @@ static JSValue nx_canvas_context_2d_set_font(JSContext *ctx, JSValueConst this_v
 
 	context->state->font_size = font_size;
 	context->state->font_string = strdup(font_string);
+	context->state->ft_face = face->ft_face;
 	context->state->hb_font = face->hb_font;
+	FT_Set_Char_Size(context->state->ft_face, 0, font_size * 64.0, 0, 0);
 	cairo_set_font_face(cr, face->cairo_font);
 	cairo_set_font_size(cr, font_size);
 	hb_font_set_scale(face->hb_font, font_size * 64, font_size * 64);
@@ -590,11 +592,35 @@ static JSValue nx_canvas_context_2d_fill_text(JSContext *ctx, JSValueConst this_
 		alignment_offset = -x / 2.0;
 	}
 
+	double baseline_offset = 0; // TEXT_BASELINE_ALPHABETIC
+	if (context->state->text_baseline == TEXT_BASELINE_TOP)
+	{
+		baseline_offset = context->state->ft_face->size->metrics.ascender / 64.0;
+	}
+	else if (context->state->text_baseline == TEXT_BASELINE_HANGING)
+	{
+		// TODO: don't know how to properly calculate this, so just pick a multiplier that seems close
+		baseline_offset = (context->state->ft_face->size->metrics.ascender / 64.0) * 0.80;
+	}
+	else if (context->state->text_baseline == TEXT_BASELINE_MIDDLE)
+	{
+		baseline_offset = ((context->state->ft_face->size->metrics.ascender / 64.0) + (context->state->ft_face->size->metrics.descender / 64.0)) / 2.0;
+	}
+	else if (context->state->text_baseline == TEXT_BASELINE_IDEOGRAPHIC)
+	{
+		baseline_offset = context->state->ft_face->size->metrics.descender / 64.0;
+	}
+	else if (context->state->text_baseline == TEXT_BASELINE_BOTTOM)
+	{
+		// TODO: don't know how to properly calculate this, so just pick a multiplier that seems close
+		baseline_offset = (context->state->ft_face->size->metrics.descender / 64.0) * 2.0;
+	}
+
 	// Move glyphs to the correct positions
 	for (int i = 0; i < glyph_count; ++i)
 	{
 		cairo_glyphs[i].x += args[0] + alignment_offset;
-		cairo_glyphs[i].y += args[1];
+		cairo_glyphs[i].y += args[1] + baseline_offset;
 	}
 
 	// TODO: support gradient / pattern
@@ -668,11 +694,35 @@ static JSValue nx_canvas_context_2d_stroke_text(JSContext *ctx, JSValueConst thi
 		alignment_offset = -x / 2.0;
 	}
 
+	double baseline_offset = 0; // TEXT_BASELINE_ALPHABETIC
+	if (context->state->text_baseline == TEXT_BASELINE_TOP)
+	{
+		baseline_offset = context->state->ft_face->size->metrics.ascender / 64.0;
+	}
+	else if (context->state->text_baseline == TEXT_BASELINE_HANGING)
+	{
+		// TODO: don't know how to properly calculate this, so just pick a multiplier that seems close
+		baseline_offset = (context->state->ft_face->size->metrics.ascender / 64.0) * 0.80;
+	}
+	else if (context->state->text_baseline == TEXT_BASELINE_MIDDLE)
+	{
+		baseline_offset = ((context->state->ft_face->size->metrics.ascender / 64.0) + (context->state->ft_face->size->metrics.descender / 64.0)) / 2.0;
+	}
+	else if (context->state->text_baseline == TEXT_BASELINE_IDEOGRAPHIC)
+	{
+		baseline_offset = context->state->ft_face->size->metrics.descender / 64.0;
+	}
+	else if (context->state->text_baseline == TEXT_BASELINE_BOTTOM)
+	{
+		// TODO: don't know how to properly calculate this, so just pick a multiplier that seems close
+		baseline_offset = (context->state->ft_face->size->metrics.descender / 64.0) * 2.0;
+	}
+
 	// Move glyphs to the correct positions
 	for (int i = 0; i < glyph_count; ++i)
 	{
 		cairo_glyphs[i].x += args[0] + alignment_offset;
-		cairo_glyphs[i].y += args[1];
+		cairo_glyphs[i].y += args[1] + baseline_offset;
 	}
 
 	// Draw the text onto the Cairo surface
@@ -1338,6 +1388,7 @@ static JSValue nx_canvas_context_2d_restore(JSContext *ctx, JSValueConst this_va
 		js_free(ctx, prev);
 
 		nx_font_face_t *face = nx_get_font_face(ctx, context->state->font);
+		FT_Set_Char_Size(context->state->ft_face, 0, context->state->font_size * 64.0, 0, 0);
 		cairo_set_font_face(cr, face->cairo_font);
 		cairo_set_font_size(cr, context->state->font_size);
 		hb_font_set_scale(face->hb_font, context->state->font_size * 64, context->state->font_size * 64);
@@ -2043,6 +2094,68 @@ static JSValue nx_canvas_context_2d_set_text_align(JSContext *ctx, JSValueConst 
 	return JS_UNDEFINED;
 }
 
+static JSValue nx_canvas_context_2d_get_text_baseline(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	CANVAS_CONTEXT_THIS;
+	const char *v;
+	switch (context->state->text_baseline)
+	{
+	case TEXT_BASELINE_TOP:
+		v = "top";
+		break;
+	case TEXT_BASELINE_BOTTOM:
+		v = "bottom";
+		break;
+	case TEXT_BASELINE_MIDDLE:
+		v = "middle";
+		break;
+	case TEXT_BASELINE_IDEOGRAPHIC:
+		v = "ideographic";
+		break;
+	case TEXT_BASELINE_HANGING:
+		v = "hanging";
+		break;
+	default:
+		v = "alphabetic";
+		break;
+	}
+	return JS_NewString(ctx, v);
+}
+
+static JSValue nx_canvas_context_2d_set_text_baseline(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	CANVAS_CONTEXT_THIS;
+	const char *str = JS_ToCString(ctx, argv[0]);
+	if (!str)
+		return JS_EXCEPTION;
+	if (strcmp(str, "alphabetic") == 0)
+	{
+		context->state->text_baseline = TEXT_BASELINE_ALPHABETIC;
+	}
+	else if (strcmp(str, "top") == 0)
+	{
+		context->state->text_baseline = TEXT_BASELINE_TOP;
+	}
+	else if (strcmp(str, "middle") == 0)
+	{
+		context->state->text_baseline = TEXT_BASELINE_MIDDLE;
+	}
+	else if (strcmp(str, "bottom") == 0)
+	{
+		context->state->text_baseline = TEXT_BASELINE_BOTTOM;
+	}
+	else if (strcmp(str, "ideographic") == 0)
+	{
+		context->state->text_baseline = TEXT_BASELINE_IDEOGRAPHIC;
+	}
+	else if (strcmp(str, "hanging") == 0)
+	{
+		context->state->text_baseline = TEXT_BASELINE_HANGING;
+	}
+	JS_FreeCString(ctx, str);
+	return JS_UNDEFINED;
+}
+
 static JSValue nx_canvas_context_2d_rotate(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	CANVAS_CONTEXT_THIS;
@@ -2106,6 +2219,7 @@ static JSValue nx_canvas_context_2d_init_class(JSContext *ctx, JSValueConst this
 	NX_DEF_GETSET(proto, "lineWidth", nx_canvas_context_2d_get_line_width, nx_canvas_context_2d_set_line_width);
 	NX_DEF_GETSET(proto, "miterLimit", nx_canvas_context_2d_get_miter_limit, nx_canvas_context_2d_set_miter_limit);
 	NX_DEF_GETSET(proto, "textAlign", nx_canvas_context_2d_get_text_align, nx_canvas_context_2d_set_text_align);
+	NX_DEF_GETSET(proto, "textBaseline", nx_canvas_context_2d_get_text_baseline, nx_canvas_context_2d_set_text_baseline);
 	NX_DEF_FUNC(proto, "arc", nx_canvas_context_2d_arc, 5);
 	NX_DEF_FUNC(proto, "arcTo", nx_canvas_context_2d_arc_to, 5);
 	NX_DEF_FUNC(proto, "beginPath", nx_canvas_context_2d_begin_path, 0);
@@ -2171,6 +2285,7 @@ static JSValue nx_canvas_context_2d_new(JSContext *ctx, JSValueConst this_val, i
 	state->image_smoothing_quality = CAIRO_FILTER_FAST;
 	state->image_smoothing_enabled = true;
 	state->text_align = TEXT_ALIGN_START;
+	state->text_baseline = TEXT_BASELINE_ALPHABETIC;
 	cairo_set_line_width(context->ctx, 1.);
 
 	JS_SetOpaque(obj, context);

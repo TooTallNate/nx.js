@@ -129,6 +129,13 @@ export type CanvasImageSource = Image | Screen | OffscreenCanvas;
 export type CanvasLineCap = 'butt' | 'round' | 'square';
 export type CanvasLineJoin = 'bevel' | 'miter' | 'round';
 export type CanvasTextAlign = 'center' | 'end' | 'left' | 'right' | 'start';
+export type CanvasTextBaseline =
+	| 'alphabetic'
+	| 'bottom'
+	| 'hanging'
+	| 'ideographic'
+	| 'middle'
+	| 'top';
 export type GlobalCompositeOperation =
 	| 'color'
 	| 'color-burn'

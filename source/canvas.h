@@ -26,6 +26,16 @@ typedef struct
 
 typedef enum
 {
+	TEXT_BASELINE_ALPHABETIC,
+	TEXT_BASELINE_TOP,
+	TEXT_BASELINE_BOTTOM,
+	TEXT_BASELINE_MIDDLE,
+	TEXT_BASELINE_IDEOGRAPHIC,
+	TEXT_BASELINE_HANGING
+} text_baseline_t;
+
+typedef enum
+{
 	TEXT_ALIGN_LEFT,
 	TEXT_ALIGN_CENTER,
 	TEXT_ALIGN_RIGHT,
@@ -52,13 +62,14 @@ typedef struct nx_canvas_context_2d_state_s
 	// cairo_pattern_t *fillGradient;
 	// cairo_pattern_t *strokeGradient;
 	// int shadowBlur;
-	// text_baseline_t textBaseline = TEXT_BASELINE_ALPHABETIC;
 	// canvas_draw_mode_t textDrawingMode;
 	cairo_filter_t image_smoothing_quality;
 	JSValue font;
 	double font_size;
 	const char *font_string;
+	text_baseline_t text_baseline;
 	text_align_t text_align;
+	FT_Face ft_face;
 	hb_font_t *hb_font;
 	bool image_smoothing_enabled;
 	double global_alpha;

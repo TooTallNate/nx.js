@@ -15,10 +15,12 @@ import { isDomPointInit, type DOMPointInit } from '../dompoint';
 import { addSystemFont, findFont } from '../font/font-face-set';
 import type { OffscreenCanvas } from './offscreen-canvas';
 import type {
+	CanvasFillRule,
 	CanvasLineCap,
 	CanvasLineJoin,
 	CanvasImageSource,
 	CanvasTextAlign,
+	CanvasTextBaseline,
 	GlobalCompositeOperation,
 	ImageSmoothingQuality,
 	TextMetrics,
@@ -267,6 +269,14 @@ export class OffscreenCanvasRenderingContext2D {
 	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/textAlign
 	 */
 	declare textAlign: CanvasTextAlign;
+
+	/**
+	 * Specifies the current text baseline used when drawing text.
+	 *
+	 * @default "alphabetic"
+	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/textBaseline
+	 */
+	declare textBaseline: CanvasTextBaseline;
 
 	/**
 	 * Starts a new path by emptying the list of sub-paths.
