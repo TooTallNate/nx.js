@@ -13,6 +13,7 @@ import {
 } from '../utils';
 import { isDomPointInit, type DOMPointInit } from '../dompoint';
 import { addSystemFont, findFont } from '../font/font-face-set';
+import type { Path2D } from './path2d';
 import type { OffscreenCanvas } from './offscreen-canvas';
 import type {
 	CanvasFillRule,
