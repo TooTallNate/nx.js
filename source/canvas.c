@@ -579,18 +579,21 @@ static JSValue nx_canvas_context_2d_fill_text(JSContext *ctx, JSValueConst this_
 		y += glyph_pos[i].y_advance / (64.0);
 	}
 
+	// TODO: consider RTL fonts / `direction` property for START / END mode
+	double alignment_offset = 0; // TEXT_ALIGN_START / TEXT_ALIGN_LEFT
+	if (context->state->text_align == TEXT_ALIGN_END || context->state->text_align == TEXT_ALIGN_RIGHT)
+	{
+		alignment_offset = -x;
+	}
+	else if (context->state->text_align == TEXT_ALIGN_CENTER)
+	{
+		alignment_offset = -x / 2.0;
+	}
+
 	// Move glyphs to the correct positions
 	for (int i = 0; i < glyph_count; ++i)
 	{
-		// TODO: consider RTL fonts / `direction` property for START / END mode
-		if (context->state->text_align == TEXT_ALIGN_START || context->state->text_align == TEXT_ALIGN_LEFT) {
-			cairo_glyphs[i].x += args[0];
-		} else if (context->state->text_align == TEXT_ALIGN_END || context->state->text_align == TEXT_ALIGN_RIGHT) {
-			cairo_glyphs[i].x += args[0] - x;
-		} else if (context->state->text_align == TEXT_ALIGN_CENTER) {
-			cairo_glyphs[i].x += args[0] - (x / 2);
-		}
-
+		cairo_glyphs[i].x += args[0] + alignment_offset;
 		cairo_glyphs[i].y += args[1];
 	}
 
@@ -654,18 +657,21 @@ static JSValue nx_canvas_context_2d_stroke_text(JSContext *ctx, JSValueConst thi
 		y += glyph_pos[i].y_advance / (64.0);
 	}
 
+	// TODO: consider RTL fonts / `direction` property for START / END mode
+	double alignment_offset = 0; // TEXT_ALIGN_START / TEXT_ALIGN_LEFT
+	if (context->state->text_align == TEXT_ALIGN_END || context->state->text_align == TEXT_ALIGN_RIGHT)
+	{
+		alignment_offset = -x;
+	}
+	else if (context->state->text_align == TEXT_ALIGN_CENTER)
+	{
+		alignment_offset = -x / 2.0;
+	}
+
 	// Move glyphs to the correct positions
 	for (int i = 0; i < glyph_count; ++i)
 	{
-		// TODO: consider RTL fonts / `direction` property for START / END mode
-		if (context->state->text_align == TEXT_ALIGN_START || context->state->text_align == TEXT_ALIGN_LEFT) {
-			cairo_glyphs[i].x += args[0];
-		} else if (context->state->text_align == TEXT_ALIGN_END || context->state->text_align == TEXT_ALIGN_RIGHT) {
-			cairo_glyphs[i].x += args[0] - x;
-		} else if (context->state->text_align == TEXT_ALIGN_CENTER) {
-			cairo_glyphs[i].x += args[0] - (x / 2);
-		}
-
+		cairo_glyphs[i].x += args[0] + alignment_offset;
 		cairo_glyphs[i].y += args[1];
 	}
 
