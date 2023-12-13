@@ -1,16 +1,25 @@
 const ctx = screen.getContext('2d');
-
-const scaleFactor = 4.8;
-ctx.translate(
-	screen.width / 2 - (150 * scaleFactor) / 2,
-	screen.height / 2 - (150 * scaleFactor) / 2
-);
-ctx.scale(scaleFactor, scaleFactor);
+ctx.fillStyle = 'white';
+ctx.font = '42px system-ui';
+ctx.textAlign = 'center';
+ctx.textBaseline = 'bottom';
 
 function clock() {
 	const now = new Date();
+
+	// Reset
+	ctx.clearRect(0, 0, screen.width, screen.height);
+
+	// Render time as text
+	ctx.fillText(now.toLocaleString(), screen.width / 2, screen.height);
+
 	ctx.save();
-	ctx.clearRect(0, 0, 150, 150);
+	const scaleFactor = 4.8;
+	ctx.translate(
+		screen.width / 2 - (150 * scaleFactor) / 2,
+		screen.height / 2 - (150 * scaleFactor) / 2
+	);
+	ctx.scale(scaleFactor, scaleFactor);
 	ctx.translate(75, 75);
 	ctx.scale(0.4, 0.4);
 	ctx.rotate(-Math.PI / 2);
