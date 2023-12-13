@@ -21,6 +21,7 @@ import type {
 	CanvasTextAlign,
 	GlobalCompositeOperation,
 	ImageSmoothingQuality,
+	TextMetrics,
 } from '../types';
 import type { SwitchClass } from '../switch';
 

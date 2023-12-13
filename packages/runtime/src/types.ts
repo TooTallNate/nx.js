@@ -158,6 +158,23 @@ export type GlobalCompositeOperation =
 	| 'source-over'
 	| 'xor';
 export type ImageSmoothingQuality = 'high' | 'low' | 'medium';
+export interface TextMetrics {
+	// x-direction
+	width: number; // advance width
+	actualBoundingBoxLeft: number;
+	actualBoundingBoxRight: number;
+
+	// y-direction
+	fontBoundingBoxAscent: number;
+	fontBoundingBoxDescent: number;
+	actualBoundingBoxAscent: number;
+	actualBoundingBoxDescent: number;
+	emHeightAscent: number;
+	emHeightDescent: number;
+	hangingBaseline: number;
+	alphabeticBaseline: number;
+	ideographicBaseline: number;
+}
 
 export type FontDisplay = 'auto' | 'block' | 'fallback' | 'optional' | 'swap';
 export type FontFaceLoadStatus = 'error' | 'loaded' | 'loading' | 'unloaded';
