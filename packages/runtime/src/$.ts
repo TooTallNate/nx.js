@@ -1,5 +1,6 @@
 import type { NetworkInfo, Stats } from './types';
 import type { Callback, RGBA } from './internal';
+import type { Touch } from './polyfills/event';
 import type { Server, TlsContextOpaque } from './tcp';
 import type { MemoryDescriptor, Memory } from './wasm';
 import type { BatteryManager } from './navigator/battery';
@@ -106,6 +107,8 @@ export interface Init {
 	onFrame(fn: (kDown: number) => void): void;
 	onExit(fn: () => void): void;
 	framebufferInit(screen: Screen): void;
+	hidInitializeTouchScreen(): void;
+	hidGetTouchScreenStates(): Touch[] | undefined;
 
 	// nifm.c
 	nifmInitialize(): () => void;

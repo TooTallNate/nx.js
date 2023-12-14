@@ -7,20 +7,15 @@ ctx.fillStyle = 'white';
 ctx.font = '48px system-ui';
 ctx.fillText('Touch the screen to draw...', 320, 350);
 
-Switch.addEventListener(
+screen.addEventListener(
 	'touchstart',
 	(e) => {
-		ctx.fillStyle = 'black';
-		ctx.fillRect(0, 0, screen.width, screen.height);
+		ctx.clearRect(0, 0, screen.width, screen.height);
 	},
 	{ once: true }
 );
 
-function degreesToRadians(degrees: number) {
-	return degrees * (Math.PI / 180);
-}
-
-Switch.addEventListener('touchmove', (e) => {
+screen.addEventListener('touchmove', (e) => {
 	for (const touch of e.changedTouches) {
 		ctx.fillStyle = hash.hex(String(touch.identifier));
 		ctx.beginPath();
@@ -37,3 +32,7 @@ Switch.addEventListener('touchmove', (e) => {
 		ctx.fill();
 	}
 });
+
+function degreesToRadians(degrees: number) {
+	return degrees * (Math.PI / 180);
+}

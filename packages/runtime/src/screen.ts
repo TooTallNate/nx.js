@@ -3,6 +3,8 @@ import { assertInternalConstructor, createInternal, def } from './utils';
 import { EventTarget } from './polyfills/event-target';
 import { INTERNAL_SYMBOL } from './internal';
 import { CanvasRenderingContext2D } from './canvas/canvas-rendering-context-2d';
+import { initTouchscreen } from './touchscreen';
+import type { TouchEvent } from './polyfills/event';
 
 interface ScreenInternal {
 	context2d?: CanvasRenderingContext2D;
@@ -61,6 +63,32 @@ export class Screen extends EventTarget implements globalThis.Screen {
 	 * @see https://developer.mozilla.org/docs/Web/API/Screen/height
 	 */
 	declare readonly height: number;
+
+	// @ts-expect-error
+	addEventListener(
+		type: 'touchstart' | 'touchmove' | 'touchend',
+		listener: (ev: TouchEvent) => any,
+		options?: boolean | AddEventListenerOptions
+	): void;
+	addEventListener(
+		type: string,
+		listener: EventListenerOrEventListenerObject,
+		options?: boolean | AddEventListenerOptions
+	): void;
+	addEventListener(
+		type: string,
+		callback: EventListenerOrEventListenerObject | null,
+		options?: boolean | AddEventListenerOptions | undefined
+	): void {
+		if (
+			type === 'touchstart' ||
+			type === 'touchmove' ||
+			type === 'touchend'
+		) {
+			initTouchscreen();
+		}
+		super.addEventListener(type, callback, options);
+	}
 
 	/**
 	 * Creates a {@link Blob} object representing the image contained on the screen.

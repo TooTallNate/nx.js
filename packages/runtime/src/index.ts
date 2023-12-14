@@ -14,7 +14,6 @@ import {
 	Event,
 	ErrorEvent,
 	KeyboardEvent,
-	TouchEvent,
 	UIEvent,
 	PromiseRejectionEvent,
 } from './polyfills/event';
@@ -114,20 +113,10 @@ export interface ImportMeta {
 	main: boolean;
 }
 
-function touchIsEqual(a: Touch, b: Touch) {
-	return (
-		a.screenX === b.screenX &&
-		a.screenY === b.screenY &&
-		a.radiusX === b.radiusX &&
-		a.radiusY === b.radiusY &&
-		a.rotationAngle === b.rotationAngle
-	);
-}
-
 import './window';
 export type * from './window';
 
-import './screen';
+import { screen } from './screen';
 export type * from './screen';
 
 export type * from './canvas/image-data';
@@ -142,6 +131,7 @@ import './canvas/offscreen-canvas';
 export type * from './canvas/offscreen-canvas';
 
 import './canvas/offscreen-canvas-rendering-context-2d';
+import { dispatchTouchEvents } from './touchscreen';
 export type * from './canvas/offscreen-canvas-rendering-context-2d';
 
 $.onError((e) => {
@@ -172,13 +162,7 @@ $.onUnhandledRejection((p, r) => {
 const btnPlus = 1 << 10; ///< Plus button
 
 $.onFrame((kDown) => {
-	const {
-		keyboardInitialized,
-		touchscreenInitialized,
-		previousButtons,
-		previousKeys,
-		previousTouches,
-	} = internal;
+	const { keyboardInitialized, previousButtons, previousKeys } = internal;
 	processTimers();
 	callRafCallbacks();
 
@@ -230,79 +214,7 @@ $.onFrame((kDown) => {
 		internal.previousKeys = keys;
 	}
 
-	if (touchscreenInitialized) {
-		const touches = Switch.native.hidGetTouchScreenStates();
-		if (touches) {
-			const startTouches: Touch[] = [];
-			const changedTouches: Touch[] = [];
-			const endTouches: Touch[] = [];
-			const touchIds = new Set<number>();
-
-			for (const touch of touches) {
-				let started = true;
-				for (const prevTouch of previousTouches) {
-					if (touch.identifier === (prevTouch.identifier | 0)) {
-						started = false;
-						// @ts-expect-error
-						touch.identifier = prevTouch.identifier;
-						touchIds.add(touch.identifier);
-						if (!touchIsEqual(touch, prevTouch)) {
-							changedTouches.push(touch);
-						}
-						break;
-					}
-				}
-				if (started) {
-					// @ts-expect-error
-					touch.identifier += Math.random();
-					touchIds.add(touch.identifier);
-					startTouches.push(touch);
-				}
-			}
-
-			internal.previousTouches = touches;
-
-			for (const prevTouch of previousTouches) {
-				if (!touchIds.has(prevTouch.identifier)) {
-					endTouches.push(prevTouch);
-				}
-			}
-
-			if (startTouches.length) {
-				Switch.dispatchEvent(
-					new TouchEvent('touchstart', {
-						touches,
-						changedTouches: startTouches,
-					})
-				);
-			}
-			if (changedTouches.length) {
-				Switch.dispatchEvent(
-					new TouchEvent('touchmove', {
-						touches,
-						changedTouches,
-					})
-				);
-			}
-			if (endTouches.length) {
-				Switch.dispatchEvent(
-					new TouchEvent('touchend', {
-						touches,
-						changedTouches: endTouches,
-					})
-				);
-			}
-		} else if (previousTouches.length) {
-			// No current touches, but there were previous touches, so fire "touchend"
-			Switch.dispatchEvent(
-				new TouchEvent('touchend', {
-					touches: [],
-					changedTouches: previousTouches,
-				})
-			);
-			internal.previousTouches = [];
-		}
-	}
+	dispatchTouchEvents(screen);
 });
 
 $.onExit(() => {

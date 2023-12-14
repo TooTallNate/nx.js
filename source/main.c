@@ -518,6 +518,8 @@ int main(int argc, char *argv[])
 		JS_CFUNC_DEF("print", 1, js_print),
 		JS_CFUNC_DEF("printErr", 1, js_print_err),
 		JS_CFUNC_DEF("getInternalPromiseState", 1, js_get_internal_promise_state),
+		JS_CFUNC_DEF("hidInitializeTouchScreen", 0, js_hid_initialize_touch_screen),
+		JS_CFUNC_DEF("hidGetTouchScreenStates", 0, js_hid_get_touch_screen_states),
 
 		// env vars
 		JS_CFUNC_DEF("getenv", 1, js_getenv),
@@ -619,10 +621,8 @@ int main(int argc, char *argv[])
 
 		// hid
 		JS_CFUNC_DEF("hidInitializeKeyboard", 0, js_hid_initialize_keyboard),
-		JS_CFUNC_DEF("hidInitializeTouchScreen", 0, js_hid_initialize_touch_screen),
 		JS_CFUNC_DEF("hidInitializeVibrationDevices", 0, js_hid_initialize_vibration_devices),
 		JS_CFUNC_DEF("hidGetKeyboardStates", 0, js_hid_get_keyboard_states),
-		JS_CFUNC_DEF("hidGetTouchScreenStates", 0, js_hid_get_touch_screen_states),
 		JS_CFUNC_DEF("hidSendVibrationValues", 0, js_hid_send_vibration_values),
 	};
 	JS_SetPropertyFunctionList(ctx, native_obj, function_list, countof(function_list));

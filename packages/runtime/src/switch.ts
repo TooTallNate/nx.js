@@ -46,9 +46,7 @@ export interface Native {
 
 	// hid
 	hidInitializeKeyboard(): void;
-	hidInitializeTouchScreen(): void;
 	hidInitializeVibrationDevices(): void;
-	hidGetTouchScreenStates(): Touch[] | undefined;
 	hidGetKeyboardStates(): Keys;
 	hidSendVibrationValues(v: VibrationValues): void;
 
@@ -71,9 +69,7 @@ export interface Native {
 interface SwitchInternal {
 	previousButtons: number;
 	previousKeys: Keys;
-	previousTouches: Touch[];
 	keyboardInitialized?: boolean;
-	touchscreenInitialized?: boolean;
 	vibrationDevicesInitialized?: boolean;
 	vibrationPattern?: (number | Vibration)[];
 	vibrationTimeoutId?: number;
@@ -85,9 +81,6 @@ interface SwitchEventHandlersEventMap {
 	buttonup: UIEvent;
 	keydown: KeyboardEvent;
 	keyup: KeyboardEvent;
-	touchstart: TouchEvent;
-	touchmove: TouchEvent;
-	touchend: TouchEvent;
 }
 
 export interface Versions {
@@ -119,7 +112,6 @@ const STOP_VIBRATION: VibrationValues = {
 
 export const internal: SwitchInternal = {
 	previousButtons: 0,
-	previousTouches: [],
 	previousKeys: {
 		[0]: 0n,
 		[1]: 0n,
@@ -203,15 +195,6 @@ export class SwitchClass extends EventTarget {
 		) {
 			this.native.hidInitializeKeyboard();
 			internal.keyboardInitialized = true;
-		}
-		if (
-			!internal.touchscreenInitialized &&
-			(type === 'touchstart' ||
-				type === 'touchmove' ||
-				type === 'touchend')
-		) {
-			this.native.hidInitializeTouchScreen();
-			internal.touchscreenInitialized = true;
 		}
 		super.addEventListener(type, callback, options);
 	}
