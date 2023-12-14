@@ -116,6 +116,9 @@ export interface ImportMeta {
 import './window';
 export type * from './window';
 
+import './performance';
+export type * from './performance';
+
 import { screen } from './screen';
 export type * from './screen';
 
@@ -131,8 +134,9 @@ import './canvas/offscreen-canvas';
 export type * from './canvas/offscreen-canvas';
 
 import './canvas/offscreen-canvas-rendering-context-2d';
-import { dispatchTouchEvents } from './touchscreen';
 export type * from './canvas/offscreen-canvas-rendering-context-2d';
+
+import { dispatchTouchEvents } from './touchscreen';
 
 $.onError((e) => {
 	const ev = new ErrorEvent('error', {
