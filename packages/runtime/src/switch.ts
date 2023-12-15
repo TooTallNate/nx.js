@@ -37,18 +37,6 @@ interface SwitchEventHandlersEventMap {
 	keyup: KeyboardEvent;
 }
 
-export interface Versions {
-	cairo: string;
-	freetype2: string;
-	harfbuzz: string;
-	nxjs: string;
-	png: string;
-	quickjs: string;
-	turbojpeg: string;
-	wasm3: string;
-	webp: string;
-}
-
 const DEFAULT_VIBRATION: VibrationValues = {
 	lowAmp: 0.2,
 	lowFreq: 160,
@@ -96,7 +84,9 @@ export class SwitchClass extends EventTarget {
 	/**
 	 * An Object containing the versions numbers of nx.js and all supporting C libraries.
 	 */
-	version!: Versions;
+	get version() {
+		return $.version;
+	}
 	/**
 	 * Signals for the nx.js application process to exit. The "exit" event will be invoked once the event loop is stopped.
 	 */

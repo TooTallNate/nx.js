@@ -1,13 +1,11 @@
+import { $ } from './$';
 import { assertInternalConstructor, def } from './utils';
 import { BatteryManager } from './navigator/battery';
 import { INTERNAL_SYMBOL } from './internal';
-import type { SwitchClass } from './switch';
 import {
 	type VirtualKeyboard,
 	create as newVirtualKeyboard,
 } from './navigator/virtual-keyboard';
-
-declare const Switch: SwitchClass;
 
 interface NavigatorState {
 	batt?: BatteryManager;
@@ -50,7 +48,7 @@ export class Navigator {
 	 * @see https://developer.mozilla.org/docs/Web/API/Navigator/userAgent
 	 */
 	get userAgent() {
-		return `nx.js/${Switch.version.nxjs}`;
+		return `nx.js/${$.version.nxjs}`;
 	}
 
 	/**

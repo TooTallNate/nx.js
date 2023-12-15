@@ -8,6 +8,18 @@ export type DOMHighResTimeStamp = number;
 
 export type PathLike = string | URL;
 
+export interface Versions {
+	cairo: string;
+	freetype2: string;
+	harfbuzz: string;
+	nxjs: string;
+	png: string;
+	quickjs: string;
+	turbojpeg: string;
+	wasm3: string;
+	webp: string;
+}
+
 export interface Stats {
 	size: number;
 	mtime: number;

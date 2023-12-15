@@ -18,7 +18,7 @@ import {
 	PromiseRejectionEvent,
 } from './polyfills/event';
 
-export type { SwitchClass, Versions } from './switch';
+export type { SwitchClass } from './switch';
 export type { Vibration } from './internal';
 export type { Env } from './env';
 export type { InspectOptions } from './inspect';

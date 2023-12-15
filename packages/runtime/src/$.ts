@@ -1,4 +1,4 @@
-import type { NetworkInfo, Stats } from './types';
+import type { NetworkInfo, Stats, Versions } from './types';
 import type {
 	Callback,
 	Keys,
@@ -113,6 +113,7 @@ export interface Init {
 
 	// main.c
 	entrypoint: string;
+	version: Versions;
 	cwd(): string;
 	chdir(dir: string): void;
 	print(v: string): void;
