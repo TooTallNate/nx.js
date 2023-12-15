@@ -25,7 +25,7 @@ function renderPrompt() {
 	console.print(`\r${erase.line}${prompt}${b}`);
 }
 
-Switch.addEventListener('keydown', (e) => {
+addEventListener('keydown', (e) => {
 	const { key } = e;
 	if (key.length === 1) {
 		// Printable character

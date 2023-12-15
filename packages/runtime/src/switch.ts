@@ -1,5 +1,5 @@
 import { $ } from './$';
-import { INTERNAL_SYMBOL, type Keys } from './internal';
+import { INTERNAL_SYMBOL } from './internal';
 import {
 	readDirSync,
 	readFile,
@@ -23,27 +23,16 @@ import type {
 
 interface SwitchInternal {
 	previousButtons: number;
-	previousKeys: Keys;
-	keyboardInitialized?: boolean;
 	nifmInitialized?: boolean;
 }
 
 interface SwitchEventHandlersEventMap {
 	buttondown: UIEvent;
 	buttonup: UIEvent;
-	keydown: KeyboardEvent;
-	keyup: KeyboardEvent;
 }
 
 export const internal: SwitchInternal = {
 	previousButtons: 0,
-	previousKeys: {
-		[0]: 0n,
-		[1]: 0n,
-		[2]: 0n,
-		[3]: 0n,
-		modifiers: 0n,
-	},
 };
 
 export class SwitchClass extends EventTarget {
@@ -99,13 +88,6 @@ export class SwitchClass extends EventTarget {
 		callback: EventListenerOrEventListenerObject | null,
 		options?: boolean | AddEventListenerOptions | undefined
 	): void {
-		if (
-			!internal.keyboardInitialized &&
-			(type === 'keydown' || type === 'keyup')
-		) {
-			$.hidInitializeKeyboard();
-			internal.keyboardInitialized = true;
-		}
 		super.addEventListener(type, callback, options);
 	}
 

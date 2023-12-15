@@ -13,7 +13,6 @@ import { console } from './console';
 import {
 	Event,
 	ErrorEvent,
-	KeyboardEvent,
 	UIEvent,
 	PromiseRejectionEvent,
 } from './polyfills/event';
@@ -138,6 +137,7 @@ import './canvas/offscreen-canvas-rendering-context-2d';
 export type * from './canvas/offscreen-canvas-rendering-context-2d';
 
 import { dispatchTouchEvents } from './touchscreen';
+import { dispatchKeyboardEvents } from './keyboard';
 
 $.onError((e) => {
 	const ev = new ErrorEvent('error', {
@@ -167,7 +167,7 @@ $.onUnhandledRejection((p, r) => {
 const btnPlus = 1 << 10; ///< Plus button
 
 $.onFrame((kDown) => {
-	const { keyboardInitialized, previousButtons, previousKeys } = internal;
+	const { previousButtons } = internal;
 	processTimers();
 	callRafCallbacks();
 
@@ -194,31 +194,7 @@ $.onFrame((kDown) => {
 		);
 	}
 
-	if (keyboardInitialized) {
-		const keys = $.hidGetKeyboardStates();
-		for (let i = 0; i < 4; i++) {
-			const keysDown = ~previousKeys[i] & keys[i];
-			const keysUp = previousKeys[i] & ~keys[i];
-			for (let k = 0; k < 64; k++) {
-				if (keysDown & (1n << (BigInt(k) & 63n))) {
-					const o = {
-						keyCode: i * 64 + k,
-						modifiers: keys.modifiers,
-					};
-					Switch.dispatchEvent(new KeyboardEvent('keydown', o));
-				}
-				if (keysUp & (1n << (BigInt(k) & 63n))) {
-					const o = {
-						keyCode: i * 64 + k,
-						modifiers: keys.modifiers,
-					};
-					Switch.dispatchEvent(new KeyboardEvent('keyup', o));
-				}
-			}
-		}
-		internal.previousKeys = keys;
-	}
-
+	dispatchKeyboardEvents(globalThis);
 	dispatchTouchEvents(screen);
 });
 

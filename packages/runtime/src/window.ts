@@ -1,11 +1,15 @@
+import { assertInternalConstructor, def } from './utils';
+import { initKeyboard } from './keyboard';
+import {
+	EventTarget,
+	type EventListenerOrEventListenerObject,
+} from './polyfills/event-target';
 import type { console } from './console';
 import type {
 	Event,
 	ErrorEvent,
 	PromiseRejectionEvent,
 } from './polyfills/event';
-import { assertInternalConstructor, def } from './utils';
-import { EventTarget } from './polyfills/event-target';
 
 /**
  * The `Window` class represents the global scope within the application.
@@ -28,6 +32,24 @@ def('window', window);
 Object.setPrototypeOf(window, Window.prototype);
 
 /**
+ * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/keydown_event
+ */
+export function addEventListener(
+	type: 'keydown',
+	callback: EventListenerOrEventListenerObject<KeyboardEvent>,
+	options?: AddEventListenerOptions | boolean
+): void;
+
+/**
+ * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/keyup_event
+ */
+export function addEventListener(
+	type: 'keyup',
+	callback: EventListenerOrEventListenerObject<KeyboardEvent>,
+	options?: AddEventListenerOptions | boolean
+): void;
+
+/**
  * The `error` event is sent to the global scope when an unhandled error is thrown.
  *
  * The default behavior when this event occurs is to print the error to the screen
@@ -37,9 +59,9 @@ Object.setPrototypeOf(window, Window.prototype);
  *
  * @see https://developer.mozilla.org/docs/Web/API/Window/error_event
  */
-export declare function addEventListener(
+export function addEventListener(
 	type: 'error',
-	callback: (event: ErrorEvent) => any,
+	callback: EventListenerOrEventListenerObject<ErrorEvent>,
 	options?: AddEventListenerOptions | boolean
 ): void;
 
@@ -54,9 +76,9 @@ export declare function addEventListener(
  *
  * @see https://developer.mozilla.org/docs/Web/API/Window/unhandledrejection_event
  */
-export declare function addEventListener(
+export function addEventListener(
 	type: 'unhandledrejection',
-	callback: (event: PromiseRejectionEvent) => any,
+	callback: EventListenerOrEventListenerObject<PromiseRejectionEvent>,
 	options?: AddEventListenerOptions | boolean
 ): void;
 
@@ -68,17 +90,27 @@ export declare function addEventListener(
  *
  * @see https://developer.mozilla.org/docs/Web/API/Window/unload_event
  */
-export declare function addEventListener(
+export function addEventListener(
 	type: 'unload',
 	callback: (event: Event) => any,
 	options?: AddEventListenerOptions | boolean
 ): void;
 
-export declare function addEventListener(
+export function addEventListener(
 	type: string,
 	callback: EventListenerOrEventListenerObject | null,
 	options?: AddEventListenerOptions | boolean
-): void;
+): void {
+	if (type === 'keydown' || type === 'keyup') {
+		initKeyboard();
+	}
+	EventTarget.prototype.addEventListener.call(
+		window,
+		type,
+		callback,
+		options
+	);
+}
 
 /**
  * Removes the event listener in target's event listener list with the same type, callback, and options.

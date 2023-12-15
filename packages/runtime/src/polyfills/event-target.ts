@@ -2,17 +2,17 @@ import { def } from '../utils';
 import type { Event } from './event';
 import type { AbortSignal } from './abort-controller';
 
-export interface EventListener {
-	(evt: Event): void;
+export interface EventListener<T extends Event> {
+	(evt: T): void;
 }
 
-export interface EventListenerObject {
-	handleEvent(object: Event): void;
+export interface EventListenerObject<T extends Event> {
+	handleEvent(evt: T): void;
 }
 
-export type EventListenerOrEventListenerObject =
-	| EventListener
-	| EventListenerObject;
+export type EventListenerOrEventListenerObject<T extends Event = any> =
+	| EventListener<T>
+	| EventListenerObject<T>;
 
 export interface EventListenerOptions {
 	capture?: boolean;
