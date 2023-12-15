@@ -620,7 +620,6 @@ int main(int argc, char *argv[])
 
 	JSValue switch_obj = JS_GetPropertyStr(ctx, global_obj, "Switch");
 
-
 	JS_SetPropertyStr(ctx, switch_obj, "exit", JS_NewCFunction(ctx, js_exit, "exit", 0));
 
 	// `Switch.argv`

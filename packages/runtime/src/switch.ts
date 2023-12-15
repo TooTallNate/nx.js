@@ -1,10 +1,5 @@
 import { $ } from './$';
-import {
-	INTERNAL_SYMBOL,
-	type Keys,
-	type Vibration,
-	type VibrationValues,
-} from './internal';
+import { INTERNAL_SYMBOL, type Keys } from './internal';
 import {
 	readDirSync,
 	readFile,
@@ -16,7 +11,6 @@ import {
 import { Env } from './env';
 import { inspect } from './inspect';
 import { pathToString } from './utils';
-import { setTimeout, clearTimeout } from './timers';
 import { EventTarget } from './polyfills/event-target';
 import { Socket, connect, createServer, parseAddress } from './tcp';
 import { resolve as dnsResolve } from './dns';
@@ -31,9 +25,6 @@ interface SwitchInternal {
 	previousButtons: number;
 	previousKeys: Keys;
 	keyboardInitialized?: boolean;
-	vibrationDevicesInitialized?: boolean;
-	vibrationPattern?: (number | Vibration)[];
-	vibrationTimeoutId?: number;
 	nifmInitialized?: boolean;
 }
 
@@ -43,20 +34,6 @@ interface SwitchEventHandlersEventMap {
 	keydown: KeyboardEvent;
 	keyup: KeyboardEvent;
 }
-
-const DEFAULT_VIBRATION: VibrationValues = {
-	lowAmp: 0.2,
-	lowFreq: 160,
-	highAmp: 0.2,
-	highFreq: 320,
-};
-
-const STOP_VIBRATION: VibrationValues = {
-	lowAmp: 0,
-	lowFreq: 160,
-	highAmp: 0,
-	highFreq: 320,
-};
 
 export const internal: SwitchInternal = {
 	previousButtons: 0,
@@ -223,108 +200,6 @@ export class SwitchClass extends EventTarget {
 		}
 		return $.networkInfo();
 	}
-
-	/**
-	 * Vibrates the main gamepad for the specified number of milliseconds or pattern.
-	 *
-	 * If a vibration pattern is already in progress when this method is called,
-	 * the previous pattern is halted and the new one begins instead.
-	 *
-	 * @example
-	 *
-	 * ```typescript
-	 * // Vibrate for 200ms with the default amplitude/frequency values
-	 * Switch.vibrate(200);
-	 *
-	 * // Vibrate 'SOS' in Morse Code
-	 * Switch.vibrate([
-	 *   100, 30, 100, 30, 100, 30, 200, 30, 200, 30, 200, 30, 100, 30, 100, 30, 100,
-	 * ]);
-	 *
-	 * // Specify amplitude/frequency values for the vibration
-	 * Switch.vibrate({
-	 *   duration: 500,
-	 *   lowAmp: 0.2
-	 *   lowFreq: 160,
-	 *   highAmp: 0.6,
-	 *   highFreq: 500
-	 * });
-	 * ```
-	 *
-	 * @param pattern Provides a pattern of vibration and pause intervals. Each value indicates a number of milliseconds to vibrate or pause, in alternation. You may provide either a single value (to vibrate once for that many milliseconds) or an array of values to alternately vibrate, pause, then vibrate again.
-	 *
-	 * @see https://developer.mozilla.org/docs/Web/API/Navigator/vibrate
-	 */
-	vibrate(pattern: number | Vibration | (number | Vibration)[]): boolean {
-		if (!Array.isArray(pattern)) {
-			pattern = [pattern];
-		}
-		const patternValues: (number | Vibration)[] = [];
-		for (let i = 0; i < pattern.length; i++) {
-			let p = pattern[i];
-			if (i % 2 === 0) {
-				// Even - vibration interval
-				if (typeof p === 'number') {
-					p = {
-						...DEFAULT_VIBRATION,
-						duration: p,
-					};
-				}
-				if (
-					p.highAmp < 0 ||
-					p.highAmp > 1 ||
-					p.lowAmp < 0 ||
-					p.lowAmp > 1
-				) {
-					return false;
-				}
-				patternValues.push(p);
-			} else {
-				// Odd - pause interval
-				if (typeof p !== 'number') return false;
-				patternValues.push(p);
-			}
-		}
-		if (!internal.vibrationDevicesInitialized) {
-			$.hidInitializeVibrationDevices();
-			$.hidSendVibrationValues(DEFAULT_VIBRATION);
-			internal.vibrationDevicesInitialized = true;
-		}
-		if (typeof internal.vibrationTimeoutId === 'number') {
-			clearTimeout(internal.vibrationTimeoutId);
-		}
-		internal.vibrationPattern = patternValues;
-		internal.vibrationTimeoutId = setTimeout(this.#processVibrations, 0);
-		return true;
-	}
-
-	/**
-	 * @ignore
-	 */
-	#processVibrations = () => {
-		let next = internal.vibrationPattern?.shift();
-		if (typeof next === 'undefined') {
-			// Pattern completed
-			next = 0;
-		}
-		if (typeof next === 'number') {
-			// Pause interval
-			$.hidSendVibrationValues(STOP_VIBRATION);
-			if (next > 0) {
-				internal.vibrationTimeoutId = setTimeout(
-					this.#processVibrations,
-					next
-				);
-			}
-		} else {
-			// Vibration interval
-			$.hidSendVibrationValues(next);
-			internal.vibrationTimeoutId = setTimeout(
-				this.#processVibrations,
-				next.duration
-			);
-		}
-	};
 
 	inspect = inspect;
 }

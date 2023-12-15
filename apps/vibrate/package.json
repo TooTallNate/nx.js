@@ -2,7 +2,7 @@
   "name": "vibrate",
   "version": "0.0.0",
   "private": true,
-  "description": "nx.js app demonstrating the `Switch.vibrate()` API",
+  "description": "nx.js app demonstrating the `nagivator.vibrate()` API",
   "scripts": {
     "build": "esbuild --bundle --sourcemap --sources-content=false --target=es2020 src/main.ts --outfile=romfs/main.js",
     "nro": "nxjs-pack"

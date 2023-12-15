@@ -73,7 +73,7 @@ screen.addEventListener('touchmove', (e) => {
 			ctx.fillStyle = 'white';
 			ctx.fillText(vs, rect.x - 20, rect.y + rect.height + 110);
 
-			Switch.vibrate({
+			navigator.vibrate({
 				duration: 1000,
 				lowAmp: lowAmpSlider.value,
 				lowFreq: Math.round(lowFreqSlider.value * MAX_FREQ),
