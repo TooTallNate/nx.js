@@ -144,18 +144,6 @@ export class SwitchClass extends EventTarget {
 	}
 
 	/**
-	 * Prints the string `str` to the console, _without_ a trailing newline.
-	 *
-	 * > You will usually want to use the {@link console} methods instead.
-	 *
-	 * @note Invoking this method switches the application to _text rendering mode_,
-	 * which clears any pixels previously drawn on the screen using the Canvas API.
-	 */
-	print(str: string) {
-		$.print(str);
-	}
-
-	/**
 	 * Returns the current working directory as a URL string with a trailing slash.
 	 *
 	 * @example "sdmc:/switch/"
