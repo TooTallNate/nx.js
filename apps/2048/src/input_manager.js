@@ -10,7 +10,7 @@ export class InputManager {
 	listen() {
 		// Respond to swipe events
 		var touchStartClientX, touchStartClientY;
-		Switch.addEventListener('touchstart', (event) => {
+		screen.addEventListener('touchstart', (event) => {
 			if (event.touches.length > 1) {
 				return; // Ignore if touching with more than 1 finger
 			}
@@ -21,11 +21,11 @@ export class InputManager {
 			event.preventDefault();
 		});
 
-		Switch.addEventListener('touchmove', (event) => {
+		screen.addEventListener('touchmove', (event) => {
 			event.preventDefault();
 		});
 
-		Switch.addEventListener('touchend', (event) => {
+		screen.addEventListener('touchend', (event) => {
 			if (event.touches.length > 0) {
 				return; // Ignore if still touching with one or more fingers
 			}
