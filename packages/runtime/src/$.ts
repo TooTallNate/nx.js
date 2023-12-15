@@ -1,5 +1,5 @@
 import type { NetworkInfo, Stats } from './types';
-import type { Callback, RGBA } from './internal';
+import type { Callback, Keys, RGBA, VibrationValues } from './internal';
 import type { Touch } from './polyfills/event';
 import type { Server, TlsContextOpaque } from './tcp';
 import type { MemoryDescriptor, Memory } from './wasm';
@@ -17,7 +17,7 @@ type ClassOf<T> = {
 };
 
 export interface Init {
-	// applet
+	// applet.c
 	appletGetAppletType(): number;
 	appletGetOperationMode(): number;
 
@@ -118,6 +118,10 @@ export interface Init {
 	framebufferInit(screen: Screen): void;
 	hidInitializeTouchScreen(): void;
 	hidGetTouchScreenStates(): Touch[] | undefined;
+	hidInitializeKeyboard(): void;
+	hidInitializeVibrationDevices(): void;
+	hidGetKeyboardStates(): Keys;
+	hidSendVibrationValues(v: VibrationValues): void;
 
 	// nifm.c
 	nifmInitialize(): () => void;

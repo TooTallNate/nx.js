@@ -1,6 +1,12 @@
 import { $ } from './$';
 import { FontFaceSet } from './font/font-face-set';
-import { INTERNAL_SYMBOL, type Opaque } from './internal';
+import {
+	INTERNAL_SYMBOL,
+	type Keys,
+	type Vibration,
+	type Opaque,
+	type VibrationValues,
+} from './internal';
 import { Env } from './env';
 import { inspect } from './inspect';
 import { bufferSourceToArrayBuffer, toPromise, pathToString } from './utils';
@@ -20,28 +26,10 @@ export type WasmModuleOpaque = Opaque<'WasmModuleOpaque'>;
 export type WasmInstanceOpaque = Opaque<'WasmInstanceOpaque'>;
 export type WasmGlobalOpaque = Opaque<'WasmGlobalOpaque'>;
 
-export interface Vibration {
-	duration: number;
-	lowAmp: number;
-	lowFreq: number;
-	highAmp: number;
-	highFreq: number;
-}
-
-type Keys = {
-	modifiers: bigint;
-	[i: number]: bigint;
-};
-
 /**
  * @private
  */
 export interface Native {
-	// hid
-	hidInitializeKeyboard(): void;
-	hidInitializeVibrationDevices(): void;
-	hidGetKeyboardStates(): Keys;
-	hidSendVibrationValues(v: VibrationValues): void;
 
 	// wasm
 	wasmNewModule(b: ArrayBuffer): WasmModuleOpaque;
@@ -85,7 +73,6 @@ export interface Versions {
 	webp: string;
 }
 
-type VibrationValues = Omit<Vibration, 'duration'>;
 const DEFAULT_VIBRATION: VibrationValues = {
 	lowAmp: 0.2,
 	lowFreq: 160,
@@ -183,7 +170,7 @@ export class SwitchClass extends EventTarget {
 			!internal.keyboardInitialized &&
 			(type === 'keydown' || type === 'keyup')
 		) {
-			this.native.hidInitializeKeyboard();
+			$.hidInitializeKeyboard();
 			internal.keyboardInitialized = true;
 		}
 		super.addEventListener(type, callback, options);
@@ -422,8 +409,8 @@ export class SwitchClass extends EventTarget {
 			}
 		}
 		if (!internal.vibrationDevicesInitialized) {
-			this.native.hidInitializeVibrationDevices();
-			this.native.hidSendVibrationValues(DEFAULT_VIBRATION);
+			$.hidInitializeVibrationDevices();
+			$.hidSendVibrationValues(DEFAULT_VIBRATION);
 			internal.vibrationDevicesInitialized = true;
 		}
 		if (typeof internal.vibrationTimeoutId === 'number') {
@@ -445,7 +432,7 @@ export class SwitchClass extends EventTarget {
 		}
 		if (typeof next === 'number') {
 			// Pause interval
-			this.native.hidSendVibrationValues(STOP_VIBRATION);
+			$.hidSendVibrationValues(STOP_VIBRATION);
 			if (next > 0) {
 				internal.vibrationTimeoutId = setTimeout(
 					this.#processVibrations,
@@ -454,7 +441,7 @@ export class SwitchClass extends EventTarget {
 			}
 		} else {
 			// Vibration interval
-			this.native.hidSendVibrationValues(next);
+			$.hidSendVibrationValues(next);
 			internal.vibrationTimeoutId = setTimeout(
 				this.#processVibrations,
 				next.duration

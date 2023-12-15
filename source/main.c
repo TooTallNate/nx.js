@@ -536,6 +536,12 @@ int main(int argc, char *argv[])
 
 		// framebuffer renderer
 		JS_CFUNC_DEF("framebufferInit", 1, nx_framebuffer_init),
+
+		// hid
+		JS_CFUNC_DEF("hidInitializeKeyboard", 0, js_hid_initialize_keyboard),
+		JS_CFUNC_DEF("hidInitializeVibrationDevices", 0, js_hid_initialize_vibration_devices),
+		JS_CFUNC_DEF("hidGetKeyboardStates", 0, js_hid_get_keyboard_states),
+		JS_CFUNC_DEF("hidSendVibrationValues", 0, js_hid_send_vibration_values),
 	};
 	JS_SetPropertyFunctionList(ctx, init_obj, init_function_list, countof(init_function_list));
 	JS_SetPropertyStr(ctx, global_obj, "$", init_obj);
@@ -616,15 +622,6 @@ int main(int argc, char *argv[])
 	nx_init_wasm_(ctx, native_obj);
 
 	JS_SetPropertyStr(ctx, switch_obj, "exit", JS_NewCFunction(ctx, js_exit, "exit", 0));
-
-	const JSCFunctionListEntry function_list[] = {
-		// hid
-		JS_CFUNC_DEF("hidInitializeKeyboard", 0, js_hid_initialize_keyboard),
-		JS_CFUNC_DEF("hidInitializeVibrationDevices", 0, js_hid_initialize_vibration_devices),
-		JS_CFUNC_DEF("hidGetKeyboardStates", 0, js_hid_get_keyboard_states),
-		JS_CFUNC_DEF("hidSendVibrationValues", 0, js_hid_send_vibration_values),
-	};
-	JS_SetPropertyFunctionList(ctx, native_obj, function_list, countof(function_list));
 
 	// `Switch.entrypoint`
 	JS_SetPropertyStr(ctx, switch_obj, "entrypoint", JS_NewString(ctx, js_path));

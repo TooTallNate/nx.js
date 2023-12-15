@@ -18,7 +18,8 @@ import {
 	PromiseRejectionEvent,
 } from './polyfills/event';
 
-export type { SwitchClass, Vibration, Versions } from './switch';
+export type { SwitchClass, Versions } from './switch';
+export type { Vibration } from './internal';
 export type { Env } from './env';
 export type { InspectOptions } from './inspect';
 export type * from './types';
@@ -194,7 +195,7 @@ $.onFrame((kDown) => {
 	}
 
 	if (keyboardInitialized) {
-		const keys = Switch.native.hidGetKeyboardStates();
+		const keys = $.hidGetKeyboardStates();
 		for (let i = 0; i < 4; i++) {
 			const keysDown = ~previousKeys[i] & keys[i];
 			const keysUp = previousKeys[i] & ~keys[i];

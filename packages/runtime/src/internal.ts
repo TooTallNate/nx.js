@@ -26,3 +26,18 @@ export interface SocketOptionsInternal extends SocketOptions {
 }
 
 export type RGBA = [number, number, number, number];
+
+export type Keys = {
+	modifiers: bigint;
+	[i: number]: bigint;
+};
+
+export interface Vibration {
+	duration: number;
+	lowAmp: number;
+	lowFreq: number;
+	highAmp: number;
+	highFreq: number;
+}
+
+export  type VibrationValues = Omit<Vibration, 'duration'>;
