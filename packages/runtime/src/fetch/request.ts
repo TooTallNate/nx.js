@@ -1,10 +1,8 @@
+import { $ } from '../$';
 import { def } from '../utils';
 import { Body, type BodyInit } from './body';
 import { AbortController, AbortSignal } from '../polyfills/abort-controller';
-import type { SwitchClass } from '../switch';
 import type { HeadersInit } from './headers';
-
-declare const Switch: SwitchClass;
 
 // HTTP methods whose capitalization should be normalized
 const methods = [
@@ -133,7 +131,7 @@ export class Request extends Body implements globalThis.Request {
 		} else {
 			const url =
 				typeof input === 'string'
-					? new URL(input, Switch.entrypoint)
+					? new URL(input, $.entrypoint)
 					: input;
 			this.url = url.href;
 			this.cache = init.cache || 'default';

@@ -1,12 +1,9 @@
 import { $ } from './$';
 import { createInternal, def, toPromise } from './utils';
-import { type SwitchClass } from './switch';
 import { fetch } from './fetch/fetch';
 import { Event, ErrorEvent } from './polyfills/event';
 import { EventTarget } from './polyfills/event-target';
 import type { CanvasRenderingContext2D } from './canvas/canvas-rendering-context-2d';
-
-declare const Switch: SwitchClass;
 
 interface ImageInternal {
 	complete: boolean;
@@ -99,7 +96,7 @@ export class Image extends EventTarget {
 	}
 
 	set src(val: string) {
-		const url = new URL(val, Switch.entrypoint);
+		const url = new URL(val, $.entrypoint);
 		const internal = _(this);
 		internal.src = url;
 		internal.complete = false;

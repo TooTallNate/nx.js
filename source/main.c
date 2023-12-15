@@ -499,6 +499,37 @@ int main(int argc, char *argv[])
 	JS_SetContextOpaque(ctx, nx_ctx);
 	JS_SetHostPromiseRejectionTracker(rt, nx_promise_rejection_handler, ctx);
 
+	// First try the `main.js` file on the RomFS
+	size_t user_code_size;
+	int js_path_needs_free = 0;
+	char *js_path = "romfs:/main.js";
+	char *user_code = (char *)read_file(js_path, &user_code_size);
+	if (user_code == NULL && errno == ENOENT)
+	{
+		// If no `main.js`, then try the `.js file with the
+		// matching name as the `.nro` file on the SD card
+		js_path_needs_free = 1;
+		js_path = strdup(argv[0]);
+		size_t js_path_len = strlen(js_path);
+		char *dot_nro = strstr(js_path, ".nro");
+		if (dot_nro != NULL && (dot_nro - js_path) == js_path_len - 4)
+		{
+			strcpy(dot_nro, ".js");
+		}
+
+		user_code = (char *)read_file(js_path, &user_code_size);
+	}
+	if (user_code == NULL)
+	{
+		printf("%s: %s\n", strerror(errno), js_path);
+		if (js_path_needs_free)
+		{
+			free(js_path);
+		}
+		nx_ctx->had_error = 1;
+		goto main_loop;
+	}
+
 	// The internal `$` object contains native functions that are wrapped in the JS runtime
 	JSValue global_obj = JS_GetGlobalObject(ctx);
 	JSValue init_obj = JS_NewObject(ctx);
@@ -544,38 +575,9 @@ int main(int argc, char *argv[])
 		JS_CFUNC_DEF("hidSendVibrationValues", 0, js_hid_send_vibration_values),
 	};
 	JS_SetPropertyFunctionList(ctx, init_obj, init_function_list, countof(init_function_list));
+
+	JS_SetPropertyStr(ctx, init_obj, "entrypoint", JS_NewString(ctx, js_path));
 	JS_SetPropertyStr(ctx, global_obj, "$", init_obj);
-
-	// First try the `main.js` file on the RomFS
-	size_t user_code_size;
-	int js_path_needs_free = 0;
-	char *js_path = "romfs:/main.js";
-	char *user_code = (char *)read_file(js_path, &user_code_size);
-	if (user_code == NULL && errno == ENOENT)
-	{
-		// If no `main.js`, then try the `.js file with the
-		// matching name as the `.nro` file on the SD card
-		js_path_needs_free = 1;
-		js_path = strdup(argv[0]);
-		size_t js_path_len = strlen(js_path);
-		char *dot_nro = strstr(js_path, ".nro");
-		if (dot_nro != NULL && (dot_nro - js_path) == js_path_len - 4)
-		{
-			strcpy(dot_nro, ".js");
-		}
-
-		user_code = (char *)read_file(js_path, &user_code_size);
-	}
-	if (user_code == NULL)
-	{
-		printf("%s: %s\n", strerror(errno), js_path);
-		if (js_path_needs_free)
-		{
-			free(js_path);
-		}
-		nx_ctx->had_error = 1;
-		goto main_loop;
-	}
 
 	size_t runtime_buffer_size;
 	char *runtime_path = "romfs:/runtime.js";
@@ -619,9 +621,6 @@ int main(int argc, char *argv[])
 	JS_SetPropertyStr(ctx, switch_obj, "version", version_obj);
 
 	JS_SetPropertyStr(ctx, switch_obj, "exit", JS_NewCFunction(ctx, js_exit, "exit", 0));
-
-	// `Switch.entrypoint`
-	JS_SetPropertyStr(ctx, switch_obj, "entrypoint", JS_NewString(ctx, js_path));
 
 	// `Switch.argv`
 	JSValue argv_array = JS_NewArray(ctx);

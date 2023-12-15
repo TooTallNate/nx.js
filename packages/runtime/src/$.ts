@@ -112,6 +112,7 @@ export interface Init {
 	): void;
 
 	// main.c
+	entrypoint: string;
 	cwd(): string;
 	chdir(dir: string): void;
 	print(v: string): void;

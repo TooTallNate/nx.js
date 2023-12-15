@@ -99,7 +99,9 @@ export class SwitchClass extends EventTarget {
 	 * @example "romfs:/main.js"
 	 * @example "sdmc:/switch/nxjs.js"
 	 */
-	entrypoint!: string;
+	get entrypoint() {
+		return $.entrypoint;
+	}
 	/**
 	 * An Object containing the versions numbers of nx.js and all supporting C libraries.
 	 */
