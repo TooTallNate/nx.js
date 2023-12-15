@@ -15,7 +15,7 @@ static const JSCFunctionListEntry function_list[] = {
 	JS_CFUNC_DEF("appletGetAppletType", 0, nx_appletGetAppletType),
 	JS_CFUNC_DEF("appletGetOperationMode", 0, nx_appletGetOperationMode)};
 
-void nx_init_applet(JSContext *ctx, JSValueConst native_obj)
+void nx_init_applet(JSContext *ctx, JSValueConst init_obj)
 {
-	JS_SetPropertyFunctionList(ctx, native_obj, function_list, countof(function_list));
+	JS_SetPropertyFunctionList(ctx, init_obj, function_list, countof(function_list));
 }

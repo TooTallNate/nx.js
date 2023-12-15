@@ -17,6 +17,10 @@ type ClassOf<T> = {
 };
 
 export interface Init {
+	// applet
+	appletGetAppletType(): number;
+	appletGetOperationMode(): number;
+
 	// battery.c
 	batteryInit(): void;
 	batteryInitClass(c: ClassOf<BatteryManager>): void;
