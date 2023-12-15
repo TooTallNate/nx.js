@@ -1,5 +1,13 @@
 import type { NetworkInfo, Stats } from './types';
-import type { Callback, Keys, RGBA, VibrationValues } from './internal';
+import type {
+	Callback,
+	Keys,
+	RGBA,
+	VibrationValues,
+	WasmGlobalOpaque,
+	WasmInstanceOpaque,
+	WasmModuleOpaque,
+} from './internal';
 import type { Touch } from './polyfills/event';
 import type { Server, TlsContextOpaque } from './tcp';
 import type { MemoryDescriptor, Memory } from './wasm';
@@ -183,6 +191,16 @@ export interface Init {
 	wasmTableGet(t: any, i: number): Memory;
 	wasmInitMemory(c: any): void;
 	wasmInitTable(c: any): void;
+	wasmNewModule(b: ArrayBuffer): WasmModuleOpaque;
+	wasmNewInstance(
+		m: WasmModuleOpaque,
+		imports: any[]
+	): [WasmInstanceOpaque, any[]];
+	wasmNewGlobal(): WasmGlobalOpaque;
+	wasmModuleExports(m: WasmModuleOpaque): any[];
+	wasmModuleImports(m: WasmModuleOpaque): any[];
+	wasmGlobalGet(g: WasmGlobalOpaque): any;
+	wasmGlobalSet(g: WasmGlobalOpaque, v: any): void;
 }
 
 export const $: Init = (globalThis as any).$;

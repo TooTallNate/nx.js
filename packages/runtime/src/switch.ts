@@ -4,7 +4,6 @@ import {
 	INTERNAL_SYMBOL,
 	type Keys,
 	type Vibration,
-	type Opaque,
 	type VibrationValues,
 } from './internal';
 import { Env } from './env';
@@ -21,28 +20,6 @@ import type {
 	SocketAddress,
 	SocketOptions,
 } from './types';
-
-export type WasmModuleOpaque = Opaque<'WasmModuleOpaque'>;
-export type WasmInstanceOpaque = Opaque<'WasmInstanceOpaque'>;
-export type WasmGlobalOpaque = Opaque<'WasmGlobalOpaque'>;
-
-/**
- * @private
- */
-export interface Native {
-
-	// wasm
-	wasmNewModule(b: ArrayBuffer): WasmModuleOpaque;
-	wasmNewInstance(
-		m: WasmModuleOpaque,
-		imports: any[]
-	): [WasmInstanceOpaque, any[]];
-	wasmNewGlobal(): WasmGlobalOpaque;
-	wasmModuleExports(m: WasmModuleOpaque): any[];
-	wasmModuleImports(m: WasmModuleOpaque): any[];
-	wasmGlobalGet(g: WasmGlobalOpaque): any;
-	wasmGlobalSet(g: WasmGlobalOpaque, v: any): void;
-}
 
 interface SwitchInternal {
 	previousButtons: number;
@@ -104,10 +81,6 @@ export class SwitchClass extends EventTarget {
 	 */
 	env: Env;
 	/**
-	 * @ignore
-	 */
-	native: Native;
-	/**
 	 * Contains the available fonts for use on the screen Canvas context.
 	 * By default, `"system-ui"` is the only font available, which is the system font provided by the Switch operating system.
 	 *
@@ -141,9 +114,6 @@ export class SwitchClass extends EventTarget {
 	 */
 	constructor() {
 		super();
-		// @ts-expect-error Populated by the host process
-		const native: Native = {};
-		this.native = native;
 		this.env = new Env();
 
 		// TODO: Move to `document`

@@ -2,13 +2,10 @@ import { $ } from './$';
 import { bufferSourceToArrayBuffer } from './utils';
 import type { BufferSource } from './types';
 import type {
-	SwitchClass,
 	WasmModuleOpaque,
 	WasmInstanceOpaque,
 	WasmGlobalOpaque,
-} from './switch';
-
-declare const Switch: SwitchClass;
+} from './internal';
 
 export interface GlobalDescriptor<T extends ValueType = ValueType> {
 	mutable?: boolean;
@@ -107,13 +104,13 @@ export class Global<T extends ValueType = ValueType>
 	 */
 	get value(): ValueTypeMap[T] {
 		const i = globalInternalsMap.get(this)!;
-		return i.opaque ? Switch.native.wasmGlobalGet(i.opaque) : i.value;
+		return i.opaque ? $.wasmGlobalGet(i.opaque) : i.value;
 	}
 
 	set value(v: ValueTypeMap[T]) {
 		const i = globalInternalsMap.get(this)!;
 		if (i.opaque) {
-			Switch.native.wasmGlobalSet(i.opaque, v);
+			$.wasmGlobalSet(i.opaque, v);
 		} else {
 			i.value = v;
 		}
@@ -127,7 +124,7 @@ export class Global<T extends ValueType = ValueType>
 	}
 }
 
-function bindGlobal(g: Global, opaque = Switch.native.wasmNewGlobal()) {
+function bindGlobal(g: Global, opaque = $.wasmNewGlobal()) {
 	const i = globalInternalsMap.get(g);
 	if (!i) throw new Error(`No internal state for Global`);
 	i.opaque = opaque;
@@ -204,7 +201,7 @@ export class Instance implements WebAssembly.Instance {
 	constructor(moduleObject: Module, importObject?: Imports) {
 		const modInternal = moduleInternalsMap.get(moduleObject);
 		if (!modInternal) throw new Error(`No internal state for Module`);
-		const [opaque, exp] = Switch.native.wasmNewInstance(
+		const [opaque, exp] = $.wasmNewInstance(
 			modInternal.opaque,
 			unwrapImports(importObject)
 		);
@@ -257,7 +254,7 @@ export class Module implements WebAssembly.Module {
 		moduleInternalsMap.set(this, {
 			// Hold a reference to the bytes to prevent garbage collection
 			buffer,
-			opaque: Switch.native.wasmNewModule(buffer),
+			opaque: $.wasmNewModule(buffer),
 		});
 	}
 
@@ -273,14 +270,14 @@ export class Module implements WebAssembly.Module {
 	static exports(moduleObject: Module): ModuleExportDescriptor[] {
 		const i = moduleInternalsMap.get(moduleObject);
 		if (!i) throw new Error(`No internal state for Module`);
-		return Switch.native.wasmModuleExports(i.opaque);
+		return $.wasmModuleExports(i.opaque);
 	}
 
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/Module/imports) */
 	static imports(moduleObject: Module): ModuleImportDescriptor[] {
 		const i = moduleInternalsMap.get(moduleObject);
 		if (!i) throw new Error(`No internal state for Module`);
-		return Switch.native.wasmModuleImports(i.opaque);
+		return $.wasmModuleImports(i.opaque);
 	}
 }
 

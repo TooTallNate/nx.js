@@ -601,7 +601,6 @@ int main(int argc, char *argv[])
 	}
 
 	JSValue switch_obj = JS_GetPropertyStr(ctx, global_obj, "Switch");
-	JSValue native_obj = JS_GetPropertyStr(ctx, switch_obj, "native");
 
 	JSValue version_obj = JS_NewObject(ctx);
 	JS_SetPropertyStr(ctx, version_obj, "cairo", JS_NewString(ctx, cairo_version_string()));
@@ -618,8 +617,6 @@ int main(int argc, char *argv[])
 	snprintf(webp_version_str, 12, "%d.%d.%d", (webp_version >> 16) & 0xFF, (webp_version >> 8) & 0xFF, webp_version & 0xFF);
 	JS_SetPropertyStr(ctx, version_obj, "webp", JS_NewString(ctx, webp_version_str));
 	JS_SetPropertyStr(ctx, switch_obj, "version", version_obj);
-
-	nx_init_wasm_(ctx, native_obj);
 
 	JS_SetPropertyStr(ctx, switch_obj, "exit", JS_NewCFunction(ctx, js_exit, "exit", 0));
 
@@ -741,7 +738,6 @@ main_loop:
 	fclose(debug_fd);
 	FILE *leaks_fd = freopen(LOG_FILENAME, "a", stdout);
 
-	JS_FreeValue(ctx, native_obj);
 	JS_FreeValue(ctx, switch_obj);
 	JS_FreeValue(ctx, global_obj);
 	JS_FreeValue(ctx, nx_ctx->frame_handler);

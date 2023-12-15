@@ -892,22 +892,6 @@ static JSValue nx_wasm_call_func(JSContext *ctx, JSValueConst this_val, int argc
 	}
 }
 
-static const JSCFunctionListEntry function_list[] = {
-	JS_CFUNC_DEF("wasmNewModule", 1, nx_wasm_new_module),
-	JS_CFUNC_DEF("wasmNewInstance", 1, nx_wasm_new_instance),
-	JS_CFUNC_DEF("wasmNewGlobal", 1, nx_wasm_new_global),
-	JS_CFUNC_DEF("wasmModuleExports", 1, nx_wasm_module_exports),
-	JS_CFUNC_DEF("wasmModuleImports", 1, nx_wasm_module_imports),
-	JS_CFUNC_DEF("wasmGlobalGet", 1, nx_wasm_global_value_get),
-	JS_CFUNC_DEF("wasmGlobalSet", 1, nx_wasm_global_value_set),
-
-};
-
-void nx_init_wasm_(JSContext *ctx, JSValueConst native_obj)
-{
-	JS_SetPropertyFunctionList(ctx, native_obj, function_list, countof(function_list));
-}
-
 static JSValue nx_wasm_memory_new(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	JSValue obj = nx_wasm_memory_new_(ctx);
@@ -1106,6 +1090,14 @@ static const JSCFunctionListEntry init_function_list[] = {
 	JS_CFUNC_DEF("wasmTableGet", 2, nx_wasm_table_get_fn),
 	JS_CFUNC_DEF("wasmInitMemory", 1, nx_wasm_init_memory_class),
 	JS_CFUNC_DEF("wasmInitTable", 1, nx_wasm_init_table_class),
+
+	JS_CFUNC_DEF("wasmNewModule", 1, nx_wasm_new_module),
+	JS_CFUNC_DEF("wasmNewInstance", 1, nx_wasm_new_instance),
+	JS_CFUNC_DEF("wasmNewGlobal", 1, nx_wasm_new_global),
+	JS_CFUNC_DEF("wasmModuleExports", 1, nx_wasm_module_exports),
+	JS_CFUNC_DEF("wasmModuleImports", 1, nx_wasm_module_imports),
+	JS_CFUNC_DEF("wasmGlobalGet", 1, nx_wasm_global_value_get),
+	JS_CFUNC_DEF("wasmGlobalSet", 1, nx_wasm_global_value_set),
 };
 
 void nx_init_wasm(JSContext *ctx, JSValueConst init_obj)
