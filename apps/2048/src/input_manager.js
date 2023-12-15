@@ -47,7 +47,7 @@ export class InputManager {
 			}
 		});
 
-		Switch.addEventListener('buttondown', (event) => {
+		addEventListener('buttondown', (event) => {
 			if (event.detail & Button.AnyLeft) {
 				this.gameManager.move(3);
 			} else if (event.detail & Button.AnyRight) {

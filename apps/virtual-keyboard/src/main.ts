@@ -26,7 +26,7 @@ function render() {
 	}
 }
 
-Switch.addEventListener('buttondown', (e) => {
+addEventListener('buttondown', (e) => {
 	const isOpen = vk.boundingRect.height > 0;
 	if (isOpen) {
 		if (e.detail & Button.Plus) {

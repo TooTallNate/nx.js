@@ -7,6 +7,7 @@ import {
 import type { console } from './console';
 import type {
 	Event,
+	UIEvent,
 	ErrorEvent,
 	PromiseRejectionEvent,
 } from './polyfills/event';
@@ -30,6 +31,18 @@ def('Window', Window);
 export const window: Window & typeof globalThis = globalThis;
 def('window', window);
 Object.setPrototypeOf(window, Window.prototype);
+
+export function addEventListener(
+	type: 'buttondown',
+	callback: EventListenerOrEventListenerObject<UIEvent>,
+	options?: AddEventListenerOptions | boolean
+): void;
+
+export function addEventListener(
+	type: 'buttonup',
+	callback: EventListenerOrEventListenerObject<UIEvent>,
+	options?: AddEventListenerOptions | boolean
+): void;
 
 /**
  * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/keydown_event

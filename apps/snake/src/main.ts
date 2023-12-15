@@ -281,7 +281,7 @@ function gameOver() {
 	ctx.fillText('Press + to exit...', boxX + 150, textY);
 }
 
-Switch.addEventListener('buttondown', (event) => {
+addEventListener('buttondown', (event) => {
 	if (state === State.Playing) {
 		if (event.detail & Button.Plus) {
 			event.preventDefault();

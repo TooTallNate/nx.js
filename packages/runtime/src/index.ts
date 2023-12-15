@@ -1,6 +1,6 @@
 import './polyfills';
 import { def } from './utils';
-import { SwitchClass, internal } from './switch';
+import { SwitchClass } from './switch';
 import {
 	setTimeout,
 	setInterval,
@@ -165,29 +165,29 @@ $.onUnhandledRejection((p, r) => {
 });
 
 const btnPlus = 1 << 10; ///< Plus button
+let previousButtons = 0;
 
 $.onFrame((kDown) => {
-	const { previousButtons } = internal;
 	processTimers();
 	callRafCallbacks();
 
 	const buttonsDown = ~previousButtons & kDown;
 	const buttonsUp = previousButtons & ~kDown;
-	internal.previousButtons = kDown;
+	previousButtons = kDown;
 
 	if (buttonsDown !== 0) {
 		const ev = new UIEvent('buttondown', {
 			cancelable: true,
 			detail: buttonsDown,
 		});
-		Switch.dispatchEvent(ev);
+		globalThis.dispatchEvent(ev);
 		if (!ev.defaultPrevented && buttonsDown & btnPlus) {
 			return Switch.exit();
 		}
 	}
 
 	if (buttonsUp !== 0) {
-		Switch.dispatchEvent(
+		globalThis.dispatchEvent(
 			new UIEvent('buttonup', {
 				detail: buttonsUp,
 			})

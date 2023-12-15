@@ -11,7 +11,6 @@ import {
 import { Env } from './env';
 import { inspect } from './inspect';
 import { pathToString } from './utils';
-import { EventTarget } from './polyfills/event-target';
 import { Socket, connect, createServer, parseAddress } from './tcp';
 import { resolve as dnsResolve } from './dns';
 import type {
@@ -21,21 +20,9 @@ import type {
 	SocketOptions,
 } from './types';
 
-interface SwitchInternal {
-	previousButtons: number;
-	nifmInitialized?: boolean;
-}
+let nifmInitialized = false;
 
-interface SwitchEventHandlersEventMap {
-	buttondown: UIEvent;
-	buttonup: UIEvent;
-}
-
-export const internal: SwitchInternal = {
-	previousButtons: 0,
-};
-
-export class SwitchClass extends EventTarget {
+export class SwitchClass {
 	/**
 	 * A Map-like object providing methods to interact with the environment variables of the process.
 	 */
@@ -69,44 +56,7 @@ export class SwitchClass extends EventTarget {
 	 * @private
 	 */
 	constructor() {
-		super();
 		this.env = new Env();
-	}
-
-	addEventListener<K extends keyof SwitchEventHandlersEventMap>(
-		type: K,
-		listener: (ev: SwitchEventHandlersEventMap[K]) => any,
-		options?: boolean | AddEventListenerOptions
-	): void;
-	addEventListener(
-		type: string,
-		listener: EventListenerOrEventListenerObject,
-		options?: boolean | AddEventListenerOptions
-	): void;
-	addEventListener(
-		type: string,
-		callback: EventListenerOrEventListenerObject | null,
-		options?: boolean | AddEventListenerOptions | undefined
-	): void {
-		super.addEventListener(type, callback, options);
-	}
-
-	removeEventListener<K extends keyof SwitchEventHandlersEventMap>(
-		type: K,
-		listener: (ev: SwitchEventHandlersEventMap[K]) => any,
-		options?: boolean | EventListenerOptions
-	): void;
-	removeEventListener(
-		type: string,
-		listener: EventListenerOrEventListenerObject,
-		options?: boolean | EventListenerOptions
-	): void;
-	removeEventListener(
-		type: string,
-		listener: EventListenerOrEventListenerObject,
-		options?: boolean | EventListenerOptions
-	): void {
-		super.removeEventListener(type, listener, options);
 	}
 
 	/**
@@ -176,9 +126,9 @@ export class SwitchClass extends EventTarget {
 	}
 
 	networkInfo() {
-		if (!internal.nifmInitialized) {
+		if (!nifmInitialized) {
 			addEventListener('unload', $.nifmInitialize());
-			internal.nifmInitialized = true;
+			nifmInitialized = true;
 		}
 		return $.networkInfo();
 	}
