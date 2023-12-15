@@ -64,6 +64,9 @@ export interface Init {
 		...rgba: RGBA
 	): number[];
 
+	// crypto.c
+	cryptoRandomBytes(buf: ArrayBuffer, offset: number, length: number): void;
+
 	// dns.c
 	dnsResolve(cb: Callback<string[]>, hostname: string): void;
 

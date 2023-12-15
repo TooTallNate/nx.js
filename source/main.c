@@ -504,6 +504,7 @@ int main(int argc, char *argv[])
 	JSValue init_obj = JS_NewObject(ctx);
 	nx_init_battery(ctx, init_obj);
 	nx_init_canvas(ctx, init_obj);
+	nx_init_crypto(ctx, init_obj);
 	nx_init_dns(ctx, init_obj);
 	nx_init_error(ctx, init_obj);
 	nx_init_font(ctx, init_obj);
@@ -610,7 +611,6 @@ int main(int argc, char *argv[])
 	JS_SetPropertyStr(ctx, switch_obj, "version", version_obj);
 
 	nx_init_applet(ctx, native_obj);
-	nx_init_crypto(ctx, native_obj);
 	nx_init_wasm_(ctx, native_obj);
 
 	JS_SetPropertyStr(ctx, switch_obj, "exit", JS_NewCFunction(ctx, js_exit, "exit", 0));

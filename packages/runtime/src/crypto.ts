@@ -1,9 +1,7 @@
-import { assertInternalConstructor, def } from './utils';
-import { type SwitchClass } from './switch';
-import { type ArrayBufferView } from './types';
+import { $ } from './$';
 import { INTERNAL_SYMBOL } from './internal';
-
-declare const Switch: SwitchClass;
+import { assertInternalConstructor, def } from './utils';
+import type { ArrayBufferView } from './types';
 
 /**
  * Basic cryptography features available in the current context.
@@ -46,7 +44,7 @@ export class Crypto implements globalThis.Crypto {
 	 */
 	getRandomValues<T extends ArrayBufferView | null>(array: T): T {
 		if (array) {
-			Switch.native.cryptoRandomBytes(
+			$.cryptoRandomBytes(
 				array.buffer,
 				array.byteOffset,
 				array.byteLength
@@ -63,7 +61,7 @@ export class Crypto implements globalThis.Crypto {
 	 * ```typescript
 	 * const uuid = crypto.randomUUID();
 	 * console.log(uuid);
-	 * // for example "36b8f84d-df4e-4d49-b662-bcde71a8764f"
+	 * // "36b8f84d-df4e-4d49-b662-bcde71a8764f"
 	 * ```
 	 *
 	 * @returns A string representation of a UUID.

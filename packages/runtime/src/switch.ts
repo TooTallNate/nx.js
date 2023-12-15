@@ -50,9 +50,6 @@ export interface Native {
 	hidGetKeyboardStates(): Keys;
 	hidSendVibrationValues(v: VibrationValues): void;
 
-	// crypto
-	cryptoRandomBytes(buf: ArrayBuffer, offset: number, length: number): void;
-
 	// wasm
 	wasmNewModule(b: ArrayBuffer): WasmModuleOpaque;
 	wasmNewInstance(
