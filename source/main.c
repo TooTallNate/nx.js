@@ -516,6 +516,8 @@ int main(int argc, char *argv[])
 	nx_init_swkbd(ctx, init_obj);
 	nx_init_wasm(ctx, init_obj);
 	const JSCFunctionListEntry init_function_list[] = {
+		JS_CFUNC_DEF("cwd", 0, js_cwd),
+		JS_CFUNC_DEF("chdir", 1, js_chdir),
 		JS_CFUNC_DEF("print", 1, js_print),
 		JS_CFUNC_DEF("printErr", 1, js_print_err),
 		JS_CFUNC_DEF("getInternalPromiseState", 1, js_get_internal_promise_state),
@@ -616,9 +618,6 @@ int main(int argc, char *argv[])
 	JS_SetPropertyStr(ctx, switch_obj, "exit", JS_NewCFunction(ctx, js_exit, "exit", 0));
 
 	const JSCFunctionListEntry function_list[] = {
-		JS_CFUNC_DEF("cwd", 0, js_cwd),
-		JS_CFUNC_DEF("chdir", 1, js_chdir),
-
 		// hid
 		JS_CFUNC_DEF("hidInitializeKeyboard", 0, js_hid_initialize_keyboard),
 		JS_CFUNC_DEF("hidInitializeVibrationDevices", 0, js_hid_initialize_vibration_devices),

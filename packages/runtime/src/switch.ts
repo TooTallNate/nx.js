@@ -37,9 +37,6 @@ type Keys = {
  * @private
  */
 export interface Native {
-	cwd(): string;
-	chdir(dir: string): void;
-
 	// applet
 	appletGetAppletType(): number;
 	appletGetOperationMode(): number;
@@ -232,7 +229,7 @@ export class SwitchClass extends EventTarget {
 	 * @example "sdmc:/switch/"
 	 */
 	cwd() {
-		return `${this.native.cwd()}/`;
+		return `${$.cwd()}/`;
 	}
 
 	/**
@@ -245,7 +242,7 @@ export class SwitchClass extends EventTarget {
 	 * ```
 	 */
 	chdir(dir: PathLike) {
-		return this.native.chdir(pathToString(dir));
+		return $.chdir(pathToString(dir));
 	}
 
 	/**

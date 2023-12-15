@@ -100,6 +100,8 @@ export interface Init {
 	): void;
 
 	// main.c
+	cwd(): string;
+	chdir(dir: string): void;
 	print(v: string): void;
 	printErr(v: string): void;
 	getInternalPromiseState(p: Promise<unknown>): [number, unknown];
