@@ -1,4 +1,5 @@
 import type { DOMHighResTimeStamp } from './types';
+import { performance } from './performance';
 import { def } from './utils';
 
 export interface FrameRequestCallback {
@@ -9,7 +10,7 @@ const cbs: { id: number; fn: FrameRequestCallback }[] = [];
 let rafIndex = 0;
 
 export function callRafCallbacks() {
-	const now = Date.now();
+	const now = performance.now();
 	const c = cbs.slice();
 	cbs.length = 0;
 	for (const cb of c) cb.fn(now);
