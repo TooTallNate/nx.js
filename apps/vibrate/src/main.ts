@@ -39,7 +39,7 @@ ctx.fillText('High', highAmpX + 100, 318);
 ctx.fillText('Amp', highAmpX - 30, 100 + highAmpSlider.length + 60);
 ctx.fillText('Freq', highFreqX - 30, 100 + highFreqSlider.length + 60);
 
-Switch.addEventListener('touchmove', (e) => {
+screen.addEventListener('touchmove', (e) => {
 	const t = e.touches[0];
 	const x = t.clientX;
 	const y = t.clientY;
