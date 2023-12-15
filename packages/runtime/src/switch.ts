@@ -37,10 +37,6 @@ type Keys = {
  * @private
  */
 export interface Native {
-	// applet
-	appletGetAppletType(): number;
-	appletGetOperationMode(): number;
-
 	// hid
 	hidInitializeKeyboard(): void;
 	hidInitializeVibrationDevices(): void;
