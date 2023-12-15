@@ -1,5 +1,6 @@
 import { dataUriToBuffer } from 'data-uri-to-buffer';
 import { def } from '../utils';
+import { readFile } from '../fs';
 import { objectUrls } from '../polyfills/url';
 import { decoder } from '../polyfills/text-decoder';
 import { encoder } from '../polyfills/text-encoder';
@@ -9,9 +10,6 @@ import { Headers } from './headers';
 import { navigator } from '../navigator';
 import { Socket, connect } from '../tcp';
 import { INTERNAL_SYMBOL } from '../internal';
-import type { SwitchClass } from '../switch';
-
-declare const Switch: SwitchClass;
 
 function indexOfEol(arr: ArrayLike<number>, offset: number): number {
 	for (let i = offset; i < arr.length - 1; i++) {
@@ -231,7 +229,7 @@ async function fetchFile(req: Request, url: URL) {
 	}
 	const path = url.protocol === 'file:' ? `sdmc:${url.pathname}` : url.href;
 	// TODO: Use streaming FS interface
-	const data = await Switch.readFile(path);
+	const data = await readFile(path);
 	return new Response(data, {
 		headers: {
 			'content-length': String(data.byteLength),

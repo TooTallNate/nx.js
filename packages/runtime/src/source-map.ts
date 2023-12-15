@@ -4,9 +4,7 @@ import {
 	originalPositionFor,
 	type EncodedSourceMap,
 } from '@jridgewell/trace-mapping';
-import type { SwitchClass } from './switch';
-
-declare const Switch: SwitchClass;
+import { readFileSync } from './fs';
 
 const SOURCE_MAPPING_URL_PREFIX = '//# sourceMappingURL=';
 const sourceMapCache = new Map<string, TraceMap | null>();
@@ -18,7 +16,7 @@ function filenameToTracer(filename: string) {
 	// `null` means the source map could not be retrieved for this file
 	tracer = null;
 
-	const contentsBuffer = Switch.readFileSync(filename);
+	const contentsBuffer = readFileSync(filename);
 	const contents = new TextDecoder().decode(contentsBuffer).trimEnd();
 	const lastNewline = contents.lastIndexOf('\n');
 	const lastLine = contents.slice(lastNewline + 1);
@@ -30,9 +28,7 @@ function filenameToTracer(filename: string) {
 		if (sourceMappingURL.startsWith('data:')) {
 			sourceMapBuffer = dataUriToBuffer(sourceMappingURL).buffer;
 		} else {
-			sourceMapBuffer = Switch.readFileSync(
-				new URL(sourceMappingURL, filename)
-			);
+			sourceMapBuffer = readFileSync(new URL(sourceMappingURL, filename));
 		}
 		const sourceMap: EncodedSourceMap = JSON.parse(
 			new TextDecoder().decode(sourceMapBuffer)
