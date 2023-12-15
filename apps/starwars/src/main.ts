@@ -9,7 +9,7 @@ const encoder = new TextEncoder();
 const fontUrl = new URL('fonts/GeistMono-Regular.otf', Switch.entrypoint);
 const fontData = Switch.readFileSync(fontUrl);
 const font = new FontFace('Geist Mono', fontData);
-Switch.fonts.add(font);
+fonts.add(font);
 
 async function* frameIterator(
 	readable: ReadableStreamDefaultReader<Uint8Array>

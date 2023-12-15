@@ -9,9 +9,7 @@ const clearSansData = Switch.readFileSync(
 const clearSansBoldData = Switch.readFileSync(
 	new URL('fonts/ClearSans-Bold.ttf', Switch.entrypoint)
 );
-Switch.fonts.add(new FontFace('Clear Sans', clearSansData));
-Switch.fonts.add(
-	new FontFace('Clear Sans', clearSansBoldData, { weight: 'bold' })
-);
+fonts.add(new FontFace('Clear Sans', clearSansData));
+fonts.add(new FontFace('Clear Sans', clearSansBoldData, { weight: 'bold' }));
 
 new GameManager(4, InputManager, CanvasActuator, StorageManager);

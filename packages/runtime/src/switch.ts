@@ -1,5 +1,4 @@
 import { $ } from './$';
-import { FontFaceSet } from './font/font-face-set';
 import {
 	INTERNAL_SYMBOL,
 	type Keys,
@@ -80,14 +79,6 @@ export class SwitchClass extends EventTarget {
 	 * A Map-like object providing methods to interact with the environment variables of the process.
 	 */
 	env: Env;
-	/**
-	 * Contains the available fonts for use on the screen Canvas context.
-	 * By default, `"system-ui"` is the only font available, which is the system font provided by the Switch operating system.
-	 *
-	 * @demo See the [fonts](../apps/fonts/) application for an example of using custom fonts.
-	 */
-	fonts: FontFaceSet;
-
 	// The following props are populated by the host process
 	/**
 	 * Array of the arguments passed to the process. Under normal circumstances, this array contains a single entry with the absolute path to the `.nro` file.
@@ -117,10 +108,6 @@ export class SwitchClass extends EventTarget {
 	constructor() {
 		super();
 		this.env = new Env();
-
-		// TODO: Move to `document`
-		// @ts-expect-error Internal constructor
-		this.fonts = new FontFaceSet(INTERNAL_SYMBOL);
 	}
 
 	addEventListener<K extends keyof SwitchEventHandlersEventMap>(

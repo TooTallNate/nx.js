@@ -1,4 +1,5 @@
 import { $ } from '../$';
+import { INTERNAL_SYMBOL } from '../internal';
 import { EventTarget } from '../polyfills/event-target';
 import { assertInternalConstructor, createInternal, def } from '../utils';
 import { FontFace } from './font-face';
@@ -79,6 +80,16 @@ export class FontFaceSet extends EventTarget {
 	}
 }
 def('FontFaceSet', FontFaceSet);
+
+/**
+ * Contains the available fonts for use on the screen Canvas context.
+ * By default, `"system-ui"` is the only font available, which is the system font provided by the Switch operating system.
+ *
+ * @demo See the [fonts](../apps/fonts/) application for an example of using custom fonts.
+ */
+// @ts-expect-error Internal constructor
+export const fonts = new FontFaceSet(INTERNAL_SYMBOL);
+def('fonts', fonts);
 
 export function findFont(
 	fontFaceSet: FontFaceSet,

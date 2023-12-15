@@ -40,7 +40,7 @@ export type {
 } from './polyfills/text-encoder';
 export type * from './polyfills/abort-controller';
 export type * from './polyfills/streams';
-export type { FontFaceSet } from './font/font-face-set';
+export type { FontFaceSet, fonts } from './font/font-face-set';
 export type { FontFace } from './font/font-face';
 export type * from './polyfills/form-data';
 export type { BodyInit } from './fetch/body';

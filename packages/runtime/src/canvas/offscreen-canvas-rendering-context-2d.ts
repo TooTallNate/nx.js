@@ -12,7 +12,7 @@ import {
 	returnOnThrow,
 } from '../utils';
 import { isDomPointInit, type DOMPointInit } from '../dompoint';
-import { addSystemFont, findFont } from '../font/font-face-set';
+import { addSystemFont, findFont, fonts } from '../font/font-face-set';
 import type { Path2D } from './path2d';
 import type { OffscreenCanvas } from './offscreen-canvas';
 import type {
@@ -26,9 +26,6 @@ import type {
 	ImageSmoothingQuality,
 	TextMetrics,
 } from '../types';
-import type { SwitchClass } from '../switch';
-
-declare const Switch: SwitchClass;
 
 interface OffscreenCanvasRenderingContext2DInternal {
 	canvas: OffscreenCanvas;
@@ -96,7 +93,6 @@ export class OffscreenCanvasRenderingContext2D {
 			// Invalid font size
 			return;
 		}
-		const { fonts } = Switch;
 		let font = findFont(fonts, parsed);
 		if (!font) {
 			if (parsed.family.includes('system-ui')) {
