@@ -1,7 +1,7 @@
 import { $ } from './$';
 import { assertInternalConstructor, def } from './utils';
 import { BatteryManager } from './navigator/battery';
-import { INTERNAL_SYMBOL } from './internal';
+import { INTERNAL_SYMBOL, VibrationValues } from './internal';
 import {
 	type VirtualKeyboard,
 	create as newVirtualKeyboard,
