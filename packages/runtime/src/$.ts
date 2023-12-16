@@ -3,6 +3,7 @@ import type {
 	Callback,
 	Keys,
 	RGBA,
+	VibrationValues,
 	WasmGlobalOpaque,
 	WasmInstanceOpaque,
 	WasmModuleOpaque,
@@ -10,7 +11,6 @@ import type {
 import type { Touch } from './polyfills/event';
 import type { Server, TlsContextOpaque } from './tcp';
 import type { MemoryDescriptor, Memory } from './wasm';
-import type { VibrationValues } from './navigator';
 import type { BatteryManager } from './navigator/battery';
 import type { VirtualKeyboard } from './navigator/virtual-keyboard';
 import type { OffscreenCanvas } from './canvas/offscreen-canvas';

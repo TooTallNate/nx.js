@@ -1,5 +1,5 @@
 import type { connect } from './tcp';
-import type { SocketOptions } from './switch';
+import type { SocketOptions, Vibration } from './switch';
 
 export const INTERNAL_SYMBOL = Symbol('Internal');
 
@@ -34,3 +34,5 @@ export type Keys = {
 	modifiers: bigint;
 	[i: number]: bigint;
 };
+
+export type VibrationValues = Omit<Vibration, 'duration'>;

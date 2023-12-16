@@ -30,6 +30,14 @@ export interface Versions {
 	webp: string;
 }
 
+export interface Vibration {
+	duration: number;
+	lowAmp: number;
+	lowFreq: number;
+	highAmp: number;
+	highFreq: number;
+}
+
 export interface Stats {
 	size: number;
 	mtime: number;

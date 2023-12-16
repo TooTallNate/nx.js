@@ -6,16 +6,7 @@ import {
 	type VirtualKeyboard,
 	create as newVirtualKeyboard,
 } from './navigator/virtual-keyboard';
-
-export interface Vibration {
-	duration: number;
-	lowAmp: number;
-	lowFreq: number;
-	highAmp: number;
-	highFreq: number;
-}
-
-export type VibrationValues = Omit<Vibration, 'duration'>;
+import type { Vibration } from './switch';
 
 interface NavigatorState {
 	batt?: BatteryManager;
