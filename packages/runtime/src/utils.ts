@@ -1,4 +1,5 @@
-import type { BufferSource, PathLike } from './types';
+import type { PathLike } from './switch';
+import type { BufferSource } from './types';
 import {
 	INTERNAL_SYMBOL,
 	type Callback,

@@ -1,9 +1,8 @@
-import type { NetworkInfo, Stats, Versions } from './types';
+import type { NetworkInfo, Stats, Versions } from './switch';
 import type {
 	Callback,
 	Keys,
 	RGBA,
-	VibrationValues,
 	WasmGlobalOpaque,
 	WasmInstanceOpaque,
 	WasmModuleOpaque,
@@ -11,6 +10,7 @@ import type {
 import type { Touch } from './polyfills/event';
 import type { Server, TlsContextOpaque } from './tcp';
 import type { MemoryDescriptor, Memory } from './wasm';
+import type { VibrationValues } from './navigator';
 import type { BatteryManager } from './navigator/battery';
 import type { VirtualKeyboard } from './navigator/virtual-keyboard';
 import type { OffscreenCanvas } from './canvas/offscreen-canvas';
@@ -112,8 +112,10 @@ export interface Init {
 	): void;
 
 	// main.c
+	argv: string[];
 	entrypoint: string;
 	version: Versions;
+	exit(): never;
 	cwd(): string;
 	chdir(dir: string): void;
 	print(v: string): void;

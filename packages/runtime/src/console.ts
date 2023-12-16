@@ -1,7 +1,6 @@
 import { bgRgb, bold, red, yellow } from 'kleur/colors';
 import { $ } from './$';
 import { inspect } from './inspect';
-import type { SwitchClass } from './switch';
 
 const bgRedDim = bgRgb(60, 0, 0);
 const bgYellowDim = bgRgb(60, 60, 0);
@@ -48,7 +47,7 @@ function format(...input: unknown[]): string {
  * screen, which can be useful for text-based applications, and is also
  * useful for debugging.
  *
- * Most methods use the {@link SwitchClass.inspect | `Switch.inspect()`} method
+ * Most methods use the {@link inspect | `Switch.inspect()`} method
  * for formatting, and the {@link console.print | `console.print()`} method
  * to output to the screen.
  *

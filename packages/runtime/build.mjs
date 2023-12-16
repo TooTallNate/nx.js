@@ -115,5 +115,6 @@ function generateNamespace(name, filePath) {
 // so we need to add those in manually:
 // See: https://github.com/timocov/dts-bundle-generator/issues/134
 output += generateNamespace('WebAssembly', './src/wasm.ts');
+output += generateNamespace('Switch', './src/switch.ts');
 
 fs.writeFileSync(new URL('index.d.ts', distDir), output);

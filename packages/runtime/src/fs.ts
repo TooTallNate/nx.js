@@ -1,7 +1,7 @@
 import { $ } from './$';
 import { bufferSourceToArrayBuffer, pathToString, toPromise } from './utils';
 import { encoder } from './polyfills/text-encoder';
-import type { PathLike } from './types';
+import type { PathLike } from './switch';
 
 /**
  * Returns a Promise which resolves to an `ArrayBuffer` containing

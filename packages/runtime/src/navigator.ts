@@ -1,15 +1,21 @@
 import { $ } from './$';
 import { assertInternalConstructor, def } from './utils';
 import { BatteryManager } from './navigator/battery';
-import {
-	INTERNAL_SYMBOL,
-	type Vibration,
-	type VibrationValues,
-} from './internal';
+import { INTERNAL_SYMBOL } from './internal';
 import {
 	type VirtualKeyboard,
 	create as newVirtualKeyboard,
 } from './navigator/virtual-keyboard';
+
+export interface Vibration {
+	duration: number;
+	lowAmp: number;
+	lowFreq: number;
+	highAmp: number;
+	highFreq: number;
+}
+
+export type VibrationValues = Omit<Vibration, 'duration'>;
 
 interface NavigatorState {
 	batt?: BatteryManager;

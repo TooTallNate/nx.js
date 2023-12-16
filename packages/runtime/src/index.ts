@@ -1,6 +1,5 @@
 import './polyfills';
 import { def } from './utils';
-import { SwitchClass } from './switch';
 import {
 	setTimeout,
 	setInterval,
@@ -17,10 +16,6 @@ import {
 	PromiseRejectionEvent,
 } from './polyfills/event';
 
-export type { SwitchClass } from './switch';
-export type { Vibration } from './internal';
-export type { Env } from './env';
-export type { InspectOptions } from './inspect';
 export type * from './types';
 export type * from './console';
 export type * from './navigator';
@@ -51,7 +46,6 @@ export type * from './crypto';
 export type * from './image';
 export type { DOMPoint, DOMPointInit, DOMPointReadOnly } from './dompoint';
 export type * from './domrect';
-export type { Socket, Server } from './tcp';
 export type {
 	TimerHandler,
 	setTimeout,
@@ -78,9 +72,11 @@ export type * as WebAssembly from './wasm';
 /**
  * The `Switch` global object contains native interfaces to interact with the Switch hardware.
  */
-const Switch = new SwitchClass();
-export type { Switch };
+export type * as Switch from './switch';
+
+import * as Switch from './switch';
 def('Switch', Switch);
+
 def('console', console);
 def('setTimeout', setTimeout);
 def('setInterval', setInterval);
@@ -182,7 +178,7 @@ $.onFrame((kDown) => {
 		});
 		globalThis.dispatchEvent(ev);
 		if (!ev.defaultPrevented && buttonsDown & btnPlus) {
-			return Switch.exit();
+			return $.exit();
 		}
 	}
 

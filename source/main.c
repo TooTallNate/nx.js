@@ -548,6 +548,7 @@ int main(int argc, char *argv[])
 	nx_init_swkbd(ctx, init_obj);
 	nx_init_wasm(ctx, init_obj);
 	const JSCFunctionListEntry init_function_list[] = {
+		JS_CFUNC_DEF("exit", 0, js_exit),
 		JS_CFUNC_DEF("cwd", 0, js_cwd),
 		JS_CFUNC_DEF("chdir", 1, js_chdir),
 		JS_CFUNC_DEF("print", 1, js_print),
@@ -576,6 +577,7 @@ int main(int argc, char *argv[])
 	};
 	JS_SetPropertyFunctionList(ctx, init_obj, init_function_list, countof(init_function_list));
 
+	// `Switch.version`
 	JSValue version_obj = JS_NewObject(ctx);
 	JS_SetPropertyStr(ctx, version_obj, "cairo", JS_NewString(ctx, cairo_version_string()));
 	JS_SetPropertyStr(ctx, version_obj, "freetype2", JS_NewString(ctx, FREETYPE_VERSION_STR));
@@ -592,7 +594,17 @@ int main(int argc, char *argv[])
 	JS_SetPropertyStr(ctx, version_obj, "webp", JS_NewString(ctx, webp_version_str));
 	JS_SetPropertyStr(ctx, init_obj, "version", version_obj);
 
+	// `Switch.entrypoint`
 	JS_SetPropertyStr(ctx, init_obj, "entrypoint", JS_NewString(ctx, js_path));
+
+	// `Switch.argv`
+	JSValue argv_array = JS_NewArray(ctx);
+	for (int i = 0; i < argc; i++)
+	{
+		JS_SetPropertyUint32(ctx, argv_array, i, JS_NewString(ctx, argv[i]));
+	}
+	JS_SetPropertyStr(ctx, init_obj, "argv", argv_array);
+
 	JS_SetPropertyStr(ctx, global_obj, "$", init_obj);
 
 	size_t runtime_buffer_size;
@@ -617,18 +629,6 @@ int main(int argc, char *argv[])
 	{
 		goto main_loop;
 	}
-
-	JSValue switch_obj = JS_GetPropertyStr(ctx, global_obj, "Switch");
-
-	JS_SetPropertyStr(ctx, switch_obj, "exit", JS_NewCFunction(ctx, js_exit, "exit", 0));
-
-	// `Switch.argv`
-	JSValue argv_array = JS_NewArray(ctx);
-	for (int i = 0; i < argc; i++)
-	{
-		JS_SetPropertyUint32(ctx, argv_array, i, JS_NewString(ctx, argv[i]));
-	}
-	JS_SetPropertyStr(ctx, switch_obj, "argv", argv_array);
 
 	// Run the user code
 	JSValue user_code_result = JS_Eval(ctx, user_code, user_code_size, js_path, JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY);
@@ -737,7 +737,6 @@ main_loop:
 	fclose(debug_fd);
 	FILE *leaks_fd = freopen(LOG_FILENAME, "a", stdout);
 
-	JS_FreeValue(ctx, switch_obj);
 	JS_FreeValue(ctx, global_obj);
 	JS_FreeValue(ctx, nx_ctx->frame_handler);
 	JS_FreeValue(ctx, nx_ctx->exit_handler);
