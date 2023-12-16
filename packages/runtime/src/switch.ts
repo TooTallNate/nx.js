@@ -7,7 +7,7 @@ import {
 	connect as tcpConnect,
 	createServer,
 	parseAddress,
-	type Server,
+	Server,
 } from './tcp';
 
 export * from './dns';
