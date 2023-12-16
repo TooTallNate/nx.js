@@ -1,5 +1,47 @@
 # nxjs-runtime
 
+## 0.0.25
+
+### Patch Changes
+
+- Dispatch `touchstart`, `touchmove`, and `touchend` events on the `screen` object ([`07619a955dc1c6884c011d6ec64ecd563fb911bb`](https://github.com/TooTallNate/nx.js/commit/07619a955dc1c6884c011d6ec64ecd563fb911bb))
+
+- Use `performance.now()` in `requestAnimationFrame()` callback ([`6a40a1ea7bccbf0a9df83146c10ac65744fc4e4f`](https://github.com/TooTallNate/nx.js/commit/6a40a1ea7bccbf0a9df83146c10ac65744fc4e4f))
+
+- Add missing `TextMetrics` type ([`475261f1cf04703a9bb443f52b18b7de81a1b066`](https://github.com/TooTallNate/nx.js/commit/475261f1cf04703a9bb443f52b18b7de81a1b066))
+
+- Refactor to prevent `INTERNAL_SYMBOL` from leaking into the public types ([`2200e6eb8385db41600d34344dbd73ebc57b49a9`](https://github.com/TooTallNate/nx.js/commit/2200e6eb8385db41600d34344dbd73ebc57b49a9))
+
+- Add Canvas `textBaseline` ([`df93c6fe8632504db94b596b04d957ca959fb815`](https://github.com/TooTallNate/nx.js/commit/df93c6fe8632504db94b596b04d957ca959fb815))
+
+- Move rendering mode handling to C side ([`b14161f9baaf54de93f6a046aee428617fc72198`](https://github.com/TooTallNate/nx.js/commit/b14161f9baaf54de93f6a046aee428617fc72198))
+
+- Move `keydown` and `keyup` events to the `window` object ([`04008ba8972c81f799546ad3785d708e2c2d2673`](https://github.com/TooTallNate/nx.js/commit/04008ba8972c81f799546ad3785d708e2c2d2673))
+
+- Add `console.printErr()` ([`1085e6d854ea54fc27fcbd5a6cdf82c64b29aa70`](https://github.com/TooTallNate/nx.js/commit/1085e6d854ea54fc27fcbd5a6cdf82c64b29aa70))
+
+- Add `console.print()` ([`ff4b8fa78a4e3c02ad918493f2dfc3688a3dda42`](https://github.com/TooTallNate/nx.js/commit/ff4b8fa78a4e3c02ad918493f2dfc3688a3dda42))
+
+- Add Canvas `textAlign` ([`81275ee86bbb43bb967382e30a074e3dbb2ab2bb`](https://github.com/TooTallNate/nx.js/commit/81275ee86bbb43bb967382e30a074e3dbb2ab2bb))
+
+- Add `performance.timeOrigin` and `performance.now()` ([`0433772037a99c7825d354649827f2bda272a7a4`](https://github.com/TooTallNate/nx.js/commit/0433772037a99c7825d354649827f2bda272a7a4))
+
+- Move `Switch.vibrate()` to `navigator.vibrate()` ([`b0e81f33e5d1834e27a3b7bc3f9dc92bf473d478`](https://github.com/TooTallNate/nx.js/commit/b0e81f33e5d1834e27a3b7bc3f9dc92bf473d478))
+
+- Convert `Switch` global into a proper "namespace" ([#70](https://github.com/TooTallNate/nx.js/pull/70))
+
+- Move `Switch.fonts` to global `fonts` ([`52fb3910b6c571bfa65a7cb929b7ad4934f26abb`](https://github.com/TooTallNate/nx.js/commit/52fb3910b6c571bfa65a7cb929b7ad4934f26abb))
+
+- Fix Canvas `font`, `fillStyle`, `strokeStyle` after `ctx.restore()` ([#68](https://github.com/TooTallNate/nx.js/pull/68))
+
+- Don't throw when setting Canvas font upon parse failure ([`9f6c1cc508e3b89743db4feb985a10923b63b51e`](https://github.com/TooTallNate/nx.js/commit/9f6c1cc508e3b89743db4feb985a10923b63b51e))
+
+- Remove `Switch.print()` method ([`5681e40f56d00a178ecfb71221406ea800ff97cc`](https://github.com/TooTallNate/nx.js/commit/5681e40f56d00a178ecfb71221406ea800ff97cc))
+
+- Move `buttondown` and `buttonup` events to the `window` object ([`8c305fc1d8f77f283e4bb4e1e7889f7db220c273`](https://github.com/TooTallNate/nx.js/commit/8c305fc1d8f77f283e4bb4e1e7889f7db220c273))
+
+- Make `console.debug()` write to the debug log file ([`a151db893bd0dbe1c51305da8e0772d73578314d`](https://github.com/TooTallNate/nx.js/commit/a151db893bd0dbe1c51305da8e0772d73578314d))
+
 ## 0.0.24
 
 ### Patch Changes
