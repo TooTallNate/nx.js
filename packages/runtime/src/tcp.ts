@@ -1,7 +1,7 @@
 import { $ } from './$';
-import { SocketEvent } from './polyfills/event';
-import { EventTarget } from './polyfills/event-target';
 import { resolveDns } from './dns';
+import { EventTarget } from './polyfills/event-target';
+import { SocketEvent, type SocketAddress, type SocketInfo } from './switch';
 import {
 	Deferred,
 	assertInternalConstructor,
@@ -10,7 +10,6 @@ import {
 	def,
 	toPromise,
 } from './utils';
-import type { SocketAddress, SocketInfo } from './switch';
 import type { BufferSource } from './types';
 import {
 	INTERNAL_SYMBOL,

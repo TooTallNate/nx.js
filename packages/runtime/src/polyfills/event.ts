@@ -1,5 +1,4 @@
 import { createInternal, def } from '../utils';
-import type { Socket } from '../tcp';
 
 export interface EventInit {
 	bubbles?: boolean;
@@ -510,24 +509,9 @@ export class PromiseRejectionEvent
 	}
 }
 
-export interface SocketEventInit extends EventInit {
-	socket: Socket;
-}
-
-export class SocketEvent extends Event {
-	socket: Socket;
-	constructor(type: string, init: SocketEventInit) {
-		super(type, init);
-		this.socket = init.socket;
-	}
-}
-
 def('Event', Event);
 def('ErrorEvent', ErrorEvent);
 def('PromiseRejectionEvent', PromiseRejectionEvent);
 def('UIEvent', UIEvent);
 def('KeyboardEvent', KeyboardEvent);
 def('TouchEvent', TouchEvent);
-
-// Non-standard
-def('SocketEvent', SocketEvent);

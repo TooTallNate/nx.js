@@ -207,3 +207,15 @@ export function networkInfo() {
 	}
 	return $.networkInfo();
 }
+
+export interface SocketEventInit extends EventInit {
+	socket: Socket;
+}
+
+export class SocketEvent extends Event {
+	socket: Socket;
+	constructor(type: string, init: SocketEventInit) {
+		super(type, init);
+		this.socket = init.socket;
+	}
+}
