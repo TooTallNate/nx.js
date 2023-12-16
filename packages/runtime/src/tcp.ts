@@ -1,7 +1,7 @@
 import { $ } from './$';
-import { SocketEvent } from './polyfills/event';
+import { resolveDns } from './dns';
 import { EventTarget } from './polyfills/event-target';
-import { resolve } from './dns';
+import { SocketEvent, type SocketAddress, type SocketInfo } from './switch';
 import {
 	Deferred,
 	assertInternalConstructor,
@@ -10,7 +10,7 @@ import {
 	def,
 	toPromise,
 } from './utils';
-import type { BufferSource, SocketAddress, SocketInfo } from './types';
+import type { BufferSource } from './types';
 import {
 	INTERNAL_SYMBOL,
 	Opaque,
@@ -29,7 +29,7 @@ export function parseAddress(address: string): SocketAddress {
 
 export async function connect(opts: SocketAddress) {
 	const { hostname = '127.0.0.1', port } = opts;
-	const [ip] = await resolve(hostname);
+	const [ip] = await resolveDns(hostname);
 	if (!ip) {
 		throw new Error(`Could not resolve "${hostname}" to an IP address`);
 	}
