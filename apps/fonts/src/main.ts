@@ -11,26 +11,25 @@ const emojiFontData = Switch.readFileSync(emojiFontUrl);
 const emojiFont = new FontFace('Twemoji', emojiFontData);
 fonts.add(emojiFont);
 
-function fillTextCentered(text: string, y: number) {
-	const { width } = ctx.measureText(text);
-	ctx.fillText(text, screen.width / 2 - width / 2, y);
-}
+ctx.textAlign = 'center';
 
 ctx.font = '48px Alexandria';
 ctx.fillStyle = 'purple';
-fillTextCentered('This is the "Alexandria" font', 250);
+ctx.fillText('This is the "Alexandria" font', screen.width / 2, 250);
 
 ctx.font = '28px Alexandria';
 ctx.fillStyle = 'rgb(230, 200, 200)';
-fillTextCentered('Created by "Teaito"', 310);
+ctx.fillText('Created by "Teaito"', screen.width / 2, 310);
 
 ctx.font = '26px system-ui';
 ctx.fillStyle = 'orange';
-fillTextCentered('Emoji fonts work too!', 480);
+ctx.fillText('Emoji fonts work too!', screen.width / 2, 480);
 
 ctx.font = '100px Twemoji';
-fillTextCentered('🇧🇷👩🏾‍🦱🥰🏀', 600);
+ctx.fillText('🇧🇷👩🏾‍🦱🥰🏀', screen.width / 2, 600);
+
+ctx.textAlign = 'right';
 
 ctx.font = '24px system-ui';
 ctx.strokeStyle = 'rgb(200, 200, 230)';
-ctx.strokeText('Press + to exit', screen.width - 190, 30);
+ctx.strokeText('Press + to exit', screen.width - 30, 30);
