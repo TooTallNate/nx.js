@@ -139,12 +139,23 @@ export class CanvasActuator {
 
 		this.drawGridContainer(grid);
 
+		let shouldVibrate = false;
+
 		// Draw active cells
 		for (let x = 0; x < grid.size; x++) {
 			for (let y = 0; y < grid.size; y++) {
 				const tile = grid.cells[x][y];
-				if (tile) this.addTile(tile, delta);
+				if (tile) {
+					if (tile.mergedFrom) {
+						shouldVibrate = true;
+					}
+					this.addTile(tile, delta);
+				}
 			}
+		}
+
+		if (shouldVibrate) {
+			navigator.vibrate(100);
 		}
 
 		let animationDuration = tileMoveDuration;
