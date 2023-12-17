@@ -1,4 +1,5 @@
 import { $ } from './$';
+import { KeyboardEvent } from './polyfills/event';
 import type { Keys } from './internal';
 import type { EventTarget } from './polyfills/event-target';
 

@@ -1,4 +1,5 @@
 import { $ } from './$';
+import { TouchEvent } from './polyfills/event';
 import type { Screen } from './screen';
 import type { Touch } from './polyfills/event';
 

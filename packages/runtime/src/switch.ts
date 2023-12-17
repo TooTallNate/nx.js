@@ -1,6 +1,7 @@
 import { $ } from './$';
 import { INTERNAL_SYMBOL } from './internal';
 import { Env } from './env';
+import { Event } from './polyfills/event';
 import { pathToString } from './utils';
 import {
 	Socket,

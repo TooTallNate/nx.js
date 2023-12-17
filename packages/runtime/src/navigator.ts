@@ -2,6 +2,7 @@ import { $ } from './$';
 import { assertInternalConstructor, def } from './utils';
 import { BatteryManager } from './navigator/battery';
 import { INTERNAL_SYMBOL, VibrationValues } from './internal';
+import { setTimeout, clearTimeout } from './timers';
 import {
 	type VirtualKeyboard,
 	create as newVirtualKeyboard,
