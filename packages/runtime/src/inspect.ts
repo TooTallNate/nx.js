@@ -4,6 +4,7 @@ import { $ } from './$';
 const grey = rgb(100, 100, 100);
 
 export interface InspectOptions {
+	depth?: number;
 	refs?: Set<{}>;
 }
 
@@ -16,15 +17,19 @@ export interface InspectOptions {
  * @param opts - Options which may modify the generated string representation of the value.
  * @returns A string representation of `v` with ANSI color codes.
  */
-export const inspect = (v: unknown, opts?: InspectOptions): string => {
+export const inspect = (v: unknown, opts: InspectOptions = {}): string => {
+	const { depth = 1 } = opts;
+	const refs = opts.refs ?? new Set();
+
 	// If the value defines the `inspect.custom` symbol, then invoke
 	// the function. If the return value is a string, return that.
 	// Otherwise, treat the return value as the value to inspect
 	if (v && typeof (v as any)[inspect.custom] === 'function') {
-		const c = (v as any)[inspect.custom]();
+		const c = (v as any)[inspect.custom]({ ...opts, depth });
 		if (typeof c === 'string') {
 			return c;
 		}
+		refs.add(v);
 		v = c;
 	}
 
@@ -51,7 +56,6 @@ export const inspect = (v: unknown, opts?: InspectOptions): string => {
 	// After this point, all should be typeof "object" or
 	// "function", so they can have additional properties
 	// which may be circular references.
-	const refs = opts?.refs ?? new Set();
 	if (refs.has(v)) {
 		return cyan('[Circular]');
 	}
@@ -69,7 +73,9 @@ export const inspect = (v: unknown, opts?: InspectOptions): string => {
 		const contents =
 			v.length === 0
 				? ''
-				: ` ${v.map((e) => inspect(e, { ...opts, refs })).join(', ')} `;
+				: ` ${v
+						.map((e) => inspect(e, { ...opts, refs, depth }))
+						.join(', ')} `;
 		return `[${contents}]`;
 	}
 	if (isRegExp(v)) {
@@ -87,7 +93,7 @@ export const inspect = (v: unknown, opts?: InspectOptions): string => {
 			if (state === 2) {
 				val = `${red('<rejected>')} `;
 			}
-			val += inspect(result, { ...opts, refs });
+			val += inspect(result, { ...opts, refs, depth });
 		}
 		return `Promise { ${val} }`;
 	}
@@ -95,7 +101,7 @@ export const inspect = (v: unknown, opts?: InspectOptions): string => {
 		const { stack } = v;
 		const obj =
 			Object.keys(v).length > 0
-				? ` ${printObject(v, { ...opts, refs })}`
+				? ` ${printObject(v, { ...opts, refs, depth })}`
 				: '';
 		return stack ? `${v}\n${stack.trimEnd()}${obj}` : `[${v}]${obj}`;
 	}
@@ -122,7 +128,7 @@ export const inspect = (v: unknown, opts?: InspectOptions): string => {
 		return `${getClass(v)}(${v.length}) [${c}]`;
 	}
 	if (typeof v === 'object') {
-		return printObject(v, { ...opts, refs });
+		return printObject(v, { ...opts, refs, depth });
 	}
 	return `? ${v}`;
 };
@@ -130,6 +136,7 @@ export const inspect = (v: unknown, opts?: InspectOptions): string => {
 inspect.custom = Symbol('Switch.inspect.custom');
 
 function printObject(v: any, opts: InspectOptions) {
+	const { depth = 1 } = opts;
 	const keys = Object.keys(v);
 	const ctor = v.constructor;
 	const className =
@@ -137,20 +144,23 @@ function printObject(v: any, opts: InspectOptions) {
 			? `${ctor.name} `
 			: '';
 	let contents = '';
+	let endSpace = '';
 	if (keys.length > 0) {
 		let len = 0;
 		const parts = keys.map((k) => {
-			const l = `${k}: ${inspect(v[k], opts)}`;
+			const l = `${k}: ${inspect(v[k], { ...opts, depth: depth + 1 })}`;
 			len += l.length;
 			return l;
 		});
 		if (len > 60) {
-			contents = parts.map((p) => `\n  ${p}`).join('') + '\n';
+			const space = '  '.repeat(depth);
+			contents = parts.map((p) => `\n${space}${p},`).join('') + '\n';
+			endSpace = '  '.repeat(depth - 1);
 		} else {
 			contents = ` ${parts.join(', ')} `;
 		}
 	}
-	return `${className}{${contents}}`;
+	return `${className}{${contents}${endSpace}}`;
 }
 
 function getClass(v: unknown) {
