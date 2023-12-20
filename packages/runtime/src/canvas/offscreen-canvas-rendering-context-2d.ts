@@ -759,12 +759,7 @@ export class OffscreenCanvasRenderingContext2D {
 	 * @param maxWidth The maximum number of pixels wide the text may be once rendered. If not specified, there is no limit to the width of the text.
 	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/strokeText
 	 */
-	strokeText(
-		text: string,
-		x: number,
-		y: number,
-		maxWidth?: number | undefined
-	): void {
+	strokeText(text: string, x: number, y: number, maxWidth?: number): void {
 		stub();
 	}
 
@@ -810,12 +805,7 @@ export class OffscreenCanvasRenderingContext2D {
 	 * @param maxWidth The maximum number of pixels wide the text may be once rendered. If not specified, there is no limit to the width of the text.
 	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/fillText
 	 */
-	fillText(
-		text: string,
-		x: number,
-		y: number,
-		maxWidth?: number | undefined
-	): void {
+	fillText(text: string, x: number, y: number, maxWidth?: number): void {
 		stub();
 	}
 

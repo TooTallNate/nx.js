@@ -128,6 +128,13 @@ static void stroke(nx_canvas_context_2d_t *context, bool preserve)
 	}
 }
 
+static void set_font_size(nx_canvas_context_2d_t *context, double font_size)
+{
+	FT_Set_Char_Size(context->state->ft_face, 0, font_size * 64.0, 0, 0);
+	cairo_set_font_size(context->ctx, font_size);
+	hb_font_set_scale(context->state->hb_font, font_size * 64, font_size * 64);
+}
+
 static JSValue nx_canvas_context_2d_move_to(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	CANVAS_CONTEXT_THIS;
@@ -486,10 +493,8 @@ static JSValue nx_canvas_context_2d_set_font(JSContext *ctx, JSValueConst this_v
 	context->state->font_string = strdup(font_string);
 	context->state->ft_face = face->ft_face;
 	context->state->hb_font = face->hb_font;
-	FT_Set_Char_Size(context->state->ft_face, 0, font_size * 64.0, 0, 0);
 	cairo_set_font_face(cr, face->cairo_font);
-	cairo_set_font_size(cr, font_size);
-	hb_font_set_scale(face->hb_font, font_size * 64, font_size * 64);
+	set_font_size(context, font_size);
 	JS_FreeCString(ctx, font_string);
 	return JS_UNDEFINED;
 }
@@ -540,6 +545,35 @@ static JSValue nx_canvas_context_2d_clear_rect(JSContext *ctx, JSValueConst this
 	return JS_UNDEFINED;
 }
 
+ double get_text_scale(nx_canvas_context_2d_t *context, const char *text, double max_width)
+{
+	// Create HarfBuzz buffer
+	hb_buffer_t *buf = hb_buffer_create();
+
+	// Set buffer to LTR direction, common script and default language
+	hb_buffer_set_direction(buf, HB_DIRECTION_LTR);
+	hb_buffer_set_script(buf, HB_SCRIPT_COMMON);
+	hb_buffer_set_language(buf, hb_language_get_default());
+
+	// Add text and layout it
+	hb_buffer_add_utf8(buf, text, -1, 0, -1);
+	hb_shape(context->state->hb_font, buf, NULL, 0);
+
+	// Get buffer data
+	unsigned int glyph_count = hb_buffer_get_length(buf);
+	hb_glyph_position_t *glyph_pos = hb_buffer_get_glyph_positions(buf, NULL);
+
+	double width = 0;
+	for (int i = 0; i < glyph_count; ++i)
+	{
+		width += glyph_pos[i].x_advance / (64.0);
+	}
+
+	hb_buffer_destroy(buf);
+
+	return width > max_width ? max_width / width : 1.;
+ }
+
 static JSValue nx_canvas_context_2d_fill_text(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	CANVAS_CONTEXT_THIS;
@@ -550,6 +584,20 @@ static JSValue nx_canvas_context_2d_fill_text(JSContext *ctx, JSValueConst this_
 	const char *text = JS_ToCString(ctx, argv[0]);
 	if (!text)
 		return JS_EXCEPTION;
+
+	double scale = 1.;
+	double font_size = context->state->font_size;
+
+	if (argc >= 4 && JS_IsNumber(argv[3]))
+	{
+		double max_width;
+		if (JS_ToFloat64(ctx, &max_width, argv[3])) return JS_EXCEPTION;
+		scale = get_text_scale(context, text, max_width);
+
+		if (scale != 1.) {
+			set_font_size(context, font_size * scale);
+		}
+	}
 
 	// Create HarfBuzz buffer
 	hb_buffer_t *buf = hb_buffer_create();
@@ -633,6 +681,10 @@ static JSValue nx_canvas_context_2d_fill_text(JSContext *ctx, JSValueConst this_
 
 	cairo_show_glyphs(cr, cairo_glyphs, glyph_count);
 
+	if (scale != 1.) {
+		set_font_size(context, font_size);
+	}
+
 	cairo_glyph_free(cairo_glyphs);
 	hb_buffer_destroy(buf);
 	JS_FreeCString(ctx, text);
@@ -652,6 +704,20 @@ static JSValue nx_canvas_context_2d_stroke_text(JSContext *ctx, JSValueConst thi
 		return JS_EXCEPTION;
 
 	save_path(context);
+
+	double scale = 1.;
+	double font_size = context->state->font_size;
+
+	if (argc >= 4 && JS_IsNumber(argv[3]))
+	{
+		double max_width;
+		if (JS_ToFloat64(ctx, &max_width, argv[3])) return JS_EXCEPTION;
+		scale = get_text_scale(context, text, max_width);
+
+		if (scale != 1.) {
+			set_font_size(context, font_size * scale);
+		}
+	}
 
 	// Create HarfBuzz buffer
 	hb_buffer_t *buf = hb_buffer_create();
@@ -729,6 +795,10 @@ static JSValue nx_canvas_context_2d_stroke_text(JSContext *ctx, JSValueConst thi
 	cairo_glyph_path(cr, cairo_glyphs, glyph_count);
 
 	stroke(context, false);
+
+	if (scale != 1.) {
+		set_font_size(context, font_size);
+	}
 
 	restore_path(context);
 
@@ -1388,10 +1458,8 @@ static JSValue nx_canvas_context_2d_restore(JSContext *ctx, JSValueConst this_va
 		js_free(ctx, prev);
 
 		nx_font_face_t *face = nx_get_font_face(ctx, context->state->font);
-		FT_Set_Char_Size(context->state->ft_face, 0, context->state->font_size * 64.0, 0, 0);
 		cairo_set_font_face(cr, face->cairo_font);
-		cairo_set_font_size(cr, context->state->font_size);
-		hb_font_set_scale(face->hb_font, context->state->font_size * 64, context->state->font_size * 64);
+		set_font_size(context, context->state->font_size);
 	}
 	return JS_UNDEFINED;
 }
