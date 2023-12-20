@@ -3,16 +3,45 @@ import { assertInternalConstructor, stub } from '../utils';
 
 let init = false;
 
+/**
+ * Represents an installed application (game) on the console.
+ */
 export class Application {
+	/**
+	 * The 64-bit unique identifier of the application.
+	 */
 	declare id: bigint;
+	/**
+	 * The "type" of application.
+	 */
 	declare type: number;
+	/**
+	 * The raw NACP data of the application. Use the `@tootallnate/nacp` module to parse this data.
+	 */
 	declare nacp: ArrayBuffer;
+	/**
+	 * The raw JPEG data for the cover art of the application. Can be decoded with the `Image` class.
+	 */
 	declare icon: ArrayBuffer;
+	/**
+	 * The name of the application.
+	 */
+	declare name: string;
+	/**
+	 * The author or publisher of the application.
+	 */
+	declare author: string;
 
+	/**
+	 * @ignore
+	 */
 	constructor() {
 		assertInternalConstructor(arguments);
 	}
 
+	/**
+	 * Launches the application.
+	 */
 	launch(): never {
 		stub();
 	}
@@ -25,6 +54,17 @@ function _init() {
 	init = true;
 }
 
+/**
+ * Can be used as an iterator to retrieve the list of installed applications.
+ *
+ * @example
+ *
+ * ```typescript
+ * for (const app of Switch.applications) {
+ *   console.log(app.name);
+ * }
+ * ```
+ */
 export const applications = {
 	*[Symbol.iterator]() {
 		_init();

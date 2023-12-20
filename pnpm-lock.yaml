@@ -61,6 +61,22 @@ importers:
         specifier: workspace:^
         version: link:../../packages/runtime
 
+  apps/app-launch:
+    dependencies:
+      '@tootallnate/nacp':
+        specifier: ^0.0.1
+        version: 0.0.1
+    devDependencies:
+      esbuild:
+        specifier: ^0.17.19
+        version: 0.17.19
+      nxjs-pack:
+        specifier: workspace:^
+        version: link:../../packages/pack
+      nxjs-runtime:
+        specifier: workspace:^
+        version: link:../../packages/runtime
+
   apps/battery:
     devDependencies:
       esbuild:
