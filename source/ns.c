@@ -52,6 +52,19 @@ static JSValue nx_ns_application_record(JSContext *ctx, JSValueConst this_val, i
 	}
 	JS_SetPropertyStr(ctx, val, "nacp", JS_NewArrayBufferCopy(ctx, (const uint8_t *)&controlData.nacp, sizeof(controlData.nacp)));
 	JS_SetPropertyStr(ctx, val, "icon", JS_NewArrayBufferCopy(ctx, (const uint8_t *)&controlData.icon, sizeof(controlData.icon)));
+
+	NacpLanguageEntry *langEntry;
+	rc = nacpGetLanguageEntry(&controlData.nacp, &langEntry);
+	if (R_FAILED(rc))
+	{
+		diagAbortWithResult(rc);
+	}
+	if (langEntry != NULL)
+	{
+		JS_SetPropertyStr(ctx, val, "name", JS_NewString(ctx, langEntry->name));
+		JS_SetPropertyStr(ctx, val, "author", JS_NewString(ctx, langEntry->author));
+	}
+
 	return val;
 }
 
