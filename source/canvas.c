@@ -60,7 +60,7 @@ static int js_validate_doubles_args(JSContext *ctx, JSValueConst *argv, double *
 	return result;
 }
 
-static void set_fill_rule(JSContext *ctx, JSValueConst fill_rule, cairo_t *cctx)
+static void set_fill_rule(JSContext *ctx, JSValueConst fill_rule, cairo_t *cr)
 {
 	cairo_fill_rule_t rule = CAIRO_FILL_RULE_WINDING;
 	if (JS_IsString(fill_rule))
@@ -74,7 +74,7 @@ static void set_fill_rule(JSContext *ctx, JSValueConst fill_rule, cairo_t *cctx)
 		}
 		JS_FreeCString(ctx, str);
 	}
-	cairo_set_fill_rule(cctx, rule);
+	cairo_set_fill_rule(cr, rule);
 }
 
 static void save_path(nx_canvas_context_2d_t *context)

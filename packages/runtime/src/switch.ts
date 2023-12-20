@@ -15,6 +15,8 @@ export * from './dns';
 export * from './env';
 export * from './fs';
 export * from './inspect';
+export * from './switch/nifm';
+export * from './switch/ns';
 export { Socket, Server };
 
 export type PathLike = string | URL;
@@ -108,6 +110,18 @@ export interface SocketAddress {
 }
 
 export type SecureTransportKind = 'off' | 'on' | 'starttls';
+
+export interface SocketEventInit extends EventInit {
+	socket: Socket;
+}
+
+export class SocketEvent extends Event {
+	socket: Socket;
+	constructor(type: string, init: SocketEventInit) {
+		super(type, init);
+		this.socket = init.socket;
+	}
+}
 
 export interface SocketOptions {
 	/**
@@ -205,26 +219,4 @@ export function connect<Host extends string, Port extends string>(
 export function listen(opts: ListenOpts) {
 	const { ip = '0.0.0.0', port } = opts;
 	return createServer(ip, port);
-}
-
-let nifmInitialized = false;
-
-export function networkInfo() {
-	if (!nifmInitialized) {
-		addEventListener('unload', $.nifmInitialize());
-		nifmInitialized = true;
-	}
-	return $.networkInfo();
-}
-
-export interface SocketEventInit extends EventInit {
-	socket: Socket;
-}
-
-export class SocketEvent extends Event {
-	socket: Socket;
-	constructor(type: string, init: SocketEventInit) {
-		super(type, init);
-		this.socket = init.socket;
-	}
 }

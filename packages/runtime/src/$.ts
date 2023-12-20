@@ -1,4 +1,4 @@
-import type { NetworkInfo, Stats, Versions } from './switch';
+import type { Application, NetworkInfo, Stats, Versions } from './switch';
 import type {
 	Callback,
 	Keys,
@@ -138,6 +138,11 @@ export interface Init {
 	// nifm.c
 	nifmInitialize(): () => void;
 	networkInfo(): NetworkInfo;
+
+	// ns.c
+	nsInitialize(): () => void;
+	nsAppInit(c: ClassOf<Application>): void;
+	nsApplicationRecord(offset: number): Application | null;
 
 	// software-keyboard.c
 	swkbdCreate(fns: {

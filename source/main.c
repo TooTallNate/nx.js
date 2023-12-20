@@ -18,6 +18,7 @@
 #include "font.h"
 #include "fs.h"
 #include "nifm.h"
+#include "ns.h"
 #include "software-keyboard.h"
 #include "wasm.h"
 #include "image.h"
@@ -543,6 +544,7 @@ int main(int argc, char *argv[])
 	nx_init_fs(ctx, init_obj);
 	nx_init_image(ctx, init_obj);
 	nx_init_nifm(ctx, init_obj);
+	nx_init_ns(ctx, init_obj);
 	nx_init_tcp(ctx, init_obj);
 	nx_init_tls(ctx, init_obj);
 	nx_init_swkbd(ctx, init_obj);
