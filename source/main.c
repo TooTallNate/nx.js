@@ -490,7 +490,7 @@ int main(int argc, char *argv[])
 
 	nx_context_t *nx_ctx = malloc(sizeof(nx_context_t));
 	memset(nx_ctx, 0, sizeof(nx_context_t));
-	nx_ctx->rendering_mode = NX_RENDERING_MODE_INIT;
+	nx_ctx->rendering_mode = NX_RENDERING_MODE_CONSOLE;
 	nx_ctx->thpool = thpool_init(4);
 	nx_ctx->frame_handler = JS_UNDEFINED;
 	nx_ctx->exit_handler = JS_UNDEFINED;
