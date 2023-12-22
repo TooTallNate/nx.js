@@ -214,7 +214,7 @@ export class Server extends EventTarget {
 	addEventListener(
 		type: string,
 		callback: EventListenerOrEventListenerObject | null,
-		options?: boolean | AddEventListenerOptions | undefined
+		options?: boolean | AddEventListenerOptions
 	): void {
 		super.addEventListener(type, callback, options);
 	}

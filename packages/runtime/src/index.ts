@@ -68,12 +68,13 @@ export type {
  * @see https://developer.mozilla.org/docs/WebAssembly
  */
 export type * as WebAssembly from './wasm';
+import * as WebAssembly from './wasm';
+def('WebAssembly', WebAssembly);
 
 /**
  * The `Switch` global object contains native interfaces to interact with the Switch hardware.
  */
 export type * as Switch from './switch';
-
 import * as Switch from './switch';
 def('Switch', Switch);
 
@@ -84,9 +85,6 @@ def('clearTimeout', clearTimeout);
 def('clearInterval', clearInterval);
 
 import './navigator';
-
-import * as WebAssembly from './wasm';
-def('WebAssembly', WebAssembly);
 
 import './source-map';
 import { $ } from './$';

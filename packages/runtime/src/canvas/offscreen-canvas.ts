@@ -78,13 +78,13 @@ export class OffscreenCanvas
 	oncontextlost = null;
 	oncontextrestored = null;
 
-	//addEventListener<K extends keyof OffscreenCanvasEventMap>(type: K, listener: (this: globalThis.OffscreenCanvas, ev: OffscreenCanvasEventMap[K]) => any, options?: boolean | AddEventListenerOptions | undefined): void;
-	//addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions | undefined): void;
+	//addEventListener<K extends keyof OffscreenCanvasEventMap>(type: K, listener: (this: globalThis.OffscreenCanvas, ev: OffscreenCanvasEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+	//addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
 	//addEventListener(type: unknown, listener: unknown, options?: unknown): void {
 	//    throw new Error("Method not implemented.");
 	//}
-	//removeEventListener<K extends keyof OffscreenCanvasEventMap>(type: K, listener: (this: globalThis.OffscreenCanvas, ev: OffscreenCanvasEventMap[K]) => any, options?: boolean | EventListenerOptions | undefined): void;
-	//removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions | undefined): void;
+	//removeEventListener<K extends keyof OffscreenCanvasEventMap>(type: K, listener: (this: globalThis.OffscreenCanvas, ev: OffscreenCanvasEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+	//removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
 	//removeEventListener(type: unknown, listener: unknown, options?: unknown): void {
 	//    throw new Error("Method not implemented.");
 	//}

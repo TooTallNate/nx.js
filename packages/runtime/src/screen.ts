@@ -78,7 +78,7 @@ export class Screen extends EventTarget implements globalThis.Screen {
 	addEventListener(
 		type: string,
 		callback: EventListenerOrEventListenerObject | null,
-		options?: boolean | AddEventListenerOptions | undefined
+		options?: boolean | AddEventListenerOptions
 	): void {
 		if (
 			type === 'touchstart' ||
