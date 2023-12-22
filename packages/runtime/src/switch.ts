@@ -78,6 +78,16 @@ export interface ListenOpts {
 	 * @example 80
 	 */
 	port: number;
+	/**
+	 * Function to invoke when a new TCP socket has connected.
+	 *
+	 * This is a shorthand for:
+	 *
+	 * ```js
+	 * server.addEventListener('accept', fn);
+	 * ```
+	 */
+	accept?: (e: SocketEvent) => void;
 }
 
 export interface NetworkInfo {
@@ -217,6 +227,10 @@ export function connect<Host extends string, Port extends string>(
 }
 
 export function listen(opts: ListenOpts) {
-	const { ip = '0.0.0.0', port } = opts;
-	return createServer(ip, port);
+	const { ip = '0.0.0.0', port, accept } = opts;
+	const server = createServer(ip, port);
+	if (accept) {
+		server.addEventListener('accept', accept);
+	}
+	return server;
 }
