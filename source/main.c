@@ -5,7 +5,7 @@
 #include <string.h>
 #include <inttypes.h>
 #include <switch.h>
-#include <quickjs/quickjs.h>
+#include <quickjs.h>
 
 #include "types.h"
 #include "applet.h"
@@ -388,12 +388,12 @@ static JSValue js_env_to_object(JSContext *ctx, JSValueConst this_val, int argc,
 // Returns the internal state of a Promise instance.
 static JSValue js_get_internal_promise_state(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	JSPromiseStateEnum state = JS_GetPromiseState(ctx, argv[0]);
+	JSPromiseStateEnum state = JS_PromiseState(ctx, argv[0]);
 	JSValue arr = JS_NewArray(ctx);
 	JS_SetPropertyUint32(ctx, arr, 0, JS_NewUint32(ctx, state));
 	if (state > JS_PROMISE_PENDING)
 	{
-		JS_SetPropertyUint32(ctx, arr, 1, JS_GetPromiseResult(ctx, argv[0]));
+		JS_SetPropertyUint32(ctx, arr, 1, JS_PromiseResult(ctx, argv[0]));
 	}
 	else
 	{
@@ -587,7 +587,7 @@ int main(int argc, char *argv[])
 	JS_SetPropertyStr(ctx, version_obj, "mbedtls", JS_NewString(ctx, MBEDTLS_VERSION_STRING));
 	JS_SetPropertyStr(ctx, version_obj, "nxjs", JS_NewString(ctx, NXJS_VERSION));
 	JS_SetPropertyStr(ctx, version_obj, "png", JS_NewString(ctx, PNG_LIBPNG_VER_STRING));
-	JS_SetPropertyStr(ctx, version_obj, "quickjs", JS_NewString(ctx, QUICKJS_VERSION));
+	JS_SetPropertyStr(ctx, version_obj, "quickjs", JS_NewString(ctx, JS_GetVersion()));
 	JS_SetPropertyStr(ctx, version_obj, "turbojpeg", JS_NewString(ctx, LIBTURBOJPEG_VERSION));
 	JS_SetPropertyStr(ctx, version_obj, "wasm3", JS_NewString(ctx, M3_VERSION));
 	const int webp_version = WebPGetDecoderVersion();

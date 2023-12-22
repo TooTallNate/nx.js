@@ -98,7 +98,7 @@ void nx_init_font(JSContext *ctx, JSValueConst init_obj)
 {
 	JSRuntime *rt = JS_GetRuntime(ctx);
 
-	JS_NewClassID(&nx_font_face_class_id);
+	JS_NewClassID(rt, &nx_font_face_class_id);
 	JSClassDef font_face_class = {
 		"FontFace",
 		.finalizer = finalizer_font_face,

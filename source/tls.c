@@ -346,7 +346,7 @@ void nx_init_tls(JSContext *ctx, JSValueConst init_obj)
 
 	JSRuntime *rt = JS_GetRuntime(ctx);
 
-	JS_NewClassID(&nx_tls_context_class_id);
+	JS_NewClassID(rt, &nx_tls_context_class_id);
 	JSClassDef nx_tls_context_class = {
 		"TlsContext",
 		.finalizer = finalizer_tls_context,

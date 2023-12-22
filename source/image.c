@@ -282,7 +282,7 @@ void nx_init_image(JSContext *ctx, JSValueConst init_obj)
 {
 	JSRuntime *rt = JS_GetRuntime(ctx);
 
-	JS_NewClassID(&nx_image_class_id);
+	JS_NewClassID(rt, &nx_image_class_id);
 	JSClassDef image_class = {
 		"Image",
 		.finalizer = finalizer_image,

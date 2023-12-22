@@ -300,7 +300,7 @@ void nx_init_tcp(JSContext *ctx, JSValueConst init_obj)
 	JSRuntime *rt = JS_GetRuntime(ctx);
 
 	/* TCP Server */
-	JS_NewClassID(&nx_tcp_server_class_id);
+	JS_NewClassID(rt, &nx_tcp_server_class_id);
 	JSClassDef nx_tcp_server_class = {
 		"Server",
 		.finalizer = finalizer_tcp_server,

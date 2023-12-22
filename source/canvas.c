@@ -2396,14 +2396,14 @@ void nx_init_canvas(JSContext *ctx, JSValueConst native_obj)
 {
 	JSRuntime *rt = JS_GetRuntime(ctx);
 
-	JS_NewClassID(&nx_canvas_class_id);
+	JS_NewClassID(rt, &nx_canvas_class_id);
 	JSClassDef canvas_class = {
 		"nx_canvas_t",
 		.finalizer = finalizer_canvas,
 	};
 	JS_NewClass(rt, nx_canvas_class_id, &canvas_class);
 
-	JS_NewClassID(&nx_canvas_context_class_id);
+	JS_NewClassID(rt, &nx_canvas_context_class_id);
 	JSClassDef canvas_context_2d_class = {
 		"nx_canvas_context_2d_t",
 		.finalizer = finalizer_canvas_context_2d,

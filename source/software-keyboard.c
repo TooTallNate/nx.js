@@ -255,7 +255,7 @@ void nx_init_swkbd(JSContext *ctx, JSValueConst init_obj)
 
 	JSRuntime *rt = JS_GetRuntime(ctx);
 
-	JS_NewClassID(&nx_swkbd_class_id);
+	JS_NewClassID(rt, &nx_swkbd_class_id);
 	JSClassDef nx_swkbd_class = {
 		"SoftwareKeyboard",
 		.finalizer = finalizer_swkbd,

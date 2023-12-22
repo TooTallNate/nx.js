@@ -1105,7 +1105,7 @@ void nx_init_wasm(JSContext *ctx, JSValueConst init_obj)
 	JSRuntime *rt = JS_GetRuntime(ctx);
 
 	/* WebAssembly.Global */
-	JS_NewClassID(&nx_wasm_global_class_id);
+	JS_NewClassID(rt, &nx_wasm_global_class_id);
 	JSClassDef nx_wasm_global_class = {
 		"WebAssembly.Global",
 		.finalizer = finalizer_wasm_global,
@@ -1113,7 +1113,7 @@ void nx_init_wasm(JSContext *ctx, JSValueConst init_obj)
 	JS_NewClass(rt, nx_wasm_global_class_id, &nx_wasm_global_class);
 
 	/* WebAssembly.Memory */
-	JS_NewClassID(&nx_wasm_memory_class_id);
+	JS_NewClassID(rt, &nx_wasm_memory_class_id);
 	JSClassDef nx_wasm_memory_class = {
 		"WebAssembly.Memory",
 		.finalizer = finalizer_wasm_memory,
@@ -1121,7 +1121,7 @@ void nx_init_wasm(JSContext *ctx, JSValueConst init_obj)
 	JS_NewClass(rt, nx_wasm_memory_class_id, &nx_wasm_memory_class);
 
 	/* WebAssembly.Table */
-	JS_NewClassID(&nx_wasm_table_class_id);
+	JS_NewClassID(rt, &nx_wasm_table_class_id);
 	JSClassDef nx_wasm_table_class = {
 		"WebAssembly.Table",
 		.finalizer = finalizer_wasm_table,
@@ -1129,7 +1129,7 @@ void nx_init_wasm(JSContext *ctx, JSValueConst init_obj)
 	JS_NewClass(rt, nx_wasm_table_class_id, &nx_wasm_table_class);
 
 	/* WebAssembly.Function */
-	JS_NewClassID(&nx_wasm_exported_func_class_id);
+	JS_NewClassID(rt, &nx_wasm_exported_func_class_id);
 	JSClassDef nx_wasm_exported_func_class = {
 		"WebAssembly.Function",
 		.finalizer = finalizer_wasm_exported_func,
@@ -1137,7 +1137,7 @@ void nx_init_wasm(JSContext *ctx, JSValueConst init_obj)
 	JS_NewClass(rt, nx_wasm_exported_func_class_id, &nx_wasm_exported_func_class);
 
 	/* WebAssembly.Module */
-	JS_NewClassID(&nx_wasm_module_class_id);
+	JS_NewClassID(rt, &nx_wasm_module_class_id);
 	JSClassDef nx_wasm_module_class = {
 		"WebAssembly.Module",
 		.finalizer = finalizer_wasm_module,
@@ -1145,7 +1145,7 @@ void nx_init_wasm(JSContext *ctx, JSValueConst init_obj)
 	JS_NewClass(rt, nx_wasm_module_class_id, &nx_wasm_module_class);
 
 	/* WebAssembly.Instance */
-	JS_NewClassID(&nx_wasm_instance_class_id);
+	JS_NewClassID(rt, &nx_wasm_instance_class_id);
 	JSClassDef nx_wasm_instance_class = {
 		"WebAssembly.Instance",
 		.finalizer = finalizer_wasm_instance,

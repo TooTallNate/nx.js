@@ -5,7 +5,6 @@
 #include <switch.h>
 #include <errno.h>
 #include <sys/stat.h>
-#include <quickjs/quickjs.h>
 #include "fs.h"
 #include "async.h"
 

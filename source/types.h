@@ -2,7 +2,7 @@
 #include <stdbool.h>
 #include <wasm3.h>
 #include <pthread.h>
-#include <quickjs/quickjs.h>
+#include <quickjs.h>
 #include <cairo-ft.h>
 #include <ft2build.h>
 #include <poll.h>
@@ -19,10 +19,6 @@
 #ifndef NXJS_VERSION
 #define NXJS_VERSION "0.0.0"
 #endif
-
-// QuickJS doesn't have a way to get the version
-// programatically, so it's hard-coded here
-#define QUICKJS_VERSION "2021-03-27"
 
 // Useful for functions defined on class `prototype`s
 #define JS_PROP_C_W (JS_PROP_CONFIGURABLE | JS_PROP_WRITABLE)
