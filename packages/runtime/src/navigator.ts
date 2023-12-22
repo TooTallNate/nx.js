@@ -10,7 +10,7 @@ import {
 import type { Vibration } from './switch';
 
 interface NavigatorState {
-	batt?: BatteryManager;
+	batt?: Promise<BatteryManager>;
 	vk?: VirtualKeyboard;
 
 	vibrationDevicesInitialized?: boolean;
@@ -88,11 +88,13 @@ export class Navigator {
 	 *
 	 * @see https://developer.mozilla.org/docs/Web/API/Navigator/getBattery
 	 */
-	async getBattery() {
+	getBattery() {
 		let b = state.batt;
 		if (!b) {
-			// @ts-expect-error Internal constructor
-			b = state.batt = new BatteryManager(INTERNAL_SYMBOL);
+			b = state.batt = Promise.resolve(
+				// @ts-expect-error Internal constructor
+				new BatteryManager(INTERNAL_SYMBOL)
+			);
 		}
 		return b;
 	}
