@@ -75,11 +75,12 @@ export class Navigator {
 	 * Returns the maximum number of simultaneous touch contact points are
 	 * supported by the current device.
 	 *
-	 * @example 10
+	 * @example 16
 	 * @see https://developer.mozilla.org/docs/Web/API/Navigator/maxTouchPoints
 	 */
 	get maxTouchPoints() {
-		return 10;
+		// Value of `struct HidTouchScreenState` -> `HidTouchState touches[16]`
+		return 16;
 	}
 
 	/**
