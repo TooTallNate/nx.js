@@ -66,8 +66,8 @@ export function setInterval(
  * @see https://developer.mozilla.org/docs/Web/API/clearTimeout
  * @param id - The ID of the timer you want to clear, as returned by {@link setTimeout | `setTimeout()`}.
  */
-export function clearTimeout(id: number) {
-	timers.delete(id);
+export function clearTimeout(id?: number) {
+	if (typeof id === 'number') timers.delete(id);
 }
 
 /**
@@ -76,8 +76,8 @@ export function clearTimeout(id: number) {
  * @see https://developer.mozilla.org/docs/Web/API/clearInterval
  * @param id - The ID of the timer you want to clear, as returned by {@link setInterval | `setInterval()`}.
  */
-export function clearInterval(id: number) {
-	timers.delete(id);
+export function clearInterval(id?: number) {
+	if (typeof id === 'number') timers.delete(id);
 }
 
 export function processTimers() {
