@@ -3,7 +3,7 @@
     "extends": ["//"],
     "pipeline": {
       "bundle": {
-        "inputs": ["src/**"],
+        "inputs": ["src/**", "*.mjs"],
         "outputs": ["runtime.js"]
       }
     }
