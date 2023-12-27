@@ -1,5 +1,5 @@
 import { $ } from '../$';
-import { ImageData } from '../canvas/image-data';
+import { ImageBitmap } from '../canvas/image-bitmap';
 import { INTERNAL_SYMBOL } from '../internal';
 import { Event } from '../polyfills/event';
 import { Sensor } from '../sensor';
@@ -12,7 +12,7 @@ interface IRSensorInternal {
 	activated: boolean;
 	timestamp: number | null;
 	frequency: number;
-	data: ImageData;
+	image: ImageBitmap;
 	interval?: number;
 }
 
@@ -43,7 +43,7 @@ export interface IRSensorInit {
  *
  * const sensor = new Switch.IRSensor();
  * sensor.addEventListener('reading', () => {
- * 	ctx.putImageData(sensor.imageData, 0, 0);
+ * 	ctx.drawImage(sensor.image, 0, 0);
  * });
  * sensor.start();
  * ```
@@ -59,22 +59,26 @@ export class IRSensor extends Sensor {
 		}
 		// @ts-expect-error Internal constructor
 		super(INTERNAL_SYMBOL);
-		const width = 320;
-		const height = 240;
-		const data = new ImageData(width, height);
-		const self = $.irsSensorNew(width, height, data.data.buffer);
+		const image = $.imageNew(320, 240) as ImageBitmap;
+		Object.setPrototypeOf(image, ImageBitmap.prototype);
+		const self = $.irsSensorNew(image);
 		Object.setPrototypeOf(self, IRSensor.prototype);
 		_.set(self, {
 			activated: false,
 			timestamp: null,
-			data,
+			image,
 			frequency: opts.frequency ?? 2,
 		});
 		return self;
 	}
 
-	get imageData() {
-		return _(this).data;
+	/**
+	 * The underlying `ImageBitmap` instance containing the contents
+	 * of the IR sensor. Can be used with `ctx.drawImage()` or any
+	 * other functions that work with `ImageBitmap` instances.
+	 */
+	get image() {
+		return _(this).image;
 	}
 
 	get activated(): boolean {

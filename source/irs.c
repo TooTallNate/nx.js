@@ -1,4 +1,5 @@
 #include "irs.h"
+#include "image.h"
 
 static JSClassID nx_ir_sensor_class_id;
 
@@ -6,9 +7,7 @@ typedef struct
 {
 	IrsIrCameraHandle irhandle;
 	IrsImageTransferProcessorConfig config;
-	u32 width;
-	u32 height;
-	u32 *image_buf;
+	nx_image_t *image;
 	u8 *sensor_buf;
 	u32 sensor_buf_size;
 	u64 sampling_number;
@@ -53,16 +52,8 @@ static JSValue nx_irs_sensor_new(JSContext *ctx, JSValueConst this_val, int argc
 	JS_SetOpaque(obj, data);
 
 	data->sampling_number = -1;
-
-	if (JS_ToUint32(ctx, &data->width, argv[0]) || JS_ToUint32(ctx, &data->height, argv[1]))
-	{
-		return JS_EXCEPTION;
-	}
-
-	size_t size;
-	data->image_buf = (u32 *)JS_GetArrayBuffer(ctx, &size, argv[2]);
-
-	data->sensor_buf_size = data->width * data->height;
+	data->image = nx_get_image(ctx, argv[0]);
+	data->sensor_buf_size = data->image->width * data->image->height;
 	data->sensor_buf = js_mallocz(ctx, data->sensor_buf_size);
 	if (!data->sensor_buf)
 	{
@@ -134,15 +125,17 @@ static JSValue nx_irs_sensor_update(JSContext *ctx, JSValueConst this_val, int a
 		// Only update image buffer when `irsGetImageTransferProcessorState()`
 		// is successful, and `sampling_number` changed.
 		u32 x, y;
-		for (y = 0; y < data->height; y++)
+		for (y = 0; y < data->image->height; y++)
 		{
-			for (x = 0; x < data->width; x++)
+			for (x = 0; x < data->image->width; x++)
 			{
 				// The IR image/camera is sideways with the joycon held flat.
-				u32 pos = y * data->width + x;
-				data->image_buf[pos] = RGBA8_MAXALPHA(/*ir_buffer[pos2]*/ 0, data->sensor_buf[pos], /*ir_buffer[pos2]*/ 0);
+				u32 pos = y * data->image->width + x;
+				((u32 *)data->image->data)[pos] = BGRA8_MAXALPHA(/*ir_buffer[pos2]*/ 0, data->sensor_buf[pos], /*ir_buffer[pos2]*/ 0);
 			}
 		}
+		cairo_surface_mark_dirty_rectangle(
+			data->image->surface, 0, 0, data->image->width, data->image->height);
 		data->sampling_number = state.sampling_number;
 		updated = true;
 	}
