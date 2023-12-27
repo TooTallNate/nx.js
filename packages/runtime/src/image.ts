@@ -7,8 +7,6 @@ import type { CanvasRenderingContext2D } from './canvas/canvas-rendering-context
 
 interface ImageInternal {
 	complete: boolean;
-	width: number;
-	height: number;
 	src?: URL;
 }
 
@@ -44,21 +42,19 @@ export class Image extends EventTarget {
 	declare decoding: 'async' | 'sync' | 'auto';
 	declare isMap: boolean;
 	declare loading: 'eager' | 'lazy';
+	declare readonly width: number;
+	declare readonly height: number;
 
 	constructor() {
 		super();
-		const i = $.imageNew();
+		const i = $.imageNew() as Image;
 		Object.setPrototypeOf(i, Image.prototype);
 		i.onload = null;
 		i.onerror = null;
 		i.decoding = 'auto';
 		i.isMap = false;
 		i.loading = 'eager';
-		_.set(i, {
-			complete: true,
-			width: 0,
-			height: 0,
-		});
+		_.set(i, { complete: true });
 		return i;
 	}
 
@@ -75,20 +71,12 @@ export class Image extends EventTarget {
 		return _(this).complete;
 	}
 
-	get width() {
-		return this.naturalWidth;
-	}
-
-	get height() {
-		return this.naturalHeight;
-	}
-
 	get naturalWidth() {
-		return _(this).width;
+		return this.width;
 	}
 
 	get naturalHeight() {
-		return _(this).height;
+		return this.height;
 	}
 
 	get src() {
@@ -111,9 +99,7 @@ export class Image extends EventTarget {
 				return toPromise($.imageDecode, this, buf);
 			})
 			.then(
-				(r) => {
-					internal.width = r.width;
-					internal.height = r.height;
+				() => {
 					internal.complete = true;
 					this.dispatchEvent(new Event('load'));
 				},
@@ -139,4 +125,5 @@ export class Image extends EventTarget {
 	}
 	setAttribute(name: string, value: string | number) {}
 }
+$.imageInit(Image);
 def('Image', Image);

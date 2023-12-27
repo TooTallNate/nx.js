@@ -108,12 +108,10 @@ export interface Init {
 	stat(cb: Callback<Stats>, path: string): void;
 
 	// image.c
+	imageInit(c: ClassOf<Image>): void;
 	imageNew(): Image;
 	imageDecode(
-		cb: Callback<{
-			width: number;
-			height: number;
-		}>,
+		cb: Callback<undefined>,
 		img: Image,
 		data: ArrayBuffer
 	): void;

@@ -235,13 +235,9 @@ void nx_decode_image_cb(JSContext *ctx, nx_work_t *req, JSValue *args)
 		return;
 	}
 
-	JSValue obj = JS_NewObject(ctx);
-	JS_SetPropertyStr(ctx, obj, "width", JS_NewInt32(ctx, data->image->width));
-	JS_SetPropertyStr(ctx, obj, "height", JS_NewInt32(ctx, data->image->height));
-
 	JS_FreeValue(ctx, data->image_val);
 	JS_FreeValue(ctx, data->buffer_val);
-	args[1] = obj;
+	args[1] = JS_UNDEFINED;
 }
 
 JSValue nx_image_decode(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -273,7 +269,32 @@ static void finalizer_image(JSRuntime *rt, JSValue val)
 	free_image(image);
 }
 
+static JSValue nx_image_get_width(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	nx_image_t *image = nx_get_image(ctx, this_val);
+	if (!image)
+		return JS_EXCEPTION;
+	return JS_NewUint32(ctx, image->width);
+}
+
+static JSValue nx_image_get_height(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	nx_image_t *image = nx_get_image(ctx, this_val);
+	return JS_NewUint32(ctx, image->height);
+}
+
+static JSValue nx_image_init_class(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	JSAtom atom;
+	JSValue proto = JS_GetPropertyStr(ctx, argv[0], "prototype");
+	NX_DEF_GET(proto, "width", nx_image_get_width);
+	NX_DEF_GET(proto, "height", nx_image_get_height);
+	JS_FreeValue(ctx, proto);
+	return JS_UNDEFINED;
+}
+
 static const JSCFunctionListEntry function_list[] = {
+	JS_CFUNC_DEF("imageInit", 0, nx_image_init_class),
 	JS_CFUNC_DEF("imageNew", 0, nx_image_new),
 	JS_CFUNC_DEF("imageDecode", 0, nx_image_decode),
 };
