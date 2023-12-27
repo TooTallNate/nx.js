@@ -6,7 +6,8 @@ static JSValue nx_applet_illuminance(JSContext *ctx, JSValueConst this_val, int 
 	float illuminance = 0.0f;
 	Result rc = appletGetCurrentIlluminance(&illuminance);
 	if (R_FAILED(rc)) {
-		diagAbortWithResult(rc);
+		JS_ThrowInternalError(ctx, "appletGetCurrentIlluminance() returned 0x%x", rc);
+		return JS_EXCEPTION;
 	}
 	return JS_NewFloat64(ctx, illuminance);
 }

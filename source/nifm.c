@@ -14,7 +14,8 @@ static JSValue nx_nifm_initialize(JSContext *ctx, JSValueConst this_val, int arg
 	Result rc = nifmInitialize(NifmServiceType_User);
 	if (R_FAILED(rc))
 	{
-		diagAbortWithResult(rc);
+		JS_ThrowInternalError(ctx, "nifmInitialize() returned 0x%x", rc);
+		return JS_EXCEPTION;
 	}
 	return JS_NewCFunction(ctx, nx_nifm_exit, "", 0);
 }
@@ -36,7 +37,8 @@ static JSValue nx_network_info(JSContext *ctx, JSValueConst this_val, int argc, 
 		&secondary_dns_server.s_addr);
 	if (R_FAILED(rc))
 	{
-		// TODO: throw error
+		JS_ThrowInternalError(ctx, "nifmGetCurrentIpConfigInfo() returned 0x%x", rc);
+		return JS_EXCEPTION;
 	}
 
 	inet_ntop(AF_INET, &(ip.s_addr), str, INET_ADDRSTRLEN);

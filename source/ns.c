@@ -12,7 +12,8 @@ static JSValue nx_ns_initialize(JSContext *ctx, JSValueConst this_val, int argc,
 	Result rc = nsInitialize();
 	if (R_FAILED(rc))
 	{
-		diagAbortWithResult(rc);
+		JS_ThrowInternalError(ctx, "nsInitialize() returned 0x%x", rc);
+		return JS_EXCEPTION;
 	}
 	return JS_NewCFunction(ctx, nx_ns_exit, "", 0);
 }
@@ -31,7 +32,8 @@ static JSValue nx_ns_application_record(JSContext *ctx, JSValueConst this_val, i
 	Result rc = nsListApplicationRecord(&record, 1, offset, &record_count);
 	if (R_FAILED(rc))
 	{
-		diagAbortWithResult(rc);
+		JS_ThrowInternalError(ctx, "nsListApplicationRecord() returned 0x%x", rc);
+		return JS_EXCEPTION;
 	}
 
 	if (!record_count)
@@ -48,7 +50,8 @@ static JSValue nx_ns_application_record(JSContext *ctx, JSValueConst this_val, i
 	rc = nsGetApplicationControlData(NsApplicationControlSource_Storage, record.application_id, &controlData, sizeof(controlData), &outSize);
 	if (R_FAILED(rc))
 	{
-		diagAbortWithResult(rc);
+		JS_ThrowInternalError(ctx, "nsGetApplicationControlData() returned 0x%x", rc);
+		return JS_EXCEPTION;
 	}
 	JS_SetPropertyStr(ctx, val, "nacp", JS_NewArrayBufferCopy(ctx, (const uint8_t *)&controlData.nacp, sizeof(controlData.nacp)));
 	JS_SetPropertyStr(ctx, val, "icon", JS_NewArrayBufferCopy(ctx, (const uint8_t *)&controlData.icon, sizeof(controlData.icon)));
@@ -57,7 +60,8 @@ static JSValue nx_ns_application_record(JSContext *ctx, JSValueConst this_val, i
 	rc = nacpGetLanguageEntry(&controlData.nacp, &langEntry);
 	if (R_FAILED(rc))
 	{
-		diagAbortWithResult(rc);
+		JS_ThrowInternalError(ctx, "nacpGetLanguageEntry() returned 0x%x", rc);
+		return JS_EXCEPTION;
 	}
 	if (langEntry != NULL)
 	{

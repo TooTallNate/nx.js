@@ -235,7 +235,8 @@ static JSValue js_hid_initialize_vibration_devices(JSContext *ctx, JSValueConst 
 		HidNpadStyleSet_NpadStandard);
 	if (R_FAILED(rc))
 	{
-		// TODO: throw error
+		JS_ThrowInternalError(ctx, "hidInitializeVibrationDevices() returned 0x%x", rc);
+		return JS_EXCEPTION;
 	}
 	return JS_UNDEFINED;
 }
@@ -254,7 +255,6 @@ static JSValue js_hid_send_vibration_values(JSContext *ctx, JSValueConst this_va
 		JS_ToFloat64(ctx, &high_amp, high_amp_value) ||
 		JS_ToFloat64(ctx, &high_freq, high_freq_value))
 	{
-		JS_ThrowTypeError(ctx, "invalid input");
 		return JS_EXCEPTION;
 	}
 	VibrationValues[0].freq_low = low_freq;
@@ -266,7 +266,8 @@ static JSValue js_hid_send_vibration_values(JSContext *ctx, JSValueConst this_va
 	Result rc = hidSendVibrationValues(nx_ctx->vibration_device_handles, VibrationValues, 2);
 	if (R_FAILED(rc))
 	{
-		// TODO: throw error
+		JS_ThrowInternalError(ctx, "hidSendVibrationValues() returned 0x%x", rc);
+		return JS_EXCEPTION;
 	}
 	return JS_UNDEFINED;
 }

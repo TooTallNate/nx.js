@@ -351,7 +351,6 @@ static JSValue nx_wasm_new_module(JSContext *ctx, JSValueConst this_val, int arg
 	nx_wasm_module_t *m = js_mallocz(ctx, sizeof(nx_wasm_module_t));
 	if (!m)
 	{
-		JS_ThrowOutOfMemory(ctx);
 		return JS_EXCEPTION;
 	}
 
@@ -359,7 +358,9 @@ static JSValue nx_wasm_new_module(JSContext *ctx, JSValueConst this_val, int arg
 
 	size_t size;
 	uint8_t *buf = JS_GetArrayBuffer(ctx, &size, argv[0]);
-	// TODO: error handling
+	if (!buf) {
+		return JS_EXCEPTION;
+	}
 
 	M3Result r = m3_ParseModule(nx_ctx->wasm_env, &m->module, buf, size);
 	if (r)
