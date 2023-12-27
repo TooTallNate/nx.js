@@ -52,11 +52,6 @@ export interface Stats {
 	gid: number;
 }
 
-export interface ConnectOpts {
-	hostname?: string;
-	port: number;
-}
-
 /**
  * Specifies the port number and optional IP address
  * for creating a TCP server.
