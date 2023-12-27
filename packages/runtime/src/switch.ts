@@ -58,7 +58,7 @@ export interface Stats {
  *
  * @see {@link listen | `Switch.listen()`}
  */
-export interface ListenOpts {
+export interface ListenOptions {
 	/**
 	 * The IP address of the network interface to bind to.
 	 *
@@ -222,7 +222,7 @@ export function connect<Host extends string, Port extends string>(
 	);
 }
 
-export function listen(opts: ListenOpts) {
+export function listen(opts: ListenOptions) {
 	const { ip = '0.0.0.0', port, accept } = opts;
 	const server = createServer(ip, port);
 	if (accept) {
