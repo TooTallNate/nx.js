@@ -103,7 +103,6 @@ static JSValue nx_swkbd_create(JSContext *ctx, JSValueConst this_val, int argc, 
 	nx_swkbd_t *data = js_mallocz(ctx, sizeof(nx_swkbd_t));
 	if (!data)
 	{
-		JS_ThrowOutOfMemory(ctx);
 		return JS_EXCEPTION;
 	}
 	JS_SetOpaque(obj, data);
@@ -122,7 +121,8 @@ static JSValue nx_swkbd_create(JSContext *ctx, JSValueConst this_val, int argc, 
 	Result rc = swkbdInlineCreate(&data->kbdinline);
 	if (R_FAILED(rc))
 	{
-		// TODO: throw error
+		JS_ThrowInternalError(ctx, "swkbdInlineCreate() returned 0x%x", rc);
+		return JS_EXCEPTION;
 	}
 
 	swkbdInlineSetFinishedInitializeCallback(&data->kbdinline, finishinit_cb);
@@ -131,7 +131,8 @@ static JSValue nx_swkbd_create(JSContext *ctx, JSValueConst this_val, int argc, 
 	rc = swkbdInlineLaunchForLibraryApplet(&data->kbdinline, SwkbdInlineMode_AppletDisplay, 0);
 	if (R_FAILED(rc))
 	{
-		// TODO: throw error
+		JS_ThrowInternalError(ctx, "swkbdInlineLaunchForLibraryApplet() returned 0x%x", rc);
+		return JS_EXCEPTION;
 	}
 
 	// Set the callbacks.
