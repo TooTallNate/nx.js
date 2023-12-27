@@ -1,5 +1,8 @@
 import type { Image } from './image';
 import type { Screen } from './screen';
+import type { Blob } from './polyfills/blob';
+import type { ImageData } from './canvas/image-data';
+import type { ImageBitmap } from './canvas/image-bitmap';
 import type { OffscreenCanvas } from './canvas/offscreen-canvas';
 
 export type DOMHighResTimeStamp = number;
@@ -29,7 +32,7 @@ export interface ImageEncodeOptions {
 }
 
 export type CanvasFillRule = 'evenodd' | 'nonzero';
-export type CanvasImageSource = Image | Screen | OffscreenCanvas;
+export type CanvasImageSource = Image | ImageBitmap | Screen | OffscreenCanvas;
 export type CanvasLineCap = 'butt' | 'round' | 'square';
 export type CanvasLineJoin = 'bevel' | 'miter' | 'round';
 export type CanvasTextAlign = 'center' | 'end' | 'left' | 'right' | 'start';
@@ -90,3 +93,5 @@ export interface TextMetrics {
 export type FontDisplay = 'auto' | 'block' | 'fallback' | 'optional' | 'swap';
 export type FontFaceLoadStatus = 'error' | 'loaded' | 'loading' | 'unloaded';
 export type FontFaceSetLoadStatus = 'loaded' | 'loading';
+
+export type ImageBitmapSource = CanvasImageSource | Blob | ImageData;

@@ -117,6 +117,9 @@ export type * from './performance';
 import { screen } from './screen';
 export type * from './screen';
 
+import './canvas/image-bitmap';
+export type * from './canvas/image-bitmap';
+
 export type * from './canvas/image-data';
 
 import './canvas/path2d';

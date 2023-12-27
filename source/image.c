@@ -32,11 +32,16 @@ nx_image_t *nx_get_image(JSContext *ctx, JSValueConst obj)
 	return JS_GetOpaque2(ctx, obj, nx_image_class_id);
 }
 
-void free_image(nx_image_t *image)
+void close_image(nx_image_t *image)
 {
-	if (image)
+	if (image->surface)
 	{
 		cairo_surface_destroy(image->surface);
+		image->surface = NULL;
+	}
+
+	if (image->data)
+	{
 		if (image->format == FORMAT_JPEG)
 		{
 			tjFree(image->data);
@@ -45,6 +50,17 @@ void free_image(nx_image_t *image)
 		{
 			free(image->data);
 		}
+		image->data = NULL;
+	}
+
+	image->width = image->height = 0;
+}
+
+void free_image(nx_image_t *image)
+{
+	if (image)
+	{
+		close_image(image);
 		free(image);
 	}
 }
@@ -259,8 +275,41 @@ JSValue nx_image_new(JSContext *ctx, JSValueConst this_val, int argc, JSValueCon
 		return img;
 	}
 	nx_image_t *data = js_mallocz(ctx, sizeof(nx_image_t));
+	if (!data)
+	{
+		return JS_EXCEPTION;
+	}
 	JS_SetOpaque(img, data);
+	if (argc == 2)
+	{
+		if (JS_ToUint32(ctx, &data->width, argv[0]) || JS_ToUint32(ctx, &data->height, argv[1]))
+		{
+			return JS_EXCEPTION;
+		}
+		// Width and height were specified, so allocate a backing store to use
+		data->data = js_mallocz(ctx, data->width * data->height * 4);
+		if (!data->data) {
+			return JS_EXCEPTION;
+		}
+		data->surface = cairo_image_surface_create_for_data(
+			data->data,
+			CAIRO_FORMAT_ARGB32,
+			data->width,
+			data->height,
+			data->width * 4);
+	}
 	return img;
+}
+
+JSValue nx_image_close(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	nx_image_t *image = nx_get_image(ctx, argv[0]);
+	if (!image)
+	{
+		return JS_EXCEPTION;
+	}
+	close_image(image);
+	return JS_UNDEFINED;
 }
 
 static void finalizer_image(JSRuntime *rt, JSValue val)
@@ -297,6 +346,7 @@ static const JSCFunctionListEntry function_list[] = {
 	JS_CFUNC_DEF("imageInit", 0, nx_image_init_class),
 	JS_CFUNC_DEF("imageNew", 0, nx_image_new),
 	JS_CFUNC_DEF("imageDecode", 0, nx_image_decode),
+	JS_CFUNC_DEF("imageClose", 0, nx_image_close),
 };
 
 void nx_init_image(JSContext *ctx, JSValueConst init_obj)

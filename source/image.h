@@ -15,9 +15,9 @@ enum ImageFormat
 
 typedef struct
 {
-	uint32_t width;
-	uint32_t height;
-	uint8_t *data;
+	u32 width;
+	u32 height;
+	u8 *data;
 	cairo_surface_t *surface;
 	enum ImageFormat format;
 } nx_image_t;

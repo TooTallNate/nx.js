@@ -20,6 +20,7 @@ import type { MemoryDescriptor, Memory } from './wasm';
 import type { BatteryManager } from './navigator/battery';
 import type { VirtualKeyboard } from './navigator/virtual-keyboard';
 import type { OffscreenCanvas } from './canvas/offscreen-canvas';
+import type { ImageBitmap } from './canvas/image-bitmap';
 import type { CanvasRenderingContext2D } from './canvas/canvas-rendering-context-2d';
 import type { OffscreenCanvasRenderingContext2D } from './canvas/offscreen-canvas-rendering-context-2d';
 import type { Image } from './image';
@@ -108,13 +109,10 @@ export interface Init {
 	stat(cb: Callback<Stats>, path: string): void;
 
 	// image.c
-	imageInit(c: ClassOf<Image>): void;
-	imageNew(): Image;
-	imageDecode(
-		cb: Callback<undefined>,
-		img: Image,
-		data: ArrayBuffer
-	): void;
+	imageInit(c: ClassOf<Image | ImageBitmap>): void;
+	imageNew(width?: number, height?: number): Image | ImageBitmap;
+	imageDecode(cb: Callback<undefined>, img: Image, data: ArrayBuffer): void;
+	imageClose(img: ImageBitmap): void;
 
 	// irs.c
 	irsInit(): () => void;
@@ -154,7 +152,7 @@ export interface Init {
 	// ns.c
 	nsInitialize(): () => void;
 	nsAppInit(c: ClassOf<Application>): void;
-	nsApplicationRecord(offset: number): Application | null;
+	nsApplicationRecord(index: number): Application | null;
 
 	// software-keyboard.c
 	swkbdCreate(fns: {
