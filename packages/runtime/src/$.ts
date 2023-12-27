@@ -1,4 +1,10 @@
-import type { Application, NetworkInfo, Stats, Versions } from './switch';
+import type {
+	Application,
+	IRSensor,
+	NetworkInfo,
+	Stats,
+	Versions,
+} from './switch';
 import type {
 	Callback,
 	Keys,
@@ -111,6 +117,13 @@ export interface Init {
 		img: Image,
 		data: ArrayBuffer
 	): void;
+
+	// irs.c
+	irsInit(): () => void;
+	irsSensorNew(width: number, height: number, data: ArrayBuffer): IRSensor;
+	irsSensorStart(s: IRSensor): void;
+	irsSensorStop(s: IRSensor): void;
+	irsSensorUpdate(s: IRSensor): boolean;
 
 	// main.c
 	argv: string[];

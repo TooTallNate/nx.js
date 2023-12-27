@@ -17,6 +17,7 @@
 #include "canvas.h"
 #include "font.h"
 #include "fs.h"
+#include "irs.h"
 #include "nifm.h"
 #include "ns.h"
 #include "software-keyboard.h"
@@ -544,6 +545,7 @@ int main(int argc, char *argv[])
 	nx_init_font(ctx, init_obj);
 	nx_init_fs(ctx, init_obj);
 	nx_init_image(ctx, init_obj);
+	nx_init_irs(ctx, init_obj);
 	nx_init_nifm(ctx, init_obj);
 	nx_init_ns(ctx, init_obj);
 	nx_init_tcp(ctx, init_obj);

@@ -17,6 +17,7 @@ export * from './fs';
 export * from './inspect';
 export * from './switch/nifm';
 export * from './switch/ns';
+export * from './switch/irsensor';
 export { Socket, Server };
 
 export type PathLike = string | URL;
