@@ -26,6 +26,7 @@ type ClassOf<T> = {
 
 export interface Init {
 	// applet.c
+	appletIlluminance(): number;
 	appletGetAppletType(): number;
 	appletGetOperationMode(): number;
 

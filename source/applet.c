@@ -1,6 +1,16 @@
 #include <switch.h>
 #include "applet.h"
 
+static JSValue nx_applet_illuminance(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	float illuminance = 0.0f;
+	Result rc = appletGetCurrentIlluminance(&illuminance);
+	if (R_FAILED(rc)) {
+		diagAbortWithResult(rc);
+	}
+	return JS_NewFloat64(ctx, illuminance);
+}
+
 JSValue nx_appletGetAppletType(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	return JS_NewInt32(ctx, appletGetAppletType());
@@ -23,6 +33,7 @@ JSValue nx_appletRequestLaunchApplication(JSContext *ctx, JSValueConst this_val,
 }
 
 static const JSCFunctionListEntry function_list[] = {
+	JS_CFUNC_DEF("appletIlluminance", 0, nx_applet_illuminance),
 	JS_CFUNC_DEF("appletGetAppletType", 0, nx_appletGetAppletType),
 	JS_CFUNC_DEF("appletGetOperationMode", 0, nx_appletGetOperationMode),
 };
