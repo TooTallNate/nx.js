@@ -4,7 +4,7 @@
   "private": true,
   "description": "nx.js app that binds a TCP server to a port",
   "scripts": {
-    "build": "esbuild --bundle --sourcemap --sources-content=false --target=es2020 --format=esm src/main.ts --outfile=romfs/main.js",
+    "build": "esbuild --bundle --sourcemap --sources-content=false --target=es2022 --format=esm src/main.ts --outfile=romfs/main.js",
     "nro": "nxjs-pack"
   },
   "license": "MIT",

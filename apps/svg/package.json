@@ -4,7 +4,7 @@
   "private": true,
   "description": "nx.js app that renders an SVG image to the screen",
   "scripts": {
-    "build": "esbuild --bundle --banner:js='globalThis.global = globalThis;' --sourcemap --sources-content=false --target=es2020 src/main.ts --outfile=romfs/main.js",
+    "build": "esbuild --bundle --banner:js='globalThis.global = globalThis;' --sourcemap --sources-content=false --target=es2022 src/main.ts --outfile=romfs/main.js",
     "nro": "nxjs-pack"
   },
   "license": "MIT",

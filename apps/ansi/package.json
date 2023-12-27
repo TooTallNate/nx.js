@@ -4,7 +4,7 @@
   "private": true,
   "description": "nx.js app with colors and cursor movement using ANSI escapes",
   "scripts": {
-    "build": "esbuild --bundle --sourcemap --sources-content=false --target=es2020 src/main.ts --outfile=romfs/main.js",
+    "build": "esbuild --bundle --sourcemap --sources-content=false --target=es2022 src/main.ts --outfile=romfs/main.js",
     "nro": "nxjs-pack"
   },
   "license": "MIT",
