@@ -9,6 +9,9 @@ import { assertInternalConstructor, def } from './utils';
  * @see https://developer.mozilla.org/docs/Web/API/Sensor
  */
 export abstract class Sensor extends EventTarget {
+	/**
+	 * @ignore
+	 */
 	constructor() {
 		super();
 		assertInternalConstructor(arguments);

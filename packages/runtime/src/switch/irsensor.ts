@@ -35,8 +35,23 @@ export interface IRSensorInit {
  * activated, the controller's IR (infrared) camera is enabled,
  * allowing the application to get the image data for each frame of
  * the camera.
+ *
+ * @example
+ *
+ * ```typescript
+ * const ctx = screen.getContext('2d');
+ *
+ * const sensor = new Switch.IRSensor();
+ * sensor.addEventListener('reading', () => {
+ * 	ctx.putImageData(sensor.imageData, 0, 0);
+ * });
+ * sensor.start();
+ * ```
  */
 export class IRSensor extends Sensor {
+	/**
+	 * @ignore
+	 */
 	constructor(opts: IRSensorInit = {}) {
 		if (!init) {
 			init = true;
