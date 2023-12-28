@@ -207,7 +207,7 @@ export function chdir(dir: PathLike) {
  * Creates a TCP connection to the specified `address`.
  *
  * @param address Hostname and port number of the destination TCP server to connect to.
- * @param opts Optional
+ * @param opts Socket options, for example to create a secure TLS connection.
  * @see https://sockets-api.proposal.wintercg.org
  */
 export function connect<Host extends string, Port extends string>(
@@ -222,6 +222,11 @@ export function connect<Host extends string, Port extends string>(
 	);
 }
 
+/**
+ * Creates a TCP server bound to the specified `port` number.
+ *
+ * @param opts Object containing the port number and other configuration properties.
+ */
 export function listen(opts: ListenOptions) {
 	const { ip = '0.0.0.0', port, accept } = opts;
 	const server = createServer(ip, port);
