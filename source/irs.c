@@ -1,12 +1,22 @@
 #include "irs.h"
 #include "image.h"
+#include "canvas.h"
 
 static JSClassID nx_ir_sensor_class_id;
+
+struct RGBA
+{
+	u8 r;
+	u8 g;
+	u8 b;
+	u8 a;
+};
 
 typedef struct
 {
 	IrsIrCameraHandle irhandle;
 	IrsImageTransferProcessorConfig config;
+	struct RGBA color;
 	nx_image_t *image;
 	u8 *sensor_buf;
 	u32 sensor_buf_size;
@@ -59,6 +69,20 @@ static JSValue nx_irs_sensor_new(JSContext *ctx, JSValueConst this_val, int argc
 	{
 		return JS_EXCEPTION;
 	}
+
+	u32 r, g, b;
+	double a;
+	if (JS_ToUint32(ctx, &r, JS_GetPropertyUint32(ctx, argv[1], 0)) ||
+		JS_ToUint32(ctx, &g, JS_GetPropertyUint32(ctx, argv[1], 1)) ||
+		JS_ToUint32(ctx, &b, JS_GetPropertyUint32(ctx, argv[1], 2)) ||
+		JS_ToFloat64(ctx, &a, JS_GetPropertyUint32(ctx, argv[1], 3)))
+	{
+		return JS_EXCEPTION;
+	}
+	data->color.r = r;
+	data->color.g = g;
+	data->color.b = b;
+	data->color.a = a * 255;
 
 	// TODO: make configurable
 	HidNpadIdType id = HidNpadIdType_Handheld;
@@ -131,7 +155,12 @@ static JSValue nx_irs_sensor_update(JSContext *ctx, JSValueConst this_val, int a
 			{
 				// The IR image/camera is sideways with the joycon held flat.
 				u32 pos = y * data->image->width + x;
-				((u32 *)data->image->data)[pos] = BGRA8_MAXALPHA(/*ir_buffer[pos2]*/ 0, data->sensor_buf[pos], /*ir_buffer[pos2]*/ 0);
+				u8 alpha = (data->sensor_buf[pos] * data->color.a) / 255;
+				((u32 *)data->image->data)[pos] = BGRA8(
+					(data->color.r * alpha) / 255,
+					(data->color.g * alpha) / 255,
+					(data->color.b * alpha) / 255,
+					alpha);
 			}
 		}
 		cairo_surface_mark_dirty_rectangle(

@@ -1,3 +1,4 @@
+import colorRgba = require('color-rgba');
 import { $ } from '../$';
 import { ImageBitmap } from '../canvas/image-bitmap';
 import { INTERNAL_SYMBOL } from '../internal';
@@ -28,6 +29,7 @@ export interface IRSensorInit {
 	 * requested.
 	 */
 	frequency?: number;
+	color?: string;
 }
 
 /**
@@ -57,11 +59,15 @@ export class IRSensor extends Sensor {
 			init = true;
 			addEventListener('unload', $.irsInit());
 		}
+		const color = colorRgba(opts.color || 'green');
+		if (!color) {
+			throw new Error(`Invalid color specified: "${opts.color}"`);
+		}
 		// @ts-expect-error Internal constructor
 		super(INTERNAL_SYMBOL);
 		const image = $.imageNew(320, 240) as ImageBitmap;
 		Object.setPrototypeOf(image, ImageBitmap.prototype);
-		const self = $.irsSensorNew(image);
+		const self = $.irsSensorNew(image, color);
 		Object.setPrototypeOf(self, IRSensor.prototype);
 		_.set(self, {
 			activated: false,

@@ -116,7 +116,7 @@ export interface Init {
 
 	// irs.c
 	irsInit(): () => void;
-	irsSensorNew(image: ImageBitmap): IRSensor;
+	irsSensorNew(image: ImageBitmap, color: RGBA): IRSensor;
 	irsSensorStart(s: IRSensor): void;
 	irsSensorStop(s: IRSensor): void;
 	irsSensorUpdate(s: IRSensor): boolean;
