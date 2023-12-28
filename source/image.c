@@ -32,7 +32,7 @@ nx_image_t *nx_get_image(JSContext *ctx, JSValueConst obj)
 	return JS_GetOpaque2(ctx, obj, nx_image_class_id);
 }
 
-void close_image(nx_image_t *image)
+void close_image(JSRuntime *rt, nx_image_t *image)
 {
 	if (image->surface)
 	{
@@ -42,7 +42,11 @@ void close_image(nx_image_t *image)
 
 	if (image->data)
 	{
-		if (image->format == FORMAT_JPEG)
+		if (image->data_needs_js_free)
+		{
+			js_free_rt(rt, image->data);
+		}
+		else if (image->format == FORMAT_JPEG)
 		{
 			tjFree(image->data);
 		}
@@ -51,18 +55,10 @@ void close_image(nx_image_t *image)
 			free(image->data);
 		}
 		image->data = NULL;
+		image->data_needs_js_free = false;
 	}
 
 	image->width = image->height = 0;
-}
-
-void free_image(nx_image_t *image)
-{
-	if (image)
-	{
-		close_image(image);
-		free(image);
-	}
 }
 
 void user_read_data(png_structp png_ptr, png_bytep data, png_size_t length)
@@ -288,7 +284,9 @@ JSValue nx_image_new(JSContext *ctx, JSValueConst this_val, int argc, JSValueCon
 		}
 		// Width and height were specified, so allocate a backing store to use
 		data->data = js_mallocz(ctx, data->width * data->height * 4);
-		if (!data->data) {
+		data->data_needs_js_free = true;
+		if (!data->data)
+		{
 			return JS_EXCEPTION;
 		}
 		data->surface = cairo_image_surface_create_for_data(
@@ -308,14 +306,18 @@ JSValue nx_image_close(JSContext *ctx, JSValueConst this_val, int argc, JSValueC
 	{
 		return JS_EXCEPTION;
 	}
-	close_image(image);
+	close_image(JS_GetRuntime(ctx), image);
 	return JS_UNDEFINED;
 }
 
 static void finalizer_image(JSRuntime *rt, JSValue val)
 {
 	nx_image_t *image = JS_GetOpaque(val, nx_image_class_id);
-	free_image(image);
+	if (image)
+	{
+		close_image(rt, image);
+		js_free_rt(rt, image);
+	}
 }
 
 static JSValue nx_image_get_width(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)

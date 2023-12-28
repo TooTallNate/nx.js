@@ -18,6 +18,7 @@ typedef struct
 	u32 width;
 	u32 height;
 	u8 *data;
+	bool data_needs_js_free;
 	cairo_surface_t *surface;
 	enum ImageFormat format;
 } nx_image_t;
