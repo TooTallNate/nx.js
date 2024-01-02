@@ -25,17 +25,26 @@ let [globalTypes, switchTypes, wasmTypes] = generateDtsBundle(
 
 const globalNames = new Set();
 
-function transform(input, opts = {}) {
+function transform(name, input, opts = {}) {
 	// Remove banner
 	input = input.split('\n').slice(2).join('\n');
 
 	const sourceFile = ts.createSourceFile(
-        'file.d.ts',
-        input,
-        ts.ScriptTarget.Latest,
-        true,
-        ts.ScriptKind.TS
-    );
+		'file.d.ts',
+		input,
+		ts.ScriptTarget.Latest,
+		true,
+		ts.ScriptKind.TS
+	);
+
+	function filterImplements(type) {
+		return (
+			!type.expression.getText(sourceFile).startsWith(`${name}.`) &&
+			!type.typeArguments?.some((typeArgument) =>
+				typeArgument.getText(sourceFile).startsWith(`${name}.`)
+			)
+		);
+	}
 
 	function visit(node, context) {
 		// For class/interface/type, remove if part of a namespace
@@ -67,38 +76,24 @@ function transform(input, opts = {}) {
 		}
 
 		if (ts.isClassDeclaration(node)) {
-			// Filter or remove 'implements globalThis.*' from heritageClauses
+			// Filter or remove 'implements ${name}.*' from heritageClauses
 			const newHeritageClauses = node.heritageClauses
 				?.filter((clause) => {
 					if (clause.token === ts.SyntaxKind.ImplementsKeyword) {
-						const newTypes = clause.types.filter((type) => {
-							return !type.expression
-								.getText(sourceFile)
-								.startsWith('globalThis.');
-						});
-						return newTypes.length > 0; // Keep the clause only if there are types left after filtering
+						return clause.types.filter(filterImplements).length > 0; // Keep the clause only if there are types left after filtering
 					}
 					return true; // Keep 'extends' and other clauses
 				})
 				.map((clause) => {
 					// Update the clause with the filtered types
 					if (clause.token === ts.SyntaxKind.ImplementsKeyword) {
-						const newTypes = clause.types.filter((type) => {
-							return !type.expression
-								.getText(sourceFile)
-								.startsWith('globalThis.');
-						});
 						return ts.factory.updateHeritageClause(
 							clause,
-							newTypes
+							clause.types.filter(filterImplements)
 						);
 					}
 					return clause;
 				});
-			console.log({
-				name: node.name?.getText(),
-				t: newHeritageClauses,
-			});
 
 			node = ts.factory.updateClassDeclaration(
 				node,
@@ -110,8 +105,8 @@ function transform(input, opts = {}) {
 			);
 		}
 
-        // Process class, interface, type alias, and function declarations
-        if (
+		// Process class, interface, type alias, and function declarations
+		if (
 			(ts.isClassDeclaration(node) ||
 				ts.isInterfaceDeclaration(node) ||
 				ts.isTypeAliasDeclaration(node) ||
@@ -165,10 +160,10 @@ function transform(input, opts = {}) {
 				);
 			} else if (ts.isVariableStatement(node)) {
 				return ts.factory.updateVariableStatement(
-                    node,
-                    newModifiers,
-                    node.declarationList
-                );
+					node,
+					newModifiers,
+					node.declarationList
+				);
 			}
 		}
 
@@ -179,13 +174,16 @@ function transform(input, opts = {}) {
 		);
 	}
 
-    const result = ts.transform(sourceFile, [context => rootNode => ts.visitNode(rootNode, node => visit(node, context))]);
-    return ts.createPrinter().printFile(result.transformed[0]);
+	const result = ts.transform(sourceFile, [
+		(context) => (rootNode) =>
+			ts.visitNode(rootNode, (node) => visit(node, context)),
+	]);
+	return ts.createPrinter().printFile(result.transformed[0]).trim();
 }
 
 function namespace(name, input) {
 	return `declare namespace ${name} {
-${transform(input, { removeTypes: globalNames })
+${transform(name, input, { removeTypes: globalNames })
 	.split('\n')
 	.map((l) => `\t${l}`)
 	.join('\n')}
@@ -195,10 +193,22 @@ ${transform(input, { removeTypes: globalNames })
 const output = `/// <reference no-default-lib="true"/>
 /// <reference lib="es2022" />
 
-${transform(globalTypes)}
+${transform('globalThis', globalTypes)}
+
+/**
+ * The \`Switch\` global object contains native interfaces to interact with the Switch hardware.
+ */
+${namespace('Switch', switchTypes)}
+
+/**
+ * The \`WebAssembly\` JavaScript object acts as the namespace for all
+ * {@link https://developer.mozilla.org/docs/WebAssembly | WebAssembly}-related functionality.
+ *
+ * Unlike most other global objects, \`WebAssembly\` is not a constructor (it is not a function object).
+ *
+ * @see https://developer.mozilla.org/docs/WebAssembly
+ */
+${namespace('WebAssembly', wasmTypes)}
 `;
-//${namespace('Switch', switchTypes)}
-//${namespace('WASM', wasmTypes)}
-console.log(globalNames);
 
 fs.writeFileSync(new URL('index.d.ts', distDir), output);
