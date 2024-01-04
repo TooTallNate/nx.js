@@ -38,12 +38,32 @@
 	double width = args[2];                              \
 	double height = args[3];
 
+typedef struct Point
+{
+	float x;
+	float y;
+} Point;
+
 static JSClassID nx_canvas_class_id;
 static JSClassID nx_canvas_context_class_id;
 
 static inline int min(int a, int b)
 {
 	return a < b ? a : b;
+}
+
+static inline float minf(float a, float b)
+{
+	return a < b ? a : b;
+}
+
+static inline void generic_swap(void *a, void *b, size_t size)
+{
+	// Temporary storage for the swap
+	char temp[size];
+	memcpy(temp, a, size);
+	memcpy(a, b, size);
+	memcpy(b, temp, size);
 }
 
 static int js_validate_doubles_args(JSContext *ctx, JSValueConst *argv, double *args, size_t count, size_t offset)
@@ -280,12 +300,6 @@ static JSValue nx_canvas_context_2d_arc(JSContext *ctx, JSValueConst this_val, i
 	return JS_UNDEFINED;
 }
 
-typedef struct Point
-{
-	float x;
-	float y;
-} Point;
-
 /*
  * Adds an arcTo point (x0,y0) to (x1,y1) with the given radius.
  *
@@ -463,6 +477,220 @@ static JSValue nx_canvas_context_2d_rect(JSContext *ctx, JSValueConst this_val, 
 	{
 		cairo_rectangle(cr, x, y, width, height);
 	}
+	return JS_UNDEFINED;
+}
+
+// Draws an arc with two potentially different radii.
+inline static void elli_arc(cairo_t *cr, double xc, double yc, double rx, double ry, double a1, double a2, bool clockwise)
+{
+	if (rx == 0. || ry == 0.)
+	{
+		cairo_line_to(cr, xc + rx, yc + ry);
+	}
+	else
+	{
+		cairo_save(cr);
+		cairo_translate(cr, xc, yc);
+		cairo_scale(cr, rx, ry);
+		if (clockwise)
+			cairo_arc(cr, 0., 0., 1., a1, a2);
+		else
+			cairo_arc_negative(cr, 0., 0., 1., a2, a1);
+		cairo_restore(cr);
+	}
+}
+
+inline static bool getRadius(JSContext *ctx, JSValue v, Point *p)
+{
+	/*if (v.IsObject()) { // 5.1 DOMPointInit
+	  Napi::Value rx;
+	  Napi::Value ry;
+	  auto rxMaybe = v.As<Napi::Object>().Get("x");
+	  auto ryMaybe = v.As<Napi::Object>().Get("y");
+	  if (rxMaybe.UnwrapTo(&rx) && rx.IsNumber() && ryMaybe.UnwrapTo(&ry) && ry.IsNumber()) {
+		auto rxv = rx.As<Napi::Number>().DoubleValue();
+		auto ryv = ry.As<Napi::Number>().DoubleValue();
+		if (!std::isfinite(rxv) || !std::isfinite(ryv))
+		  return true;
+		if (rxv < 0 || ryv < 0) {
+		  Napi::RangeError::New(env, "radii must be positive.").ThrowAsJavaScriptException();
+
+		  return true;
+		}
+		p.x = rxv;
+		p.y = ryv;
+		return false;
+	  }
+	} else*/
+	if (JS_IsNumber(v))
+	{ // 5.2 unrestricted double
+		double rv;
+		if (JS_ToFloat64(ctx, &rv, v))
+		{
+			return true;
+		}
+		// if (!std::isfinite(rv))
+		//   return true;
+		if (rv < 0)
+		{
+			JS_ThrowRangeError(ctx, "radii must be positive.");
+			return true;
+		}
+		p->x = p->y = rv;
+		return false;
+	}
+	JS_ThrowTypeError(ctx, "Unsupported radii value.");
+	return true;
+}
+
+static JSValue nx_canvas_context_2d_round_rect(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	CANVAS_CONTEXT_THIS;
+	RECT_ARGS;
+
+	// 4. Let normalizedRadii be an empty list
+	Point normalizedRadii[4];
+	u32 nRadii = 4;
+
+	if (argc < 5 || JS_IsUndefined(argv[4]))
+	{
+		for (size_t i = 0; i < 4; i++)
+			normalizedRadii[i].x = normalizedRadii[i].y = 0.;
+	}
+	else if (JS_IsArray(ctx, argv[4]))
+	{
+		JSValue length = JS_GetPropertyStr(ctx, argv[4], "length");
+		if (JS_ToUint32(ctx, &nRadii, length))
+		{
+			JS_FreeValue(ctx, length);
+			return JS_EXCEPTION;
+		}
+		JS_FreeValue(ctx, length);
+		if (!(nRadii >= 1 && nRadii <= 4))
+		{
+			JS_ThrowRangeError(ctx, "radii must be a list of one, two, three or four radii.");
+			return JS_EXCEPTION;
+		}
+		// 5. For each radius of radii
+		for (size_t i = 0; i < nRadii; i++)
+		{
+			JSValue v = JS_GetPropertyUint32(ctx, argv[4], i);
+			if (getRadius(ctx, v, &normalizedRadii[i]))
+			{
+				JS_FreeValue(ctx, v);
+				return JS_EXCEPTION;
+			}
+			JS_FreeValue(ctx, v);
+		}
+	}
+	else
+	{
+		// 2. If radii is a double, then set radii to <<radii>>
+		if (getRadius(ctx, argv[4], &normalizedRadii[0]))
+		{
+			return JS_EXCEPTION;
+		}
+		for (size_t i = 1; i < 4; i++)
+		{
+			normalizedRadii[i].x = normalizedRadii[0].x;
+			normalizedRadii[i].y = normalizedRadii[0].y;
+		}
+	}
+
+	Point upperLeft, upperRight, lowerRight, lowerLeft;
+	if (nRadii == 4)
+	{
+		upperLeft = normalizedRadii[0];
+		upperRight = normalizedRadii[1];
+		lowerRight = normalizedRadii[2];
+		lowerLeft = normalizedRadii[3];
+	}
+	else if (nRadii == 3)
+	{
+		upperLeft = normalizedRadii[0];
+		upperRight = normalizedRadii[1];
+		lowerLeft = normalizedRadii[1];
+		lowerRight = normalizedRadii[2];
+	}
+	else if (nRadii == 2)
+	{
+		upperLeft = normalizedRadii[0];
+		lowerRight = normalizedRadii[0];
+		upperRight = normalizedRadii[1];
+		lowerLeft = normalizedRadii[1];
+	}
+	else
+	{
+		upperLeft = normalizedRadii[0];
+		upperRight = normalizedRadii[0];
+		lowerRight = normalizedRadii[0];
+		lowerLeft = normalizedRadii[0];
+	}
+
+	bool clockwise = true;
+	if (width < 0)
+	{
+		clockwise = false;
+		x += width;
+		width = -width;
+		generic_swap(&upperLeft, &upperRight, sizeof(Point));
+		generic_swap(&lowerLeft, &lowerRight, sizeof(Point));
+	}
+
+	if (height < 0)
+	{
+		clockwise = !clockwise;
+		y += height;
+		height = -height;
+		generic_swap(&upperLeft, &upperRight, sizeof(Point));
+		generic_swap(&lowerLeft, &lowerRight, sizeof(Point));
+	}
+
+	// 11. Corner curves must not overlap. Scale radii to prevent this.
+	{
+		float top = upperLeft.x + upperRight.x;
+		float right = upperRight.y + lowerRight.y;
+		float bottom = lowerRight.x + lowerLeft.x;
+		float left = upperLeft.y + lowerLeft.y;
+		float scale = minf(width / top, minf(height / right, minf(width / bottom, height / left)));
+		if (scale < 1.)
+		{
+			upperLeft.x *= scale;
+			upperLeft.y *= scale;
+			upperRight.x *= scale;
+			upperRight.x *= scale;
+			lowerLeft.y *= scale;
+			lowerLeft.y *= scale;
+			lowerRight.y *= scale;
+			lowerRight.y *= scale;
+		}
+	}
+
+	// 12. Draw
+	cairo_move_to(cr, x + upperLeft.x, y);
+	if (clockwise)
+	{
+		cairo_line_to(cr, x + width - upperRight.x, y);
+		elli_arc(cr, x + width - upperRight.x, y + upperRight.y, upperRight.x, upperRight.y, 3. * M_PI / 2., 0., true);
+		cairo_line_to(cr, x + width, y + height - lowerRight.y);
+		elli_arc(cr, x + width - lowerRight.x, y + height - lowerRight.y, lowerRight.x, lowerRight.y, 0, M_PI / 2., true);
+		cairo_line_to(cr, x + lowerLeft.x, y + height);
+		elli_arc(cr, x + lowerLeft.x, y + height - lowerLeft.y, lowerLeft.x, lowerLeft.y, M_PI / 2., M_PI, true);
+		cairo_line_to(cr, x, y + upperLeft.y);
+		elli_arc(cr, x + upperLeft.x, y + upperLeft.y, upperLeft.x, upperLeft.y, M_PI, 3. * M_PI / 2., true);
+	}
+	else
+	{
+		elli_arc(cr, x + upperLeft.x, y + upperLeft.y, upperLeft.x, upperLeft.y, M_PI, 3. * M_PI / 2., false);
+		cairo_line_to(cr, x, y + upperLeft.y);
+		elli_arc(cr, x + lowerLeft.x, y + height - lowerLeft.y, lowerLeft.x, lowerLeft.y, M_PI / 2., M_PI, false);
+		cairo_line_to(cr, x + lowerLeft.x, y + height);
+		elli_arc(cr, x + width - lowerRight.x, y + height - lowerRight.y, lowerRight.x, lowerRight.y, 0, M_PI / 2., false);
+		cairo_line_to(cr, x + width, y + height - lowerRight.y);
+		elli_arc(cr, x + width - upperRight.x, y + upperRight.y, upperRight.x, upperRight.y, 3. * M_PI / 2., 0., false);
+		cairo_line_to(cr, x + width - upperRight.x, y);
+	}
+	cairo_close_path(cr);
 	return JS_UNDEFINED;
 }
 
@@ -2310,6 +2538,7 @@ static JSValue nx_canvas_context_2d_init_class(JSContext *ctx, JSValueConst this
 	NX_DEF_FUNC(proto, "resetTransform", nx_canvas_context_2d_reset_transform, 0);
 	NX_DEF_FUNC(proto, "restore", nx_canvas_context_2d_restore, 0);
 	NX_DEF_FUNC(proto, "rotate", nx_canvas_context_2d_rotate, 1);
+	NX_DEF_FUNC(proto, "roundRect", nx_canvas_context_2d_round_rect, 4);
 	NX_DEF_FUNC(proto, "save", nx_canvas_context_2d_save, 0);
 	NX_DEF_FUNC(proto, "scale", nx_canvas_context_2d_scale, 2);
 	NX_DEF_FUNC(proto, "setLineDash", nx_canvas_context_2d_set_line_dash, 1);

@@ -11,10 +11,10 @@ import {
 	stub,
 	returnOnThrow,
 } from '../utils';
-import { isDomPointInit, type DOMPointInit } from '../dompoint';
 import { addSystemFont, findFont, fonts } from '../font/font-face-set';
 import type { Path2D } from './path2d';
 import type { Screen } from '../screen';
+import type { DOMPointInit } from '../dompoint';
 import type {
 	CanvasFillRule,
 	CanvasLineCap,
@@ -677,9 +677,14 @@ export class CanvasRenderingContext2D {
 	}
 
 	/**
-	 * Implementation from https://github.com/nilzona/path2d-polyfill
+	 * Adds a rounded rectangle to the current path.
 	 *
-	 * @note Currently does not support negative width / height values.
+	 * @param x The x-axis coordinate of the rectangle's starting point, in pixels.
+	 * @param y The y-axis coordinate of the rectangle's starting point, in pixels.
+	 * @param width The rectangle's width. Positive values are to the right, and negative to the left.
+	 * @param height The rectangle's height. Positive values are down, and negative are up.
+	 * @param radii A number or list specifying the radii of the circular arc to be used for the corners of the rectangle.
+	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/roundRect
 	 */
 	roundRect(
 		x: number,
@@ -688,67 +693,7 @@ export class CanvasRenderingContext2D {
 		height: number,
 		radii: number | DOMPointInit | Iterable<number | DOMPointInit> = 0
 	): void {
-		const r: number[] = (
-			typeof radii === 'number' || isDomPointInit(radii)
-				? [radii]
-				: Array.from(radii)
-		).map<number>((v) => {
-			if (typeof v !== 'number') {
-				// DOMPoint
-				v = Math.sqrt(
-					(v.x || 0) * (v.x || 0) + (v.y || 0) * (v.y || 0)
-				);
-			}
-			if (v < 0) {
-				throw new RangeError(`Radius value ${v} is negative.`);
-			}
-			return v;
-		});
-
-		// check for range error
-		if (r.length === 0 || r.length > 4) {
-			throw new RangeError(
-				`${r.length} radii provided. Between one and four radii are necessary.`
-			);
-		}
-
-		if (r.length === 1 && r[0] === 0) {
-			return this.rect(x, y, width, height);
-		}
-
-		// set the corners
-		// tl = top left radius
-		// tr = top right radius
-		// br = bottom right radius
-		// bl = bottom left radius
-		const minRadius = Math.min(width, height) / 2;
-		let tr, br, bl;
-		const tl = (tr = br = bl = Math.min(minRadius, r[0]));
-		if (r.length === 2) {
-			tr = bl = Math.min(minRadius, r[1]);
-		}
-		if (r.length === 3) {
-			tr = bl = Math.min(minRadius, r[1]);
-			br = Math.min(minRadius, r[2]);
-		}
-		if (r.length === 4) {
-			tr = Math.min(minRadius, r[1]);
-			br = Math.min(minRadius, r[2]);
-			bl = Math.min(minRadius, r[3]);
-		}
-
-		// begin with closing current path
-		this.closePath();
-
-		// draw the rounded rectangle
-		this.moveTo(x, y + height - bl);
-		this.arcTo(x, y, x + tl, y, tl);
-		this.arcTo(x + width, y, x + width, y + tr, tr);
-		this.arcTo(x + width, y + height, x + width - br, y + height, br);
-		this.arcTo(x, y + height, x, y + height - bl, bl);
-
-		// move to rects control point for further path drawing
-		this.moveTo(x, y);
+		stub();
 	}
 
 	/**
