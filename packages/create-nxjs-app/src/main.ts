@@ -139,6 +139,7 @@ try {
 		// TODO: figure out why `packageManager` is not inferred as "string"
 		const cp = spawn(packageManager as string, ['install'], {
 			cwd: appDir,
+			shell: true,
 		});
 		const [exitCode] = await once(cp, 'exit');
 		if (exitCode !== 0) {
