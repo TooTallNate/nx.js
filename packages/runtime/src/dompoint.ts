@@ -7,10 +7,6 @@ export interface DOMPointInit {
 	z?: number;
 }
 
-export function isDomPointInit(v: any): v is DOMPointInit {
-	return v && typeof v.x === 'number' && typeof v.y === 'number';
-}
-
 /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMPointReadOnly) */
 export class DOMPointReadOnly implements globalThis.DOMPointReadOnly {
 	constructor(x?: number, y?: number, z?: number, w?: number) {
