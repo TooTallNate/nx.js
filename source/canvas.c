@@ -500,37 +500,41 @@ inline static void elli_arc(cairo_t *cr, double xc, double yc, double rx, double
 	}
 }
 
-inline static bool getRadius(JSContext *ctx, JSValue v, Point *p)
+inline static bool get_radius(JSContext *ctx, JSValue v, Point *p)
 {
-	/*if (v.IsObject()) { // 5.1 DOMPointInit
-	  Napi::Value rx;
-	  Napi::Value ry;
-	  auto rxMaybe = v.As<Napi::Object>().Get("x");
-	  auto ryMaybe = v.As<Napi::Object>().Get("y");
-	  if (rxMaybe.UnwrapTo(&rx) && rx.IsNumber() && ryMaybe.UnwrapTo(&ry) && ry.IsNumber()) {
-		auto rxv = rx.As<Napi::Number>().DoubleValue();
-		auto ryv = ry.As<Napi::Number>().DoubleValue();
-		if (!std::isfinite(rxv) || !std::isfinite(ryv))
-		  return true;
-		if (rxv < 0 || ryv < 0) {
-		  Napi::RangeError::New(env, "radii must be positive.").ThrowAsJavaScriptException();
-
-		  return true;
+	if (JS_IsObject(v))
+	{ // 5.1 DOMPointInit
+		JSValue rx = JS_GetPropertyStr(ctx, v, "x");
+		JSValue ry = JS_GetPropertyStr(ctx, v, "y");
+		if (JS_IsNumber(rx) && JS_IsNumber(ry))
+		{
+			double rxv;
+			double ryv;
+			if (JS_ToFloat64(ctx, &rxv, rx) || JS_ToFloat64(ctx, &ryv, ry))
+			{
+				return true;
+			}
+			if (!isfinite(rxv) || !isfinite(ryv))
+				return true;
+			if (rxv < 0 || ryv < 0)
+			{
+				JS_ThrowRangeError(ctx, "radii must be positive.");
+				return true;
+			}
+			p->x = rxv;
+			p->y = ryv;
+			return false;
 		}
-		p.x = rxv;
-		p.y = ryv;
-		return false;
-	  }
-	} else*/
-	if (JS_IsNumber(v))
+	}
+	else if (JS_IsNumber(v))
 	{ // 5.2 unrestricted double
 		double rv;
 		if (JS_ToFloat64(ctx, &rv, v))
 		{
 			return true;
 		}
-		// if (!std::isfinite(rv))
-		//   return true;
+		if (!isfinite(rv))
+			return true;
 		if (rv < 0)
 		{
 			JS_ThrowRangeError(ctx, "radii must be positive.");
@@ -575,7 +579,7 @@ static JSValue nx_canvas_context_2d_round_rect(JSContext *ctx, JSValueConst this
 		for (size_t i = 0; i < nRadii; i++)
 		{
 			JSValue v = JS_GetPropertyUint32(ctx, argv[4], i);
-			if (getRadius(ctx, v, &normalizedRadii[i]))
+			if (get_radius(ctx, v, &normalizedRadii[i]))
 			{
 				JS_FreeValue(ctx, v);
 				return JS_EXCEPTION;
@@ -586,7 +590,7 @@ static JSValue nx_canvas_context_2d_round_rect(JSContext *ctx, JSValueConst this
 	else
 	{
 		// 2. If radii is a double, then set radii to <<radii>>
-		if (getRadius(ctx, argv[4], &normalizedRadii[0]))
+		if (get_radius(ctx, argv[4], &normalizedRadii[0]))
 		{
 			return JS_EXCEPTION;
 		}
