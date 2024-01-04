@@ -5,7 +5,11 @@ const test = suite('Canvas');
 
 const ctx = screen.getContext('2d');
 
-test('`CanvasContext2D#getImageData()`', () => {
+test('`CanvasRenderingContext2D.name`', () => {
+	assert.equal(CanvasRenderingContext2D.name, 'CanvasRenderingContext2D');
+});
+
+test('`CanvasRenderingContext2D#getImageData()`', () => {
 	ctx.fillStyle = 'red';
 	ctx.fillRect(0, 0, 1, 1);
 	const data = ctx.getImageData(0, 0, 1, 1);
