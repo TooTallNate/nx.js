@@ -777,7 +777,7 @@ static JSValue nx_canvas_context_2d_clear_rect(JSContext *ctx, JSValueConst this
 	return JS_UNDEFINED;
 }
 
- double get_text_scale(nx_canvas_context_2d_t *context, const char *text, double max_width)
+double get_text_scale(nx_canvas_context_2d_t *context, const char *text, double max_width)
 {
 	// Create HarfBuzz buffer
 	hb_buffer_t *buf = hb_buffer_create();
@@ -804,7 +804,7 @@ static JSValue nx_canvas_context_2d_clear_rect(JSContext *ctx, JSValueConst this
 	hb_buffer_destroy(buf);
 
 	return width > max_width ? max_width / width : 1.;
- }
+}
 
 static JSValue nx_canvas_context_2d_fill_text(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
@@ -823,10 +823,12 @@ static JSValue nx_canvas_context_2d_fill_text(JSContext *ctx, JSValueConst this_
 	if (argc >= 4 && JS_IsNumber(argv[3]))
 	{
 		double max_width;
-		if (JS_ToFloat64(ctx, &max_width, argv[3])) return JS_EXCEPTION;
+		if (JS_ToFloat64(ctx, &max_width, argv[3]))
+			return JS_EXCEPTION;
 		scale = get_text_scale(context, text, max_width);
 
-		if (scale != 1.) {
+		if (scale != 1.)
+		{
 			set_font_size(context, font_size * scale);
 		}
 	}
@@ -913,7 +915,8 @@ static JSValue nx_canvas_context_2d_fill_text(JSContext *ctx, JSValueConst this_
 
 	cairo_show_glyphs(cr, cairo_glyphs, glyph_count);
 
-	if (scale != 1.) {
+	if (scale != 1.)
+	{
 		set_font_size(context, font_size);
 	}
 
@@ -943,10 +946,12 @@ static JSValue nx_canvas_context_2d_stroke_text(JSContext *ctx, JSValueConst thi
 	if (argc >= 4 && JS_IsNumber(argv[3]))
 	{
 		double max_width;
-		if (JS_ToFloat64(ctx, &max_width, argv[3])) return JS_EXCEPTION;
+		if (JS_ToFloat64(ctx, &max_width, argv[3]))
+			return JS_EXCEPTION;
 		scale = get_text_scale(context, text, max_width);
 
-		if (scale != 1.) {
+		if (scale != 1.)
+		{
 			set_font_size(context, font_size * scale);
 		}
 	}
@@ -1028,7 +1033,8 @@ static JSValue nx_canvas_context_2d_stroke_text(JSContext *ctx, JSValueConst thi
 
 	stroke(context, false);
 
-	if (scale != 1.) {
+	if (scale != 1.)
+	{
 		set_font_size(context, font_size);
 	}
 

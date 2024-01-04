@@ -62,7 +62,6 @@ typedef struct nx_canvas_context_2d_state_s
 	// cairo_pattern_t *fillGradient;
 	// cairo_pattern_t *strokeGradient;
 	// int shadowBlur;
-	// canvas_draw_mode_t textDrawingMode;
 	cairo_filter_t image_smoothing_quality;
 	JSValue font;
 	double font_size;
