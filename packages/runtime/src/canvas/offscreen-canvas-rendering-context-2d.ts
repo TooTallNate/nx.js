@@ -407,7 +407,7 @@ export class OffscreenCanvasRenderingContext2D {
 	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/getLineDash
 	 */
 	getLineDash(): number[] {
-		throw new Error('stub');
+		stub();
 	}
 
 	/**
