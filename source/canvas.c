@@ -506,25 +506,33 @@ inline static bool get_radius(JSContext *ctx, JSValue v, Point *p)
 	{ // 5.1 DOMPointInit
 		JSValue rx = JS_GetPropertyStr(ctx, v, "x");
 		JSValue ry = JS_GetPropertyStr(ctx, v, "y");
-		if (JS_IsNumber(rx) && JS_IsNumber(ry))
+		if (!JS_IsNumber(rx) || !JS_IsNumber(ry))
 		{
-			double rxv;
-			double ryv;
-			if (JS_ToFloat64(ctx, &rxv, rx) || JS_ToFloat64(ctx, &ryv, ry))
-			{
-				return true;
-			}
-			if (!isfinite(rxv) || !isfinite(ryv))
-				return true;
-			if (rxv < 0 || ryv < 0)
-			{
-				JS_ThrowRangeError(ctx, "radii must be positive.");
-				return true;
-			}
-			p->x = rxv;
-			p->y = ryv;
-			return false;
+			JS_FreeValue(ctx, rx);
+			JS_FreeValue(ctx, ry);
+			JS_ThrowTypeError(ctx, "A DOMPoint object must be provided");
+			return true;
 		}
+		double rxv;
+		double ryv;
+		if (JS_ToFloat64(ctx, &rxv, rx) || JS_ToFloat64(ctx, &ryv, ry))
+		{
+			JS_FreeValue(ctx, rx);
+			JS_FreeValue(ctx, ry);
+			return true;
+		}
+		JS_FreeValue(ctx, rx);
+		JS_FreeValue(ctx, ry);
+		if (!isfinite(rxv) || !isfinite(ryv))
+			return true;
+		if (rxv < 0 || ryv < 0)
+		{
+			JS_ThrowRangeError(ctx, "radii must be positive.");
+			return true;
+		}
+		p->x = rxv;
+		p->y = ryv;
+		return false;
 	}
 	else if (JS_IsNumber(v))
 	{ // 5.2 unrestricted double

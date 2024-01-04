@@ -16,7 +16,7 @@ typedef struct
 
 nx_canvas_t *nx_get_canvas(JSContext *ctx, JSValueConst obj);
 
-typedef struct
+typedef struct nx_rgba_s
 {
 	double r;
 	double g;
@@ -78,7 +78,7 @@ typedef struct nx_canvas_context_2d_state_s
 /**
  * `CanvasRenderingContext2D` / `OffscreenCanvasRenderingContext2D`
  */
-typedef struct
+typedef struct nx_canvas_context_2d_s
 {
 	nx_canvas_t *canvas;
 	cairo_t *ctx;
