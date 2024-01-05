@@ -1,5 +1,11 @@
 # create-nxjs-app
 
+## 0.0.26
+
+### Patch Changes
+
+- Fix package manager installation on Windows ([`336fdc91a85e64895e5b4a0004ca168981deb9dc`](https://github.com/TooTallNate/nx.js/commit/336fdc91a85e64895e5b4a0004ca168981deb9dc))
+
 ## 0.0.25
 
 ## 0.0.24

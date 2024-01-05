@@ -1,5 +1,11 @@
 # nxjs-pack
 
+## 0.0.26
+
+### Patch Changes
+
+- Use the root-level `nxjs.nro` file when packing within the monorepo ([`b1c8c4c14858b5cded890e79479932b78686ddf1`](https://github.com/TooTallNate/nx.js/commit/b1c8c4c14858b5cded890e79479932b78686ddf1))
+
 ## 0.0.25
 
 ## 0.0.24
