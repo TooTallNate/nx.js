@@ -77,7 +77,7 @@ function filenameToTracer(filename: string) {
 	return callsites
 		.map((callsite) => {
 			try {
-				let loc = 'native';
+				let loc = callsite.isNative() ? 'native' : 'unknown';
 				let name = callsite.getFunctionName() || '<anonymous>';
 				let filename = callsite.getFileName();
 				if (filename) {
@@ -103,8 +103,9 @@ function filenameToTracer(filename: string) {
 					loc = `${proto}:${filename}:${line}:${column}`;
 				}
 				return `    at ${name} (${loc})`;
-			} catch (_) {}
-			return '???3';
+			} catch (err: unknown) {
+				return `    <error calculating stack: ${err}>`;
+			}
 		})
 		.join('\n');
 };
