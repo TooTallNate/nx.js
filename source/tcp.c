@@ -9,26 +9,29 @@
 void nx_on_connect(nx_poll_t *p, nx_connect_t *req)
 {
 	nx_js_callback_t *req_cb = (nx_js_callback_t *)req->opaque;
+	JSContext *ctx = req_cb->context;
 	JSValue args[] = {JS_UNDEFINED, JS_UNDEFINED};
 
 	if (req->err)
 	{
 		/* Error during connect. */
-		// printf("Error occurred during connect: %s\n", strerror(so_error));
+		args[0] = JS_NewError(ctx);
+		JS_SetPropertyStr(ctx, args[0], "message", JS_NewString(ctx, strerror(req->err)));
 	}
 	else
 	{
-		// printf("Connection established.\n");
-		args[1] = JS_NewInt32(req_cb->context, req->fd);
+		args[1] = JS_NewInt32(ctx, req->fd);
 	}
 
-	JSValue ret_val = JS_Call(req_cb->context, req_cb->callback, JS_NULL, 2, args);
-	JS_FreeValue(req_cb->context, req_cb->callback);
+	JSValue ret_val = JS_Call(ctx, req_cb->callback, JS_NULL, 2, args);
+	JS_FreeValue(ctx, args[0]);
+	JS_FreeValue(ctx, args[1]);
+	JS_FreeValue(ctx, req_cb->callback);
 	if (JS_IsException(ret_val))
 	{
-		nx_emit_error_event(req_cb->context);
+		nx_emit_error_event(ctx);
 	}
-	JS_FreeValue(req_cb->context, ret_val);
+	JS_FreeValue(ctx, ret_val);
 	free(req_cb);
 	free(req);
 }
@@ -53,6 +56,10 @@ JSValue nx_js_tcp_connect(JSContext *ctx, JSValueConst this_val, int argc, JSVal
 
 	nx_tcp_connect(&nx_ctx->poll, req, ip, port, nx_on_connect);
 	JS_FreeCString(ctx, ip);
+
+	if (req->err) {
+		nx_on_connect(&nx_ctx->poll, req);
+	}
 
 	return JS_UNDEFINED;
 }

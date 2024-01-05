@@ -199,7 +199,6 @@ int nx_tcp_connect(nx_poll_t *p, nx_connect_t *req, const char *ip, int port, nx
 	if (r < 0 && errno != EINPROGRESS)
 	{
 		req->err = errno;
-		printf("connect() err: %s\n", strerror(errno));
 		close(sockfd);
 		return -1;
 	}
