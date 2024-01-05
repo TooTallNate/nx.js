@@ -1,4 +1,4 @@
-const stateUrl = new URL('2048_state.json', Switch.argv[0]);
+const stateUrl = new URL('2048_state.json', Switch.argv[0] || 'sdmc:/');
 
 export class StorageManager {
 	constructor() {
