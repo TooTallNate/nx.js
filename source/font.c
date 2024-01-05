@@ -7,7 +7,7 @@ static JSClassID nx_font_face_class_id;
 
 static JSValue nx_new_font_face(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	nx_context_t *nx_ctx = nx_get_context(ctx);
+	nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
 	nx_font_face_t *context = js_mallocz(ctx, sizeof(nx_font_face_t));
 	if (!context)
 		return JS_EXCEPTION;

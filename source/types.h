@@ -68,7 +68,7 @@ enum nx_rendering_mode
 	NX_RENDERING_MODE_CANVAS
 };
 
-typedef struct
+typedef struct nx_context_s
 {
 	int had_error;
 	enum nx_rendering_mode rendering_mode;
@@ -89,8 +89,3 @@ typedef struct
 	mbedtls_entropy_context entropy;
 	mbedtls_ctr_drbg_context ctr_drbg;
 } nx_context_t;
-
-inline nx_context_t *nx_get_context(JSContext *ctx)
-{
-	return JS_GetContextOpaque(ctx);
-}
