@@ -1,5 +1,53 @@
 # nxjs-runtime
 
+## 0.0.26
+
+### Patch Changes
+
+- Set esbuild and TypeScript compile target to "es2022" ([`62951c61fb846aeb2201b21f8c6a03c8adae96e8`](https://github.com/TooTallNate/nx.js/commit/62951c61fb846aeb2201b21f8c6a03c8adae96e8))
+
+- Add `ImageBitmap` class ([`d9db93b6c2b5dc33f817893f2c1aa142736009c6`](https://github.com/TooTallNate/nx.js/commit/d9db93b6c2b5dc33f817893f2c1aa142736009c6))
+
+- Add `Sensor` base class ([`6ab19dcb6f5922a25805f3b1decfe02959bde362`](https://github.com/TooTallNate/nx.js/commit/6ab19dcb6f5922a25805f3b1decfe02959bde362))
+
+- Make `IRSensor` use `ImageBitmap` instead of `ImageData` ([`f8d7beed76a2331ee83ef015046bd214a2156dda`](https://github.com/TooTallNate/nx.js/commit/f8d7beed76a2331ee83ef015046bd214a2156dda))
+
+- Rename `ListenOpts` interface to `ListenOptions` ([`2964d88e253dccbb1fedd676bbcb68017530eef7`](https://github.com/TooTallNate/nx.js/commit/2964d88e253dccbb1fedd676bbcb68017530eef7))
+
+- Propagate TCP `connect()` error to JS ([`9c3b9655a3360490906eb5106953ed9855536c53`](https://github.com/TooTallNate/nx.js/commit/9c3b9655a3360490906eb5106953ed9855536c53))
+
+- Use `quickjs-ng` ([`ba52a51ca85c86649f36b13d41f2ae173c953de6`](https://github.com/TooTallNate/nx.js/commit/ba52a51ca85c86649f36b13d41f2ae173c953de6))
+
+- Add `accept` shorthand for `Switch.listen()` ([`150467b4fd4f4c73e1d6d22578a45ba904289ea7`](https://github.com/TooTallNate/nx.js/commit/150467b4fd4f4c73e1d6d22578a45ba904289ea7))
+
+- Return same Promise instance for `navigator.getBattery()` ([`41081fb0f01fb79cacc453d0832822a394c56df4`](https://github.com/TooTallNate/nx.js/commit/41081fb0f01fb79cacc453d0832822a394c56df4))
+
+- Add `AmbientLightSensor` class ([`d7482c0931ae04f3270f447e1dcbd62954318a9a`](https://github.com/TooTallNate/nx.js/commit/d7482c0931ae04f3270f447e1dcbd62954318a9a))
+
+- Add `Switch.IRSensor` class ([`804b9f379e8f0da33e6bd726da8a1d2584c2d354`](https://github.com/TooTallNate/nx.js/commit/804b9f379e8f0da33e6bd726da8a1d2584c2d354))
+
+- Add `Switch.Application` class and `Switch.applications` iterator ([#72](https://github.com/TooTallNate/nx.js/pull/72))
+
+- Fix printing error if `runtime.js` throws an error ([`91db41d4c0c86fe413a4330aeedb994a98b53a5c`](https://github.com/TooTallNate/nx.js/commit/91db41d4c0c86fe413a4330aeedb994a98b53a5c))
+
+- Mark `id` as optional in `clearTimeout()` and `clearInterval()` ([`98654782f18c16e770124eaaefeef87e4b822396`](https://github.com/TooTallNate/nx.js/commit/98654782f18c16e770124eaaefeef87e4b822396))
+
+- Return 16 for `navigator.maxTouchPoints` ([`e23ae02b96306915dccf299dfcb2fd31c75e0c1c`](https://github.com/TooTallNate/nx.js/commit/e23ae02b96306915dccf299dfcb2fd31c75e0c1c))
+
+- Implement Canvas `roundRect()` in C ([#74](https://github.com/TooTallNate/nx.js/pull/74))
+
+- Remove unused `ConnectOpts` interface ([`143b53126e199287ef86e506fafff3765a57c4a2`](https://github.com/TooTallNate/nx.js/commit/143b53126e199287ef86e506fafff3765a57c4a2))
+
+- Add support for the `maxWidth` option in Canvas `fillText()`/`strokeText()` ([`09e1ac24a16d4e2ea9f484141cef7cc37373e241`](https://github.com/TooTallNate/nx.js/commit/09e1ac24a16d4e2ea9f484141cef7cc37373e241))
+
+- Re-implement source mapping using CallSite API ([`59d3dec8427224137b4d6bcdf5a2701375741e9c`](https://github.com/TooTallNate/nx.js/commit/59d3dec8427224137b4d6bcdf5a2701375741e9c))
+
+- Support `color` option in `Switch.IRSensor` ([`0ad81bb0c768903259d962fd66cace83aefccdd5`](https://github.com/TooTallNate/nx.js/commit/0ad81bb0c768903259d962fd66cace83aefccdd5))
+
+- Add `depth` to `inspect()` ([`cca4251d4d569254b5a9d3079c881e6c3f10712f`](https://github.com/TooTallNate/nx.js/commit/cca4251d4d569254b5a9d3079c881e6c3f10712f))
+
+- Refactor runtime type definition generator using AST modifications ([#73](https://github.com/TooTallNate/nx.js/pull/73))
+
 ## 0.0.25
 
 ### Patch Changes
