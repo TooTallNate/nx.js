@@ -88,7 +88,7 @@ def('FontFaceSet', FontFaceSet);
  * @demo See the [fonts](../apps/fonts/) application for an example of using custom fonts.
  */
 // @ts-expect-error Internal constructor
-export const fonts = new FontFaceSet(INTERNAL_SYMBOL);
+export var fonts = new FontFaceSet(INTERNAL_SYMBOL);
 def('fonts', fonts);
 
 export function findFont(

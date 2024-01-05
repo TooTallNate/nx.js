@@ -188,7 +188,7 @@ export class Navigator {
 def('Navigator', Navigator);
 
 // @ts-expect-error Internal constructor
-export const navigator = new Navigator(INTERNAL_SYMBOL);
+export var navigator = new Navigator(INTERNAL_SYMBOL);
 def('navigator', navigator);
 
 function processVibrations() {

@@ -29,5 +29,5 @@ export class Performance {
 def('Performance', Performance);
 
 // @ts-expect-error Internal constructor
-export const performance = new Performance(INTERNAL_SYMBOL);
+export var performance = new Performance(INTERNAL_SYMBOL);
 def('performance', performance);

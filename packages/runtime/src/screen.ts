@@ -175,5 +175,5 @@ $.canvasInitClass(Screen);
 def('Screen', Screen);
 
 // @ts-expect-error Internal constructor
-export const screen = new Screen(INTERNAL_SYMBOL);
+export var screen = new Screen(INTERNAL_SYMBOL);
 def('screen', screen);

@@ -85,5 +85,5 @@ def('Crypto', Crypto);
  * @see https://developer.mozilla.org/docs/Web/API/crypto_property
  */
 // @ts-expect-error Internal constructor
-export const crypto = new Crypto(INTERNAL_SYMBOL);
+export var crypto = new Crypto(INTERNAL_SYMBOL);
 def('crypto', crypto);

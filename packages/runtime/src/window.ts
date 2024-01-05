@@ -28,7 +28,7 @@ export class Window extends EventTarget {
 }
 def('Window', Window);
 
-export const window: Window & typeof globalThis = globalThis;
+export var window: Window & typeof globalThis = globalThis;
 def('window', window);
 Object.setPrototypeOf(window, Window.prototype);
 
