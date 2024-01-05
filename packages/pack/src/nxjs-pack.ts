@@ -1,7 +1,13 @@
 #!/usr/bin/env node
 import bytes from 'bytes';
 import chalk from 'chalk';
-import { writeFileSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import {
+	writeFileSync,
+	readdirSync,
+	readFileSync,
+	statSync,
+	existsSync,
+} from 'node:fs';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import { relative } from 'node:path';
 import parseAuthor from 'parse-author';
@@ -22,7 +28,11 @@ const { name, version, author: rawAuthor } = packageJson;
 const author =
 	typeof rawAuthor === 'string' ? parseAuthor(rawAuthor) : rawAuthor;
 
-const nxjsNroUrl = new URL('../dist/nxjs.nro', import.meta.url);
+const isSrcMode = existsSync(new URL('../tsconfig.json', import.meta.url));
+const nxjsNroUrl = new URL(
+	isSrcMode ? '../../../nxjs.nro' : '../dist/nxjs.nro',
+	import.meta.url
+);
 const nxjsNroBuffer = readFileSync(nxjsNroUrl);
 const nxjsNroBlob = new Blob([nxjsNroBuffer]);
 const nxjsNro = await NRO.decode(nxjsNroBlob);
