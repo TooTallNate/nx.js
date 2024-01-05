@@ -6,6 +6,40 @@ import {
 } from '@jridgewell/trace-mapping';
 import { readFileSync } from './fs';
 
+interface CallSite {
+	/**
+	 * Is this call in native quickjs code?
+	 */
+	isNative(): boolean;
+
+	/**
+	 * Name of the script [if this function was defined in a script]
+	 */
+	getFileName(): string | undefined;
+
+	/**
+	 * Current function
+	 */
+	getFunction(): Function | undefined;
+
+	/**
+	 * Name of the current function, typically its name property.
+	 * If a name property is not available an attempt will be made to try
+	 * to infer a name from the function's context.
+	 */
+	getFunctionName(): string | null;
+
+	/**
+	 * Current column number [if this function was defined in a script]
+	 */
+	getColumnNumber(): number | null;
+
+	/**
+	 * Current line number [if this function was defined in a script]
+	 */
+	getLineNumber(): number | null;
+}
+
 const SOURCE_MAPPING_URL_PREFIX = '//# sourceMappingURL=';
 const sourceMapCache = new Map<string, TraceMap | null>();
 
@@ -39,33 +73,38 @@ function filenameToTracer(filename: string) {
 	return tracer;
 }
 
-(Error as any).prepareStackTrace = (_: Error, stack: string) => {
-	return stack
-		.split('\n')
-		.map((line) => {
+(Error as any).prepareStackTrace = (_: Error, callsites: CallSite[]) => {
+	return callsites
+		.map((callsite) => {
 			try {
-				const m = line.match(/(\s+at )(.*) \((.*)\:(\d+)\)$/);
-				if (!m) return line;
+				let loc = 'native';
+				let name = callsite.getFunctionName() || '<anonymous>';
+				let filename = callsite.getFileName();
+				if (filename) {
+					const proto =
+						filename === 'romfs:/runtime.js' ? 'nxjs' : 'app';
+					let line = callsite.getLineNumber() ?? 1;
+					let column = callsite.getColumnNumber() ?? 1;
 
-				const [_, at, name, filename, lineNo] = m;
-				const tracer = filenameToTracer(filename);
-				if (!tracer) return line;
+					const tracer = filenameToTracer(filename);
+					if (tracer) {
+						const traced = originalPositionFor(tracer, {
+							line,
+							column,
+						});
+						if (typeof traced.source === 'string')
+							filename = traced.source;
+						if (typeof traced.name === 'string') name = traced.name;
+						if (typeof traced.column === 'number')
+							column = traced.column;
+						if (typeof traced.line === 'number') line = traced.line;
+					}
 
-				const traced = originalPositionFor(tracer, {
-					line: +lineNo,
-					// QuickJS doesn't provide column number.
-					// Unfortunately that means that minification
-					// doesn't work well with source maps :(
-					column: 0,
-				});
-				if (!traced.source || !traced.line) return line;
-
-				const proto = filename === 'romfs:/runtime.js' ? 'nxjs' : 'app';
-				return `${at}${traced.name || name} (${proto}:${
-					traced.source
-				}:${traced.line})`;
+					loc = `${proto}:${filename}:${line}:${column}`;
+				}
+				return `    at ${name} (${loc})`;
 			} catch (_) {}
-			return line;
+			return '???3';
 		})
 		.join('\n');
 };
