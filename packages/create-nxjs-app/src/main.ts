@@ -19,6 +19,7 @@ const packageManagersPromise = Promise.all([
 	hasPackageManager('pnpm'),
 	hasPackageManager('yarn'),
 	hasPackageManager('npm'),
+	hasPackageManager('bun'),
 ]);
 
 clack.intro(chalk.bold('Create nx.js app'));
