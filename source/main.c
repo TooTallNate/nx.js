@@ -8,6 +8,7 @@
 #include <quickjs.h>
 
 #include "types.h"
+#include "account.h"
 #include "applet.h"
 #include "async.h"
 #include "battery.h"
@@ -536,6 +537,7 @@ int main(int argc, char *argv[])
 	// The internal `$` object contains native functions that are wrapped in the JS runtime
 	JSValue global_obj = JS_GetGlobalObject(ctx);
 	JSValue init_obj = JS_NewObject(ctx);
+	nx_init_account(ctx, init_obj);
 	nx_init_applet(ctx, init_obj);
 	nx_init_battery(ctx, init_obj);
 	nx_init_canvas(ctx, init_obj);

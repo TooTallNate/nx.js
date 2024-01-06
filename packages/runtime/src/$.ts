@@ -2,6 +2,7 @@ import type {
 	Application,
 	IRSensor,
 	NetworkInfo,
+	Profile,
 	Stats,
 	Versions,
 } from './switch';
@@ -32,6 +33,13 @@ type ClassOf<T> = {
 };
 
 export interface Init {
+	// account.c
+	accountInitialize(): () => void;
+	accountProfileInit(c: ClassOf<Profile>): void;
+	accountCurrentProfile(): Profile | null;
+	accountSelectProfile(): Profile | null;
+	accountProfiles(): Profile[];
+
 	// applet.c
 	appletIlluminance(): number;
 	appletGetAppletType(): number;
