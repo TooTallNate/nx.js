@@ -1,4 +1,3 @@
-#include <switch.h>
 #include "applet.h"
 
 static JSValue nx_applet_illuminance(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)

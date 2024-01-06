@@ -45,7 +45,7 @@ export function addEventListener(
 ): void;
 
 /**
- * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/keydown_event
+ * @see https://developer.mozilla.org/docs/Web/API/Element/keydown_event
  */
 export function addEventListener(
 	type: 'keydown',
@@ -54,7 +54,7 @@ export function addEventListener(
 ): void;
 
 /**
- * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/keyup_event
+ * @see https://developer.mozilla.org/docs/Web/API/Element/keyup_event
  */
 export function addEventListener(
 	type: 'keyup',

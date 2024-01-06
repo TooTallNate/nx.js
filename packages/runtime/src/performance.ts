@@ -3,7 +3,7 @@ import { assertInternalConstructor, def } from './utils';
 import type { DOMHighResTimeStamp } from './types';
 
 /**
- * @see https://developer.mozilla.org/en-US/docs/Web/API/Performance_API
+ * @see https://developer.mozilla.org/docs/Web/API/Performance_API
  */
 export class Performance {
 	/**

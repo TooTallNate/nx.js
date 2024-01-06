@@ -3,6 +3,12 @@ import { assertInternalConstructor, stub } from '../utils';
 
 let init = false;
 
+function _init() {
+	if (init) return;
+	addEventListener('unload', $.nsInitialize());
+	init = true;
+}
+
 /**
  * Represents an installed application (game) on the console.
  */
@@ -47,12 +53,6 @@ export class Application {
 	}
 }
 $.nsAppInit(Application);
-
-function _init() {
-	if (init) return;
-	addEventListener('unload', $.nsInitialize());
-	init = true;
-}
 
 /**
  * Can be used as an iterator to retrieve the list of installed applications.
