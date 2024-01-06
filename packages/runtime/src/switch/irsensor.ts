@@ -24,11 +24,17 @@ export interface IRSensorInit {
 	 * The desired number of times per second a sample should be taken,
 	 * meaning the number of times per second that the `reading` event
 	 * will be called. A whole number or decimal may be used, the latter
-	 * for frequencies less than a second. The actual reading frequency
-	 * depends on the device hardware and consequently may be less than
-	 * requested.
+	 * for frequencies less than a second.
+	 *
+	 * @default 2
 	 */
 	frequency?: number;
+	/**
+	 * CSS color that will be used when rendering the image produced by
+	 * the IR sensor.
+	 *
+	 * @default "green"
+	 */
 	color?: string;
 }
 

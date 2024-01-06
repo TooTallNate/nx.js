@@ -10,9 +10,7 @@ export interface AmbientLightSensorOptions {
 	 * The desired number of times per second a sample should be taken,
 	 * meaning the number of times per second that the `reading` event
 	 * will be called. A whole number or decimal may be used, the latter
-	 * for frequencies less than a second. The actual reading frequency
-	 * depends on the device hardware and consequently may be less than
-	 * requested.
+	 * for frequencies less than a second.
 	 */
 	frequency?: number;
 }
@@ -47,6 +45,8 @@ export class AmbientLightSensor extends Sensor {
 	}
 
 	/**
+	 * The current light level (in {@link https://wikipedia.org/wiki/Lux | lux}) of the ambient light level around the hosting device.
+	 *
 	 * @see https://developer.mozilla.org/docs/Web/API/AmbientLightSensor/illuminance
 	 */
 	get illuminance() {
@@ -68,8 +68,12 @@ export class AmbientLightSensor extends Sensor {
 	start(): void {
 		const i = _(this);
 		i.timeout = setInterval(() => {
+			const prev = i.illuminance;
 			i.illuminance = $.appletIlluminance();
-			this.dispatchEvent(new Event('reading'));
+			if (i.illuminance !== prev) {
+				i.timestamp = Date.now();
+				this.dispatchEvent(new Event('reading'));
+			}
 		}, 1000 / i.frequency);
 	}
 
