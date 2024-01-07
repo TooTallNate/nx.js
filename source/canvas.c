@@ -2639,7 +2639,7 @@ static const JSCFunctionListEntry init_function_list[] = {
 	JS_CFUNC_DEF("canvasContext2dSetStrokeStyle", 0, nx_canvas_context_2d_set_stroke_style),
 };
 
-void nx_init_canvas(JSContext *ctx, JSValueConst native_obj)
+void nx_init_canvas(JSContext *ctx, JSValueConst init_obj)
 {
 	JSRuntime *rt = JS_GetRuntime(ctx);
 
@@ -2657,5 +2657,5 @@ void nx_init_canvas(JSContext *ctx, JSValueConst native_obj)
 	};
 	JS_NewClass(rt, nx_canvas_context_class_id, &canvas_context_2d_class);
 
-	JS_SetPropertyFunctionList(ctx, native_obj, init_function_list, countof(init_function_list));
+	JS_SetPropertyFunctionList(ctx, init_obj, init_function_list, countof(init_function_list));
 }

@@ -18,4 +18,4 @@ typedef struct
 } nx_font_face_t;
 
 nx_font_face_t *nx_get_font_face(JSContext *ctx, JSValueConst obj);
-void nx_init_font(JSContext *ctx, JSValueConst native_obj);
+void nx_init_font(JSContext *ctx, JSValueConst init_obj);

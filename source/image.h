@@ -25,4 +25,4 @@ typedef struct
 
 nx_image_t *nx_get_image(JSContext *ctx, JSValueConst obj);
 
-void nx_init_image(JSContext *ctx, JSValueConst native_obj);
+void nx_init_image(JSContext *ctx, JSValueConst init_obj);
