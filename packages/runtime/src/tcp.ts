@@ -183,7 +183,7 @@ export class Socket {
 		throw new Error('Method not implemented.');
 	}
 }
-def('Socket', Socket);
+def(Socket);
 
 export class Server extends EventTarget {
 	/**
@@ -225,7 +225,7 @@ export class Server extends EventTarget {
 	close() {}
 }
 $.tcpServerInit(Server);
-def('Server', Server);
+def(Server);
 
 export function createServer(ip: string, port: number) {
 	const server = $.tcpServerNew(ip, port, function onAccept(fd) {

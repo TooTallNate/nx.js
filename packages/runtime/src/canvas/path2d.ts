@@ -658,4 +658,4 @@ export function applyPath(ctx: CanvasRenderingContext2D, path: Path2D) {
 		}
 	}
 }
-def('Path2D', Path2D);
+def(Path2D);

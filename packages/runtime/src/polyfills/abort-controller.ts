@@ -68,5 +68,5 @@ export class AbortController implements globalThis.AbortController {
 	}
 }
 
-def('AbortSignal', AbortSignal);
-def('AbortController', AbortController);
+def(AbortSignal);
+def(AbortController, 'AbortController');

@@ -45,4 +45,4 @@ export class BatteryManager extends EventTarget {
 	}
 }
 $.batteryInitClass(BatteryManager);
-def('BatteryManager', BatteryManager);
+def(BatteryManager);

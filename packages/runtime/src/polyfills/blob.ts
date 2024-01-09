@@ -258,4 +258,4 @@ Object.defineProperties(Blob.prototype, {
 	slice: { enumerable: true },
 });
 
-def('Blob', Blob);
+def(Blob);

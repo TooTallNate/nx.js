@@ -79,7 +79,7 @@ export class FontFaceSet extends EventTarget {
 		return _(this)[Symbol.iterator]();
 	}
 }
-def('FontFaceSet', FontFaceSet);
+def(FontFaceSet);
 
 /**
  * Contains the available fonts for use on the screen Canvas context.
@@ -89,7 +89,7 @@ def('FontFaceSet', FontFaceSet);
  */
 // @ts-expect-error Internal constructor
 export var fonts = new FontFaceSet(INTERNAL_SYMBOL);
-def('fonts', fonts);
+def(fonts, 'fonts');
 
 export function findFont(
 	fontFaceSet: FontFaceSet,

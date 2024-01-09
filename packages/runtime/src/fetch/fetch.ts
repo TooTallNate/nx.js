@@ -283,4 +283,4 @@ export function fetch(input: string | URL | Request, init?: RequestInit) {
 	}
 	return fetcher(req, url);
 }
-def('fetch', fetch);
+def(fetch);

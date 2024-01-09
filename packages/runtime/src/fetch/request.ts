@@ -153,4 +153,4 @@ export class Request extends Body implements globalThis.Request {
 	}
 }
 
-def('Request', Request);
+def(Request);

@@ -43,7 +43,7 @@ export class DOMPointReadOnly implements globalThis.DOMPointReadOnly {
 		return { x: this.x, y: this.y, z: this.z, w: this.w };
 	}
 }
-def('DOMPointReadOnly', DOMPointReadOnly);
+def(DOMPointReadOnly);
 
 /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMPoint) */
 export class DOMPoint extends DOMPointReadOnly implements globalThis.DOMPoint {
@@ -72,4 +72,4 @@ export class DOMPoint extends DOMPointReadOnly implements globalThis.DOMPoint {
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMPoint/z) */
 	z: number;
 }
-def('DOMPoint', DOMPoint);
+def(DOMPoint);

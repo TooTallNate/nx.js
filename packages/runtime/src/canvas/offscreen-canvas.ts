@@ -93,4 +93,4 @@ export class OffscreenCanvas
 	//}
 }
 $.canvasInitClass(OffscreenCanvas);
-def('OffscreenCanvas', OffscreenCanvas);
+def(OffscreenCanvas);

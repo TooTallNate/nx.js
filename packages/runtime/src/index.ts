@@ -70,20 +70,20 @@ export type {
  */
 export type * as WebAssembly from './wasm';
 import * as WebAssembly from './wasm';
-def('WebAssembly', WebAssembly);
+def(WebAssembly, 'WebAssembly');
 
 /**
  * The `Switch` global object contains native interfaces to interact with the Switch hardware.
  */
 export type * as Switch from './switch';
 import * as Switch from './switch';
-def('Switch', Switch);
+def(Switch, 'Switch');
 
-def('console', console);
-def('setTimeout', setTimeout);
-def('setInterval', setInterval);
-def('clearTimeout', clearTimeout);
-def('clearInterval', clearInterval);
+def(console, 'console');
+def(setTimeout);
+def(setInterval);
+def(clearTimeout);
+def(clearInterval);
 
 import './navigator';
 

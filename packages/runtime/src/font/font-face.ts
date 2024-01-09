@@ -58,4 +58,4 @@ export class FontFace implements globalThis.FontFace {
 		throw new Error('Method not implemented.');
 	}
 }
-def('FontFace', FontFace);
+def(FontFace);

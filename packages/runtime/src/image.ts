@@ -126,4 +126,4 @@ export class Image extends EventTarget {
 	setAttribute(name: string, value: string | number) {}
 }
 $.imageInit(Image);
-def('Image', Image);
+def(Image);

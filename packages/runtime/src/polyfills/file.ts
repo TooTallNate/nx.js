@@ -20,4 +20,4 @@ export class File extends Blob implements globalThis.File {
 	}
 }
 
-def('File', File);
+def(File);

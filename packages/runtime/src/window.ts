@@ -26,11 +26,11 @@ export class Window extends EventTarget {
 		super();
 	}
 }
-def('Window', Window);
+def(Window);
 
 export var window: Window & typeof globalThis = globalThis;
-def('window', window);
 Object.setPrototypeOf(window, Window.prototype);
+def(window, 'window');
 
 export function addEventListener(
 	type: 'buttondown',

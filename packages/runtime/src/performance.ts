@@ -26,8 +26,8 @@ export class Performance {
 		return Date.now() - this.timeOrigin;
 	}
 }
-def('Performance', Performance);
+def(Performance);
 
 // @ts-expect-error Internal constructor
 export var performance = new Performance(INTERNAL_SYMBOL);
-def('performance', performance);
+def(performance, 'performance');

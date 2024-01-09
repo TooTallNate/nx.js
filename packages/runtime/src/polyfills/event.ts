@@ -509,9 +509,9 @@ export class PromiseRejectionEvent
 	}
 }
 
-def('Event', Event);
-def('ErrorEvent', ErrorEvent);
-def('PromiseRejectionEvent', PromiseRejectionEvent);
-def('UIEvent', UIEvent);
-def('KeyboardEvent', KeyboardEvent);
-def('TouchEvent', TouchEvent);
+def(Event);
+def(ErrorEvent);
+def(PromiseRejectionEvent);
+def(UIEvent);
+def(KeyboardEvent);
+def(TouchEvent);

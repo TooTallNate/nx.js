@@ -768,4 +768,4 @@ export class CanvasRenderingContext2D {
 	}
 }
 $.canvasContext2dInitClass(CanvasRenderingContext2D);
-def('CanvasRenderingContext2D', CanvasRenderingContext2D);
+def(CanvasRenderingContext2D);

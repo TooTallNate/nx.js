@@ -76,7 +76,7 @@ export class Crypto implements globalThis.Crypto {
 		}) as `${string}-${string}-${string}-${string}-${string}`;
 	}
 }
-def('Crypto', Crypto);
+def(Crypto);
 
 /**
  * The global `crypto` property returns the {@link Crypto} object associated to the global object.
@@ -86,4 +86,4 @@ def('Crypto', Crypto);
  */
 // @ts-expect-error Internal constructor
 export var crypto = new Crypto(INTERNAL_SYMBOL);
-def('crypto', crypto);
+def(crypto, 'crypto');

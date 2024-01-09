@@ -8,9 +8,16 @@ import {
 	type RGBA,
 } from './internal';
 
-export const def = <T>(key: string, value: T) => {
+export const def = <T extends any>(value: T, key?: string) => {
+	if (!key) {
+		key = (value as any).name;
+		if (!key) {
+			throw new Error(`Name not specified`);
+		}
+	}
 	const proto = (value as any).prototype;
-	if (typeof proto === 'object') {
+	const isClass = typeof proto === 'object';
+	if (isClass) {
 		Object.defineProperty(proto, Symbol.toStringTag, {
 			value: key,
 		});

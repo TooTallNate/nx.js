@@ -116,7 +116,7 @@ export class VirtualKeyboard extends EventTarget {
 		onHide(this);
 	}
 }
-def('VirtualKeyboard', VirtualKeyboard);
+def(VirtualKeyboard);
 
 function onHide(k: VirtualKeyboard) {
 	cancelAnimationFrame(id);

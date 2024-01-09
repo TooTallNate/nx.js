@@ -137,7 +137,6 @@ export class TextDecoder implements globalThis.TextDecoder {
 		}
 	}
 }
-
-def('TextDecoder', TextDecoder);
+def(TextDecoder, 'TextDecoder');
 
 export const decoder = new TextDecoder();

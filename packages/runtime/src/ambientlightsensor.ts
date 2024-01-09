@@ -81,4 +81,4 @@ export class AmbientLightSensor extends Sensor {
 		clearInterval(_(this).timeout);
 	}
 }
-def('AmbientLightSensor', AmbientLightSensor);
+def(AmbientLightSensor);

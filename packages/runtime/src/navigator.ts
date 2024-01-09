@@ -185,11 +185,11 @@ export class Navigator {
 		return vk;
 	}
 }
-def('Navigator', Navigator);
+def(Navigator);
 
 // @ts-expect-error Internal constructor
 export var navigator = new Navigator(INTERNAL_SYMBOL);
-def('navigator', navigator);
+def(navigator, 'navigator');
 
 function processVibrations() {
 	let next = state.vibrationPattern?.shift();

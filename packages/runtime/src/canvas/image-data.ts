@@ -46,4 +46,4 @@ export class ImageData implements globalThis.ImageData {
 		this.colorSpace = imageDataSettings?.colorSpace || 'srgb';
 	}
 }
-def('ImageData', ImageData);
+def(ImageData);

@@ -104,4 +104,4 @@ export class Response extends Body implements globalThis.Response {
 		return new Response(JSON.stringify(data), { ...init, headers });
 	}
 }
-def('Response', Response);
+def(Response);

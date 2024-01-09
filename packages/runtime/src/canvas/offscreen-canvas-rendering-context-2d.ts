@@ -766,4 +766,4 @@ export class OffscreenCanvasRenderingContext2D {
 	}
 }
 $.canvasContext2dInitClass(OffscreenCanvasRenderingContext2D);
-def('OffscreenCanvasRenderingContext2D', OffscreenCanvasRenderingContext2D);
+def(OffscreenCanvasRenderingContext2D);

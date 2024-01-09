@@ -172,8 +172,8 @@ export class Screen extends EventTarget implements globalThis.Screen {
 	}
 }
 $.canvasInitClass(Screen);
-def('Screen', Screen);
+def(Screen);
 
 // @ts-expect-error Internal constructor
 export var screen = new Screen(INTERNAL_SYMBOL);
-def('screen', screen);
+def(screen, 'screen');

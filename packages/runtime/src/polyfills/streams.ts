@@ -3,7 +3,7 @@ import * as streams from 'web-streams-polyfill/ponyfill/es2018';
 import type { AbortSignal } from './abort-controller';
 
 for (const k of Object.keys(streams)) {
-	def(k, streams[k as keyof typeof streams]);
+	def(streams[k as keyof typeof streams], k);
 }
 
 export type ReadableStreamController<T> =

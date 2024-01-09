@@ -130,7 +130,7 @@ export class Headers implements globalThis.Headers {
 		return this.entries();
 	}
 }
-def('Headers', Headers);
+def(Headers);
 
 function normalizeName(v: unknown) {
 	const name = typeof v === 'string' ? v : String(v);

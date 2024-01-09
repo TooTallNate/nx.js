@@ -66,7 +66,7 @@ export class DOMRectReadOnly {
 		return new DOMRectReadOnly(o.x, o.y, o.width, o.height);
 	}
 }
-def('DOMRectReadOnly', DOMRectReadOnly);
+def(DOMRectReadOnly);
 
 /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMRect) */
 export class DOMRect extends DOMRectReadOnly {
@@ -87,4 +87,4 @@ export class DOMRect extends DOMRectReadOnly {
 		return new DOMRect(o.x, o.y, o.width, o.height);
 	}
 }
-def('DOMRect', DOMRect);
+def(DOMRect);

@@ -71,4 +71,4 @@ export abstract class Sensor extends EventTarget {
 		super.addEventListener(type, callback, options);
 	}
 }
-def('Sensor', Sensor);
+def(Sensor);

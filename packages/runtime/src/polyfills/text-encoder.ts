@@ -99,7 +99,6 @@ export class TextEncoder implements globalThis.TextEncoder {
 		throw new Error('Method not implemented.');
 	}
 }
-
-def('TextEncoder', TextEncoder);
+def(TextEncoder);
 
 export const encoder = new TextEncoder();

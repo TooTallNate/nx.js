@@ -131,4 +131,4 @@ export class EventTarget {
 		}
 	}
 }
-def('EventTarget', EventTarget);
+def(EventTarget);

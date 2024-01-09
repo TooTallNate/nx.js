@@ -103,4 +103,4 @@ export class FormData implements globalThis.FormData {
 	}
 }
 
-def('FormData', FormData);
+def(FormData);

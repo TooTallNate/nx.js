@@ -40,7 +40,7 @@ export class ImageBitmap implements globalThis.ImageBitmap {
 	}
 }
 $.imageInit(ImageBitmap);
-def('ImageBitmap', ImageBitmap);
+def(ImageBitmap);
 
 export interface ImageBitmapOptions {
 	colorSpaceConversion?: ColorSpaceConversion;
@@ -80,4 +80,4 @@ export async function createImageBitmap(
 ): Promise<ImageBitmap> {
 	throw new Error('Function not implemented');
 }
-def('createImageBitmap', createImageBitmap);
+def(createImageBitmap);
