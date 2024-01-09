@@ -163,7 +163,7 @@ void nx_tcp_connect_cb(nx_poll_t *p, nx_watcher_t *watcher, int revents)
 	else
 	{
 		/* Error during connect. */
-		req->err = errno;
+		req->err = so_error;
 	}
 	req->callback(p, req);
 }
@@ -210,6 +210,7 @@ int nx_tcp_connect(nx_poll_t *p, nx_connect_t *req, const char *ip, int port, nx
 	}
 	errno = 0;
 
+	req->err = 0;
 	req->fd = sockfd;
 	req->events = POLLOUT | POLLERR;
 	req->watcher_callback = nx_tcp_connect_cb;
