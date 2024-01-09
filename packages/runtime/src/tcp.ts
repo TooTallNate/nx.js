@@ -7,7 +7,6 @@ import {
 	assertInternalConstructor,
 	bufferSourceToArrayBuffer,
 	createInternal,
-	def,
 	toPromise,
 } from './utils';
 import type { BufferSource } from './types';
@@ -183,7 +182,6 @@ export class Socket {
 		throw new Error('Method not implemented.');
 	}
 }
-def(Socket);
 
 export class Server extends EventTarget {
 	/**
@@ -225,7 +223,6 @@ export class Server extends EventTarget {
 	close() {}
 }
 $.tcpServerInit(Server);
-def(Server);
 
 export function createServer(ip: string, port: number) {
 	const server = $.tcpServerNew(ip, port, function onAccept(fd) {
