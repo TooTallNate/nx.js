@@ -134,6 +134,10 @@ export type * from './canvas/offscreen-canvas';
 import './canvas/offscreen-canvas-rendering-context-2d';
 export type * from './canvas/offscreen-canvas-rendering-context-2d';
 
+import './audio/audio-context';
+export type * from './audio/base-audio-context';
+export type * from './audio/audio-context';
+
 import './ambientlightsensor';
 export type * from './ambientlightsensor';
 

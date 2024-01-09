@@ -11,6 +11,7 @@
 #include "account.h"
 #include "applet.h"
 #include "async.h"
+#include "audren.h"
 #include "battery.h"
 #include "crypto.h"
 #include "dns.h"
@@ -539,6 +540,7 @@ int main(int argc, char *argv[])
 	JSValue init_obj = JS_NewObject(ctx);
 	nx_init_account(ctx, init_obj);
 	nx_init_applet(ctx, init_obj);
+	nx_init_audren(ctx, init_obj);
 	nx_init_battery(ctx, init_obj);
 	nx_init_canvas(ctx, init_obj);
 	nx_init_crypto(ctx, init_obj);
