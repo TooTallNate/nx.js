@@ -16,16 +16,16 @@ export const def = <T extends any>(value: T, key?: string) => {
 		}
 	}
 	const proto = (value as any).prototype;
-	const isClass = typeof proto === 'object';
+	const isClass = key[0] === key[0].toUpperCase();
 	if (isClass) {
-		Object.defineProperty(proto, Symbol.toStringTag, {
+		Object.defineProperty(proto || value, Symbol.toStringTag, {
 			value: key,
 		});
 	}
 	Object.defineProperty(globalThis, key, {
 		value,
 		writable: true,
-		enumerable: false,
+		enumerable: !isClass,
 		configurable: true,
 	});
 	return value;

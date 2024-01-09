@@ -3,6 +3,14 @@ import * as assert from 'uvu/assert';
 
 const test = suite('WebAssembly');
 
+test('WebAssembly namespace', () => {
+	const desc = Object.getOwnPropertyDescriptor(globalThis, 'WebAssembly')!;
+	assert.equal(desc.writable, true);
+	assert.equal(desc.enumerable, false);
+	assert.equal(desc.configurable, true);
+	assert.equal(Object.prototype.toString.call(WebAssembly), '[object WebAssembly]');
+});
+
 test('simple.wasm', async () => {
 	const bin = await Switch.readFile(
 		new URL('wasm/simple.wasm', Switch.entrypoint)
