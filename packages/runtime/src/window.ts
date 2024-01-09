@@ -113,6 +113,12 @@ export function addEventListener(
 	type: string,
 	callback: EventListenerOrEventListenerObject | null,
 	options?: AddEventListenerOptions | boolean
+): void;
+
+export function addEventListener(
+	type: string,
+	callback: EventListenerOrEventListenerObject | null,
+	options?: AddEventListenerOptions | boolean
 ): void {
 	if (type === 'keydown' || type === 'keyup') {
 		initKeyboard();
