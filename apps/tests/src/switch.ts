@@ -3,6 +3,14 @@ import * as assert from 'uvu/assert';
 
 const test = suite('Switch');
 
+test('Switch namespace', () => {
+	const desc = Object.getOwnPropertyDescriptor(globalThis, 'Switch')!;
+	assert.equal(desc.writable, true);
+	assert.equal(desc.enumerable, false);
+	assert.equal(desc.configurable, true);
+	assert.equal(Object.prototype.toString.call(Switch), '[object Switch]');
+});
+
 test('`Switch.entrypoint` is a string', () => {
 	assert.type(Switch.entrypoint, 'string');
 	assert.ok(Switch.entrypoint.length > 0);

@@ -3,6 +3,14 @@ import * as assert from 'uvu/assert';
 
 const test = suite('fetch');
 
+test('fetch global', () => {
+	const desc = Object.getOwnPropertyDescriptor(globalThis, 'fetch')!;
+	assert.equal(desc.writable, true);
+	assert.equal(desc.enumerable, true);
+	assert.equal(desc.configurable, true);
+	assert.equal(Object.prototype.toString.call(fetch), '[object Function]');
+});
+
 test('Request - no `body` for `GET`', () => {
 	let err: Error | undefined;
 	try {
