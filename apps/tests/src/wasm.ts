@@ -8,7 +8,10 @@ test('WebAssembly namespace', () => {
 	assert.equal(desc.writable, true);
 	assert.equal(desc.enumerable, false);
 	assert.equal(desc.configurable, true);
-	assert.equal(Object.prototype.toString.call(WebAssembly), '[object WebAssembly]');
+	assert.equal(
+		Object.prototype.toString.call(WebAssembly),
+		'[object WebAssembly]'
+	);
 });
 
 test('simple.wasm', async () => {
