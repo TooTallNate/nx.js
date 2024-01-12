@@ -38,13 +38,14 @@ include $(DEVKITPRO)/libnx/switch_rules
 #   NACP building is skipped as well.
 #---------------------------------------------------------------------------------
 APP_TITLE   :=  nx.js
+APP_TITLEID :=  0106f2502c7b0000
+APP_VERSION :=  `jq -r .version < ../packages/runtime/package.json`
 TARGET		:=	nxjs
 BUILD		:=	build
 SOURCES		:=	source
 DATA		:=	data
 INCLUDES	:=	include
 ROMFS		:=	romfs
-APP_VERSION :=  `jq -r .version < ../packages/runtime/package.json`
 
 #---------------------------------------------------------------------------------
 # options for code generation
