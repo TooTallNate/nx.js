@@ -23,7 +23,8 @@ const packageRoot = new URL(`${pathToFileURL(cwd)}/`);
 // be embedded in the NACP section of the output `.nro` file
 const packageJsonUrl = new URL('package.json', packageRoot);
 const packageJsonStr = readFileSync(packageJsonUrl, 'utf8');
-const packageJson: PackageJson = JSON.parse(packageJsonStr);
+const packageJson: PackageJson & { titleId?: string } =
+	JSON.parse(packageJsonStr);
 const { name, version, author: rawAuthor } = packageJson;
 const author =
 	typeof rawAuthor === 'string' ? parseAuthor(rawAuthor) : rawAuthor;
@@ -65,6 +66,10 @@ try {
 const nacp = new NACP(await nxjsNro.nacp!.arrayBuffer());
 console.log();
 console.log(chalk.bold('Setting metadata:'));
+if (packageJson.titleId) {
+	nacp.id = packageJson.titleId;
+	console.log(`  ID: ${chalk.green(nacp.id.toString(16))}`);
+}
 console.log(
 	`  Title: ${chalk.strikethrough.red(nacp.title)} → ${chalk.green(name)}`
 );
