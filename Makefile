@@ -39,6 +39,7 @@ include $(DEVKITPRO)/libnx/switch_rules
 #---------------------------------------------------------------------------------
 APP_TITLE   :=  nx.js
 APP_TITLEID :=  0106f2502c7b0000
+APP_AUTHOR  :=  TooTallNate
 APP_VERSION :=  `jq -r .version < ../packages/runtime/package.json`
 TARGET		:=	nxjs
 BUILD		:=	build
