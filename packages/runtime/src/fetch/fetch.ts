@@ -230,11 +230,14 @@ async function fetchFile(req: Request, url: URL) {
 	const path = url.protocol === 'file:' ? `sdmc:${url.pathname}` : url.href;
 	// TODO: Use streaming FS interface
 	const data = await readFile(path);
-	return new Response(data, {
-		headers: {
-			'content-length': String(data.byteLength),
-		},
-	});
+	const headers = new Headers();
+	let status = 200;
+	if (data) {
+		headers.set('content-length', String(data.byteLength));
+	} else {
+		status = 404;
+	}
+	return new Response(data, { status, headers });
 }
 
 const fetchers = new Map<string, (req: Request, url: URL) => Promise<Response>>(

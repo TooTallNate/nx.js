@@ -109,12 +109,15 @@ export interface Init {
 	getSystemFont(): ArrayBuffer;
 
 	// fs.c
-	readFile(cb: Callback<ArrayBuffer>, path: string): void;
-	readDirSync(path: string): string[];
-	readFileSync(path: string): ArrayBuffer;
-	writeFileSync(path: string, data: ArrayBuffer): void;
+	mkdirSync(path: string, mode: number): number;
+	readDirSync(path: string): string[] | null;
+	readFile(cb: Callback<ArrayBuffer | null>, path: string): void;
+	readFileSync(path: string): ArrayBuffer | null;
 	remove(cb: Callback<void>, path: string): void;
-	stat(cb: Callback<Stats>, path: string): void;
+	removeSync(path: string): void;
+	stat(cb: Callback<Stats | null>, path: string): void;
+	statSync(path: string): Stats | null;
+	writeFileSync(path: string, data: ArrayBuffer): void;
 
 	// image.c
 	imageInit(c: ClassOf<Image | ImageBitmap>): void;

@@ -51,25 +51,31 @@ function filenameToTracer(filename: string) {
 	tracer = null;
 
 	const contentsBuffer = readFileSync(filename);
-	const contents = new TextDecoder().decode(contentsBuffer).trimEnd();
-	const lastNewline = contents.lastIndexOf('\n');
-	const lastLine = contents.slice(lastNewline + 1);
-	if (lastLine.startsWith(SOURCE_MAPPING_URL_PREFIX)) {
-		const sourceMappingURL = lastLine.slice(
-			SOURCE_MAPPING_URL_PREFIX.length
-		);
-		let sourceMapBuffer: ArrayBuffer;
-		if (sourceMappingURL.startsWith('data:')) {
-			sourceMapBuffer = dataUriToBuffer(sourceMappingURL).buffer;
-		} else {
-			sourceMapBuffer = readFileSync(new URL(sourceMappingURL, filename));
+	if (contentsBuffer) {
+		const contents = new TextDecoder().decode(contentsBuffer).trimEnd();
+		const lastNewline = contents.lastIndexOf('\n');
+		const lastLine = contents.slice(lastNewline + 1);
+		if (lastLine.startsWith(SOURCE_MAPPING_URL_PREFIX)) {
+			const sourceMappingURL = lastLine.slice(
+				SOURCE_MAPPING_URL_PREFIX.length
+			);
+			let sourceMapBuffer: ArrayBuffer | null;
+			if (sourceMappingURL.startsWith('data:')) {
+				sourceMapBuffer = dataUriToBuffer(sourceMappingURL).buffer;
+			} else {
+				sourceMapBuffer = readFileSync(
+					new URL(sourceMappingURL, filename)
+				);
+			}
+			if (sourceMapBuffer) {
+				const sourceMap: EncodedSourceMap = JSON.parse(
+					new TextDecoder().decode(sourceMapBuffer)
+				);
+				tracer = new TraceMap(sourceMap);
+			}
 		}
-		const sourceMap: EncodedSourceMap = JSON.parse(
-			new TextDecoder().decode(sourceMapBuffer)
-		);
-		tracer = new TraceMap(sourceMap);
+		sourceMapCache.set(filename, tracer);
 	}
-	sourceMapCache.set(filename, tracer);
 	return tracer;
 }
 
