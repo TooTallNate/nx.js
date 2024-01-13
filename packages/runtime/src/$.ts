@@ -3,6 +3,7 @@ import type {
 	IRSensor,
 	NetworkInfo,
 	Profile,
+	ProfileUid,
 	Stats,
 	Versions,
 } from './switch';
@@ -118,6 +119,12 @@ export interface Init {
 	stat(cb: Callback<Stats | null>, path: string): void;
 	statSync(path: string): Stats | null;
 	writeFileSync(path: string, data: ArrayBuffer): void;
+
+	// fsdev.c
+	fsdevCommitDevice(name: string): void;
+	fsdevCreateSaveData(nacp: ArrayBuffer, uid: ProfileUid): void;
+	fsdevMountSaveData(name: string, nacp: ArrayBuffer, uid: ProfileUid): void;
+	fsdevUnmountDevice(name: string): void;
 
 	// image.c
 	imageInit(c: ClassOf<Image | ImageBitmap>): void;

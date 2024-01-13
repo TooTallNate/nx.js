@@ -1,5 +1,7 @@
 import { $ } from '../$';
 import { assertInternalConstructor, stub } from '../utils';
+import { FsDev } from './fsdev';
+import type { Profile } from './profile';
 
 let init = false;
 
@@ -50,6 +52,47 @@ export class Application {
 	 */
 	launch(): never {
 		stub();
+	}
+
+	/**
+	 * Creates the Save Data for this {@link Application} for the provided user profile.
+	 *
+	 * @example
+	 *
+	 * ```typescript
+	 * const profile = Switch.currentProfile({ required: true });
+	 * app.createSaveData(profile);
+	 * ```
+	 *
+	 * @param profile The {@link Profile} to create the save data for.
+	 */
+	createSaveData(profile: Profile) {
+		$.fsdevCreateSaveData(this.nacp, profile.uid);
+	}
+
+	/**
+	 * Mounts the save data for this application such that filesystem operations may be used.
+	 *
+	 * @example
+	 *
+	 * ```typescript
+	 * const profile = Switch.currentProfile({ required: true });
+	 * const device = app.mountSaveData('save', profile);
+	 *
+	 * // Use the filesystem functions to do operations on the save mount
+	 * console.log(Switch.readDirSync('save:/'));
+	 *
+	 * // Make sure to use `device.commit()` after any write operations
+	 * Switch.writeFileSync('save:/state', 'your app state…');
+	 * device.commit();
+	 * ```
+	 *
+	 * @param name The name of the device mount for filesystem paths.
+	 * @param profile The {@link Profile} which the save data belongs to.
+	 */
+	mountSaveData(name: string, profile: Profile) {
+		$.fsdevMountSaveData(name, this.nacp, profile.uid);
+		return new FsDev(name);
 	}
 }
 $.nsAppInit(Application);
