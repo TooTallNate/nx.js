@@ -515,7 +515,7 @@ JSValue nx_remove(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst 
 
 JSValue nx_remove_sync(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	const char *path = JS_ToCString(ctx, argv[1]);
+	const char *path = JS_ToCString(ctx, argv[0]);
 	if (!path)
 		return JS_EXCEPTION;
 	int result = removeDirectory(path);
