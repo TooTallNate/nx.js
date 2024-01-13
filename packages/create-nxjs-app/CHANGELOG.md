@@ -1,5 +1,13 @@
 # create-nxjs-app
 
+## 0.0.27
+
+### Patch Changes
+
+- Set random `titleId` property in generated application ([`393efbc07568393a79ce7f2135addd9c2e8e615b`](https://github.com/TooTallNate/nx.js/commit/393efbc07568393a79ce7f2135addd9c2e8e615b))
+
+- Add support for `bun` as a package manager ([#76](https://github.com/TooTallNate/nx.js/pull/76))
+
 ## 0.0.26
 
 ### Patch Changes

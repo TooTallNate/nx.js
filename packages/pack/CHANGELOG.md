@@ -1,5 +1,13 @@
 # nxjs-pack
 
+## 0.0.27
+
+### Patch Changes
+
+- Inject the `titleId` property from `package.json` into the packed NRO file ([`553231b87558f86eaa1a52c0eded6ce4d4031aee`](https://github.com/TooTallNate/nx.js/commit/553231b87558f86eaa1a52c0eded6ce4d4031aee))
+
+- Add `.nacp` file to RomFS for usage with `localStorage` ([`9f0375db5870c9cf6f46bba4f138181edd3c8c1f`](https://github.com/TooTallNate/nx.js/commit/9f0375db5870c9cf6f46bba4f138181edd3c8c1f))
+
 ## 0.0.26
 
 ### Patch Changes

@@ -1,5 +1,36 @@
 # nxjs-runtime
 
+## 0.0.27
+
+### Patch Changes
+
+- Remove `Socket` and `Server` from global scope ([`b0a4fa4509427f3c689839070afdfe2a9f49050e`](https://github.com/TooTallNate/nx.js/commit/b0a4fa4509427f3c689839070afdfe2a9f49050e))
+
+- Set a default Title ID on the `nxjs.nro` file ([`b9e48e66e991cbdee98dd37e51a560d620addd06`](https://github.com/TooTallNate/nx.js/commit/b9e48e66e991cbdee98dd37e51a560d620addd06))
+
+- Add `Application#createSaveData()` and `Application#mountSaveData()` ([`8faad62abf1d58d42b425827f23b4fadf40d27d9`](https://github.com/TooTallNate/nx.js/commit/8faad62abf1d58d42b425827f23b4fadf40d27d9))
+
+- Fix global `addEventListener()` generic fallback type ([`4cd1854360689a19509d09f2e91b11a32f639a28`](https://github.com/TooTallNate/nx.js/commit/4cd1854360689a19509d09f2e91b11a32f639a28))
+
+- Overhaul filesystem operations: ([`14657f0f6d14c411bfe050e51e3a8a245fcd9af2`](https://github.com/TooTallNate/nx.js/commit/14657f0f6d14c411bfe050e51e3a8a245fcd9af2))
+
+  - Added `Switch.mkdirSync()`, `Switch.removeSync()`, `Switch.statSync()`
+  - Read operations return `null` for `ENOENT`, instead of throwing an error
+  - `Switch.remove()` and `Switch.removeSync()` work with directories, and delete recursively
+  - `Switch.writeFileSync()` creates parent directories recursively as needed
+
+- Add `Switch.profiles`, `Switch.currentProfile()`, `Switch.selectProfile()` ([#77](https://github.com/TooTallNate/nx.js/pull/77))
+
+- Set the proper byte length of the `Application#icon` ([`4bb8a5c7b77e27d0be8123cb1934814a0a89f85b`](https://github.com/TooTallNate/nx.js/commit/4bb8a5c7b77e27d0be8123cb1934814a0a89f85b))
+
+- Mark `Switch` and `WebAssembly` namespaces as non-enumerable ([`055c9f3b0b2ac35536604aa2dcb1efb6cf399bad`](https://github.com/TooTallNate/nx.js/commit/055c9f3b0b2ac35536604aa2dcb1efb6cf399bad))
+
+- Fix successful TCP connect ([`43190bbf5b127b179dabc30ac86038005350ca5e`](https://github.com/TooTallNate/nx.js/commit/43190bbf5b127b179dabc30ac86038005350ca5e))
+
+- Declare globals with `var` instead of `const` to make them visible on `globalThis` ([`e6e1cb042ba030acf362f90efd350ae186622fda`](https://github.com/TooTallNate/nx.js/commit/e6e1cb042ba030acf362f90efd350ae186622fda))
+
+- Add `required: true` option to `Switch.currentProfile()`, and cache result for future calls ([`0f84ee1b4d823bac57de2e6c163d43917cc4757d`](https://github.com/TooTallNate/nx.js/commit/0f84ee1b4d823bac57de2e6c163d43917cc4757d))
+
 ## 0.0.26
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "nxjs-pack",
-  "version": "0.0.26",
+  "version": "0.0.27",
   "description": "Package nx.js applications into a `.nro` file",
   "bin": "./dist/nxjs-pack.js",
   "type": "module",
