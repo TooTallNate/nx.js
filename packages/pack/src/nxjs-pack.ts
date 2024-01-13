@@ -70,7 +70,7 @@ if (titleId) nacp.id = titleId;
 if (name) nacp.title = name;
 if (version) nacp.version = version;
 if (author?.name) nacp.author = author.name;
-console.log(`  ID: ${chalk.green(nacp.id.toString(16))}`);
+console.log(`  ID: ${chalk.green(nacp.id.toString(16).padStart(16, '0'))}`);
 console.log(`  Title: ${chalk.green(nacp.title)}`);
 console.log(`  Version: ${chalk.green(nacp.version)}`);
 console.log(`  Author: ${chalk.green(nacp.author)}`);
