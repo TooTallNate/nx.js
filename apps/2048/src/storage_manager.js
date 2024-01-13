@@ -1,14 +1,12 @@
-const stateUrl = new URL('2048_state.json', Switch.argv[0] || 'sdmc:/');
+const key = '2048_state.json';
 
 export class StorageManager {
 	constructor() {
 		let saved;
 		try {
-			saved = JSON.parse(
-				new TextDecoder().decode(Switch.readFileSync(stateUrl))
-			);
+			saved = JSON.parse(localStorage.getItem(key));
 		} catch (err) {
-			// ignore
+			console.debug('Error reading save data:', err);
 		}
 		this.bestScore = saved?.bestScore ?? 0;
 		this.gameState = saved?.gameState ?? null;
@@ -34,10 +32,6 @@ export class StorageManager {
 		this.gameState = null;
 	}
 	onExit() {
-		try {
-			Switch.writeFileSync(stateUrl, JSON.stringify(this));
-		} catch (err) {
-			// ignore
-		}
+		localStorage.setItem(key, JSON.stringify(this));
 	}
 }
