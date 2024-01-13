@@ -103,6 +103,7 @@ test('`Switch.readFile()` rejects when attempting to read a directory', async ()
 
 test('`Switch.stat()` returns file information', async () => {
 	const stat = await Switch.stat(Switch.entrypoint);
+	assert.ok(stat);
 	assert.ok(stat.size > 0);
 });
 
