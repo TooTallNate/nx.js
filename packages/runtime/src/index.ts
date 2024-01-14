@@ -60,6 +60,9 @@ export type {
 	cancelAnimationFrame,
 } from './raf';
 
+import './storage';
+export type * from './storage';
+
 /**
  * The `WebAssembly` JavaScript object acts as the namespace for all
  * {@link https://developer.mozilla.org/docs/WebAssembly | WebAssembly}-related functionality.

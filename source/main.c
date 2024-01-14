@@ -19,6 +19,7 @@
 #include "canvas.h"
 #include "font.h"
 #include "fs.h"
+#include "fsdev.h"
 #include "irs.h"
 #include "nifm.h"
 #include "ns.h"
@@ -548,6 +549,7 @@ int main(int argc, char *argv[])
 	nx_init_error(ctx, init_obj);
 	nx_init_font(ctx, init_obj);
 	nx_init_fs(ctx, init_obj);
+	nx_init_fsdev(ctx, init_obj);
 	nx_init_image(ctx, init_obj);
 	nx_init_irs(ctx, init_obj);
 	nx_init_nifm(ctx, init_obj);

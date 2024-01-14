@@ -23,8 +23,9 @@ const packageRoot = new URL(`${pathToFileURL(cwd)}/`);
 // be embedded in the NACP section of the output `.nro` file
 const packageJsonUrl = new URL('package.json', packageRoot);
 const packageJsonStr = readFileSync(packageJsonUrl, 'utf8');
-const packageJson: PackageJson = JSON.parse(packageJsonStr);
-const { name, version, author: rawAuthor } = packageJson;
+const packageJson: PackageJson & { titleId?: string } =
+	JSON.parse(packageJsonStr);
+const { titleId, name, version, author: rawAuthor } = packageJson;
 const author =
 	typeof rawAuthor === 'string' ? parseAuthor(rawAuthor) : rawAuthor;
 
@@ -65,30 +66,14 @@ try {
 const nacp = new NACP(await nxjsNro.nacp!.arrayBuffer());
 console.log();
 console.log(chalk.bold('Setting metadata:'));
-console.log(
-	`  Title: ${chalk.strikethrough.red(nacp.title)} → ${chalk.green(name)}`
-);
-nacp.title = name;
-if (version) {
-	console.log(
-		`  Version: ${chalk.strikethrough.red(nacp.version)} → ${chalk.green(
-			version
-		)}`
-	);
-	nacp.version = version;
-} else {
-	console.log(`  Version: ${chalk.green(nacp.version)}`);
-}
-if (author?.name) {
-	console.log(
-		`  Author: ${chalk.strikethrough.red(nacp.author)} → ${chalk.green(
-			author
-		)}`
-	);
-	nacp.author = author.name;
-} else {
-	console.log(`  Author: ${chalk.green(nacp.author)}`);
-}
+if (titleId) nacp.id = titleId;
+if (name) nacp.title = name;
+if (version) nacp.version = version;
+if (author?.name) nacp.author = author.name;
+console.log(`  ID: ${chalk.green(nacp.id.toString(16).padStart(16, '0'))}`);
+console.log(`  Title: ${chalk.green(nacp.title)}`);
+console.log(`  Version: ${chalk.green(nacp.version)}`);
+console.log(`  Author: ${chalk.green(nacp.author)}`);
 
 // RomFS
 const romfsDir = new URL('romfs/', packageRoot);
@@ -128,6 +113,10 @@ try {
 	// Don't crash if there is no `romfs` directory
 	if (err.code !== 'ENOENT') throw err;
 }
+
+// Store the app's NACP file into the RomFS, since I don't
+// know how to reliably get it at runtime using libnx APIs
+romfs['.nacp'] = new Blob([nacp.buffer]);
 
 const outputNroName = `${name}.nro`;
 

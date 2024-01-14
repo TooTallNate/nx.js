@@ -10,6 +10,15 @@ import { fileURLToPath, pathToFileURL } from 'url';
 import * as clack from '@clack/prompts';
 import type { PackageJson } from 'types-package-json';
 
+function generateRandomID() {
+	let titleId = '01';
+	for (let i = 0; i < 10; i++) {
+		titleId += Math.floor(Math.random() * 16).toString(16);
+	}
+	titleId += '0000';
+	return titleId;
+}
+
 async function hasPackageManager(name: string) {
 	const p = await which(name, { nothrow: true });
 	return p ? name : null;
@@ -121,7 +130,7 @@ try {
 	// Patch the `package.json` file with the app name, and update any
 	// dependencies that use "workspace:" in the version to the actual version
 	const packageJsonUrl = new URL('package.json', appDir);
-	const packageJson: PackageJson = JSON.parse(
+	const packageJson: PackageJson & { titleId?: string } = JSON.parse(
 		await fs.readFile(packageJsonUrl, 'utf8')
 	);
 	packageJson.name = appName;
@@ -130,7 +139,14 @@ try {
 	removeWorkspace(packageJson.devDependencies);
 	await fs.writeFile(
 		packageJsonUrl,
-		`${JSON.stringify(packageJson, null, 2)}\n`
+		`${JSON.stringify(
+			{
+				titleId: generateRandomID(),
+				...packageJson,
+			},
+			null,
+			2
+		)}\n`
 	);
 
 	// Install dependencies

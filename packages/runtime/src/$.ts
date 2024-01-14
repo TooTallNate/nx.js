@@ -3,6 +3,7 @@ import type {
 	IRSensor,
 	NetworkInfo,
 	Profile,
+	ProfileUid,
 	Stats,
 	Versions,
 } from './switch';
@@ -112,12 +113,21 @@ export interface Init {
 	getSystemFont(): ArrayBuffer;
 
 	// fs.c
-	readFile(cb: Callback<ArrayBuffer>, path: string): void;
-	readDirSync(path: string): string[];
-	readFileSync(path: string): ArrayBuffer;
-	writeFileSync(path: string, data: ArrayBuffer): void;
+	mkdirSync(path: string, mode: number): number;
+	readDirSync(path: string): string[] | null;
+	readFile(cb: Callback<ArrayBuffer | null>, path: string): void;
+	readFileSync(path: string): ArrayBuffer | null;
 	remove(cb: Callback<void>, path: string): void;
-	stat(cb: Callback<Stats>, path: string): void;
+	removeSync(path: string): void;
+	stat(cb: Callback<Stats | null>, path: string): void;
+	statSync(path: string): Stats | null;
+	writeFileSync(path: string, data: ArrayBuffer): void;
+
+	// fsdev.c
+	fsdevCommitDevice(name: string): void;
+	fsdevCreateSaveData(nacp: ArrayBuffer, uid: ProfileUid): void;
+	fsdevMountSaveData(name: string, nacp: ArrayBuffer, uid: ProfileUid): void;
+	fsdevUnmountDevice(name: string): void;
 
 	// image.c
 	imageInit(c: ClassOf<Image | ImageBitmap>): void;

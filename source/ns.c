@@ -54,7 +54,8 @@ static JSValue nx_ns_application_record(JSContext *ctx, JSValueConst this_val, i
 		return JS_EXCEPTION;
 	}
 	JS_SetPropertyStr(ctx, val, "nacp", JS_NewArrayBufferCopy(ctx, (const uint8_t *)&controlData.nacp, sizeof(controlData.nacp)));
-	JS_SetPropertyStr(ctx, val, "icon", JS_NewArrayBufferCopy(ctx, (const uint8_t *)&controlData.icon, sizeof(controlData.icon)));
+	size_t iconSize = outSize - sizeof(controlData.nacp);
+	JS_SetPropertyStr(ctx, val, "icon", JS_NewArrayBufferCopy(ctx, (const uint8_t *)&controlData.icon, iconSize));
 
 	NacpLanguageEntry *langEntry;
 	rc = nacpGetLanguageEntry(&controlData.nacp, &langEntry);

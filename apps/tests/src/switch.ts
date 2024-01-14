@@ -41,14 +41,16 @@ test('`Switch.readDirSync()` works on `romfs:/` path', () => {
 	assert.ok(files.length > 0);
 });
 
-test('`Switch.readDirSync()` throws error when directory does not exist', () => {
-	let err: Error | undefined;
-	try {
-		Switch.readDirSync('romfs:/__does_not_exist__');
-	} catch (_err) {
-		err = _err as Error;
-	}
-	assert.ok(err);
+test('`Switch.readFileSync()` returns `null` when file does not exist', () => {
+	assert.equal(Switch.readFileSync('romfs:/__does_not_exist__'), null);
+});
+
+test('`Switch.readDirSync()` returns `null` when directory does not exist', () => {
+	assert.equal(Switch.readDirSync('romfs:/__does_not_exist__'), null);
+});
+
+test('`Switch.statSync()` returns `null` when file does not exist', () => {
+	assert.equal(Switch.statSync('romfs:/__does_not_exist__'), null);
 });
 
 test('`Switch.resolveDns()` works', async () => {
@@ -101,6 +103,7 @@ test('`Switch.readFile()` rejects when attempting to read a directory', async ()
 
 test('`Switch.stat()` returns file information', async () => {
 	const stat = await Switch.stat(Switch.entrypoint);
+	assert.ok(stat);
 	assert.ok(stat.size > 0);
 });
 

@@ -9,6 +9,8 @@ function _init() {
 	init = true;
 }
 
+export type ProfileUid = [bigint, bigint];
+
 /**
  * Represents a user profile that exists on the system.
  */
@@ -16,7 +18,7 @@ export class Profile {
 	/**
 	 * The unique ID of the profile, represented as an array of two `bigint` values.
 	 */
-	declare readonly uid: [bigint, bigint];
+	declare readonly uid: ProfileUid;
 
 	/**
 	 * The human readable nickname of the profile.
@@ -37,14 +39,27 @@ export class Profile {
 }
 $.accountProfileInit(Profile);
 
+let p: Profile | null = null;
+
+export interface CurrentProfileOptions {
+	required?: boolean;
+}
+
 /**
  * Return a {@link Profile} instance if there was a preselected user
  * when launching the application, or `null` if there was none.
+ *
+ * If `required: true` is set and there was no preselected user, then
+ * the user selection interface will be shown to allow the user to
+ * select a profile. Subsequent calls to `currentProfile()` will
+ * return the selected profile without user interaction.
  */
-export function currentProfile() {
+export function currentProfile({ required }: CurrentProfileOptions = {}) {
 	_init();
-	const p = $.accountCurrentProfile();
+	if (p) return p;
+	p = $.accountCurrentProfile();
 	if (p) Object.setPrototypeOf(p, Profile.prototype);
+	while (!p && required) p = selectProfile();
 	return p;
 }
 
