@@ -1,0 +1,16 @@
+{
+  "name": "audio",
+  "version": "0.0.0",
+  "private": true,
+  "description": "nx.js example which outputs audio using the Web Audio API",
+  "scripts": {
+    "build": "esbuild --bundle --sourcemap --sources-content=false --target=es2022 --format=esm src/main.js --outfile=romfs/main.js",
+    "nro": "nxjs-pack"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "esbuild": "^0.17.19",
+    "nxjs-pack": "workspace:^",
+    "nxjs-runtime": "workspace:^"
+  }
+}

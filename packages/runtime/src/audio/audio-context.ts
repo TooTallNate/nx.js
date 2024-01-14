@@ -1,7 +1,10 @@
-import { INTERNAL_SYMBOL } from '../internal';
 import { def } from '../utils';
+import { INTERNAL_SYMBOL } from '../internal';
 import { BaseAudioContext } from './base-audio-context';
 
+/**
+ * @see https://developer.mozilla.org/docs/Web/API/AudioContext
+ */
 export class AudioContext
 	extends BaseAudioContext
 	implements globalThis.AudioContext
@@ -14,7 +17,13 @@ export class AudioContext
 		this.baseLatency = 0;
 		this.outputLatency = 0;
 	}
-	close(): Promise<void> {
+	async close(): Promise<void> {
+		throw new Error('Method not implemented.');
+	}
+	async resume(): Promise<void> {
+		throw new Error('Method not implemented.');
+	}
+	async suspend(): Promise<void> {
 		throw new Error('Method not implemented.');
 	}
 	createMediaElementSource(
@@ -31,12 +40,6 @@ export class AudioContext
 		throw new Error('Method not implemented.');
 	}
 	getOutputTimestamp(): AudioTimestamp {
-		throw new Error('Method not implemented.');
-	}
-	resume(): Promise<void> {
-		throw new Error('Method not implemented.');
-	}
-	suspend(): Promise<void> {
 		throw new Error('Method not implemented.');
 	}
 }

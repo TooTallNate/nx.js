@@ -4,18 +4,26 @@ import { EventTarget } from '../polyfills/event-target';
 import { assertInternalConstructor, createInternal, def } from '../utils';
 import { AudioBuffer } from './audio-buffer';
 import { AudioDestinationNode } from './audio-destination-node';
+import { AudioBufferSourceNode } from './audio-buffer-source-node';
+import type { AudioContextState } from '../types';
 
 interface BaseAudioContextInternal {
+	sampleRate: number;
+	state: AudioContextState;
 	destination?: AudioDestinationNode;
 }
 
 const _ = createInternal<BaseAudioContext, BaseAudioContextInternal>();
 
+/**
+ * @see https://developer.mozilla.org/docs/Web/API/BaseAudioContext
+ */
 export class BaseAudioContext
 	extends EventTarget
 	implements globalThis.BaseAudioContext
 {
 	onstatechange: ((this: BaseAudioContext, ev: Event) => any) | null;
+
 	/**
 	 * @ignore
 	 */
@@ -23,7 +31,12 @@ export class BaseAudioContext
 		assertInternalConstructor(arguments);
 		super();
 		this.onstatechange = null;
+		_.set(this, {
+			sampleRate: 48000,
+			state: 'running',
+		});
 	}
+
 	get audioWorklet(): AudioWorklet {
 		throw new Error('Method not implemented.');
 	}
@@ -42,12 +55,25 @@ export class BaseAudioContext
 	get listener(): AudioListener {
 		throw new Error('Method not implemented.');
 	}
+
+	/**
+	 * A floating point number indicating the audio context's sample rate, in samples per second.
+	 *
+	 * @see https://developer.mozilla.org/docs/Web/API/BaseAudioContext/sampleRate
+	 */
 	get sampleRate(): number {
-		throw new Error('Method not implemented.');
+		return _(this).sampleRate;
 	}
+
+	/**
+	 * Read-only property representing the current state of the audio context.
+	 *
+	 * @see https://developer.mozilla.org/docs/Web/API/BaseAudioContext/state
+	 */
 	get state(): AudioContextState {
-		throw new Error('Method not implemented.');
+		return _(this).state;
 	}
+
 	createAnalyser(): AnalyserNode {
 		throw new Error('Method not implemented.');
 	}
@@ -62,7 +88,7 @@ export class BaseAudioContext
 		return new AudioBuffer({ numberOfChannels, length, sampleRate });
 	}
 	createBufferSource(): AudioBufferSourceNode {
-		throw new Error('Method not implemented.');
+		return new AudioBufferSourceNode(this);
 	}
 	createChannelMerger(
 		numberOfInputs?: number | undefined
@@ -106,12 +132,12 @@ export class BaseAudioContext
 	createPeriodicWave(
 		real: number[] | Float32Array,
 		imag: number[] | Float32Array,
-		constraints?: PeriodicWaveConstraints | undefined
+		constraints?: PeriodicWaveConstraints
 	): PeriodicWave;
 	createPeriodicWave(
 		real: Iterable<number>,
 		imag: Iterable<number>,
-		constraints?: PeriodicWaveConstraints | undefined
+		constraints?: PeriodicWaveConstraints
 	): PeriodicWave;
 	createPeriodicWave(
 		real: unknown,
@@ -121,9 +147,9 @@ export class BaseAudioContext
 		throw new Error('Method not implemented.');
 	}
 	createScriptProcessor(
-		bufferSize?: number | undefined,
-		numberOfInputChannels?: number | undefined,
-		numberOfOutputChannels?: number | undefined
+		bufferSize?: number,
+		numberOfInputChannels?: number,
+		numberOfOutputChannels?: number
 	): ScriptProcessorNode {
 		throw new Error('Method not implemented.');
 	}
@@ -135,8 +161,8 @@ export class BaseAudioContext
 	}
 	decodeAudioData(
 		audioData: ArrayBuffer,
-		successCallback?: DecodeSuccessCallback | null | undefined,
-		errorCallback?: DecodeErrorCallback | null | undefined
+		successCallback?: DecodeSuccessCallback | null,
+		errorCallback?: DecodeErrorCallback | null
 	): Promise<AudioBuffer> {
 		throw new Error('Method not implemented.');
 	}

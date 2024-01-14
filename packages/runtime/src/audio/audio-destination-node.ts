@@ -13,11 +13,22 @@ export class AudioDestinationNode
 	 */
 	constructor() {
 		// @ts-expect-error internal constructor
-		super(...arguments);
+		super(arguments[0], arguments[1], {
+			numberOfInputs: 1,
+			numberOfOutputs: 1,
+			channelCount: 2,
+			channelCountMode: 'explicit',
+			channelInterpretation: 'speakers',
+		});
 	}
 
+	/**
+	 * The maximum amount of channels that the physical device can handle.
+	 *
+	 * @see https://developer.mozilla.org/en-US/docs/Web/API/AudioDestinationNode/maxChannelCount
+	 */
 	get maxChannelCount(): number {
-		throw new Error('Method not implemented.');
+		return 2;
 	}
 }
 def(AudioDestinationNode);

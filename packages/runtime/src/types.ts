@@ -95,3 +95,9 @@ export type FontFaceLoadStatus = 'error' | 'loaded' | 'loading' | 'unloaded';
 export type FontFaceSetLoadStatus = 'loaded' | 'loading';
 
 export type ImageBitmapSource = CanvasImageSource | Blob | ImageData;
+
+// Web Audio types
+export type AudioContextState = 'closed' | 'running' | 'suspended';
+export type AutomationRate = 'a-rate' | 'k-rate';
+export type ChannelCountMode = 'clamped-max' | 'explicit' | 'max';
+export type ChannelInterpretation = 'discrete' | 'speakers';
