@@ -1,4 +1,5 @@
 import { dataUriToBuffer } from 'data-uri-to-buffer';
+import { decoder } from './polyfills/text-decoder';
 import {
 	TraceMap,
 	originalPositionFor,
@@ -52,7 +53,7 @@ function filenameToTracer(filename: string) {
 
 	const contentsBuffer = readFileSync(filename);
 	if (contentsBuffer) {
-		const contents = new TextDecoder().decode(contentsBuffer).trimEnd();
+		const contents = decoder.decode(contentsBuffer).trimEnd();
 		const lastNewline = contents.lastIndexOf('\n');
 		const lastLine = contents.slice(lastNewline + 1);
 		if (lastLine.startsWith(SOURCE_MAPPING_URL_PREFIX)) {
@@ -69,7 +70,7 @@ function filenameToTracer(filename: string) {
 			}
 			if (sourceMapBuffer) {
 				const sourceMap: EncodedSourceMap = JSON.parse(
-					new TextDecoder().decode(sourceMapBuffer)
+					decoder.decode(sourceMapBuffer)
 				);
 				tracer = new TraceMap(sourceMap);
 			}
