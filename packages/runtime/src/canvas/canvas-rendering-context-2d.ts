@@ -2,6 +2,7 @@ import toPx = require('to-px/index.js');
 import colorRgba = require('color-rgba');
 import parseCssFont from 'parse-css-font';
 import { $ } from '../$';
+import { Image } from '../image';
 import { ImageData } from './image-data';
 import {
 	createInternal,
@@ -725,12 +726,7 @@ export class CanvasRenderingContext2D {
 	): CanvasGradient {
 		throw new Error('Method not implemented.');
 	}
-	createPattern(
-		image: CanvasImageSource,
-		repetition: string | null
-	): CanvasPattern | null {
-		throw new Error('Method not implemented.');
-	}
+
 	createRadialGradient(
 		x0: number,
 		y0: number,
@@ -739,6 +735,16 @@ export class CanvasRenderingContext2D {
 		y1: number,
 		r1: number
 	): CanvasGradient {
+		throw new Error('Method not implemented.');
+	}
+
+	createPattern(
+		image: CanvasImageSource,
+		repetition: string | null
+	): CanvasPattern | null {
+		if (image instanceof Image && !image.complete) {
+			return null;
+		}
 		throw new Error('Method not implemented.');
 	}
 
