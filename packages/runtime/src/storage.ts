@@ -133,11 +133,6 @@ Object.defineProperty(globalThis, 'localStorage', {
 		app.nacp = nacp;
 
 		const profile = currentProfile({ required: true });
-		if (!profile) {
-			throw new Error(
-				'`localStorage` could not be initialized because a user was not selected'
-			);
-		}
 
 		const name = 'localstorage';
 		const base = `${name}:/localStorage/`;
