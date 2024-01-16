@@ -11,6 +11,7 @@ import { INTERNAL_SYMBOL } from './internal';
 import { currentProfile } from './switch/profile';
 import { assertInternalConstructor, createInternal, def } from './utils';
 import type { FsDev } from './switch/fsdev';
+import { decoder } from './polyfills/text-decoder';
 
 interface StorageImpl {
 	clear(): void;
@@ -132,11 +133,6 @@ Object.defineProperty(globalThis, 'localStorage', {
 		app.nacp = nacp;
 
 		const profile = currentProfile({ required: true });
-		if (!profile) {
-			throw new Error(
-				'`localStorage` could not be initialized because a user was not selected'
-			);
-		}
 
 		const name = 'localstorage';
 		const base = `${name}:/localStorage/`;
@@ -157,7 +153,7 @@ Object.defineProperty(globalThis, 'localStorage', {
 			getItem(key: string): string | null {
 				const b = readFileSync(new URL(key, base));
 				if (!b) return null;
-				return new TextDecoder().decode(b);
+				return decoder.decode(b);
 			},
 			key(index: number): string | null {
 				const keys = readDirSync(base) || [];
