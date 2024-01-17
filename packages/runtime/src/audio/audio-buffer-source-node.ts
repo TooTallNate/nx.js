@@ -13,6 +13,9 @@ export interface AudioBufferSourceOptions {
 	playbackRate?: number;
 }
 
+/**
+ *
+ */
 export class AudioBufferSourceNode
 	extends AudioScheduledSourceNode
 	implements globalThis.AudioBufferSourceNode

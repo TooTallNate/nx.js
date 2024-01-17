@@ -141,7 +141,7 @@ import './audio/audio-buffer-source-node';
 export type * from './audio/audio-buffer-source-node';
 
 import './audio/audio-context';
-export type * from './audio/base-audio-context';
+export type { BaseAudioContext} from './audio/base-audio-context';
 export type * from './audio/audio-context';
 
 import './audio/audio-buffer';

@@ -101,3 +101,7 @@ export type AudioContextState = 'closed' | 'running' | 'suspended';
 export type AutomationRate = 'a-rate' | 'k-rate';
 export type ChannelCountMode = 'clamped-max' | 'explicit' | 'max';
 export type ChannelInterpretation = 'discrete' | 'speakers';
+export interface AudioTimestamp {
+    contextTime?: number;
+    performanceTime?: DOMHighResTimeStamp;
+}

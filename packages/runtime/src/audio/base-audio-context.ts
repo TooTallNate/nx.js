@@ -5,17 +5,22 @@ import { assertInternalConstructor, createInternal, def } from '../utils';
 import { AudioBuffer } from './audio-buffer';
 import { AudioDestinationNode } from './audio-destination-node';
 import { AudioBufferSourceNode } from './audio-buffer-source-node';
-import type { AudioContextState } from '../types';
+import type { AudioContext } from './audio-context';
+import type { AudioContextState, DOMHighResTimeStamp } from '../types';
 
-interface BaseAudioContextInternal {
+export interface BaseAudioContextInternal {
 	sampleRate: number;
 	state: AudioContextState;
 	destination?: AudioDestinationNode;
+	currentTime: DOMHighResTimeStamp;
 }
 
-const _ = createInternal<BaseAudioContext, BaseAudioContextInternal>();
+export const _ = createInternal<BaseAudioContext, BaseAudioContextInternal>();
 
 /**
+ * Base definition for online and offline audio-processing graphs, as represented
+ * by {@link AudioContext | `AudioContext`} and `OfflineAudioContext` respectively.
+ *
  * @see https://developer.mozilla.org/docs/Web/API/BaseAudioContext
  */
 export class BaseAudioContext
@@ -33,15 +38,23 @@ export class BaseAudioContext
 		this.onstatechange = null;
 		_.set(this, {
 			sampleRate: 48000,
-			state: 'running',
+			state: 'suspended',
+			currentTime: 0,
 		});
+	}
+
+	dispatchEvent(event: Event): boolean {
+		if (event.type === 'statechange') {
+			this.onstatechange?.(event);
+		}
+		return super.dispatchEvent(event);
 	}
 
 	get audioWorklet(): AudioWorklet {
 		throw new Error('Method not implemented.');
 	}
 	get currentTime(): number {
-		throw new Error('Method not implemented.');
+		return _(this).currentTime;
 	}
 	get destination(): AudioDestinationNode {
 		const i = _(this);
