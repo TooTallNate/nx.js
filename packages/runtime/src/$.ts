@@ -94,6 +94,11 @@ export interface Init {
 	): number[];
 
 	// crypto.c
+	cryptoDigest(
+		cb: Callback<ArrayBuffer>,
+		algorithm: string,
+		buf: ArrayBuffer
+	): void;
 	cryptoRandomBytes(buf: ArrayBuffer, offset: number, length: number): void;
 
 	// dns.c

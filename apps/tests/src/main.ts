@@ -1,4 +1,5 @@
 import './canvas';
+import './crypto';
 import './error';
 import './fetch';
 import './form-data';
