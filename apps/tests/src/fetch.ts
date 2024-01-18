@@ -33,6 +33,16 @@ test('Should work with `data:`', async () => {
 
 test('Should work with `http:`', async () => {
 	const res = await fetch('http://jsonip.com');
+	assert.equal(res.url, 'http://jsonip.com/');
+	assert.equal(res.ok, true);
+	assert.equal(res.status, 200);
+	const body = await res.json();
+	assert.type(body.ip, 'string');
+});
+
+test('Should work with `https:`', async () => {
+	const res = await fetch('https://jsonip.com');
+	assert.equal(res.url, 'https://jsonip.com/');
 	assert.equal(res.ok, true);
 	assert.equal(res.status, 200);
 	const body = await res.json();
@@ -41,10 +51,87 @@ test('Should work with `http:`', async () => {
 
 test('Should work with `romfs:`', async () => {
 	const res = await fetch('romfs:/runtime.js');
+	assert.equal(res.url, 'romfs:/runtime.js');
 	assert.equal(res.ok, true);
 	assert.equal(res.status, 200);
 	const body = await res.text();
 	assert.ok(body.endsWith('//# sourceMappingURL=runtime.js.map\n'));
+});
+
+test(`Should follow redirects - 301`, async () => {
+	const res = await fetch('https://nxjs.n8.io/tests/redirect/301', {
+		method: 'POST',
+	});
+	assert.equal(res.status, 200);
+	assert.equal(res.url, 'https://dump.n8.io/');
+	const json = await res.json();
+	assert.equal(json.request.method, 'GET');
+});
+
+test(`Should not follow redirects - 301`, async () => {
+	const res = await fetch('https://nxjs.n8.io/tests/redirect/301', {
+		redirect: 'manual',
+		method: 'POST',
+	});
+	assert.equal(res.status, 301);
+	assert.equal(res.url, 'https://nxjs.n8.io/tests/redirect/301');
+});
+
+test(`Should follow redirects - 302`, async () => {
+	const res = await fetch('https://nxjs.n8.io/tests/redirect/302', {
+		method: 'POST',
+	});
+	assert.equal(res.status, 200);
+	assert.equal(res.url, 'https://dump.n8.io/');
+	const json = await res.json();
+	assert.equal(json.request.method, 'GET');
+});
+
+test(`Should not follow redirects - 302`, async () => {
+	const res = await fetch('https://nxjs.n8.io/tests/redirect/302', {
+		redirect: 'manual',
+		method: 'POST',
+	});
+	assert.equal(res.status, 302);
+	assert.equal(res.url, 'https://nxjs.n8.io/tests/redirect/302');
+});
+
+test(`Should follow redirects - 307`, async () => {
+	const res = await fetch('https://nxjs.n8.io/tests/redirect/307', {
+		method: 'POST',
+	});
+	assert.equal(res.status, 200);
+	assert.equal(res.url, 'https://dump.n8.io/');
+	const json = await res.json();
+	assert.equal(json.request.method, 'POST');
+});
+
+test(`Should not follow redirects - 307`, async () => {
+	const res = await fetch('https://nxjs.n8.io/tests/redirect/307', {
+		redirect: 'manual',
+		method: 'POST',
+	});
+	assert.equal(res.status, 307);
+	assert.equal(res.url, 'https://nxjs.n8.io/tests/redirect/307');
+});
+
+test(`Should follow redirects - 308`, async () => {
+	const res = await fetch('https://nxjs.n8.io/tests/redirect/308', {
+		method: 'POST',
+	});
+	assert.equal(res.status, 200);
+	assert.equal(res.url, 'https://dump.n8.io/');
+	const json = await res.json();
+	assert.equal(json.request.method, 'POST');
+});
+
+test(`Should not follow redirects - 308`, async () => {
+	const res = await fetch('https://nxjs.n8.io/tests/redirect/308', {
+		redirect: 'manual',
+		method: 'POST',
+	});
+	assert.equal(res.status, 308);
+	assert.equal(res.url, 'https://nxjs.n8.io/tests/redirect/308');
 });
 
 test.run();

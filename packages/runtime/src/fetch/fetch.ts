@@ -155,7 +155,8 @@ async function fetchHttp(req: Request, url: URL) {
 	if (firstLine.done || !firstLine.value.line) {
 		throw new Error('Failed to read response header');
 	}
-	const [_, status, statusText] = firstLine.value.line.split(' ');
+	const [_, statusStr, statusText] = firstLine.value.line.split(' ');
+	const status = +statusStr;
 
 	// Parse response headers
 	let leftover: Uint8Array | undefined;
@@ -170,6 +171,34 @@ async function fetchHttp(req: Request, url: URL) {
 		}
 	}
 
+	// Redirect
+	if (((status / 100) | 0) === 3) {
+		if (req.redirect === 'follow') {
+			socket.readable.cancel();
+			w.close();
+			const loc = resHeaders.get('location');
+			if (!loc) {
+				throw new Error(
+					`No "Location" header in ${status} redirect from "${url}"`
+				);
+			}
+			const redirectUrl = new URL(loc, req.url);
+			let method: RequestInit['method'] = 'GET';
+			let body: RequestInit['body'] = null;
+			if (status === 307 || status === 308) {
+				method = req.method;
+				body = req.body;
+			}
+			const redirect = new Request(redirectUrl, { method, body });
+			return fetchHttp(redirect, redirectUrl);
+		}
+
+		if (req.redirect === 'error') {
+		}
+
+		// For "manual", just continue with the regular logic
+	}
+
 	const resStream =
 		resHeaders.get('transfer-encoding') === 'chunked'
 			? createChunkedParseStream()
@@ -182,11 +211,13 @@ async function fetchHttp(req: Request, url: URL) {
 	}
 	socket.readable.pipeThrough(resStream);
 
-	return new Response(resStream.readable, {
-		status: +status,
+	const res = new Response(resStream.readable, {
+		status,
 		statusText,
 		headers: resHeaders,
 	});
+	res.url = url.href;
+	return res;
 }
 
 async function fetchBlob(req: Request, url: URL) {
@@ -284,6 +315,9 @@ export function fetch(input: string | URL | Request, init?: RequestInit) {
 	if (!fetcher) {
 		throw new Error(`scheme '${url.protocol.slice(0, -1)}' not supported`);
 	}
-	return fetcher(req, url);
+	return fetcher(req, url).then((res) => {
+		if (!res.url) res.url = url.href;
+		return res;
+	});
 }
 def(fetch);
