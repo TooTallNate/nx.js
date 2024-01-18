@@ -1,0 +1,25 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "redirects": [
+    {
+      "statusCode": 301,
+      "source": "/tests/redirect/301",
+      "destination": "https://dump.n8.io"
+    },
+    {
+      "statusCode": 302,
+      "source": "/tests/redirect/302",
+      "destination": "https://dump.n8.io"
+    },
+    {
+      "statusCode": 307,
+      "source": "/tests/redirect/307",
+      "destination": "https://dump.n8.io"
+    },
+    {
+      "statusCode": 308,
+      "source": "/tests/redirect/308",
+      "destination": "https://dump.n8.io"
+    }
+  ]
+}
