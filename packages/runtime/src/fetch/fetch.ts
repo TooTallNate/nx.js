@@ -115,7 +115,7 @@ function createChunkedParseStream() {
 	});
 }
 
-async function fetchHttp(req: Request, url: URL) {
+async function fetchHttp(req: Request, url: URL): Promise<Response> {
 	const isHttps = url.protocol === 'https:';
 	const { hostname } = url;
 	const port = +url.port || (isHttps ? 443 : 80);
@@ -190,7 +190,9 @@ async function fetchHttp(req: Request, url: URL) {
 				body = req.body;
 			}
 			const redirect = new Request(redirectUrl, { method, body });
-			return fetchHttp(redirect, redirectUrl);
+			const res = await fetchHttp(redirect, redirectUrl);
+			res.redirected = true;
+			return res;
 		}
 
 		if (req.redirect === 'error') {
