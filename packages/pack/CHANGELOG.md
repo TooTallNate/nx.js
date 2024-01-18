@@ -1,5 +1,11 @@
 # nxjs-pack
 
+## 0.0.28
+
+### Patch Changes
+
+- Pad the printed Title ID to 16 characters ([`741c91cc866e8e4af7c198e3ac4d195921f8df38`](https://github.com/TooTallNate/nx.js/commit/741c91cc866e8e4af7c198e3ac4d195921f8df38))
+
 ## 0.0.27
 
 ### Patch Changes

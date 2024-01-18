@@ -1,5 +1,17 @@
 # nxjs-runtime
 
+## 0.0.28
+
+### Patch Changes
+
+- Remove `null` from return type on `Switch.currentProfile({ required: true })` ([`cf32e5f878fe0d9ef35dcbfc057defbc4ed8d829`](https://github.com/TooTallNate/nx.js/commit/cf32e5f878fe0d9ef35dcbfc057defbc4ed8d829))
+
+- Set `Response#redirected` property ([`95d9a3fea041cda06a62840f44b7f9c7bd16f070`](https://github.com/TooTallNate/nx.js/commit/95d9a3fea041cda06a62840f44b7f9c7bd16f070))
+
+- Implement `crypto.subtle.digest()` for "sha-1" and "sha-256" ([`8510c7503c02e09ace469e5cbf29171791dc110a`](https://github.com/TooTallNate/nx.js/commit/8510c7503c02e09ace469e5cbf29171791dc110a))
+
+- Implement fetch `redirect` handling ([`acc84059ad156298c8f918840701acf0582e7159`](https://github.com/TooTallNate/nx.js/commit/acc84059ad156298c8f918840701acf0582e7159))
+
 ## 0.0.27
 
 ### Patch Changes
