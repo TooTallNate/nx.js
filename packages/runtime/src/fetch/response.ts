@@ -2,9 +2,6 @@ import { def } from '../utils';
 import { Body, type BodyInit } from './body';
 import { Headers, type HeadersInit } from './headers';
 
-/**
- * Interface for the initialization options for a Response.
- */
 export interface ResponseInit {
 	/** Headers for the response. */
 	headers?: HeadersInit;
@@ -14,10 +11,13 @@ export interface ResponseInit {
 	statusText?: string;
 }
 
-/**
- * Type for the response type.
- */
-export type ResponseType = 'default' | 'error';
+export type ResponseType =
+	| 'basic'
+	| 'cors'
+	| 'default'
+	| 'error'
+	| 'opaque'
+	| 'opaqueredirect';
 
 /**
  * Class representing a HTTP response.
