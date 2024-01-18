@@ -141,7 +141,9 @@ Object.defineProperty(globalThis, 'localStorage', {
 		try {
 			dev = app.mountSaveData(name, profile);
 		} catch (err: any) {
+			// rethrow if not `ResultTargetNotFound` (meaning save data has not been created)
 			if (err.description !== 1002) throw err;
+
 			app.createSaveData(profile);
 			dev = app.mountSaveData(name, profile);
 		}
