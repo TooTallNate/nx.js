@@ -144,6 +144,25 @@ importers:
         specifier: workspace:^
         version: link:../../packages/runtime
 
+  apps/repl-server:
+    dependencies:
+      '@nxjs/repl':
+        specifier: workspace:^
+        version: link:../../packages/repl
+      sisteransi:
+        specifier: ^1.0.5
+        version: 1.0.5
+    devDependencies:
+      esbuild:
+        specifier: ^0.17.19
+        version: 0.17.19
+      nxjs-pack:
+        specifier: workspace:^
+        version: link:../../packages/pack
+      nxjs-runtime:
+        specifier: workspace:^
+        version: link:../../packages/runtime
+
   apps/snake:
     dependencies:
       nxjs-constants:
