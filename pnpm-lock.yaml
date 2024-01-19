@@ -358,6 +358,22 @@ importers:
         specifier: ^5.3.2
         version: 5.3.2
 
+  packages/repl:
+    dependencies:
+      kleur:
+        specifier: ^4.1.5
+        version: 4.1.5
+      sisteransi:
+        specifier: ^1.0.5
+        version: 1.0.5
+    devDependencies:
+      nxjs-runtime:
+        specifier: workspace:*
+        version: link:../runtime
+      typescript:
+        specifier: ^5.3.2
+        version: 5.3.2
+
   packages/runtime:
     devDependencies:
       '@jridgewell/trace-mapping':
