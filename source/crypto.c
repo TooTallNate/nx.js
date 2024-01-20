@@ -32,12 +32,12 @@ void nx_crypto_digest_do(nx_work_t *req)
 	if (strcasecmp(data->algorithm, "SHA-1") == 0)
 	{
 		alg = NX_CRYPTO_SHA1;
-		data->result_size = 20;
+		data->result_size = SHA1_HASH_SIZE;
 	}
 	else if (strcasecmp(data->algorithm, "SHA-256") == 0)
 	{
 		alg = NX_CRYPTO_SHA256;
-		data->result_size = 32;
+		data->result_size = SHA256_HASH_SIZE;
 	}
 	if (alg == -1)
 	{
