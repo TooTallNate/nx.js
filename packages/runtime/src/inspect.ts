@@ -5,7 +5,7 @@ const grey = rgb(100, 100, 100);
 
 export interface InspectOptions {
 	depth?: number;
-	refs?: Set<{}>;
+	refs?: Map<{}, number>;
 }
 
 /**
@@ -19,19 +19,6 @@ export interface InspectOptions {
  */
 export const inspect = (v: unknown, opts: InspectOptions = {}): string => {
 	const { depth = 1 } = opts;
-	const refs = opts.refs ?? new Set();
-
-	// If the value defines the `inspect.custom` symbol, then invoke
-	// the function. If the return value is a string, return that.
-	// Otherwise, treat the return value as the value to inspect
-	if (v && typeof (v as any)[inspect.custom] === 'function') {
-		const c = (v as any)[inspect.custom]({ ...opts, depth });
-		if (typeof c === 'string') {
-			return c;
-		}
-		refs.add(v);
-		v = c;
-	}
 
 	// Primitives
 	if (typeof v === 'number' || typeof v === 'boolean') {
@@ -56,11 +43,24 @@ export const inspect = (v: unknown, opts: InspectOptions = {}): string => {
 	// After this point, all should be typeof "object" or
 	// "function", so they can have additional properties
 	// which may be circular references.
-	if (refs.has(v)) {
-		return cyan('[Circular]');
+	const refs = opts.refs ?? new Map();
+	const refIndex = refs.get(v);
+	if (typeof refIndex === 'number') {
+		return cyan(`[Circular *${refIndex}]`);
 	}
 
-	refs.add(v);
+	refs.set(v, refs.size + 1);
+
+	// If the value defines the `inspect.custom` symbol, then invoke
+	// the function. If the return value is a string, return that.
+	// Otherwise, treat the return value as the value to inspect
+	if (v && typeof (v as any)[inspect.custom] === 'function') {
+		const c = (v as any)[inspect.custom]({ ...opts, depth });
+		if (typeof c === 'string') {
+			return c;
+		}
+		v = c;
+	}
 
 	if (typeof v === 'function') {
 		const { name } = v;
