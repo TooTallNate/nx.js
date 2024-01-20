@@ -87,6 +87,9 @@ function filenameToTracer(filename: string) {
 				let loc = callsite.isNative() ? 'native' : 'unknown';
 				let name = callsite.getFunctionName() || '<anonymous>';
 				let filename = callsite.getFileName();
+				if (filename === '<input>') {
+					return `    at ${filename}:${callsite.getLineNumber()}:${callsite.getColumnNumber()}`;
+				}
 				if (filename) {
 					const proto =
 						filename === 'romfs:/runtime.js' ? 'nxjs' : 'app';
