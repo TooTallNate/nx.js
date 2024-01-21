@@ -1,9 +1,11 @@
-import { erase, cursor } from 'sisteransi';
+import { erase } from 'sisteransi';
 import { bold, cyan, bgYellow } from 'kleur/colors';
 
 const decoder = new TextDecoder();
 const encoder = new TextEncoder();
 const cursorChar = (v: string) => bold(bgYellow(v || ' '));
+
+const AsyncFunction = async function () {}.constructor;
 
 export class REPL {
 	buffer = '';
@@ -54,29 +56,43 @@ export class REPL {
 			const trimmed = this.buffer.trim();
 			let result: any = undefined;
 			if (trimmed.length > 0) {
-				try {
-					result = (0, eval)(`(${trimmed})`);
-				} catch (err: unknown) {
-					if (err instanceof SyntaxError) {
-						result = (0, eval)(trimmed);
-					} else {
-						throw err;
+				if (/\bawait\b/.test(trimmed)) {
+					const r = await AsyncFunction(
+						`try {
+							var v = (${trimmed});
+							if (v && typeof v.catch === 'function') v.catch();
+							return { v }
+						} catch (err) {
+							return { err }
+						}`
+					)();
+					if (r.err) throw r.err;
+					result = r.v;
+				} else {
+					try {
+						result = (0, eval)(`(${trimmed})`);
+					} catch (err: unknown) {
+						if (err instanceof SyntaxError) {
+							result = (0, eval)(trimmed);
+						} else {
+							throw err;
+						}
 					}
 				}
 			}
+			if (typeof result?.catch === 'function') result.catch();
 			this.buffer = '';
 			this.cursorPosition = 0;
 			await this.print(`${Switch.inspect(result)}\n\n`);
-			// @ts-expect-error `_` is not defined on `globalThis`
-			globalThis._ = result;
+			Object.defineProperty(globalThis, '_', {
+				value: result,
+				enumerable: false,
+				configurable: true,
+			});
 		} catch (err: unknown) {
 			this.buffer = '';
 			this.cursorPosition = 0;
-			if (err instanceof Error) {
-				await this.print(`${err}\n${err.stack}\n`);
-			} else {
-				await this.print(`Error: ${err}\n`);
-			}
+			await this.print(`Uncaught ${Switch.inspect(err)}\n`);
 		}
 		await this.renderPrompt();
 	}
