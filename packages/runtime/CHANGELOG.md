@@ -1,5 +1,13 @@
 # nxjs-runtime
 
+## 0.0.29
+
+### Patch Changes
+
+- Handle `"<input>"` as filename in stack trace ([`a6ac8db6b9ad87574cac9d0686e9df80e4387616`](https://github.com/TooTallNate/nx.js/commit/a6ac8db6b9ad87574cac9d0686e9df80e4387616))
+
+- Set circular reference index for `Switch.inspect()` ([`b8da2c13f4615ddd8836734ac66e19c634576c09`](https://github.com/TooTallNate/nx.js/commit/b8da2c13f4615ddd8836734ac66e19c634576c09))
+
 ## 0.0.28
 
 ### Patch Changes
