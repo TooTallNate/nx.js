@@ -1,5 +1,5 @@
 import { cursor } from 'sisteransi';
-import { REPL } from '@nxjs/repl';
+import { REPL } from '@nx.js/repl';
 
 // Telnet option codes
 const IAC = 255;

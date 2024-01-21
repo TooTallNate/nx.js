@@ -1,11 +1,14 @@
 {
-  "name": "@nxjs/repl",
+  "name": "@nx.js/repl",
   "version": "0.0.1",
   "description": "Read-Eval-Print Loop for nx.js",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc"
   },
+  "files": [
+    "dist"
+  ],
   "publishConfig": {
     "access": "public"
   },

@@ -9,7 +9,7 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@nxjs/repl": "workspace:^",
+    "@nx.js/repl": "workspace:^",
     "sisteransi": "^1.0.5"
   },
   "devDependencies": {

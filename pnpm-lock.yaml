@@ -146,7 +146,7 @@ importers:
 
   apps/repl-server:
     dependencies:
-      '@nxjs/repl':
+      '@nx.js/repl':
         specifier: workspace:^
         version: link:../../packages/repl
       sisteransi:
