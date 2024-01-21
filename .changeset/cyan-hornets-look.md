@@ -2,4 +2,4 @@
 'nxjs-runtime': patch
 ---
 
-Handle "<input>" as filename in stack trace
+Handle `"<input>"` as filename in stack trace
