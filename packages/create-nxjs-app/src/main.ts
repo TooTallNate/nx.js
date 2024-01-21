@@ -4,7 +4,7 @@ import degit from 'degit';
 import which from 'which';
 import { once } from 'events';
 import { promises as fs } from 'fs';
-import { spawn } from 'child_process';
+import { SpawnOptions, spawn } from 'child_process';
 import terminalLink from 'terminal-link';
 import { fileURLToPath, pathToFileURL } from 'url';
 import * as clack from '@clack/prompts';
@@ -22,6 +22,24 @@ function generateRandomID() {
 async function hasPackageManager(name: string) {
 	const p = await which(name, { nothrow: true });
 	return p ? name : null;
+}
+
+async function exec(cmd: string, args: string[], opts: SpawnOptions = {}) {
+	const c = spawn(cmd, args, opts);
+	let stdout = '';
+	if (c.stdout) {
+		c.stdout.setEncoding('utf8');
+		c.stdout.on('data', (d) => {
+			stdout += d;
+		});
+	}
+	const [exitCode] = await once(c, 'exit');
+	if (exitCode !== 0) {
+		throw new Error(
+			`Command "${cmd} ${args.join(' ')}" exit code ${exitCode}`
+		);
+	}
+	return stdout;
 }
 
 const packageManagersPromise = Promise.all([
@@ -130,11 +148,29 @@ try {
 	// Patch the `package.json` file with the app name, and update any
 	// dependencies that use "workspace:" in the version to the actual version
 	const packageJsonUrl = new URL('package.json', appDir);
-	const packageJson: PackageJson & { titleId?: string } = JSON.parse(
-		await fs.readFile(packageJsonUrl, 'utf8')
-	);
+	const [packageJson, gitName, gitEmail] = await Promise.all([
+		fs
+			.readFile(packageJsonUrl, 'utf8')
+			.then((p) => JSON.parse(p) as PackageJson & { titleId?: string }),
+		exec('git', ['config', '--global', 'user.name'], {
+			stdio: 'pipe',
+		})
+			.then((v) => v.trim())
+			.catch(() => undefined),
+		exec('git', ['config', '--global', 'user.email'], {
+			stdio: 'pipe',
+		})
+			.then((v) => v.trim())
+			.catch(() => undefined),
+	]);
 	packageJson.name = appName;
 	packageJson.description = '';
+	if (gitName) {
+		packageJson.author = {
+			name: gitName,
+			email: gitEmail,
+		};
+	}
 	removeWorkspace(packageJson.dependencies);
 	removeWorkspace(packageJson.devDependencies);
 	await fs.writeFile(
