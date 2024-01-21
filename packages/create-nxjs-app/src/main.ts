@@ -10,6 +10,11 @@ import { fileURLToPath, pathToFileURL } from 'url';
 import * as clack from '@clack/prompts';
 import type { PackageJson } from 'types-package-json';
 
+interface Data {
+	apps: { name: string; value: string; description: string }[];
+	packages: { [name: string]: { version: string } };
+}
+
 function generateRandomID() {
 	let titleId = '01';
 	for (let i = 0; i < 10; i++) {
@@ -22,6 +27,19 @@ function generateRandomID() {
 async function hasPackageManager(name: string) {
 	const p = await which(name, { nothrow: true });
 	return p ? name : null;
+}
+
+function removeWorkspace(
+	deps: Record<string, string> = {},
+	packages: Data['packages']
+) {
+	for (const [name, value] of Object.entries(deps)) {
+		const noWorkspace = value.replace(/^workspace:\*?/, '');
+		if (noWorkspace !== value) {
+			const { version } = packages[name];
+			deps[name] = `${noWorkspace}${version}`;
+		}
+	}
 }
 
 async function exec(cmd: string, args: string[], opts: SpawnOptions = {}) {
@@ -57,11 +75,12 @@ try {
 	const { version } = JSON.parse(
 		await fs.readFile(new URL('../package.json', import.meta.url), 'utf8')
 	);
-	const choices: { name: string; value: string; description: string }[] =
-		JSON.parse(await fs.readFile(new URL('choices.json', distDir), 'utf8'));
+	const data: Data = JSON.parse(
+		await fs.readFile(new URL('data.json', distDir), 'utf8')
+	);
 	const template = await clack.select({
 		message: 'Select a nx.js template:',
-		options: choices.map(({ name, description }) => {
+		options: data.apps.map(({ name, description }) => {
 			return {
 				label: terminalLink(
 					name,
@@ -136,15 +155,6 @@ try {
 	}
 	spinner.stop(`Cloned \`${template}\` template into "${appName}" directory`);
 
-	function removeWorkspace(deps: Record<string, string> = {}) {
-		for (const [name, value] of Object.entries(deps)) {
-			const noWorkspace = value.replace(/^workspace:\*?/, '');
-			if (noWorkspace !== value) {
-				deps[name] = `${noWorkspace}${version}`;
-			}
-		}
-	}
-
 	// Patch the `package.json` file with the app name, and update any
 	// dependencies that use "workspace:" in the version to the actual version
 	const packageJsonUrl = new URL('package.json', appDir);
@@ -171,8 +181,8 @@ try {
 			email: gitEmail,
 		};
 	}
-	removeWorkspace(packageJson.dependencies);
-	removeWorkspace(packageJson.devDependencies);
+	removeWorkspace(packageJson.dependencies, data.packages);
+	removeWorkspace(packageJson.devDependencies, data.packages);
 	await fs.writeFile(
 		packageJsonUrl,
 		`${JSON.stringify(
