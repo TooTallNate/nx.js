@@ -175,19 +175,26 @@ try {
 	]);
 	packageJson.name = appName;
 	packageJson.description = '';
+
+	// Add "author" field based on git config data
 	if (gitName) {
 		packageJson.author = {
 			name: gitName,
 			email: gitEmail,
 		};
 	}
+
+	// Generate a random Title ID, which is used for
+	// save data purposes (i.e. `localStorage`)
+	const titleId = generateRandomID();
+
 	removeWorkspace(packageJson.dependencies, data.packages);
 	removeWorkspace(packageJson.devDependencies, data.packages);
 	await fs.writeFile(
 		packageJsonUrl,
 		`${JSON.stringify(
 			{
-				titleId: generateRandomID(),
+				titleId,
 				...packageJson,
 			},
 			null,
