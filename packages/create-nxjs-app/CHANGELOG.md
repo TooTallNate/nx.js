@@ -1,5 +1,15 @@
 # create-nxjs-app
 
+## 0.0.29
+
+### Patch Changes
+
+- Set "author" field in `package.json` based on Git config ([`27d9ce1437f64efb87078ccdeb2fcaa33941d0cf`](https://github.com/TooTallNate/nx.js/commit/27d9ce1437f64efb87078ccdeb2fcaa33941d0cf))
+
+- Add individual package versions to metadata JSON file ([`fb36e837c83c05c14741772d5084fe8d183cbc4f`](https://github.com/TooTallNate/nx.js/commit/fb36e837c83c05c14741772d5084fe8d183cbc4f))
+
+- Add `repl-server` example app ([`342e6c141fa1de066adbcd69ac84adba2b59990d`](https://github.com/TooTallNate/nx.js/commit/342e6c141fa1de066adbcd69ac84adba2b59990d))
+
 ## 0.0.28
 
 ## 0.0.27
