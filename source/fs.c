@@ -424,8 +424,15 @@ JSValue nx_stat_sync(JSContext *ctx, JSValueConst this_val, int argc, JSValueCon
 	return statToObject(ctx, &st);
 }
 
-int removeDirectory(const char *path)
+int removeFileOrDirectory(const char *path)
 {
+	struct stat path_stat;
+	stat(path, &path_stat);
+	if (S_ISREG(path_stat.st_mode))
+	{
+		return unlink(path);
+	}
+
 	DIR *d = opendir(path);
 	size_t path_len = strlen(path);
 	int r = -1;
@@ -458,7 +465,7 @@ int removeDirectory(const char *path)
 				if (!stat(buf, &statbuf))
 				{
 					if (S_ISDIR(statbuf.st_mode))
-						r2 = removeDirectory(buf);
+						r2 = removeFileOrDirectory(buf);
 					else
 						r2 = unlink(buf);
 				}
@@ -483,7 +490,7 @@ int removeDirectory(const char *path)
 void nx_remove_do(nx_work_t *req)
 {
 	nx_fs_remove_async_t *data = (nx_fs_remove_async_t *)req->data;
-	if (removeDirectory(data->filename) != 0)
+	if (removeFileOrDirectory(data->filename) != 0)
 	{
 		data->err = errno;
 	}
@@ -518,7 +525,7 @@ JSValue nx_remove_sync(JSContext *ctx, JSValueConst this_val, int argc, JSValueC
 	const char *path = JS_ToCString(ctx, argv[0]);
 	if (!path)
 		return JS_EXCEPTION;
-	int result = removeDirectory(path);
+	int result = removeFileOrDirectory(path);
 	JS_FreeCString(ctx, path);
 	if (result != 0)
 	{

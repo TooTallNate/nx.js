@@ -117,4 +117,37 @@ test('`Switch.stat()` rejects when file does not exist', async () => {
 	assert.ok(err);
 });
 
+test('`Switch.removeSync()` removes file', async () => {
+	const path = 'sdmc:/__nxjs-test.txt';
+	const uuid = crypto.randomUUID();
+	Switch.writeFileSync(path, uuid);
+	const data = Switch.readFileSync(path);
+	assert.ok(data);
+	assert.equal(new TextDecoder().decode(data), uuid);
+
+	Switch.removeSync(path);
+	assert.equal(Switch.statSync(path), null);
+});
+
+test('`Switch.removeSync()` removes directory', async () => {
+	const path = 'sdmc:/__nxjs-test';
+	Switch.mkdirSync(path);
+	assert.ok(Switch.statSync(path));
+
+	Switch.removeSync(path);
+	assert.equal(Switch.statSync(path), null);
+});
+
+test('`Switch.removeSync()` removes nested directory', async () => {
+	const dir = 'sdmc:/__nested';
+	const path = `${dir}/another/nxjs-test/file.txt`;
+	Switch.writeFileSync(path, 'hello world');
+	assert.ok(Switch.statSync(dir));
+	assert.ok(Switch.statSync(path));
+
+	Switch.removeSync(dir);
+	assert.equal(Switch.statSync(dir), null);
+	assert.equal(Switch.statSync(path), null);
+});
+
 test.run();
