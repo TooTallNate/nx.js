@@ -1,6 +1,6 @@
 {
   "name": "create-nxjs-app",
-  "version": "0.0.29",
+  "version": "0.0.30",
   "description": "Initialize a `nx.js` homebrew application",
   "type": "module",
   "bin": "./dist/main.js",
