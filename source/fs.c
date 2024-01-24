@@ -407,7 +407,7 @@ JSValue nx_stat(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *a
 
 JSValue nx_stat_sync(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	const char *filename = JS_ToCString(ctx, argv[1]);
+	const char *filename = JS_ToCString(ctx, argv[0]);
 	struct stat st;
 	int result = stat(filename, &st);
 	JS_FreeCString(ctx, filename);
