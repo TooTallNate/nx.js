@@ -1,5 +1,13 @@
 # nxjs-runtime
 
+## 0.0.30
+
+### Patch Changes
+
+- Fix `Switch.statSync()` ([`df7b564f2e6ee5a65a50afdc1c6d00d9c813984b`](https://github.com/TooTallNate/nx.js/commit/df7b564f2e6ee5a65a50afdc1c6d00d9c813984b))
+
+- Fix `Switch.removeSync()` on files ([`977c19f13836e7cd0c243576ad2655db88bc49f1`](https://github.com/TooTallNate/nx.js/commit/977c19f13836e7cd0c243576ad2655db88bc49f1))
+
 ## 0.0.29
 
 ### Patch Changes
