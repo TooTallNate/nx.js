@@ -56,7 +56,7 @@ ARCH	:=	-march=armv8-a+crc+crypto -mtune=cortex-a57 -mtp=soft -fPIE
 CFLAGS	:=	-g -Wall -O2 -ffunction-sections \
 			$(ARCH) $(DEFINES) -DNXJS_VERSION="\"${APP_VERSION}\""
 
-CFLAGS	+=	$(INCLUDE) -D__SWITCH__ `freetype-config --cflags` -I/opt/devkitpro/portlibs/switch/include/cairo -I/opt/devkitpro/portlibs/switch/include/pixman-1 -I/opt/devkitpro/portlibs/switch/include/freetype2 -I/opt/devkitpro/portlibs/switch/include/libpng16 -I/opt/devkitpro/portlibs/switch/include
+CFLAGS	+=	$(INCLUDE) -D__SWITCH__ `freetype-config --cflags` `aarch64-none-elf-pkg-config cairo --cflags`
 
 CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions
 
