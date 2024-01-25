@@ -1,4 +1,4 @@
-import { createInternal, def } from '../utils';
+import { assertInternalConstructor, createInternal, def } from '../utils';
 
 export interface EventInit {
 	bubbles?: boolean;
@@ -427,17 +427,42 @@ export interface Touch {
 }
 
 /**
- * A list of contact points on a touch surface. For example, if the user has three fingers on the touch surface (such as a screen or trackpad), the corresponding TouchList object would have one Touch object for each finger, for a total of three entries.
+ * A list of contact points on a touch surface. For example, if the user has three
+ * fingers on the touch surface (such as a screen or trackpad), the corresponding
+ * `TouchList` object would have one `Touch` object for each finger, for a total
+ * of three entries.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TouchList)
  */
-export interface TouchList {
-	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/TouchList/length) */
-	readonly length: number;
-	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/TouchList/item) */
-	item(index: number): Touch | null;
+export class TouchList implements globalThis.TouchList {
 	[index: number]: Touch;
-	[Symbol.iterator](): IterableIterator<Touch>;
+
+	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/TouchList/length) */
+	declare readonly length: number;
+
+	constructor() {
+		assertInternalConstructor(arguments);
+	}
+
+	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/TouchList/item) */
+	item(index: number): Touch | null {
+		if (typeof index !== 'number' || index >= this.length) return null;
+		return this[index];
+	}
+
+	*[Symbol.iterator](): IterableIterator<Touch> {
+		for (let i = 0; i < this.length; i++) {
+			yield this[i];
+		}
+	}
+}
+def(TouchList);
+
+function toTouchList(t: Touch[] = []): TouchList {
+	const r = Object.create(TouchList.prototype);
+	Object.defineProperty(r, 'length', { value: t.length, writable: false });
+	Object.assign(r, t);
+	return r;
 }
 
 export interface TouchEventInit extends EventModifierInit {
@@ -458,12 +483,9 @@ export class TouchEvent extends UIEvent implements globalThis.TouchEvent {
 	constructor(type: string, options: TouchEventInit) {
 		super(type, options);
 		this.altKey = this.ctrlKey = this.metaKey = this.shiftKey = false;
-		// @ts-expect-error
-		this.changedTouches = options.changedTouches ?? [];
-		// @ts-expect-error
-		this.targetTouches = options.targetTouches ?? [];
-		// @ts-expect-error
-		this.touches = options.touches ?? [];
+		this.changedTouches = toTouchList(options.changedTouches);
+		this.targetTouches = toTouchList(options.targetTouches);
+		this.touches = toTouchList(options.touches);
 	}
 }
 
