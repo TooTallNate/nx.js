@@ -1,5 +1,11 @@
 # nxjs-runtime
 
+## 0.0.31
+
+### Patch Changes
+
+- Add `TouchList` class ([`910cec0f598543d18943f00eaae35f2415945ffa`](https://github.com/TooTallNate/nx.js/commit/910cec0f598543d18943f00eaae35f2415945ffa))
+
 ## 0.0.30
 
 ### Patch Changes
