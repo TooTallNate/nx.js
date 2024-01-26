@@ -427,7 +427,12 @@ JSValue nx_stat_sync(JSContext *ctx, JSValueConst this_val, int argc, JSValueCon
 int removeFileOrDirectory(const char *path)
 {
 	struct stat path_stat;
-	stat(path, &path_stat);
+	int r = stat(path, &path_stat);
+	if (r != 0)
+	{
+		return errno == ENOENT ? 0 : r;
+	}
+
 	if (S_ISREG(path_stat.st_mode))
 	{
 		return unlink(path);
@@ -435,7 +440,6 @@ int removeFileOrDirectory(const char *path)
 
 	DIR *d = opendir(path);
 	size_t path_len = strlen(path);
-	int r = -1;
 
 	if (d)
 	{

@@ -117,6 +117,12 @@ test('`Switch.stat()` rejects when file does not exist', async () => {
 	assert.ok(err);
 });
 
+test("`Switch.removeSync()` doesn't throw when path does not exist", async () => {
+	const path = 'sdmc:/__does_not_exist';
+	Switch.removeSync(path);
+	assert.ok(true);
+});
+
 test('`Switch.removeSync()` removes file', async () => {
 	const path = 'sdmc:/__nxjs-test.txt';
 	const uuid = crypto.randomUUID();
