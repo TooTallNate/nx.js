@@ -1,5 +1,11 @@
 # nxjs-runtime
 
+## 0.0.32
+
+### Patch Changes
+
+- Fix `Switch.remove()` and `Switch.removeSync()` when path does not exist ([`8311c6ebe340ab75308d82aaa0d7c2a8acdddb44`](https://github.com/TooTallNate/nx.js/commit/8311c6ebe340ab75308d82aaa0d7c2a8acdddb44))
+
 ## 0.0.31
 
 ### Patch Changes
