@@ -1,5 +1,11 @@
 # nxjs-pack
 
+## 0.0.31
+
+### Patch Changes
+
+- Link package version to `nxjs-runtime` version ([`6e502b2f77ad819b19acfdfaa7394e607ce2f913`](https://github.com/TooTallNate/nx.js/commit/6e502b2f77ad819b19acfdfaa7394e607ce2f913))
+
 ## 0.0.28
 
 ### Patch Changes
