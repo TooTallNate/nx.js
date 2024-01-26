@@ -1,5 +1,7 @@
 # nxjs-pack
 
+## 0.0.32
+
 ## 0.0.31
 
 ### Patch Changes
