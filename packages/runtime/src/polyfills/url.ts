@@ -18,15 +18,17 @@ export class URLSearchParams implements globalThis.URLSearchParams {
 		) {
 			input = String(init);
 		}
-		const p = $.urlSearchNew(input);
+		const p = $.urlSearchNew(input, arguments[1]);
 		Object.setPrototypeOf(p, URLSearchParams.prototype);
-		if (Array.isArray(init)) {
-			for (const [k, v] of init) {
-				p.append(k, v);
-			}
-		} else if (init && typeof init === 'object') {
-			for (const [k, v] of Object.entries(init)) {
-				p.set(k, v);
+		if (!input) {
+			if (Array.isArray(init)) {
+				for (const [k, v] of init) {
+					p.append(k, v);
+				}
+			} else if (init && typeof init === 'object') {
+				for (const [k, v] of Object.entries(init)) {
+					p.set(k, v);
+				}
 			}
 		}
 		return p;
@@ -85,13 +87,20 @@ export class URLSearchParams implements globalThis.URLSearchParams {
 	/**
 	 * Sets the value associated to a given search parameter to the given value. If there were several values, delete the others.
 	 *
-	 * [MDN Reference](https://developer.mozilla.org/docs/Web/API/URLSearchParams/set)
+	 * @see https://developer.mozilla.org/docs/Web/API/URLSearchParams/set
 	 */
 	set(name: string, value: string): void {
 		stub();
 	}
 
-	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/URLSearchParams/sort) */
+	/**
+	 * Sorts all key/value pairs contained in this object in place and returns
+	 * `undefined`. The sort order is according to unicode code points of the
+	 * keys. This method uses a stable sorting algorithm (i.e. the relative
+	 * order between key/value pairs with equal keys will be preserved).
+	 *
+	 * @see https://developer.mozilla.org/docs/Web/API/URLSearchParams/sort
+	 */
 	sort(): void {
 		stub();
 	}
@@ -110,6 +119,8 @@ export class URLSearchParams implements globalThis.URLSearchParams {
 	 * params.toString();
 	 * // Returns "foo=1&bar=2&foo=4"
 	 * ```
+	 *
+	 * @see https://developer.mozilla.org/docs/Web/API/URLSearchParams/toString
 	 */
 	toString(): string {
 		stub();
@@ -132,8 +143,8 @@ export class URLSearchParams implements globalThis.URLSearchParams {
 	*keys(): IterableIterator<string> {
 		const it = $.urlSearchIterator(this, 0);
 		while (1) {
-			const n =  $.urlSearchIteratorNext(it);
-			if (!n) break;
+			const n = $.urlSearchIteratorNext(it);
+			if (typeof n !== 'string') break;
 			yield n;
 		}
 	}
@@ -142,8 +153,8 @@ export class URLSearchParams implements globalThis.URLSearchParams {
 	*values(): IterableIterator<string> {
 		const it = $.urlSearchIterator(this, 1);
 		while (1) {
-			const n =  $.urlSearchIteratorNext(it);
-			if (!n) break;
+			const n = $.urlSearchIteratorNext(it);
+			if (typeof n !== 'string') break;
 			yield n;
 		}
 	}
@@ -152,7 +163,7 @@ export class URLSearchParams implements globalThis.URLSearchParams {
 	*entries(): IterableIterator<[string, string]> {
 		const it = $.urlSearchIterator(this, 2);
 		while (1) {
-			const n =  $.urlSearchIteratorNext(it);
+			const n = $.urlSearchIteratorNext(it);
 			if (!n) break;
 			yield n;
 		}
@@ -164,6 +175,8 @@ export class URLSearchParams implements globalThis.URLSearchParams {
 }
 $.urlSearchInit(URLSearchParams);
 def(URLSearchParams);
+
+const searchParams = new WeakMap<URL, URLSearchParams>();
 
 /**
  * The `URL` interface is used to parse, construct, normalize, and encode URLs.
@@ -197,19 +210,31 @@ export class URL implements globalThis.URL {
 	declare port: string;
 	declare protocol: string;
 	declare search: string;
-	declare searchParams: URLSearchParams;
 	declare username: string;
 	declare readonly origin: string;
 
+	get searchParams(): URLSearchParams {
+		let p = searchParams.get(this);
+		if (!p) {
+			p = new URLSearchParams(
+				this.search,
+				// @ts-expect-error internal argument
+				this
+			);
+			searchParams.set(this, p);
+		}
+		return p;
+	}
+
 	/**
-	 * Returns a string containing the full URL. It is a synonym for the {@link URL.href} property, though it can't be used to modify the value.
+	 * Returns a string containing the full URL. It is a synonym for the {@link URL.href | `href`} property, though it can't be used to modify the value.
 	 */
 	toString(): string {
 		return this.href;
 	}
 
 	/**
-	 * Returns a string containing the full URL. It is a synonym for the {@link URL.href} property.
+	 * Returns a string containing the full URL. It is a synonym for the {@link URL.href | `href`} property.
 	 */
 	toJSON(): string {
 		return this.href;

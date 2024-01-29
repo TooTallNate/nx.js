@@ -235,8 +235,11 @@ export interface Init {
 	urlInit(c: ClassOf<URL>): void;
 	urlNew(url: string | URL, base?: string | URL): URL;
 	urlSearchInit(c: ClassOf<URLSearchParams>): void;
-	urlSearchNew(input: string): URLSearchParams;
-	urlSearchIterator(params: URLSearchParams, type: number): URLSearchParamsIterator;
+	urlSearchNew(input: string, url?: URL): URLSearchParams;
+	urlSearchIterator(
+		params: URLSearchParams,
+		type: number
+	): URLSearchParamsIterator;
 	urlSearchIteratorNext(it: URLSearchParamsIterator): any;
 
 	// wasm.c
