@@ -10,6 +10,7 @@ import type {
 import type {
 	Callback,
 	Keys,
+	Opaque,
 	RGBA,
 	VibrationValues,
 	WasmGlobalOpaque,
@@ -33,6 +34,8 @@ import type { URL, URLSearchParams } from './polyfills/url';
 type ClassOf<T> = {
 	new (...args: any[]): T;
 };
+
+type URLSearchParamsIterator = Opaque<'URLSearchParamsIterator'>;
 
 export interface Init {
 	// account.c
@@ -233,6 +236,8 @@ export interface Init {
 	urlNew(url: string | URL, base?: string | URL): URL;
 	urlSearchInit(c: ClassOf<URLSearchParams>): void;
 	urlSearchNew(input: string): URLSearchParams;
+	urlSearchIterator(params: URLSearchParams, type: number): URLSearchParamsIterator;
+	urlSearchIteratorNext(it: URLSearchParamsIterator): any;
 
 	// wasm.c
 	wasmCallFunc(f: any, ...args: unknown[]): unknown;

@@ -9,8 +9,27 @@
 		return JS_EXCEPTION;                                              \
 	}
 
+enum nx_url_search_params_iterator_type
+{
+	NX_URL_SEARCH_PARAMS_ITERATOR_TYPE_KEYS,
+	NX_URL_SEARCH_PARAMS_ITERATOR_TYPE_VALUES,
+	NX_URL_SEARCH_PARAMS_ITERATOR_TYPE_ENTRIES
+};
+
+typedef struct
+{
+	enum nx_url_search_params_iterator_type type;
+	union
+	{
+		ada_url_search_params_keys_iter keys;
+		ada_url_search_params_values_iter values;
+		ada_url_search_params_entries_iter entries;
+	} it;
+} nx_url_search_params_iterator_t;
+
 static JSClassID nx_url_class_id;
 static JSClassID nx_url_search_params_class_id;
+static JSClassID nx_url_search_params_iterator_class_id;
 
 static void finalizer_url(JSRuntime *rt, JSValue val)
 {
@@ -27,6 +46,27 @@ static void finalizer_url_search_params(JSRuntime *rt, JSValue val)
 	if (params)
 	{
 		ada_free_search_params(params);
+	}
+}
+
+static void finalizer_url_search_params_iterator(JSRuntime *rt, JSValue val)
+{
+	nx_url_search_params_iterator_t *data = JS_GetOpaque(val, nx_url_search_params_iterator_class_id);
+	if (data)
+	{
+		if (data->type == 0)
+		{
+			ada_free_search_params_keys_iter(data->it.keys);
+		}
+		else if (data->type == 1)
+		{
+			ada_free_search_params_values_iter(data->it.values);
+		}
+		else if (data->type == 2)
+		{
+			ada_free_search_params_entries_iter(data->it.entries);
+		}
+		js_free_rt(rt, data);
 	}
 }
 
@@ -168,11 +208,14 @@ static JSValue nx_url_search_params_delete(JSContext *ctx, JSValueConst this_val
 		return JS_EXCEPTION;
 	}
 	STR(key, 0);
-	if (argc == 2 && JS_IsString(argv[1])) {
+	if (argc == 2 && JS_IsString(argv[1]))
+	{
 		STR(value, 1);
 		ada_search_params_remove_value(params, key, key_length, value, value_length);
 		JS_FreeCString(ctx, value);
-	} else {
+	}
+	else
+	{
 		ada_search_params_remove(params, key, key_length);
 	}
 	JS_FreeCString(ctx, key);
@@ -204,7 +247,8 @@ static JSValue nx_url_search_params_get_all(JSContext *ctx, JSValueConst this_va
 	JS_FreeCString(ctx, key);
 	JSValue arr = JS_NewArray(ctx);
 	size_t len = ada_strings_size(vals);
-	for (size_t i = 0; i < len; i++) {
+	for (size_t i = 0; i < len; i++)
+	{
 		ada_string val = ada_strings_get(vals, i);
 		JS_SetPropertyUint32(ctx, arr, i, JS_NewStringLen(ctx, val.data, val.length));
 	}
@@ -281,11 +325,90 @@ static JSValue nx_url_search_params_init(JSContext *ctx, JSValueConst this_val, 
 	return JS_UNDEFINED;
 }
 
+static JSValue nx_url_search_params_iterator(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	ada_url_search_params params = JS_GetOpaque2(ctx, argv[0], nx_url_search_params_class_id);
+	if (!params)
+	{
+		return JS_EXCEPTION;
+	}
+	u32 type;
+	if (JS_ToUint32(ctx, &type, argv[1]))
+	{
+		return JS_EXCEPTION;
+	}
+	nx_url_search_params_iterator_t *data = js_mallocz(ctx, sizeof(nx_url_search_params_iterator_t));
+	if (!data)
+	{
+		return JS_EXCEPTION;
+	}
+	data->type = type;
+	if (type == 0)
+	{
+		data->it.keys = ada_search_params_get_keys(params);
+	}
+	else if (type == 1)
+	{
+		data->it.values = ada_search_params_get_values(params);
+	}
+	else if (type == 2)
+	{
+		data->it.entries = ada_search_params_get_entries(params);
+	}
+	else
+	{
+		js_free(ctx, data);
+		return JS_ThrowTypeError(ctx, "Invalid URLSearchParams iterator type %d", type);
+	}
+	JSValue obj = JS_NewObjectClass(ctx, nx_url_search_params_iterator_class_id);
+	JS_SetOpaque(obj, data);
+	return obj;
+}
+
+static JSValue nx_url_search_params_iterator_next(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	nx_url_search_params_iterator_t *data = JS_GetOpaque2(ctx, argv[0], nx_url_search_params_iterator_class_id);
+	if (!data)
+	{
+		return JS_EXCEPTION;
+	}
+	if (data->type == 0)
+	{
+		if (ada_search_params_keys_iter_has_next(data->it.keys))
+		{
+			ada_string val = ada_search_params_keys_iter_next(data->it.keys);
+			return JS_NewStringLen(ctx, val.data, val.length);
+		}
+	}
+	else if (data->type == 1)
+	{
+		if (ada_search_params_values_iter_has_next(data->it.values))
+		{
+			ada_string val = ada_search_params_values_iter_next(data->it.values);
+			return JS_NewStringLen(ctx, val.data, val.length);
+		}
+	}
+	else if (data->type == 2)
+	{
+		if (ada_search_params_entries_iter_has_next(data->it.entries))
+		{
+			ada_string_pair pair = ada_search_params_entries_iter_next(data->it.entries);
+			JSValue arr = JS_NewArray(ctx);
+			JS_SetPropertyUint32(ctx, arr, 0, JS_NewStringLen(ctx, pair.key.data, pair.key.length));
+			JS_SetPropertyUint32(ctx, arr, 1, JS_NewStringLen(ctx, pair.value.data, pair.value.length));
+			return arr;
+		}
+	}
+	return JS_UNDEFINED;
+}
+
 static const JSCFunctionListEntry function_list[] = {
 	JS_CFUNC_DEF("urlNew", 1, nx_url_new),
 	JS_CFUNC_DEF("urlInit", 1, nx_url_init),
 	JS_CFUNC_DEF("urlSearchNew", 1, nx_url_search_params_new),
 	JS_CFUNC_DEF("urlSearchInit", 1, nx_url_search_params_init),
+	JS_CFUNC_DEF("urlSearchIterator", 2, nx_url_search_params_iterator),
+	JS_CFUNC_DEF("urlSearchIteratorNext", 1, nx_url_search_params_iterator_next),
 };
 
 void nx_init_url(JSContext *ctx, JSValueConst init_obj)
@@ -305,6 +428,13 @@ void nx_init_url(JSContext *ctx, JSValueConst init_obj)
 		.finalizer = finalizer_url_search_params,
 	};
 	JS_NewClass(rt, nx_url_search_params_class_id, &url_search_params_class);
+
+	JS_NewClassID(rt, &nx_url_search_params_iterator_class_id);
+	JSClassDef url_search_params_iterator_class = {
+		"URLSearchParams Iterator",
+		.finalizer = finalizer_url_search_params_iterator,
+	};
+	JS_NewClass(rt, nx_url_search_params_iterator_class_id, &url_search_params_iterator_class);
 
 	JS_SetPropertyFunctionList(ctx, init_obj, function_list, countof(function_list));
 }
