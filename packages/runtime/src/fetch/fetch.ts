@@ -2,6 +2,7 @@ import { dataUriToBuffer } from 'data-uri-to-buffer';
 import { def } from '../utils';
 import { readFile } from '../fs';
 import { objectUrls } from '../polyfills/url';
+import { URL } from '../polyfills/url';
 import { decoder } from '../polyfills/text-decoder';
 import { encoder } from '../polyfills/text-encoder';
 import { Request, type RequestInit } from './request';

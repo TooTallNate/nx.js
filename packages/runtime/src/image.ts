@@ -1,6 +1,7 @@
 import { $ } from './$';
 import { createInternal, def, toPromise } from './utils';
 import { fetch } from './fetch/fetch';
+import { URL } from './polyfills/url';
 import { Event, ErrorEvent } from './polyfills/event';
 import { EventTarget } from './polyfills/event-target';
 import type { CanvasRenderingContext2D } from './canvas/canvas-rendering-context-2d';

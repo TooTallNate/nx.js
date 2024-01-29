@@ -28,6 +28,7 @@ import type { OffscreenCanvasRenderingContext2D } from './canvas/offscreen-canva
 import type { Image } from './image';
 import type { Screen } from './screen';
 import type { FontFace } from './font/font-face';
+import type { URL, URLSearchParams } from './polyfills/url';
 
 type ClassOf<T> = {
 	new (...args: any[]): T;
@@ -226,6 +227,12 @@ export interface Init {
 		ctx: TlsContextOpaque,
 		buffer: ArrayBuffer
 	): void;
+
+	// url.c
+	urlInit(c: ClassOf<URL>): void;
+	urlNew(url: string | URL, base?: string | URL): URL;
+	urlSearchInit(c: ClassOf<URLSearchParams>): void;
+	urlSearchNew(input: string): URLSearchParams;
 
 	// wasm.c
 	wasmCallFunc(f: any, ...args: unknown[]): unknown;

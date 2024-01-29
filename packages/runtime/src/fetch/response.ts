@@ -1,6 +1,7 @@
 import { def } from '../utils';
 import { Body, type BodyInit } from './body';
 import { Headers, type HeadersInit } from './headers';
+import type { URL } from '../polyfills/url';
 
 export interface ResponseInit {
 	/** Headers for the response. */

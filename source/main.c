@@ -27,6 +27,7 @@
 #include "image.h"
 #include "tcp.h"
 #include "tls.h"
+#include "url.h"
 #include "poll.h"
 
 #define LOG_FILENAME "nxjs-debug.log"
@@ -554,6 +555,7 @@ int main(int argc, char *argv[])
 	nx_init_ns(ctx, init_obj);
 	nx_init_tcp(ctx, init_obj);
 	nx_init_tls(ctx, init_obj);
+	nx_init_url(ctx, init_obj);
 	nx_init_swkbd(ctx, init_obj);
 	nx_init_wasm(ctx, init_obj);
 	const JSCFunctionListEntry init_function_list[] = {

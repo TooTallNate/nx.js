@@ -6,8 +6,7 @@ import { asyncIteratorToStream, bufferSourceToArrayBuffer } from '../utils';
 import { Blob } from '../polyfills/blob';
 import { File } from '../polyfills/file';
 import { FormData } from '../polyfills/form-data';
-// Can't import `URLSearchParams` since it comes from "core-js"
-//import { URLSearchParams } from '../polyfills/url';
+import { URLSearchParams } from '../polyfills/url';
 import type { BufferSource } from '../types';
 
 function indexOfSequence<T>(

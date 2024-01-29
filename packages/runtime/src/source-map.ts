@@ -1,3 +1,4 @@
+import { URL } from './polyfills/url';
 import { dataUriToBuffer } from 'data-uri-to-buffer';
 import { decoder } from './polyfills/text-decoder';
 import {
