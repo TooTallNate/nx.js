@@ -92,7 +92,7 @@ static JSValue nx_url_new(JSContext *ctx, JSValueConst this_val, int argc, JSVal
 {
 	STR(input, 0);
 	ada_url url;
-	if (argc == 2 && JS_IsString(argv[1]))
+	if (argc == 2 && !JS_IsUndefined(argv[1]))
 	{
 		STR(base, 1);
 		url = ada_parse_with_base(input, input_length, base, base_length);
