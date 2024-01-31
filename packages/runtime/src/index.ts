@@ -111,6 +111,14 @@ export interface ImportMeta {
 	main: boolean;
 }
 
+/**
+ * Queues a microtask to be executed at a safe time prior to control returning to the browser's event loop.
+ *
+ * @param callback A function to be executed when the runtime determines it is safe to invoke.
+ * @see https://developer.mozilla.org/docs/Web/API/queueMicrotask
+ */
+export declare function queueMicrotask(callback: () => void): void;
+
 import './window';
 export type * from './window';
 
