@@ -115,7 +115,8 @@ export var console = {
 	 */
 	trace(...input: unknown[]) {
 		const f = format(...input);
-		const s = new Error().stack!.split('\n').slice(1).join('\n');
+		let s = new Error().stack!.split('\n').slice(1).join('\n');
+		if (!s.endsWith('\n')) s += '\n';
 		$.print(`Trace${f ? `: ${f}` : ''}\n${s}`);
 	},
 };
