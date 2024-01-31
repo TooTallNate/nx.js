@@ -58,7 +58,7 @@ export type RequestRedirect = 'error' | 'follow' | 'manual';
 export interface RequestInit {
 	/** A BodyInit object or null to set request's body. */
 	body?: BodyInit | null;
-	/** A string indicating how the request will interact with the browser's cache to set request's cache. */
+	/** A string indicating how the request will interact with the local cache to set request's cache. */
 	cache?: RequestCache;
 	/** A string indicating whether credentials will be sent with the request always, never, or only when sent to a same-origin URL. Sets request's credentials. */
 	credentials?: RequestCredentials;

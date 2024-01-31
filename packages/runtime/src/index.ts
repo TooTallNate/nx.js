@@ -112,7 +112,8 @@ export interface ImportMeta {
 }
 
 /**
- * Queues a microtask to be executed at a safe time prior to control returning to the browser's event loop.
+ * Queues a microtask to be executed at a safe time prior
+ * to control returning to the runtime's event loop.
  *
  * @param callback A function to be executed when the runtime determines it is safe to invoke.
  * @see https://developer.mozilla.org/docs/Web/API/queueMicrotask
