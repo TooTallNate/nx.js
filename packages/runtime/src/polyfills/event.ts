@@ -1,4 +1,5 @@
 import { assertInternalConstructor, createInternal, def } from '../utils';
+import type { EventTarget } from './event-target';
 
 export interface EventInit {
 	bubbles?: boolean;
