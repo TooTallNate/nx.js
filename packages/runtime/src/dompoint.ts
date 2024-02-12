@@ -17,8 +17,8 @@ export class DOMPointReadOnly implements globalThis.DOMPointReadOnly {
 	}
 
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMPointReadOnly/fromPoint) */
-	static fromPoint(other?: DOMPointInit): DOMPointReadOnly {
-		return new DOMPointReadOnly(other?.x, other?.y, other?.z, other?.w);
+	static fromPoint({ x, y, z, w }: DOMPointInit = {}): DOMPointReadOnly {
+		return new DOMPointReadOnly(x, y, z, w);
 	}
 
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMPointReadOnly/w) */
@@ -56,8 +56,8 @@ export class DOMPoint extends DOMPointReadOnly implements globalThis.DOMPoint {
 	}
 
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMPoint/fromPoint) */
-	static fromPoint(other?: DOMPointInit): DOMPoint {
-		return new DOMPoint(other?.x, other?.y, other?.z, other?.w);
+	static fromPoint({ x, y, z, w }: DOMPointInit = {}): DOMPoint {
+		return new DOMPoint(x, y, z, w);
 	}
 
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMPoint/w) */
