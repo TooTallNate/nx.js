@@ -2,6 +2,7 @@ import { $ } from '../$';
 import { def } from '../utils';
 import { Body, type BodyInit } from './body';
 import { AbortController, AbortSignal } from '../polyfills/abort-controller';
+import { URL } from '../polyfills/url';
 import type { HeadersInit } from './headers';
 
 // HTTP methods whose capitalization should be normalized

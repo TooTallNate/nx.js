@@ -5,6 +5,7 @@ import {
 	statSync,
 	writeFileSync,
 } from './fs';
+import { URL } from './polyfills/url';
 import { console } from './console';
 import { Application } from './switch/ns';
 import { INTERNAL_SYMBOL } from './internal';

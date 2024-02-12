@@ -10,6 +10,7 @@ import type {
 import type {
 	Callback,
 	Keys,
+	Opaque,
 	RGBA,
 	VibrationValues,
 	WasmGlobalOpaque,
@@ -28,10 +29,13 @@ import type { OffscreenCanvasRenderingContext2D } from './canvas/offscreen-canva
 import type { Image } from './image';
 import type { Screen } from './screen';
 import type { FontFace } from './font/font-face';
+import type { URL, URLSearchParams } from './polyfills/url';
 
 type ClassOf<T> = {
 	new (...args: any[]): T;
 };
+
+type URLSearchParamsIterator = Opaque<'URLSearchParamsIterator'>;
 
 export interface Init {
 	// account.c
@@ -226,6 +230,17 @@ export interface Init {
 		ctx: TlsContextOpaque,
 		buffer: ArrayBuffer
 	): void;
+
+	// url.c
+	urlInit(c: ClassOf<URL>): void;
+	urlNew(url: string | URL, base?: string | URL): URL;
+	urlSearchInit(c: ClassOf<URLSearchParams>): void;
+	urlSearchNew(input: string, url?: URL): URLSearchParams;
+	urlSearchIterator(
+		params: URLSearchParams,
+		type: number
+	): URLSearchParamsIterator;
+	urlSearchIteratorNext(it: URLSearchParamsIterator): any;
 
 	// wasm.c
 	wasmCallFunc(f: any, ...args: unknown[]): unknown;
