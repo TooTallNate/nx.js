@@ -12,6 +12,7 @@ import {
 	returnOnThrow,
 } from '../utils';
 import { addSystemFont, findFont, fonts } from '../font/font-face-set';
+import { DOMMatrix, type DOMMatrix2DInit } from '../dommatrix';
 import type { Path2D } from './path2d';
 import type { OffscreenCanvas } from './offscreen-canvas';
 import type { DOMPointInit } from '../dompoint';
@@ -388,6 +389,40 @@ export class OffscreenCanvasRenderingContext2D {
 	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/translate
 	 */
 	translate(x: number, y: number): void {
+		stub();
+	}
+
+	/**
+	 * Resets (overrides) the current transformation to the identity matrix, and then
+	 * invokes a transformation described by the arguments of this method. This lets
+	 * you scale, rotate, translate (move), and skew the context.
+	 *
+	 * @param a (`m11`) The cell in the first row and first column of the matrix.
+	 * @param b (`m12`) The cell in the second row and first column of the matrix.
+	 * @param c (`m21`) The cell in the first row and second column of the matrix.
+	 * @param d (`m22`) The cell in the second row and second column of the matrix.
+	 * @param e (`m41`) The cell in the first row and third column of the matrix.
+	 * @param f (`m42`) The cell in the second row and third column of the matrix.
+	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/setTransform
+	 */
+	setTransform(
+		a: number,
+		b: number,
+		c: number,
+		d: number,
+		e: number,
+		f: number
+	): void;
+	/**
+	 * Resets (overrides) the current transformation to the identity matrix, and then
+	 * invokes a transformation described by the arguments of this method. This lets
+	 * you scale, rotate, translate (move), and skew the context.
+	 *
+	 * @param transform An object containing the `DOMMatrix` 2D transformation values.
+	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/setTransform
+	 */
+	setTransform(transform?: DOMMatrix2DInit): void;
+	setTransform(): void {
 		stub();
 	}
 
