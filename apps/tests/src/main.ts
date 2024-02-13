@@ -1,5 +1,6 @@
 import './canvas';
 import './crypto';
+import './dommatrix';
 import './error';
 import './fetch';
 import './form-data';

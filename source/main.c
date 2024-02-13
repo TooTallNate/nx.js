@@ -12,10 +12,11 @@
 #include "applet.h"
 #include "async.h"
 #include "battery.h"
+#include "canvas.h"
 #include "crypto.h"
 #include "dns.h"
+#include "dommatrix.h"
 #include "error.h"
-#include "canvas.h"
 #include "font.h"
 #include "fs.h"
 #include "fsdev.h"
@@ -545,6 +546,7 @@ int main(int argc, char *argv[])
 	nx_init_canvas(ctx, init_obj);
 	nx_init_crypto(ctx, init_obj);
 	nx_init_dns(ctx, init_obj);
+	nx_init_dommatrix(ctx, init_obj);
 	nx_init_error(ctx, init_obj);
 	nx_init_font(ctx, init_obj);
 	nx_init_fs(ctx, init_obj);

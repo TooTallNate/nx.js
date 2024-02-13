@@ -30,6 +30,7 @@ import type { Image } from './image';
 import type { Screen } from './screen';
 import type { FontFace } from './font/font-face';
 import type { URL, URLSearchParams } from './polyfills/url';
+import type { DOMMatrix, DOMMatrixReadOnly } from './dommatrix';
 
 type ClassOf<T> = {
 	new (...args: any[]): T;
@@ -104,6 +105,11 @@ export interface Init {
 		buf: ArrayBuffer
 	): void;
 	cryptoRandomBytes(buf: ArrayBuffer, offset: number, length: number): void;
+
+	// dommatrix.c
+	dommatrixNew(values?: number[]): DOMMatrix | DOMMatrixReadOnly;
+	dommatrixROInitClass(c: ClassOf<DOMMatrixReadOnly>): void;
+	dommatrixInitClass(c: ClassOf<DOMMatrix>): void;
 
 	// dns.c
 	dnsResolve(cb: Callback<string[]>, hostname: string): void;
