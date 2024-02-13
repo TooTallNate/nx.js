@@ -50,10 +50,8 @@ void matrix_values(nx_dommatrix_values_t *m, double *v)
 
 void multiply(const nx_dommatrix_values_t *a, const nx_dommatrix_values_t *b, nx_dommatrix_values_t *result)
 {
-	// Initialize result matrix as 3D by default
 	*result = (nx_dommatrix_values_t){0};
 
-	// Perform matrix multiplication
 	result->m11 = a->m11 * b->m11 + a->m12 * b->m21 + a->m13 * b->m31 + a->m14 * b->m41;
 	result->m12 = a->m11 * b->m12 + a->m12 * b->m22 + a->m13 * b->m32 + a->m14 * b->m42;
 	result->m13 = a->m11 * b->m13 + a->m12 * b->m23 + a->m13 * b->m33 + a->m14 * b->m43;
@@ -174,10 +172,11 @@ static JSValue nx_dommatrix_is_identity(JSContext *ctx, JSValueConst this_val, i
 	DOMMATRIX_THIS;
 	nx_dommatrix_values_t *values = &matrix->values;
 	return JS_NewBool(ctx,
-					  values->m11 == 1. && values->m12 == 0. && values->m13 == 0. && values->m14 == 0. &&
-						  values->m21 == 0. && values->m22 == 1. && values->m23 == 0. && values->m24 == 0. &&
-						  values->m31 == 0. && values->m32 == 0. && values->m33 == 1. && values->m34 == 0. &&
-						  values->m41 == 0. && values->m42 == 0. && values->m43 == 0. && values->m44 == 1.);
+		values->m11 == 1. && values->m12 == 0. && values->m13 == 0. && values->m14 == 0. &&
+		values->m21 == 0. && values->m22 == 1. && values->m23 == 0. && values->m24 == 0. &&
+		values->m31 == 0. && values->m32 == 0. && values->m33 == 1. && values->m34 == 0. &&
+		values->m41 == 0. && values->m42 == 0. && values->m43 == 0. && values->m44 == 1.
+	);
 }
 
 void translate(nx_dommatrix_t *matrix, double tx, double ty, double tz) {
@@ -364,23 +363,7 @@ static JSValue nx_dommatrix_translate_self(JSContext *ctx, JSValueConst this_val
 	ARG_TO_NUM(0, tx);
 	ARG_TO_NUM(1, ty);
 	ARG_TO_NUM(2, tz);
-	if (tx != 0 || ty != 0 || tz != 0) {
-		nx_dommatrix_values_t result;
-		nx_dommatrix_values_t b;
-		double values[] = {
-			1, 0, 0, 0,
-			0, 1, 0, 0,
-			0, 0, 1, 0,
-			tx, ty, tz, 1,
-		};
-		matrix_values(&b, values);
-		multiply(&b, &matrix->values, &result);
-		*(&matrix->values) = result;
-		if (tz != 0)
-		{
-			matrix->is_2d = false;
-		}
-	}
+	translate(matrix, tx, ty, tz);
 	return JS_DupValue(ctx, this_val);
 }
 
