@@ -97,6 +97,8 @@ import { $ } from './$';
 /**
  * The `import.meta` meta-property exposes context-specific metadata to a JavaScript module.
  * It contains information about the module, such as the module's URL.
+ *
+ * @see https://developer.mozilla.org/docs/Web/JavaScript/Reference/Operators/import.meta
  */
 export interface ImportMeta {
 	/**

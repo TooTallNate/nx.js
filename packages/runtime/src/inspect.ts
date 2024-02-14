@@ -21,8 +21,11 @@ export const inspect = (v: unknown, opts: InspectOptions = {}): string => {
 	const { depth = 1 } = opts;
 
 	// Primitives
-	if (typeof v === 'number' || typeof v === 'boolean') {
+	if (typeof v === 'boolean') {
 		return bold(yellow(v));
+	}
+	if (typeof v === 'number') {
+		return bold(yellow(isNegZ(v) ? '-0' : v));
 	}
 	if (typeof v === 'bigint') {
 		return bold(yellow(`${v}n`));
@@ -161,6 +164,10 @@ function printObject(v: any, opts: InspectOptions) {
 		}
 	}
 	return `${className}{${contents}${endSpace}}`;
+}
+
+function isNegZ(n: number) {
+	return 1 / n === -Infinity;
 }
 
 function getClass(v: unknown) {

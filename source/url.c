@@ -88,6 +88,27 @@ static void finalizer_url_search_params_iterator(JSRuntime *rt, JSValue val)
 	}
 }
 
+static JSValue nx_url_can_parse(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	STR(input, 0);
+	ada_url url;
+	if (argc == 2 && !JS_IsUndefined(argv[1]))
+	{
+		STR(base, 1);
+		url = ada_parse_with_base(input, input_length, base, base_length);
+		JS_FreeCString(ctx, input);
+		input = base;
+	}
+	else
+	{
+		url = ada_parse(input, input_length);
+	}
+	JSValue rtn = JS_NewBool(ctx, ada_is_valid(url));
+	ada_free(url);
+	JS_FreeCString(ctx, input);
+	return rtn;
+}
+
 static JSValue nx_url_new(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	STR(input, 0);
@@ -264,6 +285,10 @@ static JSValue nx_url_init(JSContext *ctx, JSValueConst this_val, int argc, JSVa
 	NX_DEF_GETSET(proto, "search", nx_url_get_search, nx_url_set_search);
 	NX_DEF_GETSET(proto, "username", nx_url_get_username, nx_url_set_username);
 	JS_FreeValue(ctx, proto);
+
+	// Static method
+	NX_DEF_FUNC(argv[0], "canParse", nx_url_can_parse, 1);
+
 	return JS_UNDEFINED;
 }
 
