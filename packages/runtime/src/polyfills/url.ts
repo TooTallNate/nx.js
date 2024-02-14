@@ -262,6 +262,18 @@ export class URL implements globalThis.URL {
 	static revokeObjectURL(url: string): void {
 		objectUrls.delete(url);
 	}
+
+	/**
+	 * Returns a boolean indicating whether or not an absolute URL, or
+	 * a relative URL combined with a base URL, are parsable and valid.
+	 *
+	 * @param url The input URL to be parsed.
+	 * @param base The base URL to use in case the input URL is a relative URL.
+	 * @see https://developer.mozilla.org/docs/Web/API/URL/canParse_static
+	 */
+	static canParse(url: string | URL, base?: string | URL) {
+		stub();
+	}
 }
 $.urlInit(URL);
 def(URL);
