@@ -38,7 +38,7 @@ include $(DEVKITPRO)/libnx/switch_rules
 #   NACP building is skipped as well.
 #---------------------------------------------------------------------------------
 APP_TITLE   :=  nx.js
-APP_TITLEID :=  0106f2502c7b0000
+APP_TITLEID :=  016e782e6a730000 # 6e782e6a73 is "nx.js" in hex 😉
 APP_AUTHOR  :=  TooTallNate
 APP_VERSION :=  `jq -r .version < ../packages/runtime/package.json`
 TARGET		:=	nxjs
