@@ -52,6 +52,7 @@ jobs:
           name: nxjs.nsp
           path: |
             build/exefs/
+            romfs/
             icon.jpg
             nxjs.nacp
 
