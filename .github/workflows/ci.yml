@@ -37,7 +37,7 @@ jobs:
         run: pnpm bundle
 
       - name: Copy `runtime.js` to RomFS
-        run: mkdir -p ./romfs && cp -v ./packages/runtime/runtime.js ./romfs/runtime.js
+        run: mkdir -p ./romfs && cp -v ./packages/runtime/runtime.js* ./romfs/
 
       - name: Build `nxjs.nro`
         run: make V=1
