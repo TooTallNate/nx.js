@@ -507,14 +507,14 @@ int main(int argc, char *argv[])
 
 	// First try the `main.js` file on the RomFS
 	size_t user_code_size;
-	int js_path_needs_free = 0;
+	bool js_path_needs_free = false;
 	char *js_path = "romfs:/main.js";
 	char *user_code = (char *)read_file(js_path, &user_code_size);
-	if (user_code == NULL && errno == ENOENT)
+	if (user_code == NULL && errno == ENOENT && argc > 0)
 	{
 		// If no `main.js`, then try the `.js file with the
 		// matching name as the `.nro` file on the SD card
-		js_path_needs_free = 1;
+		js_path_needs_free = true;
 		js_path = strdup(argv[0]);
 		size_t js_path_len = strlen(js_path);
 		char *dot_nro = strstr(js_path, ".nro");

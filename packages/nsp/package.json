@@ -1,24 +1,25 @@
 {
-  "name": "@nx.js/nro",
-  "version": "0.0.32",
-  "description": "Package nx.js applications into a `.nro` file",
+  "name": "@nx.js/nsp",
+  "version": "0.0.0",
+  "description": "",
   "bin": {
-    "nxjs-nro": "./dist/main.js"
+    "nxjs-nsp": "dist/main.js"
   },
   "type": "module",
   "scripts": {
     "build": "tsc"
   },
   "files": [
-    "dist"
+    "dist",
+    "exefs",
+    "nxjs.nacp",
+    "icon.jpg"
   ],
   "author": "Nathan Rajlich <n@n8.io>",
   "license": "MIT",
   "dependencies": {
     "@nx.js/patch-nacp": "0.0.0",
     "@tootallnate/nacp": "^0.0.1",
-    "@tootallnate/nro": "^0.1.0",
-    "@tootallnate/romfs": "^0.1.0",
     "bytes": "^3.1.2",
     "chalk": "^5.3.0",
     "terminal-image": "^2.0.0"

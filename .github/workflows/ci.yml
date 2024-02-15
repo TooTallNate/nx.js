@@ -84,6 +84,9 @@ jobs:
       - name: Copy `nxjs.nro` to "@nx.js/nro"
         run: cp -v nxjs.nro packages/nro/dist
 
+      - name: Copy files to "@nx.js/nsp"
+        run: cp -rv build/exefs nxjs.nacp icon.jpg packages/nsp
+
       - name: Create Release Pull Request or Publish to npm
         id: changesets
         uses: changesets/action@v1

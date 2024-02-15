@@ -35,6 +35,9 @@ importers:
       '@nx.js/nro':
         specifier: workspace:^
         version: link:../../packages/nro
+      '@nx.js/nsp':
+        specifier: workspace:^
+        version: link:../../packages/nsp
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
@@ -54,6 +57,9 @@ importers:
       '@nx.js/nro':
         specifier: workspace:^
         version: link:../../packages/nro
+      '@nx.js/nsp':
+        specifier: workspace:^
+        version: link:../../packages/nsp
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
@@ -66,6 +72,9 @@ importers:
       '@nx.js/nro':
         specifier: workspace:^
         version: link:../../packages/nro
+      '@nx.js/nsp':
+        specifier: workspace:^
+        version: link:../../packages/nsp
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
@@ -78,6 +87,9 @@ importers:
       '@nx.js/nro':
         specifier: workspace:^
         version: link:../../packages/nro
+      '@nx.js/nsp':
+        specifier: workspace:^
+        version: link:../../packages/nsp
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
@@ -90,6 +102,9 @@ importers:
       '@nx.js/nro':
         specifier: workspace:^
         version: link:../../packages/nro
+      '@nx.js/nsp':
+        specifier: workspace:^
+        version: link:../../packages/nsp
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
@@ -102,6 +117,9 @@ importers:
       '@nx.js/nro':
         specifier: workspace:^
         version: link:../../packages/nro
+      '@nx.js/nsp':
+        specifier: workspace:^
+        version: link:../../packages/nsp
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
@@ -114,6 +132,9 @@ importers:
       '@nx.js/nro':
         specifier: workspace:^
         version: link:../../packages/nro
+      '@nx.js/nsp':
+        specifier: workspace:^
+        version: link:../../packages/nsp
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
@@ -133,6 +154,9 @@ importers:
       '@nx.js/nro':
         specifier: workspace:^
         version: link:../../packages/nro
+      '@nx.js/nsp':
+        specifier: workspace:^
+        version: link:../../packages/nsp
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
@@ -152,6 +176,9 @@ importers:
       '@nx.js/nro':
         specifier: workspace:^
         version: link:../../packages/nro
+      '@nx.js/nsp':
+        specifier: workspace:^
+        version: link:../../packages/nsp
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
@@ -168,6 +195,9 @@ importers:
       '@nx.js/nro':
         specifier: workspace:^
         version: link:../../packages/nro
+      '@nx.js/nsp':
+        specifier: workspace:^
+        version: link:../../packages/nsp
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
@@ -184,6 +214,9 @@ importers:
       '@nx.js/nro':
         specifier: workspace:^
         version: link:../../packages/nro
+      '@nx.js/nsp':
+        specifier: workspace:^
+        version: link:../../packages/nsp
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
@@ -203,6 +236,9 @@ importers:
       '@nx.js/nro':
         specifier: workspace:^
         version: link:../../packages/nro
+      '@nx.js/nsp':
+        specifier: workspace:^
+        version: link:../../packages/nsp
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
@@ -215,6 +251,9 @@ importers:
       '@nx.js/nro':
         specifier: workspace:^
         version: link:../../packages/nro
+      '@nx.js/nsp':
+        specifier: workspace:^
+        version: link:../../packages/nsp
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
@@ -231,6 +270,9 @@ importers:
       '@nx.js/nro':
         specifier: workspace:^
         version: link:../../packages/nro
+      '@nx.js/nsp':
+        specifier: workspace:^
+        version: link:../../packages/nsp
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
@@ -247,6 +289,9 @@ importers:
       '@nx.js/nro':
         specifier: workspace:^
         version: link:../../packages/nro
+      '@nx.js/nsp':
+        specifier: workspace:^
+        version: link:../../packages/nsp
       '@types/color-hash':
         specifier: ^1.0.5
         version: 1.0.5
@@ -262,6 +307,9 @@ importers:
       '@nx.js/nro':
         specifier: workspace:^
         version: link:../../packages/nro
+      '@nx.js/nsp':
+        specifier: workspace:^
+        version: link:../../packages/nsp
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
@@ -274,6 +322,9 @@ importers:
       '@nx.js/nro':
         specifier: workspace:^
         version: link:../../packages/nro
+      '@nx.js/nsp':
+        specifier: workspace:^
+        version: link:../../packages/nsp
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
@@ -289,6 +340,9 @@ importers:
       '@nx.js/nro':
         specifier: workspace:^
         version: link:../../packages/nro
+      '@nx.js/nsp':
+        specifier: workspace:^
+        version: link:../../packages/nsp
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
@@ -339,7 +393,7 @@ importers:
   packages/nro:
     dependencies:
       '@nx.js/patch-nacp':
-        specifier: ^0.0.0
+        specifier: 0.0.0
         version: link:../patch-nacp
       '@tootallnate/nacp':
         specifier: ^0.0.1
@@ -350,6 +404,34 @@ importers:
       '@tootallnate/romfs':
         specifier: ^0.1.0
         version: 0.1.0
+      bytes:
+        specifier: ^3.1.2
+        version: 3.1.2
+      chalk:
+        specifier: ^5.3.0
+        version: 5.3.0
+      terminal-image:
+        specifier: ^2.0.0
+        version: 2.0.0
+    devDependencies:
+      '@types/bytes':
+        specifier: ^3.1.4
+        version: 3.1.4
+      '@types/node':
+        specifier: ^20.10.3
+        version: 20.10.3
+      typescript:
+        specifier: ^5.3.2
+        version: 5.3.2
+
+  packages/nsp:
+    dependencies:
+      '@nx.js/patch-nacp':
+        specifier: 0.0.0
+        version: link:../patch-nacp
+      '@tootallnate/nacp':
+        specifier: ^0.0.1
+        version: 0.0.1
       bytes:
         specifier: ^3.1.2
         version: 3.1.2
@@ -4360,7 +4442,3 @@ packages:
       kleur: 4.1.5
       sade: 1.8.1
     dev: false
-
-settings:
-  autoInstallPeers: true
-  excludeLinksFromLockfile: false

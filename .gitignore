@@ -4,6 +4,9 @@ node_modules
 /lib/*/lib
 /lib/*/debug
 /lib/*/release
+/hacbrewpack_*
+/exefs
+/control
 
 /nxjs.*
 !/nxjs.jpg
