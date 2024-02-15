@@ -62,10 +62,6 @@ importers:
         version: link:../../packages/runtime
 
   apps/app-launch:
-    dependencies:
-      '@tootallnate/nacp':
-        specifier: ^0.0.1
-        version: 0.0.1
     devDependencies:
       esbuild:
         specifier: ^0.17.19

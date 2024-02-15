@@ -5,6 +5,7 @@ import { assertInternalConstructor, stub } from '../utils';
 import type { Profile } from './profile';
 
 let init = false;
+let self: Application | undefined;
 
 function _init() {
 	if (init) return;
@@ -13,7 +14,18 @@ function _init() {
 }
 
 /**
- * Represents an installed application (game) on the console.
+ * Represents an installed application (game) on the console,
+ * or a homebrew application (`.nro` file).
+ *
+ * Can be used as an iterator to retrieve the list of installed applications.
+ *
+ * @example
+ *
+ * ```typescript
+ * for (const app of Switch.Application) {
+ *   console.log(app.name);
+ * }
+ * ```
  */
 export class Application {
 	/**
@@ -50,6 +62,8 @@ export class Application {
 
 	/**
 	 * Launches the application.
+	 *
+	 * @note This only works for installed applications (__not__ homebrew apps).
 	 */
 	launch(): never {
 		stub();
@@ -95,27 +109,11 @@ export class Application {
 		$.fsdevMountSaveData(name, this.nacp, profile.uid);
 		return new FsDev(name);
 	}
-}
-$.nsAppInit(Application);
 
-let self: Application | undefined;
-
-/**
- * Can be used as an iterator to retrieve the list of installed applications.
- *
- * @example
- *
- * ```typescript
- * for (const app of Switch.applications) {
- *   console.log(app.name);
- * }
- * ```
- */
-export const applications = {
 	/**
 	 * An `Application` instance representing the currently running application.
 	 */
-	get self() {
+	static get self() {
 		if (!self) {
 			_init();
 			let nro: ArrayBuffer | null = null;
@@ -126,9 +124,9 @@ export const applications = {
 			Object.setPrototypeOf(self, Application.prototype);
 		}
 		return self;
-	},
+	}
 
-	*[Symbol.iterator]() {
+	static *[Symbol.iterator]() {
 		_init();
 		let offset = 0;
 		while (1) {
@@ -138,5 +136,6 @@ export const applications = {
 			Object.setPrototypeOf(app, Application.prototype);
 			yield app;
 		}
-	},
-};
+	}
+}
+$.nsAppInit(Application);
