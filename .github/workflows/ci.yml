@@ -64,8 +64,15 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v4
 
-      - name: Download artifacts
+      - name: Download `nxjs.nro`
         uses: actions/download-artifact@v4
+        with:
+          name: nxjs.nro
+
+      - name: Download `nxjs.nsp`
+        uses: actions/download-artifact@v4
+        with:
+          name: nxjs.nsp
 
       - name: Fetch git tags
         run: git fetch origin 'refs/tags/*:refs/tags/*'
