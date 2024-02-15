@@ -1,7 +1,7 @@
 {
   "name": "@nx.js/nsp",
   "version": "0.0.33",
-  "description": "",
+  "description": "Package nx.js applications into a `.nsp` file",
   "bin": {
     "nxjs-nsp": "dist/main.js"
   },
