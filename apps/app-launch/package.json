@@ -12,8 +12,5 @@
     "esbuild": "^0.17.19",
     "nxjs-pack": "workspace:^",
     "nxjs-runtime": "workspace:^"
-  },
-  "dependencies": {
-    "@tootallnate/nacp": "^0.0.1"
   }
 }
