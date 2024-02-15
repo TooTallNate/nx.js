@@ -1,6 +1,7 @@
 import { $ } from '../$';
-import { assertInternalConstructor, stub } from '../utils';
 import { FsDev } from './fsdev';
+import { readFileSync } from '../fs';
+import { assertInternalConstructor, stub } from '../utils';
 import type { Profile } from './profile';
 
 let init = false;
@@ -18,27 +19,27 @@ export class Application {
 	/**
 	 * The 64-bit unique identifier of the application.
 	 */
-	declare id: bigint;
-	/**
-	 * The "type" of application.
-	 */
-	declare type: number;
+	declare readonly id: bigint;
+
 	/**
 	 * The raw NACP data of the application. Use the `@tootallnate/nacp` module to parse this data.
 	 */
-	declare nacp: ArrayBuffer;
+	declare readonly nacp: ArrayBuffer;
+
 	/**
 	 * The raw JPEG data for the cover art of the application. Can be decoded with the `Image` class.
 	 */
-	declare icon: ArrayBuffer;
+	declare readonly icon?: ArrayBuffer;
+
 	/**
 	 * The name of the application.
 	 */
-	declare name: string;
+	declare readonly name: string;
+
 	/**
 	 * The author or publisher of the application.
 	 */
-	declare author: string;
+	declare readonly author: string;
 
 	/**
 	 * @ignore
@@ -97,6 +98,8 @@ export class Application {
 }
 $.nsAppInit(Application);
 
+let self: Application | undefined;
+
 /**
  * Can be used as an iterator to retrieve the list of installed applications.
  *
@@ -109,12 +112,29 @@ $.nsAppInit(Application);
  * ```
  */
 export const applications = {
+	/**
+	 * An `Application` instance representing the currently running application.
+	 */
+	get self() {
+		if (!self) {
+			_init();
+			let nro: ArrayBuffer | null = null;
+			if ($.argv.length) {
+				nro = readFileSync($.argv[0]);
+			}
+			self = $.nsAppNew(nro);
+			Object.setPrototypeOf(self, Application.prototype);
+		}
+		return self;
+	},
+
 	*[Symbol.iterator]() {
 		_init();
 		let offset = 0;
 		while (1) {
-			const app = $.nsApplicationRecord(offset++);
-			if (!app) break;
+			const id = $.nsAppNext(offset++);
+			if (!id) break;
+			const app = $.nsAppNew(id);
 			Object.setPrototypeOf(app, Application.prototype);
 			yield app;
 		}

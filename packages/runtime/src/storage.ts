@@ -6,8 +6,7 @@ import {
 	writeFileSync,
 } from './fs';
 import { URL } from './polyfills/url';
-import { console } from './console';
-import { Application } from './switch/ns';
+import { applications } from './switch/ns';
 import { INTERNAL_SYMBOL } from './internal';
 import { currentProfile } from './switch/profile';
 import { assertInternalConstructor, createInternal, def } from './utils';
@@ -119,22 +118,8 @@ Object.defineProperty(globalThis, 'localStorage', {
 	enumerable: true,
 	configurable: true,
 	get() {
-		let nacp = readFileSync('romfs:/.nacp');
-		if (!nacp) {
-			console.debug(
-				`No NACP file found in romfs. Using default values. Please set "titleId" property in \`package.json\``
-			);
-			nacp = new ArrayBuffer(16384);
-			const view = new DataView(nacp);
-			view.setBigUint64(0x3078, 0x016de8dbc0c70000n, true); // SaveDataOwnerId
-			view.setBigUint64(0x3080, 0x3e00000n, true); // UserAccountSaveDataSize
-			view.setBigUint64(0x3088, 0x180000n, true); // UserAccountSaveDataJournalSize
-		}
-		const app = Object.create(Application.prototype) as Application;
-		app.nacp = nacp;
-
+		const app = applications.self;
 		const profile = currentProfile({ required: true });
-
 		const name = 'localstorage';
 		const base = `${name}:/localStorage/`;
 

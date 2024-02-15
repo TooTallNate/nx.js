@@ -114,10 +114,6 @@ try {
 	if (err.code !== 'ENOENT') throw err;
 }
 
-// Store the app's NACP file into the RomFS, since I don't
-// know how to reliably get it at runtime using libnx APIs
-romfs['.nacp'] = new Blob([nacp.buffer]);
-
 const outputNroName = `${name}.nro`;
 
 if (!(romfs['main.js'] instanceof Blob)) {
