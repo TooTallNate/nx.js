@@ -1,5 +1,11 @@
 # @nx.js/nsp
 
+## 0.0.35
+
+### Patch Changes
+
+- Ensure `romfs` is published, take 2 ([`57f4120cd5d5924d046d6406f987831c1c25f59f`](https://github.com/TooTallNate/nx.js/commit/57f4120cd5d5924d046d6406f987831c1c25f59f))
+
 ## 0.0.34
 
 ### Patch Changes
