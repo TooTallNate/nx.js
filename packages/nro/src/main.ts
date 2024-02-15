@@ -14,6 +14,7 @@ import { NACP } from '@tootallnate/nacp';
 import { patchNACP } from '@nx.js/patch-nacp';
 import * as NRO from '@tootallnate/nro';
 import * as RomFS from '@tootallnate/romfs';
+import terminalImage from 'terminal-image';
 
 const cwd = process.cwd();
 const packageRoot = new URL(`${pathToFileURL(cwd)}/`);
@@ -33,27 +34,27 @@ const nxjsNro = await NRO.decode(nxjsNroBlob);
 
 // Icon
 let icon = nxjsNro.icon;
-console.log(chalk.bold('Loading Icon:'));
+console.log(chalk.bold('Icon:'));
 const iconName = 'icon.jpg';
 try {
 	const iconUrl = new URL(iconName, packageRoot);
 	const iconData = readFileSync(iconUrl);
 	icon = new Blob([iconData]);
-	console.log(
-		`  Using ${chalk.bold(`"${iconName}"`)} file (${bytes(
-			icon.size
-		).toLowerCase()})`
-	);
 } catch (err: any) {
 	if (err.code !== 'ENOENT') {
 		throw err;
 	}
 	console.log(
-		`  ⚠️ No ${chalk.bold(
+		`⚠️  No ${chalk.bold(
 			`"${iconName}"`
 		)} file found. Default nx.js icon will be used.`
 	);
 }
+console.log(
+	await terminalImage.buffer(Buffer.from(await icon!.arrayBuffer()), {
+		height: 12,
+	})
+);
 
 // NACP
 const nacp = new NACP(await nxjsNro.nacp!.arrayBuffer());
