@@ -45,7 +45,15 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: nxjs.nro
-          path: ./nxjs.nro
+          path: nxjs.nro
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nxjs.nsp.zip
+          path: |
+            build/exefs/
+            icon.jpg
+            nxjs.nacp
 
   release:
     name: Release
@@ -57,9 +65,14 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Download `nxjs.nro`
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: nxjs.nro
+
+      - name: Download `nxjs.nsp.zip`
+        uses: actions/download-artifact@v4
+        with:
+          name: nxjs.nsp.zip
 
       - name: Fetch git tags
         run: git fetch origin 'refs/tags/*:refs/tags/*'
