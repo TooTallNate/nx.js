@@ -5,7 +5,8 @@
   "description": "nx.js REPL (read-eval-print-loop) app accessed over TCP",
   "scripts": {
     "build": "esbuild --bundle --sourcemap --sources-content=false --target=es2022 --format=esm src/main.ts --outfile=romfs/main.js",
-    "nro": "nxjs-nro"
+    "nro": "nxjs-nro",
+    "nsp": "nxjs-nsp"
   },
   "license": "MIT",
   "dependencies": {
@@ -13,8 +14,9 @@
     "sisteransi": "^1.0.5"
   },
   "devDependencies": {
-    "esbuild": "^0.17.19",
     "@nx.js/nro": "workspace:^",
+    "@nx.js/nsp": "workspace:^",
+    "esbuild": "^0.17.19",
     "nxjs-runtime": "workspace:^"
   }
 }

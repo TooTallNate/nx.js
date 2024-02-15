@@ -5,12 +5,14 @@
   "description": "nx.js app demonstrating the `nagivator.vibrate()` API",
   "scripts": {
     "build": "esbuild --bundle --sourcemap --sources-content=false --target=es2022 src/main.ts --outfile=romfs/main.js",
-    "nro": "nxjs-nro"
+    "nro": "nxjs-nro",
+    "nsp": "nxjs-nsp"
   },
   "license": "MIT",
   "devDependencies": {
-    "esbuild": "^0.17.19",
     "@nx.js/nro": "workspace:^",
+    "@nx.js/nsp": "workspace:^",
+    "esbuild": "^0.17.19",
     "nxjs-runtime": "workspace:^"
   }
 }
