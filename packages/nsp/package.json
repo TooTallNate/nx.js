@@ -15,6 +15,9 @@
     "nxjs.nacp",
     "icon.jpg"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "author": "Nathan Rajlich <n@n8.io>",
   "license": "MIT",
   "dependencies": {

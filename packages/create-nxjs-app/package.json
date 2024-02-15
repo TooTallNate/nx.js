@@ -10,6 +10,9 @@
   "scripts": {
     "build": "node build-list.js && tsc"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "author": "Nathan Rajlich <n@n8.io>",
   "license": "MIT",
   "dependencies": {
