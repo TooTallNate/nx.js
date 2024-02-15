@@ -43,7 +43,7 @@ let icon = nxjsNro.icon;
 console.log(chalk.bold('Loading Icon:'));
 const iconName = 'icon.jpg';
 try {
-	const iconUrl = new URL('icon.jpg', packageRoot);
+	const iconUrl = new URL(iconName, packageRoot);
 	const iconData = readFileSync(iconUrl);
 	icon = new Blob([iconData]);
 	console.log(
