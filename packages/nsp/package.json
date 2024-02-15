@@ -12,6 +12,7 @@
   "files": [
     "dist",
     "exefs",
+    "romfs",
     "nxjs.nacp",
     "icon.jpg"
   ],
