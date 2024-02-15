@@ -12,7 +12,7 @@ concurrency: ${{ github.workflow }}-${{ github.ref }}
 
 jobs:
   build:
-    name: Build `nxjs.nro`
+    name: Build
     runs-on: ubuntu-latest
     container: ghcr.io/tootallnate/pacman-packages:nxjs
     steps:
@@ -49,7 +49,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: nxjs.nsp.zip
+          name: nxjs.nsp
           path: |
             build/exefs/
             icon.jpg
@@ -64,15 +64,8 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v4
 
-      - name: Download `nxjs.nro`
+      - name: Download artifacts
         uses: actions/download-artifact@v4
-        with:
-          name: nxjs.nro
-
-      - name: Download `nxjs.nsp.zip`
-        uses: actions/download-artifact@v4
-        with:
-          name: nxjs.nsp.zip
 
       - name: Fetch git tags
         run: git fetch origin 'refs/tags/*:refs/tags/*'
