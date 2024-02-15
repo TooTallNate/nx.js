@@ -9,7 +9,8 @@
     [
       "create-nxjs-app",
       "nxjs-pack",
-      "nxjs-runtime"
+      "nxjs-runtime",
+      "@nx.js/nsp"
     ]
   ],
   "linked": [],
