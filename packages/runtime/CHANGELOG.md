@@ -1,5 +1,29 @@
 # nxjs-runtime
 
+## 0.0.33
+
+### Patch Changes
+
+- Add `Switch.Application.fromNRO()` ([`6d77ee3023f77ec2aee0d96d14a07a98022957a1`](https://github.com/TooTallNate/nx.js/commit/6d77ee3023f77ec2aee0d96d14a07a98022957a1))
+
+- Add `Switch.Application.self` ([`d149e690fa8f7a8beea08fc45c45bc6b48d9388d`](https://github.com/TooTallNate/nx.js/commit/d149e690fa8f7a8beea08fc45c45bc6b48d9388d))
+
+- Detect `-0` in `Switch.inspect()` ([`d317d4a7a017fa54154921674ea88dc16a87bb1d`](https://github.com/TooTallNate/nx.js/commit/d317d4a7a017fa54154921674ea88dc16a87bb1d))
+
+- Add type declaration for `queueMicrotask()` ([`f9562c0bb1ce854483d08e38ba685f129a40705f`](https://github.com/TooTallNate/nx.js/commit/f9562c0bb1ce854483d08e38ba685f129a40705f))
+
+- Ensure `console.trace()` prints a trailing newline ([`5ab6126806dcfcad7e7faeda5acf70561c588126`](https://github.com/TooTallNate/nx.js/commit/5ab6126806dcfcad7e7faeda5acf70561c588126))
+
+- Add `URL.canParse()` ([`7c3d2e0877941f28a5bf374f74422a3f4c8d88cc`](https://github.com/TooTallNate/nx.js/commit/7c3d2e0877941f28a5bf374f74422a3f4c8d88cc))
+
+- Add `Application#version` property ([`4c9260e73f62e84f32d642e6399436902d67b3ec`](https://github.com/TooTallNate/nx.js/commit/4c9260e73f62e84f32d642e6399436902d67b3ec))
+
+- Remove `Switch.applications`, merge it into `Switch.Application` ([`67f3853a75b36e736721008a617b172cbd4d1e28`](https://github.com/TooTallNate/nx.js/commit/67f3853a75b36e736721008a617b172cbd4d1e28))
+
+- Use `ada-url` for `URL` and `URLSearchParams` - remove "core-js" dependency ([#89](https://github.com/TooTallNate/nx.js/pull/89))
+
+- Include app's name and version in `navigator.userAgent` ([`97bc87d71543c17e5dd0c120a9f0a747e458d14c`](https://github.com/TooTallNate/nx.js/commit/97bc87d71543c17e5dd0c120a9f0a747e458d14c))
+
 ## 0.0.32
 
 ### Patch Changes
