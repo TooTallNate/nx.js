@@ -189,6 +189,16 @@ static JSValue nx_ns_app_next(JSContext *ctx, JSValueConst this_val, int argc, J
 	return JS_NewBigInt64(ctx, record.application_id);
 }
 
+static JSValue nx_ns_app_version(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	nx_app_t *app = nx_get_app(ctx, this_val);
+	if (!app)
+	{
+		return JS_EXCEPTION;
+	}
+	return JS_NewString(ctx, app->data.nacp.display_version);
+}
+
 static JSValue nx_ns_app_init(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	JSAtom atom;
@@ -198,6 +208,7 @@ static JSValue nx_ns_app_init(JSContext *ctx, JSValueConst this_val, int argc, J
 	NX_DEF_GET(proto, "icon", nx_ns_app_icon);
 	NX_DEF_GET(proto, "name", nx_ns_app_name);
 	NX_DEF_GET(proto, "author", nx_ns_app_author);
+	NX_DEF_GET(proto, "version", nx_ns_app_version);
 	NX_DEF_FUNC(proto, "launch", nx_appletRequestLaunchApplication, 0);
 	JS_FreeValue(ctx, proto);
 	return JS_UNDEFINED;

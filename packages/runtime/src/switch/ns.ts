@@ -49,6 +49,11 @@ export class Application {
 	declare readonly name: string;
 
 	/**
+	 * The version of the application.
+	 */
+	declare readonly version: string;
+
+	/**
 	 * The author or publisher of the application.
 	 */
 	declare readonly author: string;
