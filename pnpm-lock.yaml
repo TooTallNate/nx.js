@@ -393,7 +393,7 @@ importers:
   packages/nro:
     dependencies:
       '@nx.js/patch-nacp':
-        specifier: 0.0.0
+        specifier: 0.0.1
         version: link:../patch-nacp
       '@tootallnate/nacp':
         specifier: ^0.0.1
@@ -427,7 +427,7 @@ importers:
   packages/nsp:
     dependencies:
       '@nx.js/patch-nacp':
-        specifier: 0.0.0
+        specifier: 0.0.1
         version: link:../patch-nacp
       '@tootallnate/nacp':
         specifier: ^0.0.1

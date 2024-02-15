@@ -1,5 +1,18 @@
 # @nx.js/nro
 
+## 0.0.33
+
+### Patch Changes
+
+- Rename `nxjs-pack` to `@nx.js/nro` ([`c9c3e15c6f9532c49211acd09886b0e468f93b42`](https://github.com/TooTallNate/nx.js/commit/c9c3e15c6f9532c49211acd09886b0e468f93b42))
+
+- Render app icon in the terminal ([`3ac5b4d01dc85584f3ae90bf5529d78851af775f`](https://github.com/TooTallNate/nx.js/commit/3ac5b4d01dc85584f3ae90bf5529d78851af775f))
+
+- Add `@nx.js/patch-nacp` package ([`a79ded8f5a2e242521c30cde71bdc381528b03d1`](https://github.com/TooTallNate/nx.js/commit/a79ded8f5a2e242521c30cde71bdc381528b03d1))
+
+- Updated dependencies [[`a79ded8f5a2e242521c30cde71bdc381528b03d1`](https://github.com/TooTallNate/nx.js/commit/a79ded8f5a2e242521c30cde71bdc381528b03d1)]:
+  - @nx.js/patch-nacp@0.0.1
+
 ## 0.0.32
 
 ## 0.0.31
