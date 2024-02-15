@@ -32,12 +32,12 @@ importers:
         specifier: workspace:*
         version: link:../../packages/constants
     devDependencies:
+      '@nx.js/nro':
+        specifier: workspace:^
+        version: link:../../packages/nro
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
-      nxjs-pack:
-        specifier: workspace:^
-        version: link:../../packages/pack
       nxjs-runtime:
         specifier: workspace:^
         version: link:../../packages/runtime
@@ -51,72 +51,72 @@ importers:
         specifier: ^1.0.5
         version: 1.0.5
     devDependencies:
+      '@nx.js/nro':
+        specifier: workspace:^
+        version: link:../../packages/nro
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
-      nxjs-pack:
-        specifier: workspace:^
-        version: link:../../packages/pack
       nxjs-runtime:
         specifier: workspace:^
         version: link:../../packages/runtime
 
   apps/app-launch:
     devDependencies:
+      '@nx.js/nro':
+        specifier: workspace:^
+        version: link:../../packages/nro
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
-      nxjs-pack:
-        specifier: workspace:^
-        version: link:../../packages/pack
       nxjs-runtime:
         specifier: workspace:^
         version: link:../../packages/runtime
 
   apps/battery:
     devDependencies:
+      '@nx.js/nro':
+        specifier: workspace:^
+        version: link:../../packages/nro
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
-      nxjs-pack:
-        specifier: workspace:^
-        version: link:../../packages/pack
       nxjs-runtime:
         specifier: workspace:^
         version: link:../../packages/runtime
 
   apps/canvas:
     devDependencies:
+      '@nx.js/nro':
+        specifier: workspace:^
+        version: link:../../packages/nro
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
-      nxjs-pack:
-        specifier: workspace:^
-        version: link:../../packages/pack
       nxjs-runtime:
         specifier: workspace:^
         version: link:../../packages/runtime
 
   apps/fonts:
     devDependencies:
+      '@nx.js/nro':
+        specifier: workspace:^
+        version: link:../../packages/nro
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
-      nxjs-pack:
-        specifier: workspace:^
-        version: link:../../packages/pack
       nxjs-runtime:
         specifier: workspace:^
         version: link:../../packages/runtime
 
   apps/hello-world:
     devDependencies:
+      '@nx.js/nro':
+        specifier: workspace:^
+        version: link:../../packages/nro
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
-      nxjs-pack:
-        specifier: workspace:^
-        version: link:../../packages/pack
       nxjs-runtime:
         specifier: workspace:^
         version: link:../../packages/runtime
@@ -130,12 +130,12 @@ importers:
         specifier: ^1.0.5
         version: 1.0.5
     devDependencies:
+      '@nx.js/nro':
+        specifier: workspace:^
+        version: link:../../packages/nro
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
-      nxjs-pack:
-        specifier: workspace:^
-        version: link:../../packages/pack
       nxjs-runtime:
         specifier: workspace:^
         version: link:../../packages/runtime
@@ -149,12 +149,12 @@ importers:
         specifier: ^1.0.5
         version: 1.0.5
     devDependencies:
+      '@nx.js/nro':
+        specifier: workspace:^
+        version: link:../../packages/nro
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
-      nxjs-pack:
-        specifier: workspace:^
-        version: link:../../packages/pack
       nxjs-runtime:
         specifier: workspace:^
         version: link:../../packages/runtime
@@ -165,12 +165,12 @@ importers:
         specifier: workspace:*
         version: link:../../packages/constants
     devDependencies:
+      '@nx.js/nro':
+        specifier: workspace:^
+        version: link:../../packages/nro
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
-      nxjs-pack:
-        specifier: workspace:^
-        version: link:../../packages/pack
       nxjs-runtime:
         specifier: workspace:^
         version: link:../../packages/runtime
@@ -181,12 +181,12 @@ importers:
         specifier: ^7.1.0
         version: 7.1.0
     devDependencies:
+      '@nx.js/nro':
+        specifier: workspace:^
+        version: link:../../packages/nro
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
-      nxjs-pack:
-        specifier: workspace:^
-        version: link:../../packages/pack
       nxjs-runtime:
         specifier: workspace:^
         version: link:../../packages/runtime
@@ -200,24 +200,24 @@ importers:
         specifier: ^4.0.1
         version: 4.0.1
     devDependencies:
+      '@nx.js/nro':
+        specifier: workspace:^
+        version: link:../../packages/nro
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
-      nxjs-pack:
-        specifier: workspace:^
-        version: link:../../packages/pack
       nxjs-runtime:
         specifier: workspace:^
         version: link:../../packages/runtime
 
   apps/tcp-server:
     devDependencies:
+      '@nx.js/nro':
+        specifier: workspace:^
+        version: link:../../packages/nro
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
-      nxjs-pack:
-        specifier: workspace:^
-        version: link:../../packages/pack
       nxjs-runtime:
         specifier: workspace:^
         version: link:../../packages/runtime
@@ -228,12 +228,12 @@ importers:
         specifier: github:TooTallNate/uvu#master
         version: github.com/TooTallNate/uvu/a19ad72ffe3e5b91b256ddc58b77aac04d056316
     devDependencies:
+      '@nx.js/nro':
+        specifier: workspace:^
+        version: link:../../packages/nro
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
-      nxjs-pack:
-        specifier: workspace:^
-        version: link:../../packages/pack
       nxjs-runtime:
         specifier: workspace:^
         version: link:../../packages/runtime
@@ -244,54 +244,54 @@ importers:
         specifier: ^2.0.2
         version: 2.0.2
     devDependencies:
+      '@nx.js/nro':
+        specifier: workspace:^
+        version: link:../../packages/nro
       '@types/color-hash':
         specifier: ^1.0.5
         version: 1.0.5
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
-      nxjs-pack:
-        specifier: workspace:^
-        version: link:../../packages/pack
       nxjs-runtime:
         specifier: workspace:^
         version: link:../../packages/runtime
 
   apps/vibrate:
     devDependencies:
+      '@nx.js/nro':
+        specifier: workspace:^
+        version: link:../../packages/nro
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
-      nxjs-pack:
-        specifier: workspace:^
-        version: link:../../packages/pack
       nxjs-runtime:
         specifier: workspace:^
         version: link:../../packages/runtime
 
   apps/virtual-keyboard:
     devDependencies:
+      '@nx.js/nro':
+        specifier: workspace:^
+        version: link:../../packages/nro
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
       nxjs-constants:
         specifier: workspace:^
         version: link:../../packages/constants
-      nxjs-pack:
-        specifier: workspace:^
-        version: link:../../packages/pack
       nxjs-runtime:
         specifier: workspace:^
         version: link:../../packages/runtime
 
   apps/wasm:
     devDependencies:
+      '@nx.js/nro':
+        specifier: workspace:^
+        version: link:../../packages/nro
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
-      nxjs-pack:
-        specifier: workspace:^
-        version: link:../../packages/pack
       nxjs-runtime:
         specifier: workspace:^
         version: link:../../packages/runtime
@@ -336,7 +336,7 @@ importers:
         specifier: ^5.3.2
         version: 5.3.2
 
-  packages/pack:
+  packages/nro:
     dependencies:
       '@nx.js/patch-nacp':
         specifier: ^0.0.0

@@ -5,13 +5,13 @@
   "description": "nx.js app using the touchscreen",
   "scripts": {
     "build": "esbuild --bundle --main-fields=module,main --sourcemap --sources-content=false --target=es2022 src/main.ts --outfile=romfs/main.js",
-    "nro": "nxjs-pack"
+    "nro": "nxjs-nro"
   },
   "license": "MIT",
   "devDependencies": {
     "@types/color-hash": "^1.0.5",
     "esbuild": "^0.17.19",
-    "nxjs-pack": "workspace:^",
+    "@nx.js/nro": "workspace:^",
     "nxjs-runtime": "workspace:^"
   },
   "dependencies": {

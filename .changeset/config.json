@@ -7,8 +7,8 @@
   "commit": false,
   "fixed": [
     [
+      "@nx.js/nro",
       "create-nxjs-app",
-      "nxjs-pack",
       "nxjs-runtime"
     ]
   ],

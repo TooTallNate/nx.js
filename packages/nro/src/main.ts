@@ -117,7 +117,9 @@ if (!(romfs['main.js'] instanceof Blob)) {
 	);
 	console.log(
 		chalk.yellow(
-			`The entrypoint file ${chalk.bold(`"${nacp.title}.js"`)} will need to`
+			`The entrypoint file ${chalk.bold(
+				`"${nacp.title}.js"`
+			)} will need to`
 		)
 	);
 	console.log(

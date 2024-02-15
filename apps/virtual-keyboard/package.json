@@ -5,13 +5,13 @@
   "description": "nx.js app that invokes the virtual keyboard",
   "scripts": {
     "build": "esbuild --bundle --sourcemap --sources-content=false --target=es2022 --format=esm src/main.ts --outfile=romfs/main.js",
-    "nro": "nxjs-pack"
+    "nro": "nxjs-nro"
   },
   "license": "MIT",
   "devDependencies": {
     "esbuild": "^0.17.19",
     "nxjs-constants": "workspace:^",
-    "nxjs-pack": "workspace:^",
+    "@nx.js/nro": "workspace:^",
     "nxjs-runtime": "workspace:^"
   }
 }

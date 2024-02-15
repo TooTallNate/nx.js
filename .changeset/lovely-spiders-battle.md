@@ -1,6 +1,6 @@
 ---
 '@nx.js/patch-nacp': patch
-'nxjs-pack': patch
+'@nx.js/nro': patch
 ---
 
 Add `@nx.js/patch-nacp` package

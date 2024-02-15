@@ -1,8 +1,10 @@
 {
-  "name": "nxjs-pack",
+  "name": "@nx.js/nro",
   "version": "0.0.32",
   "description": "Package nx.js applications into a `.nro` file",
-  "bin": "./dist/nxjs-pack.js",
+  "bin": {
+    "nxjs-nro": "./dist/main.js"
+  },
   "type": "module",
   "scripts": {
     "build": "tsc"
