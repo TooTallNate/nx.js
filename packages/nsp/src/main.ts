@@ -38,6 +38,7 @@ const createTmpDir = (type: string) => {
 let nacpPath = new URL('nxjs.nacp', root);
 let exefsDir = new URL('exefs/', root);
 let baseRomfsDir = new URL('romfs/', root);
+let baseIconPath = new URL('icon.jpg', root);
 let iconPath = new URL('icon.jpg', appRoot);
 let logoDir = new URL('logo/', appRoot);
 const romfsDir = new URL('romfs/', appRoot);
@@ -49,13 +50,13 @@ const controlDir = createTmpDir('control');
 
 if (isSrcMode) {
 	nacpPath = new URL('../../nxjs.nacp', root);
-	iconPath = new URL('../../icon.jpg', root);
+	baseIconPath = new URL('../../icon.jpg', root);
 	exefsDir = new URL('../../build/exefs/', root);
 	baseRomfsDir = new URL('../../romfs/', root);
 }
 
 if (!existsSync(iconPath)) {
-	iconPath = new URL('icon.jpg', root);
+	iconPath = baseIconPath;
 }
 if (!existsSync(logoDir)) {
 	logoDir = createTmpDir('logo');
