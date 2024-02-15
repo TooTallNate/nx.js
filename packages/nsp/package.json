@@ -10,18 +10,23 @@
     "build": "tsc"
   },
   "files": [
-    "dist"
+    "dist",
+    "exefs",
+    "nxjs.nacp",
+    "icon.jpg"
   ],
   "author": "Nathan Rajlich <n@n8.io>",
   "license": "MIT",
   "dependencies": {
-    "@tootallnate/nacp": "^0.0.1"
+    "@nx.js/patch-nacp": "0.0.0",
+    "@tootallnate/nacp": "^0.0.1",
+    "bytes": "^3.1.2",
+    "chalk": "^5.3.0",
+    "terminal-image": "^2.0.0"
   },
   "devDependencies": {
     "@types/bytes": "^3.1.4",
-    "@types/parse-author": "^2.0.3",
     "@types/node": "^20.10.3",
-    "types-package-json": "^2.0.39",
     "typescript": "^5.3.2"
   }
 }

@@ -17,12 +17,7 @@ import * as RomFS from '@tootallnate/romfs';
 import terminalImage from 'terminal-image';
 
 const cwd = process.cwd();
-const packageRoot = new URL(`${pathToFileURL(cwd)}/`);
-
-// Read the `package.json` file to get the information that will
-// be embedded in the NACP section of the output `.nro` file
-const packageJsonUrl = new URL('package.json', packageRoot);
-
+const appRoot = new URL(`${pathToFileURL(cwd)}/`);
 const isSrcMode = existsSync(new URL('../tsconfig.json', import.meta.url));
 const nxjsNroUrl = new URL(
 	isSrcMode ? '../../../nxjs.nro' : '../dist/nxjs.nro',
@@ -37,7 +32,7 @@ let icon = nxjsNro.icon;
 console.log(chalk.bold('Icon:'));
 const iconName = 'icon.jpg';
 try {
-	const iconUrl = new URL(iconName, packageRoot);
+	const iconUrl = new URL(iconName, appRoot);
 	const iconData = readFileSync(iconUrl);
 	icon = new Blob([iconData]);
 } catch (err: any) {
@@ -60,14 +55,14 @@ console.log(
 const nacp = new NACP(await nxjsNro.nacp!.arrayBuffer());
 console.log();
 console.log(chalk.bold('Setting metadata:'));
-patchNACP(nacp, packageJsonUrl);
+patchNACP(nacp, new URL('package.json', appRoot));
 console.log(`  ID: ${chalk.green(nacp.id.toString(16).padStart(16, '0'))}`);
 console.log(`  Title: ${chalk.green(nacp.title)}`);
 console.log(`  Version: ${chalk.green(nacp.version)}`);
 console.log(`  Author: ${chalk.green(nacp.author)}`);
 
 // RomFS
-const romfsDir = new URL('romfs/', packageRoot);
+const romfsDir = new URL('romfs/', appRoot);
 const romfsDirPath = fileURLToPath(romfsDir);
 const romfs = await RomFS.decode(nxjsNro.romfs!);
 console.log();
@@ -139,7 +134,7 @@ const outputNro = await NRO.encode({
 	nacp: new Blob([new Uint8Array(nacp.buffer)]),
 	romfs: await RomFS.encode(romfs),
 });
-const outputNroUrl = new URL(outputNroName, packageRoot);
+const outputNroUrl = new URL(outputNroName, appRoot);
 writeFileSync(outputNroUrl, Buffer.from(await outputNro.arrayBuffer()));
 console.log(
 	chalk.green(

@@ -339,7 +339,7 @@ importers:
   packages/nro:
     dependencies:
       '@nx.js/patch-nacp':
-        specifier: ^0.0.0
+        specifier: 0.0.0
         version: link:../patch-nacp
       '@tootallnate/nacp':
         specifier: ^0.0.1
@@ -372,9 +372,21 @@ importers:
 
   packages/nsp:
     dependencies:
+      '@nx.js/patch-nacp':
+        specifier: 0.0.0
+        version: link:../patch-nacp
       '@tootallnate/nacp':
         specifier: ^0.0.1
         version: 0.0.1
+      bytes:
+        specifier: ^3.1.2
+        version: 3.1.2
+      chalk:
+        specifier: ^5.3.0
+        version: 5.3.0
+      terminal-image:
+        specifier: ^2.0.0
+        version: 2.0.0
     devDependencies:
       '@types/bytes':
         specifier: ^3.1.4
@@ -382,12 +394,6 @@ importers:
       '@types/node':
         specifier: ^20.10.3
         version: 20.10.3
-      '@types/parse-author':
-        specifier: ^2.0.3
-        version: 2.0.3
-      types-package-json:
-        specifier: ^2.0.39
-        version: 2.0.39
       typescript:
         specifier: ^5.3.2
         version: 5.3.2
