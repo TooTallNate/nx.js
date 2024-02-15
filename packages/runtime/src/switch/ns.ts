@@ -126,6 +126,26 @@ export class Application {
 		return self;
 	}
 
+	/**
+	 * Creates an `Application` instance from an `ArrayBuffer`
+	 * containing the contents of a `.nro` homebrew application.
+	 *
+	 * @example
+	 *
+	 * ```typescript
+	 * const nro = await Switch.readFile('sdmc:/hbmenu.nro');
+	 * const app = Switch.Application.fromNRO(nro);
+	 * console.log(app.name);
+	 * ```
+	 *
+	 * @param nro The contents of the `.nro` file.
+	 */
+	static fromNRO(nro: ArrayBuffer) {
+		const app = $.nsAppNew(nro);
+		Object.setPrototypeOf(app, Application.prototype);
+		return app;
+	}
+
 	static *[Symbol.iterator]() {
 		_init();
 		let offset = 0;
