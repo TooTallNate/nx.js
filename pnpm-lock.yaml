@@ -338,6 +338,9 @@ importers:
 
   packages/pack:
     dependencies:
+      '@nx.js/patch-nacp':
+        specifier: ^0.0.0
+        version: link:../patch-nacp
       '@tootallnate/nacp':
         specifier: ^0.0.1
         version: 0.0.1
@@ -347,22 +350,35 @@ importers:
       '@tootallnate/romfs':
         specifier: ^0.1.0
         version: 0.1.0
-      '@types/node':
-        specifier: ^20.10.3
-        version: 20.10.3
       bytes:
         specifier: ^3.1.2
         version: 3.1.2
       chalk:
         specifier: ^5.3.0
         version: 5.3.0
-      parse-author:
-        specifier: ^2.0.0
-        version: 2.0.0
     devDependencies:
       '@types/bytes':
         specifier: ^3.1.4
         version: 3.1.4
+      '@types/node':
+        specifier: ^20.10.3
+        version: 20.10.3
+      typescript:
+        specifier: ^5.3.2
+        version: 5.3.2
+
+  packages/patch-nacp:
+    dependencies:
+      parse-author:
+        specifier: ^2.0.0
+        version: 2.0.0
+    devDependencies:
+      '@tootallnate/nacp':
+        specifier: ^0.0.1
+        version: 0.0.1
+      '@types/node':
+        specifier: ^20.10.3
+        version: 20.10.3
       '@types/parse-author':
         specifier: ^2.0.3
         version: 2.0.3
@@ -935,7 +951,6 @@ packages:
 
   /@tootallnate/nacp@0.0.1:
     resolution: {integrity: sha512-SodmIB6YIEj6oVSSRzi5Ll2Mz8EhlEkYFJN4UOLrEcQMkwUo7Fv3ZXcY2AnlhcQtlUABusZgwZkYHzbtpg/Ctg==}
-    dev: false
 
   /@tootallnate/nro@0.1.0:
     resolution: {integrity: sha512-4BtKlCxgj6TyJCwekkRTzaIJfEnVn97HbOLmJUwNT4ol/mZJ4smMohfU8zaYKnQiPjVdLhZ08qKH8kQI2xszjQ==}
@@ -975,6 +990,7 @@ packages:
     resolution: {integrity: sha512-XJavIpZqiXID5Yxnxv3RUDKTN5b81ddNC3ecsA0SoFXz/QU8OGBwZGMomiq0zw+uuqbL/krztv/DINAQ/EV4gg==}
     dependencies:
       undici-types: 5.26.5
+    dev: true
 
   /@types/normalize-package-data@2.4.4:
     resolution: {integrity: sha512-37i+OaWTh9qeK4LSHPsyRC7NahnGotNuZvjLSgcPzblpHB3rrCJxAOgI5gCdKm7coonsaX1Of0ILiTcnZjbfxA==}
@@ -2878,6 +2894,7 @@ packages:
 
   /undici-types@5.26.5:
     resolution: {integrity: sha512-JlCMO+ehdEIKqlFxk6IfVoAUVmgz7cU7zD/h9XZ0qzeosSHmUJVOzSQvvYSYWXkFXC+IfLKSIffhv0sVZup6pA==}
+    dev: true
 
   /universalify@0.1.2:
     resolution: {integrity: sha512-rBJeI5CXAlmy1pV+617WB9J63U6XcazHHF2f2dbJix4XzpUF0RS3Zbj0FGIOCAva5P/d/GBOYaACQ1w+0azUkg==}
