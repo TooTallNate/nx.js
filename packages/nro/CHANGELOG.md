@@ -1,4 +1,4 @@
-# nxjs-pack
+# @nx.js/nro
 
 ## 0.0.32
 

@@ -6,12 +6,12 @@
   "description": "nx.js API tests",
   "scripts": {
     "build": "esbuild --bundle --target=es2022 --sourcemap --sources-content=false --format=esm src/main.ts --outfile=romfs/main.js",
-    "nro": "nxjs-pack"
+    "nro": "nxjs-nro"
   },
   "license": "MIT",
   "devDependencies": {
     "esbuild": "^0.17.19",
-    "nxjs-pack": "workspace:^",
+    "@nx.js/nro": "workspace:^",
     "nxjs-runtime": "workspace:^"
   },
   "dependencies": {

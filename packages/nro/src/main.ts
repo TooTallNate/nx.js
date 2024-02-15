@@ -10,11 +10,11 @@ import {
 } from 'node:fs';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import { relative } from 'node:path';
-import parseAuthor from 'parse-author';
 import { NACP } from '@tootallnate/nacp';
+import { patchNACP } from '@nx.js/patch-nacp';
 import * as NRO from '@tootallnate/nro';
 import * as RomFS from '@tootallnate/romfs';
-import type { PackageJson } from 'types-package-json';
+import terminalImage from 'terminal-image';
 
 const cwd = process.cwd();
 const packageRoot = new URL(`${pathToFileURL(cwd)}/`);
@@ -22,12 +22,6 @@ const packageRoot = new URL(`${pathToFileURL(cwd)}/`);
 // Read the `package.json` file to get the information that will
 // be embedded in the NACP section of the output `.nro` file
 const packageJsonUrl = new URL('package.json', packageRoot);
-const packageJsonStr = readFileSync(packageJsonUrl, 'utf8');
-const packageJson: PackageJson & { titleId?: string } =
-	JSON.parse(packageJsonStr);
-const { titleId, name, version, author: rawAuthor } = packageJson;
-const author =
-	typeof rawAuthor === 'string' ? parseAuthor(rawAuthor) : rawAuthor;
 
 const isSrcMode = existsSync(new URL('../tsconfig.json', import.meta.url));
 const nxjsNroUrl = new URL(
@@ -40,36 +34,33 @@ const nxjsNro = await NRO.decode(nxjsNroBlob);
 
 // Icon
 let icon = nxjsNro.icon;
-console.log(chalk.bold('Loading Icon:'));
+console.log(chalk.bold('Icon:'));
 const iconName = 'icon.jpg';
 try {
-	const iconUrl = new URL('icon.jpg', packageRoot);
+	const iconUrl = new URL(iconName, packageRoot);
 	const iconData = readFileSync(iconUrl);
 	icon = new Blob([iconData]);
-	console.log(
-		`  Using ${chalk.bold(`"${iconName}"`)} file (${bytes(
-			icon.size
-		).toLowerCase()})`
-	);
 } catch (err: any) {
 	if (err.code !== 'ENOENT') {
 		throw err;
 	}
 	console.log(
-		`  ⚠️ No ${chalk.bold(
+		`⚠️  No ${chalk.bold(
 			`"${iconName}"`
 		)} file found. Default nx.js icon will be used.`
 	);
 }
+console.log(
+	await terminalImage.buffer(Buffer.from(await icon!.arrayBuffer()), {
+		height: 12,
+	})
+);
 
 // NACP
 const nacp = new NACP(await nxjsNro.nacp!.arrayBuffer());
 console.log();
 console.log(chalk.bold('Setting metadata:'));
-if (titleId) nacp.id = titleId;
-if (name) nacp.title = name;
-if (version) nacp.version = version;
-if (author?.name) nacp.author = author.name;
+patchNACP(nacp, packageJsonUrl);
 console.log(`  ID: ${chalk.green(nacp.id.toString(16).padStart(16, '0'))}`);
 console.log(`  Title: ${chalk.green(nacp.title)}`);
 console.log(`  Version: ${chalk.green(nacp.version)}`);
@@ -114,7 +105,7 @@ try {
 	if (err.code !== 'ENOENT') throw err;
 }
 
-const outputNroName = `${name}.nro`;
+const outputNroName = `${nacp.title}.nro`;
 
 if (!(romfs['main.js'] instanceof Blob)) {
 	console.log();
@@ -127,7 +118,9 @@ if (!(romfs['main.js'] instanceof Blob)) {
 	);
 	console.log(
 		chalk.yellow(
-			`The entrypoint file ${chalk.bold(`"${name}.js"`)} will need to`
+			`The entrypoint file ${chalk.bold(
+				`"${nacp.title}.js"`
+			)} will need to`
 		)
 	);
 	console.log(

@@ -7,11 +7,12 @@ import {
 	type VirtualKeyboard,
 	create as newVirtualKeyboard,
 } from './navigator/virtual-keyboard';
-import type { Vibration } from './switch';
+import { Application, type Vibration } from './switch';
 
 interface NavigatorState {
 	batt?: Promise<BatteryManager>;
 	vk?: VirtualKeyboard;
+	ua?: string;
 
 	vibrationDevicesInitialized?: boolean;
 	vibrationPattern?: (number | Vibration)[];
@@ -68,7 +69,11 @@ export class Navigator {
 	 * @see https://developer.mozilla.org/docs/Web/API/Navigator/userAgent
 	 */
 	get userAgent() {
-		return `nx.js/${$.version.nxjs}`;
+		if (!state.ua) {
+			const { name, version } = Application.self;
+			state.ua = `${name}/${version} (Switch; en-us) nx.js/${$.version.nxjs}`;
+		}
+		return state.ua;
 	}
 
 	/**
@@ -89,14 +94,13 @@ export class Navigator {
 	 * @see https://developer.mozilla.org/docs/Web/API/Navigator/getBattery
 	 */
 	getBattery() {
-		let b = state.batt;
-		if (!b) {
-			b = state.batt = Promise.resolve(
+		if (!state.batt) {
+			state.batt = Promise.resolve(
 				// @ts-expect-error Internal constructor
 				new BatteryManager(INTERNAL_SYMBOL)
 			);
 		}
-		return b;
+		return state.batt;
 	}
 
 	/**
