@@ -16,10 +16,12 @@ import { once } from 'node:events';
 import { spawn } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { pathToFileURL, fileURLToPath } from 'node:url';
+import Jimp from 'jimp';
 import { NACP } from '@tootallnate/nacp';
 import { patchNACP } from '@nx.js/patch-nacp';
 import terminalImage from 'terminal-image';
 
+const iconName = 'icon.jpg';
 const tmpPaths: URL[] = [];
 const tmpDir = tmpdir();
 const cwd = process.cwd();
@@ -38,9 +40,9 @@ const createTmpDir = (type: string) => {
 let nacpPath = new URL('nxjs.nacp', root);
 let exefsDir = new URL('exefs/', root);
 let baseRomfsDir = new URL('romfs/', root);
-let baseIconPath = new URL('icon.jpg', root);
-let iconPath = new URL('icon.jpg', appRoot);
-let logoDir = new URL('logo/', appRoot);
+let baseIconPath = new URL(iconName, root);
+let iconPath = new URL(iconName, appRoot);
+const logoDir = new URL('logo/', appRoot);
 const romfsDir = new URL('romfs/', appRoot);
 const nspDir = createTmpDir('nsp');
 const ncaDir = createTmpDir('nca');
@@ -50,25 +52,32 @@ const controlDir = createTmpDir('control');
 
 if (isSrcMode) {
 	nacpPath = new URL('../../nxjs.nacp', root);
-	baseIconPath = new URL('../../icon.jpg', root);
+	baseIconPath = new URL(`../../${iconName}`, root);
 	exefsDir = new URL('../../build/exefs/', root);
 	baseRomfsDir = new URL('../../romfs/', root);
 }
 
-if (!existsSync(iconPath)) {
-	iconPath = baseIconPath;
-}
-if (!existsSync(logoDir)) {
-	logoDir = createTmpDir('logo');
-}
-
 try {
 	// Icon
-	cpSync(iconPath, new URL('icon_AmericanEnglish.dat', controlDir));
 	console.log(chalk.bold('Icon:'));
-	console.log(
-		await terminalImage.file(fileURLToPath(iconPath), { height: 12 })
-	);
+	if (!existsSync(iconPath)) {
+		iconPath = baseIconPath;
+		console.log(
+			`⚠️  No ${chalk.bold(
+				`"${iconName}"`
+			)} file found. Default nx.js icon will be used.`
+		);
+	}
+	const iconDest = new URL('icon_AmericanEnglish.dat', controlDir);
+	const logo = await Jimp.read(fileURLToPath(iconPath));
+	const logoWidth = logo.getWidth();
+	const logoHeight = logo.getHeight();
+	if (logoWidth !== 256 && logoHeight !== 256) {
+		logo.resize(256, 256);
+	}
+	const logoBuf = await logo.getBufferAsync(Jimp.MIME_JPEG);
+	writeFileSync(iconDest, logoBuf);
+	console.log(await terminalImage.buffer(logoBuf, { height: 12 }));
 
 	// NACP
 	const nacp = new NACP(readFileSync(nacpPath).buffer);
@@ -96,6 +105,9 @@ try {
 	// TODO: validate `romfs/main.js` exists
 
 	// Generate NSP file via `hacbrewpack`
+	console.log();
+	console.log(chalk.bold('Running `hacbrewpack`:'));
+
 	const argv = [
 		'--nspdir',
 		fileURLToPath(nspDir),
@@ -109,13 +121,12 @@ try {
 		fileURLToPath(exefsDir),
 		'--romfsdir',
 		fileURLToPath(romfsDir),
-		'--logodir',
-		fileURLToPath(logoDir),
 		'--controldir',
 		fileURLToPath(controlDir),
 		'--titleid',
 		titleid,
 		'--nopatchnacplogo',
+		...(existsSync(logoDir) ? [] : ['--nologo']),
 		...process.argv.slice(2),
 	];
 
