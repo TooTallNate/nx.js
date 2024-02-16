@@ -81,6 +81,23 @@ try {
 
 	// NACP
 	const nacp = new NACP(readFileSync(nacpPath).buffer);
+
+	// Attempt to set a sensible default for `startupUserAccount`.
+	// If `localStorage` is used in the app's "main.js" file, then
+	// the profile selector should be shown.
+	const mainPath = new URL('main.js', romfsDir);
+	try {
+		const main = readFileSync(mainPath, 'utf8');
+		nacp.startupUserAccount = /\blocalStorage\b/.test(main) ? 1 : 0;
+	} catch (err: any) {
+		// If "main.js" does not exist, then the app will fail to
+		// run anyways, so error out now.
+		if (err.code === 'ENOENT') {
+			throw new Error('No "main.js" file found in `romfs` directory');
+		}
+		throw err;
+	}
+
 	patchNACP(nacp, new URL('package.json', appRoot));
 	writeFileSync(
 		new URL('control.nacp', controlDir),
@@ -101,8 +118,6 @@ try {
 		cpSync(src, dest);
 		tmpPaths.push(dest);
 	}
-
-	// TODO: validate `romfs/main.js` exists
 
 	// Generate NSP file via `hacbrewpack`
 	console.log();
@@ -151,6 +166,8 @@ try {
 			) + ` (${bytes(statSync(nspDest).size).toLowerCase()})`
 		);
 	}
+} catch (err: any) {
+	console.log(chalk.red(`${chalk.bold('Error!')} ${err.message}`));
 } finally {
 	for (const dir of tmpPaths) {
 		rmSync(dir, { recursive: true, force: true });
