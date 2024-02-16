@@ -1,5 +1,11 @@
 # @nx.js/nro
 
+## 0.0.36
+
+### Patch Changes
+
+- Ensure `runtime.js.map` file is uploaded in CI ([`e14ed3588db54eb7e0a906aae896fd90e4b3ae21`](https://github.com/TooTallNate/nx.js/commit/e14ed3588db54eb7e0a906aae896fd90e4b3ae21))
+
 ## 0.0.35
 
 ## 0.0.34
