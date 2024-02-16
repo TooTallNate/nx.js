@@ -50,6 +50,9 @@ export interface Init {
 	appletGetAppletType(): number;
 	appletGetOperationMode(): number;
 
+	// audren.c
+	audrenInit(): () => void;
+
 	// battery.c
 	batteryInit(): void;
 	batteryInitClass(c: ClassOf<BatteryManager>): void;
