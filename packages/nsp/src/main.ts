@@ -167,6 +167,7 @@ try {
 		);
 	}
 } catch (err: any) {
+	process.exitCode = 1;
 	console.log(chalk.red(`${chalk.bold('Error!')} ${err.message}`));
 } finally {
 	for (const dir of tmpPaths) {
