@@ -22,7 +22,10 @@ test('identity', () => {
 	d = DOMMatrix.fromMatrix({ is2D: false });
 	assert.equal(d.is2D, false);
 	assert.equal(d.isIdentity, true);
-	assert.equal(d.toString(), 'matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)');
+	assert.equal(
+		d.toString(),
+		'matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)'
+	);
 });
 
 test('translate', () => {
@@ -32,7 +35,10 @@ test('translate', () => {
 	assert.equal(d.toString(), 'matrix(1, 0, 0, 1, 4, 5)');
 	d.translateSelf(1, 2, 3);
 	assert.equal(d.is2D, false);
-	assert.equal(d.toString(), 'matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 5, 7, 3, 1)');
+	assert.equal(
+		d.toString(),
+		'matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 5, 7, 3, 1)'
+	);
 });
 
 test.run();

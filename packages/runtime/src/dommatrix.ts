@@ -1,7 +1,7 @@
 // Spec: https://drafts.fxtf.org/geometry/#DOMMatrix
 // Ref: https://github.com/Automattic/node-canvas/blob/master/lib/DOMMatrix.js
 import { $ } from './$';
-import { def, stub } from './utils';
+import { def, proto, stub } from './utils';
 import { DOMPoint, type DOMPointInit } from './dompoint';
 
 const DEGREE_PER_RAD = 180 / Math.PI;
@@ -54,6 +54,9 @@ const arr = (m: DOMMatrixReadOnly) => [
 	m.m44,
 ];
 
+let FLIP_X_MATRIX: DOMMatrixReadOnly | undefined;
+let FLIP_Y_MATRIX: DOMMatrixReadOnly | undefined;
+
 export class DOMMatrixReadOnly implements globalThis.DOMMatrixReadOnly {
 	declare readonly a: number;
 	declare readonly b: number;
@@ -84,16 +87,18 @@ export class DOMMatrixReadOnly implements globalThis.DOMMatrixReadOnly {
 		if (typeof init === 'string') {
 			throw new Error('String param not implemented.');
 		}
-		const m = $.dommatrixNew(init);
-		Object.setPrototypeOf(m, new.target.prototype);
-		return m;
+		return proto($.dommatrixNew(init), new.target);
 	}
 
 	flipX(): DOMMatrix {
+		if (!FLIP_X_MATRIX)
+			FLIP_X_MATRIX = new DOMMatrixReadOnly([-1, 0, 0, 1, 0, 0]);
 		return DOMMatrix.fromMatrix(this).multiplySelf(FLIP_X_MATRIX);
 	}
 
 	flipY(): DOMMatrix {
+		if (!FLIP_Y_MATRIX)
+			FLIP_Y_MATRIX = new DOMMatrixReadOnly([1, 0, 0, -1, 0, 0]);
 		return DOMMatrix.fromMatrix(this).multiplySelf(FLIP_Y_MATRIX);
 	}
 
@@ -253,7 +258,7 @@ export class DOMMatrixReadOnly implements globalThis.DOMMatrixReadOnly {
 	}
 
 	static fromMatrix(init?: DOMMatrixInit): DOMMatrixReadOnly {
-		return new DOMMatrixReadOnly();
+		return proto($.dommatrixFromMatrix(init), DOMMatrixReadOnly);
 	}
 }
 $.dommatrixROInitClass(DOMMatrixReadOnly);
@@ -359,15 +364,8 @@ export class DOMMatrix
 	}
 
 	static fromMatrix(init?: DOMMatrixInit): DOMMatrix {
-		let values: number[] | undefined;
-		if (init) {
-			values = [init.a!, init.b!, init.c!, init.d!, init.e!, init.f!];
-		}
-		return new DOMMatrix(values);
+		return proto($.dommatrixFromMatrix(init), DOMMatrix);
 	}
 }
 $.dommatrixInitClass(DOMMatrix);
 def(DOMMatrix);
-
-const FLIP_X_MATRIX = new DOMMatrixReadOnly([-1, 0, 0, 1, 0, 0]);
-const FLIP_Y_MATRIX = new DOMMatrixReadOnly([1, 0, 0, -1, 0, 0]);

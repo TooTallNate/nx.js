@@ -107,6 +107,85 @@ static JSValue nx_dommatrix_new(JSContext *ctx, JSValueConst this_val, int argc,
 	return obj;
 }
 
+#define NX_DOMMATRIX_INIT_GET_PROP(NAME, FIELD)          \
+	v = JS_GetPropertyStr(ctx, obj, #NAME);              \
+	if (JS_IsNumber(v))                                  \
+	{                                                    \
+		if (JS_ToFloat64(ctx, &matrix->values.FIELD, v)) \
+		{                                                \
+			return 1;                                    \
+		}                                                \
+	}                                                    \
+	JS_FreeValue(ctx, v);
+
+int nx_dommatrix_init(JSContext *ctx, JSValueConst obj, nx_dommatrix_t *matrix)
+{
+	if (!JS_IsObject(obj))
+		return 0;
+
+	JSValue v;
+	NX_DOMMATRIX_INIT_GET_PROP(a, m11)
+	NX_DOMMATRIX_INIT_GET_PROP(b, m12)
+	NX_DOMMATRIX_INIT_GET_PROP(c, m21)
+	NX_DOMMATRIX_INIT_GET_PROP(d, m22)
+	NX_DOMMATRIX_INIT_GET_PROP(e, m41)
+	NX_DOMMATRIX_INIT_GET_PROP(f, m42)
+	NX_DOMMATRIX_INIT_GET_PROP(m11, m11)
+	NX_DOMMATRIX_INIT_GET_PROP(m12, m12)
+	NX_DOMMATRIX_INIT_GET_PROP(m13, m13)
+	NX_DOMMATRIX_INIT_GET_PROP(m14, m14)
+	NX_DOMMATRIX_INIT_GET_PROP(m21, m21)
+	NX_DOMMATRIX_INIT_GET_PROP(m22, m22)
+	NX_DOMMATRIX_INIT_GET_PROP(m23, m23)
+	NX_DOMMATRIX_INIT_GET_PROP(m24, m24)
+	NX_DOMMATRIX_INIT_GET_PROP(m31, m31)
+	NX_DOMMATRIX_INIT_GET_PROP(m32, m32)
+	NX_DOMMATRIX_INIT_GET_PROP(m33, m33)
+	NX_DOMMATRIX_INIT_GET_PROP(m34, m34)
+	NX_DOMMATRIX_INIT_GET_PROP(m41, m41)
+	NX_DOMMATRIX_INIT_GET_PROP(m42, m42)
+	NX_DOMMATRIX_INIT_GET_PROP(m43, m43)
+	NX_DOMMATRIX_INIT_GET_PROP(m44, m44)
+
+	v = JS_GetPropertyStr(ctx, obj, "is2D");
+	if (JS_IsBool(v))
+	{
+		int b = JS_ToBool(ctx, v);
+		if (b == -1)
+		{
+			return 1;
+		}
+		matrix->is_2d = b;
+	}
+	JS_FreeValue(ctx, v);
+
+	return 0;
+}
+
+static JSValue nx_dommatrix_from_matrix(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	nx_dommatrix_t *matrix = js_mallocz(ctx, sizeof(nx_dommatrix_t));
+	if (!matrix)
+	{
+		return JS_EXCEPTION;
+	}
+
+	// Initialize as identity matrix
+	matrix->is_2d = true;
+	matrix->values.m11 = matrix->values.m22 = matrix->values.m33 = matrix->values.m44 = 1.;
+
+	if (argc > 0)
+	{
+		if (nx_dommatrix_init(ctx, argv[0], matrix)) {
+			return JS_EXCEPTION;
+		}
+	}
+
+	JSValue obj = JS_NewObjectClass(ctx, nx_dommatrix_class_id);
+	JS_SetOpaque(obj, matrix);
+	return obj;
+}
+
 #define DEFINE_GETTER(NAME)                                                                                     \
 	static JSValue nx_dommatrix_get_##NAME(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv) \
 	{                                                                                                           \
@@ -445,6 +524,7 @@ static void finalizer_dommatrix(JSRuntime *rt, JSValue val)
 
 static const JSCFunctionListEntry function_list[] = {
 	JS_CFUNC_DEF("dommatrixNew", 0, nx_dommatrix_new),
+	JS_CFUNC_DEF("dommatrixFromMatrix", 0, nx_dommatrix_from_matrix),
 	JS_CFUNC_DEF("dommatrixROInitClass", 0, nx_dommatrix_read_only_init_class),
 	JS_CFUNC_DEF("dommatrixInitClass", 0, nx_dommatrix_init_class),
 };

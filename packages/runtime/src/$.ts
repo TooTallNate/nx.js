@@ -30,7 +30,7 @@ import type { Image } from './image';
 import type { Screen } from './screen';
 import type { FontFace } from './font/font-face';
 import type { URL, URLSearchParams } from './polyfills/url';
-import type { DOMMatrix, DOMMatrixReadOnly } from './dommatrix';
+import type { DOMMatrix, DOMMatrixReadOnly, DOMMatrixInit } from './dommatrix';
 
 type ClassOf<T> = {
 	new (...args: any[]): T;
@@ -108,6 +108,7 @@ export interface Init {
 
 	// dommatrix.c
 	dommatrixNew(values?: number[]): DOMMatrix | DOMMatrixReadOnly;
+	dommatrixFromMatrix(init?: DOMMatrixInit): DOMMatrix | DOMMatrixReadOnly;
 	dommatrixROInitClass(c: ClassOf<DOMMatrixReadOnly>): void;
 	dommatrixInitClass(c: ClassOf<DOMMatrix>): void;
 
