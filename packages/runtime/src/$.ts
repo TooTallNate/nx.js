@@ -30,6 +30,7 @@ import type { Image } from './image';
 import type { Screen } from './screen';
 import type { FontFace } from './font/font-face';
 import type { URL, URLSearchParams } from './polyfills/url';
+import type { DOMPoint, DOMPointInit } from './dompoint';
 import type { DOMMatrix, DOMMatrixReadOnly, DOMMatrixInit } from './dommatrix';
 
 type ClassOf<T> = {
@@ -111,6 +112,7 @@ export interface Init {
 	dommatrixFromMatrix(init?: DOMMatrixInit): DOMMatrix | DOMMatrixReadOnly;
 	dommatrixROInitClass(c: ClassOf<DOMMatrixReadOnly>): void;
 	dommatrixInitClass(c: ClassOf<DOMMatrix>): void;
+	dommatrixTransformPoint(m: DOMMatrixReadOnly, p: DOMPointInit): DOMPoint;
 
 	// dns.c
 	dnsResolve(cb: Callback<string[]>, hostname: string): void;

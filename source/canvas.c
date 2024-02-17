@@ -2518,20 +2518,12 @@ static JSValue nx_canvas_context_2d_set_transform(JSContext *ctx, JSValueConst t
 		{
 			// The passed in value is a plain JS object,
 			// so construct the cairo matrix manually
-			cairo_matrix_t matrix;
-			double a, b, c, d, e, f;
-			if (
-				JS_ToFloat64(ctx, &a, JS_GetPropertyStr(ctx, argv[0], "a")) ||
-				JS_ToFloat64(ctx, &b, JS_GetPropertyStr(ctx, argv[0], "b")) ||
-				JS_ToFloat64(ctx, &c, JS_GetPropertyStr(ctx, argv[0], "c")) ||
-				JS_ToFloat64(ctx, &d, JS_GetPropertyStr(ctx, argv[0], "d")) ||
-				JS_ToFloat64(ctx, &e, JS_GetPropertyStr(ctx, argv[0], "e")) ||
-				JS_ToFloat64(ctx, &f, JS_GetPropertyStr(ctx, argv[0], "f")))
+			nx_dommatrix_t m;
+			if (nx_dommatrix_init(ctx, argv[0], &m))
 			{
 				return JS_EXCEPTION;
 			}
-			cairo_matrix_init(&matrix, a, b, c, d, e, f);
-			cairo_set_matrix(cr, &matrix);
+			cairo_set_matrix(cr, &m.cr_matrix);
 		}
 		return JS_UNDEFINED;
 	}

@@ -73,6 +73,17 @@ void multiply(const nx_dommatrix_values_t *a, const nx_dommatrix_values_t *b, nx
 	result->m44 = a->m41 * b->m14 + a->m42 * b->m24 + a->m43 * b->m34 + a->m44 * b->m44;
 }
 
+#define NX_DOMMATRIX_NEW_GET_INDEX(INDEX, FIELD)         \
+	v = JS_GetPropertyUint32(ctx, argv[0], INDEX);       \
+	if (JS_IsNumber(v))                                  \
+	{                                                    \
+		if (JS_ToFloat64(ctx, &matrix->values.FIELD, v)) \
+		{                                                \
+			return JS_EXCEPTION;                         \
+		}                                                \
+	}                                                    \
+	JS_FreeValue(ctx, v);
+
 static JSValue nx_dommatrix_new(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	nx_dommatrix_t *matrix = js_mallocz(ctx, sizeof(nx_dommatrix_t));
@@ -99,6 +110,35 @@ static JSValue nx_dommatrix_new(JSContext *ctx, JSValueConst this_val, int argc,
 		{
 			js_free(ctx, matrix);
 			return JS_ThrowTypeError(ctx, "Matrix init sequence must have a length of 6 or 16 (actual value: %d)", length);
+		}
+		JSValue v;
+		if (length == 6)
+		{
+			NX_DOMMATRIX_NEW_GET_INDEX(0, m11)
+			NX_DOMMATRIX_NEW_GET_INDEX(1, m12)
+			NX_DOMMATRIX_NEW_GET_INDEX(2, m21)
+			NX_DOMMATRIX_NEW_GET_INDEX(3, m22)
+			NX_DOMMATRIX_NEW_GET_INDEX(4, m41)
+			NX_DOMMATRIX_NEW_GET_INDEX(5, m42)
+		}
+		else
+		{
+			NX_DOMMATRIX_NEW_GET_INDEX(0, m11)
+			NX_DOMMATRIX_NEW_GET_INDEX(1, m12)
+			NX_DOMMATRIX_NEW_GET_INDEX(2, m13)
+			NX_DOMMATRIX_NEW_GET_INDEX(3, m14)
+			NX_DOMMATRIX_NEW_GET_INDEX(4, m21)
+			NX_DOMMATRIX_NEW_GET_INDEX(5, m22)
+			NX_DOMMATRIX_NEW_GET_INDEX(6, m23)
+			NX_DOMMATRIX_NEW_GET_INDEX(7, m24)
+			NX_DOMMATRIX_NEW_GET_INDEX(8, m31)
+			NX_DOMMATRIX_NEW_GET_INDEX(9, m32)
+			NX_DOMMATRIX_NEW_GET_INDEX(10, m33)
+			NX_DOMMATRIX_NEW_GET_INDEX(11, m34)
+			NX_DOMMATRIX_NEW_GET_INDEX(12, m41)
+			NX_DOMMATRIX_NEW_GET_INDEX(13, m42)
+			NX_DOMMATRIX_NEW_GET_INDEX(14, m43)
+			NX_DOMMATRIX_NEW_GET_INDEX(15, m44)
 		}
 	}
 
@@ -446,6 +486,64 @@ static JSValue nx_dommatrix_translate_self(JSContext *ctx, JSValueConst this_val
 	return JS_DupValue(ctx, this_val);
 }
 
+static JSValue nx_dommatrix_transform_point(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	nx_dommatrix_t *matrix = JS_GetOpaque2(ctx, argv[0], nx_dommatrix_class_id);
+	if (!matrix)
+	{
+		return JS_EXCEPTION;
+	}
+	double x = 0, y = 0, z = 0, w = 1;
+	JSValue v;
+	v = JS_GetPropertyStr(ctx, argv[1], "x");
+	if (JS_IsNumber(v)) JS_ToFloat64(ctx, &x, v);
+	JS_FreeValue(ctx, v);
+
+	v = JS_GetPropertyStr(ctx, argv[1], "y");
+	if (JS_IsNumber(v)) JS_ToFloat64(ctx, &y, v);
+	JS_FreeValue(ctx, v);
+
+	v = JS_GetPropertyStr(ctx, argv[1], "z");
+	if (JS_IsNumber(v)) JS_ToFloat64(ctx, &z, v);
+	JS_FreeValue(ctx, v);
+
+	v = JS_GetPropertyStr(ctx, argv[1], "w");
+	if (JS_IsNumber(v)) JS_ToFloat64(ctx, &w, v);
+	JS_FreeValue(ctx, v);
+
+	double nx =
+		matrix->values.m11 * x +
+		matrix->values.m21 * y +
+		matrix->values.m31 * z +
+		matrix->values.m41 * w;
+
+	double ny =
+		matrix->values.m12 * x +
+		matrix->values.m22 * y +
+		matrix->values.m32 * z +
+		matrix->values.m42 * w;
+
+	double nz =
+		matrix->values.m13 * x +
+		matrix->values.m23 * y +
+		matrix->values.m33 * z +
+		matrix->values.m43 * w;
+
+	double nw =
+		matrix->values.m14 * x +
+		matrix->values.m24 * y +
+		matrix->values.m34 * z +
+		matrix->values.m44 * w;
+
+	JSValue point = JS_NewObject(ctx);
+	JS_SetPropertyStr(ctx, point, "x", JS_NewFloat64(ctx, nx));
+	JS_SetPropertyStr(ctx, point, "y", JS_NewFloat64(ctx, ny));
+	JS_SetPropertyStr(ctx, point, "z", JS_NewFloat64(ctx, nz));
+	JS_SetPropertyStr(ctx, point, "w", JS_NewFloat64(ctx, nw));
+	return point;
+}
+
+
 static JSValue nx_dommatrix_read_only_init_class(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	JSAtom atom;
@@ -527,6 +625,7 @@ static const JSCFunctionListEntry function_list[] = {
 	JS_CFUNC_DEF("dommatrixFromMatrix", 0, nx_dommatrix_from_matrix),
 	JS_CFUNC_DEF("dommatrixROInitClass", 0, nx_dommatrix_read_only_init_class),
 	JS_CFUNC_DEF("dommatrixInitClass", 0, nx_dommatrix_init_class),
+	JS_CFUNC_DEF("dommatrixTransformPoint", 0, nx_dommatrix_transform_point),
 };
 
 void nx_init_dommatrix(JSContext *ctx, JSValueConst init_obj)

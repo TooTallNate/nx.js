@@ -1,4 +1,6 @@
-import { def } from './utils';
+import { def, proto } from './utils';
+import { type DOMMatrixInit } from './dommatrix';
+import { $ } from './$';
 
 export interface DOMPointInit {
 	w?: number;
@@ -35,7 +37,8 @@ export class DOMPointReadOnly implements globalThis.DOMPointReadOnly {
 
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMPointReadOnly/matrixTransform) */
 	matrixTransform(matrix?: DOMMatrixInit): DOMPoint {
-		throw new Error('Method not implemented.');
+		const m = $.dommatrixFromMatrix(matrix);
+		return proto($.dommatrixTransformPoint(m, this), DOMPoint);
 	}
 
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMPointReadOnly/toJSON) */

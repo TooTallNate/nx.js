@@ -28,7 +28,7 @@ test('identity', () => {
 	);
 });
 
-test('translate', () => {
+test('translate()', () => {
 	const d = new DOMMatrix();
 	d.translateSelf(4, 5);
 	assert.equal(d.is2D, true);
@@ -39,6 +39,38 @@ test('translate', () => {
 		d.toString(),
 		'matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 5, 7, 3, 1)'
 	);
+});
+
+// From: https://developer.mozilla.org/docs/Web/API/DOMMatrix/DOMMatrix#examples
+test('transformPoint() / DOMPoint#matrixTransform()', () => {
+	const point = new DOMPoint(5, 4);
+	const scaleX = 2;
+	const scaleY = 3;
+	const translateX = 12;
+	const translateY = 8;
+	const angle = Math.PI / 2;
+	const matrix = new DOMMatrix([
+		Math.cos(angle) * scaleX,
+		Math.sin(angle) * scaleX,
+		-Math.sin(angle) * scaleY,
+		Math.cos(angle) * scaleY,
+		translateX,
+		translateY,
+	]);
+
+	const p1 = matrix.transformPoint(point);
+	assert.ok(p1 instanceof DOMPoint);
+	assert.equal(p1.x, 0);
+	assert.equal(p1.y, 18);
+	assert.equal(p1.z, 0);
+	assert.equal(p1.w, 1);
+
+	const p2 = point.matrixTransform(matrix);
+	assert.ok(p1 instanceof DOMPoint);
+	assert.equal(p2.x, 0);
+	assert.equal(p2.y, 18);
+	assert.equal(p2.z, 0);
+	assert.equal(p2.w, 1);
 });
 
 test.run();

@@ -179,35 +179,8 @@ export class DOMMatrixReadOnly implements globalThis.DOMMatrixReadOnly {
 		return new Float64Array(arr(this));
 	}
 
-	transformPoint(point?: DOMPointInit): DOMPoint {
-		const p = DOMPoint.fromPoint(point);
-		return p;
-		//const x = p.x;
-		//const y = p.y;
-		//const z = p.z;
-		//const w = p.w;
-		//const values = this._values;
-		//const nx =
-		//	values[M11] * x +
-		//	values[M21] * y +
-		//	values[M31] * z +
-		//	values[M41] * w;
-		//const ny =
-		//	values[M12] * x +
-		//	values[M22] * y +
-		//	values[M32] * z +
-		//	values[M42] * w;
-		//const nz =
-		//	values[M13] * x +
-		//	values[M23] * y +
-		//	values[M33] * z +
-		//	values[M43] * w;
-		//const nw =
-		//	values[M14] * x +
-		//	values[M24] * y +
-		//	values[M34] * z +
-		//	values[M44] * w;
-		//return new DOMPoint(nx, ny, nz, nw);
+	transformPoint(point: DOMPointInit = {}): DOMPoint {
+		return proto($.dommatrixTransformPoint(this, point), DOMPoint);
 	}
 
 	translate(tx?: number, ty?: number, tz?: number): DOMMatrix {
