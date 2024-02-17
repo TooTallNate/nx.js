@@ -3,6 +3,22 @@ import * as assert from 'uvu/assert';
 
 const test = suite('DOMMatrix');
 
+const fixture2d = () => {
+	const scaleX = 2;
+	const scaleY = 3;
+	const translateX = 12;
+	const translateY = 8;
+	const angle = Math.PI / 2;
+	return new DOMMatrix([
+		Math.cos(angle) * scaleX,
+		Math.sin(angle) * scaleX,
+		-Math.sin(angle) * scaleY,
+		Math.cos(angle) * scaleY,
+		translateX,
+		translateY,
+	]);
+};
+
 test('instanceof', () => {
 	const d = new DOMMatrix();
 	assert.equal(d instanceof DOMMatrix, true);
@@ -44,19 +60,7 @@ test('translate()', () => {
 // From: https://developer.mozilla.org/docs/Web/API/DOMMatrix/DOMMatrix#examples
 test('transformPoint() / DOMPoint#matrixTransform()', () => {
 	const point = new DOMPoint(5, 4);
-	const scaleX = 2;
-	const scaleY = 3;
-	const translateX = 12;
-	const translateY = 8;
-	const angle = Math.PI / 2;
-	const matrix = new DOMMatrix([
-		Math.cos(angle) * scaleX,
-		Math.sin(angle) * scaleX,
-		-Math.sin(angle) * scaleY,
-		Math.cos(angle) * scaleY,
-		translateX,
-		translateY,
-	]);
+	const matrix = fixture2d();
 
 	const p1 = matrix.transformPoint(point);
 	assert.ok(p1 instanceof DOMPoint);
@@ -74,20 +78,7 @@ test('transformPoint() / DOMPoint#matrixTransform()', () => {
 });
 
 test('invertSelf()', () => {
-	const scaleX = 2;
-	const scaleY = 3;
-	const translateX = 12;
-	const translateY = 8;
-	const angle = Math.PI / 2;
-	const matrix = new DOMMatrix([
-		Math.cos(angle) * scaleX,
-		Math.sin(angle) * scaleX,
-		-Math.sin(angle) * scaleY,
-		Math.cos(angle) * scaleY,
-		translateX,
-		translateY,
-	]);
-
+	const matrix = fixture2d();
 	matrix.invertSelf();
 	assert.equal(
 		matrix.toString(),

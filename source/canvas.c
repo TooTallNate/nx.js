@@ -2525,13 +2525,28 @@ static JSValue nx_canvas_context_2d_set_transform(JSContext *ctx, JSValueConst t
 			}
 			cairo_set_matrix(cr, &m.cr_matrix);
 		}
-		return JS_UNDEFINED;
+	}
+	else if (argc == 6)
+	{
+		cairo_matrix_t m;
+		if (
+			JS_ToFloat64(ctx, &m.xx, argv[0]) ||
+			JS_ToFloat64(ctx, &m.yx, argv[1]) ||
+			JS_ToFloat64(ctx, &m.xy, argv[2]) ||
+			JS_ToFloat64(ctx, &m.yy, argv[3]) ||
+			JS_ToFloat64(ctx, &m.x0, argv[4]) ||
+			JS_ToFloat64(ctx, &m.y0, argv[5])
+		) {
+			return JS_EXCEPTION;
+		}
+		cairo_set_matrix(cr, &m);
 	}
 	else
 	{
 		cairo_identity_matrix(cr);
 		return nx_canvas_context_2d_transform(ctx, this_val, argc, argv);
 	}
+	return JS_UNDEFINED;
 }
 
 static JSValue nx_canvas_context_2d_reset_transform(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)

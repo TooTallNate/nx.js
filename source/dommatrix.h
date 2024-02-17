@@ -6,7 +6,7 @@ typedef struct
 {
 	// It's important that these are in the same order as `cairo_matrix_t`
 	double m11; // a / xx
-	double m12; // b / yz
+	double m12; // b / yx
 	double m21; // c / xy
 	double m22; // d / yy
 	double m41; // e / x0
