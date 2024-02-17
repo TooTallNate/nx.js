@@ -318,6 +318,169 @@ void translate(nx_dommatrix_t *matrix, double tx, double ty, double tz) {
 	}
 }
 
+static JSValue nx_dommatrix_invert_self(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	DOMMATRIX_THIS;
+	double inv[16] = {0};
+
+    inv[0] = matrix->values.m22 * matrix->values.m33 * matrix->values.m44 -
+            matrix->values.m22 * matrix->values.m34 * matrix->values.m43 -
+            matrix->values.m32 * matrix->values.m23 * matrix->values.m44 +
+            matrix->values.m32 * matrix->values.m24 * matrix->values.m43 +
+            matrix->values.m42 * matrix->values.m23 * matrix->values.m34 -
+            matrix->values.m42 * matrix->values.m24 * matrix->values.m33;
+
+    inv[4] = -matrix->values.m21 * matrix->values.m33 * matrix->values.m44 +
+            matrix->values.m21 * matrix->values.m34 * matrix->values.m43 +
+            matrix->values.m31 * matrix->values.m23 * matrix->values.m44 -
+            matrix->values.m31 * matrix->values.m24 * matrix->values.m43 -
+            matrix->values.m41 * matrix->values.m23 * matrix->values.m34 +
+            matrix->values.m41 * matrix->values.m24 * matrix->values.m33;
+
+    inv[8] = matrix->values.m21 * matrix->values.m32 * matrix->values.m44 -
+            matrix->values.m21 * matrix->values.m34 * matrix->values.m42 -
+            matrix->values.m31 * matrix->values.m22 * matrix->values.m44 +
+            matrix->values.m31 * matrix->values.m24 * matrix->values.m42 +
+            matrix->values.m41 * matrix->values.m22 * matrix->values.m34 -
+            matrix->values.m41 * matrix->values.m24 * matrix->values.m32;
+
+    inv[12] = -matrix->values.m21 * matrix->values.m32 * matrix->values.m43 +
+            matrix->values.m21 * matrix->values.m33 * matrix->values.m42 +
+            matrix->values.m31 * matrix->values.m22 * matrix->values.m43 -
+            matrix->values.m31 * matrix->values.m23 * matrix->values.m42 -
+            matrix->values.m41 * matrix->values.m22 * matrix->values.m33 +
+            matrix->values.m41 * matrix->values.m23 * matrix->values.m32;
+
+	double det = matrix->values.m11 * inv[0] + matrix->values.m12 * inv[4] + matrix->values.m13 * inv[8] + matrix->values.m14 * inv[12];
+
+    // If the determinant is zero, this matrix cannot be inverted, and all
+    // values should be set to `NaN`, with the `is2D` flag set to `false`.
+	if (det == 0) {
+	  matrix->values.m11 =
+	  matrix->values.m12 =
+	  matrix->values.m13 =
+	  matrix->values.m14 =
+	  matrix->values.m21 =
+	  matrix->values.m22 =
+	  matrix->values.m23 =
+	  matrix->values.m24 =
+	  matrix->values.m31 =
+	  matrix->values.m32 =
+	  matrix->values.m33 =
+	  matrix->values.m34 =
+	  matrix->values.m41 =
+	  matrix->values.m42 =
+	  matrix->values.m43 =
+	  matrix->values.m44 = NAN;
+	  matrix->is_2d = false;
+	}
+	else
+	{
+		inv[1] = -matrix->values.m12 * matrix->values.m33 * matrix->values.m44 +
+				 matrix->values.m12 * matrix->values.m34 * matrix->values.m43 +
+				 matrix->values.m32 * matrix->values.m13 * matrix->values.m44 -
+				 matrix->values.m32 * matrix->values.m14 * matrix->values.m43 -
+				 matrix->values.m42 * matrix->values.m13 * matrix->values.m34 +
+				 matrix->values.m42 * matrix->values.m14 * matrix->values.m33;
+
+		inv[5] = matrix->values.m11 * matrix->values.m33 * matrix->values.m44 -
+				 matrix->values.m11 * matrix->values.m34 * matrix->values.m43 -
+				 matrix->values.m31 * matrix->values.m13 * matrix->values.m44 +
+				 matrix->values.m31 * matrix->values.m14 * matrix->values.m43 +
+				 matrix->values.m41 * matrix->values.m13 * matrix->values.m34 -
+				 matrix->values.m41 * matrix->values.m14 * matrix->values.m33;
+
+		inv[9] = -matrix->values.m11 * matrix->values.m32 * matrix->values.m44 +
+				 matrix->values.m11 * matrix->values.m34 * matrix->values.m42 +
+				 matrix->values.m31 * matrix->values.m12 * matrix->values.m44 -
+				 matrix->values.m31 * matrix->values.m14 * matrix->values.m42 -
+				 matrix->values.m41 * matrix->values.m12 * matrix->values.m34 +
+				 matrix->values.m41 * matrix->values.m14 * matrix->values.m32;
+
+		inv[13] = matrix->values.m11 * matrix->values.m32 * matrix->values.m43 -
+				  matrix->values.m11 * matrix->values.m33 * matrix->values.m42 -
+				  matrix->values.m31 * matrix->values.m12 * matrix->values.m43 +
+				  matrix->values.m31 * matrix->values.m13 * matrix->values.m42 +
+				  matrix->values.m41 * matrix->values.m12 * matrix->values.m33 -
+				  matrix->values.m41 * matrix->values.m13 * matrix->values.m32;
+
+		inv[2] = matrix->values.m12 * matrix->values.m23 * matrix->values.m44 -
+				 matrix->values.m12 * matrix->values.m24 * matrix->values.m43 -
+				 matrix->values.m22 * matrix->values.m13 * matrix->values.m44 +
+				 matrix->values.m22 * matrix->values.m14 * matrix->values.m43 +
+				 matrix->values.m42 * matrix->values.m13 * matrix->values.m24 -
+				 matrix->values.m42 * matrix->values.m14 * matrix->values.m23;
+
+		inv[6] = -matrix->values.m11 * matrix->values.m23 * matrix->values.m44 +
+				 matrix->values.m11 * matrix->values.m24 * matrix->values.m43 +
+				 matrix->values.m21 * matrix->values.m13 * matrix->values.m44 -
+				 matrix->values.m21 * matrix->values.m14 * matrix->values.m43 -
+				 matrix->values.m41 * matrix->values.m13 * matrix->values.m24 +
+				 matrix->values.m41 * matrix->values.m14 * matrix->values.m23;
+
+		inv[10] = matrix->values.m11 * matrix->values.m22 * matrix->values.m44 -
+				  matrix->values.m11 * matrix->values.m24 * matrix->values.m42 -
+				  matrix->values.m21 * matrix->values.m12 * matrix->values.m44 +
+				  matrix->values.m21 * matrix->values.m14 * matrix->values.m42 +
+				  matrix->values.m41 * matrix->values.m12 * matrix->values.m24 -
+				  matrix->values.m41 * matrix->values.m14 * matrix->values.m22;
+
+		inv[14] = -matrix->values.m11 * matrix->values.m22 * matrix->values.m43 +
+				  matrix->values.m11 * matrix->values.m23 * matrix->values.m42 +
+				  matrix->values.m21 * matrix->values.m12 * matrix->values.m43 -
+				  matrix->values.m21 * matrix->values.m13 * matrix->values.m42 -
+				  matrix->values.m41 * matrix->values.m12 * matrix->values.m23 +
+				  matrix->values.m41 * matrix->values.m13 * matrix->values.m22;
+
+		inv[3] = -matrix->values.m12 * matrix->values.m23 * matrix->values.m34 +
+				 matrix->values.m12 * matrix->values.m24 * matrix->values.m33 +
+				 matrix->values.m22 * matrix->values.m13 * matrix->values.m34 -
+				 matrix->values.m22 * matrix->values.m14 * matrix->values.m33 -
+				 matrix->values.m32 * matrix->values.m13 * matrix->values.m24 +
+				 matrix->values.m32 * matrix->values.m14 * matrix->values.m23;
+
+		inv[7] = matrix->values.m11 * matrix->values.m23 * matrix->values.m34 -
+				 matrix->values.m11 * matrix->values.m24 * matrix->values.m33 -
+				 matrix->values.m21 * matrix->values.m13 * matrix->values.m34 +
+				 matrix->values.m21 * matrix->values.m14 * matrix->values.m33 +
+				 matrix->values.m31 * matrix->values.m13 * matrix->values.m24 -
+				 matrix->values.m31 * matrix->values.m14 * matrix->values.m23;
+
+		inv[11] = -matrix->values.m11 * matrix->values.m22 * matrix->values.m34 +
+				  matrix->values.m11 * matrix->values.m24 * matrix->values.m32 +
+				  matrix->values.m21 * matrix->values.m12 * matrix->values.m34 -
+				  matrix->values.m21 * matrix->values.m14 * matrix->values.m32 -
+				  matrix->values.m31 * matrix->values.m12 * matrix->values.m24 +
+				  matrix->values.m31 * matrix->values.m14 * matrix->values.m22;
+
+		inv[15] = matrix->values.m11 * matrix->values.m22 * matrix->values.m33 -
+				  matrix->values.m11 * matrix->values.m23 * matrix->values.m32 -
+				  matrix->values.m21 * matrix->values.m12 * matrix->values.m33 +
+				  matrix->values.m21 * matrix->values.m13 * matrix->values.m32 +
+				  matrix->values.m31 * matrix->values.m12 * matrix->values.m23 -
+				  matrix->values.m31 * matrix->values.m13 * matrix->values.m22;
+
+		matrix->values.m11 = inv[0] / det;
+		matrix->values.m12 = inv[1] / det;
+		matrix->values.m13 = inv[2] / det;
+		matrix->values.m14 = inv[3] / det;
+		matrix->values.m21 = inv[4] / det;
+		matrix->values.m22 = inv[5] / det;
+		matrix->values.m23 = inv[6] / det;
+		matrix->values.m24 = inv[7] / det;
+		matrix->values.m31 = inv[8] / det;
+		matrix->values.m32 = inv[9] / det;
+		matrix->values.m33 = inv[10] / det;
+		matrix->values.m34 = inv[11] / det;
+		matrix->values.m41 = inv[12] / det;
+		matrix->values.m42 = inv[13] / det;
+		matrix->values.m43 = inv[14] / det;
+		matrix->values.m44 = inv[15] / det;
+	}
+
+	return JS_DupValue(ctx, this_val);
+}
+
 static JSValue nx_dommatrix_rotate_self(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	DOMMATRIX_THIS;
@@ -602,6 +765,7 @@ static JSValue nx_dommatrix_init_class(JSContext *ctx, JSValueConst this_val, in
 	NX_DEF_GETSET(proto, "m42", nx_dommatrix_get_m42, nx_dommatrix_set_m42);
 	NX_DEF_GETSET(proto, "m43", nx_dommatrix_get_m43, nx_dommatrix_set_m43);
 	NX_DEF_GETSET(proto, "m44", nx_dommatrix_get_m44, nx_dommatrix_set_m44);
+	NX_DEF_FUNC(proto, "invertSelf", nx_dommatrix_invert_self, 0);
 	NX_DEF_FUNC(proto, "rotateSelf", nx_dommatrix_rotate_self, 0);
 	NX_DEF_FUNC(proto, "scaleSelf", nx_dommatrix_scale_self, 0);
 	NX_DEF_FUNC(proto, "skewXSelf", nx_dommatrix_skew_x_self, 0);

@@ -1,6 +1,6 @@
-import { def, proto } from './utils';
-import { type DOMMatrixInit } from './dommatrix';
 import { $ } from './$';
+import { def, proto } from './utils';
+import type { DOMMatrixInit } from './dommatrix';
 
 export interface DOMPointInit {
 	w?: number;

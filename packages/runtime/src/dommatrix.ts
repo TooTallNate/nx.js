@@ -265,14 +265,17 @@ export class DOMMatrix
 	declare m44: number;
 
 	invertSelf(): DOMMatrix {
-		throw new Error('Method not implemented.');
+		stub();
 	}
+
 	multiplySelf(other?: DOMMatrixInit): DOMMatrix {
 		throw new Error('Method not implemented.');
 	}
+
 	preMultiplySelf(other?: DOMMatrixInit): DOMMatrix {
 		throw new Error('Method not implemented.');
 	}
+
 	rotateAxisAngleSelf(
 		x?: number,
 		y?: number,

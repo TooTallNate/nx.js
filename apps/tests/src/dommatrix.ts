@@ -73,4 +73,26 @@ test('transformPoint() / DOMPoint#matrixTransform()', () => {
 	assert.equal(p2.w, 1);
 });
 
+test('invertSelf()', () => {
+	const scaleX = 2;
+	const scaleY = 3;
+	const translateX = 12;
+	const translateY = 8;
+	const angle = Math.PI / 2;
+	const matrix = new DOMMatrix([
+		Math.cos(angle) * scaleX,
+		Math.sin(angle) * scaleX,
+		-Math.sin(angle) * scaleY,
+		Math.cos(angle) * scaleY,
+		translateX,
+		translateY,
+	]);
+
+	matrix.invertSelf();
+	assert.equal(
+		matrix.toString(),
+		'matrix(3.061616997868383e-17, -0.3333333333333333, 0.5, 2.041077998578922e-17, -4.000000000000001, 4)'
+	);
+});
+
 test.run();
