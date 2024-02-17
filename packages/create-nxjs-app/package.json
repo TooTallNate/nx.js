@@ -1,6 +1,6 @@
 {
   "name": "create-nxjs-app",
-  "version": "0.0.32",
+  "version": "0.0.36",
   "description": "Initialize a `nx.js` homebrew application",
   "type": "module",
   "bin": "./dist/main.js",
@@ -9,6 +9,9 @@
   ],
   "scripts": {
     "build": "node build-list.js && tsc"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "author": "Nathan Rajlich <n@n8.io>",
   "license": "MIT",

@@ -1,6 +1,6 @@
 {
   "name": "nxjs-runtime",
-  "version": "0.0.32",
+  "version": "0.0.36",
   "description": "nx.js runtime",
   "types": "./dist/index.d.ts",
   "scripts": {
@@ -12,6 +12,9 @@
   "files": [
     "dist"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "author": "Nathan Rajlich <n@n8.io>",
   "license": "MIT",
   "devDependencies": {

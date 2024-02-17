@@ -1,9 +1,11 @@
 import { $ } from '../$';
-import { assertInternalConstructor, stub } from '../utils';
 import { FsDev } from './fsdev';
+import { readFileSync } from '../fs';
+import { assertInternalConstructor, stub } from '../utils';
 import type { Profile } from './profile';
 
 let init = false;
+let self: Application | undefined;
 
 function _init() {
 	if (init) return;
@@ -12,33 +14,49 @@ function _init() {
 }
 
 /**
- * Represents an installed application (game) on the console.
+ * Represents an installed application (game) on the console,
+ * or a homebrew application (`.nro` file).
+ *
+ * Can be used as an iterator to retrieve the list of installed applications.
+ *
+ * @example
+ *
+ * ```typescript
+ * for (const app of Switch.Application) {
+ *   console.log(app.name);
+ * }
+ * ```
  */
 export class Application {
 	/**
 	 * The 64-bit unique identifier of the application.
 	 */
-	declare id: bigint;
-	/**
-	 * The "type" of application.
-	 */
-	declare type: number;
+	declare readonly id: bigint;
+
 	/**
 	 * The raw NACP data of the application. Use the `@tootallnate/nacp` module to parse this data.
 	 */
-	declare nacp: ArrayBuffer;
+	declare readonly nacp: ArrayBuffer;
+
 	/**
 	 * The raw JPEG data for the cover art of the application. Can be decoded with the `Image` class.
 	 */
-	declare icon: ArrayBuffer;
+	declare readonly icon?: ArrayBuffer;
+
 	/**
 	 * The name of the application.
 	 */
-	declare name: string;
+	declare readonly name: string;
+
+	/**
+	 * The version of the application.
+	 */
+	declare readonly version: string;
+
 	/**
 	 * The author or publisher of the application.
 	 */
-	declare author: string;
+	declare readonly author: string;
 
 	/**
 	 * @ignore
@@ -49,6 +67,8 @@ export class Application {
 
 	/**
 	 * Launches the application.
+	 *
+	 * @note This only works for installed applications (__not__ homebrew apps).
 	 */
 	launch(): never {
 		stub();
@@ -94,29 +114,53 @@ export class Application {
 		$.fsdevMountSaveData(name, this.nacp, profile.uid);
 		return new FsDev(name);
 	}
-}
-$.nsAppInit(Application);
 
-/**
- * Can be used as an iterator to retrieve the list of installed applications.
- *
- * @example
- *
- * ```typescript
- * for (const app of Switch.applications) {
- *   console.log(app.name);
- * }
- * ```
- */
-export const applications = {
-	*[Symbol.iterator]() {
+	/**
+	 * An `Application` instance representing the currently running application.
+	 */
+	static get self() {
+		if (!self) {
+			_init();
+			let nro: ArrayBuffer | null = null;
+			if ($.argv.length) {
+				nro = readFileSync($.argv[0]);
+			}
+			self = $.nsAppNew(nro);
+			Object.setPrototypeOf(self, Application.prototype);
+		}
+		return self;
+	}
+
+	/**
+	 * Creates an `Application` instance from an `ArrayBuffer`
+	 * containing the contents of a `.nro` homebrew application.
+	 *
+	 * @example
+	 *
+	 * ```typescript
+	 * const nro = await Switch.readFile('sdmc:/hbmenu.nro');
+	 * const app = Switch.Application.fromNRO(nro);
+	 * console.log(app.name);
+	 * ```
+	 *
+	 * @param nro The contents of the `.nro` file.
+	 */
+	static fromNRO(nro: ArrayBuffer) {
+		const app = $.nsAppNew(nro);
+		Object.setPrototypeOf(app, Application.prototype);
+		return app;
+	}
+
+	static *[Symbol.iterator]() {
 		_init();
 		let offset = 0;
 		while (1) {
-			const app = $.nsApplicationRecord(offset++);
-			if (!app) break;
+			const id = $.nsAppNext(offset++);
+			if (!id) break;
+			const app = $.nsAppNew(id);
 			Object.setPrototypeOf(app, Application.prototype);
 			yield app;
 		}
-	},
-};
+	}
+}
+$.nsAppInit(Application);

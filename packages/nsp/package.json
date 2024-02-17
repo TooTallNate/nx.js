@@ -1,0 +1,37 @@
+{
+  "name": "@nx.js/nsp",
+  "version": "0.0.36",
+  "description": "Package nx.js applications into a `.nsp` file",
+  "bin": {
+    "nxjs-nsp": "dist/main.js"
+  },
+  "type": "module",
+  "scripts": {
+    "build": "tsc"
+  },
+  "files": [
+    "dist",
+    "exefs",
+    "romfs",
+    "nxjs.nacp",
+    "icon.jpg"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "author": "Nathan Rajlich <n@n8.io>",
+  "license": "MIT",
+  "dependencies": {
+    "@nx.js/patch-nacp": "0.0.1",
+    "@tootallnate/nacp": "^0.0.1",
+    "bytes": "^3.1.2",
+    "chalk": "^5.3.0",
+    "jimp": "^0.16.13",
+    "terminal-image": "^2.0.0"
+  },
+  "devDependencies": {
+    "@types/bytes": "^3.1.4",
+    "@types/node": "^20.10.3",
+    "typescript": "^5.3.2"
+  }
+}

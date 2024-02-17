@@ -185,7 +185,8 @@ export interface Init {
 	// ns.c
 	nsInitialize(): () => void;
 	nsAppInit(c: ClassOf<Application>): void;
-	nsApplicationRecord(index: number): Application | null;
+	nsAppNew(id: BigInt | ArrayBuffer | null): Application;
+	nsAppNext(index: number): BigInt | null;
 
 	// software-keyboard.c
 	swkbdCreate(fns: {

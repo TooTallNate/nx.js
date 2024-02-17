@@ -6,7 +6,6 @@ import {
 	writeFileSync,
 } from './fs';
 import { URL } from './polyfills/url';
-import { console } from './console';
 import { Application } from './switch/ns';
 import { INTERNAL_SYMBOL } from './internal';
 import { currentProfile } from './switch/profile';
@@ -119,34 +118,20 @@ Object.defineProperty(globalThis, 'localStorage', {
 	enumerable: true,
 	configurable: true,
 	get() {
-		let nacp = readFileSync('romfs:/.nacp');
-		if (!nacp) {
-			console.debug(
-				`No NACP file found in romfs. Using default values. Please set "titleId" property in \`package.json\``
-			);
-			nacp = new ArrayBuffer(16384);
-			const view = new DataView(nacp);
-			view.setBigUint64(0x3078, 0x016de8dbc0c70000n, true); // SaveDataOwnerId
-			view.setBigUint64(0x3080, 0x3e00000n, true); // UserAccountSaveDataSize
-			view.setBigUint64(0x3088, 0x180000n, true); // UserAccountSaveDataJournalSize
-		}
-		const app = Object.create(Application.prototype) as Application;
-		app.nacp = nacp;
-
+		const { self } = Application;
 		const profile = currentProfile({ required: true });
-
 		const name = 'localstorage';
 		const base = `${name}:/localStorage/`;
 
 		let dev: FsDev;
 		try {
-			dev = app.mountSaveData(name, profile);
+			dev = self.mountSaveData(name, profile);
 		} catch (err: any) {
 			// rethrow if not `ResultTargetNotFound` (meaning save data has not been created)
 			if (err.description !== 1002) throw err;
 
-			app.createSaveData(profile);
-			dev = app.mountSaveData(name, profile);
+			self.createSaveData(profile);
+			dev = self.mountSaveData(name, profile);
 		}
 
 		const impl: StorageImpl = {

@@ -5,12 +5,14 @@
   "description": "nx.js app that loads a WASM binary",
   "scripts": {
     "build": "esbuild --bundle --sourcemap --sources-content=false --target=es2022 src/main.ts --outfile=romfs/main.js",
-    "nro": "nxjs-pack"
+    "nro": "nxjs-nro",
+    "nsp": "nxjs-nsp"
   },
   "license": "MIT",
   "devDependencies": {
+    "@nx.js/nro": "workspace:^",
+    "@nx.js/nsp": "workspace:^",
     "esbuild": "^0.17.19",
-    "nxjs-pack": "workspace:^",
     "nxjs-runtime": "workspace:^"
   }
 }
