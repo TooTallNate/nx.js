@@ -481,6 +481,64 @@ static JSValue nx_dommatrix_invert_self(JSContext *ctx, JSValueConst this_val, i
 	return JS_DupValue(ctx, this_val);
 }
 
+static JSValue nx_dommatrix_multiply_self(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	DOMMATRIX_THIS;
+	if (argc == 1 && JS_IsObject(argv[0]))
+	{
+		nx_dommatrix_t *other = nx_get_dommatrix(ctx, argv[0]);
+		bool needs_free = false;
+		if (!other)
+		{
+			other = js_malloc(ctx, sizeof(nx_dommatrix_t));
+			needs_free = true;
+			if (nx_dommatrix_init(ctx, argv[0], other))
+			{
+				js_free(ctx, other);
+				return JS_EXCEPTION;
+			}
+		}
+
+		nx_dommatrix_values_t result;
+		multiply(&other->values, &matrix->values, &result);
+		*(&matrix->values) = result;
+
+		if (needs_free) {
+			js_free(ctx, other);
+		}
+	}
+	return JS_DupValue(ctx, this_val);
+}
+
+static JSValue nx_dommatrix_premultiply_self(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	DOMMATRIX_THIS;
+	if (argc == 1 && JS_IsObject(argv[0]))
+	{
+		nx_dommatrix_t *other = nx_get_dommatrix(ctx, argv[0]);
+		bool needs_free = false;
+		if (!other)
+		{
+			other = js_malloc(ctx, sizeof(nx_dommatrix_t));
+			needs_free = true;
+			if (nx_dommatrix_init(ctx, argv[0], other))
+			{
+				js_free(ctx, other);
+				return JS_EXCEPTION;
+			}
+		}
+
+		nx_dommatrix_values_t result;
+		multiply(&matrix->values, &other->values, &result);
+		*(&matrix->values) = result;
+
+		if (needs_free) {
+			js_free(ctx, other);
+		}
+	}
+	return JS_DupValue(ctx, this_val);
+}
+
 static JSValue nx_dommatrix_rotate_self(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	DOMMATRIX_THIS;
@@ -766,6 +824,8 @@ static JSValue nx_dommatrix_init_class(JSContext *ctx, JSValueConst this_val, in
 	NX_DEF_GETSET(proto, "m43", nx_dommatrix_get_m43, nx_dommatrix_set_m43);
 	NX_DEF_GETSET(proto, "m44", nx_dommatrix_get_m44, nx_dommatrix_set_m44);
 	NX_DEF_FUNC(proto, "invertSelf", nx_dommatrix_invert_self, 0);
+	NX_DEF_FUNC(proto, "multiplySelf", nx_dommatrix_multiply_self, 0);
+	NX_DEF_FUNC(proto, "preMultiplySelf", nx_dommatrix_premultiply_self, 0);
 	NX_DEF_FUNC(proto, "rotateSelf", nx_dommatrix_rotate_self, 0);
 	NX_DEF_FUNC(proto, "scaleSelf", nx_dommatrix_scale_self, 0);
 	NX_DEF_FUNC(proto, "skewXSelf", nx_dommatrix_skew_x_self, 0);

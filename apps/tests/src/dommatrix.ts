@@ -9,7 +9,7 @@ const fixture2d = () => {
 	const translateX = 12;
 	const translateY = 8;
 	const angle = Math.PI / 2;
-	return new DOMMatrix([
+	const matrix = new DOMMatrix([
 		Math.cos(angle) * scaleX,
 		Math.sin(angle) * scaleX,
 		-Math.sin(angle) * scaleY,
@@ -17,6 +17,7 @@ const fixture2d = () => {
 		translateX,
 		translateY,
 	]);
+	return matrix;
 };
 
 test('instanceof', () => {
@@ -41,6 +42,24 @@ test('identity', () => {
 	assert.equal(
 		d.toString(),
 		'matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)'
+	);
+});
+
+test('flipX()', () => {
+	const matrix = fixture2d();
+	const flipped = matrix.flipX();
+	assert.equal(
+		flipped.toString(),
+		'matrix(-1.2246467991473532e-16, -2, -3, 1.8369701987210297e-16, 12, 8)'
+	);
+});
+
+test('flipY()', () => {
+	const matrix = fixture2d();
+	const flipped = matrix.flipY();
+	assert.equal(
+		flipped.toString(),
+		'matrix(1.2246467991473532e-16, 2, 3, -1.8369701987210297e-16, 12, 8)'
 	);
 });
 

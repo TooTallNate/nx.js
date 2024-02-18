@@ -269,11 +269,11 @@ export class DOMMatrix
 	}
 
 	multiplySelf(other?: DOMMatrixInit): DOMMatrix {
-		throw new Error('Method not implemented.');
+		stub();
 	}
 
 	preMultiplySelf(other?: DOMMatrixInit): DOMMatrix {
-		throw new Error('Method not implemented.');
+		stub();
 	}
 
 	rotateAxisAngleSelf(
