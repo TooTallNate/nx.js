@@ -51,6 +51,38 @@ export class CanvasRenderingContext2D {
 		return ctx;
 	}
 
+	// TODO: implement
+	declare direction: string;
+	declare fontKerning: string;
+	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/clip) */
+	clip(fillRule?: CanvasFillRule): void;
+	clip(path: Path2D, fillRule?: CanvasFillRule): void;
+	clip(path: unknown, fillRule?: unknown) {
+		stub();
+	}
+	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/isPointInPath) */
+	isPointInPath(x: number, y: number, fillRule?: CanvasFillRule): boolean;
+	isPointInPath(
+		path: Path2D,
+		x: number,
+		y: number,
+		fillRule?: CanvasFillRule
+	): boolean;
+	isPointInPath(
+		path: unknown,
+		x: unknown,
+		y: unknown,
+		fillRule?: unknown
+	): boolean {
+		stub();
+	}
+	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/isPointInStroke) */
+	isPointInStroke(x: number, y: number): boolean;
+	isPointInStroke(path: Path2D, x: number, y: number): boolean;
+	isPointInStroke(path: unknown, x: unknown, y?: unknown): boolean {
+		stub();
+	}
+
 	/**
 	 * A read-only reference to the {@link Screen | `Canvas`} object
 	 * that is associated with the context.
