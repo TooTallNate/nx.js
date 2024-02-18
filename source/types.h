@@ -79,6 +79,7 @@ typedef struct nx_context_s
 	FT_Library ft_library;
 	HidVibrationDeviceHandle vibration_device_handles[2];
 	IM3Environment wasm_env;
+	JSValue init_obj;
 	JSValue frame_handler;
 	JSValue exit_handler;
 	JSValue error_handler;

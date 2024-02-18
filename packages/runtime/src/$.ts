@@ -268,6 +268,8 @@ export interface Init {
 	wasmModuleImports(m: WasmModuleOpaque): any[];
 	wasmGlobalGet(g: WasmGlobalOpaque): any;
 	wasmGlobalSet(g: WasmGlobalOpaque, v: any): void;
+
+	applyPath: any;
 }
 
 export const $: Init = (globalThis as any).$;

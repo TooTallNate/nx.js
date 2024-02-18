@@ -1662,15 +1662,94 @@ static JSValue nx_canvas_context_2d_clip(JSContext *ctx, JSValueConst this_val, 
 static JSValue nx_canvas_context_2d_fill(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	CANVAS_CONTEXT_THIS;
-	set_fill_rule(ctx, argv[0], cr);
-	fill(context, true);
+	JSValue path = JS_NULL;
+	JSValue fill_rule = JS_NULL;
+	if (argc == 1)
+	{
+		if (JS_IsObject(argv[0]))
+		{
+			path = argv[0];
+		}
+		else if (JS_IsString(argv[0]))
+		{
+			fill_rule = argv[0];
+		}
+		else
+		{
+			return JS_ThrowTypeError(ctx, "Expected Path2D or string at index 0");
+		}
+	}
+	else if (argc == 2)
+	{
+		if (JS_IsObject(argv[0]))
+		{
+			path = argv[0];
+		}
+		else
+		{
+			return JS_ThrowTypeError(ctx, "Expected Path2D at index 0");
+		}
+		if (JS_IsString(argv[1]))
+		{
+			fill_rule = argv[1];
+		}
+		else
+		{
+			return JS_ThrowTypeError(ctx, "Expected string at index 1");
+		}
+	}
+	if (!JS_IsNull(fill_rule))
+	{
+		set_fill_rule(ctx, argv[0], cr);
+	}
+	if (JS_IsNull(path))
+	{
+		fill(context, true);
+	}
+	else
+	{
+		save_path(context);
+		nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
+		JSValue apply_path_func = JS_GetPropertyStr(ctx, nx_ctx->init_obj, "applyPath");
+		JSValue apply_path_argv[] = {this_val, argv[0]};
+		JS_Call(ctx, apply_path_func, JS_NULL, 2, apply_path_argv);
+		JS_FreeValue(ctx, apply_path_func);
+		fill(context, false);
+		restore_path(context);
+	}
 	return JS_UNDEFINED;
 }
 
 static JSValue nx_canvas_context_2d_stroke(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	CANVAS_CONTEXT_THIS;
-	stroke(context, true);
+	JSValue path = JS_NULL;
+	if (argc == 1)
+	{
+		if (JS_IsObject(argv[0]))
+		{
+			path = argv[0];
+		}
+		else
+		{
+			return JS_ThrowTypeError(ctx, "Expected Path2D at index 0");
+		}
+	}
+	if (JS_IsNull(path))
+	{
+		stroke(context, true);
+	}
+	else
+	{
+		save_path(context);
+		nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
+		JSValue apply_path_func = JS_GetPropertyStr(ctx, nx_ctx->init_obj, "applyPath");
+		JSValue apply_path_argv[] = {this_val, argv[0]};
+		JS_Call(ctx, apply_path_func, JS_NULL, 2, apply_path_argv);
+		JS_FreeValue(ctx, apply_path_func);
+		stroke(context, false);
+		restore_path(context);
+	}
 	return JS_UNDEFINED;
 }
 

@@ -1,3 +1,4 @@
+import { $ } from '../$';
 import { createInternal, def } from '../utils';
 import type { CanvasRenderingContext2D } from '../canvas/canvas-rendering-context-2d';
 
@@ -298,7 +299,7 @@ export class Path2D implements globalThis.Path2D {
 	}
 }
 
-export function applyPath(ctx: CanvasRenderingContext2D, path: Path2D) {
+$.applyPath = (ctx: CanvasRenderingContext2D, path: Path2D) => {
 	const commands = _(path);
 	let x = 0;
 	let y = 0;
@@ -657,5 +658,5 @@ export function applyPath(ctx: CanvasRenderingContext2D, path: Path2D) {
 			currentPoint.y = y;
 		}
 	}
-}
+};
 def(Path2D);

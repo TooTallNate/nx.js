@@ -539,27 +539,27 @@ int main(int argc, char *argv[])
 
 	// The internal `$` object contains native functions that are wrapped in the JS runtime
 	JSValue global_obj = JS_GetGlobalObject(ctx);
-	JSValue init_obj = JS_NewObject(ctx);
-	nx_init_account(ctx, init_obj);
-	nx_init_applet(ctx, init_obj);
-	nx_init_battery(ctx, init_obj);
-	nx_init_canvas(ctx, init_obj);
-	nx_init_crypto(ctx, init_obj);
-	nx_init_dns(ctx, init_obj);
-	nx_init_dommatrix(ctx, init_obj);
-	nx_init_error(ctx, init_obj);
-	nx_init_font(ctx, init_obj);
-	nx_init_fs(ctx, init_obj);
-	nx_init_fsdev(ctx, init_obj);
-	nx_init_image(ctx, init_obj);
-	nx_init_irs(ctx, init_obj);
-	nx_init_nifm(ctx, init_obj);
-	nx_init_ns(ctx, init_obj);
-	nx_init_tcp(ctx, init_obj);
-	nx_init_tls(ctx, init_obj);
-	nx_init_url(ctx, init_obj);
-	nx_init_swkbd(ctx, init_obj);
-	nx_init_wasm(ctx, init_obj);
+	nx_ctx->init_obj = JS_NewObject(ctx);
+	nx_init_account(ctx, nx_ctx->init_obj);
+	nx_init_applet(ctx, nx_ctx->init_obj);
+	nx_init_battery(ctx, nx_ctx->init_obj);
+	nx_init_canvas(ctx, nx_ctx->init_obj);
+	nx_init_crypto(ctx, nx_ctx->init_obj);
+	nx_init_dns(ctx, nx_ctx->init_obj);
+	nx_init_dommatrix(ctx, nx_ctx->init_obj);
+	nx_init_error(ctx, nx_ctx->init_obj);
+	nx_init_font(ctx, nx_ctx->init_obj);
+	nx_init_fs(ctx, nx_ctx->init_obj);
+	nx_init_fsdev(ctx, nx_ctx->init_obj);
+	nx_init_image(ctx, nx_ctx->init_obj);
+	nx_init_irs(ctx, nx_ctx->init_obj);
+	nx_init_nifm(ctx, nx_ctx->init_obj);
+	nx_init_ns(ctx, nx_ctx->init_obj);
+	nx_init_tcp(ctx, nx_ctx->init_obj);
+	nx_init_tls(ctx, nx_ctx->init_obj);
+	nx_init_url(ctx, nx_ctx->init_obj);
+	nx_init_swkbd(ctx, nx_ctx->init_obj);
+	nx_init_wasm(ctx, nx_ctx->init_obj);
 	const JSCFunctionListEntry init_function_list[] = {
 		JS_CFUNC_DEF("exit", 0, js_exit),
 		JS_CFUNC_DEF("cwd", 0, js_cwd),
@@ -588,7 +588,7 @@ int main(int argc, char *argv[])
 		JS_CFUNC_DEF("hidGetKeyboardStates", 0, js_hid_get_keyboard_states),
 		JS_CFUNC_DEF("hidSendVibrationValues", 0, js_hid_send_vibration_values),
 	};
-	JS_SetPropertyFunctionList(ctx, init_obj, init_function_list, countof(init_function_list));
+	JS_SetPropertyFunctionList(ctx, nx_ctx->init_obj, init_function_list, countof(init_function_list));
 
 	// `Switch.version`
 	JSValue version_obj = JS_NewObject(ctx);
@@ -605,10 +605,10 @@ int main(int argc, char *argv[])
 	char webp_version_str[12];
 	snprintf(webp_version_str, 12, "%d.%d.%d", (webp_version >> 16) & 0xFF, (webp_version >> 8) & 0xFF, webp_version & 0xFF);
 	JS_SetPropertyStr(ctx, version_obj, "webp", JS_NewString(ctx, webp_version_str));
-	JS_SetPropertyStr(ctx, init_obj, "version", version_obj);
+	JS_SetPropertyStr(ctx, nx_ctx->init_obj, "version", version_obj);
 
 	// `Switch.entrypoint`
-	JS_SetPropertyStr(ctx, init_obj, "entrypoint", JS_NewString(ctx, js_path));
+	JS_SetPropertyStr(ctx, nx_ctx->init_obj, "entrypoint", JS_NewString(ctx, js_path));
 
 	// `Switch.argv`
 	JSValue argv_array = JS_NewArray(ctx);
@@ -616,9 +616,9 @@ int main(int argc, char *argv[])
 	{
 		JS_SetPropertyUint32(ctx, argv_array, i, JS_NewString(ctx, argv[i]));
 	}
-	JS_SetPropertyStr(ctx, init_obj, "argv", argv_array);
+	JS_SetPropertyStr(ctx, nx_ctx->init_obj, "argv", argv_array);
 
-	JS_SetPropertyStr(ctx, global_obj, "$", init_obj);
+	JS_SetPropertyStr(ctx, global_obj, "$", nx_ctx->init_obj);
 
 	size_t runtime_buffer_size;
 	char *runtime_path = "romfs:/runtime.js";
