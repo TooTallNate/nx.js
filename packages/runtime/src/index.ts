@@ -45,6 +45,7 @@ export type * from './fetch/fetch';
 export type * from './crypto';
 export type * from './image';
 export type { DOMPoint, DOMPointInit, DOMPointReadOnly } from './dompoint';
+export type * from './dommatrix';
 export type * from './domrect';
 export type * from './sensor';
 export type {

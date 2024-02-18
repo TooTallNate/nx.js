@@ -8,6 +8,11 @@ import {
 	type RGBA,
 } from './internal';
 
+export const proto = (o: any, c: any) => {
+	Object.setPrototypeOf(o, c.prototype);
+	return o;
+};
+
 export const def = <T extends any>(value: T, key?: string) => {
 	if (!key) {
 		key = (value as any).name;

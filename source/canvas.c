@@ -5,6 +5,7 @@
 
 #include <stdbool.h>
 #include <math.h>
+#include "dommatrix.h"
 #include "font.h"
 #include "image.h"
 #include "canvas.h"
@@ -2502,6 +2503,52 @@ static JSValue nx_canvas_context_2d_transform(JSContext *ctx, JSValueConst this_
 	return JS_UNDEFINED;
 }
 
+static JSValue nx_canvas_context_2d_set_transform(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	CANVAS_CONTEXT_THIS;
+	if (argc == 1 && JS_IsObject(argv[0]))
+	{
+		nx_dommatrix_t *dommatrix = nx_get_dommatrix(ctx, argv[0]);
+		if (dommatrix)
+		{
+			// Happy case - the passed in value is a `DOMMatrix` instance
+			cairo_set_matrix(cr, &dommatrix->cr_matrix);
+		}
+		else
+		{
+			// The passed in value is a plain JS object,
+			// so construct the cairo matrix manually
+			nx_dommatrix_t m;
+			if (nx_dommatrix_init(ctx, argv[0], &m))
+			{
+				return JS_EXCEPTION;
+			}
+			cairo_set_matrix(cr, &m.cr_matrix);
+		}
+	}
+	else if (argc == 6)
+	{
+		cairo_matrix_t m;
+		if (
+			JS_ToFloat64(ctx, &m.xx, argv[0]) ||
+			JS_ToFloat64(ctx, &m.yx, argv[1]) ||
+			JS_ToFloat64(ctx, &m.xy, argv[2]) ||
+			JS_ToFloat64(ctx, &m.yy, argv[3]) ||
+			JS_ToFloat64(ctx, &m.x0, argv[4]) ||
+			JS_ToFloat64(ctx, &m.y0, argv[5])
+		) {
+			return JS_EXCEPTION;
+		}
+		cairo_set_matrix(cr, &m);
+	}
+	else
+	{
+		cairo_identity_matrix(cr);
+		return nx_canvas_context_2d_transform(ctx, this_val, argc, argv);
+	}
+	return JS_UNDEFINED;
+}
+
 static JSValue nx_canvas_context_2d_reset_transform(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	CANVAS_CONTEXT_THIS;
@@ -2560,6 +2607,7 @@ static JSValue nx_canvas_context_2d_init_class(JSContext *ctx, JSValueConst this
 	NX_DEF_FUNC(proto, "save", nx_canvas_context_2d_save, 0);
 	NX_DEF_FUNC(proto, "scale", nx_canvas_context_2d_scale, 2);
 	NX_DEF_FUNC(proto, "setLineDash", nx_canvas_context_2d_set_line_dash, 1);
+	NX_DEF_FUNC(proto, "setTransform", nx_canvas_context_2d_set_transform, 0);
 	NX_DEF_FUNC(proto, "stroke", nx_canvas_context_2d_stroke, 0);
 	NX_DEF_FUNC(proto, "strokeRect", nx_canvas_context_2d_stroke_rect, 4);
 	NX_DEF_FUNC(proto, "strokeText", nx_canvas_context_2d_stroke_text, 3);
