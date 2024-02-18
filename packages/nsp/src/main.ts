@@ -20,6 +20,7 @@ import Jimp from 'jimp';
 import { NACP } from '@tootallnate/nacp';
 import { patchNACP } from '@nx.js/patch-nacp';
 import terminalImage from 'terminal-image';
+import { createLineIterator } from 'line-async-iterator';
 
 const iconName = 'icon.jpg';
 const tmpPaths: URL[] = [];
@@ -145,8 +146,25 @@ try {
 		...process.argv.slice(2),
 	];
 
-	const child = spawn('hacbrewpack', argv, { stdio: 'inherit', shell: true });
-	const [exitCode, signal] = await once(child, 'exit');
+	const child = spawn('hacbrewpack', argv, {
+		stdio: ['ignore', 'pipe', 'pipe'],
+		shell: true,
+	});
+	const [[exitCode, signal]] = await Promise.all([
+		once(child, 'exit'),
+		(async () => {
+			for await (const line of createLineIterator(child.stdout)) {
+				console.log(`  ${chalk.grey(line)}`);
+			}
+		})(),
+		(async () => {
+			for await (const line of createLineIterator(child.stderr)) {
+				await new Promise((r) => setTimeout(r, 100));
+				console.error(`  ${chalk.red.bold(line)}`);
+			}
+		})(),
+	]);
+	console.log();
 	if (signal) {
 		process.kill(process.pid, signal);
 	} else if (exitCode) {
@@ -160,7 +178,7 @@ try {
 		cpSync(nspSrc, nspDest);
 		console.log(
 			chalk.green(
-				`\n🎉 Success! Generated NSP file ${chalk.bold(
+				`🎉 Success! Generated NSP file ${chalk.bold(
 					`"${outputNspName}"`
 				)}`
 			) + ` (${bytes(statSync(nspDest).size).toLowerCase()})`
