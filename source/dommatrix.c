@@ -539,6 +539,54 @@ static JSValue nx_dommatrix_premultiply_self(JSContext *ctx, JSValueConst this_v
 	return JS_DupValue(ctx, this_val);
 }
 
+static JSValue nx_dommatrix_rotate_axis_angle_self(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	DOMMATRIX_THIS;
+	double x = 0, y = 0, z = 0, angle = 0;
+	ARG_TO_NUM(0, x);
+	ARG_TO_NUM(1, y);
+	ARG_TO_NUM(2, z);
+	ARG_TO_NUM(3, angle);
+
+	// Normalize axis
+	double length = sqrt(x * x + y * y + z * z);
+	if (length == 0.) {
+		return JS_DupValue(ctx, this_val);
+	}
+	if (length != 1.) {
+		x /= length;
+		y /= length;
+		z /= length;
+	}
+	angle *= RADS_PER_DEGREE;
+	double c = cos(angle);
+	double s = sin(angle);
+	double t = 1. - c;
+	double tx = t * x;
+	double ty = t * y;
+
+	// NB: This is the generic transform. If the axis is a major axis, there are
+	// faster transforms.
+
+	nx_dommatrix_values_t b;
+	nx_dommatrix_values_t result;
+	double values[] = {
+		tx * x + c, tx * y + s * z, tx * z - s * y, 0,
+		tx * y - s * z, ty * y + c, ty * z + s * x, 0,
+		tx * z + s * y, ty * z - s * x, t * z * z + c, 0,
+		0, 0, 0, 1
+	};
+	matrix_values(&b, values);
+	multiply(&b, &matrix->values, &result);
+	*(&matrix->values) = result;
+
+	if (x != 0 || y != 0)
+	{
+		matrix->is_2d = false;
+	}
+	return JS_DupValue(ctx, this_val);
+}
+
 static JSValue nx_dommatrix_rotate_self(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	DOMMATRIX_THIS;
@@ -826,6 +874,7 @@ static JSValue nx_dommatrix_init_class(JSContext *ctx, JSValueConst this_val, in
 	NX_DEF_FUNC(proto, "invertSelf", nx_dommatrix_invert_self, 0);
 	NX_DEF_FUNC(proto, "multiplySelf", nx_dommatrix_multiply_self, 0);
 	NX_DEF_FUNC(proto, "preMultiplySelf", nx_dommatrix_premultiply_self, 0);
+	NX_DEF_FUNC(proto, "rotateAxisAngleSelf", nx_dommatrix_rotate_axis_angle_self, 0);
 	NX_DEF_FUNC(proto, "rotateSelf", nx_dommatrix_rotate_self, 0);
 	NX_DEF_FUNC(proto, "scaleSelf", nx_dommatrix_scale_self, 0);
 	NX_DEF_FUNC(proto, "skewXSelf", nx_dommatrix_skew_x_self, 0);

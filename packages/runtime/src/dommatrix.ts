@@ -282,7 +282,7 @@ export class DOMMatrix
 		z?: number,
 		angle?: number
 	): DOMMatrix {
-		throw new Error('Method not implemented.');
+		stub();
 	}
 
 	rotateFromVectorSelf(x = 0, y = 0): DOMMatrix {
