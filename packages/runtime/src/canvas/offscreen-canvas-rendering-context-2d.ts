@@ -54,28 +54,6 @@ export class OffscreenCanvasRenderingContext2D {
 	// TODO: implement
 	declare direction: string;
 	declare fontKerning: string;
-	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/clip) */
-	clip(fillRule?: CanvasFillRule): void;
-	clip(path: Path2D, fillRule?: CanvasFillRule): void;
-	clip(path: unknown, fillRule?: unknown) {
-		stub();
-	}
-	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/isPointInPath) */
-	isPointInPath(x: number, y: number, fillRule?: CanvasFillRule): boolean;
-	isPointInPath(
-		path: Path2D,
-		x: number,
-		y: number,
-		fillRule?: CanvasFillRule
-	): boolean;
-	isPointInPath(
-		path: unknown,
-		x: unknown,
-		y: unknown,
-		fillRule?: unknown
-	): boolean {
-		stub();
-	}
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/isPointInStroke) */
 	isPointInStroke(x: number, y: number): boolean;
 	isPointInStroke(path: Path2D, x: number, y: number): boolean;
@@ -317,6 +295,64 @@ export class OffscreenCanvasRenderingContext2D {
 	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/beginPath
 	 */
 	beginPath(): void {
+		stub();
+	}
+
+	/**
+	 * Turns the current or given path into the current clipping region. The
+	 * previous clipping region, if any, is intersected with the current or
+	 * given path to create the new clipping region.
+	 *
+	 * @example
+	 *
+	 * ```typescript
+	 * // Create circular clipping region
+	 * ctx.beginPath();
+	 * ctx.arc(100, 75, 50, 0, Math.PI * 2);
+	 * ctx.clip();
+	 *
+	 * // Draw stuff that gets clipped
+	 * ctx.fillStyle = "blue";
+	 * ctx.fillRect(0, 0, canvas.width, canvas.height);
+	 * ctx.fillStyle = "orange";
+	 * ctx.fillRect(0, 0, 100, 100);
+	 * ```
+	 *
+	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/clip
+	 */
+	clip(fillRule?: CanvasFillRule): void;
+	clip(path: Path2D, fillRule?: CanvasFillRule): void;
+	clip(path: unknown, fillRule?: unknown) {
+		stub();
+	}
+
+	/**
+	 * Reports whether or not the specified point is contained in the current path.
+	 *
+	 * @example
+	 *
+	 * ```typescript
+	 * ctx.beginPath();
+	 * ctx.rect(10, 10, 100, 100);
+	 * console.log(ctx.isPointInPath(30, 70));
+	 * // true
+	 * ```
+	 *
+	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/isPointInPath
+	 */
+	isPointInPath(x: number, y: number, fillRule?: CanvasFillRule): boolean;
+	isPointInPath(
+		path: Path2D,
+		x: number,
+		y: number,
+		fillRule?: CanvasFillRule
+	): boolean;
+	isPointInPath(
+		path: unknown,
+		x: unknown,
+		y: unknown,
+		fillRule?: unknown
+	): boolean {
 		stub();
 	}
 

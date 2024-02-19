@@ -98,6 +98,14 @@ static void set_fill_rule(JSContext *ctx, JSValueConst fill_rule, cairo_t *cr)
 	cairo_set_fill_rule(cr, rule);
 }
 
+static void apply_path(JSContext *ctx, JSValue this_val, JSValue path) {
+	nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
+	JSValue apply_path_func = JS_GetPropertyStr(ctx, nx_ctx->init_obj, "applyPath");
+	JSValue apply_path_argv[] = {this_val, path};
+	JS_Call(ctx, apply_path_func, JS_NULL, 2, apply_path_argv);
+	JS_FreeValue(ctx, apply_path_func);
+}
+
 static void save_path(nx_canvas_context_2d_t *context)
 {
 	context->path = cairo_copy_path_flat(context->ctx);
@@ -164,6 +172,37 @@ static JSValue nx_canvas_context_2d_move_to(JSContext *ctx, JSValueConst this_va
 		return JS_EXCEPTION;
 	cairo_move_to(cr, args[0], args[1]);
 	return JS_UNDEFINED;
+}
+
+static JSValue nx_canvas_context_2d_is_point_in_path(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	CANVAS_CONTEXT_THIS;
+	JSValue path = JS_NULL;
+	if (argc > 0 && JS_IsObject(argv[0])) {
+		path = argv[0];
+		argc--;
+		argv++;
+	}
+	bool is_in = false;
+	if (argc >= 2) {
+		double args[2];
+		if (js_validate_doubles_args(ctx, argv, args, 2, 0))
+			return JS_EXCEPTION;
+		if (argc == 3 && JS_IsString(argv[2])) {
+			set_fill_rule(ctx, argv[2], cr);
+		}
+		bool needs_restore = false;
+		if (!JS_IsNull(path)) {
+			needs_restore = true;
+			save_path(context);
+			apply_path(ctx, this_val, path);
+		}
+		is_in = cairo_in_fill(cr, args[0], args[1]);
+		if (needs_restore) {
+			restore_path(context);
+		}
+	}
+	return JS_NewBool(ctx, is_in);
 }
 
 static JSValue nx_canvas_context_2d_line_to(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -1674,7 +1713,7 @@ static JSValue nx_canvas_context_2d_fill(JSContext *ctx, JSValueConst this_val, 
 		{
 			fill_rule = argv[0];
 		}
-		else
+		else if (!JS_IsUndefined(argv[0]))
 		{
 			return JS_ThrowTypeError(ctx, "Expected Path2D or string at index 0");
 		}
@@ -1693,7 +1732,7 @@ static JSValue nx_canvas_context_2d_fill(JSContext *ctx, JSValueConst this_val, 
 		{
 			fill_rule = argv[1];
 		}
-		else
+		else if (!JS_IsUndefined(argv[1]))
 		{
 			return JS_ThrowTypeError(ctx, "Expected string at index 1");
 		}
@@ -1709,11 +1748,7 @@ static JSValue nx_canvas_context_2d_fill(JSContext *ctx, JSValueConst this_val, 
 	else
 	{
 		save_path(context);
-		nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
-		JSValue apply_path_func = JS_GetPropertyStr(ctx, nx_ctx->init_obj, "applyPath");
-		JSValue apply_path_argv[] = {this_val, argv[0]};
-		JS_Call(ctx, apply_path_func, JS_NULL, 2, apply_path_argv);
-		JS_FreeValue(ctx, apply_path_func);
+		apply_path(ctx, this_val, path);
 		fill(context, false);
 		restore_path(context);
 	}
@@ -1742,11 +1777,7 @@ static JSValue nx_canvas_context_2d_stroke(JSContext *ctx, JSValueConst this_val
 	else
 	{
 		save_path(context);
-		nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
-		JSValue apply_path_func = JS_GetPropertyStr(ctx, nx_ctx->init_obj, "applyPath");
-		JSValue apply_path_argv[] = {this_val, argv[0]};
-		JS_Call(ctx, apply_path_func, JS_NULL, 2, apply_path_argv);
-		JS_FreeValue(ctx, apply_path_func);
+		apply_path(ctx, this_val, path);
 		stroke(context, false);
 		restore_path(context);
 	}
@@ -2673,6 +2704,7 @@ static JSValue nx_canvas_context_2d_init_class(JSContext *ctx, JSValueConst this
 	NX_DEF_FUNC(proto, "fillRect", nx_canvas_context_2d_fill_rect, 4);
 	NX_DEF_FUNC(proto, "fillText", nx_canvas_context_2d_fill_text, 3);
 	NX_DEF_FUNC(proto, "getLineDash", nx_canvas_context_2d_get_line_dash, 0);
+	NX_DEF_FUNC(proto, "isPointInPath", nx_canvas_context_2d_is_point_in_path, 2);
 	NX_DEF_FUNC(proto, "lineTo", nx_canvas_context_2d_line_to, 2);
 	NX_DEF_FUNC(proto, "measureText", nx_canvas_context_2d_measure_text, 1);
 	NX_DEF_FUNC(proto, "moveTo", nx_canvas_context_2d_move_to, 2);
