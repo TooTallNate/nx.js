@@ -26,4 +26,13 @@ test('`CanvasRenderingContext2D#isPointInPath()`', () => {
 	assert.equal(ctx.isPointInPath(8, 8), false);
 });
 
+test('`CanvasRenderingContext2D#isPointInStroke()`', () => {
+	ctx.lineWidth = 1;
+	ctx.beginPath();
+	ctx.rect(10, 10, 100, 100);
+	assert.equal(ctx.isPointInStroke(50, 10), true);
+	assert.equal(ctx.isPointInStroke(30, 70), false);
+	assert.equal(ctx.isPointInStroke(8, 8), false);
+});
+
 test.run();

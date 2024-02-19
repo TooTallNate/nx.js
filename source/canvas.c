@@ -205,6 +205,34 @@ static JSValue nx_canvas_context_2d_is_point_in_path(JSContext *ctx, JSValueCons
 	return JS_NewBool(ctx, is_in);
 }
 
+static JSValue nx_canvas_context_2d_is_point_in_stroke(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	CANVAS_CONTEXT_THIS;
+	JSValue path = JS_NULL;
+	if (argc > 0 && JS_IsObject(argv[0])) {
+		path = argv[0];
+		argc--;
+		argv++;
+	}
+	bool is_in = false;
+	if (argc >= 2) {
+		double args[2];
+		if (js_validate_doubles_args(ctx, argv, args, 2, 0))
+			return JS_EXCEPTION;
+		bool needs_restore = false;
+		if (!JS_IsNull(path)) {
+			needs_restore = true;
+			save_path(context);
+			apply_path(ctx, this_val, path);
+		}
+		is_in = cairo_in_stroke(cr, args[0], args[1]);
+		if (needs_restore) {
+			restore_path(context);
+		}
+	}
+	return JS_NewBool(ctx, is_in);
+}
+
 static JSValue nx_canvas_context_2d_line_to(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	CANVAS_CONTEXT_THIS;
@@ -2705,6 +2733,7 @@ static JSValue nx_canvas_context_2d_init_class(JSContext *ctx, JSValueConst this
 	NX_DEF_FUNC(proto, "fillText", nx_canvas_context_2d_fill_text, 3);
 	NX_DEF_FUNC(proto, "getLineDash", nx_canvas_context_2d_get_line_dash, 0);
 	NX_DEF_FUNC(proto, "isPointInPath", nx_canvas_context_2d_is_point_in_path, 2);
+	NX_DEF_FUNC(proto, "isPointInStroke", nx_canvas_context_2d_is_point_in_stroke, 2);
 	NX_DEF_FUNC(proto, "lineTo", nx_canvas_context_2d_line_to, 2);
 	NX_DEF_FUNC(proto, "measureText", nx_canvas_context_2d_measure_text, 1);
 	NX_DEF_FUNC(proto, "moveTo", nx_canvas_context_2d_move_to, 2);

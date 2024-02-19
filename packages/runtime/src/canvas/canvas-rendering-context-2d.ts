@@ -54,12 +54,6 @@ export class CanvasRenderingContext2D {
 	// TODO: implement
 	declare direction: string;
 	declare fontKerning: string;
-	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/isPointInStroke) */
-	isPointInStroke(x: number, y: number): boolean;
-	isPointInStroke(path: Path2D, x: number, y: number): boolean;
-	isPointInStroke(path: unknown, x: unknown, y?: unknown): boolean {
-		stub();
-	}
 
 	/**
 	 * A read-only reference to the {@link Screen | `Canvas`} object
@@ -355,6 +349,26 @@ export class CanvasRenderingContext2D {
 		y: unknown,
 		fillRule?: unknown
 	): boolean {
+		stub();
+	}
+
+	/**
+	 * Reports whether or not the specified point is inside the area contained by the stroking of a path.
+	 *
+	 * @example
+	 *
+	 * ```typescript
+	 * ctx.beginPath();
+	 * ctx.rect(10, 10, 100, 100);
+	 * console.log(ctx.isPointInStroke(50, 10));
+	 * // true
+	 * ```
+	 *
+	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/isPointInStroke
+	 */
+	isPointInStroke(x: number, y: number): boolean;
+	isPointInStroke(path: Path2D, x: number, y: number): boolean;
+	isPointInStroke(path: unknown, x: unknown, y?: unknown): boolean {
 		stub();
 	}
 
