@@ -2,6 +2,7 @@
 // Ref: https://github.com/Automattic/node-canvas/blob/master/lib/DOMMatrix.js
 import { $ } from './$';
 import { def, proto, stub } from './utils';
+import { inspect } from './inspect';
 import { DOMPoint, type DOMPointInit } from './dompoint';
 
 const DEGREE_PER_RAD = 180 / Math.PI;
@@ -236,6 +237,17 @@ export class DOMMatrixReadOnly implements globalThis.DOMMatrixReadOnly {
 }
 $.dommatrixROInitClass(DOMMatrixReadOnly);
 def(DOMMatrixReadOnly);
+
+Object.defineProperty(DOMMatrixReadOnly.prototype, inspect.custom, {
+	enumerable: false,
+	value(this: DOMMatrixReadOnly) {
+		const v = this.toJSON();
+		Object.defineProperty(v, 'constructor', {
+			value: this.constructor,
+		});
+		return v;
+	},
+});
 
 export class DOMMatrix
 	extends DOMMatrixReadOnly
