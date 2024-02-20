@@ -7,6 +7,10 @@ const ctx = screen.getContext('2d');
 
 test('`CanvasRenderingContext2D.name`', () => {
 	assert.equal(CanvasRenderingContext2D.name, 'CanvasRenderingContext2D');
+	assert.equal(
+		OffscreenCanvasRenderingContext2D.name,
+		'OffscreenCanvasRenderingContext2D'
+	);
 });
 
 test('`CanvasRenderingContext2D#getImageData()`', () => {
@@ -20,14 +24,26 @@ test('`CanvasRenderingContext2D#getImageData()`', () => {
 });
 
 test('`CanvasRenderingContext2D#isPointInPath()`', () => {
+	ctx.resetTransform();
 	ctx.beginPath();
 	ctx.rect(10, 10, 100, 100);
 	assert.equal(ctx.isPointInPath(30, 70), true);
 	assert.equal(ctx.isPointInPath(8, 8), false);
 });
 
+test('`CanvasRenderingContext2D#isPointInPath()` with transform', () => {
+	ctx.resetTransform();
+	ctx.translate(10, 10);
+	ctx.rect(0, 0, 100, 100);
+	assert.equal(ctx.isPointInPath(0, 0), false);
+	assert.equal(ctx.isPointInPath(10, 10), true);
+	assert.equal(ctx.isPointInPath(100, 100), true);
+	assert.equal(ctx.isPointInPath(110, 110), true);
+});
+
 test('`CanvasRenderingContext2D#isPointInStroke()`', () => {
 	ctx.lineWidth = 1;
+	ctx.resetTransform();
 	ctx.beginPath();
 	ctx.rect(10, 10, 100, 100);
 	assert.equal(ctx.isPointInStroke(50, 10), true);

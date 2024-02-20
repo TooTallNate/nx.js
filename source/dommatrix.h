@@ -36,5 +36,8 @@ typedef struct
 
 nx_dommatrix_t *nx_get_dommatrix(JSContext *ctx, JSValueConst obj);
 int nx_dommatrix_init(JSContext *ctx, JSValueConst obj, nx_dommatrix_t *matrix);
+bool nx_dommatrix_is_identity_(nx_dommatrix_t* matrix);
+void nx_dommatrix_invert_self_(nx_dommatrix_t* matrix);
+void nx_dommatrix_transform_point_(nx_dommatrix_t *matrix, double *x, double *y, double *z, double *w);
 
 void nx_init_dommatrix(JSContext *ctx, JSValueConst init_obj);

@@ -188,6 +188,7 @@ static JSValue nx_canvas_context_2d_is_point_in_path(JSContext *ctx, JSValueCons
 		double args[2];
 		if (js_validate_doubles_args(ctx, argv, args, 2, 0))
 			return JS_EXCEPTION;
+
 		if (argc == 3 && JS_IsString(argv[2])) {
 			set_fill_rule(ctx, argv[2], cr);
 		}
@@ -197,7 +198,18 @@ static JSValue nx_canvas_context_2d_is_point_in_path(JSContext *ctx, JSValueCons
 			save_path(context);
 			apply_path(ctx, this_val, path);
 		}
+
+		nx_dommatrix_t matrix = {0};
+		matrix.is_2d = true;
+		matrix.values.m11 = matrix.values.m22 = matrix.values.m33 = matrix.values.m44 = 1.;
+		cairo_get_matrix(cr, &matrix.cr_matrix);
+		if (!nx_dommatrix_is_identity_(&matrix)) {
+			nx_dommatrix_invert_self_(&matrix);
+			double z = 0, w = 1;
+			nx_dommatrix_transform_point_(&matrix, &args[0], &args[1], &z, &w);
+		}
 		is_in = cairo_in_fill(cr, args[0], args[1]);
+
 		if (needs_restore) {
 			restore_path(context);
 		}
@@ -225,7 +237,18 @@ static JSValue nx_canvas_context_2d_is_point_in_stroke(JSContext *ctx, JSValueCo
 			save_path(context);
 			apply_path(ctx, this_val, path);
 		}
+
+		nx_dommatrix_t matrix = {0};
+		matrix.is_2d = true;
+		matrix.values.m11 = matrix.values.m22 = matrix.values.m33 = matrix.values.m44 = 1.;
+		cairo_get_matrix(cr, &matrix.cr_matrix);
+		if (!nx_dommatrix_is_identity_(&matrix)) {
+			nx_dommatrix_invert_self_(&matrix);
+			double z = 0, w = 1;
+			nx_dommatrix_transform_point_(&matrix, &args[0], &args[1], &z, &w);
+		}
 		is_in = cairo_in_stroke(cr, args[0], args[1]);
+
 		if (needs_restore) {
 			restore_path(context);
 		}

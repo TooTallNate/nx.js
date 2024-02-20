@@ -286,16 +286,19 @@ static JSValue nx_dommatrix_is_2d(JSContext *ctx, JSValueConst this_val, int arg
 	return JS_NewBool(ctx, matrix->is_2d);
 }
 
+bool nx_dommatrix_is_identity_(nx_dommatrix_t* matrix)
+{
+	nx_dommatrix_values_t *values = &matrix->values;
+	return values->m11 == 1. && values->m12 == 0. && values->m13 == 0. && values->m14 == 0. &&
+		values->m21 == 0. && values->m22 == 1. && values->m23 == 0. && values->m24 == 0. &&
+		values->m31 == 0. && values->m32 == 0. && values->m33 == 1. && values->m34 == 0. &&
+		values->m41 == 0. && values->m42 == 0. && values->m43 == 0. && values->m44 == 1.;
+}
+
 static JSValue nx_dommatrix_is_identity(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	DOMMATRIX_THIS;
-	nx_dommatrix_values_t *values = &matrix->values;
-	return JS_NewBool(ctx,
-		values->m11 == 1. && values->m12 == 0. && values->m13 == 0. && values->m14 == 0. &&
-		values->m21 == 0. && values->m22 == 1. && values->m23 == 0. && values->m24 == 0. &&
-		values->m31 == 0. && values->m32 == 0. && values->m33 == 1. && values->m34 == 0. &&
-		values->m41 == 0. && values->m42 == 0. && values->m43 == 0. && values->m44 == 1.
-	);
+	return JS_NewBool(ctx, nx_dommatrix_is_identity_(matrix));
 }
 
 void translate(nx_dommatrix_t *matrix, double tx, double ty, double tz) {
@@ -318,9 +321,8 @@ void translate(nx_dommatrix_t *matrix, double tx, double ty, double tz) {
 	}
 }
 
-static JSValue nx_dommatrix_invert_self(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+void nx_dommatrix_invert_self_(nx_dommatrix_t* matrix)
 {
-	DOMMATRIX_THIS;
 	double inv[16] = {0};
 
     inv[0] = matrix->values.m22 * matrix->values.m33 * matrix->values.m44 -
@@ -477,7 +479,12 @@ static JSValue nx_dommatrix_invert_self(JSContext *ctx, JSValueConst this_val, i
 		matrix->values.m43 = inv[14] / det;
 		matrix->values.m44 = inv[15] / det;
 	}
+}
 
+static JSValue nx_dommatrix_invert_self(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	DOMMATRIX_THIS;
+	nx_dommatrix_invert_self_(matrix);
 	return JS_DupValue(ctx, this_val);
 }
 
@@ -755,6 +762,38 @@ static JSValue nx_dommatrix_translate_self(JSContext *ctx, JSValueConst this_val
 	return JS_DupValue(ctx, this_val);
 }
 
+void nx_dommatrix_transform_point_(nx_dommatrix_t *matrix, double *x, double *y, double *z, double *w)
+{
+	double nx =
+		matrix->values.m11 * (*x) +
+		matrix->values.m21 * (*y) +
+		matrix->values.m31 * (*z) +
+		matrix->values.m41 * (*w);
+
+	double ny =
+		matrix->values.m12 * (*x) +
+		matrix->values.m22 * (*y) +
+		matrix->values.m32 * (*z) +
+		matrix->values.m42 * (*w);
+
+	double nz =
+		matrix->values.m13 * (*x) +
+		matrix->values.m23 * (*y) +
+		matrix->values.m33 * (*z) +
+		matrix->values.m43 * (*w);
+
+	double nw =
+		matrix->values.m14 * (*x) +
+		matrix->values.m24 * (*y) +
+		matrix->values.m34 * (*z) +
+		matrix->values.m44 * (*w);
+
+	*x = nx;
+	*y = ny;
+	*z = nz;
+	*w = nw;
+}
+
 static JSValue nx_dommatrix_transform_point(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	nx_dommatrix_t *matrix = JS_GetOpaque2(ctx, argv[0], nx_dommatrix_class_id);
@@ -780,35 +819,13 @@ static JSValue nx_dommatrix_transform_point(JSContext *ctx, JSValueConst this_va
 	if (JS_IsNumber(v)) JS_ToFloat64(ctx, &w, v);
 	JS_FreeValue(ctx, v);
 
-	double nx =
-		matrix->values.m11 * x +
-		matrix->values.m21 * y +
-		matrix->values.m31 * z +
-		matrix->values.m41 * w;
-
-	double ny =
-		matrix->values.m12 * x +
-		matrix->values.m22 * y +
-		matrix->values.m32 * z +
-		matrix->values.m42 * w;
-
-	double nz =
-		matrix->values.m13 * x +
-		matrix->values.m23 * y +
-		matrix->values.m33 * z +
-		matrix->values.m43 * w;
-
-	double nw =
-		matrix->values.m14 * x +
-		matrix->values.m24 * y +
-		matrix->values.m34 * z +
-		matrix->values.m44 * w;
+	nx_dommatrix_transform_point_(matrix, &x, &y, &z, &w);
 
 	JSValue point = JS_NewObject(ctx);
-	JS_SetPropertyStr(ctx, point, "x", JS_NewFloat64(ctx, nx));
-	JS_SetPropertyStr(ctx, point, "y", JS_NewFloat64(ctx, ny));
-	JS_SetPropertyStr(ctx, point, "z", JS_NewFloat64(ctx, nz));
-	JS_SetPropertyStr(ctx, point, "w", JS_NewFloat64(ctx, nw));
+	JS_SetPropertyStr(ctx, point, "x", JS_NewFloat64(ctx, x));
+	JS_SetPropertyStr(ctx, point, "y", JS_NewFloat64(ctx, y));
+	JS_SetPropertyStr(ctx, point, "z", JS_NewFloat64(ctx, z));
+	JS_SetPropertyStr(ctx, point, "w", JS_NewFloat64(ctx, w));
 	return point;
 }
 
