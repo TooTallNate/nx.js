@@ -395,12 +395,27 @@ export class KeyboardEvent extends UIEvent implements globalThis.KeyboardEvent {
 	}
 }
 
+export interface TouchInit {
+	clientX?: number;
+	clientY?: number;
+	force?: number;
+	identifier: number;
+	pageX?: number;
+	pageY?: number;
+	radiusX?: number;
+	radiusY?: number;
+	rotationAngle?: number;
+	screenX?: number;
+	screenY?: number;
+	target: EventTarget;
+}
+
 /**
  * A single contact point on a touch-sensitive device. The contact point is commonly a finger or stylus and the device may be a touchscreen or trackpad.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Touch)
  */
-export interface Touch {
+export class Touch implements globalThis.Touch {
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Touch/clientX) */
 	readonly clientX: number;
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Touch/clientY) */
@@ -425,7 +440,23 @@ export interface Touch {
 	readonly screenY: number;
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Touch/target) */
 	readonly target: EventTarget;
+
+	constructor(init: TouchInit) {
+		this.clientX = init.clientX ?? 0;
+		this.clientY = init.clientY ?? 0;
+		this.force = init.force ?? 0;
+		this.identifier = init.identifier;
+		this.pageX = init.pageX ?? 0;
+		this.pageY = init.pageY ?? 0;
+		this.radiusX = init.radiusX ?? 0;
+		this.radiusY = init.radiusY ?? 0;
+		this.rotationAngle = init.rotationAngle ?? 0;
+		this.screenX = init.screenX ?? 0;
+		this.screenY = init.screenY ?? 0;
+		this.target = init.target;
+	}
 }
+def(Touch);
 
 /**
  * A list of contact points on a touch surface. For example, if the user has three
