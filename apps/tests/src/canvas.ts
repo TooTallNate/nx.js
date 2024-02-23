@@ -23,6 +23,22 @@ test('`CanvasRenderingContext2D#getImageData()`', () => {
 	assert.equal(data.data[3], 255);
 });
 
+// 2d.state.saverestore.stackdepth
+test('save()/restore() stack depth is not unreasonably limited', () => {
+	var canvas = new OffscreenCanvas(100, 50);
+	var ctx = canvas.getContext('2d');
+
+	var limit = 512;
+	for (var i = 1; i < limit; ++i) {
+		ctx.save();
+		ctx.lineWidth = i;
+	}
+	for (var i = limit - 1; i > 0; --i) {
+		assert.equal(ctx.lineWidth, i);
+		ctx.restore();
+	}
+});
+
 test('`CanvasRenderingContext2D#isPointInPath()`', () => {
 	ctx.resetTransform();
 	ctx.beginPath();
@@ -31,14 +47,58 @@ test('`CanvasRenderingContext2D#isPointInPath()`', () => {
 	assert.equal(ctx.isPointInPath(8, 8), false);
 });
 
-test('`CanvasRenderingContext2D#isPointInPath()` with transform', () => {
-	ctx.resetTransform();
-	ctx.translate(10, 10);
-	ctx.rect(0, 0, 100, 100);
-	assert.equal(ctx.isPointInPath(0, 0), false);
-	assert.equal(ctx.isPointInPath(10, 10), true);
-	assert.equal(ctx.isPointInPath(100, 100), true);
-	assert.equal(ctx.isPointInPath(110, 110), true);
+test('2d.path.isPointInPath.transform.1', () => {
+	var canvas = new OffscreenCanvas(100, 50);
+	var ctx = canvas.getContext('2d');
+
+	ctx.translate(50, 0);
+	ctx.rect(0, 0, 20, 20);
+	assert.equal(ctx.isPointInPath(-40, 10), false);
+	assert.equal(ctx.isPointInPath(10, 10), false);
+	assert.equal(ctx.isPointInPath(49, 10), false);
+	assert.equal(ctx.isPointInPath(51, 10), true);
+	assert.equal(ctx.isPointInPath(69, 10), true);
+	assert.equal(ctx.isPointInPath(71, 10), false);
+});
+
+test('2d.path.isPointInPath.transform.2', () => {
+	var canvas = new OffscreenCanvas(100, 50);
+	var ctx = canvas.getContext('2d');
+
+	ctx.rect(50, 0, 20, 20);
+	ctx.translate(50, 0);
+	assert.equal(ctx.isPointInPath(-40, 10), false);
+	assert.equal(ctx.isPointInPath(10, 10), false);
+	assert.equal(ctx.isPointInPath(49, 10), false);
+	assert.equal(ctx.isPointInPath(51, 10), true);
+	assert.equal(ctx.isPointInPath(69, 10), true);
+	assert.equal(ctx.isPointInPath(71, 10), false);
+});
+
+test('2d.path.isPointInPath.transform.3', () => {
+	var canvas = new OffscreenCanvas(100, 50);
+	var ctx = canvas.getContext('2d');
+
+	ctx.scale(-1, 1);
+	ctx.rect(-70, 0, 20, 20);
+	assert.equal(ctx.isPointInPath(-40, 10), false);
+	assert.equal(ctx.isPointInPath(10, 10), false);
+	assert.equal(ctx.isPointInPath(49, 10), false);
+	assert.equal(ctx.isPointInPath(51, 10), true);
+	assert.equal(ctx.isPointInPath(69, 10), true);
+	assert.equal(ctx.isPointInPath(71, 10), false);
+});
+
+test('2d.path.isPointInPath.transform.3', () => {
+	var canvas = new OffscreenCanvas(100, 50);
+	var ctx = canvas.getContext('2d');
+
+	ctx.translate(50, 0);
+	ctx.rect(50, 0, 20, 20);
+	ctx.translate(0, 50);
+	assert.equal(ctx.isPointInPath(60, 10), false);
+	assert.equal(ctx.isPointInPath(110, 10), true);
+	assert.equal(ctx.isPointInPath(110, 60), false);
 });
 
 test('`CanvasRenderingContext2D#isPointInStroke()`', () => {
