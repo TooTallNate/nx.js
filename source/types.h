@@ -28,11 +28,6 @@
 	JS_DefinePropertyGetSet(ctx, THISARG, atom, JS_NewCFunction(ctx, FN, "get " NAME, 0), JS_NULL, JS_PROP_C_W); \
 	JS_FreeAtom(ctx, atom);
 
-#define NX_DEF_SET(THISARG, NAME, FN)                                                                            \
-	atom = JS_NewAtom(ctx, NAME);                                                                                \
-	JS_DefinePropertyGetSet(ctx, THISARG, atom, JS_NULL, JS_NewCFunction(ctx, FN, "set " NAME, 0), JS_PROP_C_W); \
-	JS_FreeAtom(ctx, atom);
-
 #define NX_DEF_GETSET(THISARG, NAME, GET_FN, SET_FN)                                                                                                      \
 	atom = JS_NewAtom(ctx, NAME);                                                                                                                         \
 	JS_DefinePropertyGetSet(ctx, THISARG, atom, JS_NewCFunction(ctx, GET_FN, "get " NAME, 0), JS_NewCFunction(ctx, SET_FN, "set " NAME, 0), JS_PROP_C_W); \
