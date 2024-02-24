@@ -11,7 +11,7 @@ for (const { icon, name } of Switch.Application) {
 	if (!icon) continue;
 	const img = new Image();
 	img.onload = () => {
-		if (x + img.width >= 1280) {
+		if (x + img.width >= screen.width) {
 			x = gap;
 			y += img.height + 40 + gap;
 		}
