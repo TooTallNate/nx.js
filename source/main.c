@@ -49,7 +49,8 @@ void nx_console_exit()
 	}
 }
 
-void nx_framebuffer_init_(nx_context_t *nx_ctx) {
+void nx_framebuffer_init_(nx_context_t *nx_ctx)
+{
 	nx_console_exit();
 	if (win == NULL)
 	{
@@ -62,7 +63,7 @@ void nx_framebuffer_init_(nx_context_t *nx_ctx) {
 		free(framebuffer);
 	}
 	framebuffer = malloc(sizeof(Framebuffer));
-	nx_canvas_t* canvas = nx_ctx->screen_canvas_context->canvas;
+	nx_canvas_t *canvas = nx_ctx->screen_canvas_context->canvas;
 	framebufferCreate(framebuffer, win, canvas->width, canvas->height, PIXEL_FORMAT_BGRA_8888, 2);
 	framebufferMakeLinear(framebuffer);
 	nx_ctx->rendering_mode = NX_RENDERING_MODE_CANVAS;
@@ -72,7 +73,8 @@ static JSValue nx_framebuffer_init(JSContext *ctx, JSValueConst this_val, int ar
 {
 	nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
 	nx_canvas_context_2d_t *context = nx_get_canvas_context_2d(ctx, argv[0]);
-	if (!context) {
+	if (!context)
+	{
 		return JS_EXCEPTION;
 	}
 	nx_ctx->screen_canvas_context = context;
@@ -482,17 +484,22 @@ void nx_applet_event_hook(AppletHookType type, void *param)
 	{
 		int width, height;
 		bool docked = appletGetOperationMode() == AppletOperationMode_Console;
-		if (docked) {
+		if (docked)
+		{
 			width = 1920;
 			height = 1080;
-		} else {
+		}
+		else
+		{
 			width = 1280;
 			height = 720;
 		}
-		if (initialize_canvas(ctx, nx_ctx->screen_canvas_context->canvas, width, height)) {
+		if (initialize_canvas(ctx, nx_ctx->screen_canvas_context->canvas, width, height))
+		{
 			// TODO: print exception, set `had_error`
 		}
-		if (initialize_canvas_context_2d(ctx, nx_ctx->screen_canvas_context)) {
+		if (initialize_canvas_context_2d(ctx, nx_ctx->screen_canvas_context))
+		{
 			// TODO: print exception, set `had_error`
 		}
 		nx_framebuffer_init_(nx_ctx);
@@ -804,6 +811,7 @@ main_loop:
 	FILE *leaks_fd = freopen(LOG_FILENAME, "a", stdout);
 
 	JS_FreeValue(ctx, global_obj);
+	JS_FreeValue(ctx, nx_ctx->system_font);
 	JS_FreeValue(ctx, nx_ctx->frame_handler);
 	JS_FreeValue(ctx, nx_ctx->exit_handler);
 	JS_FreeValue(ctx, nx_ctx->error_handler);

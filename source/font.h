@@ -18,6 +18,5 @@ typedef struct nx_font_face_s
 } nx_font_face_t;
 
 int nx_load_system_font(JSContext *ctx);
-void finalizer_font_face_(JSRuntime *rt, nx_font_face_t *context);
 nx_font_face_t *nx_get_font_face(JSContext *ctx, JSValueConst obj);
 void nx_init_font(JSContext *ctx, JSValueConst init_obj);

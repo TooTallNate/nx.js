@@ -5,11 +5,12 @@
 
 static JSClassID nx_font_face_class_id;
 
-JSValue nx_new_font_face_(JSContext *ctx, u8* data, size_t bytes)
+JSValue nx_new_font_face_(JSContext *ctx, u8 *data, size_t bytes)
 {
 	nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
 	nx_font_face_t *context = js_mallocz(ctx, sizeof(nx_font_face_t));
-	if (!context) {
+	if (!context)
+	{
 		return JS_EXCEPTION;
 	}
 
@@ -67,14 +68,17 @@ int nx_load_system_font(JSContext *ctx)
 		return 1;
 	}
 	JSValue system_font = nx_new_font_face_(ctx, font.address, font.size);
-	if (JS_IsException(system_font)) {
+	if (JS_IsException(system_font))
+	{
 		return 1;
 	}
 	nx_ctx->system_font = JS_DupValue(ctx, system_font);
 	return 0;
 }
 
-void finalizer_font_face_(JSRuntime *rt, nx_font_face_t *font) {
+static void finalizer_font_face(JSRuntime *rt, JSValue val)
+{
+	nx_font_face_t *font = JS_GetOpaque(val, nx_font_face_class_id);
 	if (font)
 	{
 		if (font->hb_font)
@@ -92,12 +96,6 @@ void finalizer_font_face_(JSRuntime *rt, nx_font_face_t *font) {
 		js_free_rt(rt, font->font_buffer);
 		js_free_rt(rt, font);
 	}
-}
-
-static void finalizer_font_face(JSRuntime *rt, JSValue val)
-{
-	nx_font_face_t *font = JS_GetOpaque(val, nx_font_face_class_id);
-	finalizer_font_face_(rt, font);
 }
 
 nx_font_face_t *nx_get_font_face(JSContext *ctx, JSValueConst obj)
