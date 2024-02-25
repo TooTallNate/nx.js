@@ -10,10 +10,6 @@
 #include "image.h"
 #include "canvas.h"
 
-#ifndef M_PI
-#define M_PI		3.14159265358979323846
-#endif
-
 #define CANVAS_CONTEXT_ARGV0                                                                   \
 	nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id); \
 	if (!context)                                                                              \
