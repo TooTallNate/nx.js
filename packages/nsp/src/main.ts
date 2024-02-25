@@ -71,14 +71,13 @@ try {
 	}
 	const iconDest = new URL('icon_AmericanEnglish.dat', controlDir);
 	const logo = await Jimp.read(fileURLToPath(iconPath));
-	const logoWidth = logo.getWidth();
-	const logoHeight = logo.getHeight();
-	if (logoWidth !== 256 && logoHeight !== 256) {
+	if (logo.getWidth() !== 256 || logo.getHeight() !== 256) {
 		logo.resize(256, 256);
 	}
 	const logoBuf = await logo.getBufferAsync(Jimp.MIME_JPEG);
 	writeFileSync(iconDest, logoBuf);
 	console.log(await terminalImage.buffer(logoBuf, { height: 12 }));
+	console.log(`  JPEG size: ${bytes(logoBuf.length).toLowerCase()}`)
 
 	// NACP
 	const nacp = new NACP(readFileSync(nacpPath).buffer);
