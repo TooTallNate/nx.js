@@ -64,6 +64,25 @@ export class Screen extends EventTarget implements globalThis.Screen {
 	 */
 	declare readonly height: number;
 
+	getContext(contextId: '2d'): CanvasRenderingContext2D {
+		if (contextId !== '2d') {
+			throw new TypeError('Only "2d" rendering context is supported');
+		}
+
+		const i = _(this);
+		if (!i.context2d) {
+			i.context2d = new CanvasRenderingContext2D(
+				// @ts-expect-error Internal constructor
+				INTERNAL_SYMBOL,
+				this
+			);
+
+			$.framebufferInit(this);
+		}
+
+		return i.context2d;
+	}
+
 	// @ts-expect-error
 	addEventListener(
 		type: 'touchstart' | 'touchmove' | 'touchend',
@@ -145,31 +164,24 @@ export class Screen extends EventTarget implements globalThis.Screen {
 	get nodeName() {
 		return 'CANVAS';
 	}
+	get offsetWidth() {
+		return this.width;
+	}
+	get offsetHeight() {
+		return this.height;
+	}
+	get offsetTop() {
+		return 0;
+	}
+	get offsetLeft() {
+		return 0;
+	}
 	getAttribute(name: string): string | null {
 		if (name === 'width') return String(this.width);
 		if (name === 'height') return String(this.height);
 		return null;
 	}
 	setAttribute(name: string, value: string | number) {}
-
-	getContext(contextId: '2d'): CanvasRenderingContext2D {
-		if (contextId !== '2d') {
-			throw new TypeError('Only "2d" rendering context is supported');
-		}
-
-		const i = _(this);
-		if (!i.context2d) {
-			i.context2d = new CanvasRenderingContext2D(
-				// @ts-expect-error Internal constructor
-				INTERNAL_SYMBOL,
-				this
-			);
-
-			$.framebufferInit(this);
-		}
-
-		return i.context2d;
-	}
 }
 $.canvasInitClass(Screen);
 def(Screen);
