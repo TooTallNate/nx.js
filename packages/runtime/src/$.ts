@@ -80,7 +80,7 @@ export interface Init {
 	): string;
 	canvasContext2dSetFont(
 		ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
-		font: FontFace,
+		font: FontFace | null,
 		size: number,
 		fontString: string
 	): number[];
@@ -125,7 +125,6 @@ export interface Init {
 
 	// font.c
 	fontFaceNew(data: ArrayBuffer): FontFace;
-	getSystemFont(): ArrayBuffer;
 
 	// fs.c
 	mkdirSync(path: string, mode: number): number;
@@ -172,8 +171,9 @@ export interface Init {
 	unsetenv(name: string): void;
 	envToObject(): Record<string, string>;
 	onFrame(fn: (kDown: number) => void): void;
+	onAppletEvent(fn: (type: number) => boolean): void;
 	onExit(fn: () => void): void;
-	framebufferInit(screen: Screen): void;
+	framebufferInit(ctx: CanvasRenderingContext2D): void;
 	hidInitializeTouchScreen(): void;
 	hidGetTouchScreenStates(): Touch[] | undefined;
 	hidInitializeKeyboard(): void;

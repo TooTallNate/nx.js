@@ -7,7 +7,7 @@ import { initTouchscreen } from './touchscreen';
 import type { TouchEvent } from './polyfills/event';
 
 interface ScreenInternal {
-	context2d?: CanvasRenderingContext2D;
+	ctx?: CanvasRenderingContext2D;
 }
 
 const _ = createInternal<Screen, ScreenInternal>();

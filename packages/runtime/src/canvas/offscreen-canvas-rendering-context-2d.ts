@@ -11,7 +11,7 @@ import {
 	stub,
 	returnOnThrow,
 } from '../utils';
-import { addSystemFont, findFont, fonts } from '../font/font-face-set';
+import { findFont, fonts } from '../font/font-face-set';
 import { DOMMatrix, type DOMMatrix2DInit } from '../dommatrix';
 import type { Path2D } from './path2d';
 import type { OffscreenCanvas } from './offscreen-canvas';
@@ -47,7 +47,6 @@ export class OffscreenCanvasRenderingContext2D {
 		const ctx = $.canvasContext2dNew(canvas);
 		Object.setPrototypeOf(ctx, OffscreenCanvasRenderingContext2D.prototype);
 		_.set(ctx, { canvas });
-		ctx.font = '10px system-ui';
 		return ctx;
 	}
 
@@ -98,10 +97,11 @@ export class OffscreenCanvasRenderingContext2D {
 			// Invalid font size
 			return;
 		}
-		let font = findFont(fonts, parsed);
+		let font: ReturnType<typeof findFont> | null = findFont(fonts, parsed);
 		if (!font) {
 			if (parsed.family.includes('system-ui')) {
-				font = addSystemFont(fonts);
+				// `null` is a special value to use the System font
+				font = null;
 			} else {
 				return;
 			}

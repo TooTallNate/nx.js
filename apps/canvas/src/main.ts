@@ -1,13 +1,13 @@
 const ctx = screen.getContext('2d');
-ctx.fillStyle = 'white';
-ctx.font = '42px system-ui';
-ctx.textAlign = 'center';
-ctx.textBaseline = 'bottom';
 
 function clock() {
 	const now = new Date();
 
 	// Reset
+	ctx.fillStyle = 'white';
+	ctx.font = '42px system-ui';
+	ctx.textAlign = 'center';
+	ctx.textBaseline = 'bottom';
 	ctx.clearRect(0, 0, screen.width, screen.height);
 
 	// Render time as text
