@@ -70,17 +70,17 @@ export class Screen extends EventTarget implements globalThis.Screen {
 		}
 
 		const i = _(this);
-		if (!i.context2d) {
-			i.context2d = new CanvasRenderingContext2D(
+		if (!i.ctx) {
+			i.ctx = new CanvasRenderingContext2D(
 				// @ts-expect-error Internal constructor
 				INTERNAL_SYMBOL,
 				this
 			);
 
-			$.framebufferInit(this);
+			$.framebufferInit(i.ctx);
 		}
 
-		return i.context2d;
+		return i.ctx;
 	}
 
 	// @ts-expect-error
