@@ -75,9 +75,9 @@ try {
 		logo.resize(256, 256);
 	}
 	const logoBuf = await logo.getBufferAsync(Jimp.MIME_JPEG);
+	console.log(`  JPEG size: ${bytes(logoBuf.length).toLowerCase()}`);
 	writeFileSync(iconDest, logoBuf);
 	console.log(await terminalImage.buffer(logoBuf, { height: 12 }));
-	console.log(`  JPEG size: ${bytes(logoBuf.length).toLowerCase()}`)
 
 	// NACP
 	const nacp = new NACP(readFileSync(nacpPath).buffer);

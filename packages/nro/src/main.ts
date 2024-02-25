@@ -45,11 +45,9 @@ try {
 		)} file found. Default nx.js icon will be used.`
 	);
 }
-console.log(
-	await terminalImage.buffer(Buffer.from(await icon!.arrayBuffer()), {
-		height: 12,
-	})
-);
+const logoBuf = Buffer.from(await icon!.arrayBuffer());
+console.log(`  JPEG size: ${bytes(logoBuf.length).toLowerCase()}`);
+console.log(await terminalImage.buffer(logoBuf, { height: 12 }));
 
 // NACP
 const nacp = new NACP(await nxjsNro.nacp!.arrayBuffer());
