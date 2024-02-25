@@ -14,7 +14,9 @@
     "exefs",
     "romfs",
     "nxjs.nacp",
-    "icon.jpg"
+    "icon.jpg",
+    "hacbrewpack.js",
+    "hacbrewpack.wasm"
   ],
   "publishConfig": {
     "access": "public"

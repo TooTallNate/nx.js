@@ -146,10 +146,13 @@ try {
 		...process.argv.slice(2),
 	];
 
-	const child = spawn('hacbrewpack', argv, {
-		stdio: ['ignore', 'pipe', 'pipe'],
-		shell: true,
-	});
+	const child = spawn(
+		process.execPath,
+		[fileURLToPath(new URL('hacbrewpack.cjs', root)), ...argv],
+		{
+			stdio: ['ignore', 'pipe', 'pipe'],
+		}
+	);
 	const [[exitCode, signal]] = await Promise.all([
 		once(child, 'exit'),
 		(async () => {
