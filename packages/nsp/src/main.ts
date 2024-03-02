@@ -64,9 +64,11 @@ try {
 	if (!existsSync(iconPath)) {
 		iconPath = baseIconPath;
 		console.log(
-			`⚠️  No ${chalk.bold(
-				`"${iconName}"`
-			)} file found. Default nx.js icon will be used.`
+			chalk.yellow(
+				`⚠️  No ${chalk.bold(
+					`"${iconName}"`
+				)} file found. Default nx.js icon will be used.`
+			)
 		);
 	}
 	const iconDest = new URL('icon_AmericanEnglish.dat', controlDir);
