@@ -50,7 +50,7 @@ export interface Init {
 	// applet.c
 	appletIlluminance(): number;
 	appletGetAppletType(): number;
-	appletGetOperationMode(): number;
+	appletGetOperationMode(): string;
 
 	// battery.c
 	batteryInit(): void;
@@ -59,6 +59,12 @@ export interface Init {
 
 	// canvas.c
 	canvasNew(width: number, height: number): Screen | OffscreenCanvas;
+	canvasResize(
+		c: Screen,
+		ctx: CanvasRenderingContext2D | undefined,
+		width: number,
+		height: number
+	): void;
 	canvasInitClass(c: ClassOf<Screen | OffscreenCanvas>): void;
 	canvasContext2dNew(c: Screen): CanvasRenderingContext2D;
 	canvasContext2dNew(c: OffscreenCanvas): OffscreenCanvasRenderingContext2D;
@@ -171,9 +177,8 @@ export interface Init {
 	unsetenv(name: string): void;
 	envToObject(): Record<string, string>;
 	onFrame(fn: (kDown: number) => void): void;
-	onAppletEvent(fn: (type: number) => boolean): void;
+	onAppletEvent(fn: (type: number) => void): void;
 	onExit(fn: () => void): void;
-	framebufferInit(ctx: CanvasRenderingContext2D): void;
 	hidInitializeTouchScreen(): void;
 	hidGetTouchScreenStates(): Touch[] | undefined;
 	hidInitializeKeyboard(): void;

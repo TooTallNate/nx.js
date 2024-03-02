@@ -185,11 +185,9 @@ const btnPlus = 1 << 10; ///< Plus button
 let previousButtons = 0;
 
 $.onAppletEvent((type) => {
-	//console.log('applet event:', type);
 	if (type === 1 /* AppletHookType_OnOperationMode */) {
-		//console.log('operationMode:', $.appletGetOperationMode());
+		dispatchEvent(new Event('operationmodechange'));
 	}
-	return false;
 });
 
 $.onFrame((kDown) => {

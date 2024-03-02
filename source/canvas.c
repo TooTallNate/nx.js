@@ -1696,6 +1696,38 @@ static JSValue nx_canvas_new(JSContext *ctx, JSValueConst this_val, int argc, JS
 	return obj;
 }
 
+static JSValue nx_canvas_resize(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	int width, height;
+	nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
+	if (
+		JS_ToInt32(ctx, &width, argv[2]) ||
+		JS_ToInt32(ctx, &height, argv[3]))
+	{
+		return JS_EXCEPTION;
+	}
+	nx_canvas_t *canvas = nx_get_canvas(ctx, argv[0]);
+	if (!canvas) {
+		return JS_EXCEPTION;
+	}
+	if (initialize_canvas(ctx, canvas, width, height))
+	{
+		return JS_EXCEPTION;
+	}
+	if (nx_ctx->rendering_mode == NX_RENDERING_MODE_CANVAS && !JS_IsUndefined(argv[1])) {
+		nx_canvas_context_2d_t *context = nx_get_canvas_context_2d(ctx, argv[1]);
+		if (!context) {
+			return JS_EXCEPTION;
+		}
+		if (initialize_canvas_context_2d(ctx, context))
+		{
+			return JS_EXCEPTION;
+		}
+		//nx_framebuffer_init_(nx_ctx);
+	}
+	return JS_UNDEFINED;
+}
+
 static JSValue nx_canvas_get_width(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	nx_canvas_t *canvas = nx_get_canvas(ctx, this_val);
@@ -2934,6 +2966,7 @@ static void finalizer_canvas(JSRuntime *rt, JSValue val)
 
 static const JSCFunctionListEntry init_function_list[] = {
 	JS_CFUNC_DEF("canvasNew", 0, nx_canvas_new),
+	JS_CFUNC_DEF("canvasResize", 0, nx_canvas_resize),
 	JS_CFUNC_DEF("canvasInitClass", 0, nx_canvas_init_class),
 	JS_CFUNC_DEF("canvasContext2dNew", 0, nx_canvas_context_2d_new),
 	JS_CFUNC_DEF("canvasContext2dInitClass", 0, nx_canvas_context_2d_init_class),

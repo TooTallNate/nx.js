@@ -90,8 +90,15 @@ typedef struct nx_context_s
 	JSValue applet_event_handler;
 	JSValue unhandled_rejection_handler;
 
-	// mbedtls structures shared by all TLS connections
+	// `mbedtls` structures shared by all TLS connections
 	bool mbedtls_initialized;
 	mbedtls_entropy_context entropy;
 	mbedtls_ctr_drbg_context ctr_drbg;
+
+	// Text renderer
+	PrintConsole *print_console;
+
+	// Framebuffer renderer
+	NWindow *win;
+	Framebuffer *framebuffer;
 } nx_context_t;

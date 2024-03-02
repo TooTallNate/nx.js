@@ -33,62 +33,42 @@
 
 #define LOG_FILENAME "nxjs-debug.log"
 
-// Text renderer
-static PrintConsole *print_console = NULL;
-
-// Framebuffer renderer
-static NWindow *win = NULL;
-static Framebuffer *framebuffer = NULL;
-
-void nx_console_exit()
+void nx_console_exit(nx_context_t *nx_ctx)
 {
-	if (print_console != NULL)
+	if (nx_ctx->print_console != NULL)
 	{
-		consoleExit(print_console);
-		print_console = NULL;
+		consoleExit(nx_ctx->print_console);
+		nx_ctx->print_console = NULL;
 	}
 }
 
 void nx_framebuffer_init_(nx_context_t *nx_ctx)
 {
-	nx_console_exit();
-	if (win == NULL)
+	nx_console_exit(nx_ctx);
+	if (nx_ctx->win == NULL)
 	{
 		// Retrieve the default window
-		win = nwindowGetDefault();
+		nx_ctx->win = nwindowGetDefault();
 	}
-	if (framebuffer != NULL)
+	if (nx_ctx->framebuffer != NULL)
 	{
-		framebufferClose(framebuffer);
-		free(framebuffer);
+		framebufferClose(nx_ctx->framebuffer);
+		free(nx_ctx->framebuffer);
 	}
-	framebuffer = malloc(sizeof(Framebuffer));
+	nx_ctx->framebuffer = malloc(sizeof(Framebuffer));
 	nx_canvas_t *canvas = nx_ctx->screen_canvas_context->canvas;
-	framebufferCreate(framebuffer, win, canvas->width, canvas->height, PIXEL_FORMAT_BGRA_8888, 2);
-	framebufferMakeLinear(framebuffer);
+	framebufferCreate(nx_ctx->framebuffer, nx_ctx->win, canvas->width, canvas->height, PIXEL_FORMAT_BGRA_8888, 2);
+	framebufferMakeLinear(nx_ctx->framebuffer);
 	nx_ctx->rendering_mode = NX_RENDERING_MODE_CANVAS;
 }
 
-static JSValue nx_framebuffer_init(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+void nx_framebuffer_exit(nx_context_t *nx_ctx)
 {
-	nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
-	nx_canvas_context_2d_t *context = nx_get_canvas_context_2d(ctx, argv[0]);
-	if (!context)
+	if (nx_ctx->framebuffer != NULL)
 	{
-		return JS_EXCEPTION;
-	}
-	nx_ctx->screen_canvas_context = context;
-	nx_framebuffer_init_(nx_ctx);
-	return JS_UNDEFINED;
-}
-
-void nx_framebuffer_exit()
-{
-	if (framebuffer != NULL)
-	{
-		framebufferClose(framebuffer);
-		free(framebuffer);
-		framebuffer = NULL;
+		framebufferClose(nx_ctx->framebuffer);
+		free(nx_ctx->framebuffer);
+		nx_ctx->framebuffer = NULL;
 	}
 }
 
@@ -175,10 +155,10 @@ static JSValue js_print(JSContext *ctx, JSValueConst this_val, int argc, JSValue
 	nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
 	if (nx_ctx->rendering_mode != NX_RENDERING_MODE_CONSOLE)
 	{
-		nx_framebuffer_exit();
-		if (print_console == NULL)
+		nx_framebuffer_exit(nx_ctx);
+		if (nx_ctx->print_console == NULL)
 		{
-			print_console = consoleInit(NULL);
+			nx_ctx->print_console = consoleInit(NULL);
 		}
 		nx_ctx->rendering_mode = NX_RENDERING_MODE_CONSOLE;
 	}
@@ -471,39 +451,17 @@ void nx_applet_event_hook(AppletHookType type, void *param)
 {
 	JSContext *ctx = (JSContext *)param;
 	nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
+	if (nx_ctx->had_error) return;
+
 	JSValue args[] = {
 		JS_NewInt32(ctx, type),
 	};
 	JSValue rtn = JS_Call(ctx, nx_ctx->applet_event_handler, JS_NULL, 1, args);
 	if (JS_IsException(rtn))
 	{
-		// TODO: print exception, set `had_error`
+		return nx_emit_error_event(ctx);
 	}
-	int prevent_default = JS_ToBool(ctx, rtn);
-	if (type == AppletHookType_OnOperationMode && nx_ctx->rendering_mode == NX_RENDERING_MODE_CANVAS)
-	{
-		int width, height;
-		bool docked = appletGetOperationMode() == AppletOperationMode_Console;
-		if (docked)
-		{
-			width = 1920;
-			height = 1080;
-		}
-		else
-		{
-			width = 1280;
-			height = 720;
-		}
-		if (initialize_canvas(ctx, nx_ctx->screen_canvas_context->canvas, width, height))
-		{
-			// TODO: print exception, set `had_error`
-		}
-		if (initialize_canvas_context_2d(ctx, nx_ctx->screen_canvas_context))
-		{
-			// TODO: print exception, set `had_error`
-		}
-		nx_framebuffer_init_(nx_ctx);
-	}
+	JS_FreeValue(ctx, rtn);
 }
 
 // Main program entrypoint
@@ -511,7 +469,7 @@ int main(int argc, char *argv[])
 {
 	Result rc;
 
-	print_console = consoleInit(NULL);
+	PrintConsole *print_console = consoleInit(NULL);
 
 	rc = socketInitializeDefault();
 	if (R_FAILED(rc))
@@ -545,6 +503,7 @@ int main(int argc, char *argv[])
 
 	nx_context_t *nx_ctx = malloc(sizeof(nx_context_t));
 	memset(nx_ctx, 0, sizeof(nx_context_t));
+	nx_ctx->print_console = print_console;
 	nx_ctx->rendering_mode = NX_RENDERING_MODE_CONSOLE;
 	nx_ctx->thpool = thpool_init(4);
 	nx_ctx->system_font = JS_UNDEFINED;
@@ -630,9 +589,6 @@ int main(int argc, char *argv[])
 		JS_CFUNC_DEF("onExit", 1, nx_set_exit_handler),
 		JS_CFUNC_DEF("onFrame", 1, nx_set_frame_handler),
 		JS_CFUNC_DEF("onAppletEvent", 1, nx_set_applet_event_handler),
-
-		// framebuffer renderer
-		JS_CFUNC_DEF("framebufferInit", 1, nx_framebuffer_init),
 
 		// hid
 		JS_CFUNC_DEF("hidInitializeKeyboard", 0, js_hid_initialize_keyboard),
@@ -778,12 +734,12 @@ main_loop:
 		{
 			// Copy the JS framebuffer to the current Switch buffer
 			u32 stride;
-			u8 *framebuf = (u8 *)framebufferBegin(framebuffer, &stride);
+			u8 *framebuf = (u8 *)framebufferBegin(nx_ctx->framebuffer, &stride);
 			memcpy(
 				framebuf,
 				nx_ctx->screen_canvas_context->canvas->data,
 				nx_ctx->screen_canvas_context->canvas->data_size);
-			framebufferEnd(framebuffer);
+			framebufferEnd(nx_ctx->framebuffer);
 		}
 	}
 
@@ -800,11 +756,11 @@ main_loop:
 
 	if (nx_ctx->rendering_mode == NX_RENDERING_MODE_CONSOLE)
 	{
-		nx_console_exit();
+		nx_console_exit(nx_ctx);
 	}
 	else if (nx_ctx->rendering_mode == NX_RENDERING_MODE_CANVAS)
 	{
-		nx_framebuffer_exit();
+		nx_framebuffer_exit(nx_ctx);
 	}
 
 	fclose(debug_fd);

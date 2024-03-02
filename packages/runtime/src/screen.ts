@@ -1,10 +1,10 @@
 import { $ } from './$';
-import { assertInternalConstructor, createInternal, def } from './utils';
+import { assertInternalConstructor, createInternal, def, proto } from './utils';
 import { EventTarget } from './polyfills/event-target';
 import { INTERNAL_SYMBOL } from './internal';
 import { CanvasRenderingContext2D } from './canvas/canvas-rendering-context-2d';
 import { initTouchscreen } from './touchscreen';
-import type { TouchEvent } from './polyfills/event';
+import { Event, type TouchEvent } from './polyfills/event';
 
 interface ScreenInternal {
 	ctx?: CanvasRenderingContext2D;
@@ -19,10 +19,30 @@ export class Screen extends EventTarget implements globalThis.Screen {
 	constructor() {
 		assertInternalConstructor(arguments);
 		super();
-		const c = $.canvasNew(1280, 720) as Screen;
-		Object.setPrototypeOf(c, Screen.prototype);
+		const c = proto($.canvasNew(1280, 720), Screen);
 		_.set(c, {});
 		return c;
+	}
+
+	/**
+	 *
+	 */
+	enableHiRes() {
+		const i = _(this);
+		const resize = () => {
+			let w = 1280,
+				h = 720;
+			if ($.appletGetOperationMode() === 'docked') {
+				w = 1920;
+				h = 1080;
+			}
+			if (w !== this.width || h !== this.height) {
+				$.canvasResize(this, i.ctx, w, h);
+				dispatchEvent(new Event('resize'));
+			}
+		};
+		addEventListener('operationmodechange', resize);
+		resize();
 	}
 
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Screen/availWidth) */
@@ -51,14 +71,14 @@ export class Screen extends EventTarget implements globalThis.Screen {
 	}
 
 	/**
-	 * The width of the screen in CSS pixels.
+	 * The width of the screen in pixels.
 	 *
 	 * @see https://developer.mozilla.org/docs/Web/API/Screen/width
 	 */
 	declare readonly width: number;
 
 	/**
-	 * The height of the screen in CSS pixels.
+	 * The height of the screen in pixels.
 	 *
 	 * @see https://developer.mozilla.org/docs/Web/API/Screen/height
 	 */
@@ -76,8 +96,6 @@ export class Screen extends EventTarget implements globalThis.Screen {
 				INTERNAL_SYMBOL,
 				this
 			);
-
-			$.framebufferInit(i.ctx);
 		}
 
 		return i.ctx;

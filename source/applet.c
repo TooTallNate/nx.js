@@ -18,7 +18,7 @@ JSValue nx_appletGetAppletType(JSContext *ctx, JSValueConst this_val, int argc, 
 
 JSValue nx_appletGetOperationMode(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	return JS_NewInt32(ctx, appletGetOperationMode());
+	return JS_NewString(ctx, appletGetOperationMode() ? "docked" : "handheld");
 }
 
 JSValue nx_appletRequestLaunchApplication(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
