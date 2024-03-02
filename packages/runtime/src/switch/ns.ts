@@ -1,7 +1,7 @@
 import { $ } from '../$';
 import { FsDev } from './fsdev';
 import { readFileSync } from '../fs';
-import { assertInternalConstructor, stub } from '../utils';
+import { assertInternalConstructor, proto, stub } from '../utils';
 import type { Profile } from './profile';
 
 let init = false;
@@ -118,15 +118,14 @@ export class Application {
 	/**
 	 * An `Application` instance representing the currently running application.
 	 */
-	static get self() {
+	static get self(): Application {
 		if (!self) {
 			_init();
 			let nro: ArrayBuffer | null = null;
 			if ($.argv.length) {
 				nro = readFileSync($.argv[0]);
 			}
-			self = $.nsAppNew(nro);
-			Object.setPrototypeOf(self, Application.prototype);
+			self = proto($.nsAppNew(nro), Application);
 		}
 		return self;
 	}
@@ -145,10 +144,8 @@ export class Application {
 	 *
 	 * @param nro The contents of the `.nro` file.
 	 */
-	static fromNRO(nro: ArrayBuffer) {
-		const app = $.nsAppNew(nro);
-		Object.setPrototypeOf(app, Application.prototype);
-		return app;
+	static fromNRO(nro: ArrayBuffer): Application {
+		return proto($.nsAppNew(nro), Application);
 	}
 
 	static *[Symbol.iterator]() {
@@ -157,9 +154,7 @@ export class Application {
 		while (1) {
 			const id = $.nsAppNext(offset++);
 			if (!id) break;
-			const app = $.nsAppNew(id);
-			Object.setPrototypeOf(app, Application.prototype);
-			yield app;
+			yield proto($.nsAppNew(id), Application);
 		}
 	}
 }

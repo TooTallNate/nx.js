@@ -8,7 +8,10 @@ import {
 	type RGBA,
 } from './internal';
 
-export const proto = (o: any, c: any) => {
+export const proto = <T extends new (...args: any) => any>(
+	o: any,
+	c: T
+): InstanceType<T> => {
 	Object.setPrototypeOf(o, c.prototype);
 	return o;
 };
