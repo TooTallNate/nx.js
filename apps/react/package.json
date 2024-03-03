@@ -1,0 +1,23 @@
+{
+  "name": "react-app",
+  "version": "0.0.0",
+  "private": true,
+  "description": "nx.js app that renders using React via `react-tela`",
+  "scripts": {
+    "build": "esbuild --bundle --sourcemap --sources-content=false --target=es2022 --format=esm src/main.tsx --outfile=romfs/main.js",
+    "nro": "nxjs-nro",
+    "nsp": "nxjs-nsp"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@nx.js/nro": "workspace:^",
+    "@nx.js/nsp": "workspace:^",
+    "@types/react": "^18.2.56",
+    "esbuild": "^0.17.19",
+    "nxjs-runtime": "workspace:^"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-tela": "0.0.2"
+  }
+}

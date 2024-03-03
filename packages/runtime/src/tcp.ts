@@ -118,9 +118,7 @@ export class Socket {
 					}
 					return;
 				}
-				controller.enqueue(
-					new Uint8Array(readBuffer.slice(0, bytesRead))
-				);
+				controller.enqueue(new Uint8Array(readBuffer.slice(0, bytesRead)));
 			},
 		});
 		this.writable = new WritableStream({
@@ -202,17 +200,17 @@ export class Server extends EventTarget {
 	addEventListener(
 		type: 'accept',
 		listener: (ev: SocketEvent) => any,
-		options?: boolean | AddEventListenerOptions
+		options?: boolean | AddEventListenerOptions,
 	): void;
 	addEventListener(
 		type: string,
 		listener: EventListenerOrEventListenerObject,
-		options?: boolean | AddEventListenerOptions
+		options?: boolean | AddEventListenerOptions,
 	): void;
 	addEventListener(
 		type: string,
 		callback: EventListenerOrEventListenerObject | null,
-		options?: boolean | AddEventListenerOptions
+		options?: boolean | AddEventListenerOptions,
 	): void {
 		super.addEventListener(type, callback, options);
 	}

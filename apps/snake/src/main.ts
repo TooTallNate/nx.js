@@ -49,7 +49,7 @@ function start() {
 		{ x: 5, y: 5, direction: Direction.Right },
 		{ x: 6, y: 5, direction: Direction.Right },
 		{ x: 7, y: 5, direction: Direction.Right },
-		{ x: 8, y: 5, direction: Direction.Right }
+		{ x: 8, y: 5, direction: Direction.Right },
 	);
 	direction = Direction.Right;
 	updateScore();
@@ -99,7 +99,7 @@ function draw() {
 		boardY + gridSize / 2 + food.y * gridSize,
 		gridSize / 2,
 		0,
-		2 * Math.PI
+		2 * Math.PI,
 	);
 	ctx.fillStyle = 'green';
 	ctx.fill();
@@ -117,28 +117,28 @@ function draw() {
 			pos + boardX + tail.x * gridSize,
 			boardY + tail.y * gridSize,
 			gridSize - pos,
-			gridSize
+			gridSize,
 		);
 	} else if (tail.direction === Direction.Left) {
 		ctx.rect(
 			boardX + tail.x * gridSize,
 			boardY + tail.y * gridSize,
 			gridSize - pos,
-			gridSize
+			gridSize,
 		);
 	} else if (tail.direction === Direction.Up) {
 		ctx.rect(
 			boardX + tail.x * gridSize,
 			boardY + tail.y * gridSize,
 			gridSize,
-			gridSize - pos
+			gridSize - pos,
 		);
 	} else {
 		ctx.rect(
 			boardX + tail.x * gridSize,
 			pos + boardY + tail.y * gridSize,
 			gridSize,
-			gridSize - pos
+			gridSize - pos,
 		);
 	}
 
@@ -148,7 +148,7 @@ function draw() {
 			boardX + snakeBody[i].x * gridSize,
 			boardY + snakeBody[i].y * gridSize,
 			gridSize,
-			gridSize
+			gridSize,
 		);
 	}
 
@@ -159,28 +159,28 @@ function draw() {
 			boardX + head.x * gridSize,
 			boardY + head.y * gridSize,
 			pos,
-			gridSize
+			gridSize,
 		);
 	} else if (head.direction === Direction.Left) {
 		ctx.rect(
 			gridSize - pos + boardX + head.x * gridSize,
 			boardY + head.y * gridSize,
 			pos,
-			gridSize
+			gridSize,
 		);
 	} else if (head.direction === Direction.Up) {
 		ctx.rect(
 			boardX + head.x * gridSize,
 			gridSize - pos + boardY + head.y * gridSize,
 			gridSize,
-			pos
+			pos,
 		);
 	} else {
 		ctx.rect(
 			boardX + head.x * gridSize,
 			boardY + head.y * gridSize,
 			gridSize,
-			pos
+			pos,
 		);
 	}
 	ctx.fillStyle = 'red';

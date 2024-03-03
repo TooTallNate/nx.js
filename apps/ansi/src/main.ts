@@ -13,8 +13,8 @@ console.log(`${bold(white(bgRed('[ERROR]')))} ${red('Something happened')}`);
 const printTime = (move = true) => {
 	console.log(
 		`${move ? `${cursor.up(1)}${erase.line}` : ''}${green(
-			'Current time:'
-		)} ${new Date().toISOString()}`
+			'Current time:',
+		)} ${new Date().toISOString()}`,
 	);
 };
 console.log();

@@ -12,7 +12,7 @@ import type { BufferSource } from '../types';
 function indexOfSequence<T>(
 	haystack: ArrayLike<T>,
 	needle: ArrayLike<T>,
-	offset = 0
+	offset = 0,
 ) {
 	if (needle.length === 0) return -1;
 
@@ -104,22 +104,16 @@ export abstract class Body implements globalThis.Body {
 				contentType = 'application/x-www-form-urlencoded;charset=UTF-8';
 			} else if (init instanceof ReadableStream) {
 				if (init.locked) {
-					throw new TypeError(
-						'ReadableStream is locked or disturbed'
-					);
+					throw new TypeError('ReadableStream is locked or disturbed');
 				}
 				this.body = init;
 			} else if (init instanceof FormData) {
-				const boundary = `------${crypto
-					.randomUUID()
-					.replace(/-/g, '')}`;
-				this.body = asyncIteratorToStream(
-					formDataIterator(init, boundary)
-				);
+				const boundary = `------${crypto.randomUUID().replace(/-/g, '')}`;
+				this.body = asyncIteratorToStream(formDataIterator(init, boundary));
 				contentType = `multipart/form-data; boundary=${boundary}`;
 			} else {
 				this.body = asyncIteratorToStream(
-					arrayBufferIterator(bufferSourceToArrayBuffer(init))
+					arrayBufferIterator(bufferSourceToArrayBuffer(init)),
 				);
 			}
 		}
@@ -192,7 +186,7 @@ export abstract class Body implements globalThis.Body {
 		for (let i = 0; i < offsets.length; i++) {
 			const part = data.subarray(
 				offsets[i] + boundaryBytes.length + 2,
-				offsets[i + 1]
+				offsets[i + 1],
 			);
 			if (part.length === 0) break;
 			pos = 0;
@@ -226,7 +220,7 @@ export abstract class Body implements globalThis.Body {
 			}
 			if (!name) {
 				throw new TypeError(
-					'No "name" provided in `Content-Disposition` header'
+					'No "name" provided in `Content-Disposition` header',
 				);
 			}
 			const valueBytes = part.subarray(pos, part.length - 2);

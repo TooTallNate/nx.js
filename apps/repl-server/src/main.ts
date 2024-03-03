@@ -42,13 +42,11 @@ async function* telnetParser(reader: ReadableStreamDefaultReader<Uint8Array>) {
 			} else {
 				// Find next IAC or end of buffer
 				const iacIndex = buffer.indexOf(IAC);
-				const rawData =
-					iacIndex === -1 ? buffer : buffer.slice(0, iacIndex);
+				const rawData = iacIndex === -1 ? buffer : buffer.slice(0, iacIndex);
 				if (rawData.length > 0) {
 					yield { type: 'data', data: rawData };
 				}
-				buffer =
-					iacIndex === -1 ? new Uint8Array() : buffer.slice(iacIndex);
+				buffer = iacIndex === -1 ? new Uint8Array() : buffer.slice(iacIndex);
 			}
 		}
 	}

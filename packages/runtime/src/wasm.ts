@@ -158,7 +158,7 @@ function unwrapImports(importObject: Imports = {}) {
 				val,
 				i,
 			};
-		})
+		}),
 	);
 }
 
@@ -203,7 +203,7 @@ export class Instance implements WebAssembly.Instance {
 		if (!modInternal) throw new Error(`No internal state for Module`);
 		const [opaque, exp] = $.wasmNewInstance(
 			modInternal.opaque,
-			unwrapImports(importObject)
+			unwrapImports(importObject),
 		);
 		instanceInternalsMap.set(this, { module: moduleObject, opaque });
 		this.exports = wrapExports(exp);
@@ -261,7 +261,7 @@ export class Module implements WebAssembly.Module {
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/Module/customSections) */
 	static customSections(
 		moduleObject: Module,
-		sectionName: string
+		sectionName: string,
 	): ArrayBuffer[] {
 		throw new Error('Method not implemented.');
 	}
@@ -319,7 +319,7 @@ export async function compile(bytes: BufferSource): Promise<Module> {
 
 /** [MDN Reference](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/compileStreaming) */
 export async function compileStreaming(
-	source: Response | PromiseLike<Response>
+	source: Response | PromiseLike<Response>,
 ): Promise<Module> {
 	const res = await source;
 	if (!res.ok) {
@@ -332,15 +332,15 @@ export async function compileStreaming(
 /** [MDN Reference](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/instantiate) */
 export function instantiate(
 	bytes: BufferSource,
-	importObject?: Imports
+	importObject?: Imports,
 ): Promise<WebAssemblyInstantiatedSource>;
 export function instantiate(
 	moduleObject: Module,
-	importObject?: Imports
+	importObject?: Imports,
 ): Promise<Instance>;
 export async function instantiate(
 	bytes: BufferSource | Module,
-	importObject?: Imports
+	importObject?: Imports,
 ) {
 	if (bytes instanceof Module) {
 		return new Instance(bytes, importObject);
@@ -357,7 +357,7 @@ export async function instantiate(
 /** [MDN Reference](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/instantiateStreaming) */
 export async function instantiateStreaming(
 	source: Response | PromiseLike<Response>,
-	importObject?: Imports
+	importObject?: Imports,
 ): Promise<WebAssemblyInstantiatedSource> {
 	const m = await compileStreaming(source);
 	const instance = await instantiate(m, importObject);

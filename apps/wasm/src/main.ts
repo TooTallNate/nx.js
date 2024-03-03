@@ -4,7 +4,7 @@
 // https://github.com/mdn/webassembly-examples/blob/main/js-api-examples/simple.wat
 
 const wasm = Switch.readFileSync(
-	new URL('wasm/simple.wasm', Switch.entrypoint)
+	new URL('wasm/simple.wasm', Switch.entrypoint),
 );
 
 const mod = new WebAssembly.Module(wasm);

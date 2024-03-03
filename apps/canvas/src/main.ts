@@ -20,7 +20,7 @@ function clock() {
 
 	ctx.translate(
 		screen.width / 2 - (150 * scaleFactor) / 2,
-		screen.height / 2 - (150 * scaleFactor) / 2
+		screen.height / 2 - (150 * scaleFactor) / 2,
 	);
 	ctx.scale(scaleFactor, scaleFactor);
 	ctx.translate(75, 75);
@@ -62,7 +62,7 @@ function clock() {
 	// Write Hours
 	ctx.save();
 	ctx.rotate(
-		(Math.PI / 6) * hr + (Math.PI / 360) * min + (Math.PI / 21600) * sec
+		(Math.PI / 6) * hr + (Math.PI / 360) * min + (Math.PI / 21600) * sec,
 	);
 	ctx.lineWidth = 14;
 	ctx.beginPath();

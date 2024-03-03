@@ -28,7 +28,7 @@ export class FontFace implements globalThis.FontFace {
 	constructor(
 		family: string,
 		source: string | BufferSource,
-		descriptors: FontFaceDescriptors = {}
+		descriptors: FontFaceDescriptors = {},
 	) {
 		if (typeof source === 'string') {
 			throw new Error('Font `source` must be an ArrayBuffer');

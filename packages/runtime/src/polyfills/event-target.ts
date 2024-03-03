@@ -72,7 +72,7 @@ export class EventTarget {
 	addEventListener(
 		type: string,
 		callback: EventListenerOrEventListenerObject | null,
-		options?: AddEventListenerOptions | boolean
+		options?: AddEventListenerOptions | boolean,
 	): void {
 		if (!callback) return;
 		if (typeof options === 'boolean') {
@@ -119,7 +119,7 @@ export class EventTarget {
 	removeEventListener(
 		type: string,
 		callback: EventListenerOrEventListenerObject | null,
-		options?: EventListenerOptions | boolean
+		options?: EventListenerOptions | boolean,
 	): void {
 		const self = this || globalThis;
 		const cbs = getCbs(self, type);

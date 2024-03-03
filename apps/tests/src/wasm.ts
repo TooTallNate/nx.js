@@ -10,13 +10,13 @@ test('WebAssembly namespace', () => {
 	assert.equal(desc.configurable, true);
 	assert.equal(
 		Object.prototype.toString.call(WebAssembly),
-		'[object WebAssembly]'
+		'[object WebAssembly]',
 	);
 });
 
 test('simple.wasm', async () => {
 	const bin = await Switch.readFile(
-		new URL('wasm/simple.wasm', Switch.entrypoint)
+		new URL('wasm/simple.wasm', Switch.entrypoint),
 	);
 	const mod = new WebAssembly.Module(bin);
 
@@ -44,7 +44,7 @@ test('simple.wasm', async () => {
 
 test('add.wasm', async () => {
 	const { module, instance } = await WebAssembly.instantiateStreaming(
-		fetch('wasm/add.wasm')
+		fetch('wasm/add.wasm'),
 	);
 	assert.equal(WebAssembly.Module.imports(module).length, 0);
 	assert.equal(WebAssembly.Module.exports(module), [
@@ -58,7 +58,7 @@ test('add.wasm', async () => {
 
 test('fib.wasm', async () => {
 	const { module, instance } = await WebAssembly.instantiateStreaming(
-		fetch('wasm/fib.wasm')
+		fetch('wasm/fib.wasm'),
 	);
 	assert.equal(WebAssembly.Module.imports(module).length, 0);
 
@@ -85,7 +85,7 @@ test('fib.wasm', async () => {
 
 test('fail.wasm', async () => {
 	const bin = await Switch.readFile(
-		new URL('wasm/fail.wasm', Switch.entrypoint)
+		new URL('wasm/fail.wasm', Switch.entrypoint),
 	);
 	const mod = new WebAssembly.Module(bin);
 
@@ -123,7 +123,7 @@ test('global.wasm', async () => {
 		fetch('wasm/global.wasm'),
 		{
 			js: { global: g },
-		}
+		},
 	);
 	assert.equal(WebAssembly.Module.imports(module), [
 		{ module: 'js', name: 'global', kind: 'global' },
@@ -149,7 +149,7 @@ test('global.wasm', async () => {
 
 test('global-export.wasm', async () => {
 	const { module, instance } = await WebAssembly.instantiateStreaming(
-		fetch('wasm/global-export.wasm')
+		fetch('wasm/global-export.wasm'),
 	);
 	assert.equal(WebAssembly.Module.imports(module).length, 0);
 	assert.equal(WebAssembly.Module.exports(module), [
@@ -190,7 +190,7 @@ test('memory.wasm', async () => {
 
 	const { module, instance } = await WebAssembly.instantiateStreaming(
 		fetch('wasm/memory.wasm'),
-		{ js: { mem } }
+		{ js: { mem } },
 	);
 
 	assert.equal(WebAssembly.Module.imports(module), [
@@ -203,7 +203,7 @@ test('memory.wasm', async () => {
 
 	const accumulate = instance.exports.accumulate as (
 		start: number,
-		end: number
+		end: number,
 	) => number;
 	assert.type(accumulate, 'function');
 
@@ -212,7 +212,7 @@ test('memory.wasm', async () => {
 
 test('memory-export.wasm', async () => {
 	const { module, instance } = await WebAssembly.instantiateStreaming(
-		fetch('wasm/memory-export.wasm')
+		fetch('wasm/memory-export.wasm'),
 	);
 	assert.equal(WebAssembly.Module.imports(module).length, 0);
 
@@ -237,7 +237,7 @@ test('memory-export.wasm', async () => {
 
 test('grow.wasm', async () => {
 	const { module, instance } = await WebAssembly.instantiateStreaming(
-		fetch('wasm/grow.wasm')
+		fetch('wasm/grow.wasm'),
 	);
 	assert.equal(WebAssembly.Module.imports(module).length, 0);
 
@@ -294,7 +294,7 @@ test('compute.wasm', async () => {
 					return Math.round(a * b);
 				},
 			},
-		}
+		},
 	);
 	assert.equal(WebAssembly.Module.imports(module), [
 		{ module: 'env', name: 'compute', kind: 'function' },
@@ -316,23 +316,23 @@ test('compute.wasm', async () => {
 	assert.equal(
 		aVal,
 		2.46,
-		'`compute()` should have been invoked with values doubled - a'
+		'`compute()` should have been invoked with values doubled - a',
 	);
 	assert.equal(
 		bVal,
 		6.9,
-		'`compute()` should have been invoked with values doubled - b'
+		'`compute()` should have been invoked with values doubled - b',
 	);
 	assert.equal(
 		val.value,
 		17,
-		'Global value should be result of `a * b` rounded to nearest'
+		'Global value should be result of `a * b` rounded to nearest',
 	);
 });
 
 test('table.wasm', async () => {
 	const { module, instance } = await WebAssembly.instantiateStreaming(
-		fetch('wasm/table.wasm')
+		fetch('wasm/table.wasm'),
 	);
 	assert.equal(WebAssembly.Module.imports(module).length, 0);
 	assert.equal(WebAssembly.Module.exports(module), [
@@ -360,7 +360,7 @@ test('table.wasm', async () => {
 	assert.instance(err, RangeError);
 	assert.equal(
 		err.message,
-		'WebAssembly.Table.get(): invalid index 2 into funcref table of size 2'
+		'WebAssembly.Table.get(): invalid index 2 into funcref table of size 2',
 	);
 });
 
@@ -374,7 +374,7 @@ test('Imported function throws an Error is propagated', async () => {
 					throw e;
 				},
 			},
-		}
+		},
 	);
 	let err: Error | undefined;
 	const exported_func = instance.exports.exported_func as Function;

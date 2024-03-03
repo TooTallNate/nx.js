@@ -32,15 +32,14 @@ export class REPL {
 
 	async print(str: string) {
 		await this.writer.write(
-			encoder.encode(str.replace(/(?:\r\n|\n)/g, '\r\n'))
+			encoder.encode(str.replace(/(?:\r\n|\n)/g, '\r\n')),
 		);
 	}
 
 	async write(data: Uint8Array) {
-		this.buffer = `${this.buffer.slice(
-			0,
-			this.cursorPosition
-		)}${decoder.decode(data)}${this.buffer.slice(this.cursorPosition)}`;
+		this.buffer = `${this.buffer.slice(0, this.cursorPosition)}${decoder.decode(
+			data,
+		)}${this.buffer.slice(this.cursorPosition)}`;
 		this.cursorPosition += data.length;
 		await this.renderPrompt();
 	}
@@ -64,7 +63,7 @@ export class REPL {
 							return { v }
 						} catch (err) {
 							return { err }
-						}`
+						}`,
 					)();
 					if (r.err) throw r.err;
 					result = r.v;
@@ -101,7 +100,7 @@ export class REPL {
 		if (this.buffer.length) {
 			this.buffer = `${this.buffer.slice(
 				0,
-				this.cursorPosition - 1
+				this.cursorPosition - 1,
 			)}${this.buffer.slice(this.cursorPosition)}`;
 			this.cursorPosition--;
 			await this.renderPrompt();

@@ -35,13 +35,13 @@ def(window, 'window');
 export function addEventListener(
 	type: 'buttondown',
 	callback: EventListenerOrEventListenerObject<UIEvent>,
-	options?: AddEventListenerOptions | boolean
+	options?: AddEventListenerOptions | boolean,
 ): void;
 
 export function addEventListener(
 	type: 'buttonup',
 	callback: EventListenerOrEventListenerObject<UIEvent>,
-	options?: AddEventListenerOptions | boolean
+	options?: AddEventListenerOptions | boolean,
 ): void;
 
 /**
@@ -63,7 +63,7 @@ export function addEventListener(
 export function addEventListener(
 	type: 'keydown',
 	callback: EventListenerOrEventListenerObject<KeyboardEvent>,
-	options?: AddEventListenerOptions | boolean
+	options?: AddEventListenerOptions | boolean,
 ): void;
 
 /**
@@ -72,7 +72,7 @@ export function addEventListener(
 export function addEventListener(
 	type: 'keyup',
 	callback: EventListenerOrEventListenerObject<KeyboardEvent>,
-	options?: AddEventListenerOptions | boolean
+	options?: AddEventListenerOptions | boolean,
 ): void;
 
 /**
@@ -88,7 +88,7 @@ export function addEventListener(
 export function addEventListener(
 	type: 'error',
 	callback: EventListenerOrEventListenerObject<ErrorEvent>,
-	options?: AddEventListenerOptions | boolean
+	options?: AddEventListenerOptions | boolean,
 ): void;
 
 /**
@@ -105,7 +105,7 @@ export function addEventListener(
 export function addEventListener(
 	type: 'unhandledrejection',
 	callback: EventListenerOrEventListenerObject<PromiseRejectionEvent>,
-	options?: AddEventListenerOptions | boolean
+	options?: AddEventListenerOptions | boolean,
 ): void;
 
 /**
@@ -119,29 +119,24 @@ export function addEventListener(
 export function addEventListener(
 	type: 'unload',
 	callback: (event: Event) => any,
-	options?: AddEventListenerOptions | boolean
+	options?: AddEventListenerOptions | boolean,
 ): void;
 
 export function addEventListener(
 	type: string,
 	callback: EventListenerOrEventListenerObject | null,
-	options?: AddEventListenerOptions | boolean
+	options?: AddEventListenerOptions | boolean,
 ): void;
 
 export function addEventListener(
 	type: string,
 	callback: EventListenerOrEventListenerObject | null,
-	options?: AddEventListenerOptions | boolean
+	options?: AddEventListenerOptions | boolean,
 ): void {
 	if (type === 'keydown' || type === 'keyup') {
 		initKeyboard();
 	}
-	EventTarget.prototype.addEventListener.call(
-		window,
-		type,
-		callback,
-		options
-	);
+	EventTarget.prototype.addEventListener.call(window, type, callback, options);
 }
 
 /**
@@ -152,7 +147,7 @@ export function addEventListener(
 export declare function removeEventListener(
 	type: string,
 	callback: EventListenerOrEventListenerObject | null,
-	options?: EventListenerOptions | boolean
+	options?: EventListenerOptions | boolean,
 ): void;
 
 /**

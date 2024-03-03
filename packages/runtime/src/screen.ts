@@ -94,7 +94,7 @@ export class Screen extends EventTarget implements globalThis.Screen {
 			i.ctx = new CanvasRenderingContext2D(
 				// @ts-expect-error Internal constructor
 				INTERNAL_SYMBOL,
-				this
+				this,
 			);
 		}
 
@@ -105,23 +105,19 @@ export class Screen extends EventTarget implements globalThis.Screen {
 	addEventListener(
 		type: 'touchstart' | 'touchmove' | 'touchend',
 		listener: (ev: TouchEvent) => any,
-		options?: boolean | AddEventListenerOptions
+		options?: boolean | AddEventListenerOptions,
 	): void;
 	addEventListener(
 		type: string,
 		listener: EventListenerOrEventListenerObject,
-		options?: boolean | AddEventListenerOptions
+		options?: boolean | AddEventListenerOptions,
 	): void;
 	addEventListener(
 		type: string,
 		callback: EventListenerOrEventListenerObject | null,
-		options?: boolean | AddEventListenerOptions
+		options?: boolean | AddEventListenerOptions,
 	): void {
-		if (
-			type === 'touchstart' ||
-			type === 'touchmove' ||
-			type === 'touchend'
-		) {
+		if (type === 'touchstart' || type === 'touchmove' || type === 'touchend') {
 			initTouchscreen();
 		}
 		super.addEventListener(type, callback, options);
@@ -147,7 +143,7 @@ export class Screen extends EventTarget implements globalThis.Screen {
 	toBlob(
 		callback: (blob: Blob | null) => void,
 		type = 'image/png',
-		quality = 0.8
+		quality = 0.8,
 	) {
 		throw new Error('Method not implemented.');
 	}

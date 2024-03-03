@@ -73,11 +73,7 @@ export class Crypto implements globalThis.Crypto {
 	 */
 	getRandomValues<T extends ArrayBufferView | null>(array: T): T {
 		if (array) {
-			$.cryptoRandomBytes(
-				array.buffer,
-				array.byteOffset,
-				array.byteLength
-			);
+			$.cryptoRandomBytes(array.buffer, array.byteOffset, array.byteLength);
 		}
 		return array;
 	}
@@ -134,7 +130,7 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 			| AesCbcParams
 			| AesGcmParams,
 		key: CryptoKey,
-		data: BufferSource
+		data: BufferSource,
 	): Promise<ArrayBuffer> {
 		throw new Error('Method not implemented.');
 	}
@@ -145,7 +141,7 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 			| HkdfParams
 			| Pbkdf2Params,
 		baseKey: CryptoKey,
-		length: number
+		length: number,
 	): Promise<ArrayBuffer> {
 		throw new Error('Method not implemented.');
 	}
@@ -163,7 +159,7 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 			| AesDerivedKeyParams
 			| HmacImportParams,
 		extractable: boolean,
-		keyUsages: KeyUsage[]
+		keyUsages: KeyUsage[],
 	): Promise<CryptoKey>;
 	deriveKey(
 		algorithm:
@@ -179,14 +175,14 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 			| AesDerivedKeyParams
 			| HmacImportParams,
 		extractable: boolean,
-		keyUsages: Iterable<KeyUsage>
+		keyUsages: Iterable<KeyUsage>,
 	): Promise<CryptoKey>;
 	deriveKey(
 		algorithm: unknown,
 		baseKey: unknown,
 		derivedKeyType: unknown,
 		extractable: unknown,
-		keyUsages: unknown
+		keyUsages: unknown,
 	): Promise<CryptoKey> {
 		throw new Error('Method not implemented.');
 	}
@@ -215,12 +211,12 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 	 */
 	digest(
 		algorithm: AlgorithmIdentifier,
-		data: BufferSource
+		data: BufferSource,
 	): Promise<ArrayBuffer> {
 		return toPromise(
 			$.cryptoDigest,
 			typeof algorithm === 'string' ? algorithm : algorithm.name,
-			bufferSourceToArrayBuffer(data)
+			bufferSourceToArrayBuffer(data),
 		);
 	}
 
@@ -232,22 +228,22 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 			| AesCbcParams
 			| AesGcmParams,
 		key: CryptoKey,
-		data: BufferSource
+		data: BufferSource,
 	): Promise<ArrayBuffer> {
 		throw new Error('Method not implemented.');
 	}
 	exportKey(format: 'jwk', key: CryptoKey): Promise<JsonWebKey>;
 	exportKey(
 		format: 'pkcs8' | 'raw' | 'spki',
-		key: CryptoKey
+		key: CryptoKey,
 	): Promise<ArrayBuffer>;
 	exportKey(
 		format: KeyFormat,
-		key: CryptoKey
+		key: CryptoKey,
 	): Promise<ArrayBuffer | JsonWebKey>;
 	exportKey(
 		format: unknown,
-		key: unknown
+		key: unknown,
 	):
 		| Promise<ArrayBuffer>
 		| Promise<JsonWebKey>
@@ -257,42 +253,42 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 	generateKey(
 		algorithm: 'Ed25519',
 		extractable: boolean,
-		keyUsages: readonly ('sign' | 'verify')[]
+		keyUsages: readonly ('sign' | 'verify')[],
 	): Promise<CryptoKeyPair>;
 	generateKey(
 		algorithm: RsaHashedKeyGenParams | EcKeyGenParams,
 		extractable: boolean,
-		keyUsages: readonly KeyUsage[]
+		keyUsages: readonly KeyUsage[],
 	): Promise<CryptoKeyPair>;
 	generateKey(
 		algorithm: Pbkdf2Params | AesKeyGenParams | HmacKeyGenParams,
 		extractable: boolean,
-		keyUsages: readonly KeyUsage[]
+		keyUsages: readonly KeyUsage[],
 	): Promise<CryptoKey>;
 	generateKey(
 		algorithm: AlgorithmIdentifier,
 		extractable: boolean,
-		keyUsages: KeyUsage[]
+		keyUsages: KeyUsage[],
 	): Promise<CryptoKey | CryptoKeyPair>;
 	generateKey(
 		algorithm: RsaHashedKeyGenParams | EcKeyGenParams,
 		extractable: boolean,
-		keyUsages: readonly KeyUsage[]
+		keyUsages: readonly KeyUsage[],
 	): Promise<CryptoKeyPair>;
 	generateKey(
 		algorithm: Pbkdf2Params | AesKeyGenParams | HmacKeyGenParams,
 		extractable: boolean,
-		keyUsages: readonly KeyUsage[]
+		keyUsages: readonly KeyUsage[],
 	): Promise<CryptoKey>;
 	generateKey(
 		algorithm: AlgorithmIdentifier,
 		extractable: boolean,
-		keyUsages: Iterable<KeyUsage>
+		keyUsages: Iterable<KeyUsage>,
 	): Promise<CryptoKey | CryptoKeyPair>;
 	generateKey(
 		algorithm: unknown,
 		extractable: unknown,
-		keyUsages: unknown
+		keyUsages: unknown,
 	):
 		| Promise<CryptoKey>
 		| Promise<CryptoKeyPair>
@@ -309,7 +305,7 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 			| EcKeyImportParams
 			| AesKeyAlgorithm,
 		extractable: boolean,
-		keyUsages: readonly KeyUsage[]
+		keyUsages: readonly KeyUsage[],
 	): Promise<CryptoKey>;
 	importKey(
 		format: 'pkcs8' | 'raw' | 'spki',
@@ -321,7 +317,7 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 			| EcKeyImportParams
 			| AesKeyAlgorithm,
 		extractable: boolean,
-		keyUsages: KeyUsage[]
+		keyUsages: KeyUsage[],
 	): Promise<CryptoKey>;
 	importKey(
 		format: 'jwk',
@@ -333,7 +329,7 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 			| EcKeyImportParams
 			| AesKeyAlgorithm,
 		extractable: boolean,
-		keyUsages: readonly KeyUsage[]
+		keyUsages: readonly KeyUsage[],
 	): Promise<CryptoKey>;
 	importKey(
 		format: 'pkcs8' | 'raw' | 'spki',
@@ -345,21 +341,21 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 			| EcKeyImportParams
 			| AesKeyAlgorithm,
 		extractable: boolean,
-		keyUsages: Iterable<KeyUsage>
+		keyUsages: Iterable<KeyUsage>,
 	): Promise<CryptoKey>;
 	importKey(
 		format: unknown,
 		keyData: unknown,
 		algorithm: unknown,
 		extractable: unknown,
-		keyUsages: unknown
+		keyUsages: unknown,
 	): Promise<CryptoKey> {
 		throw new Error('Method not implemented.');
 	}
 	sign(
 		algorithm: AlgorithmIdentifier | RsaPssParams | EcdsaParams,
 		key: CryptoKey,
-		data: BufferSource
+		data: BufferSource,
 	): Promise<ArrayBuffer> {
 		throw new Error('Method not implemented.');
 	}
@@ -380,7 +376,7 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 			| EcKeyImportParams
 			| AesKeyAlgorithm,
 		extractable: boolean,
-		keyUsages: KeyUsage[]
+		keyUsages: KeyUsage[],
 	): Promise<CryptoKey>;
 	unwrapKey(
 		format: KeyFormat,
@@ -399,7 +395,7 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 			| EcKeyImportParams
 			| AesKeyAlgorithm,
 		extractable: boolean,
-		keyUsages: Iterable<KeyUsage>
+		keyUsages: Iterable<KeyUsage>,
 	): Promise<CryptoKey>;
 	unwrapKey(
 		format: unknown,
@@ -408,7 +404,7 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 		unwrapAlgorithm: unknown,
 		unwrappedKeyAlgorithm: unknown,
 		extractable: unknown,
-		keyUsages: unknown
+		keyUsages: unknown,
 	): Promise<CryptoKey> {
 		throw new Error('Method not implemented.');
 	}
@@ -416,7 +412,7 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 		algorithm: AlgorithmIdentifier | RsaPssParams | EcdsaParams,
 		key: CryptoKey,
 		signature: BufferSource,
-		data: BufferSource
+		data: BufferSource,
 	): Promise<boolean> {
 		throw new Error('Method not implemented.');
 	}
@@ -429,7 +425,7 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 			| RsaOaepParams
 			| AesCtrParams
 			| AesCbcParams
-			| AesGcmParams
+			| AesGcmParams,
 	): Promise<ArrayBuffer> {
 		throw new Error('Method not implemented.');
 	}

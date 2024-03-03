@@ -1,5 +1,5 @@
 import { $ } from '../$';
-import { assertInternalConstructor } from '../utils';
+import { assertInternalConstructor, proto } from '../utils';
 
 let init = false;
 
@@ -55,14 +55,14 @@ export interface CurrentProfileOptions {
  * return the selected profile without user interaction.
  */
 export function currentProfile(
-	opts: CurrentProfileOptions & { required: true }
+	opts: CurrentProfileOptions & { required: true },
 ): Profile;
 export function currentProfile(opts?: CurrentProfileOptions): Profile | null;
 export function currentProfile({ required }: CurrentProfileOptions = {}) {
 	_init();
 	if (p) return p;
 	p = $.accountCurrentProfile();
-	if (p) Object.setPrototypeOf(p, Profile.prototype);
+	if (p) proto(p, Profile);
 	while (!p && required) p = selectProfile();
 	return p;
 }
@@ -76,7 +76,7 @@ export function currentProfile({ required }: CurrentProfileOptions = {}) {
 export function selectProfile() {
 	_init();
 	const p = $.accountSelectProfile();
-	if (p) Object.setPrototypeOf(p, Profile.prototype);
+	if (p) proto(p, Profile);
 	return p;
 }
 
@@ -96,8 +96,7 @@ export const profiles = {
 		_init();
 		const pr = $.accountProfiles();
 		for (const p of pr) {
-			Object.setPrototypeOf(p, Profile.prototype);
-			yield p;
+			yield proto(p, Profile);
 		}
 	},
 };

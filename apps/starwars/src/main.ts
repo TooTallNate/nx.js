@@ -12,7 +12,7 @@ const font = new FontFace('Geist Mono', fontData);
 fonts.add(font);
 
 async function* frameIterator(
-	readable: ReadableStreamDefaultReader<Uint8Array>
+	readable: ReadableStreamDefaultReader<Uint8Array>,
 ) {
 	const it = lineIterator(readable);
 

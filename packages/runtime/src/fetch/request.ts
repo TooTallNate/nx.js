@@ -131,9 +131,7 @@ export class Request extends Body implements globalThis.Request {
 			this.signal = init.signal ?? input.signal;
 		} else {
 			const url =
-				typeof input === 'string'
-					? new URL(input, $.entrypoint)
-					: input;
+				typeof input === 'string' ? new URL(input, $.entrypoint) : input;
 			this.url = url.href;
 			this.cache = init.cache || 'default';
 			this.credentials = init.credentials || 'same-origin';

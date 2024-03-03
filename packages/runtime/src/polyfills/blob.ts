@@ -22,7 +22,7 @@ const POOL_SIZE = 65536;
 
 async function* toIterator(
 	parts: (Blob | Uint8Array)[],
-	clone: boolean
+	clone: boolean,
 ): AsyncIterableIterator<Uint8Array> {
 	for (const part of parts) {
 		if (ArrayBuffer.isView(part)) {
@@ -64,19 +64,19 @@ export class Blob implements globalThis.Blob {
 	constructor(blobParts: BlobPart[] = [], options: BlobPropertyBag = {}) {
 		if (typeof blobParts !== 'object' || blobParts === null) {
 			throw new TypeError(
-				"Failed to construct 'Blob': The provided value cannot be converted to a sequence."
+				"Failed to construct 'Blob': The provided value cannot be converted to a sequence.",
 			);
 		}
 
 		if (typeof blobParts[Symbol.iterator] !== 'function') {
 			throw new TypeError(
-				"Failed to construct 'Blob': The object must have a callable @@iterator property."
+				"Failed to construct 'Blob': The object must have a callable @@iterator property.",
 			);
 		}
 
 		if (typeof options !== 'object' && typeof options !== 'function') {
 			throw new TypeError(
-				"Failed to construct 'Blob': parameter 2 cannot convert to dictionary."
+				"Failed to construct 'Blob': parameter 2 cannot convert to dictionary.",
 			);
 		}
 
@@ -94,8 +94,8 @@ export class Blob implements globalThis.Blob {
 				part = new Uint8Array(
 					element.buffer.slice(
 						element.byteOffset,
-						element.byteOffset + element.byteLength
-					)
+						element.byteOffset + element.byteLength,
+					),
 				);
 			} else if (element instanceof ArrayBuffer) {
 				part = new Uint8Array(element.slice(0));
@@ -202,8 +202,7 @@ export class Blob implements globalThis.Blob {
 
 		let relativeStart =
 			start < 0 ? Math.max(size + start, 0) : Math.min(start, size);
-		let relativeEnd =
-			end < 0 ? Math.max(size + end, 0) : Math.min(end, size);
+		let relativeEnd = end < 0 ? Math.max(size + end, 0) : Math.min(end, size);
 
 		const span = Math.max(relativeEnd - relativeStart, 0);
 		const parts = _(this).parts;
@@ -225,16 +224,10 @@ export class Blob implements globalThis.Blob {
 			} else {
 				let chunk;
 				if (ArrayBuffer.isView(part)) {
-					chunk = part.subarray(
-						relativeStart,
-						Math.min(size, relativeEnd)
-					);
+					chunk = part.subarray(relativeStart, Math.min(size, relativeEnd));
 					added += chunk.byteLength;
 				} else {
-					chunk = part.slice(
-						relativeStart,
-						Math.min(size, relativeEnd)
-					);
+					chunk = part.slice(relativeStart, Math.min(size, relativeEnd));
 					added += chunk.size;
 				}
 				relativeEnd -= size;

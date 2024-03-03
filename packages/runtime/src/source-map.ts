@@ -58,20 +58,16 @@ function filenameToTracer(filename: string) {
 		const lastNewline = contents.lastIndexOf('\n');
 		const lastLine = contents.slice(lastNewline + 1);
 		if (lastLine.startsWith(SOURCE_MAPPING_URL_PREFIX)) {
-			const sourceMappingURL = lastLine.slice(
-				SOURCE_MAPPING_URL_PREFIX.length
-			);
+			const sourceMappingURL = lastLine.slice(SOURCE_MAPPING_URL_PREFIX.length);
 			let sourceMapBuffer: ArrayBuffer | null;
 			if (sourceMappingURL.startsWith('data:')) {
 				sourceMapBuffer = dataUriToBuffer(sourceMappingURL).buffer;
 			} else {
-				sourceMapBuffer = readFileSync(
-					new URL(sourceMappingURL, filename)
-				);
+				sourceMapBuffer = readFileSync(new URL(sourceMappingURL, filename));
 			}
 			if (sourceMapBuffer) {
 				const sourceMap: EncodedSourceMap = JSON.parse(
-					decoder.decode(sourceMapBuffer)
+					decoder.decode(sourceMapBuffer),
 				);
 				tracer = new TraceMap(sourceMap);
 			}
@@ -92,8 +88,7 @@ function filenameToTracer(filename: string) {
 					return `    at ${filename}:${callsite.getLineNumber()}:${callsite.getColumnNumber()}`;
 				}
 				if (filename) {
-					const proto =
-						filename === 'romfs:/runtime.js' ? 'nxjs' : 'app';
+					const proto = filename === 'romfs:/runtime.js' ? 'nxjs' : 'app';
 					let line = callsite.getLineNumber() ?? 1;
 					let column = callsite.getColumnNumber() ?? 1;
 
@@ -103,11 +98,9 @@ function filenameToTracer(filename: string) {
 							line,
 							column,
 						});
-						if (typeof traced.source === 'string')
-							filename = traced.source;
+						if (typeof traced.source === 'string') filename = traced.source;
 						if (typeof traced.name === 'string') name = traced.name;
-						if (typeof traced.column === 'number')
-							column = traced.column;
+						if (typeof traced.column === 'number') column = traced.column;
 						if (typeof traced.line === 'number') line = traced.line;
 					}
 

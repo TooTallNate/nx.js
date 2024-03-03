@@ -20,7 +20,7 @@ let [globalTypes, switchTypes, wasmTypes] = generateDtsBundle(
 	],
 	{
 		preferredConfigPath: 'tsconfig.json',
-	}
+	},
 );
 
 const globalNames = new Set();
@@ -34,14 +34,14 @@ function transform(name, input, opts = {}) {
 		input,
 		ts.ScriptTarget.Latest,
 		true,
-		ts.ScriptKind.TS
+		ts.ScriptKind.TS,
 	);
 
 	function filterImplements(type) {
 		return (
 			!type.expression.getText(sourceFile).startsWith(`${name}.`) &&
 			!type.typeArguments?.some((typeArgument) =>
-				typeArgument.getText(sourceFile).startsWith(`${name}.`)
+				typeArgument.getText(sourceFile).startsWith(`${name}.`),
 			)
 		);
 	}
@@ -89,7 +89,7 @@ function transform(name, input, opts = {}) {
 					if (clause.token === ts.SyntaxKind.ImplementsKeyword) {
 						return ts.factory.updateHeritageClause(
 							clause,
-							clause.types.filter(filterImplements)
+							clause.types.filter(filterImplements),
 						);
 					}
 					return clause;
@@ -101,7 +101,7 @@ function transform(name, input, opts = {}) {
 				node.name,
 				node.typeParameters,
 				newHeritageClauses?.length > 0 ? newHeritageClauses : undefined,
-				node.members
+				node.members,
 			);
 		}
 
@@ -113,12 +113,12 @@ function transform(name, input, opts = {}) {
 				ts.isFunctionDeclaration(node) ||
 				ts.isVariableStatement(node)) &&
 			node.modifiers?.some(
-				(modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword
+				(modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword,
 			)
 		) {
 			// Remove the 'export' modifier
 			const newModifiers = node.modifiers.filter(
-				(modifier) => modifier.kind !== ts.SyntaxKind.ExportKeyword
+				(modifier) => modifier.kind !== ts.SyntaxKind.ExportKeyword,
 			);
 
 			if (ts.isClassDeclaration(node)) {
@@ -128,7 +128,7 @@ function transform(name, input, opts = {}) {
 					node.name,
 					node.typeParameters,
 					node.heritageClauses,
-					node.members
+					node.members,
 				);
 			} else if (ts.isInterfaceDeclaration(node)) {
 				return ts.factory.updateInterfaceDeclaration(
@@ -137,7 +137,7 @@ function transform(name, input, opts = {}) {
 					node.name,
 					node.typeParameters,
 					node.heritageClauses,
-					node.members
+					node.members,
 				);
 			} else if (ts.isTypeAliasDeclaration(node)) {
 				return ts.factory.updateTypeAliasDeclaration(
@@ -145,7 +145,7 @@ function transform(name, input, opts = {}) {
 					newModifiers,
 					node.name,
 					node.typeParameters,
-					node.type
+					node.type,
 				);
 			} else if (ts.isFunctionDeclaration(node)) {
 				return ts.factory.updateFunctionDeclaration(
@@ -156,22 +156,18 @@ function transform(name, input, opts = {}) {
 					node.typeParameters,
 					node.parameters,
 					node.type,
-					node.body
+					node.body,
 				);
 			} else if (ts.isVariableStatement(node)) {
 				return ts.factory.updateVariableStatement(
 					node,
 					newModifiers,
-					node.declarationList
+					node.declarationList,
 				);
 			}
 		}
 
-		return ts.visitEachChild(
-			node,
-			(child) => visit(child, context),
-			context
-		);
+		return ts.visitEachChild(node, (child) => visit(child, context), context);
 	}
 
 	const result = ts.transform(sourceFile, [

@@ -48,11 +48,7 @@ export class TextDecoder implements globalThis.TextDecoder {
 		if (input instanceof ArrayBuffer) {
 			bytes = new Uint8Array(input);
 		} else {
-			bytes = new Uint8Array(
-				input.buffer,
-				input.byteOffset,
-				input.byteLength
-			);
+			bytes = new Uint8Array(input.buffer, input.byteOffset, input.byteLength);
 		}
 		var inputIndex = 0;
 
@@ -108,8 +104,7 @@ export class TextDecoder implements globalThis.TextDecoder {
 				// 3-byte
 				var byte2 = bytes[inputIndex++] & 0x3f;
 				var byte3 = bytes[inputIndex++] & 0x3f;
-				pending[pendingIndex++] =
-					((byte1 & 0x1f) << 12) | (byte2 << 6) | byte3;
+				pending[pendingIndex++] = ((byte1 & 0x1f) << 12) | (byte2 << 6) | byte3;
 			} else if ((byte1 & 0xf8) === 0xf0) {
 				// 4-byte
 				var byte2 = bytes[inputIndex++] & 0x3f;
@@ -118,15 +113,11 @@ export class TextDecoder implements globalThis.TextDecoder {
 
 				// this can be > 0xffff, so possibly generate surrogates
 				var codepoint =
-					((byte1 & 0x07) << 0x12) |
-					(byte2 << 0x0c) |
-					(byte3 << 0x06) |
-					byte4;
+					((byte1 & 0x07) << 0x12) | (byte2 << 0x0c) | (byte3 << 0x06) | byte4;
 				if (codepoint > 0xffff) {
 					// codepoint &= ~0x10000;
 					codepoint -= 0x10000;
-					pending[pendingIndex++] =
-						((codepoint >>> 10) & 0x3ff) | 0xd800;
+					pending[pendingIndex++] = ((codepoint >>> 10) & 0x3ff) | 0xd800;
 					codepoint = 0xdc00 | (codepoint & 0x3ff);
 				}
 				pending[pendingIndex++] = codepoint;

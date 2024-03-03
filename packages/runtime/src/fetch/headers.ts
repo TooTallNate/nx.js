@@ -28,7 +28,7 @@ export class Headers implements globalThis.Headers {
 			for (const header of init) {
 				if (header.length != 2) {
 					throw new TypeError(
-						`Headers constructor: expected name/value pair to be length 2, found: ${header.length}`
+						`Headers constructor: expected name/value pair to be length 2, found: ${header.length}`,
 					);
 				}
 				this.append(header[0], header[1]);
@@ -87,7 +87,7 @@ export class Headers implements globalThis.Headers {
 
 	forEach(
 		callbackfn: (value: string, key: string, parent: Headers) => void,
-		thisArg?: any
+		thisArg?: any,
 	): void {
 		const map = _(this);
 		for (const [name, values] of map) {
@@ -135,9 +135,7 @@ def(Headers);
 function normalizeName(v: unknown) {
 	const name = typeof v === 'string' ? v : String(v);
 	if (/[^a-z0-9\-#$%&'*+.^_`|~!]/i.test(name) || name === '') {
-		throw new TypeError(
-			`Invalid character in header field name: "${name}"`
-		);
+		throw new TypeError(`Invalid character in header field name: "${name}"`);
 	}
 	return name.toLowerCase();
 }

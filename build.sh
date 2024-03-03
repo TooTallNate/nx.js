@@ -16,4 +16,4 @@ rm -f nxjs.nro
 make
 
 # Package app `.nro`
-pnpm --dir="apps/$APP" nro
+pnpm nro --filter "$APP"
