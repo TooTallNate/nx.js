@@ -129,7 +129,7 @@ export class OffscreenCanvasRenderingContext2D {
 	fill(path: Path2D, fillRule?: CanvasFillRule): void;
 	fill(
 		fillRuleOrPath?: CanvasFillRule | Path2D,
-		fillRule?: CanvasFillRule
+		fillRule?: CanvasFillRule,
 	): void {
 		stub();
 	}
@@ -339,13 +339,13 @@ export class OffscreenCanvasRenderingContext2D {
 		path: Path2D,
 		x: number,
 		y: number,
-		fillRule?: CanvasFillRule
+		fillRule?: CanvasFillRule,
 	): boolean;
 	isPointInPath(
 		path: unknown,
 		x: unknown,
 		y: unknown,
-		fillRule?: unknown
+		fillRule?: unknown,
 	): boolean {
 		stub();
 	}
@@ -457,7 +457,7 @@ export class OffscreenCanvasRenderingContext2D {
 		c: number,
 		d: number,
 		e: number,
-		f: number
+		f: number,
 	): void {
 		stub();
 	}
@@ -493,7 +493,7 @@ export class OffscreenCanvasRenderingContext2D {
 		c: number,
 		d: number,
 		e: number,
-		f: number
+		f: number,
 	): void;
 	/**
 	 * Resets (overrides) the current transformation to the identity matrix, and then
@@ -590,20 +590,20 @@ export class OffscreenCanvasRenderingContext2D {
 	createImageData(
 		sw: number,
 		sh: number,
-		settings?: ImageDataSettings
+		settings?: ImageDataSettings,
 	): ImageData;
 	createImageData(imagedata: ImageData): ImageData;
 	createImageData(
 		sw: number | ImageData,
 		sh?: number,
-		settings?: ImageDataSettings
+		settings?: ImageDataSettings,
 	): ImageData {
 		let width: number;
 		let height: number;
 		if (typeof sw === 'number') {
 			if (typeof sh !== 'number') {
 				throw new TypeError(
-					'OffscreenCanvasRenderingContext2D.createImageData: Argument 1 is not an object.'
+					'OffscreenCanvasRenderingContext2D.createImageData: Argument 1 is not an object.',
 				);
 			}
 			width = sw;
@@ -614,7 +614,7 @@ export class OffscreenCanvasRenderingContext2D {
 		}
 		if (width <= 0 || height <= 0) {
 			throw new TypeError(
-				'OffscreenCanvasRenderingContext2D.createImageData: Invalid width or height'
+				'OffscreenCanvasRenderingContext2D.createImageData: Invalid width or height',
 			);
 		}
 		return new ImageData(width, height, settings);
@@ -640,15 +640,15 @@ export class OffscreenCanvasRenderingContext2D {
 		sy: number,
 		sw: number,
 		sh: number,
-		settings?: ImageDataSettings | undefined
+		settings?: ImageDataSettings | undefined,
 	): ImageData {
 		return new ImageData(
 			new Uint8ClampedArray(
-				$.canvasContext2dGetImageData(this, sx, sy, sw, sh)
+				$.canvasContext2dGetImageData(this, sx, sy, sw, sh),
 			),
 			sw,
 			sh,
-			settings
+			settings,
 		);
 	}
 
@@ -660,7 +660,7 @@ export class OffscreenCanvasRenderingContext2D {
 		dirtyX?: number,
 		dirtyY?: number,
 		dirtyWidth?: number,
-		dirtyHeight?: number
+		dirtyHeight?: number,
 	): void {
 		stub();
 	}
@@ -689,7 +689,7 @@ export class OffscreenCanvasRenderingContext2D {
 		dx: number,
 		dy: number,
 		dWidth: number,
-		dHeight: number
+		dHeight: number,
 	): void;
 	/**
 	 * Draws an image onto the canvas.
@@ -714,7 +714,7 @@ export class OffscreenCanvasRenderingContext2D {
 		dx: number,
 		dy: number,
 		dWidth: number,
-		dHeight: number
+		dHeight: number,
 	): void;
 	drawImage(
 		image: CanvasImageSource,
@@ -725,7 +725,7 @@ export class OffscreenCanvasRenderingContext2D {
 		dx?: number,
 		dy?: number,
 		dw?: number,
-		dh?: number
+		dh?: number,
 	): void {
 		stub();
 	}
@@ -748,18 +748,12 @@ export class OffscreenCanvasRenderingContext2D {
 		radius: number,
 		startAngle: number,
 		endAngle: number,
-		counterclockwise?: boolean
+		counterclockwise?: boolean,
 	): void {
 		stub();
 	}
 
-	arcTo(
-		x1: number,
-		y1: number,
-		x2: number,
-		y2: number,
-		radius: number
-	): void {
+	arcTo(x1: number, y1: number, x2: number, y2: number, radius: number): void {
 		stub();
 	}
 
@@ -769,7 +763,7 @@ export class OffscreenCanvasRenderingContext2D {
 		cp2x: number,
 		cp2y: number,
 		x: number,
-		y: number
+		y: number,
 	): void {
 		stub();
 	}
@@ -786,7 +780,7 @@ export class OffscreenCanvasRenderingContext2D {
 		rotation: number,
 		startAngle: number,
 		endAngle: number,
-		counterclockwise?: boolean
+		counterclockwise?: boolean,
 	): void {
 		stub();
 	}
@@ -806,7 +800,7 @@ export class OffscreenCanvasRenderingContext2D {
 		y: number,
 		width: number,
 		height: number,
-		radii: number | DOMPointInit | Iterable<number | DOMPointInit> = 0
+		radii: number | DOMPointInit | Iterable<number | DOMPointInit> = 0,
 	): void {
 		stub();
 	}
@@ -828,7 +822,7 @@ export class OffscreenCanvasRenderingContext2D {
 	createConicGradient(
 		startAngle: number,
 		x: number,
-		y: number
+		y: number,
 	): CanvasGradient {
 		throw new Error('Method not implemented.');
 	}
@@ -836,13 +830,13 @@ export class OffscreenCanvasRenderingContext2D {
 		x0: number,
 		y0: number,
 		x1: number,
-		y1: number
+		y1: number,
 	): CanvasGradient {
 		throw new Error('Method not implemented.');
 	}
 	createPattern(
 		image: CanvasImageSource,
-		repetition: string | null
+		repetition: string | null,
 	): CanvasPattern | null {
 		throw new Error('Method not implemented.');
 	}
@@ -852,7 +846,7 @@ export class OffscreenCanvasRenderingContext2D {
 		r0: number,
 		x1: number,
 		y1: number,
-		r1: number
+		r1: number,
 	): CanvasGradient {
 		throw new Error('Method not implemented.');
 	}

@@ -9,7 +9,7 @@ test('`CanvasRenderingContext2D.name`', () => {
 	assert.equal(CanvasRenderingContext2D.name, 'CanvasRenderingContext2D');
 	assert.equal(
 		OffscreenCanvasRenderingContext2D.name,
-		'OffscreenCanvasRenderingContext2D'
+		'OffscreenCanvasRenderingContext2D',
 	);
 });
 

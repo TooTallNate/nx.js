@@ -3,9 +3,7 @@ import { Tile } from './tile';
 export class Grid {
 	constructor(size, previousState) {
 		this.size = size;
-		this.cells = previousState
-			? this.fromState(previousState)
-			: this.empty();
+		this.cells = previousState ? this.fromState(previousState) : this.empty();
 	}
 	// Build a grid of the specified size
 	empty() {
@@ -102,9 +100,7 @@ export class Grid {
 			var row = (cellState[x] = []);
 
 			for (var y = 0; y < this.size; y++) {
-				row.push(
-					this.cells[x][y] ? this.cells[x][y].serialize() : null
-				);
+				row.push(this.cells[x][y] ? this.cells[x][y].serialize() : null);
 			}
 		}
 

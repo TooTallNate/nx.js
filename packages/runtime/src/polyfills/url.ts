@@ -9,13 +9,10 @@ export const objectUrls = new Map<string, Blob>();
 /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/URLSearchParams) */
 export class URLSearchParams implements globalThis.URLSearchParams {
 	constructor(
-		init?: string[][] | Record<string, string> | string | URLSearchParams
+		init?: string[][] | Record<string, string> | string | URLSearchParams,
 	) {
 		let input = '';
-		if (
-			init &&
-			(typeof init === 'string' || init instanceof URLSearchParams)
-		) {
+		if (init && (typeof init === 'string' || init instanceof URLSearchParams)) {
 			input = String(init);
 		}
 		const p = $.urlSearchNew(input, arguments[1]);
@@ -127,12 +124,8 @@ export class URLSearchParams implements globalThis.URLSearchParams {
 	}
 
 	forEach(
-		callbackfn: (
-			value: string,
-			key: string,
-			parent: URLSearchParams
-		) => void,
-		thisArg: any = this
+		callbackfn: (value: string, key: string, parent: URLSearchParams) => void,
+		thisArg: any = this,
 	): void {
 		for (const [k, v] of this) {
 			callbackfn.call(thisArg, v, k, this);
@@ -219,7 +212,7 @@ export class URL implements globalThis.URL {
 			p = new URLSearchParams(
 				this.search,
 				// @ts-expect-error internal argument
-				this
+				this,
 			);
 			searchParams.set(this, p);
 		}

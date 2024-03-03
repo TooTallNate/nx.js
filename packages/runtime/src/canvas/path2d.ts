@@ -45,7 +45,7 @@ type ArcPathCommand = [
 	boolean,
 	boolean,
 	number,
-	number
+	number,
 ];
 type CurvePathCommand = [
 	'c' | 'C',
@@ -54,7 +54,7 @@ type CurvePathCommand = [
 	number,
 	number,
 	number,
-	number
+	number,
 ];
 type ShortCurvePathCommand = ['s' | 'S', number, number, number, number];
 type QuadraticCurvePathCommand = ['q' | 'Q', number, number, number, number];
@@ -71,7 +71,7 @@ type EllipseCommand = [
 	number,
 	number,
 	number,
-	boolean
+	boolean,
 ];
 type RectCommand = ['R', number, number, number, number];
 type RoundRectCommand = [
@@ -80,7 +80,7 @@ type RoundRectCommand = [
 	number,
 	number,
 	number,
-	number | number[]
+	number | number[],
 ];
 type GenericCommand = [Command, ...(number | boolean | number[])[]];
 
@@ -239,7 +239,7 @@ export class Path2D implements globalThis.Path2D {
 		r: number,
 		start: number,
 		end: number,
-		ccw: boolean
+		ccw: boolean,
 	) {
 		_(this).push(['AC', x, y, r, start, end, !!ccw]);
 	}
@@ -256,7 +256,7 @@ export class Path2D implements globalThis.Path2D {
 		angle: number,
 		start: number,
 		end: number,
-		ccw: boolean
+		ccw: boolean,
 	) {
 		_(this).push(['E', x, y, rx, ry, angle, start, end, !!ccw]);
 	}
@@ -271,7 +271,7 @@ export class Path2D implements globalThis.Path2D {
 		cp2x: number,
 		cp2y: number,
 		x: number,
-		y: number
+		y: number,
 	) {
 		_(this).push(['C', cp1x, cp1y, cp2x, cp2y, x, y]);
 	}
@@ -289,7 +289,7 @@ export class Path2D implements globalThis.Path2D {
 		y: number,
 		width: number,
 		height: number,
-		radii?: number | number[]
+		radii?: number | number[],
 	) {
 		if (typeof radii === 'undefined') {
 			_(this).push(['RR', x, y, width, height, 0]);
@@ -451,8 +451,7 @@ $.applyPath = (ctx: CanvasRenderingContext2D, path: Path2D) => {
 				};
 				t1 = rx * rx * ry * ry;
 				t2 =
-					rx * rx * midPoint.y * midPoint.y +
-					ry * ry * midPoint.x * midPoint.x;
+					rx * rx * midPoint.y * midPoint.y + ry * ry * midPoint.x * midPoint.x;
 				if (sweepFlag !== largeArcFlag) {
 					scalePoint(centerPoint, Math.sqrt((t1 - t2) / t2) || 0);
 				} else {
@@ -461,18 +460,18 @@ $.applyPath = (ctx: CanvasRenderingContext2D, path: Path2D) => {
 
 				startAngle = Math.atan2(
 					(midPoint.y - centerPoint.y) / ry,
-					(midPoint.x - centerPoint.x) / rx
+					(midPoint.x - centerPoint.x) / rx,
 				);
 				endAngle = Math.atan2(
 					-(midPoint.y + centerPoint.y) / ry,
-					-(midPoint.x + centerPoint.x) / rx
+					-(midPoint.x + centerPoint.x) / rx,
 				);
 
 				rotatePoint(centerPoint, angle);
 				translatePoint(
 					centerPoint,
 					(endPoint.x + currentPoint.x) / 2,
-					(endPoint.y + currentPoint.y) / 2
+					(endPoint.y + currentPoint.y) / 2,
 				);
 
 				ctx.save();
@@ -498,7 +497,7 @@ $.applyPath = (ctx: CanvasRenderingContext2D, path: Path2D) => {
 					c[3] + x,
 					c[4] + y,
 					c[5] + x,
-					c[6] + y
+					c[6] + y,
 				);
 				cpx = c[3] + x; // Last control point
 				cpy = c[4] + y;
@@ -512,14 +511,7 @@ $.applyPath = (ctx: CanvasRenderingContext2D, path: Path2D) => {
 					cpy = y;
 				}
 
-				ctx.bezierCurveTo(
-					2 * x - cpx,
-					2 * y - cpy,
-					c[1],
-					c[2],
-					c[3],
-					c[4]
-				);
+				ctx.bezierCurveTo(2 * x - cpx, 2 * y - cpy, c[1], c[2], c[3], c[4]);
 				cpx = c[1]; // last control point
 				cpy = c[2];
 				x = c[3];
@@ -538,7 +530,7 @@ $.applyPath = (ctx: CanvasRenderingContext2D, path: Path2D) => {
 					c[1] + x,
 					c[2] + y,
 					c[3] + x,
-					c[4] + y
+					c[4] + y,
 				);
 				cpx = c[1] + x; // last control point
 				cpy = c[2] + y;

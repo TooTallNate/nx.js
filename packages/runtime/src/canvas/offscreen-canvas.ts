@@ -51,11 +51,11 @@ export class OffscreenCanvas
 
 	getContext(
 		contextId: '2d',
-		options?: any
+		options?: any,
 	): OffscreenCanvasRenderingContext2D {
 		if (contextId !== '2d') {
 			throw new TypeError(
-				`OffscreenCanvas.getContext: '${contextId}' (value of argument 1) is not a valid value for enumeration OffscreenRenderingContextId.`
+				`OffscreenCanvas.getContext: '${contextId}' (value of argument 1) is not a valid value for enumeration OffscreenRenderingContextId.`,
 			);
 		}
 		let i = _(this);
@@ -63,7 +63,7 @@ export class OffscreenCanvas
 			i.context2d = new OffscreenCanvasRenderingContext2D(
 				// @ts-expect-error
 				INTERNAL_SYMBOL,
-				this
+				this,
 			);
 		}
 		return i.context2d;

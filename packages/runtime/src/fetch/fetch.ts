@@ -29,7 +29,7 @@ function concat(a: Uint8Array, b: Uint8Array) {
 }
 
 async function* headersIterator(
-	reader: ReadableStreamDefaultReader<Uint8Array>
+	reader: ReadableStreamDefaultReader<Uint8Array>,
 ): AsyncGenerator<{ line: string } | { line: null; leftover: Uint8Array }> {
 	let leftover: Uint8Array | null = null;
 	while (true) {
@@ -124,7 +124,7 @@ async function fetchHttp(req: Request, url: URL): Promise<Response> {
 		// @ts-expect-error Internal constructor
 		INTERNAL_SYMBOL,
 		{ hostname, port },
-		{ secureTransport: isHttps ? 'on' : 'off', connect }
+		{ secureTransport: isHttps ? 'on' : 'off', connect },
 	);
 
 	req.headers.set('connection', 'close');
@@ -180,7 +180,7 @@ async function fetchHttp(req: Request, url: URL): Promise<Response> {
 			const loc = resHeaders.get('location');
 			if (!loc) {
 				throw new Error(
-					`No "Location" header in ${status} redirect from "${url}"`
+					`No "Location" header in ${status} redirect from "${url}"`,
 				);
 			}
 			const redirectUrl = new URL(loc, req.url);
@@ -226,7 +226,7 @@ async function fetchHttp(req: Request, url: URL): Promise<Response> {
 async function fetchBlob(req: Request, url: URL) {
 	if (req.method !== 'GET') {
 		throw new Error(
-			`GET method must be used when fetching "${url.protocol}" protocol (got "${req.method}")`
+			`GET method must be used when fetching "${url.protocol}" protocol (got "${req.method}")`,
 		);
 	}
 	const data = objectUrls.get(req.url);
@@ -243,7 +243,7 @@ async function fetchBlob(req: Request, url: URL) {
 async function fetchData(req: Request, url: URL) {
 	if (req.method !== 'GET') {
 		throw new Error(
-			`GET method must be used when fetching "${url.protocol}" protocol (got "${req.method}")`
+			`GET method must be used when fetching "${url.protocol}" protocol (got "${req.method}")`,
 		);
 	}
 	const parsed = dataUriToBuffer(url);
@@ -258,7 +258,7 @@ async function fetchData(req: Request, url: URL) {
 async function fetchFile(req: Request, url: URL) {
 	if (req.method !== 'GET') {
 		throw new Error(
-			`GET method must be used when fetching "${url.protocol}" protocol (got "${req.method}")`
+			`GET method must be used when fetching "${url.protocol}" protocol (got "${req.method}")`,
 		);
 	}
 	const path = url.protocol === 'file:' ? `sdmc:${url.pathname}` : url.href;
@@ -283,7 +283,7 @@ const fetchers = new Map<string, (req: Request, url: URL) => Promise<Response>>(
 		['file:', fetchFile],
 		['sdmc:', fetchFile],
 		['romfs:', fetchFile],
-	]
+	],
 );
 
 /**

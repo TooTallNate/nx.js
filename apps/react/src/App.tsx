@@ -17,7 +17,7 @@ export function App() {
 			y={pos.y}
 			width={400}
 			height={300}
-			fill="green"
+			fill='green'
 			rotate={r}
 			onTouchMove={(e) => {
 				const touch = e.changedTouches[0];

@@ -17,13 +17,13 @@ export class ImageData implements globalThis.ImageData {
 		data: Uint8ClampedArray,
 		sw: number,
 		sh?: number,
-		settings?: ImageDataSettings
+		settings?: ImageDataSettings,
 	);
 	constructor(
 		swOrData: number | Uint8ClampedArray,
 		shOrSw: number,
 		settingsOrSh?: ImageDataSettings | number,
-		settings?: ImageDataSettings
+		settings?: ImageDataSettings,
 	) {
 		let imageDataSettings: ImageDataSettings | undefined;
 		if (typeof swOrData === 'number') {

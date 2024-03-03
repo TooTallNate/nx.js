@@ -55,7 +55,7 @@ export interface CurrentProfileOptions {
  * return the selected profile without user interaction.
  */
 export function currentProfile(
-	opts: CurrentProfileOptions & { required: true }
+	opts: CurrentProfileOptions & { required: true },
 ): Profile;
 export function currentProfile(opts?: CurrentProfileOptions): Profile | null;
 export function currentProfile({ required }: CurrentProfileOptions = {}) {

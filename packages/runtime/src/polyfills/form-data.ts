@@ -71,9 +71,9 @@ export class FormData implements globalThis.FormData {
 		callbackfn: (
 			value: FormDataEntryValue,
 			key: string,
-			parent: FormData
+			parent: FormData,
 		) => void,
-		thisArg?: any
+		thisArg?: any,
 	): void {
 		for (const [key, value] of this) {
 			callbackfn.call(thisArg, value, key, this);

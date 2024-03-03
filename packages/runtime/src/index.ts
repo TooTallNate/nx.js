@@ -206,7 +206,7 @@ $.onFrame((kDown) => {
 		globalThis.dispatchEvent(
 			new UIEvent('buttonup', {
 				detail: buttonsUp,
-			})
+			}),
 		);
 	}
 

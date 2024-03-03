@@ -57,7 +57,7 @@ export class Event implements globalThis.Event {
 	initEvent(
 		type: string,
 		bubbles?: boolean | undefined,
-		cancelable?: boolean | undefined
+		cancelable?: boolean | undefined,
 	): void {
 		throw new Error('Method not implemented.');
 	}

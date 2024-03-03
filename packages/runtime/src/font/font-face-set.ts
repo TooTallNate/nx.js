@@ -64,12 +64,8 @@ export class FontFaceSet extends EventTarget {
 		return _(this).entries();
 	}
 	forEach(
-		callbackfn: (
-			value: FontFace,
-			key: FontFace,
-			parent: FontFaceSet
-		) => void,
-		thisArg: any = this
+		callbackfn: (value: FontFace, key: FontFace, parent: FontFaceSet) => void,
+		thisArg: any = this,
 	): void {
 		for (const font of _(this)) {
 			callbackfn.call(thisArg, font, font, this);
@@ -93,7 +89,7 @@ def(fonts, 'fonts');
 
 export function findFont(
 	fontFaceSet: FontFaceSet,
-	desired: IFont
+	desired: IFont,
 ): FontFace | null {
 	if (!desired.family) {
 		throw new Error('No `font-family` was specified');

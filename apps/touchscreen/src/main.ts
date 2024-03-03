@@ -12,7 +12,7 @@ screen.addEventListener(
 	(e) => {
 		ctx.clearRect(0, 0, screen.width, screen.height);
 	},
-	{ once: true }
+	{ once: true },
 );
 
 screen.addEventListener('touchmove', (e) => {
@@ -26,7 +26,7 @@ screen.addEventListener('touchmove', (e) => {
 			touch.radiusY,
 			degreesToRadians(touch.rotationAngle),
 			0,
-			2 * Math.PI
+			2 * Math.PI,
 		);
 		ctx.closePath();
 		ctx.fill();

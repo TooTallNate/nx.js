@@ -97,7 +97,7 @@ export class Navigator {
 		if (!state.batt) {
 			state.batt = Promise.resolve(
 				// @ts-expect-error Internal constructor
-				new BatteryManager(INTERNAL_SYMBOL)
+				new BatteryManager(INTERNAL_SYMBOL),
 			);
 		}
 		return state.batt;
@@ -149,12 +149,7 @@ export class Navigator {
 						duration: p,
 					};
 				}
-				if (
-					p.highAmp < 0 ||
-					p.highAmp > 1 ||
-					p.lowAmp < 0 ||
-					p.lowAmp > 1
-				) {
+				if (p.highAmp < 0 || p.highAmp > 1 || p.lowAmp < 0 || p.lowAmp > 1) {
 					return false;
 				}
 				patternValues.push(p);

@@ -63,36 +63,36 @@ export interface Init {
 	canvasContext2dNew(c: Screen): CanvasRenderingContext2D;
 	canvasContext2dNew(c: OffscreenCanvas): OffscreenCanvasRenderingContext2D;
 	canvasContext2dInitClass(
-		c: ClassOf<CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D>
+		c: ClassOf<CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D>,
 	): void;
 	canvasContext2dGetImageData(
 		ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
 		sx: number,
 		sy: number,
 		sw: number,
-		sh: number
+		sh: number,
 	): ArrayBuffer;
 	canvasContext2dGetTransform(
-		ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D
+		ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
 	): number[];
 	canvasContext2dGetFont(
-		ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D
+		ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
 	): string;
 	canvasContext2dSetFont(
 		ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
 		font: FontFace,
 		size: number,
-		fontString: string
+		fontString: string,
 	): number[];
 	canvasContext2dGetFillStyle(
-		ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D
+		ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
 	): RGBA;
 	canvasContext2dSetFillStyle(
 		ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
 		...rgba: RGBA
 	): number[];
 	canvasContext2dGetStrokeStyle(
-		ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D
+		ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
 	): RGBA;
 	canvasContext2dSetStrokeStyle(
 		ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
@@ -103,7 +103,7 @@ export interface Init {
 	cryptoDigest(
 		cb: Callback<ArrayBuffer>,
 		algorithm: string,
-		buf: ArrayBuffer
+		buf: ArrayBuffer,
 	): void;
 	cryptoRandomBytes(buf: ArrayBuffer, offset: number, length: number): void;
 
@@ -120,7 +120,7 @@ export interface Init {
 	// error.c
 	onError(fn: (err: any) => number): void;
 	onUnhandledRejection(
-		fn: (promise: Promise<unknown>, reason: any) => number
+		fn: (promise: Promise<unknown>, reason: any) => number,
 	): void;
 
 	// font.c
@@ -199,13 +199,13 @@ export interface Init {
 			str: string,
 			cursorPos: number,
 			dicStartCursorPos: number,
-			dicEndCursorPos: number
+			dicEndCursorPos: number,
 		) => void;
 		onSubmit: (this: VirtualKeyboard, str: string) => void;
 		onCursorMove: (
 			this: VirtualKeyboard,
 			str: string,
-			cursorPos: number
+			cursorPos: number,
 		) => void;
 	}): VirtualKeyboard;
 	swkbdShow(s: VirtualKeyboard): [number, number, number, number];
@@ -221,24 +221,24 @@ export interface Init {
 	tcpServerNew(
 		ip: string,
 		port: number,
-		onAccept: (fd: number) => void
+		onAccept: (fd: number) => void,
 	): Server;
 
 	// tls.c
 	tlsHandshake(
 		cb: Callback<TlsContextOpaque>,
 		fd: number,
-		hostname: string
+		hostname: string,
 	): void;
 	tlsWrite(
 		cb: Callback<number>,
 		ctx: TlsContextOpaque,
-		data: ArrayBuffer
+		data: ArrayBuffer,
 	): void;
 	tlsRead(
 		cb: Callback<number>,
 		ctx: TlsContextOpaque,
-		buffer: ArrayBuffer
+		buffer: ArrayBuffer,
 	): void;
 
 	// url.c
@@ -248,7 +248,7 @@ export interface Init {
 	urlSearchNew(input: string, url?: URL): URLSearchParams;
 	urlSearchIterator(
 		params: URLSearchParams,
-		type: number
+		type: number,
 	): URLSearchParamsIterator;
 	urlSearchIteratorNext(it: URLSearchParamsIterator): any;
 
@@ -261,7 +261,7 @@ export interface Init {
 	wasmNewModule(b: ArrayBuffer): WasmModuleOpaque;
 	wasmNewInstance(
 		m: WasmModuleOpaque,
-		imports: any[]
+		imports: any[],
 	): [WasmInstanceOpaque, any[]];
 	wasmNewGlobal(): WasmGlobalOpaque;
 	wasmModuleExports(m: WasmModuleOpaque): any[];

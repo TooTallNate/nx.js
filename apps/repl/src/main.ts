@@ -30,7 +30,7 @@ addEventListener('keydown', (e) => {
 	if (key.length === 1) {
 		// Printable character
 		buffer = `${buffer.slice(0, cursorPosition)}${key}${buffer.slice(
-			cursorPosition
+			cursorPosition,
 		)}`;
 		cursorPosition++;
 		renderPrompt();
@@ -73,7 +73,7 @@ addEventListener('keydown', (e) => {
 	} else if (key === 'Backspace') {
 		if (buffer.length) {
 			buffer = `${buffer.slice(0, cursorPosition - 1)}${buffer.slice(
-				cursorPosition
+				cursorPosition,
 			)}`;
 			cursorPosition--;
 			renderPrompt();

@@ -42,7 +42,7 @@ export class InputManager {
 			if (Math.max(absDx, absDy) > 10) {
 				// (right : left) : (down : up)
 				this.gameManager.move(
-					absDx > absDy ? (dx > 0 ? 1 : 3) : dy > 0 ? 2 : 0
+					absDx > absDy ? (dx > 0 ? 1 : 3) : dy > 0 ? 2 : 0,
 				);
 			}
 		});

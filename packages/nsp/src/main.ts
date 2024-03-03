@@ -32,7 +32,7 @@ const isSrcMode = existsSync(new URL('tsconfig.json', root));
 
 const createTmpDir = (type: string) => {
 	const dir = new URL(
-		`${pathToFileURL(mkdtempSync(join(tmpDir, `nxjs-nsp_${type}.`)))}/`
+		`${pathToFileURL(mkdtempSync(join(tmpDir, `nxjs-nsp_${type}.`)))}/`,
 	);
 	tmpPaths.push(dir);
 	return dir;
@@ -66,9 +66,9 @@ try {
 		console.log(
 			chalk.yellow(
 				`⚠️  No ${chalk.bold(
-					`"${iconName}"`
-				)} file found. Default nx.js icon will be used.`
-			)
+					`"${iconName}"`,
+				)} file found. Default nx.js icon will be used.`,
+			),
 		);
 	}
 	const iconDest = new URL('icon_AmericanEnglish.dat', controlDir);
@@ -101,10 +101,7 @@ try {
 	}
 
 	patchNACP(nacp, new URL('package.json', appRoot));
-	writeFileSync(
-		new URL('control.nacp', controlDir),
-		Buffer.from(nacp.buffer)
-	);
+	writeFileSync(new URL('control.nacp', controlDir), Buffer.from(nacp.buffer));
 	const titleid = nacp.id.toString(16).padStart(16, '0');
 	console.log();
 	console.log(chalk.bold('Setting metadata:'));
@@ -152,7 +149,7 @@ try {
 		[fileURLToPath(new URL('hacbrewpack.cjs', root)), ...argv],
 		{
 			stdio: ['ignore', 'pipe', 'pipe'],
-		}
+		},
 	);
 	const [[exitCode, signal]] = await Promise.all([
 		once(child, 'exit'),
@@ -182,10 +179,8 @@ try {
 		cpSync(nspSrc, nspDest);
 		console.log(
 			chalk.green(
-				`🎉 Success! Generated NSP file ${chalk.bold(
-					`"${outputNspName}"`
-				)}`
-			) + ` (${bytes(statSync(nspDest).size).toLowerCase()})`
+				`🎉 Success! Generated NSP file ${chalk.bold(`"${outputNspName}"`)}`,
+			) + ` (${bytes(statSync(nspDest).size).toLowerCase()})`,
 		);
 	}
 } catch (err: any) {

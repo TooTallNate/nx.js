@@ -75,39 +75,35 @@ export class CanvasActuator {
 		this.ctx.fillText(
 			'Use the D-pad or swipe the',
 			instructionsTextX,
-			instructionsTextY
+			instructionsTextY,
 		);
 		instructionsTextY += 30;
 		this.ctx.fillText(
 			'screen to move the tiles.',
 			instructionsTextX,
-			instructionsTextY
+			instructionsTextY,
 		);
 
 		instructionsTextY += 60;
 		this.ctx.fillText(
 			'Tiles with the same',
 			instructionsTextX,
-			instructionsTextY
+			instructionsTextY,
 		);
 		instructionsTextY += 30;
 		this.ctx.fillText(
 			'number merge into one',
 			instructionsTextX,
-			instructionsTextY
+			instructionsTextY,
 		);
 		instructionsTextY += 30;
-		this.ctx.fillText(
-			'when they touch.',
-			instructionsTextX,
-			instructionsTextY
-		);
+		this.ctx.fillText('when they touch.', instructionsTextX, instructionsTextY);
 
 		instructionsTextY += 60;
 		this.ctx.fillText(
 			'Add them up to reach 2048!',
 			instructionsTextX,
-			instructionsTextY
+			instructionsTextY,
 		);
 
 		this.gridSize = 600;
@@ -201,14 +197,8 @@ export class CanvasActuator {
 
 	tilePosition(x, y) {
 		return {
-			x:
-				this.gridX +
-				this.gridSpacing +
-				x * (this.tileSize + this.gridSpacing),
-			y:
-				this.gridY +
-				this.gridSpacing +
-				y * (this.tileSize + this.gridSpacing),
+			x: this.gridX + this.gridSpacing + x * (this.tileSize + this.gridSpacing),
+			y: this.gridY + this.gridSpacing + y * (this.tileSize + this.gridSpacing),
 		};
 	}
 
@@ -217,7 +207,7 @@ export class CanvasActuator {
 			// Render the (potentially) moving tile at its current location
 			const oldPos = this.tilePosition(
 				tile.previousPosition.x,
-				tile.previousPosition.y
+				tile.previousPosition.y,
 			);
 			const tilePos = this.tilePosition(tile.x, tile.y);
 			const t = Math.min(delta / tileMoveDuration, 1);
@@ -360,13 +350,7 @@ export class CanvasActuator {
 
 		this.ctx.beginPath();
 		this.ctx.fillStyle = `rgba(255, 255, 255, ${e.y / 2})`;
-		this.ctx.roundRect(
-			this.gridX,
-			this.gridY,
-			this.gridSize,
-			this.gridSize,
-			8
-		);
+		this.ctx.roundRect(this.gridX, this.gridY, this.gridSize, this.gridSize, 8);
 		this.ctx.fill();
 
 		this.ctx.font = 'bold 64px "Clear Sans"';

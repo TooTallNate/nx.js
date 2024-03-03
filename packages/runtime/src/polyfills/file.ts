@@ -9,7 +9,7 @@ export class File extends Blob implements globalThis.File {
 	constructor(
 		fileParts: BlobPart[],
 		fileName: string,
-		options: FilePropertyBag = {}
+		options: FilePropertyBag = {},
 	) {
 		super(fileParts, options);
 		this.name = fileName.replace(/\//g, ':');

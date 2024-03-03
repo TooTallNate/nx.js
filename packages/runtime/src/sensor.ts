@@ -56,17 +56,17 @@ export abstract class Sensor extends EventTarget {
 	addEventListener(
 		type: 'activate' | 'error' | 'reading',
 		listener: (ev: Event) => any,
-		options?: boolean | AddEventListenerOptions
+		options?: boolean | AddEventListenerOptions,
 	): void;
 	addEventListener(
 		type: string,
 		listener: EventListenerOrEventListenerObject,
-		options?: boolean | AddEventListenerOptions
+		options?: boolean | AddEventListenerOptions,
 	): void;
 	addEventListener(
 		type: string,
 		callback: EventListenerOrEventListenerObject | null,
-		options?: boolean | AddEventListenerOptions
+		options?: boolean | AddEventListenerOptions,
 	): void {
 		super.addEventListener(type, callback, options);
 	}

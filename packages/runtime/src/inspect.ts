@@ -76,9 +76,7 @@ export const inspect = (v: unknown, opts: InspectOptions = {}): string => {
 		const contents =
 			v.length === 0
 				? ''
-				: ` ${v
-						.map((e) => inspect(e, { ...opts, refs, depth }))
-						.join(', ')} `;
+				: ` ${v.map((e) => inspect(e, { ...opts, refs, depth })).join(', ')} `;
 		return `[${contents}]`;
 	}
 	if (isRegExp(v)) {
@@ -118,7 +116,7 @@ export const inspect = (v: unknown, opts: InspectOptions = {}): string => {
 		if (contents.length > 50) c += '...';
 		const len = inspect(v.byteLength);
 		return `ArrayBuffer { ${cyan(
-			'[Uint8Contents]'
+			'[Uint8Contents]',
 		)}: <${c}>, byteLength: ${len} }`;
 	}
 	if (isTypedArray(v)) {

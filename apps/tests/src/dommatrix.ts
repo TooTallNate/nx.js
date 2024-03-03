@@ -41,7 +41,7 @@ test('identity', () => {
 	assert.equal(d.isIdentity, true);
 	assert.equal(
 		d.toString(),
-		'matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)'
+		'matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)',
 	);
 });
 
@@ -50,7 +50,7 @@ test('flipX()', () => {
 	const flipped = matrix.flipX();
 	assert.equal(
 		flipped.toString(),
-		'matrix(-1.2246467991473532e-16, -2, -3, 1.8369701987210297e-16, 12, 8)'
+		'matrix(-1.2246467991473532e-16, -2, -3, 1.8369701987210297e-16, 12, 8)',
 	);
 });
 
@@ -59,7 +59,7 @@ test('flipY()', () => {
 	const flipped = matrix.flipY();
 	assert.equal(
 		flipped.toString(),
-		'matrix(1.2246467991473532e-16, 2, 3, -1.8369701987210297e-16, 12, 8)'
+		'matrix(1.2246467991473532e-16, 2, 3, -1.8369701987210297e-16, 12, 8)',
 	);
 });
 
@@ -72,7 +72,7 @@ test('translate()', () => {
 	assert.equal(d.is2D, false);
 	assert.equal(
 		d.toString(),
-		'matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 5, 7, 3, 1)'
+		'matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 5, 7, 3, 1)',
 	);
 });
 
@@ -101,7 +101,7 @@ test('invertSelf()', () => {
 	matrix.invertSelf();
 	assert.equal(
 		matrix.toString(),
-		'matrix(3.061616997868383e-17, -0.3333333333333333, 0.5, 2.041077998578922e-17, -4.000000000000001, 4)'
+		'matrix(3.061616997868383e-17, -0.3333333333333333, 0.5, 2.041077998578922e-17, -4.000000000000001, 4)',
 	);
 });
 

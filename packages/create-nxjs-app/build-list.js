@@ -10,7 +10,7 @@ for (const app of fs.readdirSync(appsDir)) {
 	const appDir = new URL(app, appsDir);
 	if (!fs.lstatSync(appDir).isDirectory()) continue;
 	const pkg = JSON.parse(
-		fs.readFileSync(new URL(`${app}/package.json`, appsDir), 'utf8')
+		fs.readFileSync(new URL(`${app}/package.json`, appsDir), 'utf8'),
 	);
 	appMeta.push({
 		name: app,
@@ -21,7 +21,7 @@ for (const app of fs.readdirSync(appsDir)) {
 const packages = {};
 for (const pkgName of fs.readdirSync(packagesDir)) {
 	const pkg = JSON.parse(
-		fs.readFileSync(new URL(`${pkgName}/package.json`, packagesDir), 'utf8')
+		fs.readFileSync(new URL(`${pkgName}/package.json`, packagesDir), 'utf8'),
 	);
 	packages[pkg.name] = {
 		version: pkg.version,
@@ -42,6 +42,6 @@ fs.writeFileSync(
 			packages,
 		},
 		null,
-		2
-	)
+		2,
+	),
 );

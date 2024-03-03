@@ -107,7 +107,7 @@ export class Image extends EventTarget {
 				(error) => {
 					internal.complete = false;
 					this.dispatchEvent(new ErrorEvent('error', { error }));
-				}
+				},
 			);
 	}
 

@@ -213,13 +213,13 @@ export function chdir(dir: PathLike) {
  */
 export function connect<Host extends string, Port extends string>(
 	address: `${Host}:${Port}` | SocketAddress,
-	opts?: SocketOptions
+	opts?: SocketOptions,
 ) {
 	return new Socket(
 		// @ts-expect-error Internal constructor
 		INTERNAL_SYMBOL,
 		typeof address === 'string' ? parseAddress(address) : address,
-		{ ...opts, connect: tcpConnect }
+		{ ...opts, connect: tcpConnect },
 	);
 }
 

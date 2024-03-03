@@ -29,9 +29,7 @@ export interface ReadableStreamReadValueResult<T> {
 export interface UnderlyingByteSource {
 	autoAllocateChunkSize?: number;
 	cancel?: UnderlyingSourceCancelCallback;
-	pull?: (
-		controller: ReadableByteStreamController
-	) => void | PromiseLike<void>;
+	pull?: (controller: ReadableByteStreamController) => void | PromiseLike<void>;
 	start?: (controller: ReadableByteStreamController) => any;
 	type: 'bytes';
 }
@@ -39,7 +37,7 @@ export interface UnderlyingByteSource {
 export interface UnderlyingDefaultSource<R = any> {
 	cancel?: UnderlyingSourceCancelCallback;
 	pull?: (
-		controller: ReadableStreamDefaultController<R>
+		controller: ReadableStreamDefaultController<R>,
 	) => void | PromiseLike<void>;
 	start?: (controller: ReadableStreamDefaultController<R>) => any;
 	type?: undefined;
@@ -56,7 +54,7 @@ export interface TransformerStartCallback<O> {
 export interface TransformerTransformCallback<I, O> {
 	(
 		chunk: I,
-		controller: TransformStreamDefaultController<O>
+		controller: TransformStreamDefaultController<O>,
 	): void | PromiseLike<void>;
 }
 
@@ -75,7 +73,7 @@ export interface UnderlyingSinkStartCallback {
 export interface UnderlyingSinkWriteCallback<W> {
 	(
 		chunk: W,
-		controller: WritableStreamDefaultController
+		controller: WritableStreamDefaultController,
 	): void | PromiseLike<void>;
 }
 
@@ -200,15 +198,15 @@ export declare class ReadableStream<R = any>
 {
 	constructor(
 		underlyingSource: UnderlyingByteSource,
-		strategy?: { highWaterMark?: number }
+		strategy?: { highWaterMark?: number },
 	);
 	constructor(
 		underlyingSource: UnderlyingDefaultSource<R>,
-		strategy?: QueuingStrategy<R>
+		strategy?: QueuingStrategy<R>,
 	);
 	constructor(
 		underlyingSource?: UnderlyingSource<R>,
-		strategy?: QueuingStrategy<R>
+		strategy?: QueuingStrategy<R>,
 	);
 
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStream/locked) */
@@ -218,18 +216,16 @@ export declare class ReadableStream<R = any>
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStream/getReader) */
 	getReader(options: { mode: 'byob' }): ReadableStreamBYOBReader;
 	getReader(): ReadableStreamDefaultReader<R>;
-	getReader(
-		options?: ReadableStreamGetReaderOptions
-	): ReadableStreamReader<R>;
+	getReader(options?: ReadableStreamGetReaderOptions): ReadableStreamReader<R>;
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStream/pipeThrough) */
 	pipeThrough<T>(
 		transform: ReadableWritablePair<T, R>,
-		options?: StreamPipeOptions
+		options?: StreamPipeOptions,
 	): ReadableStream<T>;
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStream/pipeTo) */
 	pipeTo(
 		destination: WritableStream<R>,
-		options?: StreamPipeOptions
+		options?: StreamPipeOptions,
 	): Promise<void>;
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStream/tee) */
 	tee(): [ReadableStream<R>, ReadableStream<R>];
@@ -246,7 +242,7 @@ export declare class ReadableStreamBYOBReader
 	cancel(reason?: any): Promise<void>;
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStreamBYOBReader/read) */
 	read<T extends ArrayBufferView>(
-		view: T
+		view: T,
 	): Promise<ReadableStreamReadResult<T>>;
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStreamBYOBReader/releaseLock) */
 	releaseLock(): void;
@@ -297,7 +293,7 @@ export declare class TransformStream<I = any, O = any> {
 	constructor(
 		transformer?: Transformer<I, O>,
 		writableStrategy?: QueuingStrategy<I>,
-		readableStrategy?: QueuingStrategy<O>
+		readableStrategy?: QueuingStrategy<O>,
 	);
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/TransformStream/readable) */
 	readonly readable: ReadableStream<O>;
@@ -325,7 +321,7 @@ export declare class TransformStreamDefaultController<O = any> {
 export declare class WritableStream<W = any> {
 	constructor(
 		underlyingSink?: UnderlyingSink<W>,
-		strategy?: QueuingStrategy<W>
+		strategy?: QueuingStrategy<W>,
 	);
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/WritableStream/locked) */
 	readonly locked: boolean;

@@ -31,7 +31,7 @@ async function hasPackageManager(name: string) {
 
 function removeWorkspace(
 	deps: Record<string, string> = {},
-	packages: Data['packages']
+	packages: Data['packages'],
 ) {
 	for (const [name, value] of Object.entries(deps)) {
 		const noWorkspace = value.replace(/^workspace:\*?/, '');
@@ -53,9 +53,7 @@ async function exec(cmd: string, args: string[], opts: SpawnOptions = {}) {
 	}
 	const [exitCode] = await once(c, 'exit');
 	if (exitCode !== 0) {
-		throw new Error(
-			`Command "${cmd} ${args.join(' ')}" exit code ${exitCode}`
-		);
+		throw new Error(`Command "${cmd} ${args.join(' ')}" exit code ${exitCode}`);
 	}
 	return stdout;
 }
@@ -73,10 +71,10 @@ try {
 	// Ask which example app to clone
 	const distDir = new URL('../dist/', import.meta.url);
 	const { version } = JSON.parse(
-		await fs.readFile(new URL('../package.json', import.meta.url), 'utf8')
+		await fs.readFile(new URL('../package.json', import.meta.url), 'utf8'),
 	);
 	const data: Data = JSON.parse(
-		await fs.readFile(new URL('data.json', distDir), 'utf8')
+		await fs.readFile(new URL('data.json', distDir), 'utf8'),
 	);
 	const template = await clack.select({
 		message: 'Select a nx.js template:',
@@ -85,7 +83,7 @@ try {
 				label: terminalLink(
 					name,
 					`https://github.com/TooTallNate/nx.js/tree/v${version}/apps/${name}`,
-					{ fallback: false }
+					{ fallback: false },
 				),
 				value: name,
 				hint: description,
@@ -116,14 +114,12 @@ try {
 			console.log(`${info.code}: ${info.message}`);
 		}
 	});
-	const clonePromise = emitter
-		.clone(fileURLToPath(appDir))
-		.catch((err) => err);
+	const clonePromise = emitter.clone(fileURLToPath(appDir)).catch((err) => err);
 
 	// Ask which package manager to use. This happens
 	// in parallel of cloning the example application.
 	const packageManagers = (await packageManagersPromise).filter(
-		(p) => p !== null
+		(p) => p !== null,
 	) as string[];
 	const packageManager = await clack.select({
 		message: 'Install dependencies using which package manager?',
@@ -144,9 +140,7 @@ try {
 
 	// Wait for cloning to complete
 	const spinner = clack.spinner();
-	spinner.start(
-		`Cloning \`${template}\` template into "${appName}" directory`
-	);
+	spinner.start(`Cloning \`${template}\` template into "${appName}" directory`);
 	const cloneError = await clonePromise;
 	if (cloneError) {
 		console.error(`There was an error during the cloning process:`);
@@ -198,8 +192,8 @@ try {
 				...packageJson,
 			},
 			null,
-			2
-		)}\n`
+			2,
+		)}\n`,
 	);
 
 	// Install dependencies
@@ -221,23 +215,17 @@ try {
 	// Ok, we're done
 	clack.outro(
 		chalk.green(
-			`🎉 nx.js app ${chalk.bold(
-				`"${appName}"`
-			)} initialized successfully!`
-		)
+			`🎉 nx.js app ${chalk.bold(`"${appName}"`)} initialized successfully!`,
+		),
 	);
 	console.log(chalk.bold('Next steps'));
 	console.log();
 	const cmd = chalk.yellow;
 	if (packageManager === 'skip') {
 		console.log(` • Run the following command: ${cmd(`cd ${appName}`)}`);
-		console.log(
-			` • Install dependencies using your preferred package manager`
-		);
+		console.log(` • Install dependencies using your preferred package manager`);
 		console.log(` • Invoke the ${cmd('build')} script to bundle your app`);
-		console.log(
-			` • Invoke the ${cmd('nro')} script to generate a NRO file`
-		);
+		console.log(` • Invoke the ${cmd('nro')} script to generate a NRO file`);
 	} else {
 		console.log(` • Run the following commands:`);
 		console.log();

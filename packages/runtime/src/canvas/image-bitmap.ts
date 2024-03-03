@@ -60,7 +60,7 @@ export interface ImageBitmapOptions {
  */
 export function createImageBitmap(
 	image: ImageBitmapSource,
-	options?: ImageBitmapOptions
+	options?: ImageBitmapOptions,
 ): Promise<ImageBitmap>;
 export function createImageBitmap(
 	image: ImageBitmapSource,
@@ -68,7 +68,7 @@ export function createImageBitmap(
 	sy: number,
 	sw: number,
 	sh: number,
-	options?: ImageBitmapOptions
+	options?: ImageBitmapOptions,
 ): Promise<ImageBitmap>;
 export async function createImageBitmap(
 	image: ImageBitmapSource,
@@ -76,7 +76,7 @@ export async function createImageBitmap(
 	sy?: number,
 	sw?: number,
 	sh?: number,
-	options?: ImageBitmapOptions
+	options?: ImageBitmapOptions,
 ): Promise<ImageBitmap> {
 	throw new Error('Function not implemented');
 }

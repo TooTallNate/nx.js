@@ -119,7 +119,7 @@ export class DOMMatrixReadOnly implements globalThis.DOMMatrixReadOnly {
 		x?: number,
 		y?: number,
 		z?: number,
-		angle?: number
+		angle?: number,
 	): DOMMatrix {
 		return DOMMatrix.fromMatrix(this).rotateAxisAngleSelf(x, y, z, angle);
 	}
@@ -134,7 +134,7 @@ export class DOMMatrixReadOnly implements globalThis.DOMMatrixReadOnly {
 		scaleZ?: number,
 		originX?: number,
 		originY?: number,
-		originZ?: number
+		originZ?: number,
 	): DOMMatrix {
 		return DOMMatrix.fromMatrix(this).scaleSelf(
 			scaleX,
@@ -142,7 +142,7 @@ export class DOMMatrixReadOnly implements globalThis.DOMMatrixReadOnly {
 			scaleZ,
 			originX,
 			originY,
-			originZ
+			originZ,
 		);
 	}
 
@@ -150,13 +150,13 @@ export class DOMMatrixReadOnly implements globalThis.DOMMatrixReadOnly {
 		scale?: number,
 		originX?: number,
 		originY?: number,
-		originZ?: number
+		originZ?: number,
 	): DOMMatrix {
 		return DOMMatrix.fromMatrix(this).scale3dSelf(
 			scale,
 			originX,
 			originY,
-			originZ
+			originZ,
 		);
 	}
 
@@ -292,14 +292,13 @@ export class DOMMatrix
 		x?: number,
 		y?: number,
 		z?: number,
-		angle?: number
+		angle?: number,
 	): DOMMatrix {
 		stub();
 	}
 
 	rotateFromVectorSelf(x = 0, y = 0): DOMMatrix {
-		const theta =
-			x === 0 && y === 0 ? 0 : Math.atan2(y, x) * DEGREE_PER_RAD;
+		const theta = x === 0 && y === 0 ? 0 : Math.atan2(y, x) * DEGREE_PER_RAD;
 		return this.rotateSelf(theta);
 	}
 
@@ -311,7 +310,7 @@ export class DOMMatrix
 		scale?: number,
 		originX?: number,
 		originY?: number,
-		originZ?: number
+		originZ?: number,
 	): DOMMatrix {
 		return this.scaleSelf(scale, scale, scale, originX, originY, originZ);
 	}
@@ -322,7 +321,7 @@ export class DOMMatrix
 		scaleZ?: number,
 		originX?: number,
 		originY?: number,
-		originZ?: number
+		originZ?: number,
 	): DOMMatrix {
 		stub();
 	}

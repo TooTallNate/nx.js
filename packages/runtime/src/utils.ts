@@ -10,7 +10,7 @@ import {
 
 export const proto = <T extends new (...args: any) => any>(
 	o: any,
-	c: T
+	c: T,
 ): InstanceType<T> => {
 	Object.setPrototypeOf(o, c.prototype);
 	return o;
@@ -59,14 +59,17 @@ export function asyncIteratorToStream<T>(it: AsyncIterableIterator<T>) {
 }
 
 export function toPromise<
-	Func extends (cb: Callback<any>, ...args: any[]) => any
+	Func extends (cb: Callback<any>, ...args: any[]) => any,
 >(fn: Func, ...args: CallbackArguments<Func>) {
 	return new Promise<CallbackReturnType<Func>>((resolve, reject) => {
 		try {
-			fn((err, result) => {
-				if (err) return reject(err);
-				resolve(result);
-			}, ...args);
+			fn(
+				(err, result) => {
+					if (err) return reject(err);
+					resolve(result);
+				},
+				...args,
+			);
 		} catch (err) {
 			reject(err);
 		}
@@ -105,9 +108,7 @@ export const createInternal = <K extends object, V>() => {
 	const _ = (k: K): V => {
 		const v = wm.get(k);
 		if (!v)
-			throw new Error(
-				`Failed to get \`${k.constructor.name}\` internal state`
-			);
+			throw new Error(`Failed to get \`${k.constructor.name}\` internal state`);
 		return v;
 	};
 	_.set = (k: K, v: V) => {
@@ -139,6 +140,6 @@ export function returnOnThrow<T extends (...args: any[]) => any>(
 
 export function stub(): never {
 	throw new Error(
-		'This is a stub function which should have been replaced by a native implementation'
+		'This is a stub function which should have been replaced by a native implementation',
 	);
 }

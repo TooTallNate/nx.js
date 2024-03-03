@@ -57,7 +57,7 @@ export function dispatchTouchEvents(screen: Screen) {
 				new TouchEvent('touchstart', {
 					touches,
 					changedTouches: startTouches,
-				})
+				}),
 			);
 		}
 		if (changedTouches.length) {
@@ -65,7 +65,7 @@ export function dispatchTouchEvents(screen: Screen) {
 				new TouchEvent('touchmove', {
 					touches,
 					changedTouches,
-				})
+				}),
 			);
 		}
 		if (endTouches.length) {
@@ -73,7 +73,7 @@ export function dispatchTouchEvents(screen: Screen) {
 				new TouchEvent('touchend', {
 					touches,
 					changedTouches: endTouches,
-				})
+				}),
 			);
 		}
 	} else if (previousTouches.length) {
@@ -82,7 +82,7 @@ export function dispatchTouchEvents(screen: Screen) {
 			new TouchEvent('touchend', {
 				touches: [],
 				changedTouches: previousTouches,
-			})
+			}),
 		);
 		previousTouches = [];
 	}

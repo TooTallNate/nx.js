@@ -21,7 +21,7 @@ const appRoot = new URL(`${pathToFileURL(cwd)}/`);
 const isSrcMode = existsSync(new URL('../tsconfig.json', import.meta.url));
 const nxjsNroUrl = new URL(
 	isSrcMode ? '../../../nxjs.nro' : '../dist/nxjs.nro',
-	import.meta.url
+	import.meta.url,
 );
 const nxjsNroBuffer = readFileSync(nxjsNroUrl);
 const nxjsNroBlob = new Blob([nxjsNroBuffer]);
@@ -42,9 +42,9 @@ try {
 	console.log(
 		chalk.yellow(
 			`⚠️  No ${chalk.bold(
-				`"${iconName}"`
-			)} file found. Default nx.js icon will be used.`
-		)
+				`"${iconName}"`,
+			)} file found. Default nx.js icon will be used.`,
+		),
 	);
 }
 const logoBuf = Buffer.from(await icon!.arrayBuffer());
@@ -73,7 +73,7 @@ function walk(dir: URL, dirEntry: RomFS.RomFsEntry) {
 		const fileUrl = new URL(name, dir);
 		const stat = statSync(fileUrl);
 		if (stat.isDirectory()) {
-			let entry = dirEntry[name] ?? Object.create(null);
+			const entry = dirEntry[name] ?? Object.create(null);
 			if (entry instanceof Blob) {
 				throw new Error(`Expected directory: ${fileUrl}`);
 			}
@@ -83,8 +83,8 @@ function walk(dir: URL, dirEntry: RomFS.RomFsEntry) {
 			const blob = new Blob([readFileSync(fileUrl)]);
 			console.log(
 				`  ${chalk.cyan(
-					relative(romfsDirPath, fileURLToPath(fileUrl))
-				)} (${bytes(blob.size).toLowerCase()})`
+					relative(romfsDirPath, fileURLToPath(fileUrl)),
+				)} (${bytes(blob.size).toLowerCase()})`,
 			);
 			dirEntry[name] = blob;
 		} else {
@@ -107,23 +107,19 @@ if (!(romfs['main.js'] instanceof Blob)) {
 	console.log(
 		chalk.yellow(
 			`${chalk.bold(
-				'Warning!'
-			)} No "main.js" file found in \`romfs\` directory.`
-		)
+				'Warning!',
+			)} No "main.js" file found in \`romfs\` directory.`,
+		),
 	);
 	console.log(
 		chalk.yellow(
-			`The entrypoint file ${chalk.bold(
-				`"${nacp.title}.js"`
-			)} will need to`
-		)
+			`The entrypoint file ${chalk.bold(`"${nacp.title}.js"`)} will need to`,
+		),
 	);
 	console.log(
 		chalk.yellow(
-			`be placed alongside ${chalk.bold(
-				`"${outputNroName}"`
-			)} on the SD card.`
-		)
+			`be placed alongside ${chalk.bold(`"${outputNroName}"`)} on the SD card.`,
+		),
 	);
 }
 
@@ -137,7 +133,7 @@ const outputNro = await NRO.encode({
 const outputNroUrl = new URL(outputNroName, appRoot);
 writeFileSync(outputNroUrl, Buffer.from(await outputNro.arrayBuffer()));
 console.log(
-	chalk.green(
-		`\n🎉 Success! Generated NRO file ${chalk.bold(`"${outputNroName}"`)}`
-	) + ` (${bytes(outputNro.size).toLowerCase()})`
+	`${chalk.green(
+		`\n🎉 Success! Generated NRO file ${chalk.bold(`"${outputNroName}"`)}`,
+	)} (${bytes(outputNro.size).toLowerCase()})`,
 );

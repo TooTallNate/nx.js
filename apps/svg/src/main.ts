@@ -3,7 +3,7 @@ import { DOMParser } from '@xmldom/xmldom';
 
 // From: https://commons.wikimedia.org/wiki/File:Ghostscript_Tiger.svg
 const svgData = Switch.readFileSync(
-	new URL('Ghostscript_Tiger.svg', Switch.entrypoint)
+	new URL('Ghostscript_Tiger.svg', Switch.entrypoint),
 );
 const svg = new TextDecoder().decode(svgData);
 
