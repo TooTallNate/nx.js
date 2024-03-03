@@ -2,6 +2,7 @@
   "private": true,
   "scripts": {
     "build": "turbo run build",
+    "nro": "turbo run nro",
     "bundle": "turbo run bundle",
     "format": "prettier --write \"**/*.{ts,js,mjs,tsx}\"",
     "ci:version": "changeset version && node .github/scripts/cleanup-examples.mjs && pnpm install --no-frozen-lockfile",

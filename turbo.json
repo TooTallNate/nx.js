@@ -5,6 +5,11 @@
       "dependsOn": ["^build"],
       "inputs": ["src/**"],
       "outputs": ["dist/**", "romfs/**"]
+    },
+    "nro": {
+      "dependsOn": ["^build"],
+      "inputs": ["src/**"],
+      "outputs": ["*.nro"]
     }
   }
 }
