@@ -1,4 +1,7 @@
 {
+  "linter": {
+    "enabled": false
+  },
   "formatter": {
     "ignore": [
       "romfs",
