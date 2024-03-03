@@ -7,7 +7,7 @@
       "outputs": ["dist/**", "romfs/**"]
     },
     "nro": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["build"],
       "inputs": ["src/**"],
       "outputs": ["*.nro"]
     }
