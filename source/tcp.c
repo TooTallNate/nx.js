@@ -184,12 +184,25 @@ JSValue nx_js_tcp_close(JSContext *ctx, JSValueConst this_val, int argc, JSValue
 	{
 		return JS_EXCEPTION;
 	}
+
+	nx_context_t* nx_ctx = JS_GetContextOpaque(ctx);
+	nx_watcher_t *watcher;
+	nx_watcher_t *twatcher;
+	SLIST_FOREACH_SAFE(watcher, &nx_ctx->poll.watchers_head, next, twatcher)
+	{
+		if (watcher->fd == fd) {
+			// TODO: reject promise for this watcher?
+			nx_remove_watcher(&nx_ctx->poll, watcher);
+		}
+	}
+
 	if (close(fd))
 	{
 		// TODO: Throw a regular error
 		JS_ThrowTypeError(ctx, strerror(errno));
 		return JS_EXCEPTION;
 	}
+
 	return JS_UNDEFINED;
 }
 
