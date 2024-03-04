@@ -172,3 +172,22 @@ export function createServerHandler(handler: ServerHandler) {
 		socket.close();
 	};
 }
+
+export function createStaticFileHandler(root: Switch.PathLike) {
+	return async function (req: Request): Promise<Response | null> {
+		const { pathname } = new URL(req.url);
+		const url = new URL(pathname, root);
+		console.log(url.href);
+		const stat = await Switch.stat(url);
+		console.log(stat);
+		if (!stat) return null;
+		// TODO: replace with readable stream API
+		const data = await Switch.readFile(url);
+		if (!data) return null;
+		return new Response(data, {
+			headers: {
+				'content-length': String(data.byteLength),
+			},
+		});
+	};
+}
