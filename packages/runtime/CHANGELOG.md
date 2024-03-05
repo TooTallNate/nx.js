@@ -1,5 +1,33 @@
 # nxjs-runtime
 
+## 0.0.37
+
+### Patch Changes
+
+- Return `null` in `Switch.readFile()` and `Switch.stat()` if file does not exist ([`b58f7837fbc515edc8b157afce5a2049bf4c697e`](https://github.com/TooTallNate/nx.js/commit/b58f7837fbc515edc8b157afce5a2049bf4c697e))
+
+- Add `DOMMatrix` and `DOMMatrixReadOnly` ([#92](https://github.com/TooTallNate/nx.js/pull/92))
+
+- Add stub types to make `screen` compatible with react-tela `render()` ([`aaa102460c8583d3f309385a2e07550a53bbc9b6`](https://github.com/TooTallNate/nx.js/commit/aaa102460c8583d3f309385a2e07550a53bbc9b6))
+
+- Add Canvas `setTransform()` ([#92](https://github.com/TooTallNate/nx.js/pull/92))
+
+- Implement `path` parameter of Canvas `fill()` and `stroke()` ([`74f074dea66e6c8acea477c9c9a081720c4dc5ce`](https://github.com/TooTallNate/nx.js/commit/74f074dea66e6c8acea477c9c9a081720c4dc5ce))
+
+- Add custom inspect for `DOMMatrix` ([`611f8e1be878a868f701794049a64e0358452c60`](https://github.com/TooTallNate/nx.js/commit/611f8e1be878a868f701794049a64e0358452c60))
+
+- Convert `Touch` into a proper class ([`31ee39f0d2758663a98bd7855dc538482e60b14a`](https://github.com/TooTallNate/nx.js/commit/31ee39f0d2758663a98bd7855dc538482e60b14a))
+
+- Remove poll watchers when closing TCP socket ([`ef3882923417c415e6ef0601c4974b64fe114a09`](https://github.com/TooTallNate/nx.js/commit/ef3882923417c415e6ef0601c4974b64fe114a09))
+
+- Add Canvas `isPointInPath()` ([`8ea15f522f29f6b7b7727c2841d9c56591db4f2d`](https://github.com/TooTallNate/nx.js/commit/8ea15f522f29f6b7b7727c2841d9c56591db4f2d))
+
+- Add more DOM compat to `screen` (`offsetWidth`, `offsetHeight`, `offsetTop`, `offsetLeft`) ([`8d689f8410d92adb45ddb541244a68b6b44787bb`](https://github.com/TooTallNate/nx.js/commit/8d689f8410d92adb45ddb541244a68b6b44787bb))
+
+- Apply transformation matrix in Canvas `isPointInPath()` and `isPointInStroke()` ([`65a360fa85765c59c18e14d275773e7bf2bddedf`](https://github.com/TooTallNate/nx.js/commit/65a360fa85765c59c18e14d275773e7bf2bddedf))
+
+- Add Canvas `isPointInStroke()` ([`28b1283d4f0ef973a5078cd4234caa257d3b9c6f`](https://github.com/TooTallNate/nx.js/commit/28b1283d4f0ef973a5078cd4234caa257d3b9c6f))
+
 ## 0.0.36
 
 ## 0.0.35

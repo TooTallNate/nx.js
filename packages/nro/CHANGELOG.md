@@ -1,5 +1,13 @@
 # @nx.js/nro
 
+## 0.0.37
+
+### Patch Changes
+
+- Print default `icon.jpg` warning in yellow ([`92c771ac8a06b6f0c35529879cd300780e297f33`](https://github.com/TooTallNate/nx.js/commit/92c771ac8a06b6f0c35529879cd300780e297f33))
+
+- Print logo JPEG image size ([`471ad673336325860fed605300eec07c6de372ae`](https://github.com/TooTallNate/nx.js/commit/471ad673336325860fed605300eec07c6de372ae))
+
 ## 0.0.36
 
 ### Patch Changes
