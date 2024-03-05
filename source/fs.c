@@ -252,14 +252,18 @@ void nx_read_file_cb(JSContext *ctx, nx_work_t *req, JSValue *args)
 	nx_fs_read_file_async_t *data = (nx_fs_read_file_async_t *)req->data;
 	JS_FreeCString(ctx, data->filename);
 
-	if (data->err)
+	if (data->err == ENOENT)
 	{
-		args[0] = JS_NewError(ctx);
-		JS_DefinePropertyValueStr(ctx, args[0], "message", JS_NewString(ctx, strerror(data->err)), JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
-		return;
+		args[1] = JS_NULL;
 	}
-
-	args[1] = JS_NewArrayBuffer(ctx, data->result, data->size, free_array_buffer, NULL, false);
+	else if (data->err)
+	{
+		JS_DefinePropertyValueStr(ctx, args[0], "message", JS_NewString(ctx, strerror(data->err)), JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+	}
+	else
+	{
+		args[1] = JS_NewArrayBuffer(ctx, data->result, data->size, free_array_buffer, NULL, false);
+	}
 }
 
 JSValue nx_read_file(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -387,14 +391,17 @@ void nx_stat_cb(JSContext *ctx, nx_work_t *req, JSValue *args)
 	nx_fs_stat_async_t *data = (nx_fs_stat_async_t *)req->data;
 	JS_FreeCString(ctx, data->filename);
 
-	if (data->err)
+	if (data->err == ENOENT) {
+		args[1] = JS_NULL;
+	}
+	else if (data->err)
 	{
 		args[0] = JS_NewError(ctx);
 		JS_DefinePropertyValueStr(ctx, args[0], "message", JS_NewString(ctx, strerror(data->err)), JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
 		return;
+	} else {
+		args[1] = statToObject(ctx, &data->st);
 	}
-
-	args[1] = statToObject(ctx, &data->st);
 }
 
 JSValue nx_stat(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)

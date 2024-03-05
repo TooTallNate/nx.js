@@ -81,24 +81,14 @@ test('`Switch.readFile()` works with URL path', async () => {
 	assert.ok(data.byteLength > 0);
 });
 
-test('`Switch.readFile()` rejects when file does not exist', async () => {
-	let err: Error | undefined;
-	try {
-		await Switch.readFile('romfs:/__does_not_exist__');
-	} catch (_err) {
-		err = _err as Error;
-	}
-	assert.ok(err);
+test('`Switch.readFile()` returns null when file does not exist', async () => {
+	const data = await Switch.readFile('romfs:/__does_not_exist__');
+	assert.equal(data, null);
 });
 
-test('`Switch.readFile()` rejects when attempting to read a directory', async () => {
-	let err: Error | undefined;
-	try {
-		await Switch.readFile('.');
-	} catch (_err) {
-		err = _err as Error;
-	}
-	assert.ok(err);
+test('`Switch.readFile()` returns null when attempting to read a directory', async () => {
+	const data = await Switch.readFile('.');
+	assert.equal(data, null);
 });
 
 test('`Switch.stat()` returns file information', async () => {
@@ -107,14 +97,9 @@ test('`Switch.stat()` returns file information', async () => {
 	assert.ok(stat.size > 0);
 });
 
-test('`Switch.stat()` rejects when file does not exist', async () => {
-	let err: Error | undefined;
-	try {
-		await Switch.stat('romfs:/__does_not_exist__');
-	} catch (_err) {
-		err = _err as Error;
-	}
-	assert.ok(err);
+test('`Switch.stat()` returns `null` when file does not exist', async () => {
+	const stat = await Switch.stat('romfs:/__does_not_exist__');
+	assert.equal(stat, null);
 });
 
 test("`Switch.removeSync()` doesn't throw when path does not exist", async () => {
