@@ -142,6 +142,25 @@ importers:
         specifier: workspace:^
         version: link:../../packages/runtime
 
+  apps/http-server:
+    dependencies:
+      '@nx.js/http':
+        specifier: workspace:^
+        version: link:../../packages/http
+    devDependencies:
+      '@nx.js/nro':
+        specifier: workspace:^
+        version: link:../../packages/nro
+      '@nx.js/nsp':
+        specifier: workspace:^
+        version: link:../../packages/nsp
+      esbuild:
+        specifier: ^0.17.19
+        version: 0.17.19
+      nxjs-runtime:
+        specifier: workspace:^
+        version: link:../../packages/runtime
+
   apps/react:
     dependencies:
       react:
@@ -411,6 +430,15 @@ importers:
       types-package-json:
         specifier: ^2.0.39
         version: 2.0.39
+      typescript:
+        specifier: ^5.3.2
+        version: 5.3.2
+
+  packages/http:
+    devDependencies:
+      nxjs-runtime:
+        specifier: workspace:*
+        version: link:../runtime
       typescript:
         specifier: ^5.3.2
         version: 5.3.2
