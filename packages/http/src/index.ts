@@ -1,3 +1,5 @@
+import mime from 'mime';
+
 export type ServerHandler = (req: Request) => Response | Promise<Response>;
 
 const decoder = new TextDecoder();
@@ -156,10 +158,8 @@ export function createServerHandler(handler: ServerHandler) {
 			headersStr += `${k}: ${v}\r\n`;
 		}
 
-		const resHeader = `${httpVersion} ${res.status} ${
-			res.statusText || STATUS_CODES[res.status]
-		}\r\n${headersStr}\r\n`;
-		console.log(resHeader);
+		const statusText = res.statusText || STATUS_CODES[res.status];
+		const resHeader = `${httpVersion} ${res.status} ${statusText}\r\n${headersStr}\r\n`;
 		const w = socket.writable.getWriter();
 		w.write(encoder.encode(resHeader));
 
@@ -169,6 +169,10 @@ export function createServerHandler(handler: ServerHandler) {
 		} else {
 			await w.close();
 		}
+
+		// TODO: Shouldn't be necessary…
+		//await new Promise(r => setTimeout(r, 1000));
+
 		socket.close();
 	};
 }
@@ -176,10 +180,8 @@ export function createServerHandler(handler: ServerHandler) {
 export function createStaticFileHandler(root: Switch.PathLike) {
 	return async function (req: Request): Promise<Response | null> {
 		const { pathname } = new URL(req.url);
-		const url = new URL(pathname, root);
-		console.log(url.href);
+		const url = new URL(pathname.slice(1), root);
 		const stat = await Switch.stat(url);
-		console.log(stat);
 		if (!stat) return null;
 		// TODO: replace with readable stream API
 		const data = await Switch.readFile(url);
@@ -187,6 +189,7 @@ export function createStaticFileHandler(root: Switch.PathLike) {
 		return new Response(data, {
 			headers: {
 				'content-length': String(data.byteLength),
+				'content-type': mime.getType(pathname) || 'application/octet-stream',
 			},
 		});
 	};

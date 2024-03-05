@@ -1,6 +1,12 @@
 import { createServerHandler, createStaticFileHandler } from '@nx.js/http';
+import { createRequestHandler, ServerBuild } from '@remix-run/server-runtime';
 
-const staticHandler = createStaticFileHandler('sdmc:/');
+// @ts-expect-error The Remix server build does not include any types
+import * as _build from '../build/server/index.js';
+const build: ServerBuild = _build;
+
+const staticHandler = createStaticFileHandler('romfs:/public/');
+const requestHandler = createRequestHandler(build);
 
 /**
  * Create a TCP echo server bound to "0.0.0.0:8080".
@@ -8,11 +14,10 @@ const staticHandler = createStaticFileHandler('sdmc:/');
 Switch.listen({
 	port: 8080,
 
-	// `accept` is invoked when a new TCP client has connected
 	accept: createServerHandler(async (req) => {
-		const res = await staticHandler(req);
-		if (res) return res;
-		return new Response('not found', { status: 404 });
+		let res = await staticHandler(req);
+		if (!res) res = await requestHandler(req);
+		return res;
 	}),
 });
 

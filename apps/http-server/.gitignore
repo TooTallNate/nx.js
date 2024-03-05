@@ -3,3 +3,5 @@
 /node_modules
 /romfs/main.js
 /romfs/main.js.map
+/romfs/public
+/build

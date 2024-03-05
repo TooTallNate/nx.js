@@ -2,9 +2,10 @@
   "name": "http-server",
   "version": "0.0.0",
   "private": true,
-  "description": "nx.js app that binds a TCP server to a port",
+  "type": "module",
+  "description": "nx.js app that serves a Remix application over HTTP",
   "scripts": {
-    "build": "esbuild --bundle --sourcemap --sources-content=false --target=es2022 --format=esm src/main.ts --outfile=romfs/main.js",
+    "build": "remix vite:build && rm -rf romfs && esbuild --bundle --sourcemap --sources-content=false --target=es2022 --format=esm src/main.ts --outfile=romfs/main.js && cp -r build/client romfs/public",
     "nro": "nxjs-nro",
     "nsp": "nxjs-nsp"
   },
@@ -12,10 +13,21 @@
   "devDependencies": {
     "@nx.js/nro": "workspace:^",
     "@nx.js/nsp": "workspace:^",
+    "@remix-run/dev": "2.8.0",
+    "@types/react": "^18.2.20",
+    "@types/react-dom": "^18.2.7",
     "esbuild": "^0.17.19",
-    "nxjs-runtime": "workspace:^"
+    "nxjs-runtime": "workspace:^",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "vite": "^5.1.0",
+    "vite-tsconfig-paths": "^4.2.1"
   },
   "dependencies": {
-    "@nx.js/http": "workspace:^"
+    "@nx.js/http": "workspace:^",
+    "@remix-run/cloudflare": "2.8.0",
+    "@remix-run/react": "2.8.0",
+    "@remix-run/server-runtime": "2.8.0",
+    "isbot": "^4"
   }
 }
