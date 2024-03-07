@@ -1,5 +1,19 @@
 # @nx.js/nsp
 
+## 0.0.37
+
+### Patch Changes
+
+- Print default `icon.jpg` warning in yellow ([`92c771ac8a06b6f0c35529879cd300780e297f33`](https://github.com/TooTallNate/nx.js/commit/92c771ac8a06b6f0c35529879cd300780e297f33))
+
+- Use WASM compiled `hacbrewpack` ([`88a684b53db6b8909a691d15749c0a4fe6e6544a`](https://github.com/TooTallNate/nx.js/commit/88a684b53db6b8909a691d15749c0a4fe6e6544a))
+
+- Fix exit code when an error occurs ([`8477ba5e1ff866429af208b21775b6bd8bca1bbf`](https://github.com/TooTallNate/nx.js/commit/8477ba5e1ff866429af208b21775b6bd8bca1bbf))
+
+- Add some formatting/coloring to the `hacbrewpack` command output ([`0d9f7a54e725c02c4968f64e113604d18ba4fb4c`](https://github.com/TooTallNate/nx.js/commit/0d9f7a54e725c02c4968f64e113604d18ba4fb4c))
+
+- Print logo JPEG image size ([`6735e3d27db03069a89063d6c2f56d6895c2e476`](https://github.com/TooTallNate/nx.js/commit/6735e3d27db03069a89063d6c2f56d6895c2e476))
+
 ## 0.0.36
 
 ### Patch Changes

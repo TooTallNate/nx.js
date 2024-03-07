@@ -1,5 +1,11 @@
 # create-nxjs-app
 
+## 0.0.37
+
+### Patch Changes
+
+- Add `react` example app using `react-tela` to render to the screen ([`31c21cf5ec6adac124125f7ef30cfa7f93a7fa20`](https://github.com/TooTallNate/nx.js/commit/31c21cf5ec6adac124125f7ef30cfa7f93a7fa20))
+
 ## 0.0.36
 
 ## 0.0.35
