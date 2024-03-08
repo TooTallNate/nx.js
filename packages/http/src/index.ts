@@ -170,9 +170,6 @@ export function createServerHandler(handler: ServerHandler) {
 			await w.close();
 		}
 
-		// TODO: Shouldn't be necessary…
-		//await new Promise(r => setTimeout(r, 1000));
-
 		socket.close();
 	};
 }
@@ -193,4 +190,16 @@ export function createStaticFileHandler(root: Switch.PathLike) {
 			},
 		});
 	};
+}
+
+export interface ListenOptions extends Omit<Switch.ListenOptions, 'accept'> {
+	fetch: ServerHandler;
+}
+
+export function listen(opts: ListenOptions) {
+	const handler = createServerHandler(opts.fetch);
+	return Switch.listen({
+		...opts,
+		accept: handler,
+	});
 }

@@ -1,5 +1,5 @@
-import { Link, useLoaderData } from "@remix-run/react";
-import { LoaderFunctionArgs } from "@remix-run/server-runtime";
+import { Link, useLoaderData } from '@remix-run/react';
+import { LoaderFunctionArgs } from '@remix-run/server-runtime';
 
 export async function loader(args: LoaderFunctionArgs) {
 	console.log(args);
@@ -9,9 +9,9 @@ export async function loader(args: LoaderFunctionArgs) {
 export default function Index() {
 	const data = useLoaderData<typeof loader>();
 	return (
-		<div style={{ fontFamily: "system-ui, sans-serif", lineHeight: "1.8" }}>
+		<div style={{ fontFamily: 'system-ui, sans-serif', lineHeight: '1.8' }}>
 			<h1>Welcome to Remix on nx.js v{data.version}</h1>
-			<Link to="/other">Other</Link>
+			<Link to='/other'>Other</Link>
 		</div>
 	);
 }
