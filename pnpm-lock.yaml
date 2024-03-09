@@ -142,6 +142,25 @@ importers:
         specifier: workspace:^
         version: link:../../packages/runtime
 
+  apps/http-server:
+    dependencies:
+      '@nx.js/http':
+        specifier: workspace:^
+        version: link:../../packages/http
+    devDependencies:
+      '@nx.js/nro':
+        specifier: workspace:^
+        version: link:../../packages/nro
+      '@nx.js/nsp':
+        specifier: workspace:^
+        version: link:../../packages/nsp
+      esbuild:
+        specifier: ^0.17.19
+        version: 0.17.19
+      nxjs-runtime:
+        specifier: workspace:^
+        version: link:../../packages/runtime
+
   apps/react:
     dependencies:
       react:
@@ -411,6 +430,22 @@ importers:
       types-package-json:
         specifier: ^2.0.39
         version: 2.0.39
+      typescript:
+        specifier: ^5.3.2
+        version: 5.3.2
+
+  packages/http:
+    dependencies:
+      mime:
+        specifier: ^4.0.1
+        version: 4.0.1
+    devDependencies:
+      '@types/mime-types':
+        specifier: ^2.1.4
+        version: 2.1.4
+      nxjs-runtime:
+        specifier: workspace:*
+        version: link:../runtime
       typescript:
         specifier: ^5.3.2
         version: 5.3.2
@@ -1935,6 +1970,10 @@ packages:
     resolution: {integrity: sha512-y0M7sqzsnHB6cvAeTCBPrCQNQiZe8U4qdzf8uBVmOWYap5MMTN/gB2iEqrIqFiYcsyvP74GnGD5tgsHttielFw==}
     dev: true
 
+  /@types/mime-types@2.1.4:
+    resolution: {integrity: sha512-lfU4b34HOri+kAY5UheuFMWPDOI+OPceBSHZKp69gEyTL/mmJ4cnU6Y/rlme3UL3GyOn6Y42hyIEw0/q8sWx5w==}
+    dev: true
+
   /@types/minimist@1.2.5:
     resolution: {integrity: sha512-hov8bUuiLiyFPGyFPE1lwWhmzYbirOXQNNo40+y3zow8aFVTeyn3VWL0VFFfdNddA8S4Vf0Tc062rzyNr7Paag==}
     dev: true
@@ -3301,6 +3340,12 @@ packages:
   /mime@1.6.0:
     resolution: {integrity: sha512-x0Vn8spI+wuJ1O6S7gnbaQg8Pxh4NNHb7KSINmEWKiPE4RKOplvijn+NkmYmmRgP68mc70j2EbeTFRsrswaQeg==}
     engines: {node: '>=4'}
+    hasBin: true
+    dev: false
+
+  /mime@4.0.1:
+    resolution: {integrity: sha512-5lZ5tyrIfliMXzFtkYyekWbtRXObT9OWa8IwQ5uxTBDHucNNwniRqo0yInflj+iYi5CBa6qxadGzGarDfuEOxA==}
+    engines: {node: '>=16'}
     hasBin: true
     dev: false
 

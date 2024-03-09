@@ -1,0 +1,31 @@
+{
+  "name": "@nx.js/http",
+  "version": "0.0.0",
+  "description": "HTTP server for nx.js",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc"
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "@types/mime-types": "^2.1.4",
+    "nxjs-runtime": "workspace:*",
+    "typescript": "^5.3.2"
+  },
+  "keywords": [
+    "nx.js",
+    "switch",
+    "http",
+    "server"
+  ],
+  "author": "Nathan Rajlich <n@n8.io>",
+  "license": "MIT",
+  "dependencies": {
+    "mime": "^4.0.1"
+  }
+}
