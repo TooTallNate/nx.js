@@ -245,7 +245,7 @@ export function createStaticFileHandler(root: Switch.PathLike) {
  * http.listen({
  *   port: 8080,
  *   fetch(req) {
- *     console.log(`Got HTTP ${req.method} request for "${req.url}`");
+ *     console.log(`Got HTTP ${req.method} request for "${req.url}"`);
  *     return new Response('Hello World!');
  *   }
  * });

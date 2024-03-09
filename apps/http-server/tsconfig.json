@@ -1,25 +1,16 @@
 {
   "compilerOptions": {
-    "lib": ["DOM", "DOM.Iterable", "ES2022"],
-    "types": ["nxjs-runtime", "vite/client"],
     "target": "es2022",
-    "isolatedModules": true,
-    "esModuleInterop": true,
-    "jsx": "react-jsx",
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
+    "moduleResolution": "node",
     "noEmit": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true,
-    "baseUrl": ".",
     "skipLibCheck": true,
-    "paths": {
-      "~/*": ["./app/*"]
-    }
+    "types": [
+      "nxjs-runtime"
+    ]
   },
   "include": [
-    "src/**/*.ts",
-    "app/**/*.ts",
-    "app/**/*.tsx"
+    "src/**/*.ts"
   ]
 }
