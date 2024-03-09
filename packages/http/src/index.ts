@@ -1,6 +1,16 @@
 import mime from 'mime';
 
+/**
+ * Handler function for processing an HTTP request.
+ */
 export type ServerHandler = (req: Request) => Response | Promise<Response>;
+
+/**
+ * Options object for the {@link listen | `http.listen()`} function.
+ */
+export interface ListenOptions extends Omit<Switch.ListenOptions, 'accept'> {
+	fetch: ServerHandler;
+}
 
 const decoder = new TextDecoder();
 const encoder = new TextEncoder();
@@ -119,6 +129,14 @@ const STATUS_CODES: Record<string, string> = {
 	'511': 'Network Authentication Required',
 };
 
+/**
+ * Creates a socket handler function which accepts a socket
+ * event and parses the incoming data as an HTTP request.
+ *
+ * @note This is a low-level function which usually should not be used directly. See {@link listen | `http.listen()`} instead.
+ *
+ * @param handler The HTTP handler function to invoke when an HTTP request is received
+ */
 export function createServerHandler(handler: ServerHandler) {
 	return async function ({ socket }: Switch.SocketEvent) {
 		const reqHeaders = new Headers();
@@ -174,7 +192,32 @@ export function createServerHandler(handler: ServerHandler) {
 	};
 }
 
+/**
+ * Creates an HTTP handler function which serves file contents from the filesystem.
+ *
+ * @example
+ *
+ * ```typescript
+ * const fileHandler = http.createStaticFileHandler('sdmc:/switch/');
+ *
+ * http.listen({
+ *   port: 8080,
+ *   async fetch(req) {
+ *     let res = await fileHandler(req);
+ *     if (!res) {
+ *       res = new Response('File not found', { status: 404 });
+ *     }
+ *     return res;
+ *   }
+ * });
+ * ```
+ *
+ * @param root Root directory where static files are served from
+ */
 export function createStaticFileHandler(root: Switch.PathLike) {
+	if (!String(root).endsWith('/')) {
+		throw new Error('`root` directory must end with a "/"');
+	}
 	return async function (req: Request): Promise<Response | null> {
 		const { pathname } = new URL(req.url);
 		const url = new URL(pathname.slice(1), root);
@@ -192,10 +235,22 @@ export function createStaticFileHandler(root: Switch.PathLike) {
 	};
 }
 
-export interface ListenOptions extends Omit<Switch.ListenOptions, 'accept'> {
-	fetch: ServerHandler;
-}
-
+/**
+ * Creates an HTTP server and listens on the `port` number specified in the options object.
+ * The `fetch` function will be invoked upon receiving an HTTP request.
+ *
+ * @example
+ *
+ * ```typescript
+ * http.listen({
+ *   port: 8080,
+ *   fetch(req) {
+ *     console.log(`Got HTTP ${req.method} request for "${req.url}`");
+ *     return new Response('Hello World!');
+ *   }
+ * });
+ * ```
+ */
 export function listen(opts: ListenOptions) {
 	const handler = createServerHandler(opts.fetch);
 	return Switch.listen({
