@@ -8,13 +8,7 @@ http.listen({
 
 	fetch(req) {
 		console.log(`Got HTTP ${req.method} request for "${req.url}"`);
-		const b = new ArrayBuffer(2e+6);
-		console.log(`Total bytes: ${b.byteLength}`);
-		return new Response(b, {
-			headers: {
-				"content-length": String(b.byteLength),
-			},
-		});
+		return new Response('Hello World!');
 	},
 });
 
