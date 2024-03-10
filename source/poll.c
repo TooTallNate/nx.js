@@ -252,7 +252,6 @@ int nx_read(nx_poll_t *p, nx_read_t *req, int fd, const uint8_t *buffer, size_t 
 
 void nx_write_ready(nx_poll_t *p, nx_watcher_t *watcher, int revents)
 {
-	nx_remove_watcher(p, watcher);
 	nx_write_t *req = (nx_write_t *)watcher;
 	ssize_t n = write(req->fd, req->buffer + req->bytes_written, req->buffer_size - req->bytes_written);
 	if (n < 0)
@@ -261,11 +260,11 @@ void nx_write_ready(nx_poll_t *p, nx_watcher_t *watcher, int revents)
 		{
 			// The socket's output buffer is full, need to wait before trying again
 			req->events = POLLOUT;
-			nx_add_watcher(p, watcher);
 		}
 		else
 		{
 			// An error occurred
+			nx_remove_watcher(p, watcher);
 			req->err = errno;
 			req->callback(p, req);
 		}
@@ -276,12 +275,11 @@ void nx_write_ready(nx_poll_t *p, nx_watcher_t *watcher, int revents)
 		if (req->bytes_written < req->buffer_size)
 		{
 			// Not all data was written, need to wait before trying again
-			req->events = POLLOUT;
-			nx_add_watcher(p, watcher);
 		}
 		else
 		{
 			// All data was written
+			nx_remove_watcher(p, watcher);
 			req->callback(p, req);
 		}
 	}
@@ -291,9 +289,11 @@ int nx_write(nx_poll_t *p, nx_write_t *req, int fd, const uint8_t *data, size_t 
 {
 	req->err = 0;
 	req->fd = fd;
+	req->buffer = data;
 	req->buffer_size = num_bytes;
 	req->bytes_written = 0;
 	req->callback = callback;
+	req->watcher_callback = nx_write_ready;
 
 	ssize_t n = write(fd, data, num_bytes);
 	if (n < 0)
@@ -316,7 +316,17 @@ int nx_write(nx_poll_t *p, nx_write_t *req, int fd, const uint8_t *data, size_t 
 	else
 	{
 		req->bytes_written += n;
-		callback(p, req);
+		if (req->bytes_written < req->buffer_size)
+		{
+			// Not all data was written, need to wait before trying again
+			req->events = POLLOUT;
+			nx_add_watcher(p, (nx_watcher_t *)req);
+		}
+		else
+		{
+			// All data was written
+			callback(p, req);
+		}
 	}
 	return 0;
 }
