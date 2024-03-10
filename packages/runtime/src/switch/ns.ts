@@ -145,7 +145,13 @@ export class Application {
 	 * @param nro The contents of the `.nro` file.
 	 */
 	static fromNRO(nro: ArrayBuffer): Application {
+		_init();
 		return proto($.nsAppNew(nro), Application);
+	}
+
+	static fromId(id: bigint): Application {
+		_init();
+		return proto($.nsAppNew(id), Application);
 	}
 
 	static *[Symbol.iterator]() {
@@ -154,7 +160,7 @@ export class Application {
 		while (1) {
 			const id = $.nsAppNext(offset++);
 			if (!id) break;
-			yield proto($.nsAppNew(id), Application);
+			yield Application.fromId(id);
 		}
 	}
 }
