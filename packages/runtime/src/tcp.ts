@@ -126,9 +126,7 @@ export class Socket {
 				if (i.opened.pending) {
 					await socket.opened;
 				}
-				console.log(`Writing ${chunk.length} bytes`);
 				await (i.tls ? tlsWrite(i.tls, chunk) : write(i.fd, chunk));
-				console.log(`Done writing ${chunk.length} bytes`);
 			},
 		});
 
