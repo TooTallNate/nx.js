@@ -1,5 +1,15 @@
 # nxjs-runtime
 
+## 0.0.38
+
+### Patch Changes
+
+- Add `Application.fromId()` ([`c53849472db74142797a874550a9266c6eb502a0`](https://github.com/TooTallNate/nx.js/commit/c53849472db74142797a874550a9266c6eb502a0))
+
+- Properly flush entire buffer in TCP `write()` ([#105](https://github.com/TooTallNate/nx.js/pull/105))
+
+- Copy buffer for `Application#icon` and `Application#nacp` ([`eb1d82a085f82afd6fed8e0c36ea5d146a164405`](https://github.com/TooTallNate/nx.js/commit/eb1d82a085f82afd6fed8e0c36ea5d146a164405))
+
 ## 0.0.37
 
 ### Patch Changes
