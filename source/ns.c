@@ -112,7 +112,7 @@ static JSValue nx_ns_app_nacp(JSContext *ctx, JSValueConst this_val, int argc, J
 	{
 		return JS_EXCEPTION;
 	}
-	return JS_NewArrayBuffer(ctx, (uint8_t *)&app->data.nacp, sizeof(app->data.nacp), NULL, NULL, false);
+	return JS_NewArrayBufferCopy(ctx, (uint8_t *)&app->data.nacp, sizeof(app->data.nacp));
 }
 
 static JSValue nx_ns_app_icon(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -126,7 +126,7 @@ static JSValue nx_ns_app_icon(JSContext *ctx, JSValueConst this_val, int argc, J
 	{
 		return JS_UNDEFINED;
 	}
-	return JS_NewArrayBuffer(ctx, (uint8_t *)&app->data.icon, app->icon_size, NULL, NULL, false);
+	return JS_NewArrayBufferCopy(ctx, (uint8_t *)&app->data.icon, app->icon_size);
 }
 
 static JSValue nx_ns_app_name(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
