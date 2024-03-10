@@ -138,13 +138,13 @@ export class Application {
 	 *
 	 * ```typescript
 	 * const nro = await Switch.readFile('sdmc:/hbmenu.nro');
-	 * const app = Switch.Application.fromNRO(nro);
+	 * const app = Switch.Application.fromNro(nro);
 	 * console.log(app.name);
 	 * ```
 	 *
 	 * @param nro The contents of the `.nro` file.
 	 */
-	static fromNRO(nro: ArrayBuffer): Application {
+	static fromNro(nro: ArrayBuffer): Application {
 		_init();
 		return proto($.nsAppNew(nro), Application);
 	}
