@@ -1,6 +1,9 @@
 #!/bin/bash
 set -euo pipefail
 
+# Enable colors for `turbo`
+export FORCE_COLOR=1
+
 APP="${1-hello-world}"
 
 # Build JS runtime
