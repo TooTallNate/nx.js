@@ -165,69 +165,90 @@ export abstract class Body implements globalThis.Body {
 	 * If the body cannot be decoded as form data, it throws a `TypeError`.
 	 */
 	async formData(): Promise<FormData> {
-		const boundary = this.headers
-			.get('content-type')
-			?.split(/;\s?/)
-			.find((p) => p.startsWith('boundary='))
-			?.slice(9);
-		if (!boundary) {
-			throw new TypeError('Body can not be decoded as form data');
+		const contentType = this.headers.get("content-type");
+		if (!contentType) {
+			throw new TypeError(
+				'Could not parse content as FormData (missing "content-type" header)'
+			);
 		}
 		const form = new FormData();
-		const boundaryBytes = encoder.encode(boundary);
-		const data = new Uint8Array(await this.arrayBuffer());
-		let pos = 0;
-		let start;
-		const offsets: number[] = [];
-		while ((start = indexOfSequence(data, boundaryBytes, pos)) !== -1) {
-			offsets.push(start);
-			pos += start + boundaryBytes.length;
-		}
-		for (let i = 0; i < offsets.length; i++) {
-			const part = data.subarray(
-				offsets[i] + boundaryBytes.length + 2,
-				offsets[i + 1],
-			);
-			if (part.length === 0) break;
-			pos = 0;
-			let eol;
-			let name: string | undefined;
-			let filename: string | undefined;
-			let type: string | undefined;
-			while ((eol = indexOfSequence(part, [13, 10], pos)) !== -1) {
-				const header = part.subarray(pos, eol);
-				pos = eol + 2;
-				if (!header.length) {
-					break;
-				}
-				const h = decoder.decode(header);
-				const colon = h.indexOf(':');
-				const key = h.slice(0, colon).toLowerCase();
-				const value = h.slice(colon + 1).trimStart();
-				if (key === 'content-disposition') {
-					const disposition = value.split(/;\s*/);
-					name = disposition
-						.find((p) => p.startsWith('name='))
-						?.slice(5)
-						.replace(/^"|"$/g, '');
-					filename = disposition
-						.find((p) => p.startsWith('filename='))
-						?.slice(9)
-						.replace(/^"|"$/g, '');
-				} else if (key === 'content-type') {
-					type = value;
-				}
+		if (contentType === "application/x-www-form-urlencoded") {
+			const text = await this.text();
+			for (const entry of text.split('&')) {
+				const eq = entry.indexOf('=');
+				const k = decodeURIComponent(entry.slice(0, eq));
+				const v = decodeURIComponent(entry.slice(eq + 1));
+				form.append(k, v);
 			}
-			if (!name) {
+		} else if (contentType === "multipart/form-data") {
+			const boundary = contentType
+				.split(/;\s?/)
+				.find((p) => p.startsWith("boundary="))
+				?.slice(9);
+			if (!boundary) {
 				throw new TypeError(
-					'No "name" provided in `Content-Disposition` header',
+					'Could not parse content as FormData (missing "boundary" in "content-type" header)'
 				);
 			}
-			const valueBytes = part.subarray(pos, part.length - 2);
-			const value = filename
-				? new File([valueBytes], filename, { type })
-				: decoder.decode(valueBytes);
-			form.append(name, value);
+			const boundaryBytes = encoder.encode(boundary);
+			const data = new Uint8Array(await this.arrayBuffer());
+			let pos = 0;
+			let start;
+			const offsets: number[] = [];
+			while ((start = indexOfSequence(data, boundaryBytes, pos)) !== -1) {
+				offsets.push(start);
+				pos += start + boundaryBytes.length;
+			}
+			for (let i = 0; i < offsets.length; i++) {
+				const part = data.subarray(
+					offsets[i] + boundaryBytes.length + 2,
+					offsets[i + 1]
+				);
+				if (part.length === 0) break;
+				pos = 0;
+				let eol;
+				let name: string | undefined;
+				let filename: string | undefined;
+				let type: string | undefined;
+				while ((eol = indexOfSequence(part, [13, 10], pos)) !== -1) {
+					const header = part.subarray(pos, eol);
+					pos = eol + 2;
+					if (!header.length) {
+						break;
+					}
+					const h = decoder.decode(header);
+					const colon = h.indexOf(":");
+					const key = h.slice(0, colon).toLowerCase();
+					const value = h.slice(colon + 1).trimStart();
+					if (key === "content-disposition") {
+						const disposition = value.split(/;\s*/);
+						name = disposition
+							.find((p) => p.startsWith("name="))
+							?.slice(5)
+							.replace(/^"|"$/g, "");
+						filename = disposition
+							.find((p) => p.startsWith("filename="))
+							?.slice(9)
+							.replace(/^"|"$/g, "");
+					} else if (key === "content-type") {
+						type = value;
+					}
+				}
+				if (!name) {
+					throw new TypeError(
+						'No "name" provided in `Content-Disposition` header'
+					);
+				}
+				const valueBytes = part.subarray(pos, part.length - 2);
+				const value = filename
+					? new File([valueBytes], filename, { type })
+					: decoder.decode(valueBytes);
+				form.append(name, value);
+			}
+		} else {
+			throw new TypeError(
+				`Could not parse content as FormData ("content-type" header must be "application/x-www-form-urlencoded" or "multipart/form-data", got "${contentType}")`
+			);
 		}
 		return form;
 	}
