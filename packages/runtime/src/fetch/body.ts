@@ -165,14 +165,14 @@ export abstract class Body implements globalThis.Body {
 	 * If the body cannot be decoded as form data, it throws a `TypeError`.
 	 */
 	async formData(): Promise<FormData> {
-		const contentType = this.headers.get("content-type");
+		const contentType = this.headers.get('content-type');
 		if (!contentType) {
 			throw new TypeError(
-				'Could not parse content as FormData (missing "content-type" header)'
+				'Could not parse content as FormData (missing "content-type" header)',
 			);
 		}
 		const form = new FormData();
-		if (contentType === "application/x-www-form-urlencoded") {
+		if (contentType === 'application/x-www-form-urlencoded') {
 			const text = await this.text();
 			for (const entry of text.split('&')) {
 				const eq = entry.indexOf('=');
@@ -180,14 +180,14 @@ export abstract class Body implements globalThis.Body {
 				const v = decodeURIComponent(entry.slice(eq + 1));
 				form.append(k, v);
 			}
-		} else if (contentType === "multipart/form-data") {
+		} else if (contentType === 'multipart/form-data') {
 			const boundary = contentType
 				.split(/;\s?/)
-				.find((p) => p.startsWith("boundary="))
+				.find((p) => p.startsWith('boundary='))
 				?.slice(9);
 			if (!boundary) {
 				throw new TypeError(
-					'Could not parse content as FormData (missing "boundary" in "content-type" header)'
+					'Could not parse content as FormData (missing "boundary" in "content-type" header)',
 				);
 			}
 			const boundaryBytes = encoder.encode(boundary);
@@ -202,7 +202,7 @@ export abstract class Body implements globalThis.Body {
 			for (let i = 0; i < offsets.length; i++) {
 				const part = data.subarray(
 					offsets[i] + boundaryBytes.length + 2,
-					offsets[i + 1]
+					offsets[i + 1],
 				);
 				if (part.length === 0) break;
 				pos = 0;
@@ -217,26 +217,26 @@ export abstract class Body implements globalThis.Body {
 						break;
 					}
 					const h = decoder.decode(header);
-					const colon = h.indexOf(":");
+					const colon = h.indexOf(':');
 					const key = h.slice(0, colon).toLowerCase();
 					const value = h.slice(colon + 1).trimStart();
-					if (key === "content-disposition") {
+					if (key === 'content-disposition') {
 						const disposition = value.split(/;\s*/);
 						name = disposition
-							.find((p) => p.startsWith("name="))
+							.find((p) => p.startsWith('name='))
 							?.slice(5)
-							.replace(/^"|"$/g, "");
+							.replace(/^"|"$/g, '');
 						filename = disposition
-							.find((p) => p.startsWith("filename="))
+							.find((p) => p.startsWith('filename='))
 							?.slice(9)
-							.replace(/^"|"$/g, "");
-					} else if (key === "content-type") {
+							.replace(/^"|"$/g, '');
+					} else if (key === 'content-type') {
 						type = value;
 					}
 				}
 				if (!name) {
 					throw new TypeError(
-						'No "name" provided in `Content-Disposition` header'
+						'No "name" provided in `Content-Disposition` header',
 					);
 				}
 				const valueBytes = part.subarray(pos, part.length - 2);
@@ -247,7 +247,7 @@ export abstract class Body implements globalThis.Body {
 			}
 		} else {
 			throw new TypeError(
-				`Could not parse content as FormData ("content-type" header must be "application/x-www-form-urlencoded" or "multipart/form-data", got "${contentType}")`
+				`Could not parse content as FormData ("content-type" header must be "application/x-www-form-urlencoded" or "multipart/form-data", got "${contentType}")`,
 			);
 		}
 		return form;
