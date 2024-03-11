@@ -1,6 +1,7 @@
 import { def } from '../utils';
 import { Body, type BodyInit } from './body';
 import { Headers, type HeadersInit } from './headers';
+import { encoder } from '../polyfills/text-encoder';
 import type { URL } from '../polyfills/url';
 
 export interface ResponseInit {
@@ -102,7 +103,9 @@ export class Response extends Body implements globalThis.Response {
 		if (!headers.has('content-type')) {
 			headers.set('content-type', 'application/json');
 		}
-		return new Response(JSON.stringify(data), { ...init, headers });
+		const json = encoder.encode(JSON.stringify(data));
+		headers.set('content-length', String(json.length));
+		return new Response(json, { ...init, headers });
 	}
 }
 def(Response);
