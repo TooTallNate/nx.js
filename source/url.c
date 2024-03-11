@@ -473,7 +473,7 @@ static JSValue nx_url_search_params_init(JSContext *ctx, JSValueConst this_val, 
 
 static JSValue nx_url_search_params_iterator(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	nx_url_search_params_t *params_data = JS_GetOpaque2(ctx, this_val, nx_url_search_params_class_id);
+	nx_url_search_params_t *params_data = JS_GetOpaque2(ctx, argv[0], nx_url_search_params_class_id);
 	if (!params_data)
 	{
 		return JS_EXCEPTION;
