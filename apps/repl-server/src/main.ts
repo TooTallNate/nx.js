@@ -70,7 +70,6 @@ Switch.listen({
 			repl.renderPrompt();
 
 			for await (const next of telnetParser(reader)) {
-				console.log(next);
 				if (next.type !== 'data') {
 					continue;
 				}
