@@ -3,7 +3,24 @@ import * as assert from 'uvu/assert';
 
 const test = suite('FormData');
 
-test('FormData', async () => {
+test('FormData url encoded', async () => {
+	const r = new Response('a=a&a=b&b=c&c=d', {
+		headers: {
+			'content-type': 'application/x-www-form-urlencoded',
+		},
+	});
+	const form = await r.formData();
+	assert.instance(form, FormData);
+	assert.equal(form.get('a'), 'a');
+	assert.equal(form.get('b'), 'c');
+	assert.equal(form.get('c'), 'd');
+	assert.equal(form.getAll('a'), ['a', 'b']);
+	assert.equal(form.getAll('b'), ['c']);
+	assert.equal(form.getAll('c'), ['d']);
+	assert.equal(form.get('missing'), null);
+});
+
+test('FormData multipart', async () => {
 	const file = new File(['conte', new Blob(['nts'])], 'file.txt', {
 		type: 'text/plain',
 	});

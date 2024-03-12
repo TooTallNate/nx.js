@@ -3,7 +3,7 @@ import * as assert from 'uvu/assert';
 
 const test = suite('URL');
 
-test('URLSearchParams iterator functions', () => {
+test('URLSearchParams iterator functions', async () => {
 	const p = new URLSearchParams('a=a&a=b&b=c&c=d');
 	assert.equal(Array.from(p.keys()), ['a', 'a', 'b', 'c']);
 	assert.equal(Array.from(p.values()), ['a', 'b', 'c', 'd']);
@@ -19,6 +19,10 @@ test('URLSearchParams iterator functions', () => {
 		['b', 'c'],
 		['c', 'd'],
 	]);
+
+	const it = p.keys();
+	await new Promise((r) => setTimeout(r, 100));
+	assert.equal(Array.from(it), ['a', 'a', 'b', 'c']);
 });
 
 /**

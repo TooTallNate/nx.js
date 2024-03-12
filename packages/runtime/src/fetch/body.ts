@@ -180,7 +180,7 @@ export abstract class Body implements globalThis.Body {
 				const v = decodeURIComponent(entry.slice(eq + 1));
 				form.append(k, v);
 			}
-		} else if (contentType === 'multipart/form-data') {
+		} else if (contentType.startsWith('multipart/form-data;')) {
 			const boundary = contentType
 				.split(/;\s?/)
 				.find((p) => p.startsWith('boundary='))
