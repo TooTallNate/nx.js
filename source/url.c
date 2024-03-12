@@ -40,7 +40,7 @@ static JSClassID nx_url_search_params_iterator_class_id;
 
 static void finalizer_url(JSRuntime *rt, JSValue val)
 {
-	//printf("finalizer_url\n");
+	// printf("finalizer_url\n");
 	nx_url_t *data = JS_GetOpaque(val, nx_url_class_id);
 	if (data)
 	{
@@ -58,7 +58,7 @@ static void finalizer_url(JSRuntime *rt, JSValue val)
 
 static void finalizer_url_search_params(JSRuntime *rt, JSValue val)
 {
-	//printf("finalizer_url_search_params\n");
+	// printf("finalizer_url_search_params\n");
 	nx_url_t *data = JS_GetOpaque(val, nx_url_search_params_class_id);
 	if (data)
 	{

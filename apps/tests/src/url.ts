@@ -3,6 +3,24 @@ import * as assert from 'uvu/assert';
 
 const test = suite('URL');
 
+test('URLSearchParams iterator functions', () => {
+	const p = new URLSearchParams('a=a&a=b&b=c&c=d');
+	assert.equal(Array.from(p.keys()), ['a', 'a', 'b', 'c']);
+	assert.equal(Array.from(p.values()), ['a', 'b', 'c', 'd']);
+	assert.equal(Array.from(p.entries()), [
+		['a', 'a'],
+		['a', 'b'],
+		['b', 'c'],
+		['c', 'd'],
+	]);
+	assert.equal(Array.from(p), [
+		['a', 'a'],
+		['a', 'b'],
+		['b', 'c'],
+		['c', 'd'],
+	]);
+});
+
 /**
  * url-constructor.any.js
  */
