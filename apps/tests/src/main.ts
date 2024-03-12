@@ -9,3 +9,4 @@ import './navigator';
 import './switch';
 import './wasm';
 import './window';
+import './url';

@@ -18,13 +18,9 @@ enum nx_url_search_params_iterator_type
 
 typedef struct
 {
-	ada_url_search_params params;
-} nx_url_search_params_t;
-
-typedef struct
-{
 	ada_url url;
-	nx_url_search_params_t *params;
+	ada_url_search_params params;
+	bool params_modified;
 } nx_url_t;
 
 typedef struct
@@ -44,26 +40,37 @@ static JSClassID nx_url_search_params_iterator_class_id;
 
 static void finalizer_url(JSRuntime *rt, JSValue val)
 {
+	//printf("finalizer_url\n");
 	nx_url_t *data = JS_GetOpaque(val, nx_url_class_id);
 	if (data)
 	{
-		ada_free(data->url);
-		// `data->params` is free'd in the `URLSearchParams` finalizer
-		js_free_rt(rt, data);
+		if (data->url)
+		{
+			ada_free(data->url);
+			data->url = NULL;
+		}
+		if (!data->params)
+		{
+			js_free_rt(rt, data);
+		}
 	}
 }
 
 static void finalizer_url_search_params(JSRuntime *rt, JSValue val)
 {
-
-	nx_url_search_params_t *data = JS_GetOpaque(val, nx_url_search_params_class_id);
+	//printf("finalizer_url_search_params\n");
+	nx_url_t *data = JS_GetOpaque(val, nx_url_search_params_class_id);
 	if (data)
 	{
 		if (data->params)
 		{
 			ada_free_search_params(data->params);
+			data->params = NULL;
 		}
-		js_free_rt(rt, data);
+		if (!data->url)
+		{
+			js_free_rt(rt, data);
+		}
 	}
 }
 
@@ -182,13 +189,21 @@ static JSValue nx_url_get_search(JSContext *ctx, JSValueConst this_val, int argc
 	{
 		return JS_EXCEPTION;
 	}
-	if (data->params)
+	if (data->params && data->params_modified)
 	{
-		ada_owned_string val = ada_search_params_to_string(data->params->params);
-		char val_with_question_mark[val.length + 1];
-		val_with_question_mark[0] = '?';
-		memcpy(val_with_question_mark + 1, val.data, val.length);
-		JSValue str = JS_NewStringLen(ctx, val_with_question_mark, val.length + 1);
+		ada_owned_string val = ada_search_params_to_string(data->params);
+		JSValue str;
+		if (val.length == 0)
+		{
+			str = JS_NewString(ctx, "");
+		}
+		else
+		{
+			char val_with_question_mark[val.length + 1];
+			val_with_question_mark[0] = '?';
+			memcpy(val_with_question_mark + 1, val.data, val.length);
+			str = JS_NewStringLen(ctx, val_with_question_mark, val.length + 1);
+		}
 		ada_free_owned_string(val);
 		return str;
 	}
@@ -209,13 +224,11 @@ static JSValue nx_url_set_search(JSContext *ctx, JSValueConst this_val, int argc
 	}
 	if (data->params)
 	{
-		ada_free_search_params(data->params->params);
-		data->params->params = ada_parse_search_params(val, val_length);
+		ada_free_search_params(data->params);
+		data->params = ada_parse_search_params(val, val_length);
 	}
-	else
-	{
-		ada_set_search(data->url, val, val_length);
-	}
+	ada_set_search(data->url, val, val_length);
+	data->params_modified = false;
 	JS_FreeCString(ctx, val);
 	return JS_UNDEFINED;
 }
@@ -229,7 +242,7 @@ static JSValue nx_url_get_href(JSContext *ctx, JSValueConst this_val, int argc, 
 	}
 	if (data->params)
 	{
-		ada_owned_string val = ada_search_params_to_string(data->params->params);
+		ada_owned_string val = ada_search_params_to_string(data->params);
 		ada_set_search(data->url, val.data, val.length);
 		ada_free_owned_string(val);
 	}
@@ -249,10 +262,11 @@ static JSValue nx_url_set_href(JSContext *ctx, JSValueConst this_val, int argc, 
 	JS_FreeCString(ctx, val);
 	if (data->params)
 	{
-		ada_free_search_params(data->params->params);
+		ada_free_search_params(data->params);
 		ada_string search_val = ada_get_search(data->url);
-		data->params->params = ada_parse_search_params(search_val.data, search_val.length);
+		data->params = ada_parse_search_params(search_val.data, search_val.length);
 	}
+	data->params_modified = false;
 	return JS_UNDEFINED;
 }
 
@@ -294,35 +308,34 @@ static JSValue nx_url_init(JSContext *ctx, JSValueConst this_val, int argc, JSVa
 
 static JSValue nx_url_search_params_new(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	STR(input, 0);
-	ada_url_search_params params = ada_parse_search_params(input, input_length);
-	JS_FreeCString(ctx, input);
-	nx_url_search_params_t *data = js_mallocz(ctx, sizeof(nx_url_search_params_t));
+	nx_url_t *data;
+	if (argc == 2 && !JS_IsUndefined(argv[1]))
+	{
+		// Accessing `searchParams` on a `URL` instance
+		data = JS_GetOpaque2(ctx, argv[1], nx_url_class_id);
+	}
+	else
+	{
+		data = js_mallocz(ctx, sizeof(nx_url_t));
+	}
 	if (!data)
 	{
 		return JS_EXCEPTION;
 	}
-	data->params = params;
+
+	STR(input, 0);
+	data->params = ada_parse_search_params(input, input_length);
+	JS_FreeCString(ctx, input);
+
 	JSValue params_obj = JS_NewObjectClass(ctx, nx_url_search_params_class_id);
 	JS_SetOpaque(params_obj, data);
-
-	if (argc == 2 && JS_IsObject(argv[1]))
-	{
-		// Bind this `URLSearchParams` instance to the `URL` instance
-		nx_url_t *url_data = JS_GetOpaque2(ctx, argv[1], nx_url_class_id);
-		if (!url_data)
-		{
-			return JS_EXCEPTION;
-		}
-		url_data->params = data;
-	}
 
 	return params_obj;
 }
 
 static JSValue nx_url_search_params_get_size(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	nx_url_search_params_t *data = JS_GetOpaque2(ctx, this_val, nx_url_search_params_class_id);
+	nx_url_t *data = JS_GetOpaque2(ctx, this_val, nx_url_search_params_class_id);
 	if (!data)
 	{
 		return JS_EXCEPTION;
@@ -333,7 +346,7 @@ static JSValue nx_url_search_params_get_size(JSContext *ctx, JSValueConst this_v
 
 static JSValue nx_url_search_params_append(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	nx_url_search_params_t *data = JS_GetOpaque2(ctx, this_val, nx_url_search_params_class_id);
+	nx_url_t *data = JS_GetOpaque2(ctx, this_val, nx_url_search_params_class_id);
 	if (!data)
 	{
 		return JS_EXCEPTION;
@@ -341,6 +354,7 @@ static JSValue nx_url_search_params_append(JSContext *ctx, JSValueConst this_val
 	STR(key, 0);
 	STR(value, 1);
 	ada_search_params_append(data->params, key, key_length, value, value_length);
+	data->params_modified = true;
 	JS_FreeCString(ctx, key);
 	JS_FreeCString(ctx, value);
 	return JS_UNDEFINED;
@@ -348,7 +362,7 @@ static JSValue nx_url_search_params_append(JSContext *ctx, JSValueConst this_val
 
 static JSValue nx_url_search_params_delete(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	nx_url_search_params_t *data = JS_GetOpaque2(ctx, this_val, nx_url_search_params_class_id);
+	nx_url_t *data = JS_GetOpaque2(ctx, this_val, nx_url_search_params_class_id);
 	if (!data)
 	{
 		return JS_EXCEPTION;
@@ -364,13 +378,14 @@ static JSValue nx_url_search_params_delete(JSContext *ctx, JSValueConst this_val
 	{
 		ada_search_params_remove(data->params, key, key_length);
 	}
+	data->params_modified = true;
 	JS_FreeCString(ctx, key);
 	return JS_UNDEFINED;
 }
 
 static JSValue nx_url_search_params_get(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	nx_url_search_params_t *data = JS_GetOpaque2(ctx, this_val, nx_url_search_params_class_id);
+	nx_url_t *data = JS_GetOpaque2(ctx, this_val, nx_url_search_params_class_id);
 	if (!data)
 	{
 		return JS_EXCEPTION;
@@ -383,7 +398,7 @@ static JSValue nx_url_search_params_get(JSContext *ctx, JSValueConst this_val, i
 
 static JSValue nx_url_search_params_get_all(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	nx_url_search_params_t *data = JS_GetOpaque2(ctx, this_val, nx_url_search_params_class_id);
+	nx_url_t *data = JS_GetOpaque2(ctx, this_val, nx_url_search_params_class_id);
 	if (!data)
 	{
 		return JS_EXCEPTION;
@@ -404,7 +419,7 @@ static JSValue nx_url_search_params_get_all(JSContext *ctx, JSValueConst this_va
 
 static JSValue nx_url_search_params_has(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	nx_url_search_params_t *data = JS_GetOpaque2(ctx, this_val, nx_url_search_params_class_id);
+	nx_url_t *data = JS_GetOpaque2(ctx, this_val, nx_url_search_params_class_id);
 	if (!data)
 	{
 		return JS_EXCEPTION;
@@ -417,7 +432,7 @@ static JSValue nx_url_search_params_has(JSContext *ctx, JSValueConst this_val, i
 
 static JSValue nx_url_search_params_set(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	nx_url_search_params_t *data = JS_GetOpaque2(ctx, this_val, nx_url_search_params_class_id);
+	nx_url_t *data = JS_GetOpaque2(ctx, this_val, nx_url_search_params_class_id);
 	if (!data)
 	{
 		return JS_EXCEPTION;
@@ -425,6 +440,7 @@ static JSValue nx_url_search_params_set(JSContext *ctx, JSValueConst this_val, i
 	STR(key, 0);
 	STR(value, 1);
 	ada_search_params_set(data->params, key, key_length, value, value_length);
+	data->params_modified = true;
 	JS_FreeCString(ctx, key);
 	JS_FreeCString(ctx, value);
 	return JS_UNDEFINED;
@@ -432,18 +448,19 @@ static JSValue nx_url_search_params_set(JSContext *ctx, JSValueConst this_val, i
 
 static JSValue nx_url_search_params_sort(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	nx_url_search_params_t *data = JS_GetOpaque2(ctx, this_val, nx_url_search_params_class_id);
+	nx_url_t *data = JS_GetOpaque2(ctx, this_val, nx_url_search_params_class_id);
 	if (!data)
 	{
 		return JS_EXCEPTION;
 	}
 	ada_search_params_sort(data->params);
+	data->params_modified = true;
 	return JS_UNDEFINED;
 }
 
 static JSValue nx_url_search_params_to_string(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	nx_url_search_params_t *data = JS_GetOpaque2(ctx, this_val, nx_url_search_params_class_id);
+	nx_url_t *data = JS_GetOpaque2(ctx, this_val, nx_url_search_params_class_id);
 	if (!data)
 	{
 		return JS_EXCEPTION;
@@ -473,7 +490,7 @@ static JSValue nx_url_search_params_init(JSContext *ctx, JSValueConst this_val, 
 
 static JSValue nx_url_search_params_iterator(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	nx_url_search_params_t *params_data = JS_GetOpaque2(ctx, argv[0], nx_url_search_params_class_id);
+	nx_url_t *params_data = JS_GetOpaque2(ctx, argv[0], nx_url_search_params_class_id);
 	if (!params_data)
 	{
 		return JS_EXCEPTION;
