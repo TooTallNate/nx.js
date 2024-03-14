@@ -1,7 +1,7 @@
+import { encoder } from './util';
 import { bodyStream } from './body';
 import { readHeaders, toHeaders } from './headers';
-import { UnshiftableStream } from './unshiftable-readable-stream';
-import { encoder } from './util';
+import type { UnshiftableStream } from './unshiftable-readable-stream';
 
 const STATUS_CODES: Record<string, string> = {
 	'100': 'Continue',
@@ -100,13 +100,11 @@ export function createChunkedWriter(readable: ReadableStream<Uint8Array>) {
 	return new ReadableStream<Uint8Array>({
 		async pull(controller) {
 			const { done, value } = await reader.read();
-			const bytes = value?.length ?? 0;
+			const bytes = done ? 0 : value.length;
 			controller.enqueue(encoder.encode(`${bytes.toString(16)}\r\n`));
 			if (value) controller.enqueue(value);
 			controller.enqueue(encoder.encode(`\r\n`));
-			if (done) {
-				controller.close();
-			}
+			if (done) controller.close();
 		},
 	});
 }
@@ -141,11 +139,10 @@ export async function writeResponse(
 
 	let body = res.body;
 	if (body) {
-		if (chunked) {
-			body = createChunkedWriter(body);
-		}
-		await body.pipeTo(writable, { preventClose: !close });
-	} else if (close) {
+		if (chunked) body = createChunkedWriter(body);
+		await body.pipeTo(writable, { preventClose: true });
+	}
+	if (close) {
 		await writable.close();
 	}
 }
