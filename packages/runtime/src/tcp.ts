@@ -226,6 +226,7 @@ export function createServer(ip: string, port: number) {
 	const server = $.tcpServerNew(ip, port, function onAccept(fd) {
 		// @ts-expect-error Internal constructor
 		const socket = new Socket(INTERNAL_SYMBOL, null, {
+			allowHalfOpen: true,
 			async connect() {
 				return fd;
 			},
