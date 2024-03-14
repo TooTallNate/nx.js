@@ -128,6 +128,9 @@ export class Socket {
 				}
 				await (i.tls ? tlsWrite(i.tls, chunk) : write(i.fd, chunk));
 			},
+			close() {
+				socket.close();
+			},
 		});
 
 		connect(address)
