@@ -1,8 +1,7 @@
 import { bodyStream } from './body';
 import { readHeaders, toHeaders } from './headers';
 import { UnshiftableStream } from './unshiftable-readable-stream';
-
-const encoder = new TextEncoder();
+import { encoder } from './util';
 
 const STATUS_CODES: Record<string, string> = {
 	'100': 'Continue',
@@ -96,11 +95,39 @@ export async function readRequest(
 	});
 }
 
+export function createChunkedWriter(readable: ReadableStream<Uint8Array>) {
+	const reader = readable.getReader();
+	return new ReadableStream<Uint8Array>({
+		async pull(controller) {
+			const { done, value } = await reader.read();
+			const bytes = value?.length ?? 0;
+			controller.enqueue(encoder.encode(`${bytes.toString(16)}\r\n`));
+			if (value) controller.enqueue(value);
+			controller.enqueue(encoder.encode(`\r\n`));
+			if (done) {
+				controller.close();
+			}
+		},
+	});
+}
+
 export async function writeResponse(
 	writable: WritableStream<Uint8Array>,
 	res: Response,
 	httpVersion: string,
 ): Promise<void> {
+	const close = res.headers.get('connection') === 'close';
+	const chunked = !(close || res.headers.has('content-length'));
+	if (!res.headers.has('date')) {
+		res.headers.set('date', new Date().toUTCString());
+	}
+	if (!res.headers.has('content-type')) {
+		res.headers.set('content-type', 'text/plain');
+	}
+	if (chunked) {
+		res.headers.set('transfer-encoding', 'chunked');
+	}
+
 	let headersStr = '';
 	for (const [k, v] of res.headers) {
 		headersStr += `${k}: ${v}\r\n`;
@@ -110,12 +137,15 @@ export async function writeResponse(
 	const header = `${httpVersion} ${res.status} ${statusText}\r\n${headersStr}\r\n`;
 	const w = writable.getWriter();
 	w.write(encoder.encode(header));
+	w.releaseLock();
 
-	const close = res.headers.get('connection') === 'close';
-	if (res.body) {
-		w.releaseLock();
-		await res.body.pipeTo(writable, { preventClose: !close });
+	let body = res.body;
+	if (body) {
+		if (chunked) {
+			body = createChunkedWriter(body);
+		}
+		await body.pipeTo(writable, { preventClose: !close });
 	} else if (close) {
-		await w.close();
+		await writable.close();
 	}
 }
