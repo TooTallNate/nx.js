@@ -1,5 +1,25 @@
 # nxjs-runtime
 
+## 0.0.39
+
+### Patch Changes
+
+- Fix `FormData` test and add URL encoded POST test ([`7b6f8b52214b43ba0192e637a19f2ab4e9db5cda`](https://github.com/TooTallNate/nx.js/commit/7b6f8b52214b43ba0192e637a19f2ab4e9db5cda))
+
+- Fix `URLSearchParams` iterator functions ([`56e3e1517d0d52292a90d5afd33ca608ac251c8e`](https://github.com/TooTallNate/nx.js/commit/56e3e1517d0d52292a90d5afd33ca608ac251c8e))
+
+- Set `allowHalfOpen: true` for TCP servers ([`75c9051d04857d471f7db40df1c661616e850593`](https://github.com/TooTallNate/nx.js/commit/75c9051d04857d471f7db40df1c661616e850593))
+
+- Add tests for `URL` and `URLSearchParams` from web platform tests ([`c0f4fc697c36eba9734ae9481a55117fc6e7564a`](https://github.com/TooTallNate/nx.js/commit/c0f4fc697c36eba9734ae9481a55117fc6e7564a))
+
+- Support "application/x-www-form-urlencoded" Content-Type in `Body#formData()` ([`2d36f595aab4ed8c9455667f5a51181a2ae4623b`](https://github.com/TooTallNate/nx.js/commit/2d36f595aab4ed8c9455667f5a51181a2ae4623b))
+
+- Close TCP socket when writable stream is closed ([`7e740829375beb454503568a09dc12fd7d0f384c`](https://github.com/TooTallNate/nx.js/commit/7e740829375beb454503568a09dc12fd7d0f384c))
+
+- Set "content-length" header in `Response.json()` ([`46ecc024194d96549e0041f8a1f63a5560019dff`](https://github.com/TooTallNate/nx.js/commit/46ecc024194d96549e0041f8a1f63a5560019dff))
+
+- Rename `Application.fromNRO()` to `Application.fromNro()` ([`8122869a12dcc376ea0e1a7985b818696bc611ac`](https://github.com/TooTallNate/nx.js/commit/8122869a12dcc376ea0e1a7985b818696bc611ac))
+
 ## 0.0.38
 
 ### Patch Changes
