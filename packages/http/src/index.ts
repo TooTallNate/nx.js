@@ -1,6 +1,7 @@
-import mime from 'mime';
 import { UnshiftableStream } from './unshiftable-readable-stream';
 import { readRequest, writeResponse } from './server';
+
+export { createStaticFileHandler } from './static';
 
 /**
  * Handler function for processing an HTTP request.
@@ -23,7 +24,7 @@ export interface ListenOptions extends Omit<Switch.ListenOptions, 'accept'> {
  * @param handler The HTTP handler function to invoke when an HTTP request is received
  */
 export function createServerHandler(handler: ServerHandler) {
-	return async function ({ socket }: Switch.SocketEvent) {
+	return async ({ socket }: Switch.SocketEvent) => {
 		const unshiftable = new UnshiftableStream(socket.readable);
 		while (true) {
 			const req = await readRequest(unshiftable);
@@ -32,49 +33,6 @@ export function createServerHandler(handler: ServerHandler) {
 			writeResponse(socket.writable, res, 'HTTP/1.1');
 		}
 		socket.close();
-	};
-}
-
-/**
- * Creates an HTTP handler function which serves file contents from the filesystem.
- *
- * @example
- *
- * ```typescript
- * const fileHandler = http.createStaticFileHandler('sdmc:/switch/');
- *
- * http.listen({
- *   port: 8080,
- *   async fetch(req) {
- *     let res = await fileHandler(req);
- *     if (!res) {
- *       res = new Response('File not found', { status: 404 });
- *     }
- *     return res;
- *   }
- * });
- * ```
- *
- * @param root Root directory where static files are served from
- */
-export function createStaticFileHandler(root: Switch.PathLike) {
-	if (!String(root).endsWith('/')) {
-		throw new Error('`root` directory must end with a "/"');
-	}
-	return async function (req: Request): Promise<Response | null> {
-		const { pathname } = new URL(req.url);
-		const url = new URL(pathname.slice(1), root);
-		const stat = await Switch.stat(url);
-		if (!stat) return null;
-		// TODO: replace with readable stream API
-		const data = await Switch.readFile(url);
-		if (!data) return null;
-		return new Response(data, {
-			headers: {
-				'content-length': String(data.byteLength),
-				'content-type': mime.getType(pathname) || 'application/octet-stream',
-			},
-		});
 	};
 }
 
@@ -95,8 +53,6 @@ export function createStaticFileHandler(root: Switch.PathLike) {
  * ```
  */
 export function listen(opts: ListenOptions) {
-	return Switch.listen({
-		...opts,
-		accept: createServerHandler(opts.fetch),
-	});
+	const accept = createServerHandler(opts.fetch);
+	return Switch.listen({ ...opts, accept });
 }
