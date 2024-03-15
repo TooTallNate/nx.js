@@ -126,7 +126,6 @@ export abstract class Body implements globalThis.Body {
 	/**
 	 * Returns a promise that resolves with an ArrayBuffer representation of the body.
 	 * If the body is null, it returns an empty ArrayBuffer.
-	 * @returns {Promise<ArrayBuffer>}
 	 */
 	async arrayBuffer(): Promise<ArrayBuffer> {
 		if (!this.body) return new ArrayBuffer(0);
@@ -150,9 +149,8 @@ export abstract class Body implements globalThis.Body {
 	}
 
 	/**
-	 * Returns a promise that resolves with a Blob representation of the body.
+	 * Returns a promise that resolves with a {@link Blob} representation of the body.
 	 * The Blob's type will be the value of the 'content-type' header.
-	 * @returns {Promise<Blob>}
 	 */
 	async blob(): Promise<Blob> {
 		const buf = await this.arrayBuffer();
@@ -255,7 +253,7 @@ export abstract class Body implements globalThis.Body {
 
 	/**
 	 * Returns a promise that resolves with a JSON representation of the body.
-	 * If the body cannot be parsed as JSON, it throws a SyntaxError.
+	 * If the body cannot be parsed as JSON, it throws a `SyntaxError`.
 	 */
 	async json(): Promise<any> {
 		const text = await this.text();
