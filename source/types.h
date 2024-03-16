@@ -1,5 +1,6 @@
 #pragma once
 #include <stdbool.h>
+#include <string.h>
 #include <wasm3.h>
 #include <pthread.h>
 #include <quickjs.h>
@@ -67,6 +68,8 @@ enum nx_rendering_mode
 	NX_RENDERING_MODE_CANVAS
 };
 
+struct nx_canvas_context_2d_s;
+
 typedef struct nx_context_s
 {
 	int had_error;
@@ -78,14 +81,24 @@ typedef struct nx_context_s
 	FT_Library ft_library;
 	HidVibrationDeviceHandle vibration_device_handles[2];
 	IM3Environment wasm_env;
+	struct nx_canvas_context_2d_s *screen_canvas_context;
+	JSValue system_font;
 	JSValue init_obj;
 	JSValue frame_handler;
 	JSValue exit_handler;
 	JSValue error_handler;
+	JSValue applet_event_handler;
 	JSValue unhandled_rejection_handler;
 
-	// mbedtls structures shared by all TLS connections
+	// `mbedtls` structures shared by all TLS connections
 	bool mbedtls_initialized;
 	mbedtls_entropy_context entropy;
 	mbedtls_ctr_drbg_context ctr_drbg;
+
+	// Text renderer
+	PrintConsole *print_console;
+
+	// Framebuffer renderer
+	NWindow *win;
+	Framebuffer *framebuffer;
 } nx_context_t;

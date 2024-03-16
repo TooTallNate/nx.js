@@ -1,20 +1,23 @@
+screen.enable1080p();
+
 const ctx = screen.getContext('2d');
-ctx.fillStyle = 'white';
-ctx.font = '42px system-ui';
-ctx.textAlign = 'center';
-ctx.textBaseline = 'bottom';
 
 function clock() {
 	const now = new Date();
+	const scaleFactor = screen.height / 150;
 
 	// Reset
 	ctx.clearRect(0, 0, screen.width, screen.height);
+	ctx.fillStyle = 'white';
 
 	// Render time as text
+	ctx.font = `${8 * scaleFactor}px system-ui`;
+	ctx.textAlign = 'center';
+	ctx.textBaseline = 'bottom';
 	ctx.fillText(now.toLocaleString(), screen.width / 2, screen.height);
 
 	ctx.save();
-	const scaleFactor = 4.8;
+
 	ctx.translate(
 		screen.width / 2 - (150 * scaleFactor) / 2,
 		screen.height / 2 - (150 * scaleFactor) / 2,

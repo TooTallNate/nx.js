@@ -45,6 +45,19 @@ export function addEventListener(
 ): void;
 
 /**
+ * The `resize` event is sent to the global scope when the console changes
+ * between handheld or docked mode. In handheld mode, only 720p resolution
+ * is supported. In docked mode, 1080p resolution is used.
+ *
+ * @see https://developer.mozilla.org/docs/Web/API/Window/resize_event
+ */
+export function addEventListener(
+	type: 'resize',
+	callback: EventListenerOrEventListenerObject<Event>,
+	options?: AddEventListenerOptions | boolean
+): void;
+
+/**
  * @see https://developer.mozilla.org/docs/Web/API/Element/keydown_event
  */
 export function addEventListener(

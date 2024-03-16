@@ -15,6 +15,7 @@ import {
 	UIEvent,
 	PromiseRejectionEvent,
 } from './polyfills/event';
+import './font/font-face';
 
 export type * from './types';
 export type * from './console';
@@ -182,6 +183,12 @@ $.onUnhandledRejection((p, r) => {
 
 const btnPlus = 1 << 10; ///< Plus button
 let previousButtons = 0;
+
+$.onAppletEvent((type) => {
+	if (type === 1 /* AppletHookType_OnOperationMode */) {
+		dispatchEvent(new Event('operationmodechange'));
+	}
+});
 
 $.onFrame((kDown) => {
 	processTimers();

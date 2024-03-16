@@ -10,6 +10,8 @@
 #include "image.h"
 #include "canvas.h"
 
+static char *default_font = "10px system-ui";
+
 #define CANVAS_CONTEXT_ARGV0                                                                   \
 	nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id); \
 	if (!context)                                                                              \
@@ -98,7 +100,8 @@ static void set_fill_rule(JSContext *ctx, JSValueConst fill_rule, cairo_t *cr)
 	cairo_set_fill_rule(cr, rule);
 }
 
-static void apply_path(JSContext *ctx, JSValue this_val, JSValue path) {
+static void apply_path(JSContext *ctx, JSValue this_val, JSValue path)
+{
 	nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
 	JSValue apply_path_func = JS_GetPropertyStr(ctx, nx_ctx->init_obj, "applyPath");
 	JSValue apply_path_argv[] = {this_val, path};
@@ -178,22 +181,26 @@ static JSValue nx_canvas_context_2d_is_point_in_path(JSContext *ctx, JSValueCons
 {
 	CANVAS_CONTEXT_THIS;
 	JSValue path = JS_NULL;
-	if (argc > 0 && JS_IsObject(argv[0])) {
+	if (argc > 0 && JS_IsObject(argv[0]))
+	{
 		path = argv[0];
 		argc--;
 		argv++;
 	}
 	bool is_in = false;
-	if (argc >= 2) {
+	if (argc >= 2)
+	{
 		double args[2];
 		if (js_validate_doubles_args(ctx, argv, args, 2, 0))
 			return JS_EXCEPTION;
 
-		if (argc == 3 && JS_IsString(argv[2])) {
+		if (argc == 3 && JS_IsString(argv[2]))
+		{
 			set_fill_rule(ctx, argv[2], cr);
 		}
 		bool needs_restore = false;
-		if (!JS_IsNull(path)) {
+		if (!JS_IsNull(path))
+		{
 			needs_restore = true;
 			save_path(context);
 			apply_path(ctx, this_val, path);
@@ -203,14 +210,16 @@ static JSValue nx_canvas_context_2d_is_point_in_path(JSContext *ctx, JSValueCons
 		matrix.is_2d = true;
 		matrix.values.m11 = matrix.values.m22 = matrix.values.m33 = matrix.values.m44 = 1.;
 		cairo_get_matrix(cr, &matrix.cr_matrix);
-		if (!nx_dommatrix_is_identity_(&matrix)) {
+		if (!nx_dommatrix_is_identity_(&matrix))
+		{
 			nx_dommatrix_invert_self_(&matrix);
 			double z = 0, w = 1;
 			nx_dommatrix_transform_point_(&matrix, &args[0], &args[1], &z, &w);
 		}
 		is_in = cairo_in_fill(cr, args[0], args[1]);
 
-		if (needs_restore) {
+		if (needs_restore)
+		{
 			restore_path(context);
 		}
 	}
@@ -221,18 +230,21 @@ static JSValue nx_canvas_context_2d_is_point_in_stroke(JSContext *ctx, JSValueCo
 {
 	CANVAS_CONTEXT_THIS;
 	JSValue path = JS_NULL;
-	if (argc > 0 && JS_IsObject(argv[0])) {
+	if (argc > 0 && JS_IsObject(argv[0]))
+	{
 		path = argv[0];
 		argc--;
 		argv++;
 	}
 	bool is_in = false;
-	if (argc >= 2) {
+	if (argc >= 2)
+	{
 		double args[2];
 		if (js_validate_doubles_args(ctx, argv, args, 2, 0))
 			return JS_EXCEPTION;
 		bool needs_restore = false;
-		if (!JS_IsNull(path)) {
+		if (!JS_IsNull(path))
+		{
 			needs_restore = true;
 			save_path(context);
 			apply_path(ctx, this_val, path);
@@ -242,14 +254,16 @@ static JSValue nx_canvas_context_2d_is_point_in_stroke(JSContext *ctx, JSValueCo
 		matrix.is_2d = true;
 		matrix.values.m11 = matrix.values.m22 = matrix.values.m33 = matrix.values.m44 = 1.;
 		cairo_get_matrix(cr, &matrix.cr_matrix);
-		if (!nx_dommatrix_is_identity_(&matrix)) {
+		if (!nx_dommatrix_is_identity_(&matrix))
+		{
 			nx_dommatrix_invert_self_(&matrix);
 			double z = 0, w = 1;
 			nx_dommatrix_transform_point_(&matrix, &args[0], &args[1], &z, &w);
 		}
 		is_in = cairo_in_stroke(cr, args[0], args[1]);
 
-		if (needs_restore) {
+		if (needs_restore)
+		{
 			restore_path(context);
 		}
 	}
@@ -807,7 +821,22 @@ static JSValue nx_canvas_context_2d_set_font(JSContext *ctx, JSValueConst this_v
 {
 	CANVAS_CONTEXT_ARGV0;
 
-	context->state->font = argv[1];
+	if (JS_IsNull(argv[1]))
+	{
+		nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
+		if (JS_IsUndefined(nx_ctx->system_font))
+		{
+			if (nx_load_system_font(ctx))
+			{
+				return JS_EXCEPTION;
+			}
+		}
+		context->state->font = nx_ctx->system_font;
+	}
+	else
+	{
+		context->state->font = argv[1];
+	}
 	nx_font_face_t *face = nx_get_font_face(ctx, context->state->font);
 	if (!face)
 		return JS_EXCEPTION;
@@ -1607,6 +1636,36 @@ nx_canvas_t *nx_get_canvas(JSContext *ctx, JSValueConst obj)
 	return JS_GetOpaque2(ctx, obj, nx_canvas_class_id);
 }
 
+int initialize_canvas(JSContext *ctx, nx_canvas_t *canvas, int width, int height)
+{
+	size_t buf_size = width * height * 4;
+	uint8_t *buffer = js_mallocz(ctx, buf_size);
+	if (!buffer)
+	{
+		return 1;
+	}
+
+	if (canvas->surface)
+	{
+		cairo_surface_destroy(canvas->surface);
+	}
+	if (canvas->data)
+	{
+		js_free(ctx, canvas->data);
+	}
+
+	canvas->width = width;
+	canvas->height = height;
+	canvas->data = buffer;
+	canvas->data_size = buf_size;
+
+	// On Switch, the byte order seems to be BGRA
+	canvas->surface = cairo_image_surface_create_for_data(
+		buffer, CAIRO_FORMAT_ARGB32, width, height, width * 4);
+
+	return 0;
+}
+
 static JSValue nx_canvas_new(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	int width;
@@ -1616,33 +1675,57 @@ static JSValue nx_canvas_new(JSContext *ctx, JSValueConst this_val, int argc, JS
 	if (JS_ToInt32(ctx, &height, argv[1]))
 		return JS_EXCEPTION;
 
-	size_t buf_size = width * height * 4;
-	uint8_t *buffer = js_mallocz(ctx, buf_size);
-	if (!buffer)
-		return JS_EXCEPTION;
-
-	nx_canvas_t *context = js_mallocz(ctx, sizeof(nx_canvas_t));
-	if (!context)
+	nx_canvas_t *canvas = js_mallocz(ctx, sizeof(nx_canvas_t));
+	if (!canvas)
 		return JS_EXCEPTION;
 
 	JSValue obj = JS_NewObjectClass(ctx, nx_canvas_class_id);
 	if (JS_IsException(obj))
 	{
-		js_free(ctx, context);
+		js_free(ctx, canvas);
 		return obj;
 	}
 
-	// On Switch, the byte order seems to be BGRA
-	cairo_surface_t *surface = cairo_image_surface_create_for_data(
-		buffer, CAIRO_FORMAT_ARGB32, width, height, width * 4);
+	if (initialize_canvas(ctx, canvas, width, height))
+	{
+		js_free(ctx, canvas);
+		return JS_EXCEPTION;
+	}
 
-	context->width = width;
-	context->height = height;
-	context->data = buffer;
-	context->surface = surface;
-
-	JS_SetOpaque(obj, context);
+	JS_SetOpaque(obj, canvas);
 	return obj;
+}
+
+static JSValue nx_canvas_resize(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	int width, height;
+	nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
+	if (
+		JS_ToInt32(ctx, &width, argv[2]) ||
+		JS_ToInt32(ctx, &height, argv[3]))
+	{
+		return JS_EXCEPTION;
+	}
+	nx_canvas_t *canvas = nx_get_canvas(ctx, argv[0]);
+	if (!canvas) {
+		return JS_EXCEPTION;
+	}
+	if (initialize_canvas(ctx, canvas, width, height))
+	{
+		return JS_EXCEPTION;
+	}
+	if (nx_ctx->rendering_mode == NX_RENDERING_MODE_CANVAS && !JS_IsUndefined(argv[1])) {
+		nx_canvas_context_2d_t *context = nx_get_canvas_context_2d(ctx, argv[1]);
+		if (!context) {
+			return JS_EXCEPTION;
+		}
+		if (initialize_canvas_context_2d(ctx, context))
+		{
+			return JS_EXCEPTION;
+		}
+		//nx_framebuffer_init_(nx_ctx);
+	}
+	return JS_UNDEFINED;
 }
 
 static JSValue nx_canvas_get_width(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -1866,6 +1949,10 @@ static JSValue nx_canvas_context_2d_restore(JSContext *ctx, JSValueConst this_va
 		js_free(ctx, prev);
 
 		nx_font_face_t *face = nx_get_font_face(ctx, context->state->font);
+		if (!face)
+		{
+			return JS_EXCEPTION;
+		}
 		cairo_set_font_face(cr, face->cairo_font);
 		set_font_size(context, context->state->font_size);
 	}
@@ -2696,8 +2783,8 @@ static JSValue nx_canvas_context_2d_set_transform(JSContext *ctx, JSValueConst t
 			JS_ToFloat64(ctx, &m.xy, argv[2]) ||
 			JS_ToFloat64(ctx, &m.yy, argv[3]) ||
 			JS_ToFloat64(ctx, &m.x0, argv[4]) ||
-			JS_ToFloat64(ctx, &m.y0, argv[5])
-		) {
+			JS_ToFloat64(ctx, &m.y0, argv[5]))
+		{
 			return JS_EXCEPTION;
 		}
 		cairo_set_matrix(cr, &m);
@@ -2780,31 +2867,38 @@ static JSValue nx_canvas_context_2d_init_class(JSContext *ctx, JSValueConst this
 	return JS_UNDEFINED;
 }
 
-static JSValue nx_canvas_context_2d_new(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+int initialize_canvas_context_2d(JSContext *ctx, nx_canvas_context_2d_t *context)
 {
-	nx_canvas_t *canvas = nx_get_canvas(ctx, argv[0]);
-
-	nx_canvas_context_2d_t *context = js_mallocz(ctx, sizeof(nx_canvas_context_2d_t));
+	nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
 	nx_canvas_context_2d_state_t *state = js_mallocz(ctx, sizeof(nx_canvas_context_2d_state_t));
-	if (!context || !state)
-		return JS_EXCEPTION;
-
-	JSValue obj = JS_NewObjectClass(ctx, nx_canvas_context_class_id);
-	if (JS_IsException(obj))
+	if (!state)
 	{
-		js_free(ctx, context);
-		js_free(ctx, state);
-		return obj;
+		return 1;
 	}
 
-	context->canvas = canvas;
+	// Free previous state if this is part of a resize
+	if (context->state)
+	{
+		finalizer_canvas_context_2d_state(JS_GetRuntime(ctx), context->state);
+	}
+	if (context->ctx)
+	{
+		cairo_destroy(context->ctx);
+	}
+
 	context->state = state;
-	context->ctx = cairo_create(canvas->surface);
+	context->ctx = cairo_create(context->canvas->surface);
+
+	if (JS_IsUndefined(nx_ctx->system_font))
+	{
+		if (nx_load_system_font(ctx))
+		{
+			return 1;
+		}
+	}
 
 	// Match browser defaults
 	state->next = NULL;
-	state->font = JS_UNDEFINED;
-	state->font_size = 10.;
 	state->fill.a = 1.;
 	state->stroke.a = 1.;
 	state->global_alpha = 1.;
@@ -2814,29 +2908,65 @@ static JSValue nx_canvas_context_2d_new(JSContext *ctx, JSValueConst this_val, i
 	state->text_baseline = TEXT_BASELINE_ALPHABETIC;
 	cairo_set_line_width(context->ctx, 1.);
 
+	state->font = nx_ctx->system_font;
+	state->font_string = strdup(default_font);
+	state->font_size = 10.;
+	nx_font_face_t *face = nx_get_font_face(ctx, state->font);
+	state->ft_face = face->ft_face;
+	state->hb_font = face->hb_font;
+	cairo_set_font_face(context->ctx, face->cairo_font);
+	set_font_size(context, state->font_size);
+
+	return 0;
+}
+
+static JSValue nx_canvas_context_2d_new(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	nx_canvas_t *canvas = nx_get_canvas(ctx, argv[0]);
+
+	nx_canvas_context_2d_t *context = js_mallocz(ctx, sizeof(nx_canvas_context_2d_t));
+	if (!context)
+		return JS_EXCEPTION;
+
+	JSValue obj = JS_NewObjectClass(ctx, nx_canvas_context_class_id);
+	if (JS_IsException(obj))
+	{
+		js_free(ctx, context);
+		return obj;
+	}
+
+	context->canvas = canvas;
+
+	if (initialize_canvas_context_2d(ctx, context))
+	{
+		js_free(ctx, context);
+		return JS_EXCEPTION;
+	}
+
 	JS_SetOpaque(obj, context);
 	return obj;
 }
 
 static void finalizer_canvas(JSRuntime *rt, JSValue val)
 {
-	nx_canvas_t *context = JS_GetOpaque(val, nx_canvas_class_id);
-	if (context)
+	nx_canvas_t *canvas = JS_GetOpaque(val, nx_canvas_class_id);
+	if (canvas)
 	{
-		if (context->surface)
+		if (canvas->surface)
 		{
-			cairo_surface_destroy(context->surface);
+			cairo_surface_destroy(canvas->surface);
 		}
-		if (context->data)
+		if (canvas->data)
 		{
-			js_free_rt(rt, context->data);
+			js_free_rt(rt, canvas->data);
 		}
-		js_free_rt(rt, context);
+		js_free_rt(rt, canvas);
 	}
 }
 
 static const JSCFunctionListEntry init_function_list[] = {
 	JS_CFUNC_DEF("canvasNew", 0, nx_canvas_new),
+	JS_CFUNC_DEF("canvasResize", 0, nx_canvas_resize),
 	JS_CFUNC_DEF("canvasInitClass", 0, nx_canvas_init_class),
 	JS_CFUNC_DEF("canvasContext2dNew", 0, nx_canvas_context_2d_new),
 	JS_CFUNC_DEF("canvasContext2dInitClass", 0, nx_canvas_context_2d_init_class),

@@ -5,17 +5,17 @@
 
 static JSClassID nx_font_face_class_id;
 
-static JSValue nx_new_font_face(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+JSValue nx_new_font_face_(JSContext *ctx, u8 *data, size_t bytes)
 {
 	nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
 	nx_font_face_t *context = js_mallocz(ctx, sizeof(nx_font_face_t));
 	if (!context)
+	{
 		return JS_EXCEPTION;
+	}
 
-	size_t bytes;
-	FT_Byte *font_data = JS_GetArrayBuffer(ctx, &bytes, argv[0]);
 	context->font_buffer = js_malloc(ctx, bytes);
-	memcpy(context->font_buffer, font_data, bytes);
+	memcpy(context->font_buffer, data, bytes);
 
 	if (nx_ctx->ft_library == NULL)
 	{
@@ -50,37 +50,51 @@ static JSValue nx_new_font_face(JSContext *ctx, JSValueConst this_val, int argc,
 	return obj;
 }
 
-static JSValue nx_get_system_font(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+static JSValue nx_new_font_face(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
+	size_t bytes;
+	FT_Byte *font_data = JS_GetArrayBuffer(ctx, &bytes, argv[0]);
+	return nx_new_font_face_(ctx, font_data, bytes);
+}
+
+int nx_load_system_font(JSContext *ctx)
+{
+	nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
 	PlFontData font;
 	Result rc = plGetSharedFontByType(&font, PlSharedFontType_Standard);
 	if (R_FAILED(rc))
 	{
 		JS_ThrowTypeError(ctx, "Failed to load system font");
-		return JS_EXCEPTION;
+		return 1;
 	}
-	return JS_NewArrayBufferCopy(ctx, font.address, font.size);
+	JSValue system_font = nx_new_font_face_(ctx, font.address, font.size);
+	if (JS_IsException(system_font))
+	{
+		return 1;
+	}
+	nx_ctx->system_font = JS_DupValue(ctx, system_font);
+	return 0;
 }
 
 static void finalizer_font_face(JSRuntime *rt, JSValue val)
 {
-	nx_font_face_t *context = JS_GetOpaque(val, nx_font_face_class_id);
-	if (context)
+	nx_font_face_t *font = JS_GetOpaque(val, nx_font_face_class_id);
+	if (font)
 	{
-		if (context->hb_font)
+		if (font->hb_font)
 		{
-			hb_font_destroy(context->hb_font);
+			hb_font_destroy(font->hb_font);
 		}
-		if (context->cairo_font)
+		if (font->cairo_font)
 		{
-			cairo_font_face_destroy(context->cairo_font);
+			cairo_font_face_destroy(font->cairo_font);
 		}
-		if (context->ft_face)
+		if (font->ft_face)
 		{
-			FT_Done_Face(context->ft_face);
+			FT_Done_Face(font->ft_face);
 		}
-		js_free_rt(rt, context->font_buffer);
-		js_free_rt(rt, context);
+		js_free_rt(rt, font->font_buffer);
+		js_free_rt(rt, font);
 	}
 }
 
@@ -91,7 +105,6 @@ nx_font_face_t *nx_get_font_face(JSContext *ctx, JSValueConst obj)
 
 static const JSCFunctionListEntry function_list[] = {
 	JS_CFUNC_DEF("fontFaceNew", 0, nx_new_font_face),
-	JS_CFUNC_DEF("getSystemFont", 0, nx_get_system_font),
 };
 
 void nx_init_font(JSContext *ctx, JSValueConst init_obj)

@@ -21,6 +21,8 @@ export * from './switch/irsensor';
 export * from './switch/profile';
 export { Socket, Server };
 
+export type OperationMode = 'docked' | 'handheld';
+
 export type PathLike = string | URL;
 
 export interface Versions {
@@ -235,4 +237,11 @@ export function listen(opts: ListenOptions) {
 		server.addEventListener('accept', accept);
 	}
 	return server;
+}
+
+/**
+ * afd
+ */
+export function operationMode() {
+	return $.appletGetOperationMode() as OperationMode;
 }

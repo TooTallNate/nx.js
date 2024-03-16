@@ -74,6 +74,7 @@ export class Event implements globalThis.Event {
 		throw new Error('Method not implemented.');
 	}
 }
+def(Event);
 
 export interface UIEventInit extends EventInit {
 	detail?: number;
@@ -93,6 +94,7 @@ export class UIEvent extends Event implements globalThis.UIEvent {
 		throw new Error('Method not implemented.');
 	}
 }
+def(UIEvent);
 
 // Keyboard modifiers bitmasks
 const CTRL = 1n << 0n;
@@ -394,6 +396,7 @@ export class KeyboardEvent extends UIEvent implements globalThis.KeyboardEvent {
 		return code;
 	}
 }
+def(KeyboardEvent);
 
 export interface TouchInit {
 	clientX?: number;
@@ -520,6 +523,7 @@ export class TouchEvent extends UIEvent implements globalThis.TouchEvent {
 		this.touches = toTouchList(options.touches);
 	}
 }
+def(TouchEvent);
 
 export interface ErrorEventInit extends EventInit {
 	colno?: number;
@@ -544,6 +548,7 @@ export class ErrorEvent extends Event implements globalThis.ErrorEvent {
 		this.message = this.error?.message ?? '';
 	}
 }
+def(ErrorEvent);
 
 export interface PromiseRejectionEventInit extends EventInit {
 	promise: Promise<any>;
@@ -562,10 +567,4 @@ export class PromiseRejectionEvent
 		this.reason = options.reason;
 	}
 }
-
-def(Event);
-def(ErrorEvent);
 def(PromiseRejectionEvent);
-def(UIEvent);
-def(KeyboardEvent);
-def(TouchEvent);

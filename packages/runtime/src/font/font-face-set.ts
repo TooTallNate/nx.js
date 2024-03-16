@@ -1,4 +1,3 @@
-import { $ } from '../$';
 import { INTERNAL_SYMBOL } from '../internal';
 import { EventTarget } from '../polyfills/event-target';
 import { assertInternalConstructor, createInternal, def } from '../utils';
@@ -90,7 +89,7 @@ def(fonts, 'fonts');
 export function findFont(
 	fontFaceSet: FontFaceSet,
 	desired: IFont,
-): FontFace | null {
+): FontFace | undefined {
 	if (!desired.family) {
 		throw new Error('No `font-family` was specified');
 	}
@@ -107,12 +106,4 @@ export function findFont(
 			}
 		}
 	}
-	return null;
-}
-
-export function addSystemFont(fonts: FontFaceSet): FontFace {
-	const data = $.getSystemFont();
-	const font = new FontFace('system-ui', data);
-	fonts.add(font);
-	return font;
 }

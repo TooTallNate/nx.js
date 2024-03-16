@@ -6,15 +6,14 @@
 /**
  * `Screen` / `OffscreenCanvas` / `Image` / `ImageBitmap`
  */
-typedef struct
+typedef struct nx_canvas_s
 {
 	uint32_t width;
 	uint32_t height;
 	uint8_t *data;
+	size_t data_size;
 	cairo_surface_t *surface;
 } nx_canvas_t;
-
-nx_canvas_t *nx_get_canvas(JSContext *ctx, JSValueConst obj);
 
 typedef struct nx_rgba_s
 {
@@ -86,6 +85,9 @@ typedef struct nx_canvas_context_2d_s
 	nx_canvas_context_2d_state_t *state;
 } nx_canvas_context_2d_t;
 
+nx_canvas_t *nx_get_canvas(JSContext *ctx, JSValueConst obj);
 nx_canvas_context_2d_t *nx_get_canvas_context_2d(JSContext *ctx, JSValueConst obj);
+int initialize_canvas(JSContext* ctx, nx_canvas_t* canvas, int width, int height);
+int initialize_canvas_context_2d(JSContext *ctx, nx_canvas_context_2d_t *context);
 
 void nx_init_canvas(JSContext *ctx, JSValueConst init_obj);
