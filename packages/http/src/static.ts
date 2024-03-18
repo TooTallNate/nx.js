@@ -41,7 +41,8 @@ export function createStaticFileHandler(root: Switch.PathLike) {
 		return new Response(data, {
 			headers: {
 				'content-length': String(data.byteLength),
-				'content-type': mime.getType(url.pathname) || 'application/octet-stream',
+				'content-type':
+					mime.getType(url.pathname) || 'application/octet-stream',
 			},
 		});
 	};
