@@ -1,5 +1,5 @@
 import { $ } from '../$';
-import { assertInternalConstructor, proto } from '../utils';
+import { proto } from '../utils';
 
 let init = false;
 
@@ -31,10 +31,21 @@ export class Profile {
 	declare readonly image: ArrayBuffer;
 
 	/**
-	 * @ignore
+	 * Creates a new `Profile` instance from the given profile UID.
+	 *
+	 * @example
+	 *
+	 * ```typescript
+	 * const profile = new Switch.Profile([
+	 *   0x10005d4864d166b7n,
+	 *   0x965b8cb028cd8a81n,
+	 * ]);
+	 * console.log(profile.nickname);
+	 * ```
 	 */
-	constructor() {
-		assertInternalConstructor(arguments);
+	constructor(uid: ProfileUid) {
+		_init();
+		return proto($.accountProfileNew(uid), Profile);
 	}
 }
 $.accountProfileInit(Profile);

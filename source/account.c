@@ -91,11 +91,23 @@ static JSValue nx_account_select_profile(JSContext *ctx, JSValueConst this_val, 
 	Result rc = pselShowUserSelector(&uid, &settings);
 	if (R_FAILED(rc))
 	{
-		if (rc == 0x27C /* ResultCancelledByUser*/)
+		if (rc == 0x27C /* ResultCancelledByUser */)
 		{
 			return JS_NULL;
 		}
 		JS_ThrowInternalError(ctx, "pselShowUserSelector() returned 0x%x", rc);
+		return JS_EXCEPTION;
+	}
+	return profile_new(ctx, uid);
+}
+
+static JSValue nx_account_profile_new(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	AccountUid uid;
+	if (
+		JS_ToBigInt64(ctx, (int64_t*)&uid.uid[0], JS_GetPropertyUint32(ctx, argv[0], 0)) ||
+		JS_ToBigInt64(ctx, (int64_t*)&uid.uid[1], JS_GetPropertyUint32(ctx, argv[0], 1)))
+	{
 		return JS_EXCEPTION;
 	}
 	return profile_new(ctx, uid);
@@ -217,6 +229,7 @@ static const JSCFunctionListEntry function_list[] = {
 	JS_CFUNC_DEF("accountProfileInit", 1, nx_account_profile_init),
 	JS_CFUNC_DEF("accountCurrentProfile", 0, nx_account_current_profile),
 	JS_CFUNC_DEF("accountSelectProfile", 0, nx_account_select_profile),
+	JS_CFUNC_DEF("accountProfileNew", 0, nx_account_profile_new),
 	JS_CFUNC_DEF("accountProfiles", 0, nx_account_profiles),
 };
 

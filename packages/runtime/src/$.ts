@@ -45,6 +45,7 @@ export interface Init {
 	accountProfileInit(c: ClassOf<Profile>): void;
 	accountCurrentProfile(): Profile | null;
 	accountSelectProfile(): Profile | null;
+	accountProfileNew(uid: ProfileUid): Profile;
 	accountProfiles(): Profile[];
 
 	// applet.c
