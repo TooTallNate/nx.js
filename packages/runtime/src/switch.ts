@@ -236,3 +236,12 @@ export function listen(opts: ListenOptions) {
 	}
 	return server;
 }
+
+/**
+ * Set media playback state.
+ *
+ * @param state If `true`, screen dimming and auto sleep is disabled.
+ */
+export function setMediaPlaybackState(state: boolean) {
+	$.appletSetMediaPlaybackState(state);
+}

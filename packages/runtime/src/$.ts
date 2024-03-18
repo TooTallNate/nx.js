@@ -52,6 +52,7 @@ export interface Init {
 	appletIlluminance(): number;
 	appletGetAppletType(): number;
 	appletGetOperationMode(): number;
+	appletSetMediaPlaybackState(state: boolean): void;
 
 	// battery.c
 	batteryInit(): void;
