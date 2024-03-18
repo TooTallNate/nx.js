@@ -1,5 +1,17 @@
 # nxjs-runtime
 
+## 0.0.40
+
+### Patch Changes
+
+- Add `Switch.setMediaPlaybackState()` to disable auto-lock and screen dimming ([`8631e5d477e6ae8c05e2b00b67b73d58d6a4f60a`](https://github.com/TooTallNate/nx.js/commit/8631e5d477e6ae8c05e2b00b67b73d58d6a4f60a))
+
+- Implement `new Switch.Profile()` constructor ([`d30e385dd5037b8fc18c6b4709e21657057e6d7b`](https://github.com/TooTallNate/nx.js/commit/d30e385dd5037b8fc18c6b4709e21657057e6d7b))
+
+- Make `Application#id` return the "PresenceGroupId" instead of "SaveDataOwnerId" ([`70ebcd580add2583e08c06cfa7b3e20a1ad6e065`](https://github.com/TooTallNate/nx.js/commit/70ebcd580add2583e08c06cfa7b3e20a1ad6e065))
+
+- Implement `new Switch.Application` constructor, remove `fromId()` and `fromNro()` ([`ce9c398f79867d4042ef81e3782655b145e9dcd8`](https://github.com/TooTallNate/nx.js/commit/ce9c398f79867d4042ef81e3782655b145e9dcd8))
+
 ## 0.0.39
 
 ### Patch Changes
