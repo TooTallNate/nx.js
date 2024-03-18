@@ -102,7 +102,7 @@ static JSValue nx_ns_app_id(JSContext *ctx, JSValueConst this_val, int argc, JSV
 	{
 		return JS_EXCEPTION;
 	}
-	return JS_NewBigUint64(ctx, app->data.nacp.save_data_owner_id);
+	return JS_NewBigUint64(ctx, app->data.nacp.presence_group_id);
 }
 
 static JSValue nx_ns_app_nacp(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)

@@ -29,7 +29,7 @@ function _init() {
  */
 export class Application {
 	/**
-	 * The 64-bit unique identifier of the application.
+	 * The 64-bit unique identifier of the application (`PresenceGroupId`).
 	 */
 	declare readonly id: bigint;
 
