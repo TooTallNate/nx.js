@@ -1,7 +1,7 @@
 import { $ } from '../$';
 import { FsDev } from './fsdev';
 import { readFileSync } from '../fs';
-import { assertInternalConstructor, proto, stub } from '../utils';
+import { proto, stub } from '../utils';
 import type { Profile } from './profile';
 
 let init = false;
@@ -59,10 +59,37 @@ export class Application {
 	declare readonly author: string;
 
 	/**
-	 * @ignore
+	 * Creates an `Application` instance from the ID of an
+	 * installed application.
+	 *
+	 * @example
+	 *
+	 * ```typescript
+	 * const app = new Switch.Application(0x100bc0018138000n);
+	 * console.log(app.name);
+	 * ```
+	 *
+	 * @param id The ID of the installed application.
 	 */
-	constructor() {
-		assertInternalConstructor(arguments);
+	constructor(id: bigint);
+	/**
+	 * Creates an `Application` instance from an `ArrayBuffer`
+	 * containing the contents of a `.nro` homebrew application.
+	 *
+	 * @example
+	 *
+	 * ```typescript
+	 * const nro = await Switch.readFile('sdmc:/hbmenu.nro');
+	 * const app = Switch.Application.fromNro(nro);
+	 * console.log(app.name);
+	 * ```
+	 *
+	 * @param nro The contents of the `.nro` file.
+	 */
+	constructor(nro: ArrayBuffer);
+	constructor(v: bigint | ArrayBuffer) {
+		_init();
+		return proto($.nsAppNew(v), Application);
 	}
 
 	/**
@@ -130,37 +157,13 @@ export class Application {
 		return self;
 	}
 
-	/**
-	 * Creates an `Application` instance from an `ArrayBuffer`
-	 * containing the contents of a `.nro` homebrew application.
-	 *
-	 * @example
-	 *
-	 * ```typescript
-	 * const nro = await Switch.readFile('sdmc:/hbmenu.nro');
-	 * const app = Switch.Application.fromNro(nro);
-	 * console.log(app.name);
-	 * ```
-	 *
-	 * @param nro The contents of the `.nro` file.
-	 */
-	static fromNro(nro: ArrayBuffer): Application {
-		_init();
-		return proto($.nsAppNew(nro), Application);
-	}
-
-	static fromId(id: bigint): Application {
-		_init();
-		return proto($.nsAppNew(id), Application);
-	}
-
 	static *[Symbol.iterator]() {
 		_init();
 		let offset = 0;
 		while (1) {
 			const id = $.nsAppNext(offset++);
 			if (!id) break;
-			yield Application.fromId(id);
+			yield new Application(id);
 		}
 	}
 }
