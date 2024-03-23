@@ -239,6 +239,27 @@ export function listen(opts: ListenOptions) {
 }
 
 /**
+ * Returns the "applet type" of the running application.
+ *
+ * This can be used to differentiate between "applet mode" vs. "full-memory mode".
+ *
+ * @example
+ *
+ * ```typescript
+ * import { AppletType } from '@nx.js/constants';
+ *
+ * if (Switch.appletType() === AppletType.Application) {
+ *   console.log('Running in "full-memory mode"');
+ * } else {
+ *   console.log('Running in "applet mode"');
+ * }
+ * ```
+ */
+export function appletType(): number {
+	return $.appletGetAppletType();
+}
+
+/**
  * Set media playback state.
  *
  * @param state If `true`, screen dimming and auto sleep is disabled.
