@@ -260,6 +260,27 @@ export function appletType(): number {
 }
 
 /**
+ * Returns the current "operation mode" of the device.
+ *
+ * This can be used to identify if the device is handheld or docked.
+ *
+ * @example
+ *
+ * ```typescript
+ * import { OperationMode } from '@nx.js/constants';
+ *
+ * if (Switch.operationMode() === OperationMode.Handheld) {
+ *   console.log('Device is currently handheld');
+ * } else {
+ *   console.log('Device is currently docked');
+ * }
+ * ```
+ */
+export function operationMode(): number {
+	return $.appletGetOperationMode();
+}
+
+/**
  * Set media playback state.
  *
  * @param state If `true`, screen dimming and auto sleep is disabled.
