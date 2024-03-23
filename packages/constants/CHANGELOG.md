@@ -1,4 +1,4 @@
-# nxjs-constants
+# @nx.js/constants
 
 ## 0.0.28
 

@@ -10,10 +10,10 @@
   },
   "license": "MIT",
   "devDependencies": {
+    "@nx.js/constants": "workspace:^",
     "@nx.js/nro": "workspace:^",
     "@nx.js/nsp": "workspace:^",
     "esbuild": "^0.17.19",
-    "nxjs-constants": "workspace:^",
     "nxjs-runtime": "workspace:^"
   }
 }

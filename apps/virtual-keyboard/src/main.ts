@@ -1,5 +1,4 @@
-import { Hid, Swkbd } from 'nxjs-constants';
-const { Button } = Hid;
+import { HidNpadButton, SwkbdType } from '@nx.js/constants';
 
 const ctx = screen.getContext('2d');
 const vk = navigator.virtualKeyboard;
@@ -29,18 +28,18 @@ function render() {
 addEventListener('buttondown', (e) => {
 	const isOpen = vk.boundingRect.height > 0;
 	if (isOpen) {
-		if (e.detail & Button.Plus) {
+		if (e.detail & HidNpadButton.Plus) {
 			e.preventDefault();
-		} else if (e.detail & Button.ZL) {
+		} else if (e.detail & HidNpadButton.ZL) {
 			vk.hide();
 		}
 	} else {
-		if (e.detail & Button.ZR) {
-			vk.type = Swkbd.Type.Normal;
+		if (e.detail & HidNpadButton.ZR) {
+			vk.type = SwkbdType.Normal;
 			vk.okButtonText = 'Done';
 			vk.show();
-		} else if (e.detail & Button.ZL) {
-			vk.type = Swkbd.Type.NumPad;
+		} else if (e.detail & HidNpadButton.ZL) {
+			vk.type = SwkbdType.NumPad;
 			vk.okButtonText = 'Submit';
 			vk.leftButtonText = ':';
 			vk.rightButtonText = '.';

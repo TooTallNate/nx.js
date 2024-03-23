@@ -1,5 +1,5 @@
 /// Type of keyboard.
-export enum Type {
+export enum SwkbdType {
 	Normal = 0, ///< Normal keyboard.
 	NumPad = 1, ///< Number pad. The buttons at the bottom left/right are only available when they're set by \ref swkbdConfigSetLeftOptionalSymbolKey / \ref swkbdConfigSetRightOptionalSymbolKey.
 	QWERTY = 2, ///< QWERTY (and variants) keyboard only.

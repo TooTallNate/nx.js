@@ -1,5 +1,5 @@
 {
-  "name": "nxjs-constants",
+  "name": "@nx.js/constants",
   "version": "0.0.28",
   "description": "Constants and enums for use with nx.js",
   "sideEffects": false,

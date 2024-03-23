@@ -28,7 +28,7 @@ importers:
 
   apps/2048:
     dependencies:
-      nxjs-constants:
+      '@nx.js/constants':
         specifier: workspace:*
         version: link:../../packages/constants
     devDependencies:
@@ -232,7 +232,7 @@ importers:
 
   apps/snake:
     dependencies:
-      nxjs-constants:
+      '@nx.js/constants':
         specifier: workspace:*
         version: link:../../packages/constants
     devDependencies:
@@ -363,6 +363,9 @@ importers:
 
   apps/virtual-keyboard:
     devDependencies:
+      '@nx.js/constants':
+        specifier: workspace:^
+        version: link:../../packages/constants
       '@nx.js/nro':
         specifier: workspace:^
         version: link:../../packages/nro
@@ -372,9 +375,6 @@ importers:
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
-      nxjs-constants:
-        specifier: workspace:^
-        version: link:../../packages/constants
       nxjs-runtime:
         specifier: workspace:^
         version: link:../../packages/runtime

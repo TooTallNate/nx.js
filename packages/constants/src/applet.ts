@@ -1,5 +1,5 @@
 /// AppletType
-export enum Type {
+export enum AppletType {
 	None = -2,
 	Default = -1,
 	Application = 0,
@@ -11,6 +11,6 @@ export enum Type {
 
 /// OperationMode
 export enum OperationMode {
-	Handheld = 0, ///< Handheld
-	Console = 1, ///< Console (Docked / TV-mode)
+	Handheld = 0,
+	Console = 1, // Docked / TV-mode
 }

@@ -1,6 +1,5 @@
 import { FPS } from './fps';
-import { Hid } from 'nxjs-constants';
-const { Button } = Hid;
+import { HidNpadButton } from '@nx.js/constants';
 
 interface Position {
 	x: number;
@@ -283,35 +282,35 @@ function gameOver() {
 
 addEventListener('buttondown', (event) => {
 	if (state === State.Playing) {
-		if (event.detail & Button.Plus) {
+		if (event.detail & HidNpadButton.Plus) {
 			event.preventDefault();
 			pause();
 		} else if (!directionChange) {
-			if (event.detail & Button.AnyLeft) {
+			if (event.detail & HidNpadButton.AnyLeft) {
 				if (direction !== Direction.Right) {
 					directionChange = Direction.Left;
 				}
-			} else if (event.detail & Button.AnyUp) {
+			} else if (event.detail & HidNpadButton.AnyUp) {
 				if (direction !== Direction.Down) {
 					directionChange = Direction.Up;
 				}
-			} else if (event.detail & Button.AnyRight) {
+			} else if (event.detail & HidNpadButton.AnyRight) {
 				if (direction !== Direction.Left) {
 					directionChange = Direction.Right;
 				}
-			} else if (event.detail & Button.AnyDown) {
+			} else if (event.detail & HidNpadButton.AnyDown) {
 				if (direction !== Direction.Up) {
 					directionChange = Direction.Down;
 				}
 			}
 		}
 	} else if (state === State.Paused) {
-		if (event.detail & Button.Plus) {
+		if (event.detail & HidNpadButton.Plus) {
 			event.preventDefault();
 			play();
 		}
 	} else if (state === State.Gameover) {
-		if (event.detail & Button.A) {
+		if (event.detail & HidNpadButton.A) {
 			start();
 		}
 	}

@@ -1,6 +1,4 @@
-import { Hid } from 'nxjs-constants';
-
-const { Button } = Hid;
+import { HidNpadButton } from '@nx.js/constants';
 
 export class InputManager {
 	constructor(gameManager) {
@@ -48,18 +46,18 @@ export class InputManager {
 		});
 
 		addEventListener('buttondown', (event) => {
-			if (event.detail & Button.AnyLeft) {
+			if (event.detail & HidNpadButton.AnyLeft) {
 				this.gameManager.move(3);
-			} else if (event.detail & Button.AnyRight) {
+			} else if (event.detail & HidNpadButton.AnyRight) {
 				this.gameManager.move(1);
-			} else if (event.detail & Button.AnyUp) {
+			} else if (event.detail & HidNpadButton.AnyUp) {
 				this.gameManager.move(0);
-			} else if (event.detail & Button.AnyDown) {
+			} else if (event.detail & HidNpadButton.AnyDown) {
 				this.gameManager.move(2);
-			} else if (event.detail & Button.Minus) {
+			} else if (event.detail & HidNpadButton.Minus) {
 				this.gameManager.restart();
 			} else if (this.gameManager.won && !this.gameManager.keepPlaying) {
-				if (event.detail & Button.Plus) {
+				if (event.detail & HidNpadButton.Plus) {
 					event.preventDefault();
 					this.gameManager.continueGame();
 				}
