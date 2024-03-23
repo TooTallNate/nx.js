@@ -152,7 +152,7 @@ Object.defineProperty(globalThis, 'localStorage', {
 				dev.commit();
 			},
 			setItem(key: string, value: string): void {
-				writeFileSync(new URL(key, base), value);
+				writeFileSync(new URL(key, base), String(value));
 				dev.commit();
 			},
 			length(): number {
