@@ -5,8 +5,20 @@ import { URL } from '../polyfills/url';
  * Represents a mounted filesystem device, such as the Save Data store for an Application / Profile pair.
  */
 export class FsDev {
+	/**
+	 * A `URL` instance that points to the root of the filesystem mount. You should use this to create file path references within the filesystem mount.
+	 *
+	 * @example
+	 *
+	 * ```typescript
+	 * const dataUrl = new URL('data.json', device.url);
+	 * ```
+	 */
 	url: URL;
 
+	/**
+	 * @ignore
+	 */
 	constructor(name: string) {
 		this.url = new URL(`${name}:/`);
 	}
