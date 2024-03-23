@@ -120,19 +120,19 @@ Object.defineProperty(globalThis, 'localStorage', {
 	get() {
 		const { self } = Application;
 		const profile = currentProfile({ required: true });
-		const name = 'localstorage';
-		const base = `${name}:/localStorage/`;
 
 		let dev: FsDev;
 		try {
-			dev = self.mountSaveData(name, profile);
+			dev = self.mountSaveData(profile);
 		} catch (err: any) {
 			// rethrow if not `ResultTargetNotFound` (meaning save data has not been created)
 			if (err.description !== 1002) throw err;
 
 			self.createSaveData(profile);
-			dev = self.mountSaveData(name, profile);
+			dev = self.mountSaveData(profile);
 		}
+
+		const base = new URL('localStorage/', dev.url);
 
 		const impl: StorageImpl = {
 			clear() {

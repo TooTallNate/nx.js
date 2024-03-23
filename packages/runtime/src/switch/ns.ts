@@ -1,5 +1,6 @@
 import { $ } from '../$';
 import { FsDev } from './fsdev';
+import { crypto } from '../crypto';
 import { readFileSync } from '../fs';
 import { proto, stub } from '../utils';
 import type { Profile } from './profile';
@@ -12,6 +13,8 @@ function _init() {
 	addEventListener('unload', $.nsInitialize());
 	init = true;
 }
+
+const genName = () => `s${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}`;
 
 /**
  * Represents an installed application (game) on the console,
@@ -124,20 +127,21 @@ export class Application {
 	 *
 	 * ```typescript
 	 * const profile = Switch.currentProfile({ required: true });
-	 * const device = app.mountSaveData('save', profile);
+	 * const saveData = app.mountSaveData(profile);
 	 *
 	 * // Use the filesystem functions to do operations on the save mount
-	 * console.log(Switch.readDirSync('save:/'));
+	 * console.log(Switch.readDirSync(saveData.url));
 	 *
-	 * // Make sure to use `device.commit()` after any write operations
-	 * Switch.writeFileSync('save:/state', 'your app state…');
-	 * device.commit();
+	 * // Make sure to use `saveData.commit()` after any write operations
+	 * const saveStateUrl = new URL('state', saveData.url)
+	 * Switch.writeFileSync(saveStateUrl, 'your app state…');
+	 * saveData.commit();
 	 * ```
 	 *
-	 * @param name The name of the device mount for filesystem paths.
 	 * @param profile The {@link Profile} which the save data belongs to.
+	 * @param name The name of the device mount for filesystem paths. If not provided, a random name is generated.
 	 */
-	mountSaveData(name: string, profile: Profile) {
+	mountSaveData(profile: Profile, name = genName()): FsDev {
 		$.fsdevMountSaveData(name, this.nacp, profile.uid);
 		return new FsDev(name);
 	}
