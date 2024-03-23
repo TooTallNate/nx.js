@@ -1,13 +1,14 @@
 import { $ } from '../$';
+import { URL } from '../polyfills/url';
 
 /**
  * Represents a mounted filesystem device, such as the Save Data store for an Application / Profile pair.
  */
 export class FsDev {
-	name: string;
+	url: URL;
 
 	constructor(name: string) {
-		this.name = name;
+		this.url = new URL(`${name}:/`);
 	}
 
 	/**
@@ -25,7 +26,7 @@ export class FsDev {
 	 * ```
 	 */
 	commit() {
-		$.fsdevCommitDevice(this.name);
+		$.fsdevCommitDevice(this.url.protocol);
 	}
 
 	/**
@@ -42,6 +43,6 @@ export class FsDev {
 	 * ```
 	 */
 	unmount() {
-		$.fsdevUnmountDevice(this.name);
+		$.fsdevUnmountDevice(this.url.protocol);
 	}
 }
