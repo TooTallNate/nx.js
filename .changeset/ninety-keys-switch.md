@@ -1,5 +1,5 @@
 ---
-"@nx.js/constants": patch
+"@nx.js/constants": minor
 ---
 
 Rename `nxjs-constants` package to `@nx.js/constants`
