@@ -230,6 +230,21 @@ importers:
         specifier: workspace:^
         version: link:../../packages/runtime
 
+  apps/save-data:
+    devDependencies:
+      '@nx.js/nro':
+        specifier: workspace:^
+        version: link:../../packages/nro
+      '@nx.js/nsp':
+        specifier: workspace:^
+        version: link:../../packages/nsp
+      esbuild:
+        specifier: ^0.17.19
+        version: 0.17.19
+      nxjs-runtime:
+        specifier: workspace:^
+        version: link:../../packages/runtime
+
   apps/snake:
     dependencies:
       '@nx.js/constants':
