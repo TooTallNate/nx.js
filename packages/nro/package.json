@@ -1,6 +1,6 @@
 {
   "name": "@nx.js/nro",
-  "version": "0.0.40",
+  "version": "0.0.41",
   "description": "Package nx.js app into a `.nro` file",
   "bin": {
     "nxjs-nro": "./dist/main.js"

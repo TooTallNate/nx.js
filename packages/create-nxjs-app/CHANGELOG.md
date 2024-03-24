@@ -1,5 +1,11 @@
 # create-nxjs-app
 
+## 0.0.41
+
+### Patch Changes
+
+- Add `save-data` template ([`24b1eb08e0125c3d2bc136d0fee88f3680944aa8`](https://github.com/TooTallNate/nx.js/commit/24b1eb08e0125c3d2bc136d0fee88f3680944aa8))
+
 ## 0.0.40
 
 ## 0.0.39

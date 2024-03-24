@@ -1,5 +1,23 @@
 # nxjs-runtime
 
+## 0.0.41
+
+### Patch Changes
+
+- Fix setting non-string values on `localStorage` ([`d4d0ccf2144d736114aa30731cf9351ce8382c54`](https://github.com/TooTallNate/nx.js/commit/d4d0ccf2144d736114aa30731cf9351ce8382c54))
+
+- Export `Switch.FsDev` class ([`ef2801cf05ba16fff2dc007fd206e36abe8649db`](https://github.com/TooTallNate/nx.js/commit/ef2801cf05ba16fff2dc007fd206e36abe8649db))
+
+- Add `Switch.appletType()` ([`e74f83a4df004af0e6dda6915cf04b49c80d75a9`](https://github.com/TooTallNate/nx.js/commit/e74f83a4df004af0e6dda6915cf04b49c80d75a9))
+
+- Make `name` parameter of `Application#mountSaveData()` optional ([`e87cae9b77874afaadd1bf82db4a41989b2adf33`](https://github.com/TooTallNate/nx.js/commit/e87cae9b77874afaadd1bf82db4a41989b2adf33))
+
+- Add `Switch.operationMode()` ([`696580cfe1f660768fd2b45a49fd3c3af8036632`](https://github.com/TooTallNate/nx.js/commit/696580cfe1f660768fd2b45a49fd3c3af8036632))
+
+- Add `FsDev#url`, remove `FsDev#name` ([`8d00088d6b1c39dc1b909837fa45e6a0ea8e6f8a`](https://github.com/TooTallNate/nx.js/commit/8d00088d6b1c39dc1b909837fa45e6a0ea8e6f8a))
+
+- Add `Application#createCacheData()` and `Application#mountCacheData()` ([`eae68c1715d7e87b58286f3796e2e672dd38a4d6`](https://github.com/TooTallNate/nx.js/commit/eae68c1715d7e87b58286f3796e2e672dd38a4d6))
+
 ## 0.0.40
 
 ### Patch Changes
