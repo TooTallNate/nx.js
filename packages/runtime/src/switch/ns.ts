@@ -117,7 +117,25 @@ export class Application {
 	 * @param profile The {@link Profile} to create the save data for.
 	 */
 	createSaveData(profile: Profile) {
-		$.fsdevCreateSaveData(this.nacp, profile.uid);
+		$.fsdevCreateSaveData(
+			1, // FsSaveDataType_Account
+			this.nacp,
+			profile.uid,
+		);
+	}
+
+	/**
+	 * Creates the Cache storage for this {@link Application} for the specified save index ID.
+	 *
+	 * @param index The save index ID. Defaults to `0`.
+	 */
+	createCacheData(index = 0) {
+		$.fsdevCreateSaveData(
+			5, // FsSaveDataType_Cache
+			this.nacp,
+			[0n, 0n],
+			index,
+		);
 	}
 
 	/**
@@ -143,6 +161,17 @@ export class Application {
 	 */
 	mountSaveData(profile: Profile, name = genName()): FsDev {
 		$.fsdevMountSaveData(name, this.nacp, profile.uid);
+		return new FsDev(name);
+	}
+
+	/**
+	 * Mounts the Cache storage for this application such that filesystem operations may be used.
+	 *
+	 * @param index The save index ID. Defaults to `0`.
+	 * @param name The name of the device mount for filesystem paths. If not provided, a random name is generated.
+	 */
+	mountCacheData(index = 0, name = genName()): FsDev {
+		$.fsdevMountCacheStorage(name, this.nacp, index);
 		return new FsDev(name);
 	}
 

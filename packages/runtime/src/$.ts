@@ -142,8 +142,14 @@ export interface Init {
 
 	// fsdev.c
 	fsdevCommitDevice(name: string): void;
-	fsdevCreateSaveData(nacp: ArrayBuffer, uid: ProfileUid): void;
+	fsdevCreateSaveData(
+		type: number,
+		nacp: ArrayBuffer,
+		uid: ProfileUid,
+		cacheIndex?: number,
+	): void;
 	fsdevMountSaveData(name: string, nacp: ArrayBuffer, uid: ProfileUid): void;
+	fsdevMountCacheStorage(name: string, nacp: ArrayBuffer, index: number): void;
 	fsdevUnmountDevice(name: string): void;
 
 	// image.c
