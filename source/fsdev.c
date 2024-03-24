@@ -1,3 +1,4 @@
+#include "error.h"
 #include "fsdev.h"
 
 void strip_trailing_colon(char *str)
@@ -53,16 +54,7 @@ static JSValue nx_fsdev_create_save_data(JSContext *ctx, JSValueConst this_val, 
 	Result rc = fsCreateSaveDataFileSystem(&attr, &info, &meta);
 	if (R_FAILED(rc))
 	{
-		JSValue err = JS_NewError(ctx);
-		u32 module = R_MODULE(rc);
-		u32 desc = R_DESCRIPTION(rc);
-		char message[256];
-		snprintf(message, 256, "fsCreateSaveDataFileSystem() failed (module: %u, description: %u)", module, desc);
-		JS_DefinePropertyValueStr(ctx, err, "message", JS_NewString(ctx, message), JS_PROP_C_W);
-		JS_SetPropertyStr(ctx, err, "module", JS_NewUint32(ctx, module));
-		JS_SetPropertyStr(ctx, err, "description", JS_NewUint32(ctx, desc));
-		JS_SetPropertyStr(ctx, err, "value", JS_NewUint32(ctx, R_VALUE(rc)));
-		return JS_Throw(ctx, err);
+		return nx_throw_libnx_error(ctx, rc, "fsCreateSaveDataFileSystem()");
 	}
 
 	return JS_UNDEFINED;
@@ -93,21 +85,7 @@ static JSValue nx_fsdev_mount_save_data(JSContext *ctx, JSValueConst this_val, i
 	JS_FreeCString(ctx, name);
 	if (R_FAILED(rc))
 	{
-		JSValue err = JS_NewError(ctx);
-		u32 module = R_MODULE(rc);
-		u32 desc = R_DESCRIPTION(rc);
-		char message[256];
-		snprintf(message, 256, "fsdevMountSaveData() failed (module: %u, description: %u)", module, desc);
-		JS_DefinePropertyValueStr(ctx, err, "message", JS_NewString(ctx, message), JS_PROP_C_W);
-		JS_SetPropertyStr(ctx, err, "module", JS_NewUint32(ctx, module));
-		JS_SetPropertyStr(ctx, err, "description", JS_NewUint32(ctx, desc));
-		JS_SetPropertyStr(ctx, err, "value", JS_NewUint32(ctx, R_VALUE(rc)));
-		// JSValue argv_arr = JS_NewArray(ctx);
-		// for (int i = 0; i < argc; i++) {
-		//	JS_SetPropertyUint32(ctx, argv_arr, i, JS_DupValue(ctx, argv[i]));
-		// }
-		// JS_SetPropertyStr(ctx, err, "argv", argv_arr);
-		return JS_Throw(ctx, err);
+		return nx_throw_libnx_error(ctx, rc, "fsdevMountSaveData()");
 	}
 	return JS_UNDEFINED;
 }

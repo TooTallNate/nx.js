@@ -18,6 +18,20 @@ void print_js_error(JSContext *ctx)
 	JS_FreeValue(ctx, stack_val);
 }
 
+JSValue nx_throw_libnx_error(JSContext *ctx, Result rc, char *name)
+{
+	JSValue err = JS_NewError(ctx);
+	u32 module = R_MODULE(rc);
+	u32 desc = R_DESCRIPTION(rc);
+	char message[256];
+	snprintf(message, 256, "%s failed (module: %u, description: %u)", name, module, desc);
+	JS_DefinePropertyValueStr(ctx, err, "message", JS_NewString(ctx, message), JS_PROP_C_W);
+	JS_SetPropertyStr(ctx, err, "module", JS_NewUint32(ctx, module));
+	JS_SetPropertyStr(ctx, err, "description", JS_NewUint32(ctx, desc));
+	JS_SetPropertyStr(ctx, err, "value", JS_NewUint32(ctx, R_VALUE(rc)));
+	return JS_Throw(ctx, err);
+}
+
 void nx_emit_error_event(JSContext *ctx)
 {
 	JSValue exception_val = JS_GetException(ctx);
