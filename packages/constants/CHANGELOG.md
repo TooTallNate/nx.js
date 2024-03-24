@@ -1,5 +1,11 @@
 # @nx.js/constants
 
+## 0.1.0
+
+### Minor Changes
+
+- Rename `nxjs-constants` package to `@nx.js/constants` ([`89b7dac0fa2e0c05628a32de88138a7e826cd1a5`](https://github.com/TooTallNate/nx.js/commit/89b7dac0fa2e0c05628a32de88138a7e826cd1a5))
+
 ## 0.0.28
 
 ## 0.0.27
