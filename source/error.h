@@ -3,6 +3,9 @@
 
 void print_js_error(JSContext *ctx);
 
+// Error codes explanations:
+//  - https://switchbrew.org/wiki/Error_codes
+//  - https://github.com/backupbrew/switchbrew/blob/master/Error%20codes.md
 JSValue nx_throw_libnx_error(JSContext *ctx, Result rc, char *name);
 
 void nx_emit_error_event(JSContext *ctx);
