@@ -1,5 +1,13 @@
 # @nx.js/constants
 
+## 0.1.1
+
+### Patch Changes
+
+- Add `FsSaveDataSpaceId` enum ([`d3339de1b5e47321a30e547fdd40baf68ded3864`](https://github.com/TooTallNate/nx.js/commit/d3339de1b5e47321a30e547fdd40baf68ded3864))
+
+- Add `FsSaveDataType` enum ([`83024c061941c747a3a21bd9995924a5ccc756b0`](https://github.com/TooTallNate/nx.js/commit/83024c061941c747a3a21bd9995924a5ccc756b0))
+
 ## 0.1.0
 
 ### Minor Changes
