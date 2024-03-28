@@ -1,7 +1,7 @@
 import { UnshiftableStream } from './unshiftable-readable-stream';
 import { readRequest, writeResponse } from './server';
 
-export { createStaticFileHandler } from './static';
+export { createStaticFileHandler, type StaticFileHandlerOpts } from './static';
 
 /**
  * Handler function for processing an HTTP request.

@@ -1,5 +1,9 @@
 import mime from 'mime';
 
+export interface StaticFileHandlerOpts {
+	headers?: HeadersInit | ((req: Request, path: URL) => HeadersInit);
+}
+
 export function resolvePath(url: string, root: string): URL {
 	const { pathname } = new URL(url);
 	const resolved = new URL(pathname.replace(/^\/*/, ''), root);
@@ -28,7 +32,10 @@ export function resolvePath(url: string, root: string): URL {
  *
  * @param root Root directory where static files are served from
  */
-export function createStaticFileHandler(root: Switch.PathLike) {
+export function createStaticFileHandler(
+	root: Switch.PathLike,
+	opts: StaticFileHandlerOpts = {},
+) {
 	let rootStr = String(root);
 	if (!rootStr.endsWith('/')) rootStr += '/';
 	return async (req: Request): Promise<Response | null> => {
@@ -38,12 +45,16 @@ export function createStaticFileHandler(root: Switch.PathLike) {
 		// TODO: replace with readable stream API
 		const data = await Switch.readFile(url);
 		if (!data) return null;
-		return new Response(data, {
-			headers: {
-				'content-length': String(data.byteLength),
-				'content-type':
-					mime.getType(url.pathname) || 'application/octet-stream',
-			},
-		});
+		const headers = new Headers(
+			typeof opts.headers === 'function'
+				? opts.headers(req, url)
+				: opts.headers,
+		);
+		headers.set('content-length', String(data.byteLength));
+		headers.set(
+			'content-type',
+			mime.getType(url.pathname) || 'application/octet-stream',
+		);
+		return new Response(data, { headers });
 	};
 }
