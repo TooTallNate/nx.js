@@ -4,14 +4,16 @@
   "private": true,
   "description": "nx.js app that invokes the virtual keyboard",
   "scripts": {
-    "build": "esbuild --bundle --sourcemap --sources-content=false --target=es2020 --format=esm src/main.ts --outfile=romfs/main.js",
-    "nro": "nxjs-pack"
+    "build": "esbuild --bundle --sourcemap --sources-content=false --target=es2022 --format=esm src/main.ts --outfile=romfs/main.js",
+    "nro": "nxjs-nro",
+    "nsp": "nxjs-nsp"
   },
   "license": "MIT",
   "devDependencies": {
+    "@nx.js/constants": "workspace:^",
+    "@nx.js/nro": "workspace:^",
+    "@nx.js/nsp": "workspace:^",
     "esbuild": "^0.17.19",
-    "nxjs-constants": "workspace:^",
-    "nxjs-pack": "workspace:^",
     "nxjs-runtime": "workspace:^"
   }
 }

@@ -116,7 +116,7 @@ export class VirtualKeyboard extends EventTarget {
 		onHide(this);
 	}
 }
-def('VirtualKeyboard', VirtualKeyboard);
+def(VirtualKeyboard);
 
 function onHide(k: VirtualKeyboard) {
 	cancelAnimationFrame(id);
@@ -125,26 +125,34 @@ function onHide(k: VirtualKeyboard) {
 	k.dispatchEvent(new Event('geometrychange'));
 }
 
+function onCancel(this: VirtualKeyboard) {
+	onHide(this);
+}
+
+function onChange(this: VirtualKeyboard, str: string, ci: number) {
+	value = str;
+	cursorPos = ci;
+	this.dispatchEvent(new Event('change'));
+}
+
+function onCursorMove(this: VirtualKeyboard, str: string, ci: number) {
+	value = str;
+	cursorPos = ci;
+	this.dispatchEvent(new Event('cursormove'));
+}
+
+function onSubmit(this: VirtualKeyboard, str: string) {
+	value = str;
+	onHide(this);
+	this.dispatchEvent(new Event('submit'));
+}
+
 export function create() {
 	const k = $.swkbdCreate({
-		onCancel() {
-			onHide(k);
-		},
-		onChange(str, ci) {
-			value = str;
-			cursorPos = ci;
-			k.dispatchEvent(new Event('change'));
-		},
-		onCursorMove(str, ci) {
-			value = str;
-			cursorPos = ci;
-			k.dispatchEvent(new Event('cursormove'));
-		},
-		onSubmit(str) {
-			value = str;
-			onHide(k);
-			k.dispatchEvent(new Event('submit'));
-		},
+		onCancel,
+		onChange,
+		onCursorMove,
+		onSubmit,
 	});
 	Object.setPrototypeOf(k, VirtualKeyboard.prototype);
 	// @ts-expect-error
@@ -153,6 +161,5 @@ export function create() {
 		$.swkbdUpdate.call(k);
 		id = requestAnimationFrame(update);
 	};
-	addEventListener('unload', $.swkbdExit.bind(k));
 	return k;
 }

@@ -1,6 +1,5 @@
-import { def } from '../utils';
-import { INTERNAL_SYMBOL } from '../internal';
-import type { Socket } from '../tcp';
+import { assertInternalConstructor, createInternal, def } from '../utils';
+import type { EventTarget } from './event-target';
 
 export interface EventInit {
 	bubbles?: boolean;
@@ -58,7 +57,7 @@ export class Event implements globalThis.Event {
 	initEvent(
 		type: string,
 		bubbles?: boolean | undefined,
-		cancelable?: boolean | undefined
+		cancelable?: boolean | undefined,
 	): void {
 		throw new Error('Method not implemented.');
 	}
@@ -316,6 +315,8 @@ export interface KeyboardEventInit extends EventModifierInit {
 	repeat?: boolean;
 }
 
+const _ = createInternal<KeyboardEvent, bigint>();
+
 export class KeyboardEvent extends UIEvent implements globalThis.KeyboardEvent {
 	readonly DOM_KEY_LOCATION_STANDARD = 0 as const;
 	readonly DOM_KEY_LOCATION_LEFT = 1 as const;
@@ -327,14 +328,9 @@ export class KeyboardEvent extends UIEvent implements globalThis.KeyboardEvent {
 	readonly location: number;
 	readonly repeat: boolean;
 
-	/**
-	 * modifiers
-	 * @private
-	 */
-	[INTERNAL_SYMBOL]: bigint;
-
 	constructor(type: string, options?: KeyboardEventInit) {
 		super(type, options);
+		let modifiers = 0n;
 		if (options) {
 			this.charCode = options.charCode ?? -1;
 			this.isComposing = options.isComposing ?? false;
@@ -342,12 +338,12 @@ export class KeyboardEvent extends UIEvent implements globalThis.KeyboardEvent {
 			this.location = options.location ?? -1;
 			this.repeat = options.repeat ?? false;
 			// @ts-expect-error
-			this[INTERNAL_SYMBOL] = options.modifiers;
+			modifiers = options.modifiers;
 		} else {
 			this.charCode = this.keyCode = this.location = -1;
 			this.isComposing = this.repeat = false;
-			this[INTERNAL_SYMBOL] = 0n;
 		}
+		_.set(this, modifiers);
 	}
 
 	getModifierState(): boolean {
@@ -359,19 +355,19 @@ export class KeyboardEvent extends UIEvent implements globalThis.KeyboardEvent {
 	}
 
 	get ctrlKey(): boolean {
-		return (this[INTERNAL_SYMBOL] & CTRL) !== 0n;
+		return (_(this) & CTRL) !== 0n;
 	}
 
 	get shiftKey(): boolean {
-		return (this[INTERNAL_SYMBOL] & SHIFT) !== 0n;
+		return (_(this) & SHIFT) !== 0n;
 	}
 
 	get altKey(): boolean {
-		return (this[INTERNAL_SYMBOL] & ALT) !== 0n;
+		return (_(this) & ALT) !== 0n;
 	}
 
 	get metaKey(): boolean {
-		return (this[INTERNAL_SYMBOL] & META) !== 0n;
+		return (_(this) & META) !== 0n;
 	}
 
 	get code(): string {
@@ -399,12 +395,27 @@ export class KeyboardEvent extends UIEvent implements globalThis.KeyboardEvent {
 	}
 }
 
+export interface TouchInit {
+	clientX?: number;
+	clientY?: number;
+	force?: number;
+	identifier: number;
+	pageX?: number;
+	pageY?: number;
+	radiusX?: number;
+	radiusY?: number;
+	rotationAngle?: number;
+	screenX?: number;
+	screenY?: number;
+	target: EventTarget;
+}
+
 /**
  * A single contact point on a touch-sensitive device. The contact point is commonly a finger or stylus and the device may be a touchscreen or trackpad.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Touch)
  */
-export interface Touch {
+export class Touch implements globalThis.Touch {
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Touch/clientX) */
 	readonly clientX: number;
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Touch/clientY) */
@@ -429,20 +440,61 @@ export interface Touch {
 	readonly screenY: number;
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Touch/target) */
 	readonly target: EventTarget;
+
+	constructor(init: TouchInit) {
+		this.clientX = init.clientX ?? 0;
+		this.clientY = init.clientY ?? 0;
+		this.force = init.force ?? 0;
+		this.identifier = init.identifier;
+		this.pageX = init.pageX ?? 0;
+		this.pageY = init.pageY ?? 0;
+		this.radiusX = init.radiusX ?? 0;
+		this.radiusY = init.radiusY ?? 0;
+		this.rotationAngle = init.rotationAngle ?? 0;
+		this.screenX = init.screenX ?? 0;
+		this.screenY = init.screenY ?? 0;
+		this.target = init.target;
+	}
 }
+def(Touch);
 
 /**
- * A list of contact points on a touch surface. For example, if the user has three fingers on the touch surface (such as a screen or trackpad), the corresponding TouchList object would have one Touch object for each finger, for a total of three entries.
+ * A list of contact points on a touch surface. For example, if the user has three
+ * fingers on the touch surface (such as a screen or trackpad), the corresponding
+ * `TouchList` object would have one `Touch` object for each finger, for a total
+ * of three entries.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TouchList)
  */
-export interface TouchList {
-	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/TouchList/length) */
-	readonly length: number;
-	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/TouchList/item) */
-	item(index: number): Touch | null;
+export class TouchList implements globalThis.TouchList {
 	[index: number]: Touch;
-	[Symbol.iterator](): IterableIterator<Touch>;
+
+	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/TouchList/length) */
+	declare readonly length: number;
+
+	constructor() {
+		assertInternalConstructor(arguments);
+	}
+
+	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/TouchList/item) */
+	item(index: number): Touch | null {
+		if (typeof index !== 'number' || index >= this.length) return null;
+		return this[index];
+	}
+
+	*[Symbol.iterator](): IterableIterator<Touch> {
+		for (let i = 0; i < this.length; i++) {
+			yield this[i];
+		}
+	}
+}
+def(TouchList);
+
+function toTouchList(t: Touch[] = []): TouchList {
+	const r = Object.create(TouchList.prototype);
+	Object.defineProperty(r, 'length', { value: t.length, writable: false });
+	Object.assign(r, t);
+	return r;
 }
 
 export interface TouchEventInit extends EventModifierInit {
@@ -463,12 +515,9 @@ export class TouchEvent extends UIEvent implements globalThis.TouchEvent {
 	constructor(type: string, options: TouchEventInit) {
 		super(type, options);
 		this.altKey = this.ctrlKey = this.metaKey = this.shiftKey = false;
-		// @ts-expect-error
-		this.changedTouches = options.changedTouches ?? [];
-		// @ts-expect-error
-		this.targetTouches = options.targetTouches ?? [];
-		// @ts-expect-error
-		this.touches = options.touches ?? [];
+		this.changedTouches = toTouchList(options.changedTouches);
+		this.targetTouches = toTouchList(options.targetTouches);
+		this.touches = toTouchList(options.touches);
 	}
 }
 
@@ -514,24 +563,9 @@ export class PromiseRejectionEvent
 	}
 }
 
-export interface SocketEventInit extends EventInit {
-	socket: Socket;
-}
-
-export class SocketEvent extends Event {
-	socket: Socket;
-	constructor(type: string, init: SocketEventInit) {
-		super(type, init);
-		this.socket = init.socket;
-	}
-}
-
-def('Event', Event);
-def('ErrorEvent', ErrorEvent);
-def('PromiseRejectionEvent', PromiseRejectionEvent);
-def('UIEvent', UIEvent);
-def('KeyboardEvent', KeyboardEvent);
-def('TouchEvent', TouchEvent);
-
-// Non-standard
-def('SocketEvent', SocketEvent);
+def(Event);
+def(ErrorEvent);
+def(PromiseRejectionEvent);
+def(UIEvent);
+def(KeyboardEvent);
+def(TouchEvent);

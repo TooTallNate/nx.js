@@ -1,6 +1,8 @@
 import { dataUriToBuffer } from 'data-uri-to-buffer';
 import { def } from '../utils';
+import { readFile } from '../fs';
 import { objectUrls } from '../polyfills/url';
+import { URL } from '../polyfills/url';
 import { decoder } from '../polyfills/text-decoder';
 import { encoder } from '../polyfills/text-encoder';
 import { Request, type RequestInit } from './request';
@@ -9,9 +11,6 @@ import { Headers } from './headers';
 import { navigator } from '../navigator';
 import { Socket, connect } from '../tcp';
 import { INTERNAL_SYMBOL } from '../internal';
-import type { SwitchClass } from '../switch';
-
-declare const Switch: SwitchClass;
 
 function indexOfEol(arr: ArrayLike<number>, offset: number): number {
 	for (let i = offset; i < arr.length - 1; i++) {
@@ -30,7 +29,7 @@ function concat(a: Uint8Array, b: Uint8Array) {
 }
 
 async function* headersIterator(
-	reader: ReadableStreamDefaultReader<Uint8Array>
+	reader: ReadableStreamDefaultReader<Uint8Array>,
 ): AsyncGenerator<{ line: string } | { line: null; leftover: Uint8Array }> {
 	let leftover: Uint8Array | null = null;
 	while (true) {
@@ -117,7 +116,7 @@ function createChunkedParseStream() {
 	});
 }
 
-async function fetchHttp(req: Request, url: URL) {
+async function fetchHttp(req: Request, url: URL): Promise<Response> {
 	const isHttps = url.protocol === 'https:';
 	const { hostname } = url;
 	const port = +url.port || (isHttps ? 443 : 80);
@@ -125,7 +124,7 @@ async function fetchHttp(req: Request, url: URL) {
 		// @ts-expect-error Internal constructor
 		INTERNAL_SYMBOL,
 		{ hostname, port },
-		{ secureTransport: isHttps ? 'on' : 'off', connect }
+		{ secureTransport: isHttps ? 'on' : 'off', connect },
 	);
 
 	req.headers.set('connection', 'close');
@@ -157,7 +156,8 @@ async function fetchHttp(req: Request, url: URL) {
 	if (firstLine.done || !firstLine.value.line) {
 		throw new Error('Failed to read response header');
 	}
-	const [_, status, statusText] = firstLine.value.line.split(' ');
+	const [_, statusStr, statusText] = firstLine.value.line.split(' ');
+	const status = +statusStr;
 
 	// Parse response headers
 	let leftover: Uint8Array | undefined;
@@ -172,6 +172,36 @@ async function fetchHttp(req: Request, url: URL) {
 		}
 	}
 
+	// Redirect
+	if (((status / 100) | 0) === 3) {
+		if (req.redirect === 'follow') {
+			socket.readable.cancel();
+			w.close();
+			const loc = resHeaders.get('location');
+			if (!loc) {
+				throw new Error(
+					`No "Location" header in ${status} redirect from "${url}"`,
+				);
+			}
+			const redirectUrl = new URL(loc, req.url);
+			let method: RequestInit['method'] = 'GET';
+			let body: RequestInit['body'] = null;
+			if (status === 307 || status === 308) {
+				method = req.method;
+				body = req.body;
+			}
+			const redirect = new Request(redirectUrl, { method, body });
+			const res = await fetchHttp(redirect, redirectUrl);
+			res.redirected = true;
+			return res;
+		}
+
+		if (req.redirect === 'error') {
+		}
+
+		// For "manual", just continue with the regular logic
+	}
+
 	const resStream =
 		resHeaders.get('transfer-encoding') === 'chunked'
 			? createChunkedParseStream()
@@ -184,17 +214,19 @@ async function fetchHttp(req: Request, url: URL) {
 	}
 	socket.readable.pipeThrough(resStream);
 
-	return new Response(resStream.readable, {
-		status: +status,
+	const res = new Response(resStream.readable, {
+		status,
 		statusText,
 		headers: resHeaders,
 	});
+	res.url = url.href;
+	return res;
 }
 
 async function fetchBlob(req: Request, url: URL) {
 	if (req.method !== 'GET') {
 		throw new Error(
-			`GET method must be used when fetching "${url.protocol}" protocol (got "${req.method}")`
+			`GET method must be used when fetching "${url.protocol}" protocol (got "${req.method}")`,
 		);
 	}
 	const data = objectUrls.get(req.url);
@@ -211,7 +243,7 @@ async function fetchBlob(req: Request, url: URL) {
 async function fetchData(req: Request, url: URL) {
 	if (req.method !== 'GET') {
 		throw new Error(
-			`GET method must be used when fetching "${url.protocol}" protocol (got "${req.method}")`
+			`GET method must be used when fetching "${url.protocol}" protocol (got "${req.method}")`,
 		);
 	}
 	const parsed = dataUriToBuffer(url);
@@ -226,17 +258,20 @@ async function fetchData(req: Request, url: URL) {
 async function fetchFile(req: Request, url: URL) {
 	if (req.method !== 'GET') {
 		throw new Error(
-			`GET method must be used when fetching "${url.protocol}" protocol (got "${req.method}")`
+			`GET method must be used when fetching "${url.protocol}" protocol (got "${req.method}")`,
 		);
 	}
 	const path = url.protocol === 'file:' ? `sdmc:${url.pathname}` : url.href;
 	// TODO: Use streaming FS interface
-	const data = await Switch.readFile(path);
-	return new Response(data, {
-		headers: {
-			'content-length': String(data.byteLength),
-		},
-	});
+	const data = await readFile(path);
+	const headers = new Headers();
+	let status = 200;
+	if (data) {
+		headers.set('content-length', String(data.byteLength));
+	} else {
+		status = 404;
+	}
+	return new Response(data, { status, headers });
 }
 
 const fetchers = new Map<string, (req: Request, url: URL) => Promise<Response>>(
@@ -248,7 +283,7 @@ const fetchers = new Map<string, (req: Request, url: URL) => Promise<Response>>(
 		['file:', fetchFile],
 		['sdmc:', fetchFile],
 		['romfs:', fetchFile],
-	]
+	],
 );
 
 /**
@@ -283,6 +318,9 @@ export function fetch(input: string | URL | Request, init?: RequestInit) {
 	if (!fetcher) {
 		throw new Error(`scheme '${url.protocol.slice(0, -1)}' not supported`);
 	}
-	return fetcher(req, url);
+	return fetcher(req, url).then((res) => {
+		if (!res.url) res.url = url.href;
+		return res;
+	});
 }
-def('fetch', fetch);
+def(fetch);

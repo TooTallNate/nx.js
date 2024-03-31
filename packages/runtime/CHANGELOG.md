@@ -1,5 +1,351 @@
 # nxjs-runtime
 
+## 0.0.41
+
+### Patch Changes
+
+- Fix setting non-string values on `localStorage` ([`d4d0ccf2144d736114aa30731cf9351ce8382c54`](https://github.com/TooTallNate/nx.js/commit/d4d0ccf2144d736114aa30731cf9351ce8382c54))
+
+- Export `Switch.FsDev` class ([`ef2801cf05ba16fff2dc007fd206e36abe8649db`](https://github.com/TooTallNate/nx.js/commit/ef2801cf05ba16fff2dc007fd206e36abe8649db))
+
+- Add `Switch.appletType()` ([`e74f83a4df004af0e6dda6915cf04b49c80d75a9`](https://github.com/TooTallNate/nx.js/commit/e74f83a4df004af0e6dda6915cf04b49c80d75a9))
+
+- Make `name` parameter of `Application#mountSaveData()` optional ([`e87cae9b77874afaadd1bf82db4a41989b2adf33`](https://github.com/TooTallNate/nx.js/commit/e87cae9b77874afaadd1bf82db4a41989b2adf33))
+
+- Add `Switch.operationMode()` ([`696580cfe1f660768fd2b45a49fd3c3af8036632`](https://github.com/TooTallNate/nx.js/commit/696580cfe1f660768fd2b45a49fd3c3af8036632))
+
+- Add `FsDev#url`, remove `FsDev#name` ([`8d00088d6b1c39dc1b909837fa45e6a0ea8e6f8a`](https://github.com/TooTallNate/nx.js/commit/8d00088d6b1c39dc1b909837fa45e6a0ea8e6f8a))
+
+- Add `Application#createCacheData()` and `Application#mountCacheData()` ([`eae68c1715d7e87b58286f3796e2e672dd38a4d6`](https://github.com/TooTallNate/nx.js/commit/eae68c1715d7e87b58286f3796e2e672dd38a4d6))
+
+## 0.0.40
+
+### Patch Changes
+
+- Add `Switch.setMediaPlaybackState()` to disable auto-lock and screen dimming ([`8631e5d477e6ae8c05e2b00b67b73d58d6a4f60a`](https://github.com/TooTallNate/nx.js/commit/8631e5d477e6ae8c05e2b00b67b73d58d6a4f60a))
+
+- Implement `new Switch.Profile()` constructor ([`d30e385dd5037b8fc18c6b4709e21657057e6d7b`](https://github.com/TooTallNate/nx.js/commit/d30e385dd5037b8fc18c6b4709e21657057e6d7b))
+
+- Make `Application#id` return the "PresenceGroupId" instead of "SaveDataOwnerId" ([`70ebcd580add2583e08c06cfa7b3e20a1ad6e065`](https://github.com/TooTallNate/nx.js/commit/70ebcd580add2583e08c06cfa7b3e20a1ad6e065))
+
+- Implement `new Switch.Application` constructor, remove `fromId()` and `fromNro()` ([`ce9c398f79867d4042ef81e3782655b145e9dcd8`](https://github.com/TooTallNate/nx.js/commit/ce9c398f79867d4042ef81e3782655b145e9dcd8))
+
+## 0.0.39
+
+### Patch Changes
+
+- Fix `FormData` test and add URL encoded POST test ([`7b6f8b52214b43ba0192e637a19f2ab4e9db5cda`](https://github.com/TooTallNate/nx.js/commit/7b6f8b52214b43ba0192e637a19f2ab4e9db5cda))
+
+- Fix `URLSearchParams` iterator functions ([`56e3e1517d0d52292a90d5afd33ca608ac251c8e`](https://github.com/TooTallNate/nx.js/commit/56e3e1517d0d52292a90d5afd33ca608ac251c8e))
+
+- Set `allowHalfOpen: true` for TCP servers ([`75c9051d04857d471f7db40df1c661616e850593`](https://github.com/TooTallNate/nx.js/commit/75c9051d04857d471f7db40df1c661616e850593))
+
+- Add tests for `URL` and `URLSearchParams` from web platform tests ([`c0f4fc697c36eba9734ae9481a55117fc6e7564a`](https://github.com/TooTallNate/nx.js/commit/c0f4fc697c36eba9734ae9481a55117fc6e7564a))
+
+- Support "application/x-www-form-urlencoded" Content-Type in `Body#formData()` ([`2d36f595aab4ed8c9455667f5a51181a2ae4623b`](https://github.com/TooTallNate/nx.js/commit/2d36f595aab4ed8c9455667f5a51181a2ae4623b))
+
+- Close TCP socket when writable stream is closed ([`7e740829375beb454503568a09dc12fd7d0f384c`](https://github.com/TooTallNate/nx.js/commit/7e740829375beb454503568a09dc12fd7d0f384c))
+
+- Set "content-length" header in `Response.json()` ([`46ecc024194d96549e0041f8a1f63a5560019dff`](https://github.com/TooTallNate/nx.js/commit/46ecc024194d96549e0041f8a1f63a5560019dff))
+
+- Rename `Application.fromNRO()` to `Application.fromNro()` ([`8122869a12dcc376ea0e1a7985b818696bc611ac`](https://github.com/TooTallNate/nx.js/commit/8122869a12dcc376ea0e1a7985b818696bc611ac))
+
+## 0.0.38
+
+### Patch Changes
+
+- Add `Application.fromId()` ([`c53849472db74142797a874550a9266c6eb502a0`](https://github.com/TooTallNate/nx.js/commit/c53849472db74142797a874550a9266c6eb502a0))
+
+- Properly flush entire buffer in TCP `write()` ([#105](https://github.com/TooTallNate/nx.js/pull/105))
+
+- Copy buffer for `Application#icon` and `Application#nacp` ([`eb1d82a085f82afd6fed8e0c36ea5d146a164405`](https://github.com/TooTallNate/nx.js/commit/eb1d82a085f82afd6fed8e0c36ea5d146a164405))
+
+## 0.0.37
+
+### Patch Changes
+
+- Return `null` in `Switch.readFile()` and `Switch.stat()` if file does not exist ([`b58f7837fbc515edc8b157afce5a2049bf4c697e`](https://github.com/TooTallNate/nx.js/commit/b58f7837fbc515edc8b157afce5a2049bf4c697e))
+
+- Add `DOMMatrix` and `DOMMatrixReadOnly` ([#92](https://github.com/TooTallNate/nx.js/pull/92))
+
+- Add stub types to make `screen` compatible with react-tela `render()` ([`aaa102460c8583d3f309385a2e07550a53bbc9b6`](https://github.com/TooTallNate/nx.js/commit/aaa102460c8583d3f309385a2e07550a53bbc9b6))
+
+- Add Canvas `setTransform()` ([#92](https://github.com/TooTallNate/nx.js/pull/92))
+
+- Implement `path` parameter of Canvas `fill()` and `stroke()` ([`74f074dea66e6c8acea477c9c9a081720c4dc5ce`](https://github.com/TooTallNate/nx.js/commit/74f074dea66e6c8acea477c9c9a081720c4dc5ce))
+
+- Add custom inspect for `DOMMatrix` ([`611f8e1be878a868f701794049a64e0358452c60`](https://github.com/TooTallNate/nx.js/commit/611f8e1be878a868f701794049a64e0358452c60))
+
+- Convert `Touch` into a proper class ([`31ee39f0d2758663a98bd7855dc538482e60b14a`](https://github.com/TooTallNate/nx.js/commit/31ee39f0d2758663a98bd7855dc538482e60b14a))
+
+- Remove poll watchers when closing TCP socket ([`ef3882923417c415e6ef0601c4974b64fe114a09`](https://github.com/TooTallNate/nx.js/commit/ef3882923417c415e6ef0601c4974b64fe114a09))
+
+- Add Canvas `isPointInPath()` ([`8ea15f522f29f6b7b7727c2841d9c56591db4f2d`](https://github.com/TooTallNate/nx.js/commit/8ea15f522f29f6b7b7727c2841d9c56591db4f2d))
+
+- Add more DOM compat to `screen` (`offsetWidth`, `offsetHeight`, `offsetTop`, `offsetLeft`) ([`8d689f8410d92adb45ddb541244a68b6b44787bb`](https://github.com/TooTallNate/nx.js/commit/8d689f8410d92adb45ddb541244a68b6b44787bb))
+
+- Apply transformation matrix in Canvas `isPointInPath()` and `isPointInStroke()` ([`65a360fa85765c59c18e14d275773e7bf2bddedf`](https://github.com/TooTallNate/nx.js/commit/65a360fa85765c59c18e14d275773e7bf2bddedf))
+
+- Add Canvas `isPointInStroke()` ([`28b1283d4f0ef973a5078cd4234caa257d3b9c6f`](https://github.com/TooTallNate/nx.js/commit/28b1283d4f0ef973a5078cd4234caa257d3b9c6f))
+
+## 0.0.36
+
+## 0.0.35
+
+## 0.0.34
+
+## 0.0.33
+
+### Patch Changes
+
+- Add `Switch.Application.fromNRO()` ([`6d77ee3023f77ec2aee0d96d14a07a98022957a1`](https://github.com/TooTallNate/nx.js/commit/6d77ee3023f77ec2aee0d96d14a07a98022957a1))
+
+- Add `Switch.Application.self` ([`d149e690fa8f7a8beea08fc45c45bc6b48d9388d`](https://github.com/TooTallNate/nx.js/commit/d149e690fa8f7a8beea08fc45c45bc6b48d9388d))
+
+- Detect `-0` in `Switch.inspect()` ([`d317d4a7a017fa54154921674ea88dc16a87bb1d`](https://github.com/TooTallNate/nx.js/commit/d317d4a7a017fa54154921674ea88dc16a87bb1d))
+
+- Add type declaration for `queueMicrotask()` ([`f9562c0bb1ce854483d08e38ba685f129a40705f`](https://github.com/TooTallNate/nx.js/commit/f9562c0bb1ce854483d08e38ba685f129a40705f))
+
+- Ensure `console.trace()` prints a trailing newline ([`5ab6126806dcfcad7e7faeda5acf70561c588126`](https://github.com/TooTallNate/nx.js/commit/5ab6126806dcfcad7e7faeda5acf70561c588126))
+
+- Add `URL.canParse()` ([`7c3d2e0877941f28a5bf374f74422a3f4c8d88cc`](https://github.com/TooTallNate/nx.js/commit/7c3d2e0877941f28a5bf374f74422a3f4c8d88cc))
+
+- Add `Application#version` property ([`4c9260e73f62e84f32d642e6399436902d67b3ec`](https://github.com/TooTallNate/nx.js/commit/4c9260e73f62e84f32d642e6399436902d67b3ec))
+
+- Remove `Switch.applications`, merge it into `Switch.Application` ([`67f3853a75b36e736721008a617b172cbd4d1e28`](https://github.com/TooTallNate/nx.js/commit/67f3853a75b36e736721008a617b172cbd4d1e28))
+
+- Use `ada-url` for `URL` and `URLSearchParams` - remove "core-js" dependency ([#89](https://github.com/TooTallNate/nx.js/pull/89))
+
+- Include app's name and version in `navigator.userAgent` ([`97bc87d71543c17e5dd0c120a9f0a747e458d14c`](https://github.com/TooTallNate/nx.js/commit/97bc87d71543c17e5dd0c120a9f0a747e458d14c))
+
+## 0.0.32
+
+### Patch Changes
+
+- Fix `Switch.remove()` and `Switch.removeSync()` when path does not exist ([`8311c6ebe340ab75308d82aaa0d7c2a8acdddb44`](https://github.com/TooTallNate/nx.js/commit/8311c6ebe340ab75308d82aaa0d7c2a8acdddb44))
+
+## 0.0.31
+
+### Patch Changes
+
+- Add `TouchList` class ([`910cec0f598543d18943f00eaae35f2415945ffa`](https://github.com/TooTallNate/nx.js/commit/910cec0f598543d18943f00eaae35f2415945ffa))
+
+## 0.0.30
+
+### Patch Changes
+
+- Fix `Switch.statSync()` ([`df7b564f2e6ee5a65a50afdc1c6d00d9c813984b`](https://github.com/TooTallNate/nx.js/commit/df7b564f2e6ee5a65a50afdc1c6d00d9c813984b))
+
+- Fix `Switch.removeSync()` on files ([`977c19f13836e7cd0c243576ad2655db88bc49f1`](https://github.com/TooTallNate/nx.js/commit/977c19f13836e7cd0c243576ad2655db88bc49f1))
+
+## 0.0.29
+
+### Patch Changes
+
+- Handle `"<input>"` as filename in stack trace ([`a6ac8db6b9ad87574cac9d0686e9df80e4387616`](https://github.com/TooTallNate/nx.js/commit/a6ac8db6b9ad87574cac9d0686e9df80e4387616))
+
+- Set circular reference index for `Switch.inspect()` ([`b8da2c13f4615ddd8836734ac66e19c634576c09`](https://github.com/TooTallNate/nx.js/commit/b8da2c13f4615ddd8836734ac66e19c634576c09))
+
+## 0.0.28
+
+### Patch Changes
+
+- Remove `null` from return type on `Switch.currentProfile({ required: true })` ([`cf32e5f878fe0d9ef35dcbfc057defbc4ed8d829`](https://github.com/TooTallNate/nx.js/commit/cf32e5f878fe0d9ef35dcbfc057defbc4ed8d829))
+
+- Set `Response#redirected` property ([`95d9a3fea041cda06a62840f44b7f9c7bd16f070`](https://github.com/TooTallNate/nx.js/commit/95d9a3fea041cda06a62840f44b7f9c7bd16f070))
+
+- Implement `crypto.subtle.digest()` for "sha-1" and "sha-256" ([`8510c7503c02e09ace469e5cbf29171791dc110a`](https://github.com/TooTallNate/nx.js/commit/8510c7503c02e09ace469e5cbf29171791dc110a))
+
+- Implement fetch `redirect` handling ([`acc84059ad156298c8f918840701acf0582e7159`](https://github.com/TooTallNate/nx.js/commit/acc84059ad156298c8f918840701acf0582e7159))
+
+## 0.0.27
+
+### Patch Changes
+
+- Remove `Socket` and `Server` from global scope ([`b0a4fa4509427f3c689839070afdfe2a9f49050e`](https://github.com/TooTallNate/nx.js/commit/b0a4fa4509427f3c689839070afdfe2a9f49050e))
+
+- Set a default Title ID on the `nxjs.nro` file ([`b9e48e66e991cbdee98dd37e51a560d620addd06`](https://github.com/TooTallNate/nx.js/commit/b9e48e66e991cbdee98dd37e51a560d620addd06))
+
+- Add `Application#createSaveData()` and `Application#mountSaveData()` ([`8faad62abf1d58d42b425827f23b4fadf40d27d9`](https://github.com/TooTallNate/nx.js/commit/8faad62abf1d58d42b425827f23b4fadf40d27d9))
+
+- Fix global `addEventListener()` generic fallback type ([`4cd1854360689a19509d09f2e91b11a32f639a28`](https://github.com/TooTallNate/nx.js/commit/4cd1854360689a19509d09f2e91b11a32f639a28))
+
+- Overhaul filesystem operations: ([`14657f0f6d14c411bfe050e51e3a8a245fcd9af2`](https://github.com/TooTallNate/nx.js/commit/14657f0f6d14c411bfe050e51e3a8a245fcd9af2))
+
+  - Added `Switch.mkdirSync()`, `Switch.removeSync()`, `Switch.statSync()`
+  - Read operations return `null` for `ENOENT`, instead of throwing an error
+  - `Switch.remove()` and `Switch.removeSync()` work with directories, and delete recursively
+  - `Switch.writeFileSync()` creates parent directories recursively as needed
+
+- Add `Switch.profiles`, `Switch.currentProfile()`, `Switch.selectProfile()` ([#77](https://github.com/TooTallNate/nx.js/pull/77))
+
+- Set the proper byte length of the `Application#icon` ([`4bb8a5c7b77e27d0be8123cb1934814a0a89f85b`](https://github.com/TooTallNate/nx.js/commit/4bb8a5c7b77e27d0be8123cb1934814a0a89f85b))
+
+- Mark `Switch` and `WebAssembly` namespaces as non-enumerable ([`055c9f3b0b2ac35536604aa2dcb1efb6cf399bad`](https://github.com/TooTallNate/nx.js/commit/055c9f3b0b2ac35536604aa2dcb1efb6cf399bad))
+
+- Fix successful TCP connect ([`43190bbf5b127b179dabc30ac86038005350ca5e`](https://github.com/TooTallNate/nx.js/commit/43190bbf5b127b179dabc30ac86038005350ca5e))
+
+- Declare globals with `var` instead of `const` to make them visible on `globalThis` ([`e6e1cb042ba030acf362f90efd350ae186622fda`](https://github.com/TooTallNate/nx.js/commit/e6e1cb042ba030acf362f90efd350ae186622fda))
+
+- Add `required: true` option to `Switch.currentProfile()`, and cache result for future calls ([`0f84ee1b4d823bac57de2e6c163d43917cc4757d`](https://github.com/TooTallNate/nx.js/commit/0f84ee1b4d823bac57de2e6c163d43917cc4757d))
+
+## 0.0.26
+
+### Patch Changes
+
+- Set esbuild and TypeScript compile target to "es2022" ([`62951c61fb846aeb2201b21f8c6a03c8adae96e8`](https://github.com/TooTallNate/nx.js/commit/62951c61fb846aeb2201b21f8c6a03c8adae96e8))
+
+- Add `ImageBitmap` class ([`d9db93b6c2b5dc33f817893f2c1aa142736009c6`](https://github.com/TooTallNate/nx.js/commit/d9db93b6c2b5dc33f817893f2c1aa142736009c6))
+
+- Add `Sensor` base class ([`6ab19dcb6f5922a25805f3b1decfe02959bde362`](https://github.com/TooTallNate/nx.js/commit/6ab19dcb6f5922a25805f3b1decfe02959bde362))
+
+- Make `IRSensor` use `ImageBitmap` instead of `ImageData` ([`f8d7beed76a2331ee83ef015046bd214a2156dda`](https://github.com/TooTallNate/nx.js/commit/f8d7beed76a2331ee83ef015046bd214a2156dda))
+
+- Rename `ListenOpts` interface to `ListenOptions` ([`2964d88e253dccbb1fedd676bbcb68017530eef7`](https://github.com/TooTallNate/nx.js/commit/2964d88e253dccbb1fedd676bbcb68017530eef7))
+
+- Propagate TCP `connect()` error to JS ([`9c3b9655a3360490906eb5106953ed9855536c53`](https://github.com/TooTallNate/nx.js/commit/9c3b9655a3360490906eb5106953ed9855536c53))
+
+- Use `quickjs-ng` ([`ba52a51ca85c86649f36b13d41f2ae173c953de6`](https://github.com/TooTallNate/nx.js/commit/ba52a51ca85c86649f36b13d41f2ae173c953de6))
+
+- Add `accept` shorthand for `Switch.listen()` ([`150467b4fd4f4c73e1d6d22578a45ba904289ea7`](https://github.com/TooTallNate/nx.js/commit/150467b4fd4f4c73e1d6d22578a45ba904289ea7))
+
+- Return same Promise instance for `navigator.getBattery()` ([`41081fb0f01fb79cacc453d0832822a394c56df4`](https://github.com/TooTallNate/nx.js/commit/41081fb0f01fb79cacc453d0832822a394c56df4))
+
+- Add `AmbientLightSensor` class ([`d7482c0931ae04f3270f447e1dcbd62954318a9a`](https://github.com/TooTallNate/nx.js/commit/d7482c0931ae04f3270f447e1dcbd62954318a9a))
+
+- Add `Switch.IRSensor` class ([`804b9f379e8f0da33e6bd726da8a1d2584c2d354`](https://github.com/TooTallNate/nx.js/commit/804b9f379e8f0da33e6bd726da8a1d2584c2d354))
+
+- Add `Switch.Application` class and `Switch.applications` iterator ([#72](https://github.com/TooTallNate/nx.js/pull/72))
+
+- Fix printing error if `runtime.js` throws an error ([`91db41d4c0c86fe413a4330aeedb994a98b53a5c`](https://github.com/TooTallNate/nx.js/commit/91db41d4c0c86fe413a4330aeedb994a98b53a5c))
+
+- Mark `id` as optional in `clearTimeout()` and `clearInterval()` ([`98654782f18c16e770124eaaefeef87e4b822396`](https://github.com/TooTallNate/nx.js/commit/98654782f18c16e770124eaaefeef87e4b822396))
+
+- Return 16 for `navigator.maxTouchPoints` ([`e23ae02b96306915dccf299dfcb2fd31c75e0c1c`](https://github.com/TooTallNate/nx.js/commit/e23ae02b96306915dccf299dfcb2fd31c75e0c1c))
+
+- Implement Canvas `roundRect()` in C ([#74](https://github.com/TooTallNate/nx.js/pull/74))
+
+- Remove unused `ConnectOpts` interface ([`143b53126e199287ef86e506fafff3765a57c4a2`](https://github.com/TooTallNate/nx.js/commit/143b53126e199287ef86e506fafff3765a57c4a2))
+
+- Add support for the `maxWidth` option in Canvas `fillText()`/`strokeText()` ([`09e1ac24a16d4e2ea9f484141cef7cc37373e241`](https://github.com/TooTallNate/nx.js/commit/09e1ac24a16d4e2ea9f484141cef7cc37373e241))
+
+- Re-implement source mapping using CallSite API ([`59d3dec8427224137b4d6bcdf5a2701375741e9c`](https://github.com/TooTallNate/nx.js/commit/59d3dec8427224137b4d6bcdf5a2701375741e9c))
+
+- Support `color` option in `Switch.IRSensor` ([`0ad81bb0c768903259d962fd66cace83aefccdd5`](https://github.com/TooTallNate/nx.js/commit/0ad81bb0c768903259d962fd66cace83aefccdd5))
+
+- Add `depth` to `inspect()` ([`cca4251d4d569254b5a9d3079c881e6c3f10712f`](https://github.com/TooTallNate/nx.js/commit/cca4251d4d569254b5a9d3079c881e6c3f10712f))
+
+- Refactor runtime type definition generator using AST modifications ([#73](https://github.com/TooTallNate/nx.js/pull/73))
+
+## 0.0.25
+
+### Patch Changes
+
+- Dispatch `touchstart`, `touchmove`, and `touchend` events on the `screen` object ([`07619a955dc1c6884c011d6ec64ecd563fb911bb`](https://github.com/TooTallNate/nx.js/commit/07619a955dc1c6884c011d6ec64ecd563fb911bb))
+
+- Use `performance.now()` in `requestAnimationFrame()` callback ([`6a40a1ea7bccbf0a9df83146c10ac65744fc4e4f`](https://github.com/TooTallNate/nx.js/commit/6a40a1ea7bccbf0a9df83146c10ac65744fc4e4f))
+
+- Add missing `TextMetrics` type ([`475261f1cf04703a9bb443f52b18b7de81a1b066`](https://github.com/TooTallNate/nx.js/commit/475261f1cf04703a9bb443f52b18b7de81a1b066))
+
+- Refactor to prevent `INTERNAL_SYMBOL` from leaking into the public types ([`2200e6eb8385db41600d34344dbd73ebc57b49a9`](https://github.com/TooTallNate/nx.js/commit/2200e6eb8385db41600d34344dbd73ebc57b49a9))
+
+- Add Canvas `textBaseline` ([`df93c6fe8632504db94b596b04d957ca959fb815`](https://github.com/TooTallNate/nx.js/commit/df93c6fe8632504db94b596b04d957ca959fb815))
+
+- Move rendering mode handling to C side ([`b14161f9baaf54de93f6a046aee428617fc72198`](https://github.com/TooTallNate/nx.js/commit/b14161f9baaf54de93f6a046aee428617fc72198))
+
+- Move `keydown` and `keyup` events to the `window` object ([`04008ba8972c81f799546ad3785d708e2c2d2673`](https://github.com/TooTallNate/nx.js/commit/04008ba8972c81f799546ad3785d708e2c2d2673))
+
+- Add `console.printErr()` ([`1085e6d854ea54fc27fcbd5a6cdf82c64b29aa70`](https://github.com/TooTallNate/nx.js/commit/1085e6d854ea54fc27fcbd5a6cdf82c64b29aa70))
+
+- Add `console.print()` ([`ff4b8fa78a4e3c02ad918493f2dfc3688a3dda42`](https://github.com/TooTallNate/nx.js/commit/ff4b8fa78a4e3c02ad918493f2dfc3688a3dda42))
+
+- Add Canvas `textAlign` ([`81275ee86bbb43bb967382e30a074e3dbb2ab2bb`](https://github.com/TooTallNate/nx.js/commit/81275ee86bbb43bb967382e30a074e3dbb2ab2bb))
+
+- Add `performance.timeOrigin` and `performance.now()` ([`0433772037a99c7825d354649827f2bda272a7a4`](https://github.com/TooTallNate/nx.js/commit/0433772037a99c7825d354649827f2bda272a7a4))
+
+- Move `Switch.vibrate()` to `navigator.vibrate()` ([`b0e81f33e5d1834e27a3b7bc3f9dc92bf473d478`](https://github.com/TooTallNate/nx.js/commit/b0e81f33e5d1834e27a3b7bc3f9dc92bf473d478))
+
+- Convert `Switch` global into a proper "namespace" ([#70](https://github.com/TooTallNate/nx.js/pull/70))
+
+- Move `Switch.fonts` to global `fonts` ([`52fb3910b6c571bfa65a7cb929b7ad4934f26abb`](https://github.com/TooTallNate/nx.js/commit/52fb3910b6c571bfa65a7cb929b7ad4934f26abb))
+
+- Fix Canvas `font`, `fillStyle`, `strokeStyle` after `ctx.restore()` ([#68](https://github.com/TooTallNate/nx.js/pull/68))
+
+- Don't throw when setting Canvas font upon parse failure ([`9f6c1cc508e3b89743db4feb985a10923b63b51e`](https://github.com/TooTallNate/nx.js/commit/9f6c1cc508e3b89743db4feb985a10923b63b51e))
+
+- Remove `Switch.print()` method ([`5681e40f56d00a178ecfb71221406ea800ff97cc`](https://github.com/TooTallNate/nx.js/commit/5681e40f56d00a178ecfb71221406ea800ff97cc))
+
+- Move `buttondown` and `buttonup` events to the `window` object ([`8c305fc1d8f77f283e4bb4e1e7889f7db220c273`](https://github.com/TooTallNate/nx.js/commit/8c305fc1d8f77f283e4bb4e1e7889f7db220c273))
+
+- Make `console.debug()` write to the debug log file ([`a151db893bd0dbe1c51305da8e0772d73578314d`](https://github.com/TooTallNate/nx.js/commit/a151db893bd0dbe1c51305da8e0772d73578314d))
+
+## 0.0.24
+
+### Patch Changes
+
+- Make Canvas `fill()` and `stroke()` preserve the drawing path ([`b6b8423c37f81cd8f48b8248f1cd0618f810af5b`](https://github.com/TooTallNate/nx.js/commit/b6b8423c37f81cd8f48b8248f1cd0618f810af5b))
+
+- Use HarfBuzz for Canvas text placement and measurement ([#67](https://github.com/TooTallNate/nx.js/pull/67))
+
+- Ensure `Path2D` constructor is defined globally ([`20cfe438e5985aab12c2660698b31c8f6468cf69`](https://github.com/TooTallNate/nx.js/commit/20cfe438e5985aab12c2660698b31c8f6468cf69))
+
+- Fix Canvas `putImageData()` ([`1bb003b5a9eaecb2f996666e83ef97741a1e766f`](https://github.com/TooTallNate/nx.js/commit/1bb003b5a9eaecb2f996666e83ef97741a1e766f))
+
+- Add Canvas `strokeText()` ([`f3c52b6567522a32869467e840e599d678c0fdbb`](https://github.com/TooTallNate/nx.js/commit/f3c52b6567522a32869467e840e599d678c0fdbb))
+
+- Fix PNG and WebP image alpha channel handling ([`60c1f0bfe17c062f6294f10801dfe16aad046536`](https://github.com/TooTallNate/nx.js/commit/60c1f0bfe17c062f6294f10801dfe16aad046536))
+
+## 0.0.23
+
+### Patch Changes
+
+- Add `CanvasRenderingContext2D#font` getter ([`e81ae48`](https://github.com/TooTallNate/nx.js/commit/e81ae48a71444249fb3bc96c20632af689144260))
+
+- Log unhandled errors / promise rejections to the debug log file ([`2055162`](https://github.com/TooTallNate/nx.js/commit/20551622ae681174cccaaebc23346562907e3eb2))
+
+- Add `Switch.version.mbedtls` ([`6c18661`](https://github.com/TooTallNate/nx.js/commit/6c18661fbf60d3472e5f411fa64276b7eb16935a))
+
+- Use mbedtls to support Socket TLS `secureTransport: 'on'` ([#58](https://github.com/TooTallNate/nx.js/pull/58))
+
+- Fix `resolve()` being inadventently added as a global function ([`275602f`](https://github.com/TooTallNate/nx.js/commit/275602f1404cd4a650cbf0c9d29b6b0f6a292221))
+
+- Make `Event#preventDefault()` only work when `cancelable: true` ([`28addd4`](https://github.com/TooTallNate/nx.js/commit/28addd49da71cd710cad6b475dea5828b438f018))
+
+- - Make `screen` implement the Canvas API ([#63](https://github.com/TooTallNate/nx.js/pull/63))
+  - Add `OffscreenCanvas` and `OffscreenCanvasRenderingContext2D`
+  - Remove `Switch.screen`
+
+- Add Canvas `imageSmoothingQuality` ([`885de44`](https://github.com/TooTallNate/nx.js/commit/885de447309826af5c8a510d862cd953dcdda605))
+
+- Add Canvas `imageSmoothingEnabled` ([`a55fcf2`](https://github.com/TooTallNate/nx.js/commit/a55fcf2612f69788ca694e7684c615f02b774e93))
+
+- Add Canvas `globalCompositeOperation` ([`50e4168`](https://github.com/TooTallNate/nx.js/commit/50e4168707595f755111bafac3f4e0a02e066834))
+
+- Add Canvas `clearRect()`, fix `strokeRect()` ([`94697da`](https://github.com/TooTallNate/nx.js/commit/94697da04d5449af9abd23a653b2d71f55a7a833))
+
+- Add initial global `screen` object ([`057c5bf`](https://github.com/TooTallNate/nx.js/commit/057c5bf76290b8444c86eb1370320ee2bf61a035))
+
+- Fix bug where `inspect()` would print "[Circular]" for object sub-properties ([`a197c84`](https://github.com/TooTallNate/nx.js/commit/a197c84d48badab5e0443bdf70e3c8a0d1222d6f))
+
+- Add `navigator.platform` ([`79b5f00`](https://github.com/TooTallNate/nx.js/commit/79b5f00756bc71207500d51347adebd10096094d))
+
+- Vendor `EventTarget` implementation ([`56189ae`](https://github.com/TooTallNate/nx.js/commit/56189ae177241296bf261d85eef817d8ed2cbd22))
+
+- Add support for `https:` protocol in `fetch()` ([`cd8557b`](https://github.com/TooTallNate/nx.js/commit/cd8557b6a913e5db7b38f12ceba6d1123f0bd925))
+
+- Enable color (emoji) fonts ([`412adc1`](https://github.com/TooTallNate/nx.js/commit/412adc1a5cdc5df4148a1b06c774aede029d5c93))
+
+- Add `window` as alias to `globalThis` ([`06bdc88`](https://github.com/TooTallNate/nx.js/commit/06bdc88f4fd6119212efce69d0500087f604da42))
+
+- Add `requestAnimationFrame()`, `cancelAnimationFrame()`, and global "unload" event ([`4e4f6ec`](https://github.com/TooTallNate/nx.js/commit/4e4f6ec13872b65f8d17e53ed2d4a5164f5d61f0))
+
+  This is technically a breaking change since the `Switch` "frame" and "exit" events are no longer dispatched.
+
+  To migrate from the "frame" event, use a `requestAnimationFrame` loop.
+  To migrate from the Switch "exit" event, use a global "unload" event.
+
+- Decode file path URL in filesystem operations ([`9fa8051`](https://github.com/TooTallNate/nx.js/commit/9fa8051a608876e7d6d4fd642c2e89f216ca5f8c))
+
 ## 0.0.22
 
 ### Patch Changes

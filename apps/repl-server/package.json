@@ -1,0 +1,22 @@
+{
+  "name": "repl-server",
+  "version": "0.0.0",
+  "private": true,
+  "description": "nx.js REPL (read-eval-print-loop) app accessed over TCP",
+  "scripts": {
+    "build": "esbuild --bundle --sourcemap --sources-content=false --target=es2022 --format=esm src/main.ts --outfile=romfs/main.js",
+    "nro": "nxjs-nro",
+    "nsp": "nxjs-nsp"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@nx.js/repl": "workspace:^",
+    "sisteransi": "^1.0.5"
+  },
+  "devDependencies": {
+    "@nx.js/nro": "workspace:^",
+    "@nx.js/nsp": "workspace:^",
+    "esbuild": "^0.17.19",
+    "nxjs-runtime": "workspace:^"
+  }
+}

@@ -7,10 +7,10 @@
   "commit": false,
   "fixed": [
     [
+      "@nx.js/nro",
+      "@nx.js/nsp",
       "create-nxjs-app",
-      "nxjs-constants",
-      "nxjs-runtime",
-      "nxjs-pack"
+      "nxjs-runtime"
     ]
   ],
   "linked": [],

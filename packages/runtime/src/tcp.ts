@@ -1,15 +1,15 @@
 import { $ } from './$';
-import { SocketEvent } from './polyfills/event';
+import { resolveDns } from './dns';
 import { EventTarget } from './polyfills/event-target';
-import { resolve } from './dns';
+import { SocketEvent, type SocketAddress, type SocketInfo } from './switch';
 import {
 	Deferred,
 	assertInternalConstructor,
 	bufferSourceToArrayBuffer,
-	def,
+	createInternal,
 	toPromise,
 } from './utils';
-import type { BufferSource, SocketAddress, SocketInfo } from './types';
+import type { BufferSource } from './types';
 import {
 	INTERNAL_SYMBOL,
 	Opaque,
@@ -28,7 +28,7 @@ export function parseAddress(address: string): SocketAddress {
 
 export async function connect(opts: SocketAddress) {
 	const { hostname = '127.0.0.1', port } = opts;
-	const [ip] = await resolve(hostname);
+	const [ip] = await resolveDns(hostname);
 	if (!ip) {
 		throw new Error(`Could not resolve "${hostname}" to an IP address`);
 	}
@@ -66,7 +66,7 @@ interface SocketInternal {
 	closed: Deferred<void>;
 }
 
-const socketInternal = new WeakMap<Socket, SocketInternal>();
+const _ = createInternal<Socket, SocketInternal>();
 
 /**
  * The `Socket` class represents a TCP connection, from which you can
@@ -98,7 +98,7 @@ export class Socket {
 			opened: new Deferred(),
 			closed: new Deferred(),
 		};
-		socketInternal.set(this, i);
+		_.set(this, i);
 		this.opened = i.opened.promise;
 		this.closed = i.closed.promise;
 
@@ -118,9 +118,7 @@ export class Socket {
 					}
 					return;
 				}
-				controller.enqueue(
-					new Uint8Array(readBuffer.slice(0, bytesRead))
-				);
+				controller.enqueue(new Uint8Array(readBuffer.slice(0, bytesRead)));
 			},
 		});
 		this.writable = new WritableStream({
@@ -129,6 +127,9 @@ export class Socket {
 					await socket.opened;
 				}
 				await (i.tls ? tlsWrite(i.tls, chunk) : write(i.fd, chunk));
+			},
+			close() {
+				socket.close();
 			},
 		});
 
@@ -161,15 +162,13 @@ export class Socket {
 		if (!this.writable.locked) {
 			this.writable.abort(reason);
 		}
-		const i = socketInternal.get(this);
-		if (i) {
-			if (i.opened.pending) {
-				i.opened.reject(reason);
-			}
-			if (i.fd !== -1) {
-				$.close(i.fd);
-				i.fd = -1;
-			}
+		const i = _(this);
+		if (i.opened.pending) {
+			i.opened.reject(reason);
+		}
+		if (i.fd !== -1) {
+			$.close(i.fd);
+			i.fd = -1;
 		}
 		return this.closed;
 	}
@@ -184,7 +183,6 @@ export class Socket {
 		throw new Error('Method not implemented.');
 	}
 }
-def('Socket', Socket);
 
 export class Server extends EventTarget {
 	/**
@@ -205,17 +203,17 @@ export class Server extends EventTarget {
 	addEventListener(
 		type: 'accept',
 		listener: (ev: SocketEvent) => any,
-		options?: boolean | AddEventListenerOptions
+		options?: boolean | AddEventListenerOptions,
 	): void;
 	addEventListener(
 		type: string,
 		listener: EventListenerOrEventListenerObject,
-		options?: boolean | AddEventListenerOptions
+		options?: boolean | AddEventListenerOptions,
 	): void;
 	addEventListener(
 		type: string,
 		callback: EventListenerOrEventListenerObject | null,
-		options?: boolean | AddEventListenerOptions | undefined
+		options?: boolean | AddEventListenerOptions,
 	): void {
 		super.addEventListener(type, callback, options);
 	}
@@ -225,13 +223,13 @@ export class Server extends EventTarget {
 	 */
 	close() {}
 }
-$.tcpInitServer(Server);
-def('Server', Server);
+$.tcpServerInit(Server);
 
 export function createServer(ip: string, port: number) {
 	const server = $.tcpServerNew(ip, port, function onAccept(fd) {
 		// @ts-expect-error Internal constructor
 		const socket = new Socket(INTERNAL_SYMBOL, null, {
+			allowHalfOpen: true,
 			async connect() {
 				return fd;
 			},

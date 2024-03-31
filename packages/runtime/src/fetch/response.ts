@@ -1,10 +1,9 @@
 import { def } from '../utils';
 import { Body, type BodyInit } from './body';
 import { Headers, type HeadersInit } from './headers';
+import { encoder } from '../polyfills/text-encoder';
+import type { URL } from '../polyfills/url';
 
-/**
- * Interface for the initialization options for a Response.
- */
 export interface ResponseInit {
 	/** Headers for the response. */
 	headers?: HeadersInit;
@@ -14,10 +13,13 @@ export interface ResponseInit {
 	statusText?: string;
 }
 
-/**
- * Type for the response type.
- */
-export type ResponseType = 'default' | 'error';
+export type ResponseType =
+	| 'basic'
+	| 'cors'
+	| 'default'
+	| 'error'
+	| 'opaque'
+	| 'opaqueredirect';
 
 /**
  * Class representing a HTTP response.
@@ -101,7 +103,9 @@ export class Response extends Body implements globalThis.Response {
 		if (!headers.has('content-type')) {
 			headers.set('content-type', 'application/json');
 		}
-		return new Response(JSON.stringify(data), { ...init, headers });
+		const json = encoder.encode(JSON.stringify(data));
+		headers.set('content-length', String(json.length));
+		return new Response(json, { ...init, headers });
 	}
 }
-def('Response', Response);
+def(Response);

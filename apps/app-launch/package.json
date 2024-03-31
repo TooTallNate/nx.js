@@ -1,0 +1,18 @@
+{
+  "name": "app-launch",
+  "version": "0.0.0",
+  "private": true,
+  "description": "List and launch installed games",
+  "scripts": {
+    "build": "esbuild --bundle --sourcemap --sources-content=false --target=es2022 --format=esm src/main.ts --outfile=romfs/main.js",
+    "nro": "nxjs-nro",
+    "nsp": "nxjs-nsp"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@nx.js/nro": "workspace:^",
+    "@nx.js/nsp": "workspace:^",
+    "esbuild": "^0.17.19",
+    "nxjs-runtime": "workspace:^"
+  }
+}

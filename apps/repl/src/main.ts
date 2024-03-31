@@ -22,15 +22,15 @@ function renderPrompt() {
 		const bufferR = buffer.slice(cursorPosition + 1);
 		b = `${bufferL}${cursorChar(bufferP)}${bufferR}`;
 	}
-	Switch.print(`\r${erase.line}${prompt}${b}`);
+	console.print(`\r${erase.line}${prompt}${b}`);
 }
 
-Switch.addEventListener('keydown', (e) => {
+addEventListener('keydown', (e) => {
 	const { key } = e;
 	if (key.length === 1) {
 		// Printable character
 		buffer = `${buffer.slice(0, cursorPosition)}${key}${buffer.slice(
-			cursorPosition
+			cursorPosition,
 		)}`;
 		cursorPosition++;
 		renderPrompt();
@@ -38,7 +38,7 @@ Switch.addEventListener('keydown', (e) => {
 		// Remove cursor
 		cursorPosition = -1;
 		renderPrompt();
-		Switch.print('\n');
+		console.print('\n');
 		try {
 			history.push(buffer);
 			historyIndex = history.length;
@@ -57,7 +57,7 @@ Switch.addEventListener('keydown', (e) => {
 			}
 			buffer = '';
 			cursorPosition = 0;
-			Switch.print(`${Switch.inspect(result)}\n\n`);
+			console.print(`${Switch.inspect(result)}\n\n`);
 			// @ts-expect-error `_` is not defined on `globalThis`
 			globalThis._ = result;
 		} catch (err: unknown) {
@@ -73,7 +73,7 @@ Switch.addEventListener('keydown', (e) => {
 	} else if (key === 'Backspace') {
 		if (buffer.length) {
 			buffer = `${buffer.slice(0, cursorPosition - 1)}${buffer.slice(
-				cursorPosition
+				cursorPosition,
 			)}`;
 			cursorPosition--;
 			renderPrompt();

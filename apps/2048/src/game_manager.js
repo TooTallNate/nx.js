@@ -34,10 +34,7 @@ export class GameManager {
 
 		// Reload the game from a previous game if present
 		if (previousState) {
-			this.grid = new Grid(
-				previousState.grid.size,
-				previousState.grid.cells
-			); // Reload grid
+			this.grid = new Grid(previousState.grid.size, previousState.grid.cells); // Reload grid
 			this.score = previousState.score;
 			this.over = previousState.over;
 			this.won = previousState.won;

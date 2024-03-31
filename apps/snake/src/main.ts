@@ -1,6 +1,5 @@
 import { FPS } from './fps';
-import { Hid } from 'nxjs-constants';
-const { Button } = Hid;
+import { HidNpadButton } from '@nx.js/constants';
 
 interface Position {
 	x: number;
@@ -24,14 +23,14 @@ enum State {
 	Gameover,
 }
 
-const ctx = Switch.screen.getContext('2d');
+const ctx = screen.getContext('2d');
 
 const snakeBody: SnakeBodyPart[] = [];
 const gridSize = 16;
 const boardWidth = 76;
 const boardHeight = 40;
-const boardX = Switch.screen.width / 2 - (boardWidth * gridSize) / 2;
-const boardY = Switch.screen.height / 2 - (boardHeight * gridSize) / 2;
+const boardX = screen.width / 2 - (boardWidth * gridSize) / 2;
+const boardY = screen.height / 2 - (boardHeight * gridSize) / 2;
 const updateRate = 100;
 let updatedAt = 0;
 let food: Position = { x: 0, y: 0 };
@@ -49,7 +48,7 @@ function start() {
 		{ x: 5, y: 5, direction: Direction.Right },
 		{ x: 6, y: 5, direction: Direction.Right },
 		{ x: 7, y: 5, direction: Direction.Right },
-		{ x: 8, y: 5, direction: Direction.Right }
+		{ x: 8, y: 5, direction: Direction.Right },
 	);
 	direction = Direction.Right;
 	updateScore();
@@ -62,8 +61,8 @@ function pause() {
 
 	const boxWidth = 400;
 	const boxHeight = 200;
-	const boxX = Switch.screen.width / 2 - boxWidth / 2;
-	const boxY = Switch.screen.height / 2 - boxHeight / 2;
+	const boxX = screen.width / 2 - boxWidth / 2;
+	const boxY = screen.height / 2 - boxHeight / 2;
 	ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
 	ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
 	// TODO: use `ctx.measureText()` to properly center text
@@ -84,33 +83,28 @@ function play() {
 }
 
 function draw() {
-	// Draw border
-	// TODO: use `strokeRect()` instead
-	ctx.fillStyle = 'white';
-	ctx.fillRect(
-		boardX - 1,
-		boardY - 1,
-		boardWidth * gridSize + 2,
-		boardHeight * gridSize + 2
-	);
-
 	// Reset board
+	ctx.beginPath();
+	ctx.rect(boardX, boardY, boardWidth * gridSize, boardHeight * gridSize);
 	ctx.fillStyle = 'rgb(0, 0, 70)';
-	ctx.fillRect(boardX, boardY, boardWidth * gridSize, boardHeight * gridSize);
+	ctx.fill();
+	ctx.strokeStyle = 'white';
+	ctx.stroke();
 
 	// Draw food
-	ctx.fillStyle = 'green';
+	ctx.beginPath();
 	ctx.arc(
 		boardX + gridSize / 2 + food.x * gridSize,
 		boardY + gridSize / 2 + food.y * gridSize,
 		gridSize / 2,
 		0,
-		2 * Math.PI
+		2 * Math.PI,
 	);
+	ctx.fillStyle = 'green';
 	ctx.fill();
 
 	// Draw snake
-	ctx.fillStyle = 'red';
+	ctx.beginPath();
 	const now = Date.now();
 	const diff = now - updatedAt;
 	const pos = (diff / updateRate) * gridSize;
@@ -118,76 +112,78 @@ function draw() {
 	// Snake tail
 	const tail = snakeBody[0];
 	if (tail.direction === Direction.Right) {
-		ctx.fillRect(
+		ctx.rect(
 			pos + boardX + tail.x * gridSize,
 			boardY + tail.y * gridSize,
 			gridSize - pos,
-			gridSize
+			gridSize,
 		);
 	} else if (tail.direction === Direction.Left) {
-		ctx.fillRect(
+		ctx.rect(
 			boardX + tail.x * gridSize,
 			boardY + tail.y * gridSize,
 			gridSize - pos,
-			gridSize
+			gridSize,
 		);
 	} else if (tail.direction === Direction.Up) {
-		ctx.fillRect(
+		ctx.rect(
 			boardX + tail.x * gridSize,
 			boardY + tail.y * gridSize,
 			gridSize,
-			gridSize - pos
+			gridSize - pos,
 		);
 	} else {
-		ctx.fillRect(
+		ctx.rect(
 			boardX + tail.x * gridSize,
 			pos + boardY + tail.y * gridSize,
 			gridSize,
-			gridSize - pos
+			gridSize - pos,
 		);
 	}
 
 	// Snake body
 	for (let i = 1; i < snakeBody.length - 1; i++) {
-		ctx.fillRect(
+		ctx.rect(
 			boardX + snakeBody[i].x * gridSize,
 			boardY + snakeBody[i].y * gridSize,
 			gridSize,
-			gridSize
+			gridSize,
 		);
 	}
 
 	// Snake head
 	const head = snakeBody[snakeBody.length - 1];
 	if (head.direction === Direction.Right) {
-		ctx.fillRect(
+		ctx.rect(
 			boardX + head.x * gridSize,
 			boardY + head.y * gridSize,
 			pos,
-			gridSize
+			gridSize,
 		);
 	} else if (head.direction === Direction.Left) {
-		ctx.fillRect(
+		ctx.rect(
 			gridSize - pos + boardX + head.x * gridSize,
 			boardY + head.y * gridSize,
 			pos,
-			gridSize
+			gridSize,
 		);
 	} else if (head.direction === Direction.Up) {
-		ctx.fillRect(
+		ctx.rect(
 			boardX + head.x * gridSize,
 			gridSize - pos + boardY + head.y * gridSize,
 			gridSize,
-			pos
+			pos,
 		);
 	} else {
-		ctx.fillRect(
+		ctx.rect(
 			boardX + head.x * gridSize,
 			boardY + head.y * gridSize,
 			gridSize,
-			pos
+			pos,
 		);
 	}
+	ctx.fillStyle = 'red';
+	ctx.fill();
 }
 
 function update() {
@@ -264,8 +260,8 @@ function gameOver() {
 	clearInterval(interval);
 	const boxWidth = 500;
 	const boxHeight = 300;
-	const boxX = Switch.screen.width / 2 - boxWidth / 2;
-	const boxY = Switch.screen.height / 2 - boxHeight / 2;
+	const boxX = screen.width / 2 - boxWidth / 2;
+	const boxY = screen.height / 2 - boxHeight / 2;
 	ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
 	ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
 	ctx.fillStyle = 'red';
@@ -284,37 +280,37 @@ function gameOver() {
 	ctx.fillText('Press + to exit...', boxX + 150, textY);
 }
 
-Switch.addEventListener('buttondown', (event) => {
+addEventListener('buttondown', (event) => {
 	if (state === State.Playing) {
-		if (event.detail & Button.Plus) {
+		if (event.detail & HidNpadButton.Plus) {
 			event.preventDefault();
 			pause();
 		} else if (!directionChange) {
-			if (event.detail & Button.AnyLeft) {
+			if (event.detail & HidNpadButton.AnyLeft) {
 				if (direction !== Direction.Right) {
 					directionChange = Direction.Left;
 				}
-			} else if (event.detail & Button.AnyUp) {
+			} else if (event.detail & HidNpadButton.AnyUp) {
 				if (direction !== Direction.Down) {
 					directionChange = Direction.Up;
 				}
-			} else if (event.detail & Button.AnyRight) {
+			} else if (event.detail & HidNpadButton.AnyRight) {
 				if (direction !== Direction.Left) {
 					directionChange = Direction.Right;
 				}
-			} else if (event.detail & Button.AnyDown) {
+			} else if (event.detail & HidNpadButton.AnyDown) {
 				if (direction !== Direction.Up) {
 					directionChange = Direction.Down;
 				}
 			}
 		}
 	} else if (state === State.Paused) {
-		if (event.detail & Button.Plus) {
+		if (event.detail & HidNpadButton.Plus) {
 			event.preventDefault();
 			play();
 		}
 	} else if (state === State.Gameover) {
-		if (event.detail & Button.A) {
+		if (event.detail & HidNpadButton.A) {
 			start();
 		}
 	}
@@ -333,11 +329,11 @@ const fps = new FPS();
 
 fps.addEventListener('update', () => {
 	ctx.fillStyle = 'black';
-	ctx.fillRect(Switch.screen.width - 104, 0, 90, 26);
+	ctx.fillRect(screen.width - 104, 0, 90, 26);
 
 	ctx.fillStyle = 'white';
 	ctx.font = '20px system-ui';
-	ctx.fillText(`FPS: ${Math.round(fps.rate)}`, Switch.screen.width - 104, 26);
+	ctx.fillText(`FPS: ${Math.round(fps.rate)}`, screen.width - 104, 26);
 });
 
 function step() {

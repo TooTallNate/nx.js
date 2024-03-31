@@ -2,17 +2,17 @@ import { def } from '../utils';
 import type { Event } from './event';
 import type { AbortSignal } from './abort-controller';
 
-export interface EventListener {
-	(evt: Event): void;
+export interface EventListener<T extends Event> {
+	(evt: T): void;
 }
 
-export interface EventListenerObject {
-	handleEvent(object: Event): void;
+export interface EventListenerObject<T extends Event> {
+	handleEvent(evt: T): void;
 }
 
-export type EventListenerOrEventListenerObject =
-	| EventListener
-	| EventListenerObject;
+export type EventListenerOrEventListenerObject<T extends Event = any> =
+	| EventListener<T>
+	| EventListenerObject<T>;
 
 export interface EventListenerOptions {
 	capture?: boolean;
@@ -72,7 +72,7 @@ export class EventTarget {
 	addEventListener(
 		type: string,
 		callback: EventListenerOrEventListenerObject | null,
-		options?: AddEventListenerOptions | boolean
+		options?: AddEventListenerOptions | boolean,
 	): void {
 		if (!callback) return;
 		if (typeof options === 'boolean') {
@@ -119,7 +119,7 @@ export class EventTarget {
 	removeEventListener(
 		type: string,
 		callback: EventListenerOrEventListenerObject | null,
-		options?: EventListenerOptions | boolean
+		options?: EventListenerOptions | boolean,
 	): void {
 		const self = this || globalThis;
 		const cbs = getCbs(self, type);
@@ -131,4 +131,4 @@ export class EventTarget {
 		}
 	}
 }
-def('EventTarget', EventTarget);
+def(EventTarget);

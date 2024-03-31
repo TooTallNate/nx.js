@@ -2,18 +2,19 @@
   "private": true,
   "scripts": {
     "build": "turbo run build",
+    "nro": "turbo run nro",
     "bundle": "turbo run bundle",
-    "format": "prettier --write \"**/*.{ts,js}\"",
+    "format": "biome format --write apps packages",
     "ci:version": "changeset version && node .github/scripts/cleanup-examples.mjs && pnpm install --no-frozen-lockfile",
     "ci:publish": "pnpm publish -r && node .github/scripts/create-git-tag.mjs"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.26.2",
+    "@biomejs/biome": "^1.5.3",
+    "@changesets/cli": "^2.27.1",
     "@svitejs/changesets-changelog-github-compact": "^1.1.0",
-    "prettier": "^2.8.8",
-    "turbo": "^1.10.13",
+    "turbo": "^1.12.5",
     "typedoc": "^0.24.8",
-    "typedoc-plugin-mdn-links": "^3.1.0",
+    "typedoc-plugin-mdn-links": "^3.1.6",
     "yauzl": "^2.10.0"
   }
 }

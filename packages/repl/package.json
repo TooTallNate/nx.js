@@ -1,0 +1,29 @@
+{
+  "name": "@nx.js/repl",
+  "version": "0.0.2",
+  "description": "Read-Eval-Print Loop for nx.js",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc"
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "kleur": "^4.1.5",
+    "sisteransi": "^1.0.5"
+  },
+  "devDependencies": {
+    "nxjs-runtime": "workspace:*",
+    "typescript": "^5.3.2"
+  },
+  "keywords": [
+    "repl",
+    "read-eval-print"
+  ],
+  "author": "Nathan Rajlich <n@n8.io>",
+  "license": "MIT"
+}

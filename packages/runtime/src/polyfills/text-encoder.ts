@@ -39,8 +39,7 @@ export class TextEncoder implements globalThis.TextEncoder {
 					var extra = input.charCodeAt(pos);
 					if ((extra & 0xfc00) === 0xdc00) {
 						++pos;
-						value =
-							((value & 0x3ff) << 10) + (extra & 0x3ff) + 0x10000;
+						value = ((value & 0x3ff) << 10) + (extra & 0x3ff) + 0x10000;
 					}
 				}
 				if (value >= 0xd800 && value <= 0xdbff) {
@@ -94,12 +93,11 @@ export class TextEncoder implements globalThis.TextEncoder {
 	 */
 	encodeInto(
 		input: string,
-		destination: Uint8Array
+		destination: Uint8Array,
 	): TextEncoderEncodeIntoResult {
 		throw new Error('Method not implemented.');
 	}
 }
-
-def('TextEncoder', TextEncoder);
+def(TextEncoder);
 
 export const encoder = new TextEncoder();

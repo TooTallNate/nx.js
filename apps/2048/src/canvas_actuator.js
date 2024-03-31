@@ -5,6 +5,7 @@ const gridContainerColor = '#bbada0';
 
 const fontColorDark = '#776e65';
 const fontColorLight = '#f9f6f2';
+const fontColorScore = '#eee4da';
 
 const emptyTileColor = 'rgba(238, 228, 218, 0.35)';
 
@@ -22,15 +23,18 @@ const tileColors = {
 	2048: '#edc22e',
 };
 
-const tileFontSizes = {
-	2: 60,
-	4: 60,
-	8: 60,
-	16: 60,
-};
-
 // After 2048, this color is used
 const tileColorMax = '#3c3a33';
+
+// The font size to use in the tile,
+// based on the number of digits
+const tileLengthFontSizes = {
+	1: 60,
+	2: 60,
+	3: 52,
+	4: 44,
+	5: 36,
+};
 
 const tileMoveDuration = 100;
 const scoreAnimationDuration = 600;
@@ -46,27 +50,61 @@ export class CanvasActuator {
 		/**
 		 * @type CanvasRenderingContext2D
 		 */
-		this.ctx = Switch.screen.getContext('2d');
+		this.ctx = screen.getContext('2d');
+
+		this.ctx.textAlign = 'center';
+		this.ctx.textBaseline = 'middle';
 
 		// Draw background
 		this.ctx.fillStyle = bgColor;
 		this.ctx.fillRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
 
-		// Draw title
+		// Draw instructions text
+		const instructionsTextX = 170;
+		let instructionsTextY = 100;
 		this.ctx.fillStyle = fontColorDark;
 		this.ctx.font = 'bold 80px "Clear Sans"';
-		this.ctx.fillText('2048', 60, 80);
+		this.ctx.fillText('2048', instructionsTextX, instructionsTextY);
 
+		instructionsTextY += 100;
 		this.ctx.font = 'bold 30px "Clear Sans"';
-		this.ctx.fillText('HOW TO PLAY:', 60, 140);
+		this.ctx.fillText('HOW TO PLAY:', instructionsTextX, instructionsTextY);
 
+		instructionsTextY += 50;
 		this.ctx.font = '24px "Clear Sans"';
-		this.ctx.fillText('Use the D-pad or swipe the', 20, 190);
-		this.ctx.fillText('screen to move the tiles.', 20, 220);
-		this.ctx.fillText('Tiles with the same', 20, 270);
-		this.ctx.fillText('number merge into one', 20, 300);
-		this.ctx.fillText('when they touch.', 20, 330);
-		this.ctx.fillText('Add them up to reach 2048!', 20, 380);
+		this.ctx.fillText(
+			'Use the D-pad or swipe the',
+			instructionsTextX,
+			instructionsTextY,
+		);
+		instructionsTextY += 30;
+		this.ctx.fillText(
+			'screen to move the tiles.',
+			instructionsTextX,
+			instructionsTextY,
+		);
+
+		instructionsTextY += 60;
+		this.ctx.fillText(
+			'Tiles with the same',
+			instructionsTextX,
+			instructionsTextY,
+		);
+		instructionsTextY += 30;
+		this.ctx.fillText(
+			'number merge into one',
+			instructionsTextX,
+			instructionsTextY,
+		);
+		instructionsTextY += 30;
+		this.ctx.fillText('when they touch.', instructionsTextX, instructionsTextY);
+
+		instructionsTextY += 60;
+		this.ctx.fillText(
+			'Add them up to reach 2048!',
+			instructionsTextX,
+			instructionsTextY,
+		);
 
 		this.gridSize = 600;
 		this.gridSpacing = 18;
@@ -86,10 +124,10 @@ export class CanvasActuator {
 
 	actuate(grid, metadata) {
 		this.lastUpdateAt = Date.now();
-		clearTimeout(this.updateGridContainerTimeoutId);
+		cancelAnimationFrame(this.updateGridContainerTimeoutId);
 		this.updateGridContainer(grid, metadata);
 		this.updateScore(metadata.score);
-		//this.updateBestScore(metadata.bestScore);
+		this.drawBestScore(metadata.bestScore);
 	}
 
 	updateGridContainer(grid, metadata) {
@@ -97,12 +135,23 @@ export class CanvasActuator {
 
 		this.drawGridContainer(grid);
 
+		let shouldVibrate = false;
+
 		// Draw active cells
 		for (let x = 0; x < grid.size; x++) {
 			for (let y = 0; y < grid.size; y++) {
 				const tile = grid.cells[x][y];
-				if (tile) this.addTile(tile, delta);
+				if (tile) {
+					if (tile.mergedFrom) {
+						shouldVibrate = true;
+					}
+					this.addTile(tile, delta);
+				}
 			}
+		}
+
+		if (shouldVibrate) {
+			navigator.vibrate(100);
 		}
 
 		let animationDuration = tileMoveDuration;
@@ -117,26 +166,20 @@ export class CanvasActuator {
 		}
 
 		if (delta < animationDuration) {
-			this.updateGridContainerTimeoutId = setTimeout(
-				this.updateGridContainer,
-				0,
-				grid,
-				metadata
-			);
+			this.updateGridContainerTimeoutId = requestAnimationFrame(() => {
+				this.updateGridContainer(grid, metadata);
+			});
 		}
 	}
 
 	drawGridContainer(grid) {
+		const { ctx } = this;
+
 		// Draw grid container
-		this.ctx.fillStyle = gridContainerColor;
-		this.ctx.roundRect(
-			this.gridX,
-			this.gridY,
-			this.gridSize,
-			this.gridSize,
-			8
-		);
-		this.ctx.fill();
+		ctx.beginPath();
+		ctx.roundRect(this.gridX, this.gridY, this.gridSize, this.gridSize, 8);
+		ctx.fillStyle = gridContainerColor;
+		ctx.fill();
 
 		// Draw empty cells
 		for (let x = 0; x < grid.size; x++) {
@@ -154,14 +197,8 @@ export class CanvasActuator {
 
 	tilePosition(x, y) {
 		return {
-			x:
-				this.gridX +
-				this.gridSpacing +
-				x * (this.tileSize + this.gridSpacing),
-			y:
-				this.gridY +
-				this.gridSpacing +
-				y * (this.tileSize + this.gridSpacing),
+			x: this.gridX + this.gridSpacing + x * (this.tileSize + this.gridSpacing),
+			y: this.gridY + this.gridSpacing + y * (this.tileSize + this.gridSpacing),
 		};
 	}
 
@@ -170,7 +207,7 @@ export class CanvasActuator {
 			// Render the (potentially) moving tile at its current location
 			const oldPos = this.tilePosition(
 				tile.previousPosition.x,
-				tile.previousPosition.y
+				tile.previousPosition.y,
 			);
 			const tilePos = this.tilePosition(tile.x, tile.y);
 			const t = Math.min(delta / tileMoveDuration, 1);
@@ -206,21 +243,17 @@ export class CanvasActuator {
 		if (tile?.value) {
 			fillStyle = tileColors[tile.value] || tileColorMax;
 		}
-		ctx.fillStyle = fillStyle;
+		ctx.beginPath();
 		ctx.roundRect(x, y, this.tileSize, this.tileSize, 6);
+		ctx.fillStyle = fillStyle;
 		ctx.fill();
 
 		if (tile?.value) {
 			const val = String(tile.value);
-			const fontSize = tileFontSizes[tile.value] ?? 60;
+			const fontSize = tileLengthFontSizes[val.length];
 			ctx.font = `bold ${fontSize}px "Clear Sans"`;
 			ctx.fillStyle = tile.value > 4 ? fontColorLight : fontColorDark;
-			const m = ctx.measureText(val);
-			ctx.fillText(
-				val,
-				x + this.tileSize / 2 - m.width / 2,
-				y + this.tileSize / 2 + m.height / 2
-			);
+			ctx.fillText(val, x + this.tileSize / 2, y + this.tileSize / 2);
 		}
 	}
 
@@ -244,17 +277,21 @@ export class CanvasActuator {
 		ctx.fillStyle = bgColor;
 		ctx.fillRect(scoreX, scoreY - 80, scoreWidth, scoreHeight + 80);
 
+		ctx.beginPath();
 		ctx.fillStyle = '#bbada0';
 		ctx.roundRect(scoreX, scoreY, scoreWidth, scoreHeight, 6);
 		ctx.fill();
 
+		const scoreTextX = scoreX + scoreWidth / 2;
+
+		ctx.fillStyle = fontColorScore;
+		ctx.font = 'bold 24px "Clear Sans"';
+		ctx.fillText('SCORE', scoreTextX, scoreY + 30);
+
 		ctx.fillStyle = fontColorLight;
 		ctx.font = 'bold 36px "Clear Sans"';
 		const scoreStr = String(this.score);
-		const scoreMeasure = ctx.measureText(scoreStr);
-		const scoreTextX = scoreX + (scoreWidth / 2 - scoreMeasure.width / 2);
-		const scoreTextY =
-			10 + scoreY + (scoreHeight / 2 + scoreMeasure.height / 2);
+		const scoreTextY = 68 + scoreY;
 		ctx.fillText(scoreStr, scoreTextX, scoreTextY);
 
 		const now = Date.now();
@@ -265,14 +302,8 @@ export class CanvasActuator {
 			const e = easeIn(t);
 			ctx.fillStyle = `rgba(119, 110, 101, ${1 - e.y})`;
 			const scoreDiff = `+${difference}`;
-			let scoreDiffMeasure = scoreDiffMeasureCache.get(scoreDiff);
-			if (!scoreDiffMeasure) {
-				scoreDiffMeasure = ctx.measureText(scoreDiff);
-				scoreDiffMeasureCache.get(scoreDiff, scoreDiffMeasure);
-			}
 			const y = scoreTextY - scoreHeight * e.y;
-			const scoreTextX =
-				scoreX + (scoreWidth / 2 - scoreDiffMeasure.width / 2);
+			const scoreTextX = scoreX + scoreWidth / 2;
 			ctx.fillText(scoreDiff, scoreTextX, y);
 			if (t === 1) {
 				this.scoreAnimations.delete(startedAt);
@@ -280,34 +311,53 @@ export class CanvasActuator {
 		}
 
 		if (this.scoreAnimations.size > 0) {
-			setTimeout(this.drawScore, 0);
+			requestAnimationFrame(this.drawScore);
 		}
 	}
 
-	//updateBestScore(bestScore) {
-	//	this.bestContainer.textContent = bestScore;
-	//}
+	drawBestScore(bestScore) {
+		const { ctx } = this;
+		const scoreWidth = this.scoreBoxWidth;
+		const scoreHeight = this.scoreBoxHeight;
+		const scoreX =
+			ctx.canvas.width - this.sidebarWidth + this.scoreBoxWidth / 2;
+		const scoreY = 220;
+
+		ctx.fillStyle = bgColor;
+		ctx.fillRect(scoreX, scoreY, scoreWidth, scoreHeight);
+
+		ctx.beginPath();
+		ctx.fillStyle = '#bbada0';
+		ctx.roundRect(scoreX, scoreY, scoreWidth, scoreHeight, 6);
+		ctx.fill();
+
+		const scoreTextX = scoreX + scoreWidth / 2;
+
+		ctx.fillStyle = fontColorScore;
+		ctx.font = 'bold 24px "Clear Sans"';
+		ctx.fillText('BEST', scoreTextX, scoreY + 30);
+
+		ctx.fillStyle = fontColorLight;
+		ctx.font = 'bold 36px "Clear Sans"';
+		const scoreStr = String(bestScore);
+		const scoreTextY = 68 + scoreY;
+		ctx.fillText(scoreStr, scoreTextX, scoreTextY);
+	}
 
 	message(won, delta) {
 		const t = Math.min(delta / messageFadeAnimationDuration, 1);
 		const e = ease(t);
 
+		this.ctx.beginPath();
 		this.ctx.fillStyle = `rgba(255, 255, 255, ${e.y / 2})`;
-		this.ctx.roundRect(
-			this.gridX,
-			this.gridY,
-			this.gridSize,
-			this.gridSize,
-			8
-		);
+		this.ctx.roundRect(this.gridX, this.gridY, this.gridSize, this.gridSize, 8);
 		this.ctx.fill();
 
 		this.ctx.font = 'bold 64px "Clear Sans"';
 		this.ctx.fillStyle = `rgba(119, 110, 101, ${e.y})`;
 		const message = won ? 'You win!' : 'Game over!';
-		const m = this.ctx.measureText(message);
-		const x = this.gridX + (this.gridSize / 2 - m.width / 2);
-		const y = this.gridY + (this.gridSize / 2 + m.height / 2);
+		const x = this.gridX + this.gridSize / 2;
+		const y = this.gridY + this.gridSize / 2;
 		this.ctx.fillText(message, x, y);
 	}
 }

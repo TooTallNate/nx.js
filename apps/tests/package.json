@@ -1,17 +1,19 @@
 {
-  "name": "nxjs-tests",
+  "name": "tests",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "description": "nx.js API tests",
   "scripts": {
-    "build": "esbuild --bundle --target=es2020 --sourcemap --sources-content=false --format=esm src/main.ts --outfile=romfs/main.js",
-    "nro": "nxjs-pack"
+    "build": "esbuild --bundle --target=es2022 --sourcemap --sources-content=false --format=esm src/main.ts --outfile=romfs/main.js",
+    "nro": "nxjs-nro",
+    "nsp": "nxjs-nsp"
   },
   "license": "MIT",
   "devDependencies": {
+    "@nx.js/nro": "workspace:^",
+    "@nx.js/nsp": "workspace:^",
     "esbuild": "^0.17.19",
-    "nxjs-pack": "workspace:^",
     "nxjs-runtime": "workspace:^"
   },
   "dependencies": {

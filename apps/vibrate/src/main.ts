@@ -2,29 +2,28 @@ import { Slider } from './slider';
 
 const MAX_FREQ = 320;
 
-const canvas = Switch.screen;
-const ctx = canvas.getContext('2d');
+const ctx = screen.getContext('2d');
 ctx.fillStyle = 'black';
-ctx.fillRect(0, 0, canvas.width, canvas.height);
+ctx.fillRect(0, 0, screen.width, screen.height);
 
 ctx.fillStyle = 'white';
 ctx.font = '48px system-ui';
 const m = ctx.measureText('Vibration Demo');
-ctx.fillText('Vibration Demo', canvas.width / 2 - m.width / 2, 50);
+ctx.fillText('Vibration Demo', screen.width / 2 - m.width / 2, 50);
 
-const lowAmpX = (canvas.width / 5) * 1;
+const lowAmpX = (screen.width / 5) * 1;
 const lowAmpSlider = new Slider(ctx, lowAmpX, 100, 400);
 lowAmpSlider.value = 0.2;
 
-const lowFreqX = (canvas.width / 5) * 2;
+const lowFreqX = (screen.width / 5) * 2;
 const lowFreqSlider = new Slider(ctx, lowFreqX, 100, 400);
 lowFreqSlider.value = 0.5;
 
-const highAmpX = (canvas.width / 5) * 3;
+const highAmpX = (screen.width / 5) * 3;
 const highAmpSlider = new Slider(ctx, highAmpX, 100, 400);
 highAmpSlider.value = 0.2;
 
-const highFreqX = (canvas.width / 5) * 4;
+const highFreqX = (screen.width / 5) * 4;
 const highFreqSlider = new Slider(ctx, highFreqX, 100, 400);
 highFreqSlider.value = 0.5;
 
@@ -40,7 +39,7 @@ ctx.fillText('High', highAmpX + 100, 318);
 ctx.fillText('Amp', highAmpX - 30, 100 + highAmpSlider.length + 60);
 ctx.fillText('Freq', highFreqX - 30, 100 + highFreqSlider.length + 60);
 
-Switch.addEventListener('touchmove', (e) => {
+screen.addEventListener('touchmove', (e) => {
 	const t = e.touches[0];
 	const x = t.clientX;
 	const y = t.clientY;
@@ -74,7 +73,7 @@ Switch.addEventListener('touchmove', (e) => {
 			ctx.fillStyle = 'white';
 			ctx.fillText(vs, rect.x - 20, rect.y + rect.height + 110);
 
-			Switch.vibrate({
+			navigator.vibrate({
 				duration: 1000,
 				lowAmp: lowAmpSlider.value,
 				lowFreq: Math.round(lowFreqSlider.value * MAX_FREQ),

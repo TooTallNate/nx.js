@@ -1,7 +1,6 @@
 import { bgRgb, bold, red, yellow } from 'kleur/colors';
-import type { SwitchClass } from './switch';
-
-declare const Switch: SwitchClass;
+import { $ } from './$';
+import { inspect } from './inspect';
 
 const bgRedDim = bgRgb(60, 0, 0);
 const bgYellowDim = bgRgb(60, 60, 0);
@@ -17,10 +16,10 @@ const formatters: Record<string, (v: unknown) => string> = {
 		return JSON.stringify(v);
 	},
 	o(v) {
-		return Switch.inspect(v);
+		return inspect(v);
 	},
 	O(v) {
-		return Switch.inspect(v);
+		return inspect(v);
 	},
 };
 
@@ -38,7 +37,7 @@ function format(...input: unknown[]): string {
 	}
 	if (input.length) {
 		if (s) s += ' ';
-		s += input.map((v) => Switch.inspect(v)).join(' ');
+		s += input.map((v) => inspect(v)).join(' ');
 	}
 	return s;
 }
@@ -48,8 +47,8 @@ function format(...input: unknown[]): string {
  * screen, which can be useful for text-based applications, and is also
  * useful for debugging.
  *
- * All methods use the {@link SwitchClass.inspect | `Switch.inspect()`} method
- * for formatting, and the {@link SwitchClass.print | `Switch.print()`} method
+ * Most methods use the {@link inspect | `Switch.inspect()`} method
+ * for formatting, and the {@link console.print | `console.print()`} method
  * to output to the screen.
  *
  * > **NOTE:** Invoking any method on the `console` object switches the
@@ -58,38 +57,66 @@ function format(...input: unknown[]): string {
  *
  * @see https://developer.mozilla.org/docs/Web/API/console
  */
-export const console = {
+export var console = {
 	/**
-	 * Logs to the screen the formatted `input` as white text.
+	 * Prints string `s` to the console on the screen, without any formatting applied.
+	 * Newline is _not_ appending to the end of the string.
+	 *
+	 * @param s The text to print to the console.
+	 */
+	print(s: string) {
+		$.print(s);
+	},
+
+	/**
+	 * Prints string `s` to the debug log file, without any formatting applied.
+	 * Newline is _not_ appending to the end of the string.
+	 *
+	 * @param s The text to print to the log file.
+	 * @note This function **does not** invoke _text rendering mode_, so it can safely be used when rendering with the Canvas API.
+	 */
+	printErr(s: string) {
+		$.printErr(s);
+	},
+
+	/**
+	 * Logs the formatted `input` to the screen as white text.
 	 */
 	log(...input: unknown[]) {
-		Switch.print(`${format(...input)}\n`);
+		$.print(`${format(...input)}\n`);
 	},
 
 	/**
-	 * Logs to the screen the formatted `input` as yellow text.
+	 * Logs the formatted `input` to the screen as yellow text.
 	 */
 	warn(...input: unknown[]) {
-		Switch.print(`${bold(bgYellowDim(yellow(format(...input))))}\n`);
+		$.print(`${bold(bgYellowDim(yellow(format(...input))))}\n`);
 	},
 
 	/**
-	 * Logs to the screen the formatted `input` as red text.
+	 * Logs the formatted `input` to the screen as red text.
 	 */
 	error(...input: unknown[]) {
-		Switch.print(`${bold(bgRedDim(red(format(...input))))}\n`);
+		$.print(`${bold(bgRedDim(red(format(...input))))}\n`);
 	},
 
 	/**
-	 * `console.debug()` is an alias for `console.log()`.
+	 * Writes the formatted `input` to the debug log file.
+	 *
+	 * @note This function **does not** invoke _text rendering mode_, so it can safely be used when rendering with the Canvas API.
 	 */
 	debug(...input: unknown[]) {
-		console.log(...input);
+		$.printErr(`${format(...input)}\n`);
 	},
 
+	/**
+	 * Logs the formatted `input` to the screen as white text,
+	 * including a stack trace of where the function was invoked.
+	 */
 	trace(...input: unknown[]) {
 		const f = format(...input);
-		const s = new Error().stack!.split('\n').slice(1).join('\n');
-		Switch.print(`Trace${f ? `: ${f}` : ''}\n${s}`);
+		let s = new Error().stack!.split('\n').slice(1).join('\n');
+		if (!s.endsWith('\n')) s += '\n';
+		$.print(`Trace${f ? `: ${f}` : ''}\n${s}`);
 	},
 };

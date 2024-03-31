@@ -2,13 +2,10 @@ import { $ } from './$';
 import { bufferSourceToArrayBuffer } from './utils';
 import type { BufferSource } from './types';
 import type {
-	SwitchClass,
 	WasmModuleOpaque,
 	WasmInstanceOpaque,
 	WasmGlobalOpaque,
-} from './switch';
-
-declare const Switch: SwitchClass;
+} from './internal';
 
 export interface GlobalDescriptor<T extends ValueType = ValueType> {
 	mutable?: boolean;
@@ -107,13 +104,13 @@ export class Global<T extends ValueType = ValueType>
 	 */
 	get value(): ValueTypeMap[T] {
 		const i = globalInternalsMap.get(this)!;
-		return i.opaque ? Switch.native.wasmGlobalGet(i.opaque) : i.value;
+		return i.opaque ? $.wasmGlobalGet(i.opaque) : i.value;
 	}
 
 	set value(v: ValueTypeMap[T]) {
 		const i = globalInternalsMap.get(this)!;
 		if (i.opaque) {
-			Switch.native.wasmGlobalSet(i.opaque, v);
+			$.wasmGlobalSet(i.opaque, v);
 		} else {
 			i.value = v;
 		}
@@ -127,7 +124,7 @@ export class Global<T extends ValueType = ValueType>
 	}
 }
 
-function bindGlobal(g: Global, opaque = Switch.native.wasmNewGlobal()) {
+function bindGlobal(g: Global, opaque = $.wasmNewGlobal()) {
 	const i = globalInternalsMap.get(g);
 	if (!i) throw new Error(`No internal state for Global`);
 	i.opaque = opaque;
@@ -161,7 +158,7 @@ function unwrapImports(importObject: Imports = {}) {
 				val,
 				i,
 			};
-		})
+		}),
 	);
 }
 
@@ -204,9 +201,9 @@ export class Instance implements WebAssembly.Instance {
 	constructor(moduleObject: Module, importObject?: Imports) {
 		const modInternal = moduleInternalsMap.get(moduleObject);
 		if (!modInternal) throw new Error(`No internal state for Module`);
-		const [opaque, exp] = Switch.native.wasmNewInstance(
+		const [opaque, exp] = $.wasmNewInstance(
 			modInternal.opaque,
-			unwrapImports(importObject)
+			unwrapImports(importObject),
 		);
 		instanceInternalsMap.set(this, { module: moduleObject, opaque });
 		this.exports = wrapExports(exp);
@@ -257,14 +254,14 @@ export class Module implements WebAssembly.Module {
 		moduleInternalsMap.set(this, {
 			// Hold a reference to the bytes to prevent garbage collection
 			buffer,
-			opaque: Switch.native.wasmNewModule(buffer),
+			opaque: $.wasmNewModule(buffer),
 		});
 	}
 
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/Module/customSections) */
 	static customSections(
 		moduleObject: Module,
-		sectionName: string
+		sectionName: string,
 	): ArrayBuffer[] {
 		throw new Error('Method not implemented.');
 	}
@@ -273,14 +270,14 @@ export class Module implements WebAssembly.Module {
 	static exports(moduleObject: Module): ModuleExportDescriptor[] {
 		const i = moduleInternalsMap.get(moduleObject);
 		if (!i) throw new Error(`No internal state for Module`);
-		return Switch.native.wasmModuleExports(i.opaque);
+		return $.wasmModuleExports(i.opaque);
 	}
 
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/Module/imports) */
 	static imports(moduleObject: Module): ModuleImportDescriptor[] {
 		const i = moduleInternalsMap.get(moduleObject);
 		if (!i) throw new Error(`No internal state for Module`);
-		return Switch.native.wasmModuleImports(i.opaque);
+		return $.wasmModuleImports(i.opaque);
 	}
 }
 
@@ -322,7 +319,7 @@ export async function compile(bytes: BufferSource): Promise<Module> {
 
 /** [MDN Reference](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/compileStreaming) */
 export async function compileStreaming(
-	source: Response | PromiseLike<Response>
+	source: Response | PromiseLike<Response>,
 ): Promise<Module> {
 	const res = await source;
 	if (!res.ok) {
@@ -335,15 +332,15 @@ export async function compileStreaming(
 /** [MDN Reference](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/instantiate) */
 export function instantiate(
 	bytes: BufferSource,
-	importObject?: Imports
+	importObject?: Imports,
 ): Promise<WebAssemblyInstantiatedSource>;
 export function instantiate(
 	moduleObject: Module,
-	importObject?: Imports
+	importObject?: Imports,
 ): Promise<Instance>;
 export async function instantiate(
 	bytes: BufferSource | Module,
-	importObject?: Imports
+	importObject?: Imports,
 ) {
 	if (bytes instanceof Module) {
 		return new Instance(bytes, importObject);
@@ -360,7 +357,7 @@ export async function instantiate(
 /** [MDN Reference](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/instantiateStreaming) */
 export async function instantiateStreaming(
 	source: Response | PromiseLike<Response>,
-	importObject?: Imports
+	importObject?: Imports,
 ): Promise<WebAssemblyInstantiatedSource> {
 	const m = await compileStreaming(source);
 	const instance = await instantiate(m, importObject);

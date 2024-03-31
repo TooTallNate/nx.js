@@ -7,6 +7,7 @@ test('instanceof', () => {
 	assert.equal(window instanceof Window, true);
 	assert.equal(globalThis instanceof Window, true);
 	assert.equal(globalThis === window, true);
+	assert.equal(Object.prototype.toString.call(window), '[object Window]');
 });
 
 test('throws illegal constructor', () => {

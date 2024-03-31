@@ -3,26 +3,26 @@
  * MIT License.
  * Jimmy Wärting <https://jimmy.warting.se/opensource>
  */
-import { def } from '../utils';
+import { createInternal, def } from '../utils';
 import { encoder } from './text-encoder';
 import { TextDecoder } from './text-decoder';
 import type { BufferSource } from '../types';
 
-interface BlobInternals {
+interface BlobInternal {
 	parts: (Blob | Uint8Array)[];
 	type: string;
 	size: number;
 	endings: 'native' | 'transparent';
 }
 
-const blobInternalsMap = new WeakMap<Blob, BlobInternals>();
+const _ = createInternal<Blob, BlobInternal>();
 
 // 64 KiB (same size chrome slice theirs blob into Uint8array's)
 const POOL_SIZE = 65536;
 
 async function* toIterator(
 	parts: (Blob | Uint8Array)[],
-	clone: boolean
+	clone: boolean,
 ): AsyncIterableIterator<Uint8Array> {
 	for (const part of parts) {
 		if (ArrayBuffer.isView(part)) {
@@ -39,7 +39,7 @@ async function* toIterator(
 				yield part;
 			}
 		} else {
-			// @ts-ignore TS ReadableStream does not have `Symbol.asyncIterator`
+			// @ts-expect-error TS ReadableStream does not have `Symbol.asyncIterator`
 			yield* part.stream();
 		}
 	}
@@ -64,29 +64,29 @@ export class Blob implements globalThis.Blob {
 	constructor(blobParts: BlobPart[] = [], options: BlobPropertyBag = {}) {
 		if (typeof blobParts !== 'object' || blobParts === null) {
 			throw new TypeError(
-				"Failed to construct 'Blob': The provided value cannot be converted to a sequence."
+				"Failed to construct 'Blob': The provided value cannot be converted to a sequence.",
 			);
 		}
 
 		if (typeof blobParts[Symbol.iterator] !== 'function') {
 			throw new TypeError(
-				"Failed to construct 'Blob': The object must have a callable @@iterator property."
+				"Failed to construct 'Blob': The object must have a callable @@iterator property.",
 			);
 		}
 
 		if (typeof options !== 'object' && typeof options !== 'function') {
 			throw new TypeError(
-				"Failed to construct 'Blob': parameter 2 cannot convert to dictionary."
+				"Failed to construct 'Blob': parameter 2 cannot convert to dictionary.",
 			);
 		}
 
-		const internals: BlobInternals = {
+		const internal: BlobInternal = {
 			parts: [],
 			size: 0,
 			type: '',
 			endings: 'transparent',
 		};
-		blobInternalsMap.set(this, internals);
+		_.set(this, internal);
 
 		for (const element of blobParts) {
 			let part;
@@ -94,8 +94,8 @@ export class Blob implements globalThis.Blob {
 				part = new Uint8Array(
 					element.buffer.slice(
 						element.byteOffset,
-						element.byteOffset + element.byteLength
-					)
+						element.byteOffset + element.byteLength,
+					),
 				);
 			} else if (element instanceof ArrayBuffer) {
 				part = new Uint8Array(element.slice(0));
@@ -108,18 +108,18 @@ export class Blob implements globalThis.Blob {
 			const size = ArrayBuffer.isView(part) ? part.byteLength : part.size;
 			// Avoid pushing empty parts into the array to better GC them
 			if (size) {
-				internals.size += size;
-				internals.parts.push(part);
+				internal.size += size;
+				internal.parts.push(part);
 			}
 		}
 
 		if (options.endings) {
-			internals.endings = options.endings;
+			internal.endings = options.endings;
 		}
 
 		const type = options.type === undefined ? '' : String(options.type);
 		if (/^[\x20-\x7E]*$/.test(type)) {
-			internals.type = type;
+			internal.type = type;
 		}
 	}
 
@@ -127,14 +127,14 @@ export class Blob implements globalThis.Blob {
 	 * Returns the size of the Blob object, in bytes.
 	 */
 	get size() {
-		return blobInternalsMap.get(this)!.size;
+		return _(this).size;
 	}
 
 	/**
 	 * Returns the MIME type of the Blob object.
 	 */
 	get type() {
-		return blobInternalsMap.get(this)!.type;
+		return _(this).type;
 	}
 
 	/**
@@ -145,7 +145,7 @@ export class Blob implements globalThis.Blob {
 		// that requires twice as much ram
 		const decoder = new TextDecoder();
 		let str = '';
-		const parts = blobInternalsMap.get(this)!.parts;
+		const parts = _(this).parts;
 		for await (const part of toIterator(parts, false)) {
 			str += decoder.decode(part, { stream: true });
 		}
@@ -160,7 +160,7 @@ export class Blob implements globalThis.Blob {
 	async arrayBuffer(): Promise<ArrayBuffer> {
 		const data = new Uint8Array(this.size);
 		let offset = 0;
-		const parts = blobInternalsMap.get(this)!.parts;
+		const parts = _(this).parts;
 		for await (const chunk of toIterator(parts, false)) {
 			data.set(chunk, offset);
 			offset += chunk.length;
@@ -173,7 +173,7 @@ export class Blob implements globalThis.Blob {
 	 * Returns a stream that can be used to read the contents of the Blob.
 	 */
 	stream() {
-		const parts = blobInternalsMap.get(this)!.parts;
+		const parts = _(this).parts;
 		const it = toIterator(parts, true);
 
 		return new ReadableStream({
@@ -202,11 +202,10 @@ export class Blob implements globalThis.Blob {
 
 		let relativeStart =
 			start < 0 ? Math.max(size + start, 0) : Math.min(start, size);
-		let relativeEnd =
-			end < 0 ? Math.max(size + end, 0) : Math.min(end, size);
+		let relativeEnd = end < 0 ? Math.max(size + end, 0) : Math.min(end, size);
 
 		const span = Math.max(relativeEnd - relativeStart, 0);
-		const parts = blobInternalsMap.get(this)!.parts;
+		const parts = _(this).parts;
 		const blobParts = [];
 		let added = 0;
 
@@ -225,16 +224,10 @@ export class Blob implements globalThis.Blob {
 			} else {
 				let chunk;
 				if (ArrayBuffer.isView(part)) {
-					chunk = part.subarray(
-						relativeStart,
-						Math.min(size, relativeEnd)
-					);
+					chunk = part.subarray(relativeStart, Math.min(size, relativeEnd));
 					added += chunk.byteLength;
 				} else {
-					chunk = part.slice(
-						relativeStart,
-						Math.min(size, relativeEnd)
-					);
+					chunk = part.slice(relativeStart, Math.min(size, relativeEnd));
 					added += chunk.size;
 				}
 				relativeEnd -= size;
@@ -244,9 +237,9 @@ export class Blob implements globalThis.Blob {
 		}
 
 		const blob = new Blob([], { type: `${type}` });
-		const internals = blobInternalsMap.get(blob)!;
-		internals.size = span;
-		internals.parts = blobParts;
+		const internal = _(blob);
+		internal.size = span;
+		internal.parts = blobParts;
 
 		return blob;
 	}
@@ -258,4 +251,4 @@ Object.defineProperties(Blob.prototype, {
 	slice: { enumerable: true },
 });
 
-def('Blob', Blob);
+def(Blob);

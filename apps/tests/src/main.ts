@@ -1,4 +1,6 @@
 import './canvas';
+import './crypto';
+import './dommatrix';
 import './error';
 import './fetch';
 import './form-data';
@@ -7,3 +9,4 @@ import './navigator';
 import './switch';
 import './wasm';
 import './window';
+import './url';

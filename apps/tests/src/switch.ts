@@ -3,6 +3,14 @@ import * as assert from 'uvu/assert';
 
 const test = suite('Switch');
 
+test('Switch namespace', () => {
+	const desc = Object.getOwnPropertyDescriptor(globalThis, 'Switch')!;
+	assert.equal(desc.writable, true);
+	assert.equal(desc.enumerable, false);
+	assert.equal(desc.configurable, true);
+	assert.equal(Object.prototype.toString.call(Switch), '[object Switch]');
+});
+
 test('`Switch.entrypoint` is a string', () => {
 	assert.type(Switch.entrypoint, 'string');
 	assert.ok(Switch.entrypoint.length > 0);
@@ -33,14 +41,16 @@ test('`Switch.readDirSync()` works on `romfs:/` path', () => {
 	assert.ok(files.length > 0);
 });
 
-test('`Switch.readDirSync()` throws error when directory does not exist', () => {
-	let err: Error | undefined;
-	try {
-		Switch.readDirSync('romfs:/__does_not_exist__');
-	} catch (_err) {
-		err = _err as Error;
-	}
-	assert.ok(err);
+test('`Switch.readFileSync()` returns `null` when file does not exist', () => {
+	assert.equal(Switch.readFileSync('romfs:/__does_not_exist__'), null);
+});
+
+test('`Switch.readDirSync()` returns `null` when directory does not exist', () => {
+	assert.equal(Switch.readDirSync('romfs:/__does_not_exist__'), null);
+});
+
+test('`Switch.statSync()` returns `null` when file does not exist', () => {
+	assert.equal(Switch.statSync('romfs:/__does_not_exist__'), null);
 });
 
 test('`Switch.resolveDns()` works', async () => {
@@ -71,39 +81,64 @@ test('`Switch.readFile()` works with URL path', async () => {
 	assert.ok(data.byteLength > 0);
 });
 
-test('`Switch.readFile()` rejects when file does not exist', async () => {
-	let err: Error | undefined;
-	try {
-		await Switch.readFile('romfs:/__does_not_exist__');
-	} catch (_err) {
-		err = _err as Error;
-	}
-	assert.ok(err);
+test('`Switch.readFile()` returns null when file does not exist', async () => {
+	const data = await Switch.readFile('romfs:/__does_not_exist__');
+	assert.equal(data, null);
 });
 
-test('`Switch.readFile()` rejects when attempting to read a directory', async () => {
-	let err: Error | undefined;
-	try {
-		await Switch.readFile('.');
-	} catch (_err) {
-		err = _err as Error;
-	}
-	assert.ok(err);
+test('`Switch.readFile()` returns null when attempting to read a directory', async () => {
+	const data = await Switch.readFile('.');
+	assert.equal(data, null);
 });
 
 test('`Switch.stat()` returns file information', async () => {
 	const stat = await Switch.stat(Switch.entrypoint);
+	assert.ok(stat);
 	assert.ok(stat.size > 0);
 });
 
-test('`Switch.stat()` rejects when file does not exist', async () => {
-	let err: Error | undefined;
-	try {
-		await Switch.stat('romfs:/__does_not_exist__');
-	} catch (_err) {
-		err = _err as Error;
-	}
-	assert.ok(err);
+test('`Switch.stat()` returns `null` when file does not exist', async () => {
+	const stat = await Switch.stat('romfs:/__does_not_exist__');
+	assert.equal(stat, null);
+});
+
+test("`Switch.removeSync()` doesn't throw when path does not exist", async () => {
+	const path = 'sdmc:/__does_not_exist';
+	Switch.removeSync(path);
+	assert.ok(true);
+});
+
+test('`Switch.removeSync()` removes file', async () => {
+	const path = 'sdmc:/__nxjs-test.txt';
+	const uuid = crypto.randomUUID();
+	Switch.writeFileSync(path, uuid);
+	const data = Switch.readFileSync(path);
+	assert.ok(data);
+	assert.equal(new TextDecoder().decode(data), uuid);
+
+	Switch.removeSync(path);
+	assert.equal(Switch.statSync(path), null);
+});
+
+test('`Switch.removeSync()` removes directory', async () => {
+	const path = 'sdmc:/__nxjs-test';
+	Switch.mkdirSync(path);
+	assert.ok(Switch.statSync(path));
+
+	Switch.removeSync(path);
+	assert.equal(Switch.statSync(path), null);
+});
+
+test('`Switch.removeSync()` removes nested directory', async () => {
+	const dir = 'sdmc:/__nested';
+	const path = `${dir}/another/nxjs-test/file.txt`;
+	Switch.writeFileSync(path, 'hello world');
+	assert.ok(Switch.statSync(dir));
+	assert.ok(Switch.statSync(path));
+
+	Switch.removeSync(dir);
+	assert.equal(Switch.statSync(dir), null);
+	assert.equal(Switch.statSync(path), null);
 });
 
 test.run();

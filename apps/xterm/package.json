@@ -5,16 +5,16 @@
   "description": "Simple 'Hello World' nx.js app",
   "scripts": {
     "build": "esbuild --bundle --sourcemap --sources-content=false --target=es2020 --format=esm src/main.ts --outfile=romfs/main.js",
-    "nro": "nxjs-pack"
+    "nro": "nxjs-nro"
   },
   "license": "MIT",
-  "devDependencies": {
-    "esbuild": "^0.17.19",
-    "nxjs-pack": "workspace:^",
-    "nxjs-runtime": "workspace:^"
-  },
   "dependencies": {
-    "nxjs-constants": "workspace:*",
-    "xterm-headless": "^5.3.0"
+    "@nx.js/constants": "workspace:*",
+    "@xterm/headless": "^5.4.0"
+  },
+  "devDependencies": {
+    "@nx.js/nro": "workspace:^",
+    "nxjs-runtime": "workspace:^",
+    "esbuild": "^0.17.19"
   }
 }

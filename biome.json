@@ -1,0 +1,25 @@
+{
+  "linter": {
+    "enabled": false
+  },
+  "formatter": {
+    "ignore": [
+      "romfs",
+      "**/*/dist",
+      "packages/runtime/runtime.js",
+      "packages/runtime/public",
+      "packages/nsp/hacbrewpack.cjs"
+    ]
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "jsxQuoteStyle": "single"
+    }
+  },
+  "json": {
+    "formatter": {
+      "indentStyle": "space"
+    }
+  }
+}

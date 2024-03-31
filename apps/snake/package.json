@@ -4,16 +4,18 @@
   "private": true,
   "description": "Classic 'snake' game using nx.js",
   "scripts": {
-    "build": "esbuild --bundle --sourcemap --sources-content=false --target=es2020 src/main.ts --outfile=romfs/main.js",
-    "nro": "nxjs-pack"
+    "build": "esbuild --bundle --sourcemap --sources-content=false --target=es2022 src/main.ts --outfile=romfs/main.js",
+    "nro": "nxjs-nro",
+    "nsp": "nxjs-nsp"
   },
   "license": "MIT",
   "dependencies": {
-    "nxjs-constants": "workspace:*"
+    "@nx.js/constants": "workspace:*"
   },
   "devDependencies": {
+    "@nx.js/nro": "workspace:^",
+    "@nx.js/nsp": "workspace:^",
     "esbuild": "^0.17.19",
-    "nxjs-pack": "workspace:^",
     "nxjs-runtime": "workspace:^"
   }
 }

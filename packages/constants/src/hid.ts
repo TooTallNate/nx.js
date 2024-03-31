@@ -1,5 +1,5 @@
 /// HidNpadButton
-export enum Button {
+export enum HidNpadButton {
 	A = 1 << 0, ///< A button / Right face button
 	B = 1 << 1, ///< B button / Down face button
 	X = 1 << 2, ///< X button / Up face button

@@ -1,15 +1,13 @@
-import { Hid, Swkbd } from 'nxjs-constants';
-const { Button } = Hid;
+import { HidNpadButton, SwkbdType } from '@nx.js/constants';
 
-const canvas = Switch.screen;
-const ctx = Switch.screen.getContext('2d');
+const ctx = screen.getContext('2d');
 const vk = navigator.virtualKeyboard;
 
 function render() {
 	const isOpen = vk.boundingRect.height > 0;
 
 	ctx.fillStyle = 'white';
-	ctx.fillRect(0, 0, canvas.width, canvas.height);
+	ctx.fillRect(0, 0, screen.width, screen.height);
 
 	ctx.font = '24px system-ui';
 	ctx.fillStyle = '#444';
@@ -27,21 +25,21 @@ function render() {
 	}
 }
 
-Switch.addEventListener('buttondown', (e) => {
+addEventListener('buttondown', (e) => {
 	const isOpen = vk.boundingRect.height > 0;
 	if (isOpen) {
-		if (e.detail & Button.Plus) {
+		if (e.detail & HidNpadButton.Plus) {
 			e.preventDefault();
-		} else if (e.detail & Button.ZL) {
+		} else if (e.detail & HidNpadButton.ZL) {
 			vk.hide();
 		}
 	} else {
-		if (e.detail & Button.ZR) {
-			vk.type = Swkbd.Type.Normal;
+		if (e.detail & HidNpadButton.ZR) {
+			vk.type = SwkbdType.Normal;
 			vk.okButtonText = 'Done';
 			vk.show();
-		} else if (e.detail & Button.ZL) {
-			vk.type = Swkbd.Type.NumPad;
+		} else if (e.detail & HidNpadButton.ZL) {
+			vk.type = SwkbdType.NumPad;
 			vk.okButtonText = 'Submit';
 			vk.leftButtonText = ':';
 			vk.rightButtonText = '.';

@@ -9,10 +9,10 @@ const encoder = new TextEncoder();
 const fontUrl = new URL('fonts/GeistMono-Regular.otf', Switch.entrypoint);
 const fontData = Switch.readFileSync(fontUrl);
 const font = new FontFace('Geist Mono', fontData);
-Switch.fonts.add(font);
+fonts.add(font);
 
 async function* frameIterator(
-	readable: ReadableStreamDefaultReader<Uint8Array>
+	readable: ReadableStreamDefaultReader<Uint8Array>,
 ) {
 	const it = lineIterator(readable);
 
@@ -49,7 +49,7 @@ async function main() {
 	const writer = socket.writable.getWriter();
 	await writer.write(encoder.encode('starwars\r\n'));
 
-	const ctx = Switch.screen.getContext('2d');
+	const ctx = screen.getContext('2d');
 	const fontSize = 30.83;
 	const yOffset = 180;
 	ctx.font = `${fontSize}px "Geist Mono"`;
@@ -57,7 +57,7 @@ async function main() {
 	// dump the movie to the console
 	for await (const frame of frameIterator(reader)) {
 		ctx.fillStyle = 'black';
-		ctx.fillRect(0, 0, Switch.screen.width, Switch.screen.height);
+		ctx.fillRect(0, 0, screen.width, screen.height);
 		ctx.fillStyle = 'white';
 		for (let line = 0; line < frame.length; line++) {
 			const y = line * fontSize + yOffset;

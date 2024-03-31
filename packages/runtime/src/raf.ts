@@ -1,5 +1,6 @@
-import type { DOMHighResTimeStamp } from './types';
 import { def } from './utils';
+import { performance } from './performance';
+import type { DOMHighResTimeStamp } from './types';
 
 export interface FrameRequestCallback {
 	(time: DOMHighResTimeStamp): void;
@@ -9,7 +10,7 @@ const cbs: { id: number; fn: FrameRequestCallback }[] = [];
 let rafIndex = 0;
 
 export function callRafCallbacks() {
-	const now = Date.now();
+	const now = performance.now();
 	const c = cbs.slice();
 	cbs.length = 0;
 	for (const cb of c) cb.fn(now);
@@ -28,7 +29,7 @@ export function cancelAnimationFrame(id: number): void {
 		cbs.splice(index, 1);
 	}
 }
-def('cancelAnimationFrame', cancelAnimationFrame);
+def(cancelAnimationFrame);
 
 /**
  * Tells the application that you wish to perform an animation. The application
@@ -43,4 +44,4 @@ export function requestAnimationFrame(callback: FrameRequestCallback): number {
 	cbs.push({ id, fn: callback });
 	return id;
 }
-def('requestAnimationFrame', requestAnimationFrame);
+def(requestAnimationFrame);

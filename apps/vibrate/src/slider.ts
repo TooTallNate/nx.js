@@ -9,7 +9,7 @@ export class Slider {
 		ctx: CanvasRenderingContext2D,
 		x: number,
 		y: number,
-		length: number
+		length: number,
 	) {
 		this.ctx = ctx;
 		this.x = x;
@@ -46,7 +46,7 @@ export class Slider {
 			this.x - r - 1,
 			this.y - width - 1,
 			width * 2 + 2,
-			this.length + width * 2 + 2
+			this.length + width * 2 + 2,
 		);
 		//ctx.clearRect(this.x, this.y, width, this.length);
 

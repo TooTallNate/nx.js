@@ -1,10 +1,9 @@
+import { $ } from '../$';
 import { def } from '../utils';
 import { Body, type BodyInit } from './body';
 import { AbortController, AbortSignal } from '../polyfills/abort-controller';
-import type { SwitchClass } from '../switch';
+import { URL } from '../polyfills/url';
 import type { HeadersInit } from './headers';
-
-declare const Switch: SwitchClass;
 
 // HTTP methods whose capitalization should be normalized
 const methods = [
@@ -60,7 +59,7 @@ export type RequestRedirect = 'error' | 'follow' | 'manual';
 export interface RequestInit {
 	/** A BodyInit object or null to set request's body. */
 	body?: BodyInit | null;
-	/** A string indicating how the request will interact with the browser's cache to set request's cache. */
+	/** A string indicating how the request will interact with the local cache to set request's cache. */
 	cache?: RequestCache;
 	/** A string indicating whether credentials will be sent with the request always, never, or only when sent to a same-origin URL. Sets request's credentials. */
 	credentials?: RequestCredentials;
@@ -132,9 +131,7 @@ export class Request extends Body implements globalThis.Request {
 			this.signal = init.signal ?? input.signal;
 		} else {
 			const url =
-				typeof input === 'string'
-					? new URL(input, Switch.entrypoint)
-					: input;
+				typeof input === 'string' ? new URL(input, $.entrypoint) : input;
 			this.url = url.href;
 			this.cache = init.cache || 'default';
 			this.credentials = init.credentials || 'same-origin';
@@ -155,4 +152,4 @@ export class Request extends Body implements globalThis.Request {
 	}
 }
 
-def('Request', Request);
+def(Request);

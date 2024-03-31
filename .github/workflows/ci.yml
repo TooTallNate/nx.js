@@ -12,20 +12,20 @@ concurrency: ${{ github.workflow }}-${{ github.ref }}
 
 jobs:
   build:
-    name: Build `nxjs.nro`
+    name: Build
     runs-on: ubuntu-latest
     container: ghcr.io/tootallnate/pacman-packages:nxjs
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+        uses: pnpm/action-setup@v3
         with:
           version: 8.5.0
 
       - name: Setup Node.js 20.x
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 20.x
           cache: 'pnpm'
@@ -37,15 +37,24 @@ jobs:
         run: pnpm bundle
 
       - name: Copy `runtime.js` to RomFS
-        run: mkdir -p ./romfs && cp -v ./packages/runtime/runtime.js ./romfs/runtime.js
+        run: mkdir -p ./romfs && cp -v ./packages/runtime/runtime.js* ./romfs/
 
       - name: Build `nxjs.nro`
         run: make V=1
-      
-      - uses: actions/upload-artifact@v3
+
+      - uses: actions/upload-artifact@v4
         with:
           name: nxjs.nro
-          path: ./nxjs.nro
+          path: nxjs.nro
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nxjs.nsp
+          path: |
+            build/exefs/
+            romfs/
+            icon.jpg
+            nxjs.nacp
 
   release:
     name: Release
@@ -54,23 +63,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Download `nxjs.nro`
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: nxjs.nro
+
+      - name: Download `nxjs.nsp`
+        uses: actions/download-artifact@v4
+        with:
+          name: nxjs.nsp
 
       - name: Fetch git tags
         run: git fetch origin 'refs/tags/*:refs/tags/*'
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+        uses: pnpm/action-setup@v3
         with:
           version: 8.5.0
 
       - name: Setup Node.js 20.x
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 20.x
           cache: 'pnpm'
@@ -81,8 +95,11 @@ jobs:
       - name: Build Packages
         run: pnpm build
 
-      - name: Copy `nxjs.nro` to "nxjs-pack"
-        run: cp -v nxjs.nro packages/pack/dist
+      - name: Copy `nxjs.nro` to "@nx.js/nro"
+        run: cp -v nxjs.nro packages/nro/dist
+
+      - name: Copy files to "@nx.js/nsp"
+        run: cp -rv build/exefs romfs nxjs.nacp icon.jpg packages/nsp
 
       - name: Create Release Pull Request or Publish to npm
         id: changesets

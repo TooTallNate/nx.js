@@ -1,7 +1,5 @@
 import './polyfills';
 import { def } from './utils';
-import { SwitchClass } from './switch';
-import { INTERNAL_SYMBOL } from './internal';
 import {
 	setTimeout,
 	setInterval,
@@ -14,26 +12,15 @@ import { console } from './console';
 import {
 	Event,
 	ErrorEvent,
-	KeyboardEvent,
-	TouchEvent,
 	UIEvent,
 	PromiseRejectionEvent,
 } from './polyfills/event';
 
-export type { SwitchClass, Env, Vibration, Versions } from './switch';
-export type { InspectOptions } from './inspect';
 export type * from './types';
 export type * from './console';
 export type * from './navigator';
 export type * from './navigator/battery';
 export type { VirtualKeyboard } from './navigator/virtual-keyboard';
-export type {
-	CanvasImageSource,
-	Canvas,
-	CanvasRenderingContext2D,
-} from './canvas';
-export type * from './canvas/image-data';
-export type { Path2D } from './canvas/path2d';
 export type * from './polyfills/event-target';
 export type { URL, URLSearchParams } from './polyfills/url';
 export type * from './polyfills/streams';
@@ -47,7 +34,8 @@ export type {
 } from './polyfills/text-encoder';
 export type * from './polyfills/abort-controller';
 export type * from './polyfills/streams';
-export type { FontFace, FontFaceSet } from './polyfills/font';
+export type { FontFaceSet, fonts } from './font/font-face-set';
+export type { FontFace } from './font/font-face';
 export type * from './polyfills/form-data';
 export type { BodyInit } from './fetch/body';
 export type * from './fetch/headers';
@@ -56,9 +44,10 @@ export type * from './fetch/response';
 export type * from './fetch/fetch';
 export type * from './crypto';
 export type * from './image';
-export type * from './dompoint';
+export type { DOMPoint, DOMPointInit, DOMPointReadOnly } from './dompoint';
+export type * from './dommatrix';
 export type * from './domrect';
-export type { Socket, Server } from './tcp';
+export type * from './sensor';
 export type {
 	TimerHandler,
 	setTimeout,
@@ -72,6 +61,9 @@ export type {
 	cancelAnimationFrame,
 } from './raf';
 
+import './storage';
+export type * from './storage';
+
 /**
  * The `WebAssembly` JavaScript object acts as the namespace for all
  * {@link https://developer.mozilla.org/docs/WebAssembly | WebAssembly}-related functionality.
@@ -81,23 +73,23 @@ export type {
  * @see https://developer.mozilla.org/docs/WebAssembly
  */
 export type * as WebAssembly from './wasm';
+import * as WebAssembly from './wasm';
+def(WebAssembly, 'WebAssembly');
 
 /**
  * The `Switch` global object contains native interfaces to interact with the Switch hardware.
  */
-const Switch = new SwitchClass();
-export type { Switch };
-def('Switch', Switch);
-def('console', console);
-def('setTimeout', setTimeout);
-def('setInterval', setInterval);
-def('clearTimeout', clearTimeout);
-def('clearInterval', clearInterval);
+export type * as Switch from './switch';
+import * as Switch from './switch';
+def(Switch, 'Switch');
+
+def(console, 'console');
+def(setTimeout);
+def(setInterval);
+def(clearTimeout);
+def(clearInterval);
 
 import './navigator';
-
-import * as WebAssembly from './wasm';
-def('WebAssembly', WebAssembly);
 
 import './source-map';
 import { $ } from './$';
@@ -105,6 +97,8 @@ import { $ } from './$';
 /**
  * The `import.meta` meta-property exposes context-specific metadata to a JavaScript module.
  * It contains information about the module, such as the module's URL.
+ *
+ * @see https://developer.mozilla.org/docs/Web/JavaScript/Reference/Operators/import.meta
  */
 export interface ImportMeta {
 	/**
@@ -120,21 +114,46 @@ export interface ImportMeta {
 	main: boolean;
 }
 
-function touchIsEqual(a: Touch, b: Touch) {
-	return (
-		a.screenX === b.screenX &&
-		a.screenY === b.screenY &&
-		a.radiusX === b.radiusX &&
-		a.radiusY === b.radiusY &&
-		a.rotationAngle === b.rotationAngle
-	);
-}
+/**
+ * Queues a microtask to be executed at a safe time prior
+ * to control returning to the runtime's event loop.
+ *
+ * @param callback A function to be executed when the runtime determines it is safe to invoke.
+ * @see https://developer.mozilla.org/docs/Web/API/queueMicrotask
+ */
+export declare function queueMicrotask(callback: () => void): void;
 
 import './window';
 export type * from './window';
 
-import './screen';
+import './performance';
+export type * from './performance';
+
+import { screen } from './screen';
 export type * from './screen';
+
+import './canvas/image-bitmap';
+export type * from './canvas/image-bitmap';
+
+export type * from './canvas/image-data';
+
+import './canvas/path2d';
+export type { Path2D } from './canvas/path2d';
+
+import './canvas/canvas-rendering-context-2d';
+export type * from './canvas/canvas-rendering-context-2d';
+
+import './canvas/offscreen-canvas';
+export type * from './canvas/offscreen-canvas';
+
+import './canvas/offscreen-canvas-rendering-context-2d';
+export type * from './canvas/offscreen-canvas-rendering-context-2d';
+
+import './ambientlightsensor';
+export type * from './ambientlightsensor';
+
+import { dispatchTouchEvents } from './touchscreen';
+import { dispatchKeyboardEvents } from './keyboard';
 
 $.onError((e) => {
 	const ev = new ErrorEvent('error', {
@@ -162,142 +181,39 @@ $.onUnhandledRejection((p, r) => {
 });
 
 const btnPlus = 1 << 10; ///< Plus button
+let previousButtons = 0;
 
 $.onFrame((kDown) => {
-	const {
-		keyboardInitialized,
-		touchscreenInitialized,
-		previousButtons,
-		previousKeys,
-		previousTouches,
-	} = Switch[INTERNAL_SYMBOL];
 	processTimers();
 	callRafCallbacks();
 
 	const buttonsDown = ~previousButtons & kDown;
 	const buttonsUp = previousButtons & ~kDown;
-	Switch[INTERNAL_SYMBOL].previousButtons = kDown;
+	previousButtons = kDown;
 
 	if (buttonsDown !== 0) {
 		const ev = new UIEvent('buttondown', {
 			cancelable: true,
 			detail: buttonsDown,
 		});
-		Switch.dispatchEvent(ev);
+		globalThis.dispatchEvent(ev);
 		if (!ev.defaultPrevented && buttonsDown & btnPlus) {
-			return Switch.exit();
+			return $.exit();
 		}
 	}
 
 	if (buttonsUp !== 0) {
-		Switch.dispatchEvent(
+		globalThis.dispatchEvent(
 			new UIEvent('buttonup', {
 				detail: buttonsUp,
-			})
+			}),
 		);
 	}
 
-	if (keyboardInitialized) {
-		const keys = Switch.native.hidGetKeyboardStates();
-		for (let i = 0; i < 4; i++) {
-			const keysDown = ~previousKeys[i] & keys[i];
-			const keysUp = previousKeys[i] & ~keys[i];
-			for (let k = 0; k < 64; k++) {
-				if (keysDown & (1n << (BigInt(k) & 63n))) {
-					const o = {
-						keyCode: i * 64 + k,
-						modifiers: keys.modifiers,
-					};
-					Switch.dispatchEvent(new KeyboardEvent('keydown', o));
-				}
-				if (keysUp & (1n << (BigInt(k) & 63n))) {
-					const o = {
-						keyCode: i * 64 + k,
-						modifiers: keys.modifiers,
-					};
-					Switch.dispatchEvent(new KeyboardEvent('keyup', o));
-				}
-			}
-		}
-		Switch[INTERNAL_SYMBOL].previousKeys = keys;
-	}
-
-	if (touchscreenInitialized) {
-		const touches = Switch.native.hidGetTouchScreenStates();
-		if (touches) {
-			const startTouches: Touch[] = [];
-			const changedTouches: Touch[] = [];
-			const endTouches: Touch[] = [];
-			const touchIds = new Set<number>();
-
-			for (const touch of touches) {
-				let started = true;
-				for (const prevTouch of previousTouches) {
-					if (touch.identifier === (prevTouch.identifier | 0)) {
-						started = false;
-						// @ts-expect-error
-						touch.identifier = prevTouch.identifier;
-						touchIds.add(touch.identifier);
-						if (!touchIsEqual(touch, prevTouch)) {
-							changedTouches.push(touch);
-						}
-						break;
-					}
-				}
-				if (started) {
-					// @ts-expect-error
-					touch.identifier += Math.random();
-					touchIds.add(touch.identifier);
-					startTouches.push(touch);
-				}
-			}
-
-			Switch[INTERNAL_SYMBOL].previousTouches = touches;
-
-			for (const prevTouch of previousTouches) {
-				if (!touchIds.has(prevTouch.identifier)) {
-					endTouches.push(prevTouch);
-				}
-			}
-
-			if (startTouches.length) {
-				Switch.dispatchEvent(
-					new TouchEvent('touchstart', {
-						touches,
-						changedTouches: startTouches,
-					})
-				);
-			}
-			if (changedTouches.length) {
-				Switch.dispatchEvent(
-					new TouchEvent('touchmove', {
-						touches,
-						changedTouches,
-					})
-				);
-			}
-			if (endTouches.length) {
-				Switch.dispatchEvent(
-					new TouchEvent('touchend', {
-						touches,
-						changedTouches: endTouches,
-					})
-				);
-			}
-		} else if (previousTouches.length) {
-			// No current touches, but there were previous touches, so fire "touchend"
-			Switch.dispatchEvent(
-				new TouchEvent('touchend', {
-					touches: [],
-					changedTouches: previousTouches,
-				})
-			);
-			Switch[INTERNAL_SYMBOL].previousTouches = [];
-		}
-	}
+	dispatchKeyboardEvents(globalThis);
+	dispatchTouchEvents(screen);
 });
 
 $.onExit(() => {
 	dispatchEvent(new Event('unload'));
-	Switch[INTERNAL_SYMBOL].cleanup();
 });

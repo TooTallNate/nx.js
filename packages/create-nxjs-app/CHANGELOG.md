@@ -1,5 +1,69 @@
 # create-nxjs-app
 
+## 0.0.41
+
+### Patch Changes
+
+- Add `save-data` template ([`24b1eb08e0125c3d2bc136d0fee88f3680944aa8`](https://github.com/TooTallNate/nx.js/commit/24b1eb08e0125c3d2bc136d0fee88f3680944aa8))
+
+## 0.0.40
+
+## 0.0.39
+
+## 0.0.38
+
+## 0.0.37
+
+### Patch Changes
+
+- Add `react` example app using `react-tela` to render to the screen ([`31c21cf5ec6adac124125f7ef30cfa7f93a7fa20`](https://github.com/TooTallNate/nx.js/commit/31c21cf5ec6adac124125f7ef30cfa7f93a7fa20))
+
+## 0.0.36
+
+## 0.0.35
+
+## 0.0.34
+
+## 0.0.33
+
+## 0.0.32
+
+## 0.0.31
+
+## 0.0.30
+
+## 0.0.29
+
+### Patch Changes
+
+- Set "author" field in `package.json` based on Git config ([`27d9ce1437f64efb87078ccdeb2fcaa33941d0cf`](https://github.com/TooTallNate/nx.js/commit/27d9ce1437f64efb87078ccdeb2fcaa33941d0cf))
+
+- Add individual package versions to metadata JSON file ([`fb36e837c83c05c14741772d5084fe8d183cbc4f`](https://github.com/TooTallNate/nx.js/commit/fb36e837c83c05c14741772d5084fe8d183cbc4f))
+
+- Add `repl-server` example app ([`342e6c141fa1de066adbcd69ac84adba2b59990d`](https://github.com/TooTallNate/nx.js/commit/342e6c141fa1de066adbcd69ac84adba2b59990d))
+
+## 0.0.28
+
+## 0.0.27
+
+### Patch Changes
+
+- Set random `titleId` property in generated application ([`393efbc07568393a79ce7f2135addd9c2e8e615b`](https://github.com/TooTallNate/nx.js/commit/393efbc07568393a79ce7f2135addd9c2e8e615b))
+
+- Add support for `bun` as a package manager ([#76](https://github.com/TooTallNate/nx.js/pull/76))
+
+## 0.0.26
+
+### Patch Changes
+
+- Fix package manager installation on Windows ([`336fdc91a85e64895e5b4a0004ca168981deb9dc`](https://github.com/TooTallNate/nx.js/commit/336fdc91a85e64895e5b4a0004ca168981deb9dc))
+
+## 0.0.25
+
+## 0.0.24
+
+## 0.0.23
+
 ## 0.0.22
 
 ## 0.0.21
