@@ -2,9 +2,9 @@
   "name": "xterm",
   "version": "0.0.0",
   "private": true,
-  "description": "Simple 'Hello World' nx.js app",
+  "description": "",
   "scripts": {
-    "build": "esbuild --bundle --sourcemap --sources-content=false --target=es2020 --format=esm src/main.ts --outfile=romfs/main.js",
+    "build": "esbuild --bundle --sourcemap --sources-content=false --target=es2022 --format=esm src/main.ts --outfile=romfs/main.js",
     "nro": "nxjs-nro"
   },
   "license": "MIT",

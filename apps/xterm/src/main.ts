@@ -1,18 +1,16 @@
-import { Hid } from 'nxjs-constants';
-import { Terminal, type IBuffer } from 'xterm-headless';
-
-const { Button } = Hid;
+import { HidNpadButton } from '@nx.js/constants';
+import { Terminal, type IBuffer } from '@xterm/headless';
 
 // Register "Geist Mono" font
 const fontUrl = new URL('fonts/GeistMono-Regular.otf', Switch.entrypoint);
 const fontData = Switch.readFileSync(fontUrl);
-const font = new FontFace('Geist Mono', fontData);
-Switch.fonts.add(font);
+const font = new FontFace('Geist Mono', fontData!);
+fonts.add(font);
 
 const fontSize = 24;
 const charWidth = fontSize * (2 / 3);
 const lineHeight = fontSize;
-const ctx = Switch.screen.getContext('2d');
+const ctx = screen.getContext('2d');
 
 const term = new Terminal({
 	cols: 80,
@@ -36,7 +34,7 @@ const colors = [
 
 function render(buff: IBuffer) {
 	ctx.fillStyle = 'black';
-	ctx.fillRect(0, 0, Switch.screen.width, Switch.screen.height);
+	ctx.fillRect(0, 0, screen.width, screen.height);
 	for (let y = 0; y < term.rows; y++) {
 		const line = buff.getLine(buff.viewportY + y);
 		if (line) {
@@ -90,17 +88,17 @@ term.write(
 	}
 );
 
-Switch.addEventListener('buttondown', (e) => {
-	if (e.detail & Button.AnyUp) {
+addEventListener('buttondown', (e) => {
+	if (e.detail & HidNpadButton.AnyUp) {
 		term.scrollLines(-1);
 		render(term.buffer.active);
-	} else if (e.detail & Button.AnyDown) {
+	} else if (e.detail & HidNpadButton.AnyDown) {
 		term.scrollLines(1);
 		render(term.buffer.active);
-	} else if (e.detail & Button.L) {
+	} else if (e.detail & HidNpadButton.L) {
 		term.scrollToTop();
 		render(term.buffer.active);
-	} else if (e.detail & Button.R) {
+	} else if (e.detail & HidNpadButton.R) {
 		term.scrollToBottom();
 		render(term.buffer.active);
 	}
