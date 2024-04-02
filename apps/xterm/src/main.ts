@@ -7,6 +7,11 @@ const fontData = Switch.readFileSync(fontUrl);
 const font = new FontFace('Geist Mono', fontData!);
 fonts.add(font);
 
+const emojiFontUrl = new URL('fonts/Twemoji.ttf', Switch.entrypoint);
+const emojiFontData = Switch.readFileSync(emojiFontUrl);
+const emojiFont = new FontFace('Twemoji', emojiFontData!);
+fonts.add(emojiFont);
+
 const fontSize = 24;
 const charWidth = fontSize * (2 / 3);
 const lineHeight = fontSize;
@@ -16,6 +21,7 @@ const term = new Terminal({
 	cols: 80,
 	rows: 30,
 	scrollback: 500,
+	tabStopWidth: 4,
 	allowProposedApi: true,
 });
 
@@ -42,7 +48,8 @@ function render(buff: IBuffer) {
 				line.getCell(x, cell);
 				const val = cell.getChars();
 				const fgColor = colors[cell.getFgColor()];
-				ctx.font = `${fontSize}px "Geist Mono"`;
+				const font = /\p{Emoji_Presentation}/u.test(val) ? 'Twemoji' : 'Geist Mono';
+				ctx.font = `${fontSize}px "${font}"`;
 				ctx.fillStyle = fgColor ?? 'white';
 				ctx.fillText(val, x * charWidth, (y + 1) * lineHeight);
 			}
@@ -51,7 +58,7 @@ function render(buff: IBuffer) {
 
 	// Draw cursor
 	ctx.fillStyle = 'white';
-	const c = buff.length - term.rows + buff.viewportY + buff.cursorY;
+	const c = buff.length - (buff.viewportY + term.rows) + buff.cursorY;
 	ctx.fillRect(
 		buff.cursorX * charWidth,
 		c * lineHeight,
@@ -103,3 +110,12 @@ addEventListener('buttondown', (e) => {
 		render(term.buffer.active);
 	}
 });
+
+console.print = (s) => {
+	term.write(s.replace(/\n/g, '\r\n'), () => {
+		render(term.buffer.active);
+	});
+};
+
+console.log('hello world');
+console.log('hello world');
