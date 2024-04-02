@@ -83,21 +83,21 @@ export var console = {
 	 * Logs the formatted `input` to the screen as white text.
 	 */
 	log(...input: unknown[]) {
-		$.print(`${format(...input)}\n`);
+		this.print(`${format(...input)}\n`);
 	},
 
 	/**
 	 * Logs the formatted `input` to the screen as yellow text.
 	 */
 	warn(...input: unknown[]) {
-		$.print(`${bold(bgYellowDim(yellow(format(...input))))}\n`);
+		this.print(`${bold(bgYellowDim(yellow(format(...input))))}\n`);
 	},
 
 	/**
 	 * Logs the formatted `input` to the screen as red text.
 	 */
 	error(...input: unknown[]) {
-		$.print(`${bold(bgRedDim(red(format(...input))))}\n`);
+		this.print(`${bold(bgRedDim(red(format(...input))))}\n`);
 	},
 
 	/**
@@ -106,7 +106,7 @@ export var console = {
 	 * @note This function **does not** invoke _text rendering mode_, so it can safely be used when rendering with the Canvas API.
 	 */
 	debug(...input: unknown[]) {
-		$.printErr(`${format(...input)}\n`);
+		this.printErr(`${format(...input)}\n`);
 	},
 
 	/**
@@ -117,6 +117,6 @@ export var console = {
 		const f = format(...input);
 		let s = new Error().stack!.split('\n').slice(1).join('\n');
 		if (!s.endsWith('\n')) s += '\n';
-		$.print(`Trace${f ? `: ${f}` : ''}\n${s}`);
+		this.print(`Trace${f ? `: ${f}` : ''}\n${s}`);
 	},
 };
