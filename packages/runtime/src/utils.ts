@@ -143,3 +143,21 @@ export function stub(): never {
 		'This is a stub function which should have been replaced by a native implementation',
 	);
 }
+
+export function encodeUTF16(input: string) {
+	const buffer = new ArrayBuffer(input.length * 2); // 2 bytes for each char
+	const view = new Uint16Array(buffer);
+	for (let i = 0; i < input.length; i++) {
+		view[i] = input.charCodeAt(i);
+	}
+	return buffer;
+}
+
+export function decodeUTF16(buffer: ArrayBuffer) {
+	const view = new Uint16Array(buffer);
+	let result = '';
+	for (let i = 0; i < view.length; i++) {
+		result += String.fromCharCode(view[i]);
+	}
+	return result;
+}

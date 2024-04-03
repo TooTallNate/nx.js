@@ -9,9 +9,14 @@ import { URL } from './polyfills/url';
 import { Application } from './switch/ns';
 import { INTERNAL_SYMBOL } from './internal';
 import { currentProfile } from './switch/profile';
-import { assertInternalConstructor, createInternal, def } from './utils';
+import {
+	assertInternalConstructor,
+	createInternal,
+	decodeUTF16,
+	def,
+	encodeUTF16,
+} from './utils';
 import type { FsDev } from './switch/fsdev';
-import { decoder } from './polyfills/text-decoder';
 
 interface StorageImpl {
 	clear(): void;
@@ -35,6 +40,7 @@ export class Storage implements globalThis.Storage {
 		assertInternalConstructor(arguments);
 		_.set(this, arguments[1]);
 	}
+
 	[name: string]: any;
 
 	/**
@@ -133,26 +139,45 @@ Object.defineProperty(globalThis, 'localStorage', {
 		}
 
 		const base = new URL('localStorage/', dev.url);
+		const keyToPath = (key: any) => {
+			const url = `${base.href}_${Array.from(String(key))
+				.map((l) => l.charCodeAt(0).toString(16))
+				.join('_')}`;
+			return url;
+		};
+		const pathToKey = (path: string) => {
+			const key = String.fromCharCode(
+				...path
+					.slice(1)
+					.split('_')
+					.map((h) => parseInt(h, 16)),
+			);
+			return key;
+		};
 
 		const impl: StorageImpl = {
 			clear() {
 				removeSync(base);
+				dev.commit();
 			},
 			getItem(key: string): string | null {
-				const b = readFileSync(new URL(key, base));
+				const b = readFileSync(keyToPath(key));
 				if (!b) return null;
-				return decoder.decode(b);
+				return decodeUTF16(b);
 			},
 			key(index: number): string | null {
+				if (index < 0) return null;
+				const i = index % 0x100000000;
 				const keys = readDirSync(base) || [];
-				return keys[index] ?? null;
+				if (i >= keys.length) return null;
+				return pathToKey(keys[i]);
 			},
 			removeItem(key: string): void {
-				removeSync(new URL(key, base));
+				removeSync(keyToPath(key));
 				dev.commit();
 			},
 			setItem(key: string, value: string): void {
-				writeFileSync(new URL(key, base), String(value));
+				writeFileSync(keyToPath(key), encodeUTF16(String(value)));
 				dev.commit();
 			},
 			length(): number {
@@ -165,20 +190,18 @@ Object.defineProperty(globalThis, 'localStorage', {
 		const proxy = new Proxy(storage, {
 			has(_, p) {
 				if (typeof p !== 'string') return false;
-				return statSync(new URL(p, base)) !== null;
+				const s = statSync(keyToPath(p));
+				return s !== null;
 			},
 			get(target, p) {
 				if (typeof p !== 'string') return undefined;
 				if (typeof target[p] !== 'undefined') {
 					return target[p];
 				}
-				return target.getItem(p);
+				return target.getItem(p) ?? undefined;
 			},
 			set(target, p, newValue) {
 				if (typeof p !== 'string') return false;
-				if (typeof target[p] !== 'undefined') {
-					return false;
-				}
 				target.setItem(p, newValue);
 				return true;
 			},
@@ -188,7 +211,7 @@ Object.defineProperty(globalThis, 'localStorage', {
 				return true;
 			},
 			ownKeys() {
-				return readDirSync(base) || [];
+				return (readDirSync(base) || []).map((p) => pathToKey(p));
 			},
 			getOwnPropertyDescriptor(target, p) {
 				if (typeof p !== 'string') return;
