@@ -40,22 +40,17 @@ export class TextEncoder implements globalThis.TextEncoder {
 					if ((extra & 0xfc00) === 0xdc00) {
 						++pos;
 						value = ((value & 0x3ff) << 10) + (extra & 0x3ff) + 0x10000;
+					} else {
+						// Lone high surrogate, encode as replacement character
+						value = 0xfffd;
 					}
+				} else {
+					// Lone high surrogate at the end of the string, encode as replacement character
+					value = 0xfffd;
 				}
-				if (value >= 0xd800 && value <= 0xdbff) {
-					continue; // drop lone surrogate
-				}
-			}
-
-			// expand the buffer if we couldn't write 4 bytes
-			if (at + 4 > target.length) {
-				tlen += 8; // minimum extra
-				tlen *= 1.0 + (pos / input.length) * 2; // take 2x the remaining
-				tlen = (tlen >>> 3) << 3; // 8 byte offset
-
-				var update = new Uint8Array(tlen);
-				update.set(target);
-				target = update;
+			} else if (value >= 0xdc00 && value <= 0xdfff) {
+				// Lone low surrogate, encode as replacement character
+				value = 0xfffd;
 			}
 
 			if ((value & 0xffffff80) === 0) {
