@@ -90,7 +90,71 @@ export class TextEncoder implements globalThis.TextEncoder {
 		input: string,
 		destination: Uint8Array,
 	): TextEncoderEncodeIntoResult {
-		throw new Error('Method not implemented.');
+		let read = 0;
+		let written = 0;
+		const sourceLength = input.length;
+		let destinationLength = destination.length;
+
+		for (; read < sourceLength && written < destinationLength; read++) {
+			const codePoint = input.charCodeAt(read);
+
+			// Handle surrogate pairs
+			if (
+				codePoint >= 0xd800 &&
+				codePoint <= 0xdbff &&
+				read + 1 < sourceLength
+			) {
+				const nextCodePoint = input.charCodeAt(read + 1);
+				if (nextCodePoint >= 0xdc00 && nextCodePoint <= 0xdfff) {
+					// Combine the surrogate pair into a single code point
+					const combinedCodePoint =
+						((codePoint - 0xd800) << 10) + (nextCodePoint - 0xdc00) + 0x10000;
+					if (written + 4 <= destinationLength) {
+						destination[written++] = ((combinedCodePoint >> 18) & 0x07) | 0xf0;
+						destination[written++] = ((combinedCodePoint >> 12) & 0x3f) | 0x80;
+						destination[written++] = ((combinedCodePoint >> 6) & 0x3f) | 0x80;
+						destination[written++] = (combinedCodePoint & 0x3f) | 0x80;
+						read++; // Skip the next code unit as it's part of the surrogate pair
+					} else {
+						break; // Not enough space
+					}
+				} else {
+					// Lone high surrogate, treat as an error and encode as replacement character
+					if (written + 3 <= destinationLength) {
+						destination[written++] = 0xef;
+						destination[written++] = 0xbf;
+						destination[written++] = 0xbd; // Replacement character
+					} else {
+						break; // Not enough space
+					}
+				}
+			} else if (codePoint < 0x80) {
+				// 1-byte character
+				destination[written++] = codePoint;
+			} else if (codePoint < 0x800) {
+				// 2-byte character
+				if (written + 2 <= destinationLength) {
+					destination[written++] = (codePoint >> 6) | 0xc0;
+					destination[written++] = (codePoint & 0x3f) | 0x80;
+				} else {
+					break; // Not enough space
+				}
+			} else if (codePoint < 0x10000) {
+				// 3-byte character
+				if (written + 3 <= destinationLength) {
+					destination[written++] = (codePoint >> 12) | 0xe0;
+					destination[written++] = ((codePoint >> 6) & 0x3f) | 0x80;
+					destination[written++] = (codePoint & 0x3f) | 0x80;
+				} else {
+					break; // Not enough space
+				}
+			} else {
+				// Code point out of range
+				break;
+			}
+		}
+
+		return { read, written };
 	}
 }
 def(TextEncoder);
