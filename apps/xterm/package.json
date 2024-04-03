@@ -10,11 +10,12 @@
   "license": "MIT",
   "dependencies": {
     "@nx.js/constants": "workspace:*",
-    "@xterm/headless": "^5.4.0"
+    "@xterm/headless": "^5.4.0",
+    "sisteransi": "^1.0.5"
   },
   "devDependencies": {
     "@nx.js/nro": "workspace:^",
-    "nxjs-runtime": "workspace:^",
-    "esbuild": "^0.17.19"
+    "esbuild": "^0.17.19",
+    "nxjs-runtime": "workspace:^"
   }
 }

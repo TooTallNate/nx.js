@@ -1,4 +1,4 @@
-import { erase } from 'sisteransi';
+import { erase, cursor } from 'sisteransi';
 import { bold, cyan, bgYellow } from 'kleur/colors';
 
 console.log('Welcome to the nx.js REPL!');
@@ -75,6 +75,7 @@ addEventListener('keydown', (e) => {
 			buffer = `${buffer.slice(0, cursorPosition - 1)}${buffer.slice(
 				cursorPosition,
 			)}`;
+			console.print(cursor.backward());
 			cursorPosition--;
 			renderPrompt();
 		}

@@ -421,6 +421,9 @@ importers:
       '@xterm/headless':
         specifier: ^5.4.0
         version: 5.4.0
+      sisteransi:
+        specifier: ^1.0.5
+        version: 1.0.5
     devDependencies:
       '@nx.js/nro':
         specifier: workspace:^

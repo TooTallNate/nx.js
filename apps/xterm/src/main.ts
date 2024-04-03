@@ -1,3 +1,4 @@
+import { cursor } from 'sisteransi';
 import { HidNpadButton } from '@nx.js/constants';
 import { Terminal, type IBuffer } from '@xterm/headless';
 
@@ -28,19 +29,22 @@ const term = new Terminal({
 const cell = term.buffer.normal.getNullCell();
 
 const colors = [
-	'black',
-	'red',
-	'green',
+	'rgba(7.000000057742, 54.00000058114529, 66.00000366568565, 1)',
+	'rgba(220.00000208616257, 50.000000819563866, 47.0000009983778, 1)',
+	'rgba(133.00000727176666, 153.00000607967377, 0, 1)',
 	'yellow',
-	'blue',
+	'rgba(38.0000015348196, 139.0000069141388, 210.00000268220901, 1)',
 	'magenta',
 	'cyan',
 	'white',
 ];
 
 function render(buff: IBuffer) {
-	ctx.fillStyle = 'black';
+	ctx.textAlign = 'start';
+	ctx.textBaseline = 'alphabetic';
+	ctx.fillStyle = 'rgba(0, 43.00000123679638, 54.00000058114529, 1)';
 	ctx.fillRect(0, 0, screen.width, screen.height);
+
 	for (let y = 0; y < term.rows; y++) {
 		const line = buff.getLine(buff.viewportY + y);
 		if (line) {
@@ -48,7 +52,9 @@ function render(buff: IBuffer) {
 				line.getCell(x, cell);
 				const val = cell.getChars();
 				const fgColor = colors[cell.getFgColor()];
-				const font = /\p{Emoji_Presentation}/u.test(val) ? 'Twemoji' : 'Geist Mono';
+				const font = /\p{Emoji_Presentation}/u.test(val)
+					? 'Twemoji'
+					: 'Geist Mono';
 				ctx.font = `${fontSize}px "${font}"`;
 				ctx.fillStyle = fgColor ?? 'white';
 				ctx.fillText(val, x * charWidth, (y + 1) * lineHeight);
@@ -59,13 +65,12 @@ function render(buff: IBuffer) {
 	// Draw cursor
 	ctx.fillStyle = 'white';
 	const c = buff.length - (buff.viewportY + term.rows) + buff.cursorY;
-	ctx.fillRect(
-		buff.cursorX * charWidth,
-		c * lineHeight,
-		charWidth,
-		lineHeight
-	);
+	ctx.fillRect(buff.cursorX * charWidth, c * lineHeight, charWidth, lineHeight);
 
+	// Debugging
+	ctx.font = `14px "Geist Mono"`;
+	ctx.textAlign = 'right';
+	ctx.textBaseline = 'bottom';
 	ctx.fillText(
 		JSON.stringify({
 			r: term.rows,
@@ -74,8 +79,8 @@ function render(buff: IBuffer) {
 			y: buff.cursorY,
 			c,
 		}),
-		600,
-		600
+		screen.width - 10,
+		screen.height - 10,
 	);
 }
 
@@ -92,7 +97,7 @@ term.write(
 	'\u001b[0m\u001b[Hhello world 😁 this is a really long text that definitely should wrap around to the next line waaaaaaaaaaaaaaaaaaaaaaaaaaaaatttttttttttt',
 	() => {
 		render(term.buffer.active);
-	}
+	},
 );
 
 addEventListener('buttondown', (e) => {
@@ -108,6 +113,10 @@ addEventListener('buttondown', (e) => {
 	} else if (e.detail & HidNpadButton.R) {
 		term.scrollToBottom();
 		render(term.buffer.active);
+	} else if (e.detail & HidNpadButton.AnyLeft) {
+		console.print(cursor.up());
+	} else if (e.detail & HidNpadButton.AnyRight) {
+		console.print(cursor.down());
 	}
 });
 
@@ -119,3 +128,4 @@ console.print = (s) => {
 
 console.log('hello world');
 console.log('hello world');
+console.log(term.options.theme);
