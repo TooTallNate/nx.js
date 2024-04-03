@@ -8,6 +8,7 @@ import './import';
 import './navigator';
 import './storage';
 import './switch';
+import './text-encoder';
 import './wasm';
 import './window';
 import './url';
