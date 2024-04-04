@@ -75,6 +75,26 @@ export class Event implements globalThis.Event {
 	}
 }
 
+export interface CustomEventInit<T = any> extends EventInit {
+	detail?: T;
+}
+
+export class CustomEvent<T = any>
+	extends Event
+	implements globalThis.CustomEvent
+{
+	readonly detail: T | null;
+
+	constructor(type: string, options: CustomEventInit<T> = {}) {
+		super(type, options);
+		this.detail = options.detail ?? null;
+	}
+
+	initCustomEvent(): void {
+		throw new Error('Method not implemented.');
+	}
+}
+
 export interface UIEventInit extends EventInit {
 	detail?: number;
 }
@@ -564,6 +584,7 @@ export class PromiseRejectionEvent
 }
 
 def(Event);
+def(CustomEvent);
 def(ErrorEvent);
 def(PromiseRejectionEvent);
 def(UIEvent);
