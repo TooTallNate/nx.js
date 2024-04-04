@@ -56,7 +56,7 @@ test('Encode basic', () => {
 	const b = new TextEncoder().encode('hello world');
 	assert.equal(
 		Array.from(b),
-		[104, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100]
+		[104, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100],
 	);
 });
 
