@@ -2,6 +2,7 @@ import './canvas';
 import './crypto';
 import './dommatrix';
 import './error';
+import './event-target';
 import './fetch';
 import './form-data';
 import './import';
