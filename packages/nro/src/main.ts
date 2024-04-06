@@ -49,7 +49,7 @@ try {
 }
 const logoBuf = Buffer.from(await icon!.arrayBuffer());
 console.log(`  JPEG size: ${bytes(logoBuf.length).toLowerCase()}`);
-console.log(await terminalImage.buffer(logoBuf, { height: 12 }));
+console.log(await terminalImage.buffer(logoBuf, { height: 18 }));
 
 // NACP
 const nacp = new NACP(await nxjsNro.nacp!.arrayBuffer());
