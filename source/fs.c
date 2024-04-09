@@ -357,7 +357,7 @@ JSValue nx_write_file_sync(JSContext *ctx, JSValueConst this_val, int argc, JSVa
 
 	if (result != size)
 	{
-		JS_ThrowTypeError(ctx, "Failed to write entire file. Got %lu, expected %lu", result, result);
+		JS_ThrowTypeError(ctx, "Failed to write entire file. Got %lu, expected %lu", result, size);
 		return JS_EXCEPTION;
 	}
 
