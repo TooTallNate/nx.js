@@ -16,7 +16,7 @@ import {
 	def,
 	encodeUTF16,
 } from './utils';
-import type { FsDev } from './switch/fsdev';
+import type { SaveData } from './switch/savedata';
 
 interface StorageImpl {
 	clear(): void;
@@ -127,18 +127,18 @@ Object.defineProperty(globalThis, 'localStorage', {
 		const { self } = Application;
 		const profile = currentProfile({ required: true });
 
-		let dev: FsDev;
+		let dev: SaveData;
 		try {
 			dev = self.mountSaveData(profile);
 		} catch (err: any) {
-			// rethrow if not `ResultTargetNotFound` (meaning save data has not been created)
+			// rethrow if not `ResultTargetNotFound` (save data has not been created)
 			if (err.description !== 1002) throw err;
 
-			self.createSaveData(profile);
+			self.createSaveDataSync(profile);
 			dev = self.mountSaveData(profile);
 		}
 
-		const base = new URL('localStorage/', dev.url);
+		const base = new URL('localStorage/', dev.url!);
 		const keyToPath = (key: any) => {
 			const url = `${base.href}_${Array.from(String(key))
 				.map((l) => l.charCodeAt(0).toString(16))

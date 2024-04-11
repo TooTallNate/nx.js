@@ -4,6 +4,7 @@ import type {
 	NetworkInfo,
 	Profile,
 	ProfileUid,
+	SaveData,
 	Stats,
 	Versions,
 } from './switch';
@@ -37,6 +38,7 @@ type ClassOf<T> = {
 	new (...args: any[]): T;
 };
 
+type SaveDataIterator = Opaque<'SaveDataIterator'>;
 type URLSearchParamsIterator = Opaque<'URLSearchParamsIterator'>;
 
 export interface Init {
@@ -141,16 +143,20 @@ export interface Init {
 	writeFileSync(path: string, data: ArrayBuffer): void;
 
 	// fsdev.c
-	fsdevCommitDevice(name: string): void;
+	saveDataInit(c: ClassOf<SaveData>): void;
+	saveDataNew(spaceId: number, init: any): any;
+	saveDataCreate(spaceId: number, init: any): any;
+	fsOpenSaveDataInfoReader(saveDataSpaceId: number): SaveDataIterator | null;
+	fsSaveDataInfoReaderNext(iterator: SaveDataIterator): SaveData | null;
 	fsdevCreateSaveData(
 		type: number,
 		nacp: ArrayBuffer,
 		uid: ProfileUid,
 		cacheIndex?: number,
 	): void;
-	fsdevMountSaveData(name: string, nacp: ArrayBuffer, uid: ProfileUid): void;
-	fsdevMountCacheStorage(name: string, nacp: ArrayBuffer, index: number): void;
-	fsdevUnmountDevice(name: string): void;
+	fsdevMount(saveData: SaveData, name: string): void;
+	//fsdevMountSaveData(name: string, nacp: ArrayBuffer, uid: ProfileUid): void;
+	//fsdevMountCacheStorage(name: string, nacp: ArrayBuffer, index: number): void;
 
 	// image.c
 	imageInit(c: ClassOf<Image | ImageBitmap>): void;

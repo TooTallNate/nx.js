@@ -1,9 +1,9 @@
 import { $ } from '../$';
-import { FsDev } from './fsdev';
-import { crypto } from '../crypto';
+import { SaveData } from './savedata';
 import { readFileSync } from '../fs';
 import { proto, stub } from '../utils';
 import type { Profile } from './profile';
+import { inspect } from '../inspect';
 
 let init = false;
 let self: Application | undefined;
@@ -14,7 +14,7 @@ function _init() {
 	init = true;
 }
 
-const genName = () => `s${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}`;
+const getSaveDataOwnerId = (nacp: DataView) => nacp.getBigUint64(0x3078, true);
 
 /**
  * Represents an installed application (game) on the console,
@@ -116,7 +116,7 @@ export class Application {
 	 *
 	 * @param profile The {@link Profile} to create the save data for.
 	 */
-	createSaveData(profile: Profile) {
+	createSaveDataSync(profile: Profile) {
 		$.fsdevCreateSaveData(
 			1, // FsSaveDataType_Account
 			this.nacp,
@@ -129,7 +129,7 @@ export class Application {
 	 *
 	 * @param index The save index ID. Defaults to `0`.
 	 */
-	createCacheData(index = 0) {
+	createCacheDataSync(index = 0) {
 		$.fsdevCreateSaveData(
 			5, // FsSaveDataType_Cache
 			this.nacp,
@@ -159,9 +159,15 @@ export class Application {
 	 * @param profile The {@link Profile} which the save data belongs to.
 	 * @param name The name of the device mount for filesystem paths. If not provided, a random name is generated.
 	 */
-	mountSaveData(profile: Profile, name = genName()): FsDev {
-		$.fsdevMountSaveData(name, this.nacp, profile.uid);
-		return new FsDev(name);
+	mountSaveData(profile: Profile, name?: string): SaveData {
+		const nacp = new DataView(this.nacp);
+		const s = new SaveData(1 /* FsSaveDataSpaceId_User */, {
+			type: 1 /* FsSaveDataSpaceId_User */,
+			applicationId: getSaveDataOwnerId(nacp),
+			uid: profile.uid,
+		});
+		s.mount(name);
+		return s;
 	}
 
 	/**
@@ -170,9 +176,15 @@ export class Application {
 	 * @param index The save index ID. Defaults to `0`.
 	 * @param name The name of the device mount for filesystem paths. If not provided, a random name is generated.
 	 */
-	mountCacheData(index = 0, name = genName()): FsDev {
-		$.fsdevMountCacheStorage(name, this.nacp, index);
-		return new FsDev(name);
+	mountCacheData(index = 0, name?: string): SaveData {
+		const nacp = new DataView(this.nacp);
+		const s = new SaveData(1 /* FsSaveDataSpaceId_User */, {
+			type: 5 /* FsSaveDataType_Cache */,
+			applicationId: getSaveDataOwnerId(nacp),
+			index,
+		});
+		s.mount(name);
+		return s;
 	}
 
 	/**
@@ -201,3 +213,8 @@ export class Application {
 	}
 }
 $.nsAppInit(Application);
+
+Object.defineProperty(Application.prototype, inspect.keys, {
+	enumerable: false,
+	value: () => ['id', 'nacp', 'icon', 'name', 'version', 'author'],
+});

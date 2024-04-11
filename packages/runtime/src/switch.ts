@@ -15,7 +15,7 @@ export * from './dns';
 export * from './env';
 export * from './fs';
 export * from './inspect';
-export * from './switch/fsdev';
+export * from './switch/savedata';
 export * from './switch/nifm';
 export * from './switch/ns';
 export * from './switch/irsensor';
