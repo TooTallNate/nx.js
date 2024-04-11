@@ -48,6 +48,25 @@ export class Profile {
 		_init();
 		return proto($.accountProfileNew(uid), Profile);
 	}
+
+	/**
+	 * Can be used as an iterator to retrieve the list of user profiles.
+	 *
+	 * @example
+	 *
+	 * ```typescript
+	 * for (const profile of Switch.Profile) {
+	 *   console.log(profile.nickname);
+	 * }
+	 * ```
+	 */
+	*[Symbol.iterator]() {
+		_init();
+		const pr = $.accountProfiles();
+		for (const p of pr) {
+			yield proto(p, Profile);
+		}
+	}
 }
 $.accountProfileInit(Profile);
 
@@ -96,24 +115,3 @@ export function selectProfile() {
 	if (p) proto(p, Profile);
 	return p;
 }
-
-/**
- * Can be used as an iterator to retrieve the list of user profiles.
- *
- * @example
- *
- * ```typescript
- * for (const profile of Switch.profiles) {
- *   console.log(profile.nickname);
- * }
- * ```
- */
-export const profiles = {
-	*[Symbol.iterator]() {
-		_init();
-		const pr = $.accountProfiles();
-		for (const p of pr) {
-			yield proto(p, Profile);
-		}
-	},
-};

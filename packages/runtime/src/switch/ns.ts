@@ -1,9 +1,9 @@
 import { $ } from '../$';
 import { SaveData } from './savedata';
+import { inspect } from '../inspect';
 import { readFileSync } from '../fs';
 import { proto, stub } from '../utils';
 import type { Profile } from './profile';
-import { inspect } from '../inspect';
 
 let init = false;
 let self: Application | undefined;
@@ -83,7 +83,7 @@ export class Application {
 	 *
 	 * ```typescript
 	 * const nro = await Switch.readFile('sdmc:/hbmenu.nro');
-	 * const app = Switch.Application.fromNro(nro);
+	 * const app = new Switch.Application(nro);
 	 * console.log(app.name);
 	 * ```
 	 *
