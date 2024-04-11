@@ -83,7 +83,7 @@ export class Application {
 	 *
 	 * ```typescript
 	 * const nro = await Switch.readFile('sdmc:/hbmenu.nro');
-	 * const app = Switch.Application.fromNro(nro);
+	 * const app = new Switch.Application(nro);
 	 * console.log(app.name);
 	 * ```
 	 *
