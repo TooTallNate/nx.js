@@ -1,4 +1,5 @@
 import { $ } from '../$';
+import { inspect } from '../inspect';
 import { proto } from '../utils';
 
 let init = false;
@@ -49,6 +50,11 @@ export class Profile {
 	}
 }
 $.accountProfileInit(Profile);
+
+Object.defineProperty(Profile.prototype, inspect.keys, {
+	enumerable: false,
+	value: () => ['uid', 'nickname', 'image'],
+});
 
 let p: Profile | null = null;
 
