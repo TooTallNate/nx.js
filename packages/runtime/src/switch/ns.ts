@@ -1,6 +1,7 @@
 import { $ } from '../$';
 import { FsDev } from './fsdev';
 import { crypto } from '../crypto';
+import { inspect } from '../inspect';
 import { readFileSync } from '../fs';
 import { proto, stub } from '../utils';
 import type { Profile } from './profile';
@@ -201,3 +202,8 @@ export class Application {
 	}
 }
 $.nsAppInit(Application);
+
+Object.defineProperty(Application.prototype, inspect.keys, {
+	enumerable: false,
+	value: () => ['id', 'nacp', 'icon', 'name', 'version', 'author'],
+});
