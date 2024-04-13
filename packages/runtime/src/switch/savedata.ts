@@ -1,9 +1,9 @@
 import { $ } from '../$';
 import { URL } from '../polyfills/url';
 import { crypto } from '../crypto';
-import type { ProfileUid } from './profile';
-import { proto, stub } from '../utils';
 import { inspect } from '../inspect';
+import { proto, stub } from '../utils';
+import type { ProfileUid } from './profile';
 
 const genName = () => `s${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}`;
 
@@ -16,7 +16,29 @@ export interface SaveDataFilter {
 	rank?: number;
 }
 
-export type SaveDataInit = {};
+export interface SaveDataCreationInfoBase {
+	type: number;
+	size: bigint;
+	journalSize: bigint;
+	uid?: ProfileUid;
+	systemId?: bigint;
+	applicationId?: bigint;
+	index?: number;
+	rank?: number;
+}
+
+export interface SaveDataCreationInfoWithNacp {
+	type: number;
+	size?: bigint;
+	journalSize?: bigint;
+	uid?: ProfileUid;
+	index?: number;
+	rank?: number;
+}
+
+export type SaveDataCreationInfo =
+	| SaveDataCreationInfoBase
+	| SaveDataCreationInfoWithNacp;
 
 /**
  * Represents a "save data store".
@@ -96,7 +118,7 @@ export class SaveData {
 	 * @param name The name of the mount for filesystem paths. By default, a random name is generated. Shouldn't exceed 31 characters, and shouldn't have a trailing colon.
 	 */
 	mount(name = genName()) {
-		$.fsdevMount(this, name);
+		$.saveDataMount(this, name);
 		this.url = new URL(`${name}:/`);
 		return this.url;
 	}
@@ -118,8 +140,33 @@ export class SaveData {
 		stub();
 	}
 
-	static createSync(spaceId: number, init: SaveDataInit): SaveData {
-		const s = $.saveDataCreate(spaceId, init);
+	static *filter(filter: SaveDataFilter, spaceId = -1) {
+		const it = $.saveDataFilter(filter, spaceId);
+		while (1) {
+			const info = $.fsSaveDataInfoReaderNext(it);
+			if (!info) break;
+			yield proto(info, SaveData);
+		}
+	}
+
+	static find(filter: SaveDataFilter, spaceId = -1): SaveData | undefined {
+		const it = SaveData.filter(filter, spaceId);
+		const n = it.next();
+		return n.value || undefined;
+	}
+
+	static createSync(spaceId: number, init: SaveDataCreationInfoBase): SaveData;
+	static createSync(
+		spaceId: number,
+		init: SaveDataCreationInfoWithNacp,
+		nacp: ArrayBuffer,
+	): SaveData;
+	static createSync(
+		spaceId: number,
+		init: SaveDataCreationInfo,
+		nacp?: ArrayBuffer,
+	): SaveData {
+		const s = $.saveDataCreate(spaceId, init, nacp);
 		return proto(s, SaveData);
 	}
 

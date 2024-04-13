@@ -8,7 +8,7 @@ typedef struct
 {
 	bool info_loaded;
 	FsSaveDataInfo info;
-	FsFileSystem *fs;
+	FsFileSystem fs;
 	const char *mount_name;
 } nx_save_data_t;
 
@@ -27,11 +27,7 @@ static void finalizer_save_data(JSRuntime *rt, JSValue val)
 			fsdevUnmountDevice(save_data->mount_name);
 			js_free_rt(rt, (void *)save_data->mount_name);
 			save_data->mount_name = NULL;
-		}
-		if (save_data->fs)
-		{
-			fsFsClose(save_data->fs);
-			save_data->fs = NULL;
+			fsFsClose(&save_data->fs);
 		}
 		js_free_rt(rt, save_data);
 	}
@@ -313,11 +309,11 @@ static JSValue nx_save_data_commit(JSContext *ctx, JSValueConst this_val, int ar
 	{
 		return JS_EXCEPTION;
 	}
-	if (!save_data->fs)
+	if (!save_data->mount_name)
 	{
 		return JS_ThrowTypeError(ctx, "SaveData is not mounted");
 	}
-	Result rc = fsFsCommit(save_data->fs);
+	Result rc = fsFsCommit(&save_data->fs);
 	if (R_FAILED(rc))
 	{
 		return nx_throw_libnx_error(ctx, rc, "fsFsCommit()");
@@ -362,6 +358,107 @@ static JSValue nx_save_data_extend(JSContext *ctx, JSValueConst this_val, int ar
 	{
 		return nx_throw_libnx_error(ctx, rc, "fsExtendSaveDataFileSystem()");
 	}
+	return JS_UNDEFINED;
+}
+
+static JSValue nx_save_data_mount(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	nx_save_data_t *save_data = JS_GetOpaque2(ctx, argv[0], nx_save_data_class_id);
+	if (!save_data)
+	{
+		return JS_EXCEPTION;
+	}
+
+	if (save_data->mount_name)
+	{
+		return JS_ThrowTypeError(ctx, "Save data is already mounted");
+	}
+
+	Result rc;
+	FsSaveDataAttribute attr = {0};
+	switch (save_data->info.save_data_type)
+	{
+	case FsSaveDataType_System:
+	case FsSaveDataType_SystemBcat:
+	{
+		attr.uid = save_data->info.uid;
+		attr.system_save_data_id = save_data->info.system_save_data_id;
+		attr.save_data_type = save_data->info.save_data_type;
+		rc = fsOpenSaveDataFileSystemBySystemSaveDataId(&save_data->fs, (FsSaveDataSpaceId)save_data->info.save_data_space_id, &attr);
+	}
+	break;
+
+	case FsSaveDataType_Account:
+	{
+		attr.uid = save_data->info.uid;
+		attr.application_id = save_data->info.application_id;
+		attr.save_data_type = save_data->info.save_data_type;
+		attr.save_data_rank = save_data->info.save_data_rank;
+		attr.save_data_index = save_data->info.save_data_index;
+		rc = fsOpenSaveDataFileSystem(&save_data->fs, (FsSaveDataSpaceId)save_data->info.save_data_space_id, &attr);
+	}
+	break;
+
+	case FsSaveDataType_Device:
+	{
+		attr.application_id = save_data->info.application_id;
+		attr.save_data_type = FsSaveDataType_Device;
+		rc = fsOpenSaveDataFileSystem(&save_data->fs, (FsSaveDataSpaceId)save_data->info.save_data_space_id, &attr);
+	}
+	break;
+
+	case FsSaveDataType_Bcat:
+	{
+		attr.application_id = save_data->info.application_id;
+		attr.save_data_type = FsSaveDataType_Bcat;
+		rc = fsOpenSaveDataFileSystem(&save_data->fs, (FsSaveDataSpaceId)save_data->info.save_data_space_id, &attr);
+	}
+	break;
+
+	case FsSaveDataType_Cache:
+	{
+		attr.application_id = save_data->info.application_id;
+		attr.save_data_type = FsSaveDataType_Cache;
+		attr.save_data_index = save_data->info.save_data_index;
+		rc = fsOpenSaveDataFileSystem(&save_data->fs, (FsSaveDataSpaceId)save_data->info.save_data_space_id, &attr);
+	}
+	break;
+
+	case FsSaveDataType_Temporary:
+	{
+		attr.application_id = save_data->info.application_id;
+		attr.save_data_type = save_data->info.save_data_type;
+		rc = fsOpenSaveDataFileSystem(&save_data->fs, (FsSaveDataSpaceId)save_data->info.save_data_space_id, &attr);
+	}
+	break;
+
+	default:
+		rc = 1;
+		break;
+	}
+
+	if (R_FAILED(rc))
+	{
+		return nx_throw_libnx_error(ctx, rc, "fsOpenSaveDataFileSystem()");
+	}
+
+	const char *name = JS_ToCString(ctx, argv[1]);
+	if (!name)
+	{
+		return JS_EXCEPTION;
+	}
+
+	int ret = fsdevMountDevice(name, save_data->fs);
+	if (ret == -1)
+		rc = MAKERESULT(Module_Libnx, LibnxError_OutOfMemory);
+
+	if (R_FAILED(rc))
+	{
+		return nx_throw_libnx_error(ctx, rc, "fsdevMountDevice()");
+	}
+
+	save_data->mount_name = js_strdup(ctx, name);
+	JS_FreeCString(ctx, name);
 	return JS_UNDEFINED;
 }
 
@@ -467,8 +564,7 @@ static JSValue nx_fsdev_create_save_data(JSContext *ctx, JSValueConst this_val, 
 		return JS_ThrowTypeError(ctx, "Invalid NACP buffer (got %ld bytes, expected %ld)", nacp_size, sizeof(NacpStruct));
 	}
 
-	FsSaveDataAttribute attr;
-	memset(&attr, 0, sizeof(attr));
+	FsSaveDataAttribute attr = {0};
 	attr.application_id = nacp->save_data_owner_id;
 	attr.uid = uid;
 	attr.system_save_data_id = 0;
@@ -476,8 +572,7 @@ static JSValue nx_fsdev_create_save_data(JSContext *ctx, JSValueConst this_val, 
 	attr.save_data_rank = 0;
 	attr.save_data_index = (u16)cache_index;
 
-	FsSaveDataCreationInfo crt;
-	memset(&crt, 0, sizeof(crt));
+	FsSaveDataCreationInfo crt = {0};
 	crt.available_size = 0x4000;
 	crt.owner_id = type == FsSaveDataType_Bcat ? 0x010000000000000C : nacp->save_data_owner_id;
 	crt.flags = 0;
@@ -538,72 +633,6 @@ static JSValue nx_fsdev_create_save_data(JSContext *ctx, JSValueConst this_val, 
 	return JS_UNDEFINED;
 }
 
-static JSValue nx_fsdev_mount_save_data(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
-	AccountUid uid;
-	if (
-		JS_ToBigInt64(ctx, (s64 *)&uid.uid[0], JS_GetPropertyUint32(ctx, argv[2], 0)) ||
-		JS_ToBigInt64(ctx, (s64 *)&uid.uid[1], JS_GetPropertyUint32(ctx, argv[2], 1)))
-	{
-		return JS_EXCEPTION;
-	}
-	size_t nacp_size;
-	NacpStruct *nacp = (NacpStruct *)JS_GetArrayBuffer(ctx, &nacp_size, argv[1]);
-	if (nacp_size != sizeof(NacpStruct))
-	{
-		return JS_ThrowTypeError(ctx, "Invalid NACP buffer (got %ld bytes, expected %ld)", nacp_size, sizeof(NacpStruct));
-	}
-	const char *name = JS_ToCString(ctx, argv[0]);
-	if (!name)
-	{
-		return JS_EXCEPTION;
-	}
-	strip_trailing_colon((char *)name);
-	Result rc = fsdevMountSaveData(name, nacp->save_data_owner_id, uid);
-	JS_FreeCString(ctx, name);
-	if (R_FAILED(rc))
-	{
-		return nx_throw_libnx_error(ctx, rc, "fsdevMountSaveData()");
-	}
-	return JS_UNDEFINED;
-}
-
-static JSValue nx_fsdev_mount_cache_storage(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
-	u32 save_data_index = 0;
-	if (JS_ToUint32(ctx, &save_data_index, argv[2]))
-	{
-		return JS_EXCEPTION;
-	}
-
-	size_t nacp_size;
-	NacpStruct *nacp = (NacpStruct *)JS_GetArrayBuffer(ctx, &nacp_size, argv[1]);
-	if (nacp_size != sizeof(NacpStruct))
-	{
-		return JS_ThrowTypeError(ctx, "Invalid NACP buffer (got %ld bytes, expected %ld)", nacp_size, sizeof(NacpStruct));
-	}
-
-	const char *name = JS_ToCString(ctx, argv[0]);
-	if (!name)
-	{
-		return JS_EXCEPTION;
-	}
-	strip_trailing_colon((char *)name);
-
-	Result rc = fsdevMountCacheStorage(name, nacp->save_data_owner_id, (u16)save_data_index);
-	JS_FreeCString(ctx, name);
-	if (R_FAILED(rc))
-	{
-		return nx_throw_libnx_error(ctx, rc, "fsdevMountCacheStorage()");
-	}
-	return JS_UNDEFINED;
-}
-
-static JSValue nx_fsdev_mount(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
-	return JS_UNDEFINED;
-}
-
 static JSValue nx_save_data_init(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	JSAtom atom;
@@ -628,10 +657,10 @@ static JSValue nx_save_data_init(JSContext *ctx, JSValueConst this_val, int argc
 static const JSCFunctionListEntry function_list[] = {
 	JS_CFUNC_DEF("saveDataInit", 1, nx_save_data_init),
 	JS_CFUNC_DEF("saveDataNew", 1, nx_save_data_new),
+	JS_CFUNC_DEF("saveDataMount", 1, nx_save_data_mount),
 	JS_CFUNC_DEF("fsOpenSaveDataInfoReader", 1, nx_fs_open_save_data_info_reader),
 	JS_CFUNC_DEF("fsSaveDataInfoReaderNext", 1, nx_fs_save_data_info_reader_next),
 	JS_CFUNC_DEF("fsdevCreateSaveData", 3, nx_fsdev_create_save_data),
-	JS_CFUNC_DEF("fsdevMount", 2, nx_fsdev_mount),
 };
 
 void nx_init_fsdev(JSContext *ctx, JSValueConst init_obj)

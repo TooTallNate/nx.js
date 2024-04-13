@@ -1,5 +1,9 @@
 import { $ } from '../$';
-import { SaveData } from './savedata';
+import {
+	SaveData,
+	SaveDataCreationInfoWithNacp,
+	SaveDataFilter,
+} from './savedata';
 import { inspect } from '../inspect';
 import { readFileSync } from '../fs';
 import { proto, stub } from '../utils';
@@ -104,6 +108,10 @@ export class Application {
 		stub();
 	}
 
+	createSaveDataSync(spaceId: number, info: SaveDataCreationInfoWithNacp) {
+		return SaveData.createSync(spaceId, info, this.nacp);
+	}
+
 	/**
 	 * Creates the Save Data for this {@link Application} for the provided user profile.
 	 *
@@ -116,12 +124,14 @@ export class Application {
 	 *
 	 * @param profile The {@link Profile} to create the save data for.
 	 */
-	createSaveDataSync(profile: Profile) {
-		$.fsdevCreateSaveData(
-			1, // FsSaveDataType_Account
-			this.nacp,
-			profile.uid,
-		);
+	createProfileSaveDataSync(
+		profile: Profile,
+		spaceId = 1 /* FsSaveDataSpaceId_User */,
+	) {
+		return this.createSaveDataSync(spaceId, {
+			type: 1 /* FsSaveDataType_Account */,
+			uid: profile.uid,
+		});
 	}
 
 	/**
@@ -129,62 +139,28 @@ export class Application {
 	 *
 	 * @param index The save index ID. Defaults to `0`.
 	 */
-	createCacheDataSync(index = 0) {
-		$.fsdevCreateSaveData(
-			5, // FsSaveDataType_Cache
-			this.nacp,
-			[0n, 0n],
+	createCacheSaveDataSync(index = 0, spaceId = 1 /* FsSaveDataSpaceId_User */) {
+		return this.createSaveDataSync(spaceId, {
+			type: 5 /* FsSaveDataType_Cache */,
 			index,
+		});
+	}
+
+	*filterSaveData(filter: Omit<SaveDataFilter, 'applicationId'>, spaceId = -1) {
+		const nacp = new DataView(this.nacp);
+		yield* SaveData.filter(
+			{
+				applicationId: getSaveDataOwnerId(nacp),
+				...filter,
+			},
+			spaceId,
 		);
 	}
 
-	/**
-	 * Mounts the save data for this application such that filesystem operations may be used.
-	 *
-	 * @example
-	 *
-	 * ```typescript
-	 * const profile = Switch.currentProfile({ required: true });
-	 * const saveData = app.mountSaveData(profile);
-	 *
-	 * // Use the filesystem functions to do operations on the save mount
-	 * console.log(Switch.readDirSync(saveData.url));
-	 *
-	 * // Make sure to use `saveData.commit()` after any write operations
-	 * const saveStateUrl = new URL('state', saveData.url)
-	 * Switch.writeFileSync(saveStateUrl, 'your app state…');
-	 * saveData.commit();
-	 * ```
-	 *
-	 * @param profile The {@link Profile} which the save data belongs to.
-	 * @param name The name of the device mount for filesystem paths. If not provided, a random name is generated.
-	 */
-	mountSaveData(profile: Profile, name?: string): SaveData {
-		const nacp = new DataView(this.nacp);
-		const s = new SaveData(1 /* FsSaveDataSpaceId_User */, {
-			type: 1 /* FsSaveDataSpaceId_User */,
-			applicationId: getSaveDataOwnerId(nacp),
-			uid: profile.uid,
-		});
-		s.mount(name);
-		return s;
-	}
-
-	/**
-	 * Mounts the Cache storage for this application such that filesystem operations may be used.
-	 *
-	 * @param index The save index ID. Defaults to `0`.
-	 * @param name The name of the device mount for filesystem paths. If not provided, a random name is generated.
-	 */
-	mountCacheData(index = 0, name?: string): SaveData {
-		const nacp = new DataView(this.nacp);
-		const s = new SaveData(1 /* FsSaveDataSpaceId_User */, {
-			type: 5 /* FsSaveDataType_Cache */,
-			applicationId: getSaveDataOwnerId(nacp),
-			index,
-		});
-		s.mount(name);
-		return s;
+	findSaveData(filter: Omit<SaveDataFilter, 'applicationId'>, spaceId = -1) {
+		const it = this.filterSaveData(filter, spaceId);
+		const n = it.next();
+		return n.value || undefined;
 	}
 
 	/**

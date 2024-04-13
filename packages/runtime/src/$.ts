@@ -144,17 +144,18 @@ export interface Init {
 
 	// fsdev.c
 	saveDataInit(c: ClassOf<SaveData>): void;
-	saveDataNew(spaceId: number, init: any): any;
-	saveDataCreate(spaceId: number, init: any): any;
+	saveDataNew(spaceId: number, init: any): SaveData;
+	saveDataCreate(spaceId: number, init: any, nacp?: ArrayBuffer): any;
+	saveDataMount(saveData: SaveData, name: string): void;
+	saveDataFilter(filter: any, spaceId: number): SaveDataIterator;
 	fsOpenSaveDataInfoReader(saveDataSpaceId: number): SaveDataIterator | null;
 	fsSaveDataInfoReaderNext(iterator: SaveDataIterator): SaveData | null;
-	fsdevCreateSaveData(
-		type: number,
-		nacp: ArrayBuffer,
-		uid: ProfileUid,
-		cacheIndex?: number,
-	): void;
-	fsdevMount(saveData: SaveData, name: string): void;
+	//fsdevCreateSaveData(
+	//	type: number,
+	//	nacp: ArrayBuffer,
+	//	uid: ProfileUid,
+	//	cacheIndex?: number,
+	//): void;
 	//fsdevMountSaveData(name: string, nacp: ArrayBuffer, uid: ProfileUid): void;
 	//fsdevMountCacheStorage(name: string, nacp: ArrayBuffer, index: number): void;
 
