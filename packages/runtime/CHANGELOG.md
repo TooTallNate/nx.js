@@ -1,5 +1,7 @@
 # nxjs-runtime
 
+## 0.0.43
+
 ## 0.0.42
 
 ### Patch Changes
