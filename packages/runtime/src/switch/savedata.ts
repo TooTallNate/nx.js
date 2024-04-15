@@ -96,13 +96,16 @@ export class SaveData {
 	}
 
 	/**
+	 * Deletes the save data store.
 	 *
+	 * @warn This is a destructive operation! Use caution when using this function to avoid accidental data loss.
 	 */
 	delete() {
 		stub();
 	}
 
 	/**
+	 * Grows a save data store to the requested `dataSize` and `journalSize`.
 	 *
 	 * @param dataSize
 	 * @param journalSize
@@ -128,11 +131,11 @@ export class SaveData {
 	 * @example
 	 *
 	 * ```typescript
-	 * Switch.readFileSync(device.url); // OK
+	 * Switch.readDirSync(saveData.url); // OK
 	 *
-	 * device.unmount();
+	 * saveData.unmount();
 	 *
-	 * Switch.readFileSync(device.url); // ERROR THROWN!
+	 * Switch.readDirSync(saveData.url); // ERROR THROWN!
 	 * ```
 	 */
 	unmount() {
