@@ -1,6 +1,6 @@
 {
   "name": "@nx.js/nro",
-  "version": "0.0.41",
+  "version": "0.0.42",
   "description": "Package nx.js app into a `.nro` file",
   "bin": {
     "nxjs-nro": "./dist/main.js"
@@ -18,7 +18,7 @@
   "author": "Nathan Rajlich <n@n8.io>",
   "license": "MIT",
   "dependencies": {
-    "@nx.js/patch-nacp": "0.0.1",
+    "@nx.js/patch-nacp": "0.0.2",
     "@tootallnate/nacp": "^0.0.1",
     "@tootallnate/nro": "^0.1.0",
     "@tootallnate/romfs": "^0.1.0",
