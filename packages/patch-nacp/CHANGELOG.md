@@ -1,5 +1,11 @@
 # @nx.js/patch-nacp
 
+## 0.0.3
+
+### Patch Changes
+
+- Publish ([`0dffe29ad101d6699af5353f1e4dfaeb85bf8fec`](https://github.com/TooTallNate/nx.js/commit/0dffe29ad101d6699af5353f1e4dfaeb85bf8fec))
+
 ## 0.0.2
 
 ### Patch Changes

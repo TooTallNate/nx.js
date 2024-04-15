@@ -1,5 +1,12 @@
 # @nx.js/nsp
 
+## 0.0.43
+
+### Patch Changes
+
+- Updated dependencies [[`0dffe29ad101d6699af5353f1e4dfaeb85bf8fec`](https://github.com/TooTallNate/nx.js/commit/0dffe29ad101d6699af5353f1e4dfaeb85bf8fec)]:
+  - @nx.js/patch-nacp@0.0.3
+
 ## 0.0.42
 
 ### Patch Changes
