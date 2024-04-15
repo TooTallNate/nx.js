@@ -15,6 +15,7 @@ typedef struct
 typedef struct
 {
 	FsSaveDataInfoReader it;
+	FsSaveDataFilter filter;
 } nx_save_data_iterator_t;
 
 static void finalizer_save_data(JSRuntime *rt, JSValue val)
@@ -50,163 +51,6 @@ void strip_trailing_colon(char *str)
 	{
 		str[len - 1] = '\0';
 	}
-}
-
-static JSValue nx_save_data_new(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
-	Result rc;
-	u32 space_id;
-	nx_save_data_t *save_data = js_mallocz(ctx, sizeof(nx_save_data_t));
-	if (!save_data || JS_ToUint32(ctx, &space_id, argv[0]))
-	{
-		return JS_EXCEPTION;
-	}
-	s64 total = 0;
-	bool found = false;
-	FsSaveDataInfo info = {0};
-	FsSaveDataInfoReader it = {0};
-	if (JS_IsBigInt(ctx, argv[1]))
-	{
-		u64 id;
-		if (JS_ToBigInt64(ctx, (s64 *)&id, argv[1]))
-		{
-			js_free(ctx, save_data);
-			return JS_EXCEPTION;
-		}
-		rc = fsOpenSaveDataInfoReader(&it, (FsSaveDataSpaceId)space_id);
-		if (R_SUCCEEDED(rc))
-		{
-			while (!found && R_SUCCEEDED(fsSaveDataInfoReaderRead(&it, &info, 1, &total)) && total != 0)
-			{
-				if (info.save_data_id == id)
-				{
-					found = true;
-				}
-			}
-		}
-	}
-	else
-	{
-		FsSaveDataFilter filter = {0};
-
-		// "type"
-		JSValue type_val = JS_GetPropertyStr(ctx, argv[1], "type");
-		if (JS_IsNumber(type_val))
-		{
-			u32 type;
-			if (JS_ToUint32(ctx, &type, type_val))
-			{
-				js_free(ctx, save_data);
-				return JS_EXCEPTION;
-			}
-			filter.attr.save_data_type = type;
-			filter.filter_by_save_data_type = true;
-		}
-		JS_FreeValue(ctx, type_val);
-
-		// "uid"
-		JSValue uid_val = JS_GetPropertyStr(ctx, argv[1], "uid");
-		if (JS_IsArray(ctx, uid_val))
-		{
-			if (
-				JS_ToBigInt64(ctx, (int64_t *)&filter.attr.uid.uid[0], JS_GetPropertyUint32(ctx, uid_val, 0)) ||
-				JS_ToBigInt64(ctx, (int64_t *)&filter.attr.uid.uid[1], JS_GetPropertyUint32(ctx, uid_val, 1)))
-			{
-				js_free(ctx, save_data);
-				return JS_EXCEPTION;
-			}
-			filter.filter_by_user_id = true;
-		}
-		JS_FreeValue(ctx, uid_val);
-
-		// "systemId"
-		JSValue system_id_val = JS_GetPropertyStr(ctx, argv[1], "systemId");
-		if (JS_IsBigInt(ctx, system_id_val))
-		{
-			u64 system_id;
-			if (JS_ToBigInt64(ctx, (s64 *)&system_id, system_id_val))
-			{
-				js_free(ctx, save_data);
-				return JS_EXCEPTION;
-			}
-			filter.attr.system_save_data_id = system_id;
-			filter.filter_by_system_save_data_id = true;
-		}
-		JS_FreeValue(ctx, system_id_val);
-
-		// "applicationId"
-		JSValue application_id_val = JS_GetPropertyStr(ctx, argv[1], "applicationId");
-		if (JS_IsBigInt(ctx, application_id_val))
-		{
-			u64 application_id;
-			if (JS_ToBigInt64(ctx, (s64 *)&application_id, application_id_val))
-			{
-				js_free(ctx, save_data);
-				return JS_EXCEPTION;
-			}
-			filter.attr.application_id = application_id;
-			filter.filter_by_application_id = true;
-		}
-		JS_FreeValue(ctx, application_id_val);
-
-		// "index"
-		JSValue index_val = JS_GetPropertyStr(ctx, argv[1], "index");
-		if (JS_IsNumber(index_val))
-		{
-			u32 index;
-			if (JS_ToUint32(ctx, &index, index_val))
-			{
-				js_free(ctx, save_data);
-				return JS_EXCEPTION;
-			}
-			filter.attr.save_data_index = index;
-			filter.filter_by_index = true;
-		}
-		JS_FreeValue(ctx, index_val);
-
-		// "rank"
-		JSValue rank_val = JS_GetPropertyStr(ctx, argv[1], "rank");
-		if (JS_IsNumber(rank_val))
-		{
-			u32 rank;
-			if (JS_ToUint32(ctx, &rank, rank_val))
-			{
-				js_free(ctx, save_data);
-				return JS_EXCEPTION;
-			}
-			filter.attr.save_data_rank = rank;
-			filter.save_data_rank = rank;
-		}
-		JS_FreeValue(ctx, rank_val);
-
-		rc = fsOpenSaveDataInfoReaderWithFilter(&it, (FsSaveDataSpaceId)space_id, &filter);
-		if (R_FAILED(rc))
-		{
-			js_free(ctx, save_data);
-			return nx_throw_libnx_error(ctx, rc, "fsOpenSaveDataInfoReaderWithFilter()");
-		}
-
-		rc = fsSaveDataInfoReaderRead(&it, &info, 1, &total);
-		if (R_FAILED(rc))
-		{
-			js_free(ctx, save_data);
-			return nx_throw_libnx_error(ctx, rc, "fsSaveDataInfoReaderRead()");
-		}
-
-		found = total != 0;
-	}
-
-	if (!found)
-	{
-		js_free(ctx, save_data);
-		return JS_ThrowReferenceError(ctx, "Save data not found");
-	}
-
-	save_data->info = info;
-	JSValue obj = JS_NewObjectClass(ctx, nx_save_data_class_id);
-	JS_SetOpaque(obj, save_data);
-	JS_SetPropertyStr(ctx, obj, "url", JS_NULL);
-	return obj;
 }
 
 static JSValue nx_save_data_id(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -484,6 +328,151 @@ static JSValue nx_save_data_unmount(JSContext *ctx, JSValueConst this_val, int a
 	return JS_UNDEFINED;
 }
 
+static JSValue nx_save_data_filter(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	nx_save_data_iterator_t *save_data_iterator = js_mallocz(ctx, sizeof(nx_save_data_iterator_t));
+	if (!save_data_iterator)
+	{
+		return JS_EXCEPTION;
+	}
+
+	// "spaceId"
+	u32 space_id = -1;
+	JSValue val = JS_GetPropertyStr(ctx, argv[0], "spaceId");
+	if (JS_IsNumber(val))
+	{
+		if (JS_ToUint32(ctx, &space_id, val))
+		{
+			js_free(ctx, save_data_iterator);
+			return JS_EXCEPTION;
+		}
+	}
+	JS_FreeValue(ctx, val);
+	printf("space id: %u\n", space_id);
+
+	// "type"
+	JSValue type_val = JS_GetPropertyStr(ctx, argv[0], "type");
+	if (JS_IsNumber(type_val))
+	{
+		u32 type;
+		if (JS_ToUint32(ctx, &type, type_val))
+		{
+			js_free(ctx, save_data_iterator);
+			return JS_EXCEPTION;
+		}
+		save_data_iterator->filter.attr.save_data_type = (u8)type;
+		save_data_iterator->filter.filter_by_save_data_type = true;
+	}
+	JS_FreeValue(ctx, type_val);
+
+	// "uid"
+	JSValue uid_val = JS_GetPropertyStr(ctx, argv[0], "uid");
+	if (JS_IsArray(ctx, uid_val))
+	{
+		if (
+			JS_ToBigInt64(ctx, (int64_t *)&save_data_iterator->filter.attr.uid.uid[0], JS_GetPropertyUint32(ctx, uid_val, 0)) ||
+			JS_ToBigInt64(ctx, (int64_t *)&save_data_iterator->filter.attr.uid.uid[1], JS_GetPropertyUint32(ctx, uid_val, 1)))
+		{
+			js_free(ctx, save_data_iterator);
+			return JS_EXCEPTION;
+		}
+		save_data_iterator->filter.filter_by_user_id = true;
+	}
+	JS_FreeValue(ctx, uid_val);
+
+	// "systemId"
+	JSValue system_id_val = JS_GetPropertyStr(ctx, argv[0], "systemId");
+	if (JS_IsBigInt(ctx, system_id_val))
+	{
+		u64 system_id;
+		if (JS_ToBigInt64(ctx, (s64 *)&system_id, system_id_val))
+		{
+			js_free(ctx, save_data_iterator);
+			return JS_EXCEPTION;
+		}
+		save_data_iterator->filter.attr.system_save_data_id = system_id;
+		save_data_iterator->filter.filter_by_system_save_data_id = true;
+	}
+	JS_FreeValue(ctx, system_id_val);
+
+	// "applicationId"
+	JSValue application_id_val = JS_GetPropertyStr(ctx, argv[0], "applicationId");
+	if (JS_IsBigInt(ctx, application_id_val))
+	{
+		u64 application_id;
+		if (JS_ToBigInt64(ctx, (s64 *)&application_id, application_id_val))
+		{
+			js_free(ctx, save_data_iterator);
+			return JS_EXCEPTION;
+		}
+		save_data_iterator->filter.attr.application_id = application_id;
+		save_data_iterator->filter.filter_by_application_id = true;
+	}
+	JS_FreeValue(ctx, application_id_val);
+
+	// "index"
+	JSValue index_val = JS_GetPropertyStr(ctx, argv[0], "index");
+	if (JS_IsNumber(index_val))
+	{
+		u32 index;
+		if (JS_ToUint32(ctx, &index, index_val))
+		{
+			js_free(ctx, save_data_iterator);
+			return JS_EXCEPTION;
+		}
+		save_data_iterator->filter.attr.save_data_index = index;
+		save_data_iterator->filter.filter_by_index = true;
+	}
+	JS_FreeValue(ctx, index_val);
+
+	// "rank"
+	JSValue rank_val = JS_GetPropertyStr(ctx, argv[0], "rank");
+	if (JS_IsNumber(rank_val))
+	{
+		u32 rank;
+		if (JS_ToUint32(ctx, &rank, rank_val))
+		{
+			js_free(ctx, save_data_iterator);
+			return JS_EXCEPTION;
+		}
+		save_data_iterator->filter.attr.save_data_rank = rank;
+		save_data_iterator->filter.save_data_rank = rank;
+	}
+	JS_FreeValue(ctx, rank_val);
+
+	// if (save_data_iterator->filter.filter_by_application_id)
+	//{
+	//	printf("app id: %lu\n", save_data_iterator->filter.attr.application_id);
+	// }
+	// if (save_data_iterator->filter.filter_by_index)
+	//{
+	//	printf("index: %u\n", save_data_iterator->filter.attr.save_data_index);
+	// }
+	// if (save_data_iterator->filter.filter_by_save_data_type)
+	//{
+	//	printf("type: %u\n", save_data_iterator->filter.attr.save_data_type);
+	// }
+	// if (save_data_iterator->filter.filter_by_system_save_data_id)
+	//{
+	//	printf("systemId: %lu\n", save_data_iterator->filter.attr.system_save_data_id);
+	// }
+	// if (save_data_iterator->filter.filter_by_user_id)
+	//{
+	//	printf("uid: %lu%lu\n", save_data_iterator->filter.attr.uid.uid[0], save_data_iterator->filter.attr.uid.uid[1]);
+	// }
+
+	Result rc = fsOpenSaveDataInfoReaderWithFilter(&save_data_iterator->it, (FsSaveDataSpaceId)space_id, &save_data_iterator->filter);
+	if (R_FAILED(rc))
+	{
+		js_free(ctx, save_data_iterator);
+		return nx_throw_libnx_error(ctx, rc, "fsOpenSaveDataInfoReaderWithFilter()");
+	}
+
+	JSValue it = JS_NewObjectClass(ctx, nx_save_data_iterator_class_id);
+	JS_SetOpaque(it, save_data_iterator);
+	return it;
+}
+
 static JSValue nx_fs_open_save_data_info_reader(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	u32 space_id;
@@ -536,89 +525,147 @@ static JSValue nx_fs_save_data_info_reader_next(JSContext *ctx, JSValueConst thi
 	return obj;
 }
 
-static JSValue nx_fsdev_create_save_data(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+static JSValue nx_save_data_create_sync(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	AccountUid uid;
-	FsSaveDataType type = 0;
-	if (
-		JS_ToUint32(ctx, &type, argv[0]) ||
-		JS_ToBigInt64(ctx, (s64 *)&uid.uid[0], JS_GetPropertyUint32(ctx, argv[2], 0)) ||
-		JS_ToBigInt64(ctx, (s64 *)&uid.uid[1], JS_GetPropertyUint32(ctx, argv[2], 1)))
+	JSValue val;
+	FsSaveDataAttribute attr = {0};
+	FsSaveDataCreationInfo crt = {0};
+	FsSaveDataMetaInfo meta = {0};
+
+	if (argc >= 2 && !JS_IsUndefined(argv[1]))
 	{
-		return JS_EXCEPTION;
+		size_t nacp_size;
+		NacpStruct *nacp = (NacpStruct *)JS_GetArrayBuffer(ctx, &nacp_size, argv[1]);
+		if (nacp_size != sizeof(NacpStruct))
+		{
+			return JS_ThrowTypeError(ctx, "Invalid NACP buffer (got %ld bytes, expected %ld)", nacp_size, sizeof(NacpStruct));
+		}
+		switch (attr.save_data_type)
+		{
+		case FsSaveDataType_Account:
+			crt.save_data_size = nacp->user_account_save_data_size;
+			crt.journal_size = nacp->user_account_save_data_journal_size;
+			break;
+
+		case FsSaveDataType_Device:
+			crt.save_data_size = nacp->device_save_data_size;
+			crt.journal_size = nacp->device_save_data_journal_size;
+			break;
+
+		case FsSaveDataType_Bcat:
+			crt.save_data_size = nacp->bcat_delivery_cache_storage_size;
+			crt.journal_size = nacp->bcat_delivery_cache_storage_size;
+			break;
+
+		case FsSaveDataType_Cache:
+			crt.save_data_size = nacp->cache_storage_size;
+			if (nacp->cache_storage_journal_size > nacp->cache_storage_data_and_journal_size_max)
+				crt.journal_size = nacp->cache_storage_journal_size;
+			else
+				crt.journal_size = nacp->cache_storage_data_and_journal_size_max;
+			break;
+		}
 	}
 
-	uint32_t cache_index = 0;
-	if (argc > 3)
+	val = JS_GetPropertyStr(ctx, argv[0], "spaceId");
+	if (JS_IsNumber(val))
 	{
-		if (JS_ToUint32(ctx, &cache_index, argv[3]))
+		if (JS_ToUint32(ctx, (u32 *)&crt.save_data_space_id, val))
 		{
 			return JS_EXCEPTION;
 		}
 	}
+	JS_FreeValue(ctx, val);
 
-	size_t nacp_size;
-	NacpStruct *nacp = (NacpStruct *)JS_GetArrayBuffer(ctx, &nacp_size, argv[1]);
-	if (nacp_size != sizeof(NacpStruct))
+	val = JS_GetPropertyStr(ctx, argv[0], "type");
+	if (JS_IsNumber(val))
 	{
-		return JS_ThrowTypeError(ctx, "Invalid NACP buffer (got %ld bytes, expected %ld)", nacp_size, sizeof(NacpStruct));
-	}
-
-	FsSaveDataAttribute attr = {0};
-	attr.application_id = nacp->save_data_owner_id;
-	attr.uid = uid;
-	attr.system_save_data_id = 0;
-	attr.save_data_type = type;
-	attr.save_data_rank = 0;
-	attr.save_data_index = (u16)cache_index;
-
-	FsSaveDataCreationInfo crt = {0};
-	crt.available_size = 0x4000;
-	crt.owner_id = type == FsSaveDataType_Bcat ? 0x010000000000000C : nacp->save_data_owner_id;
-	crt.flags = 0;
-	crt.save_data_space_id = FsSaveDataSpaceId_User;
-	int64_t save_size = 0, journal_size = 0;
-	switch (type)
-	{
-	case FsSaveDataType_Account:
-		save_size = nacp->user_account_save_data_size;
-		journal_size = nacp->user_account_save_data_journal_size;
-		break;
-
-	case FsSaveDataType_Device:
-		save_size = nacp->device_save_data_size;
-		journal_size = nacp->device_save_data_journal_size;
-		break;
-
-	case FsSaveDataType_Bcat:
-		save_size = nacp->bcat_delivery_cache_storage_size;
-		journal_size = nacp->bcat_delivery_cache_storage_size;
-		break;
-
-	case FsSaveDataType_Cache:
-		save_size = nacp->cache_storage_size;
-		if (!save_size)
+		if (JS_ToUint32(ctx, (u32 *)&attr.save_data_type, val))
 		{
-			save_size = 32 * 1024 * 1024;
+			return JS_EXCEPTION;
 		}
-		crt.save_data_space_id = FsSaveDataSpaceId_SdUser;
-		if (nacp->cache_storage_journal_size > nacp->cache_storage_data_and_journal_size_max)
-			journal_size = nacp->cache_storage_journal_size;
-		else
-			journal_size = nacp->cache_storage_data_and_journal_size_max;
-		break;
-
-	default:
-		JS_ThrowTypeError(ctx, "Unsupported type: %d", type);
-		return JS_EXCEPTION;
-		break;
 	}
-	crt.journal_size = journal_size;
-	crt.save_data_size = save_size;
+	JS_FreeValue(ctx, val);
 
-	FsSaveDataMetaInfo meta;
-	memset(&meta, 0, sizeof(meta));
-	if (type != FsSaveDataType_Bcat)
+	val = JS_GetPropertyStr(ctx, argv[0], "size");
+	if (JS_IsBigInt(ctx, val))
+	{
+		if (JS_ToBigInt64(ctx, &crt.save_data_size, val))
+		{
+			return JS_EXCEPTION;
+		}
+	}
+	JS_FreeValue(ctx, val);
+
+	val = JS_GetPropertyStr(ctx, argv[0], "journalSize");
+	if (JS_IsBigInt(ctx, val))
+	{
+		if (JS_ToBigInt64(ctx, &crt.journal_size, val))
+		{
+			return JS_EXCEPTION;
+		}
+	}
+	JS_FreeValue(ctx, val);
+
+	val = JS_GetPropertyStr(ctx, argv[1], "uid");
+	if (JS_IsArray(ctx, val))
+	{
+		if (
+			JS_ToBigInt64(ctx, (int64_t *)&attr.uid.uid[0], JS_GetPropertyUint32(ctx, val, 0)) ||
+			JS_ToBigInt64(ctx, (int64_t *)&attr.uid.uid[1], JS_GetPropertyUint32(ctx, val, 1)))
+		{
+			return JS_EXCEPTION;
+		}
+	}
+	JS_FreeValue(ctx, val);
+
+	val = JS_GetPropertyStr(ctx, argv[0], "systemId");
+	if (JS_IsBigInt(ctx, val))
+	{
+		if (JS_ToBigInt64(ctx, (s64 *)&attr.system_save_data_id, val))
+		{
+			return JS_EXCEPTION;
+		}
+	}
+	JS_FreeValue(ctx, val);
+
+	val = JS_GetPropertyStr(ctx, argv[0], "applicationId");
+	if (JS_IsBigInt(ctx, val))
+	{
+		if (JS_ToBigInt64(ctx, (s64 *)&attr.application_id, val))
+		{
+			return JS_EXCEPTION;
+		}
+	}
+	JS_FreeValue(ctx, val);
+
+	val = JS_GetPropertyStr(ctx, argv[0], "index");
+	if (JS_IsNumber(val))
+	{
+		if (JS_ToUint32(ctx, (u32 *)&attr.save_data_index, val))
+		{
+			return JS_EXCEPTION;
+		}
+	}
+	JS_FreeValue(ctx, val);
+
+	val = JS_GetPropertyStr(ctx, argv[0], "rank");
+	if (JS_IsNumber(val))
+	{
+		if (JS_ToUint32(ctx, (u32 *)&attr.save_data_rank, val))
+		{
+			return JS_EXCEPTION;
+		}
+	}
+	JS_FreeValue(ctx, val);
+
+	// TODO: make configurable?
+	crt.available_size = 0x4000;
+	crt.flags = 0;
+	crt.owner_id = attr.save_data_type == FsSaveDataType_Bcat ? 0x010000000000000C : attr.application_id;
+
+	// TODO: make configurable?
+	if (attr.save_data_type != FsSaveDataType_Bcat)
 	{
 		meta.size = 0x40060;
 		meta.type = FsSaveDataMetaType_Thumbnail;
@@ -629,6 +676,7 @@ static JSValue nx_fsdev_create_save_data(JSContext *ctx, JSValueConst this_val, 
 	{
 		return nx_throw_libnx_error(ctx, rc, "fsCreateSaveDataFileSystem()");
 	}
+	printf("rc: %d\n", rc);
 
 	return JS_UNDEFINED;
 }
@@ -656,11 +704,11 @@ static JSValue nx_save_data_init(JSContext *ctx, JSValueConst this_val, int argc
 
 static const JSCFunctionListEntry function_list[] = {
 	JS_CFUNC_DEF("saveDataInit", 1, nx_save_data_init),
-	JS_CFUNC_DEF("saveDataNew", 1, nx_save_data_new),
 	JS_CFUNC_DEF("saveDataMount", 1, nx_save_data_mount),
+	JS_CFUNC_DEF("saveDataFilter", 1, nx_save_data_filter),
+	JS_CFUNC_DEF("saveDataCreateSync", 1, nx_save_data_create_sync),
 	JS_CFUNC_DEF("fsOpenSaveDataInfoReader", 1, nx_fs_open_save_data_info_reader),
 	JS_CFUNC_DEF("fsSaveDataInfoReaderNext", 1, nx_fs_save_data_info_reader_next),
-	JS_CFUNC_DEF("fsdevCreateSaveData", 3, nx_fsdev_create_save_data),
 };
 
 void nx_init_fsdev(JSContext *ctx, JSValueConst init_obj)

@@ -5,6 +5,8 @@ import type {
 	Profile,
 	ProfileUid,
 	SaveData,
+	SaveDataCreationInfo,
+	SaveDataFilter,
 	Stats,
 	Versions,
 } from './switch';
@@ -144,20 +146,11 @@ export interface Init {
 
 	// fsdev.c
 	saveDataInit(c: ClassOf<SaveData>): void;
-	saveDataNew(spaceId: number, init: any): SaveData;
-	saveDataCreate(spaceId: number, init: any, nacp?: ArrayBuffer): any;
+	saveDataCreateSync(info: SaveDataCreationInfo, nacp?: ArrayBuffer): void;
 	saveDataMount(saveData: SaveData, name: string): void;
-	saveDataFilter(filter: any, spaceId: number): SaveDataIterator;
+	saveDataFilter(filter: SaveDataFilter): SaveDataIterator;
 	fsOpenSaveDataInfoReader(saveDataSpaceId: number): SaveDataIterator | null;
 	fsSaveDataInfoReaderNext(iterator: SaveDataIterator): SaveData | null;
-	//fsdevCreateSaveData(
-	//	type: number,
-	//	nacp: ArrayBuffer,
-	//	uid: ProfileUid,
-	//	cacheIndex?: number,
-	//): void;
-	//fsdevMountSaveData(name: string, nacp: ArrayBuffer, uid: ProfileUid): void;
-	//fsdevMountCacheStorage(name: string, nacp: ArrayBuffer, index: number): void;
 
 	// image.c
 	imageInit(c: ClassOf<Image | ImageBitmap>): void;

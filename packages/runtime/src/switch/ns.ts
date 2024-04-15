@@ -6,7 +6,7 @@ import {
 } from './savedata';
 import { inspect } from '../inspect';
 import { readFileSync } from '../fs';
-import { proto, stub } from '../utils';
+import { first, proto, stub } from '../utils';
 import type { Profile } from './profile';
 
 let init = false;
@@ -108,8 +108,8 @@ export class Application {
 		stub();
 	}
 
-	createSaveDataSync(spaceId: number, info: SaveDataCreationInfoWithNacp) {
-		return SaveData.createSync(spaceId, info, this.nacp);
+	createSaveDataSync(info: SaveDataCreationInfoWithNacp) {
+		return SaveData.createSync(info, this.nacp);
 	}
 
 	/**
@@ -126,10 +126,12 @@ export class Application {
 	 */
 	createProfileSaveDataSync(
 		profile: Profile,
-		spaceId = 1 /* FsSaveDataSpaceId_User */,
+		info?: Partial<SaveDataCreationInfoWithNacp>,
 	) {
-		return this.createSaveDataSync(spaceId, {
+		return this.createSaveDataSync({
+			spaceId: 1 /* FsSaveDataSpaceId_User */,
 			type: 1 /* FsSaveDataType_Account */,
+			...info,
 			uid: profile.uid,
 		});
 	}
@@ -139,32 +141,32 @@ export class Application {
 	 *
 	 * @param index The save index ID. Defaults to `0`.
 	 */
-	createCacheSaveDataSync(index = 0, spaceId = 1 /* FsSaveDataSpaceId_User */) {
-		return this.createSaveDataSync(spaceId, {
+	createCacheSaveDataSync(
+		index = 0,
+		info?: Partial<SaveDataCreationInfoWithNacp>,
+	) {
+		return this.createSaveDataSync({
+			spaceId: 1 /* FsSaveDataSpaceId_User */,
 			type: 5 /* FsSaveDataType_Cache */,
+			...info,
 			index,
 		});
 	}
 
-	*filterSaveData(filter: Omit<SaveDataFilter, 'applicationId'>, spaceId = -1) {
+	*filterSaveData(filter?: Omit<SaveDataFilter, 'applicationId'>) {
 		const nacp = new DataView(this.nacp);
-		yield* SaveData.filter(
-			{
-				applicationId: getSaveDataOwnerId(nacp),
-				...filter,
-			},
-			spaceId,
-		);
+		yield* SaveData.filter({
+			applicationId: getSaveDataOwnerId(nacp),
+			...filter,
+		});
 	}
 
-	findSaveData(filter: Omit<SaveDataFilter, 'applicationId'>, spaceId = -1) {
-		const it = this.filterSaveData(filter, spaceId);
-		const n = it.next();
-		return n.value || undefined;
+	findSaveData(filter: Omit<SaveDataFilter, 'applicationId'>) {
+		return first(this.filterSaveData(filter));
 	}
 
 	/**
-	 * An `Application` instance representing the currently running application.
+	 * An {@link Application} instance representing the currently running application.
 	 */
 	static get self(): Application {
 		if (!self) {

@@ -2,12 +2,13 @@ import { $ } from '../$';
 import { URL } from '../polyfills/url';
 import { crypto } from '../crypto';
 import { inspect } from '../inspect';
-import { proto, stub } from '../utils';
+import { assertInternalConstructor, first, proto, stub } from '../utils';
 import type { ProfileUid } from './profile';
 
 const genName = () => `s${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}`;
 
 export interface SaveDataFilter {
+	spaceId?: number;
 	type?: number;
 	uid?: ProfileUid;
 	systemId?: bigint;
@@ -17,6 +18,7 @@ export interface SaveDataFilter {
 }
 
 export interface SaveDataCreationInfoBase {
+	spaceId: number;
 	type: number;
 	size: bigint;
 	journalSize: bigint;
@@ -28,6 +30,7 @@ export interface SaveDataCreationInfoBase {
 }
 
 export interface SaveDataCreationInfoWithNacp {
+	spaceId: number;
 	type: number;
 	size?: bigint;
 	journalSize?: bigint;
@@ -68,14 +71,10 @@ export class SaveData {
 	declare readonly rank: number;
 
 	/**
-	 * Creates a new `SaveData` instance with manually provided values.
-	 *
-	 * @note This does not create new save data - the values should represent an existing save data.
+	 * @private
 	 */
-	constructor(spaceId: number, id: bigint);
-	constructor(spaceId: number, filter: SaveDataFilter);
-	constructor(spaceId: number, init: bigint | SaveDataFilter) {
-		return proto($.saveDataNew(spaceId, init), SaveData);
+	constructor() {
+		assertInternalConstructor(arguments);
 	}
 
 	/**
@@ -140,34 +139,52 @@ export class SaveData {
 		stub();
 	}
 
-	static *filter(filter: SaveDataFilter, spaceId = -1) {
-		const it = $.saveDataFilter(filter, spaceId);
-		while (1) {
-			const info = $.fsSaveDataInfoReaderNext(it);
-			if (!info) break;
-			yield proto(info, SaveData);
-		}
-	}
-
-	static find(filter: SaveDataFilter, spaceId = -1): SaveData | undefined {
-		const it = SaveData.filter(filter, spaceId);
-		const n = it.next();
-		return n.value || undefined;
-	}
-
-	static createSync(spaceId: number, init: SaveDataCreationInfoBase): SaveData;
+	static createSync(init: SaveDataCreationInfoBase): SaveData;
 	static createSync(
-		spaceId: number,
 		init: SaveDataCreationInfoWithNacp,
 		nacp: ArrayBuffer,
 	): SaveData;
-	static createSync(
-		spaceId: number,
-		init: SaveDataCreationInfo,
-		nacp?: ArrayBuffer,
-	): SaveData {
-		const s = $.saveDataCreate(spaceId, init, nacp);
-		return proto(s, SaveData);
+	static createSync(init: SaveDataCreationInfo, nacp?: ArrayBuffer): SaveData {
+		$.saveDataCreateSync(init, nacp);
+		const s = SaveData.find(init);
+		if (!s) {
+			throw new Error('Could not find newly created save data');
+		}
+		return s;
+	}
+
+	static *filter(filter: SaveDataFilter) {
+		// TODO: `saveDataFilter` doesn't seem to work correctly :/
+		//const it = $.saveDataFilter(filter);
+		//while (1) {
+		//	const info = $.fsSaveDataInfoReaderNext(it);
+		//	if (!info) break;
+		//	yield proto(info, SaveData);
+		//}
+		for (const s of SaveData) {
+			if (typeof filter.spaceId === 'number' && s.spaceId !== filter.spaceId) {
+				continue;
+			}
+			if (typeof filter.type === 'number' && s.type !== filter.type) continue;
+			if (
+				typeof filter.applicationId === 'bigint' &&
+				s.applicationId !== filter.applicationId
+			)
+				continue;
+			if (
+				filter.uid &&
+				(s.uid[0] !== filter.uid[0] || s.uid[1] !== filter.uid[1])
+			)
+				continue;
+			if (typeof filter.index === 'number' && s.index !== filter.index)
+				continue;
+			if (typeof filter.rank === 'number' && s.rank !== filter.rank) continue;
+			yield s;
+		}
+	}
+
+	static find(filter: SaveDataFilter): SaveData | undefined {
+		return first(SaveData.filter(filter));
 	}
 
 	static *[Symbol.iterator]() {

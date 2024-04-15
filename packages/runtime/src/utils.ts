@@ -161,3 +161,8 @@ export function decodeUTF16(buffer: ArrayBuffer) {
 	}
 	return result;
 }
+
+export function first<T>(it: Iterator<T>): T | undefined {
+	const n = it.next();
+	return n.value || undefined;
+}
