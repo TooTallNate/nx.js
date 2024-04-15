@@ -60,7 +60,7 @@ export class Profile {
 	 * }
 	 * ```
 	 */
-	*[Symbol.iterator]() {
+	static *[Symbol.iterator]() {
 		_init();
 		const pr = $.accountProfiles();
 		for (const p of pr) {

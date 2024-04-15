@@ -6,8 +6,6 @@ export enum FsSaveDataSpaceId {
 	SdUser = 4, ///< [4.0.0+] SdUser
 	ProperSystem = 100, ///< [3.0.0+] ProperSystem
 	SafeMode = 101, ///< [3.0.0+] SafeMode
-
-	All = -1, ///< Pseudo value for fsOpenSaveDataInfoReader().
 }
 
 export enum FsSaveDataType {

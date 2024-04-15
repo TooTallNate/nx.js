@@ -16,7 +16,6 @@ import {
 	def,
 	encodeUTF16,
 } from './utils';
-import type { FsDev } from './switch/fsdev';
 
 interface StorageImpl {
 	clear(): void;
@@ -127,24 +126,22 @@ Object.defineProperty(globalThis, 'localStorage', {
 		const { self } = Application;
 		const profile = currentProfile({ required: true });
 
-		let dev: FsDev;
-		try {
-			dev = self.mountSaveData(profile);
-		} catch (err: any) {
-			// rethrow if not `ResultTargetNotFound` (meaning save data has not been created)
-			if (err.description !== 1002) throw err;
-
-			self.createSaveData(profile);
-			dev = self.mountSaveData(profile);
+		let saveData = self.findSaveData({
+			type: 1 /* FsSaveDataType_Account */,
+			uid: profile.uid,
+		});
+		if (!saveData) {
+			saveData = self.createProfileSaveDataSync(profile);
 		}
+		const base = new URL('localStorage/', saveData.mount());
 
-		const base = new URL('localStorage/', dev.url);
 		const keyToPath = (key: any) => {
 			const url = `${base.href}_${Array.from(String(key))
 				.map((l) => l.charCodeAt(0).toString(16))
 				.join('_')}`;
 			return url;
 		};
+
 		const pathToKey = (path: string) => {
 			const key = String.fromCharCode(
 				...path
@@ -158,7 +155,7 @@ Object.defineProperty(globalThis, 'localStorage', {
 		const impl: StorageImpl = {
 			clear() {
 				removeSync(base);
-				dev.commit();
+				saveData!.commit();
 			},
 			getItem(key: string): string | null {
 				const b = readFileSync(keyToPath(key));
@@ -174,11 +171,11 @@ Object.defineProperty(globalThis, 'localStorage', {
 			},
 			removeItem(key: string): void {
 				removeSync(keyToPath(key));
-				dev.commit();
+				saveData!.commit();
 			},
 			setItem(key: string, value: string): void {
 				writeFileSync(keyToPath(key), encodeUTF16(String(value)));
-				dev.commit();
+				saveData!.commit();
 			},
 			length(): number {
 				const keys = readDirSync(base);
