@@ -6,9 +6,9 @@ import {
 	writeFileSync,
 } from './fs';
 import { URL } from './polyfills/url';
+import { Profile } from './switch/profile';
 import { Application } from './switch/ns';
 import { INTERNAL_SYMBOL } from './internal';
-import { currentProfile } from './switch/profile';
 import {
 	assertInternalConstructor,
 	createInternal,
@@ -124,7 +124,10 @@ Object.defineProperty(globalThis, 'localStorage', {
 	configurable: true,
 	get() {
 		const { self } = Application;
-		const profile = currentProfile({ required: true });
+		let profile = Profile.current;
+		while (!profile) {
+			profile = Profile.current = Profile.select();
+		}
 
 		let saveData = self.findSaveData({
 			type: 1 /* FsSaveDataType_Account */,
