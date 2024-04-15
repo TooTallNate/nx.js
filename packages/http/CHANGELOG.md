@@ -1,5 +1,11 @@
 # @nx.js/http
 
+## 0.0.3
+
+### Patch Changes
+
+- Add ability to configure response headers in `createStaticFileHandler()` ([`d471fec11708f60a4dce442e24eb9318b301ea74`](https://github.com/TooTallNate/nx.js/commit/d471fec11708f60a4dce442e24eb9318b301ea74))
+
 ## 0.0.2
 
 ### Patch Changes

@@ -64,9 +64,9 @@ export class Console {
 	 *
 	 * @param s The text to print to the console.
 	 */
-	print(s: string) {
+	print = (s: string) => {
 		_(this).print.call(this, s);
-	}
+	};
 
 	/**
 	 * Prints string `s` to the debug log file, without any formatting applied.
@@ -75,50 +75,50 @@ export class Console {
 	 * @param s The text to print to the log file.
 	 * @note This function **does not** invoke _text rendering mode_, so it can safely be used when rendering with the Canvas API.
 	 */
-	printErr(s: string) {
+	printErr = (s: string) => {
 		_(this).printErr.call(this, s);
-	}
+	};
 
 	/**
 	 * Logs the formatted `input` to the screen as white text.
 	 */
-	log(...input: unknown[]) {
+	log = (...input: unknown[]) => {
 		this.print(`${format(...input)}\n`);
-	}
+	};
 
 	/**
 	 * Logs the formatted `input` to the screen as yellow text.
 	 */
-	warn(...input: unknown[]) {
+	warn = (...input: unknown[]) => {
 		this.print(`${bold(bgYellowDim(yellow(format(...input))))}\n`);
-	}
+	};
 
 	/**
 	 * Logs the formatted `input` to the screen as red text.
 	 */
-	error(...input: unknown[]) {
+	error = (...input: unknown[]) => {
 		this.print(`${bold(bgRedDim(red(format(...input))))}\n`);
-	}
+	};
 
 	/**
 	 * Writes the formatted `input` to the debug log file.
 	 *
 	 * @note This function **does not** invoke _text rendering mode_, so it can safely be used when rendering with the Canvas API.
 	 */
-	debug(...input: unknown[]) {
+	debug = (...input: unknown[]) => {
 		this.printErr(`${format(...input)}\n`);
-	}
+	};
 
 	/**
 	 * Logs the formatted `input` to the screen as white text,
 	 * including a stack trace of where the function was invoked.
 	 */
-	trace(...input: unknown[]) {
+	trace = (...input: unknown[]) => {
 		const f = format(...input);
 		let s = new Error().stack!.split('\n').slice(1).join('\n');
 		if (!s.endsWith('\n')) s += '\n';
 		this.print(`Trace${f ? `: ${f}` : ''}\n${s}`);
-	}
+	};
 }
 
 /**

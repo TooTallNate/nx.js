@@ -24,7 +24,7 @@ JSValue nx_throw_libnx_error(JSContext *ctx, Result rc, char *name)
 	u32 module = R_MODULE(rc);
 	u32 desc = R_DESCRIPTION(rc);
 	char message[256];
-	snprintf(message, 256, "%s failed (module: %u, description: %u)", name, module, desc);
+	snprintf(message, sizeof(message), "%s failed (module: %u, description: %u)", name, module, desc);
 	JS_DefinePropertyValueStr(ctx, err, "message", JS_NewString(ctx, message), JS_PROP_C_W);
 	JS_SetPropertyStr(ctx, err, "module", JS_NewUint32(ctx, module));
 	JS_SetPropertyStr(ctx, err, "description", JS_NewUint32(ctx, desc));

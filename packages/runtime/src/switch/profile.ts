@@ -1,4 +1,5 @@
 import { $ } from '../$';
+import { inspect } from '../inspect';
 import { proto } from '../utils';
 
 let init = false;
@@ -10,6 +11,9 @@ function _init() {
 }
 
 export type ProfileUid = [bigint, bigint];
+
+// The currently selected profile
+let p: Profile | null | undefined;
 
 /**
  * Represents a user profile that exists on the system.
@@ -47,67 +51,53 @@ export class Profile {
 		_init();
 		return proto($.accountProfileNew(uid), Profile);
 	}
-}
-$.accountProfileInit(Profile);
 
-let p: Profile | null = null;
+	static get current(): Profile | null {
+		if (typeof p !== 'undefined') return p;
+		_init();
+		p = $.accountCurrentProfile();
+		return p;
+	}
 
-export interface CurrentProfileOptions {
-	required?: boolean;
-}
+	static set current(v: Profile | null) {
+		p = v;
+	}
 
-/**
- * Return a {@link Profile} instance if there was a preselected user
- * when launching the application, or `null` if there was none.
- *
- * If `required: true` is set and there was no preselected user, then
- * the user selection interface will be shown to allow the user to
- * select a profile. Subsequent calls to `currentProfile()` will
- * return the selected profile without user interaction.
- */
-export function currentProfile(
-	opts: CurrentProfileOptions & { required: true },
-): Profile;
-export function currentProfile(opts?: CurrentProfileOptions): Profile | null;
-export function currentProfile({ required }: CurrentProfileOptions = {}) {
-	_init();
-	if (p) return p;
-	p = $.accountCurrentProfile();
-	if (p) proto(p, Profile);
-	while (!p && required) p = selectProfile();
-	return p;
-}
+	/**
+	 * Shows the user selection interface and returns a {@link Profile}
+	 * instance representing the user that was selected.
+	 *
+	 * @note This function blocks the event loop until the user has made their selection.
+	 */
+	static select() {
+		_init();
+		const p = $.accountSelectProfile();
+		if (p) proto(p, Profile);
+		return p;
+	}
 
-/**
- * Shows the user selection interface and returns a {@link Profile}
- * instance representing the user that was selected.
- *
- * @note This function blocks the event loop until the user has made their selection.
- */
-export function selectProfile() {
-	_init();
-	const p = $.accountSelectProfile();
-	if (p) proto(p, Profile);
-	return p;
-}
-
-/**
- * Can be used as an iterator to retrieve the list of user profiles.
- *
- * @example
- *
- * ```typescript
- * for (const profile of Switch.profiles) {
- *   console.log(profile.nickname);
- * }
- * ```
- */
-export const profiles = {
-	*[Symbol.iterator]() {
+	/**
+	 * Can be used as an iterator to retrieve the list of user profiles.
+	 *
+	 * @example
+	 *
+	 * ```typescript
+	 * for (const profile of Switch.Profile) {
+	 *   console.log(profile.nickname);
+	 * }
+	 * ```
+	 */
+	static *[Symbol.iterator]() {
 		_init();
 		const pr = $.accountProfiles();
 		for (const p of pr) {
 			yield proto(p, Profile);
 		}
-	},
-};
+	}
+}
+$.accountProfileInit(Profile);
+
+Object.defineProperty(Profile.prototype, inspect.keys, {
+	enumerable: false,
+	value: () => ['uid', 'nickname', 'image'],
+});

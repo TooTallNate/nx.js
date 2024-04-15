@@ -1,5 +1,35 @@
 # nxjs-runtime
 
+## 0.0.42
+
+### Patch Changes
+
+- Fix reported source buffer size in `fs.writeFileSync()` error message ([`eee23840e04778aa4db64e5942ae657cb9e62c86`](https://github.com/TooTallNate/nx.js/commit/eee23840e04778aa4db64e5942ae657cb9e62c86))
+
+- Improvements to `localStorage` based on web platform tests ([`36ed28f54c8a404b143edc6d5668590eee3942db`](https://github.com/TooTallNate/nx.js/commit/36ed28f54c8a404b143edc6d5668590eee3942db))
+
+- Add `Switch.Profile.current` and `Switch.Profile.select()` (replaces `Switch.currentProfile()` and `Switch.selectProfile()`) ([`4018d0446bbc3f7714addca98007ff973c01e486`](https://github.com/TooTallNate/nx.js/commit/4018d0446bbc3f7714addca98007ff973c01e486))
+
+- Use correct replacement character for lone surrogates in `TextEncoder#encode()` ([`1cbfc49ac02f8834f5c479964f9272b27931fe53`](https://github.com/TooTallNate/nx.js/commit/1cbfc49ac02f8834f5c479964f9272b27931fe53))
+
+- Convert `console` into a `Console` class ([`33eb3b0b7c99be7136b0d314970d61c50aab7069`](https://github.com/TooTallNate/nx.js/commit/33eb3b0b7c99be7136b0d314970d61c50aab7069))
+
+- Define `inspect.keys` for `Switch.Application` ([`cba5ff3d9a6fa5e5ee306ea7fb372eb9cd1a612f`](https://github.com/TooTallNate/nx.js/commit/cba5ff3d9a6fa5e5ee306ea7fb372eb9cd1a612f))
+
+- Add `keys`, `values`, and `entries` symbols for `Switch.inspect` ([`84f2c090162eac084b0c489b4cce750c4bb515cf`](https://github.com/TooTallNate/nx.js/commit/84f2c090162eac084b0c489b4cce750c4bb515cf))
+
+- Bind `console` methods to `this` ([`b672db9607446e6651966bb3df4225942cb6540b`](https://github.com/TooTallNate/nx.js/commit/b672db9607446e6651966bb3df4225942cb6540b))
+
+- Add `Switch.SaveData` class (replaces `Switch.FsDev`) ([#113](https://github.com/TooTallNate/nx.js/pull/113))
+
+- Allow `console.print()` to be monkey patched ([`4648806875843dc7a72bd7171c62782d9ad8f3cf`](https://github.com/TooTallNate/nx.js/commit/4648806875843dc7a72bd7171c62782d9ad8f3cf))
+
+- Replace `Switch.profiles` with `Switch.Profile` iterable ([`d60ae8c3f8167af492dad96991ae5cb42b7342e8`](https://github.com/TooTallNate/nx.js/commit/d60ae8c3f8167af492dad96991ae5cb42b7342e8))
+
+- Implement `TextEncoder#encodeInto()` function ([`3f2e22d8291d094adb23040e89d479ad925824bc`](https://github.com/TooTallNate/nx.js/commit/3f2e22d8291d094adb23040e89d479ad925824bc))
+
+- Implement `CustomEvent` class ([`1b9a8d94a7b82164cfe44bd3a3f39667bdac99db`](https://github.com/TooTallNate/nx.js/commit/1b9a8d94a7b82164cfe44bd3a3f39667bdac99db))
+
 ## 0.0.41
 
 ### Patch Changes

@@ -1,5 +1,14 @@
 # @nx.js/nsp
 
+## 0.0.42
+
+### Patch Changes
+
+- Make the icon bigger ([`d6b3e5accb9a060ad3075252a9619481f4d4dd63`](https://github.com/TooTallNate/nx.js/commit/d6b3e5accb9a060ad3075252a9619481f4d4dd63))
+
+- Updated dependencies [[`54d990bb3217ae325ff740851325ea62a607d271`](https://github.com/TooTallNate/nx.js/commit/54d990bb3217ae325ff740851325ea62a607d271)]:
+  - @nx.js/patch-nacp@0.0.2
+
 ## 0.0.41
 
 ## 0.0.40

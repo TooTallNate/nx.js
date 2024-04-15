@@ -169,6 +169,13 @@ export class URLSearchParams implements globalThis.URLSearchParams {
 $.urlSearchInit(URLSearchParams);
 def(URLSearchParams);
 
+Object.defineProperty(URLSearchParams.prototype, inspect.entries, {
+	enumerable: false,
+	value(this: URLSearchParams) {
+		return this.entries();
+	},
+});
+
 const searchParams = new WeakMap<URL, URLSearchParams>();
 
 /**
@@ -271,22 +278,20 @@ export class URL implements globalThis.URL {
 $.urlInit(URL);
 def(URL);
 
-Object.defineProperty(URL.prototype, inspect.custom, {
+Object.defineProperty(URL.prototype, inspect.keys, {
 	enumerable: false,
-	value(this: URL) {
-		return `URL ${inspect({
-			hash: this.hash,
-			host: this.host,
-			hostname: this.hostname,
-			href: this.href,
-			origin: this.origin,
-			password: this.password,
-			pathname: this.pathname,
-			port: this.port,
-			protocol: this.protocol,
-			search: this.search,
-			searchParams: this.searchParams,
-			username: this.username,
-		})}`;
-	},
+	value: () => [
+		'hash',
+		'host',
+		'hostname',
+		'href',
+		'origin',
+		'password',
+		'pathname',
+		'port',
+		'protocol',
+		'search',
+		'searchParams',
+		'username',
+	],
 });

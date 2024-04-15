@@ -135,10 +135,13 @@ export const inspect = (v: unknown, opts: InspectOptions = {}): string => {
 };
 
 inspect.custom = Symbol('Switch.inspect.custom');
+inspect.keys = Symbol('Switch.inspect.keys');
+inspect.values = Symbol('Switch.inspect.values');
+inspect.entries = Symbol('Switch.inspect.entries');
 
 function printObject(v: any, opts: InspectOptions) {
 	const { depth = 1 } = opts;
-	const keys = Object.keys(v);
+	const keys = new Set([...(v[inspect.keys]?.() || []), ...Object.keys(v)]);
 	const ctor = v.constructor;
 	const className =
 		ctor && ctor !== Object && typeof ctor.name === 'string'
@@ -146,13 +149,31 @@ function printObject(v: any, opts: InspectOptions) {
 			: '';
 	let contents = '';
 	let endSpace = '';
-	if (keys.length > 0) {
-		let len = 0;
-		const parts = keys.map((k) => {
-			const l = `${k}: ${inspect(v[k], { ...opts, depth: depth + 1 })}`;
+	let len = 0;
+	const parts: string[] = [];
+	if (typeof v[inspect.values] === 'function') {
+		for (const val of v[inspect.values]()) {
+			const l = inspect(val, { ...opts, depth: depth + 1 });
 			len += l.length;
-			return l;
-		});
+			parts.push(l);
+		}
+	}
+	if (typeof v[inspect.entries] === 'function') {
+		for (const [k, val] of v[inspect.entries]()) {
+			const l = `${inspect(k, {
+				...opts,
+				depth: depth + 1,
+			})} => ${inspect(val, { ...opts, depth: depth + 1 })}`;
+			len += l.length;
+			parts.push(l);
+		}
+	}
+	for (const k of keys) {
+		const l = `${k}: ${inspect(v[k], { ...opts, depth: depth + 1 })}`;
+		len += l.length;
+		parts.push(l);
+	}
+	if (parts.length > 0) {
 		if (len > 60) {
 			const space = '  '.repeat(depth);
 			contents = parts.map((p) => `\n${space}${p},`).join('') + '\n';
