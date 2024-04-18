@@ -328,6 +328,46 @@ static JSValue nx_save_data_unmount(JSContext *ctx, JSValueConst this_val, int a
 	return JS_UNDEFINED;
 }
 
+static JSValue nx_save_data_free_space(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	nx_save_data_t *save_data = JS_GetOpaque2(ctx, this_val, nx_save_data_class_id);
+	if (!save_data)
+	{
+		return JS_EXCEPTION;
+	}
+	if (!save_data->mount_name)
+	{
+		return JS_ThrowTypeError(ctx, "SaveData is not mounted");
+	}
+	s64 space;
+	Result rc = fsFsGetFreeSpace(&save_data->fs, "/", &space);
+	if (R_FAILED(rc))
+	{
+		return nx_throw_libnx_error(ctx, rc, "fsFsGetFreeSpace()");
+	}
+	return JS_NewBigInt64(ctx, space);
+}
+
+static JSValue nx_save_data_total_space(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	nx_save_data_t *save_data = JS_GetOpaque2(ctx, this_val, nx_save_data_class_id);
+	if (!save_data)
+	{
+		return JS_EXCEPTION;
+	}
+	if (!save_data->mount_name)
+	{
+		return JS_ThrowTypeError(ctx, "SaveData is not mounted");
+	}
+	s64 space;
+	Result rc = fsFsGetTotalSpace(&save_data->fs, "/", &space);
+	if (R_FAILED(rc))
+	{
+		return nx_throw_libnx_error(ctx, rc, "fsFsGetTotalSpace()");
+	}
+	return JS_NewBigInt64(ctx, space);
+}
+
 static JSValue nx_save_data_filter(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	nx_save_data_iterator_t *save_data_iterator = js_mallocz(ctx, sizeof(nx_save_data_iterator_t));
@@ -698,6 +738,8 @@ static JSValue nx_save_data_init(JSContext *ctx, JSValueConst this_val, int argc
 	NX_DEF_FUNC(proto, "delete", nx_save_data_delete, 0);
 	NX_DEF_FUNC(proto, "extend", nx_save_data_extend, 2);
 	NX_DEF_FUNC(proto, "unmount", nx_save_data_unmount, 0);
+	NX_DEF_FUNC(proto, "freeSpace", nx_save_data_free_space, 0);
+	NX_DEF_FUNC(proto, "totalSpace", nx_save_data_total_space, 0);
 	JS_FreeValue(ctx, proto);
 	return JS_UNDEFINED;
 }

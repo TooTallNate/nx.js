@@ -142,6 +142,14 @@ export class SaveData {
 		stub();
 	}
 
+	freeSpace(): bigint {
+		stub();
+	}
+
+	totalSpace(): bigint {
+		stub();
+	}
+
 	static createSync(init: SaveDataCreationInfoBase): SaveData;
 	static createSync(
 		init: SaveDataCreationInfoWithNacp,
