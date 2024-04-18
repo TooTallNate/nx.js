@@ -1,5 +1,11 @@
 # @nx.js/nsp
 
+## 0.0.44
+
+### Patch Changes
+
+- Fix publishing the `hacbrewpack.cjs` file ([`c1038aae429b711ef04158bb75c87028a088efe4`](https://github.com/TooTallNate/nx.js/commit/c1038aae429b711ef04158bb75c87028a088efe4))
+
 ## 0.0.43
 
 ### Patch Changes
