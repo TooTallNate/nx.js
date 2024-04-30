@@ -1,5 +1,5 @@
 import { $ } from './$';
-import { createInternal, def, toPromise } from './utils';
+import { createInternal, def } from './utils';
 import { fetch } from './fetch/fetch';
 import { URL } from './polyfills/url';
 import { Event, ErrorEvent } from './polyfills/event';
