@@ -16,6 +16,9 @@ function _init() {
  * The `Switch.Album` class allows for interacting with the Switch's photo gallery,
  * providing access to the screenshots / video recordings that the user has saved.
  *
+ * It is a `Set` subclass, which contains entries of
+ * {@link AlbumFile | `Switch.AlbumFile`} instances.
+ *
  * @example
  *
  * ```typescript
