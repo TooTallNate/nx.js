@@ -226,41 +226,40 @@ void nx_decode_image_do(nx_work_t *req)
 		data->image->width * 4);
 }
 
-void nx_decode_image_cb(JSContext *ctx, nx_work_t *req, JSValue *args)
+JSValue nx_decode_image_cb(JSContext *ctx, nx_work_t *req)
 {
 	nx_decode_image_async_t *data = (nx_decode_image_async_t *)req->data;
 
 	if (data->err)
 	{
-		args[0] = JS_NewError(ctx);
-		JS_DefinePropertyValueStr(ctx, args[0], "message", JS_NewString(ctx, strerror(data->err)), JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+		JSValue err = JS_NewError(ctx);
+		JS_DefinePropertyValueStr(ctx, err, "message", JS_NewString(ctx, strerror(data->err)), JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
 		JS_FreeValue(ctx, data->image_val);
 		JS_FreeValue(ctx, data->buffer_val);
-		return;
+		return JS_Throw(ctx, err);
 	}
 	else if (data->err_str)
 	{
-		args[0] = JS_NewError(ctx);
-		JS_DefinePropertyValueStr(ctx, args[0], "message", JS_NewString(ctx, data->err_str), JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+		JSValue err = JS_NewError(ctx);
+		JS_DefinePropertyValueStr(ctx, err, "message", JS_NewString(ctx, data->err_str), JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
 		JS_FreeValue(ctx, data->image_val);
 		JS_FreeValue(ctx, data->buffer_val);
-		return;
+		return JS_Throw(ctx, err);
 	}
 
 	JS_FreeValue(ctx, data->image_val);
 	JS_FreeValue(ctx, data->buffer_val);
-	args[1] = JS_UNDEFINED;
+	return JS_UNDEFINED;
 }
 
 JSValue nx_image_decode(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	NX_INIT_WORK_T(nx_decode_image_async_t);
-	data->image = nx_get_image(ctx, argv[1]);
-	data->image_val = JS_DupValue(ctx, argv[1]);
-	data->buffer_val = JS_DupValue(ctx, argv[2]);
+	data->image = nx_get_image(ctx, argv[0]);
+	data->image_val = JS_DupValue(ctx, argv[0]);
+	data->buffer_val = JS_DupValue(ctx, argv[1]);
 	data->input = JS_GetArrayBuffer(ctx, &data->input_size, data->buffer_val);
-	nx_queue_async(ctx, req, nx_decode_image_do, nx_decode_image_cb, argv[0]);
-	return JS_UNDEFINED;
+	return nx_queue_async(ctx, req, nx_decode_image_do, nx_decode_image_cb);
 }
 
 JSValue nx_image_new(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)

@@ -114,11 +114,7 @@ export interface Init {
 	): number[];
 
 	// crypto.c
-	cryptoDigest(
-		cb: Callback<ArrayBuffer>,
-		algorithm: string,
-		buf: ArrayBuffer,
-	): void;
+	cryptoDigest(algorithm: string, buf: ArrayBuffer): Promise<ArrayBuffer>;
 	cryptoRandomBytes(buf: ArrayBuffer, offset: number, length: number): void;
 
 	// dommatrix.c
@@ -129,7 +125,7 @@ export interface Init {
 	dommatrixTransformPoint(m: DOMMatrixReadOnly, p: DOMPointInit): DOMPoint;
 
 	// dns.c
-	dnsResolve(cb: Callback<string[]>, hostname: string): void;
+	dnsResolve(hostname: string): Promise<string[]>;
 
 	// error.c
 	onError(fn: (err: any) => number): void;
@@ -144,11 +140,11 @@ export interface Init {
 	// fs.c
 	mkdirSync(path: string, mode: number): number;
 	readDirSync(path: string): string[] | null;
-	readFile(cb: Callback<ArrayBuffer | null>, path: string): void;
+	readFile(path: string): Promise<ArrayBuffer | null>;
 	readFileSync(path: string): ArrayBuffer | null;
-	remove(cb: Callback<void>, path: string): void;
+	remove(path: string): Promise<void>;
 	removeSync(path: string): void;
-	stat(cb: Callback<Stats | null>, path: string): void;
+	stat(path: string): Promise<Stats | null>;
 	statSync(path: string): Stats | null;
 	writeFileSync(path: string, data: ArrayBuffer): void;
 
@@ -163,7 +159,7 @@ export interface Init {
 	// image.c
 	imageInit(c: ClassOf<Image | ImageBitmap>): void;
 	imageNew(width?: number, height?: number): Image | ImageBitmap;
-	imageDecode(cb: Callback<undefined>, img: Image, data: ArrayBuffer): void;
+	imageDecode(img: Image, data: ArrayBuffer): Promise<void>;
 	imageClose(img: ImageBitmap): void;
 
 	// irs.c

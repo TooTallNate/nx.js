@@ -1,5 +1,5 @@
 import { $ } from './$';
-import { createInternal, def, toPromise } from './utils';
+import { createInternal, def } from './utils';
 import { fetch } from './fetch/fetch';
 import { URL } from './polyfills/url';
 import { Event, ErrorEvent } from './polyfills/event';
@@ -96,9 +96,7 @@ export class Image extends EventTarget {
 				}
 				return res.arrayBuffer();
 			})
-			.then((buf) => {
-				return toPromise($.imageDecode, this, buf);
-			})
+			.then((buf) => $.imageDecode(this, buf))
 			.then(
 				() => {
 					internal.complete = true;

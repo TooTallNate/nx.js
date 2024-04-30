@@ -1,5 +1,11 @@
 # nxjs-runtime
 
+## 0.0.44
+
+### Patch Changes
+
+- Add `Switch.SaveData#freeSpace()` and `Switch.SaveData#totalSpace()` ([`2311d0b47eddb9c98476ec3e109e60d7ffa86e90`](https://github.com/TooTallNate/nx.js/commit/2311d0b47eddb9c98476ec3e109e60d7ffa86e90))
+
 ## 0.0.43
 
 ## 0.0.42
