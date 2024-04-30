@@ -1,5 +1,13 @@
 # nxjs-runtime
 
+## 0.0.45
+
+### Patch Changes
+
+- Make `nx_queue_async()` return a Promise ([#118](https://github.com/TooTallNate/nx.js/pull/118))
+
+- Add `Switch.Album` and `Switch.AlbumFile` classes ([#120](https://github.com/TooTallNate/nx.js/pull/120))
+
 ## 0.0.44
 
 ### Patch Changes
