@@ -5,7 +5,6 @@ import {
 	bufferSourceToArrayBuffer,
 	createInternal,
 	def,
-	toPromise,
 } from './utils';
 import type { ArrayBufferView, BufferSource } from './types';
 
@@ -213,8 +212,7 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 		algorithm: AlgorithmIdentifier,
 		data: BufferSource,
 	): Promise<ArrayBuffer> {
-		return toPromise(
-			$.cryptoDigest,
+		return $.cryptoDigest(
 			typeof algorithm === 'string' ? algorithm : algorithm.name,
 			bufferSourceToArrayBuffer(data),
 		);

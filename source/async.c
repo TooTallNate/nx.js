@@ -12,13 +12,22 @@ void nx_process_async(JSContext *ctx, nx_context_t *nx_ctx)
 		if (cur->done)
 		{
 			nx_work_t *next = cur->next;
-
-			JSValue args[] = {JS_UNDEFINED, JS_UNDEFINED};
-			cur->after_work_cb(ctx, cur, args);
-			JSValue ret_val = JS_Call(ctx, cur->js_callback, JS_NULL, 2, args);
+			JSValue result = cur->after_work_cb(ctx, cur);
+			JSValue ret_val;
+			JSValue args[1];
+			if (JS_IsException(result))
+			{
+				args[0] = JS_GetException(ctx);
+				ret_val = JS_Call(ctx, cur->reject, JS_NULL, 1, args);
+			}
+			else
+			{
+				args[0] = result;
+				ret_val = JS_Call(ctx, cur->resolve, JS_NULL, 1, args);
+			}
 			JS_FreeValue(ctx, args[0]);
-			JS_FreeValue(ctx, args[1]);
-			JS_FreeValue(ctx, cur->js_callback);
+			JS_FreeValue(ctx, cur->resolve);
+			JS_FreeValue(ctx, cur->reject);
 			if (JS_IsException(ret_val))
 			{
 				nx_emit_error_event(ctx);
@@ -63,11 +72,15 @@ void nx_do_async(nx_work_t *req)
 	pthread_mutex_unlock(req->async_done_mutex);
 }
 
-int nx_queue_async(JSContext *ctx, nx_work_t *req, nx_work_cb work_cb, nx_after_work_cb after_work_cb, JSValueConst js_callback)
+JSValue nx_queue_async(JSContext *ctx, nx_work_t *req, nx_work_cb work_cb, nx_after_work_cb after_work_cb)
 {
+	JSValue promise, resolving_funcs[2];
+	promise = JS_NewPromiseCapability(ctx, resolving_funcs);
+
 	nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
 	req->done = 0;
-	req->js_callback = JS_DupValue(ctx, js_callback);
+	req->resolve = JS_DupValue(ctx, resolving_funcs[0]);
+	req->reject = JS_DupValue(ctx, resolving_funcs[1]);
 	req->work_cb = work_cb;
 	req->after_work_cb = after_work_cb;
 
@@ -80,5 +93,10 @@ int nx_queue_async(JSContext *ctx, nx_work_t *req, nx_work_cb work_cb, nx_after_
 	nx_ctx->work_queue = req;
 	pthread_mutex_unlock(&nx_ctx->async_done_mutex);
 
-	return thpool_add_work(nx_ctx->thpool, (void (*)(void *))nx_do_async, req);
+	if (thpool_add_work(nx_ctx->thpool, (void (*)(void *))nx_do_async, req) != 0)
+	{
+		// TODO: throw exception / clean up
+	}
+
+	return promise;
 }

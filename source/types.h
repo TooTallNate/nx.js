@@ -13,7 +13,7 @@
 #include "poll.h"
 
 #ifndef M_PI
-#define M_PI		3.14159265358979323846
+#define M_PI 3.14159265358979323846
 #endif
 
 #ifndef countof
@@ -48,13 +48,14 @@ typedef struct
 
 typedef struct nx_work_s nx_work_t;
 typedef void (*nx_work_cb)(nx_work_t *req);
-typedef void (*nx_after_work_cb)(JSContext *ctx, nx_work_t *req, JSValue *args);
+typedef JSValue (*nx_after_work_cb)(JSContext *ctx, nx_work_t *req);
 
 struct nx_work_s
 {
 	nx_work_t *next;
 	int done;
-	JSValue js_callback;
+	JSValue resolve;
+	JSValue reject;
 	nx_work_cb work_cb;
 	nx_after_work_cb after_work_cb;
 	pthread_mutex_t *async_done_mutex;
