@@ -71,6 +71,33 @@ static JSValue nx_album_size(JSContext *ctx, JSValueConst this_val, int argc, JS
 	return JS_NewUint32(ctx, (u32)count);
 }
 
+static JSValue nx_album_delete_file(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	CapsAlbumStorage storage;
+	if (JS_ToUint32(ctx, (u32 *)&storage, JS_GetPropertyStr(ctx, this_val, "storage")))
+	{
+		return JS_EXCEPTION;
+	}
+
+	nx_album_file_t *file = JS_GetOpaque2(ctx, argv[0], nx_album_file_class_id);
+	if (!file)
+	{
+		return JS_EXCEPTION;
+	}
+	if (file->entry.file_id.storage != storage)
+	{
+		return JS_ThrowReferenceError(ctx, "`AlbumFile` does not belong to this `Album`");
+	}
+
+	Result rc = capsaDeleteAlbumFile(&file->entry.file_id);
+	if (R_FAILED(rc))
+	{
+		return nx_throw_libnx_error(ctx, rc, "capsaDeleteAlbumFile()");
+	}
+
+	return JS_UNDEFINED;
+}
+
 JSValue entry_id_to_name(JSContext *ctx, CapsAlbumFileId *id)
 {
 	char name[54];
@@ -216,6 +243,7 @@ static JSValue nx_album_init(JSContext *ctx, JSValueConst this_val, int argc, JS
 	JSAtom atom;
 	JSValue proto = JS_GetPropertyStr(ctx, argv[0], "prototype");
 	NX_DEF_GET(proto, "size", nx_album_size);
+	NX_DEF_FUNC(proto, "delete", nx_album_delete_file, 1);
 	JS_FreeValue(ctx, proto);
 	return JS_UNDEFINED;
 }

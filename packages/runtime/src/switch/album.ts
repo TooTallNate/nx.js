@@ -48,6 +48,9 @@ export class AlbumFile extends File {
 		//return proto($.albumFileNew(storage, id), AlbumFile);
 	}
 
+	/**
+	 * Loads the thumbnail JPEG image for the album file.
+	 */
 	thumbnail(): Promise<ArrayBuffer> {
 		stub();
 	}
