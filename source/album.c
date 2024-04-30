@@ -199,6 +199,46 @@ static JSValue nx_album_file_size(JSContext *ctx, JSValueConst this_val, int arg
 	return JS_NewBigUint64(ctx, size);
 }
 
+static JSValue nx_album_file_app_id(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	nx_album_file_t *file = JS_GetOpaque2(ctx, this_val, nx_album_file_class_id);
+	if (!file)
+	{
+		return JS_EXCEPTION;
+	}
+	return JS_NewBigUint64(ctx, file->entry.file_id.application_id);
+}
+
+static JSValue nx_album_file_content(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	nx_album_file_t *file = JS_GetOpaque2(ctx, this_val, nx_album_file_class_id);
+	if (!file)
+	{
+		return JS_EXCEPTION;
+	}
+	return JS_NewUint32(ctx, file->entry.file_id.content);
+}
+
+static JSValue nx_album_file_storage(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	nx_album_file_t *file = JS_GetOpaque2(ctx, this_val, nx_album_file_class_id);
+	if (!file)
+	{
+		return JS_EXCEPTION;
+	}
+	return JS_NewUint32(ctx, file->entry.file_id.storage);
+}
+
+static JSValue nx_album_file_id(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	nx_album_file_t *file = JS_GetOpaque2(ctx, this_val, nx_album_file_class_id);
+	if (!file)
+	{
+		return JS_EXCEPTION;
+	}
+	return JS_NewUint32(ctx, file->entry.file_id.datetime.id);
+}
+
 typedef struct
 {
 	CapsAlbumFileId id;
@@ -293,6 +333,10 @@ static JSValue nx_album_file_init(JSContext *ctx, JSValueConst this_val, int arg
 	JSValue proto = JS_GetPropertyStr(ctx, argv[0], "prototype");
 	NX_DEF_GET(proto, "type", nx_album_file_type);
 	NX_DEF_GET(proto, "size", nx_album_file_size);
+	NX_DEF_GET(proto, "applicationId", nx_album_file_app_id);
+	NX_DEF_GET(proto, "content", nx_album_file_content);
+	NX_DEF_GET(proto, "storage", nx_album_file_storage);
+	NX_DEF_GET(proto, "id", nx_album_file_id);
 	NX_DEF_FUNC(proto, "arrayBuffer", nx_album_file_array_buffer, 0);
 	NX_DEF_FUNC(proto, "thumbnail", nx_album_file_thumbnail, 0);
 	JS_FreeValue(ctx, proto);
