@@ -96,9 +96,7 @@ export class Image extends EventTarget {
 				}
 				return res.arrayBuffer();
 			})
-			.then((buf) => {
-				return toPromise($.imageDecode, this, buf);
-			})
+			.then((buf) => $.imageDecode(this, buf))
 			.then(
 				() => {
 					internal.complete = true;

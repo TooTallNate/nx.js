@@ -71,16 +71,16 @@ void nx_dns_resolve_do(nx_work_t *req)
 	freeaddrinfo(result);
 }
 
-void nx_dns_resolve_cb(JSContext *ctx, nx_work_t *req, JSValue *args)
+JSValue nx_dns_resolve_cb(JSContext *ctx, nx_work_t *req)
 {
 	nx_dns_resolve_t *data = (nx_dns_resolve_t *)req->data;
 	JS_FreeCString(ctx, data->hostname);
 
 	if (data->err)
 	{
-		args[0] = JS_NewError(ctx);
-		JS_DefinePropertyValueStr(ctx, args[0], "message", JS_NewString(ctx, gai_strerror(data->err)), JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
-		return;
+		JSValue err = JS_NewError(ctx);
+		JS_DefinePropertyValueStr(ctx, err, "message", JS_NewString(ctx, gai_strerror(data->err)), JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+		return JS_Throw(ctx, err);
 	}
 
 	JSValue result = JS_NewArray(ctx);
@@ -90,15 +90,14 @@ void nx_dns_resolve_cb(JSContext *ctx, nx_work_t *req, JSValue *args)
 		free(data->entries[i]);
 	}
 	free(data->entries);
-	args[1] = result;
+	return result;
 }
 
 JSValue nx_dns_resolve(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	NX_INIT_WORK_T(nx_dns_resolve_t);
 	data->hostname = JS_ToCString(ctx, argv[1]);
-	nx_queue_async(ctx, req, nx_dns_resolve_do, nx_dns_resolve_cb, argv[0]);
-	return JS_UNDEFINED;
+	return nx_queue_async(ctx, req, nx_dns_resolve_do, nx_dns_resolve_cb);
 }
 
 static const JSCFunctionListEntry function_list[] = {

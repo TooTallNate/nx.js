@@ -61,7 +61,7 @@ void nx_crypto_digest_do(nx_work_t *req)
 	}
 }
 
-void nx_crypto_digest_cb(JSContext *ctx, nx_work_t *req, JSValue *args)
+JSValue nx_crypto_digest_cb(JSContext *ctx, nx_work_t *req)
 {
 	nx_crypto_digest_async_t *data = (nx_crypto_digest_async_t *)req->data;
 	JS_FreeCString(ctx, data->algorithm);
@@ -69,12 +69,12 @@ void nx_crypto_digest_cb(JSContext *ctx, nx_work_t *req, JSValue *args)
 
 	if (data->err)
 	{
-		args[0] = JS_NewError(ctx);
-		JS_DefinePropertyValueStr(ctx, args[0], "message", JS_NewString(ctx, strerror(data->err)), JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
-		return;
+		JSValue err = JS_NewError(ctx);
+		JS_DefinePropertyValueStr(ctx, err, "message", JS_NewString(ctx, strerror(data->err)), JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+		return JS_Throw(ctx, err);
 	}
 
-	args[1] = JS_NewArrayBuffer(ctx, data->result, data->result_size, free_array_buffer, NULL, false);
+	return JS_NewArrayBuffer(ctx, data->result, data->result_size, free_array_buffer, NULL, false);
 }
 
 static JSValue nx_crypto_digest(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -83,8 +83,7 @@ static JSValue nx_crypto_digest(JSContext *ctx, JSValueConst this_val, int argc,
 	data->algorithm = JS_ToCString(ctx, argv[1]);
 	data->data_val = JS_DupValue(ctx, argv[2]);
 	data->data = JS_GetArrayBuffer(ctx, &data->size, data->data_val);
-	nx_queue_async(ctx, req, nx_crypto_digest_do, nx_crypto_digest_cb, argv[0]);
-	return JS_UNDEFINED;
+	return nx_queue_async(ctx, req, nx_crypto_digest_do, nx_crypto_digest_cb);
 }
 
 static JSValue nx_crypto_random_bytes(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)

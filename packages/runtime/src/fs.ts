@@ -1,5 +1,5 @@
 import { $ } from './$';
-import { bufferSourceToArrayBuffer, pathToString, toPromise } from './utils';
+import { bufferSourceToArrayBuffer, pathToString } from './utils';
 import { encoder } from './polyfills/text-encoder';
 import type { PathLike } from './switch';
 
@@ -34,7 +34,7 @@ export function mkdirSync(path: PathLike, mode = 0o777) {
  * ```
  */
 export function readFile(path: PathLike) {
-	return toPromise($.readFile, pathToString(path));
+	return $.readFile(pathToString(path));
 }
 
 /**
@@ -98,7 +98,7 @@ export function removeSync(path: PathLike) {
  * @param path File path to remove.
  */
 export function remove(path: PathLike) {
-	return toPromise($.remove, pathToString(path));
+	return $.remove(pathToString(path));
 }
 
 /**
@@ -117,5 +117,5 @@ export function statSync(path: PathLike) {
  * @param path File path to retrieve file stats for.
  */
 export function stat(path: PathLike) {
-	return toPromise($.stat, pathToString(path));
+	return $.stat(pathToString(path));
 }
