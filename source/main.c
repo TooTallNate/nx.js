@@ -9,6 +9,7 @@
 
 #include "types.h"
 #include "account.h"
+#include "album.h"
 #include "applet.h"
 #include "async.h"
 #include "battery.h"
@@ -541,6 +542,7 @@ int main(int argc, char *argv[])
 	JSValue global_obj = JS_GetGlobalObject(ctx);
 	nx_ctx->init_obj = JS_NewObject(ctx);
 	nx_init_account(ctx, nx_ctx->init_obj);
+	nx_init_album(ctx, nx_ctx->init_obj);
 	nx_init_applet(ctx, nx_ctx->init_obj);
 	nx_init_battery(ctx, nx_ctx->init_obj);
 	nx_init_canvas(ctx, nx_ctx->init_obj);

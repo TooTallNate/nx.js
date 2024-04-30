@@ -1,4 +1,6 @@
 import type {
+	Album,
+	AlbumFile,
 	Application,
 	IRSensor,
 	NetworkInfo,
@@ -51,6 +53,12 @@ export interface Init {
 	accountSelectProfile(): Profile | null;
 	accountProfileNew(uid: ProfileUid): Profile;
 	accountProfiles(): Profile[];
+
+	// album.c
+	capsaInitialize(): () => void;
+	albumInit(c: ClassOf<Album>): void;
+	albumFileInit(c: ClassOf<AlbumFile>): void;
+	albumFileList(album: Album): AlbumFile[];
 
 	// applet.c
 	appletIlluminance(): number;
