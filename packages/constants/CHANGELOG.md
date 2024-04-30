@@ -1,5 +1,11 @@
 # @nx.js/constants
 
+## 0.1.2
+
+### Patch Changes
+
+- Add enums `CapsAlbumStorage`, `CapsAlbumFileContents`, `CapsAlbumFileContentsFlag` ([#120](https://github.com/TooTallNate/nx.js/pull/120))
+
 ## 0.1.1
 
 ### Patch Changes
