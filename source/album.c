@@ -2,27 +2,12 @@
 #include "async.h"
 #include "error.h"
 
-static JSClassID nx_album_class_id;
 static JSClassID nx_album_file_class_id;
-
-typedef struct
-{
-	CapsAlbumStorage storage;
-} nx_album_t;
 
 typedef struct
 {
 	CapsAlbumEntry entry;
 } nx_album_file_t;
-
-static void finalizer_album(JSRuntime *rt, JSValue val)
-{
-	nx_album_t *album = JS_GetOpaque(val, nx_album_class_id);
-	if (album)
-	{
-		js_free_rt(rt, album);
-	}
-}
 
 static void finalizer_album_file(JSRuntime *rt, JSValue val)
 {
@@ -353,13 +338,6 @@ static const JSCFunctionListEntry function_list[] = {
 void nx_init_album(JSContext *ctx, JSValueConst init_obj)
 {
 	JSRuntime *rt = JS_GetRuntime(ctx);
-
-	JS_NewClassID(rt, &nx_album_class_id);
-	JSClassDef album_class = {
-		"Album",
-		.finalizer = finalizer_album,
-	};
-	JS_NewClass(rt, nx_album_class_id, &album_class);
 
 	JS_NewClassID(rt, &nx_album_file_class_id);
 	JSClassDef album_file_class = {
