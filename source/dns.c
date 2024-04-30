@@ -96,7 +96,7 @@ JSValue nx_dns_resolve_cb(JSContext *ctx, nx_work_t *req)
 JSValue nx_dns_resolve(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	NX_INIT_WORK_T(nx_dns_resolve_t);
-	data->hostname = JS_ToCString(ctx, argv[1]);
+	data->hostname = JS_ToCString(ctx, argv[0]);
 	return nx_queue_async(ctx, req, nx_dns_resolve_do, nx_dns_resolve_cb);
 }
 

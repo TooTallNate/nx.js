@@ -268,7 +268,11 @@ JSValue nx_read_file_cb(JSContext *ctx, nx_work_t *req)
 JSValue nx_read_file(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	NX_INIT_WORK_T(nx_fs_read_file_async_t);
-	data->filename = JS_ToCString(ctx, argv[1]);
+	data->filename = JS_ToCString(ctx, argv[0]);
+	if (!data->filename)
+	{
+		return JS_EXCEPTION;
+	}
 	return nx_queue_async(ctx, req, nx_read_file_do, nx_read_file_cb);
 }
 
@@ -405,7 +409,11 @@ JSValue nx_stat_cb(JSContext *ctx, nx_work_t *req)
 JSValue nx_stat(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	NX_INIT_WORK_T(nx_fs_stat_async_t);
-	data->filename = JS_ToCString(ctx, argv[1]);
+	data->filename = JS_ToCString(ctx, argv[0]);
+	if (!data->filename)
+	{
+		return JS_EXCEPTION;
+	}
 	return nx_queue_async(ctx, req, nx_stat_do, nx_stat_cb);
 }
 
@@ -522,7 +530,7 @@ JSValue nx_remove_cb(JSContext *ctx, nx_work_t *req)
 JSValue nx_remove(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	NX_INIT_WORK_T(nx_fs_remove_async_t);
-	data->filename = JS_ToCString(ctx, argv[1]);
+	data->filename = JS_ToCString(ctx, argv[0]);
 	if (!data->filename)
 	{
 		return JS_EXCEPTION;

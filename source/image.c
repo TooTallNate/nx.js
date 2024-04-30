@@ -255,9 +255,9 @@ JSValue nx_decode_image_cb(JSContext *ctx, nx_work_t *req)
 JSValue nx_image_decode(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	NX_INIT_WORK_T(nx_decode_image_async_t);
-	data->image = nx_get_image(ctx, argv[1]);
-	data->image_val = JS_DupValue(ctx, argv[1]);
-	data->buffer_val = JS_DupValue(ctx, argv[2]);
+	data->image = nx_get_image(ctx, argv[0]);
+	data->image_val = JS_DupValue(ctx, argv[0]);
+	data->buffer_val = JS_DupValue(ctx, argv[1]);
 	data->input = JS_GetArrayBuffer(ctx, &data->input_size, data->buffer_val);
 	return nx_queue_async(ctx, req, nx_decode_image_do, nx_decode_image_cb);
 }

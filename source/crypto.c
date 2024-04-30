@@ -80,8 +80,12 @@ JSValue nx_crypto_digest_cb(JSContext *ctx, nx_work_t *req)
 static JSValue nx_crypto_digest(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	NX_INIT_WORK_T(nx_crypto_digest_async_t);
-	data->algorithm = JS_ToCString(ctx, argv[1]);
-	data->data_val = JS_DupValue(ctx, argv[2]);
+	data->algorithm = JS_ToCString(ctx, argv[0]);
+	if (!data->algorithm)
+	{
+		return JS_EXCEPTION;
+	}
+	data->data_val = JS_DupValue(ctx, argv[1]);
 	data->data = JS_GetArrayBuffer(ctx, &data->size, data->data_val);
 	return nx_queue_async(ctx, req, nx_crypto_digest_do, nx_crypto_digest_cb);
 }
