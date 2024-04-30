@@ -1,4 +1,5 @@
 #include "album.h"
+#include "async.h"
 #include "error.h"
 
 static JSClassID nx_album_class_id;
@@ -30,6 +31,11 @@ static void finalizer_album_file(JSRuntime *rt, JSValue val)
 	{
 		js_free_rt(rt, file);
 	}
+}
+
+static void free_array_buffer(JSRuntime *rt, void *opaque, void *ptr)
+{
+	free(ptr);
 }
 
 static JSValue nx_capsa_exit(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -159,18 +165,38 @@ static JSValue nx_album_file_size(JSContext *ctx, JSValueConst this_val, int arg
 	}
 	u64 size;
 	Result rc = capsaGetAlbumFileSize(&file->entry.file_id, &size);
-	if (R_FAILED(rc)) {
+	if (R_FAILED(rc))
+	{
 		return nx_throw_libnx_error(ctx, rc, "capsaGetAlbumFileSize()");
 	}
 	return JS_NewBigUint64(ctx, size);
 }
 
+typedef struct
+{
+	CapsAlbumFileId id;
+	int err;
+	uint8_t *data;
+	u64 size;
+} nx_album_file_thumbnail_async_t;
+
 void nx_album_file_thumbnail_do(nx_work_t *req)
 {
+	capsaInitialize();
+	nx_album_file_thumbnail_async_t *data = (nx_album_file_thumbnail_async_t *)req->data;
+	u64 buf_size = 100 * 1024;
+	data->data = malloc(buf_size);
+	data->err = capsaLoadAlbumFileThumbnail(&data->id, &data->size, data->data, buf_size);
 }
 
-void nx_read_file_cb(JSContext *ctx, nx_work_t *req, JSValue *args) {
-
+JSValue nx_album_file_thumbnail_cb(JSContext *ctx, nx_work_t *req)
+{
+	nx_album_file_thumbnail_async_t *data = (nx_album_file_thumbnail_async_t *)req->data;
+	if (R_FAILED(data->err))
+	{
+		return nx_throw_libnx_error(ctx, data->err, "capsaLoadAlbumFileThumbnail()");
+	}
+	return JS_NewArrayBuffer(ctx, data->data, data->size, free_array_buffer, NULL, false);
 }
 
 static JSValue nx_album_file_thumbnail(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -180,12 +206,9 @@ static JSValue nx_album_file_thumbnail(JSContext *ctx, JSValueConst this_val, in
 	{
 		return JS_EXCEPTION;
 	}
-	u8 image[1024 * 1024];
-	u64 size;
-	Result rc = capsaLoadAlbumFileThumbnail(&file->entry.file_id, &size, image, sizeof(image));
-	if (R_FAILED(rc)) {
-		return nx_throw_libnx_error(ctx, rc, "capsaLoadAlbumFileThumbnail()");
-	}
+	NX_INIT_WORK_T(nx_album_file_thumbnail_async_t);
+	data->id = file->entry.file_id;
+	return nx_queue_async(ctx, req, nx_album_file_thumbnail_do, nx_album_file_thumbnail_cb);
 }
 
 static JSValue nx_album_init(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
