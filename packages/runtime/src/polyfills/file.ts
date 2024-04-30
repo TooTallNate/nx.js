@@ -1,5 +1,9 @@
 import { def } from '../utils';
-import { Blob, type BlobPart } from './blob';
+import { Blob, type BlobPart, type BlobPropertyBag } from './blob';
+
+export interface FilePropertyBag extends BlobPropertyBag {
+	lastModified?: number;
+}
 
 export class File extends Blob implements globalThis.File {
 	name: string;
