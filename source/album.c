@@ -86,7 +86,7 @@ static JSValue nx_album_delete_file(JSContext *ctx, JSValueConst this_val, int a
 	}
 	if (file->entry.file_id.storage != storage)
 	{
-		return JS_ThrowReferenceError(ctx, "`AlbumFile` does not belong to this `Album`");
+		return JS_FALSE;
 	}
 
 	Result rc = capsaDeleteAlbumFile(&file->entry.file_id);
@@ -95,7 +95,7 @@ static JSValue nx_album_delete_file(JSContext *ctx, JSValueConst this_val, int a
 		return nx_throw_libnx_error(ctx, rc, "capsaDeleteAlbumFile()");
 	}
 
-	return JS_UNDEFINED;
+	return JS_TRUE;
 }
 
 JSValue entry_id_to_name(JSContext *ctx, CapsAlbumFileId *id)
@@ -205,12 +205,12 @@ typedef struct
 	int err;
 	uint8_t *data;
 	u64 size;
-} nx_album_file_thumbnail_async_t;
+} nx_album_file_data_async_t;
 
 void nx_album_file_thumbnail_do(nx_work_t *req)
 {
 	capsaInitialize();
-	nx_album_file_thumbnail_async_t *data = (nx_album_file_thumbnail_async_t *)req->data;
+	nx_album_file_data_async_t *data = (nx_album_file_data_async_t *)req->data;
 	u64 buf_size = 100 * 1024;
 	data->data = malloc(buf_size);
 	data->err = capsaLoadAlbumFileThumbnail(&data->id, &data->size, data->data, buf_size);
@@ -218,9 +218,11 @@ void nx_album_file_thumbnail_do(nx_work_t *req)
 
 JSValue nx_album_file_thumbnail_cb(JSContext *ctx, nx_work_t *req)
 {
-	nx_album_file_thumbnail_async_t *data = (nx_album_file_thumbnail_async_t *)req->data;
+	nx_album_file_data_async_t *data = (nx_album_file_data_async_t *)req->data;
 	if (R_FAILED(data->err))
 	{
+		if (data->data)
+			free(data->data);
 		return nx_throw_libnx_error(ctx, data->err, "capsaLoadAlbumFileThumbnail()");
 	}
 	return JS_NewArrayBuffer(ctx, data->data, data->size, free_array_buffer, NULL, false);
@@ -233,9 +235,46 @@ static JSValue nx_album_file_thumbnail(JSContext *ctx, JSValueConst this_val, in
 	{
 		return JS_EXCEPTION;
 	}
-	NX_INIT_WORK_T(nx_album_file_thumbnail_async_t);
+	NX_INIT_WORK_T(nx_album_file_data_async_t);
 	data->id = file->entry.file_id;
 	return nx_queue_async(ctx, req, nx_album_file_thumbnail_do, nx_album_file_thumbnail_cb);
+}
+
+void nx_album_file_array_buffer_do(nx_work_t *req)
+{
+	capsaInitialize();
+	nx_album_file_data_async_t *data = (nx_album_file_data_async_t *)req->data;
+	u64 size;
+	data->err = capsaGetAlbumFileSize(&data->id, &size);
+	if (R_SUCCEEDED(data->err))
+	{
+		data->data = malloc(size);
+		data->err = capsaLoadAlbumFile(&data->id, &data->size, data->data, size);
+	}
+}
+
+JSValue nx_album_file_array_buffer_cb(JSContext *ctx, nx_work_t *req)
+{
+	nx_album_file_data_async_t *data = (nx_album_file_data_async_t *)req->data;
+	if (R_FAILED(data->err))
+	{
+		if (data->data)
+			free(data->data);
+		return nx_throw_libnx_error(ctx, data->err, "capsaLoadAlbumFile()");
+	}
+	return JS_NewArrayBuffer(ctx, data->data, data->size, free_array_buffer, NULL, false);
+}
+
+static JSValue nx_album_file_array_buffer(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	nx_album_file_t *file = JS_GetOpaque2(ctx, this_val, nx_album_file_class_id);
+	if (!file)
+	{
+		return JS_EXCEPTION;
+	}
+	NX_INIT_WORK_T(nx_album_file_data_async_t);
+	data->id = file->entry.file_id;
+	return nx_queue_async(ctx, req, nx_album_file_array_buffer_do, nx_album_file_array_buffer_cb);
 }
 
 static JSValue nx_album_init(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -254,6 +293,7 @@ static JSValue nx_album_file_init(JSContext *ctx, JSValueConst this_val, int arg
 	JSValue proto = JS_GetPropertyStr(ctx, argv[0], "prototype");
 	NX_DEF_GET(proto, "type", nx_album_file_type);
 	NX_DEF_GET(proto, "size", nx_album_file_size);
+	NX_DEF_FUNC(proto, "arrayBuffer", nx_album_file_array_buffer, 0);
 	NX_DEF_FUNC(proto, "thumbnail", nx_album_file_thumbnail, 0);
 	JS_FreeValue(ctx, proto);
 	return JS_UNDEFINED;
