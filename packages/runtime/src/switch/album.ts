@@ -68,6 +68,18 @@ $.albumInit(Album);
  * It is a subclass of `File`, so you can use familiar features like `name`,
  * `lastModified` and `arrayBuffer()`. It also has additional metadata like
  * `applicationId` to determine which application generated the contents.
+ *
+ * @example
+ *
+ * ```typescript
+ * const ctx = screen.getContext('2d');
+ * const buf = await file.arrayBuffer();
+ * const img = new Image();
+ * img.onload = () => {
+ *   ctx.drawImage(img, 0, 0);
+ * };
+ * img.src = URL.createObjectURL(new Blob([buf]));
+ * ```
  */
 export class AlbumFile extends File {
 	/**
@@ -120,7 +132,7 @@ export class AlbumFile extends File {
 	 *
 	 * ```typescript
 	 * const ctx = screen.getContext('2d');
-	 * const buf = await file.arrayBuffer();
+	 * const buf = await file.thumbnail();
 	 * const img = new Image();
 	 * img.onload = () => {
 	 *   ctx.drawImage(img, 0, 0);
