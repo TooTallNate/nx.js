@@ -12,6 +12,21 @@ function _init() {
 	init = true;
 }
 
+/**
+ * The `Switch.Album` class allows for interacting with the Switch's photo gallery,
+ * providing access to the screenshots / video recordings that the user has saved.
+ *
+ * @example
+ *
+ * ```typescript
+ * import { CapsAlbumStorage } from '@nx.js/constants';
+ *
+ * const album = new Switch.Album(CapsAlbumStorage.Sd);
+ * for (const file of album) {
+ *   console.log(file);
+ * }
+ * ```
+ */
 export class Album extends Set<AlbumFile> {
 	readonly storage: number;
 
@@ -43,6 +58,14 @@ export class Album extends Set<AlbumFile> {
 }
 $.albumInit(Album);
 
+/**
+ * Represents a file within a {@link Album | `Switch.Album`} content store,
+ * which is either a screenshot (JPEG image) or a screen recording (MP4 movie).
+ *
+ * It is a subclass of `File`, so you can use familiar features like `name`,
+ * `lastModified` and `arrayBuffer()`. It also has additional metadata like
+ * `applicationId` to determine which application generated the contents.
+ */
 export class AlbumFile extends File {
 	/**
 	 * The ID of the application which generated the album file.
@@ -89,6 +112,18 @@ export class AlbumFile extends File {
 
 	/**
 	 * Loads the thumbnail JPEG image for the album file.
+	 *
+	 * @example
+	 *
+	 * ```typescript
+	 * const ctx = screen.getContext('2d');
+	 * const buf = await file.arrayBuffer();
+	 * const img = new Image();
+	 * img.onload = () => {
+	 *   ctx.drawImage(img, 0, 0);
+	 * };
+	 * img.src = URL.createObjectURL(new Blob([buf]));
+	 * ```
 	 */
 	thumbnail(): Promise<ArrayBuffer> {
 		stub();
