@@ -2,6 +2,7 @@ import type {
 	Album,
 	AlbumFile,
 	Application,
+	//FsFile,
 	IRSensor,
 	NetworkInfo,
 	Profile,
@@ -42,6 +43,7 @@ type ClassOf<T> = {
 	new (...args: any[]): T;
 };
 
+type FileHandle = Opaque<'FileHandle'>;
 type SaveDataIterator = Opaque<'SaveDataIterator'>;
 type URLSearchParamsIterator = Opaque<'URLSearchParamsIterator'>;
 
@@ -138,6 +140,11 @@ export interface Init {
 	getSystemFont(): ArrayBuffer;
 
 	// fs.c
+	//fsFileInit(c: ClassOf<FsFile>): void;
+	fclose(f: FileHandle): Promise<void>;
+	fopen(path: string, mode: string): Promise<FileHandle>;
+	fread(f: FileHandle, buf: ArrayBuffer): Promise<number>;
+	fwrite(f: FileHandle, data: ArrayBuffer): Promise<void>;
 	mkdirSync(path: string, mode: number): number;
 	readDirSync(path: string): string[] | null;
 	readFile(path: string): Promise<ArrayBuffer | null>;

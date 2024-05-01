@@ -8,6 +8,50 @@
 #include "fs.h"
 #include "async.h"
 
+static JSClassID nx_file_class_id;
+
+typedef struct
+{
+	FILE *file;
+} nx_file_t;
+
+static void finalizer_file(JSRuntime *rt, JSValue val)
+{
+	nx_file_t *file = JS_GetOpaque(val, nx_file_class_id);
+	if (file)
+	{
+		if (file->file)
+		{
+			fclose(file->file);
+		}
+		js_free_rt(rt, file);
+	}
+}
+
+typedef struct
+{
+	int err;
+	FILE *file;
+} nx_fs_fclose_async_t;
+
+typedef struct
+{
+	int err;
+	const char *path;
+	const char *mode;
+	FILE *file;
+} nx_fs_fopen_async_t;
+
+typedef struct
+{
+	int err;
+	FILE *file;
+	u8* buf;
+	size_t buf_size;
+	JSValue buf_val;
+	size_t bytes_read;
+} nx_fs_file_rw_async_t;
+
 typedef struct
 {
 	int err;
@@ -116,6 +160,166 @@ int createDirectoryRecursively(char *path, mode_t mode)
 	}
 
 	return created;
+}
+
+void nx_fclose_do(nx_work_t *req)
+{
+	nx_fs_fclose_async_t *data = (nx_fs_fclose_async_t *)req->data;
+	data->err = fclose(data->file);
+}
+
+JSValue nx_fclose_cb(JSContext *ctx, nx_work_t *req)
+{
+	nx_fs_fclose_async_t *data = (nx_fs_fclose_async_t *)req->data;
+	if (data->err)
+	{
+		JSValue err = JS_NewError(ctx);
+		JS_DefinePropertyValueStr(ctx, err, "message", JS_NewString(ctx, strerror(data->err)), JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+		return JS_Throw(ctx, err);
+	}
+	return JS_UNDEFINED;
+}
+
+JSValue nx_fclose(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	nx_file_t *file = JS_GetOpaque2(ctx, argv[0], nx_file_class_id);
+	if (!file)
+	{
+		return JS_EXCEPTION;
+	}
+	NX_INIT_WORK_T(nx_fs_fclose_async_t);
+	data->file = file->file;
+	file->file = NULL;
+	return nx_queue_async(ctx, req, nx_fclose_do, nx_fclose_cb);
+}
+
+void nx_fopen_do(nx_work_t *req)
+{
+	nx_fs_fopen_async_t *data = (nx_fs_fopen_async_t *)req->data;
+	data->file = fopen(data->path, data->mode);
+	if (!data->file)
+	{
+		data->err = errno;
+	}
+}
+
+JSValue nx_fopen_cb(JSContext *ctx, nx_work_t *req)
+{
+	nx_fs_fopen_async_t *data = (nx_fs_fopen_async_t *)req->data;
+	JS_FreeCString(ctx, data->path);
+	JS_FreeCString(ctx, data->mode);
+
+	if (data->err == ENOENT)
+	{
+		return JS_NULL;
+	}
+	else if (data->err)
+	{
+		JSValue err = JS_NewError(ctx);
+		JS_DefinePropertyValueStr(ctx, err, "message", JS_NewString(ctx, strerror(data->err)), JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+		return JS_Throw(ctx, err);
+	}
+	JSValue f = JS_NewObjectClass(ctx, nx_file_class_id);
+	nx_file_t *file = js_mallocz(ctx, sizeof(nx_file_t));
+	file->file = data->file;
+	JS_SetOpaque(f, file);
+	return f;
+}
+
+JSValue nx_fopen(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	NX_INIT_WORK_T(nx_fs_fopen_async_t);
+	data->path = JS_ToCString(ctx, argv[0]);
+	data->mode = JS_ToCString(ctx, argv[1]);
+	if (!data->path || !data->mode)
+	{
+		return JS_EXCEPTION;
+	}
+	return nx_queue_async(ctx, req, nx_fopen_do, nx_fopen_cb);
+}
+
+void nx_fread_do(nx_work_t *req)
+{
+	nx_fs_file_rw_async_t *data = (nx_fs_file_rw_async_t *)req->data;
+	data->bytes_read = fread(data->buf, 1, data->buf_size, data->file);
+	if (ferror(data->file)) {
+		data->err = errno;
+	}
+}
+
+JSValue nx_fread_cb(JSContext *ctx, nx_work_t *req)
+{
+	nx_fs_file_rw_async_t *data = (nx_fs_file_rw_async_t *)req->data;
+	JS_FreeValue(ctx, data->buf_val);
+	if (data->err)
+	{
+		JSValue err = JS_NewError(ctx);
+		JS_DefinePropertyValueStr(ctx, err, "message", JS_NewString(ctx, strerror(data->err)), JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+		return JS_Throw(ctx, err);
+	}
+	return JS_NewUint32(ctx, data->bytes_read);
+}
+
+JSValue nx_fread(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	nx_file_t *file = JS_GetOpaque2(ctx, argv[0], nx_file_class_id);
+	if (!file)
+	{
+		return JS_EXCEPTION;
+	}
+	size_t size;
+	u8* buf = JS_GetArrayBuffer(ctx, &size, argv[1]);
+	if (!buf) {
+		return JS_EXCEPTION;
+	}
+	NX_INIT_WORK_T(nx_fs_file_rw_async_t);
+	data->file = file->file;
+	data->buf = buf;
+	data->buf_size = size;
+	data->buf_val = JS_DupValue(ctx, argv[1]);
+	return nx_queue_async(ctx, req, nx_fread_do, nx_fread_cb);
+}
+
+void nx_fwrite_do(nx_work_t *req)
+{
+	nx_fs_file_rw_async_t *data = (nx_fs_file_rw_async_t *)req->data;
+	data->bytes_read = fwrite(data->buf, 1, data->buf_size, data->file);
+	if (ferror(data->file)) {
+		data->err = errno;
+	}
+}
+
+JSValue nx_fwrite_cb(JSContext *ctx, nx_work_t *req)
+{
+	nx_fs_file_rw_async_t *data = (nx_fs_file_rw_async_t *)req->data;
+	JS_FreeValue(ctx, data->buf_val);
+	if (data->err)
+	{
+		JSValue err = JS_NewError(ctx);
+		JS_DefinePropertyValueStr(ctx, err, "message", JS_NewString(ctx, strerror(data->err)), JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+		return JS_Throw(ctx, err);
+	}
+	return JS_NewUint32(ctx, data->bytes_read);
+}
+
+JSValue nx_fwrite(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	nx_file_t *file = JS_GetOpaque2(ctx, argv[0], nx_file_class_id);
+	if (!file)
+	{
+		return JS_EXCEPTION;
+	}
+	size_t size;
+	u8* buf = JS_GetArrayBuffer(ctx, &size, argv[1]);
+	if (!buf) {
+		return JS_EXCEPTION;
+	}
+	NX_INIT_WORK_T(nx_fs_file_rw_async_t);
+	data->file = file->file;
+	data->buf = buf;
+	data->buf_size = size;
+	data->buf_val = JS_DupValue(ctx, argv[1]);
+	return nx_queue_async(ctx, req, nx_fwrite_do, nx_fwrite_cb);
 }
 
 JSValue nx_mkdir_sync(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -555,6 +759,10 @@ JSValue nx_remove_sync(JSContext *ctx, JSValueConst this_val, int argc, JSValueC
 }
 
 static const JSCFunctionListEntry function_list[] = {
+	JS_CFUNC_DEF("fclose", 1, nx_fclose),
+	JS_CFUNC_DEF("fopen", 1, nx_fopen),
+	JS_CFUNC_DEF("fread", 1, nx_fread),
+	JS_CFUNC_DEF("fwrite", 1, nx_fwrite),
 	JS_CFUNC_DEF("mkdirSync", 1, nx_mkdir_sync),
 	JS_CFUNC_DEF("readDirSync", 1, nx_readdir_sync),
 	JS_CFUNC_DEF("readFile", 2, nx_read_file),
@@ -568,5 +776,14 @@ static const JSCFunctionListEntry function_list[] = {
 
 void nx_init_fs(JSContext *ctx, JSValueConst init_obj)
 {
+	JSRuntime *rt = JS_GetRuntime(ctx);
+
+	JS_NewClassID(rt, &nx_file_class_id);
+	JSClassDef file_class = {
+		"File",
+		.finalizer = finalizer_file,
+	};
+	JS_NewClass(rt, nx_file_class_id, &file_class);
+
 	JS_SetPropertyFunctionList(ctx, init_obj, function_list, countof(function_list));
 }

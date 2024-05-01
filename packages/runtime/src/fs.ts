@@ -1,7 +1,15 @@
 import { $ } from './$';
-import { bufferSourceToArrayBuffer, pathToString } from './utils';
+import {
+	bufferSourceToArrayBuffer,
+	//createInternal,
+	pathToString,
+} from './utils';
+import { File } from './polyfills/file';
+import { decoder } from './polyfills/text-decoder';
 import { encoder } from './polyfills/text-encoder';
+import type { Then } from './internal';
 import type { PathLike } from './switch';
+import { BufferSource } from './types';
 
 /**
  * Creates the directory at the provided `path`, as well as any necessary parent directories.
@@ -119,3 +127,110 @@ export function statSync(path: PathLike) {
 export function stat(path: PathLike) {
 	return $.stat(pathToString(path));
 }
+
+export const fopen = $.fopen;
+export const fclose = $.fclose;
+export const fread = $.fread;
+
+export interface FsFileOptions {
+	type?: string;
+}
+
+/**
+ * Returns an {@link FsFile} instance for the given `path`.
+ *
+ * @param path
+ */
+export function file(path: PathLike, opts?: FsFileOptions) {
+	return new FsFile(path, opts);
+}
+
+//const _ = createInternal<FsFile, {}>();
+
+export class FsFile extends File {
+	constructor(path: PathLike, opts?: FsFileOptions) {
+		super([], pathToString(path), {
+			type: 'text/plain;charset=utf-8',
+			...opts,
+		});
+		Object.defineProperty(this, 'lastModified', {
+			get() {
+				return statSync(this.name)?.mtime ?? 0;
+			},
+		});
+	}
+
+	get size() {
+		return statSync(this.name)?.size ?? 0;
+	}
+
+	stat() {
+		return stat(this.name);
+	}
+
+	async arrayBuffer(): Promise<ArrayBuffer> {
+		const b = await readFile(this.name);
+		if (!b) {
+			throw new Error(`File does not exist: "${this.name}"`);
+		}
+		return b;
+	}
+
+	async text(): Promise<string> {
+		return decoder.decode(await this.arrayBuffer());
+	}
+
+	async json(): Promise<any> {
+		return JSON.parse(await this.text());
+	}
+
+	stream(): ReadableStream<Uint8Array> {
+		const { name } = this;
+		let h: Then<ReturnType<typeof $.fopen>>;
+		return new ReadableStream({
+			async start() {
+				h = await $.fopen(name, 'rb');
+			},
+			async pull(controller) {
+				const b = new Uint8Array(100);
+				const n = await $.fread(h, b.buffer);
+				if (n > 0) {
+					controller.enqueue(b);
+				}
+				if (n < b.length) {
+					controller.close();
+					await $.fclose(h);
+				}
+			},
+			async cancel() {
+				if (h) {
+					await $.fclose(h);
+				}
+			},
+		});
+	}
+
+	get writable() {
+		const { name } = this;
+		let h: Then<ReturnType<typeof $.fopen>>;
+		return new WritableStream<BufferSource | string>({
+			async start() {
+				h = await $.fopen(name, 'w');
+			},
+			async write(chunk) {
+				await $.fwrite(
+					h,
+					typeof chunk === 'string'
+						? encoder.encode(chunk).buffer
+						: bufferSourceToArrayBuffer(chunk),
+				);
+			},
+			async close() {
+				if (h) {
+					await $.fclose(h);
+				}
+			},
+		});
+	}
+}
+//$.fsFileInit(FsFile);
