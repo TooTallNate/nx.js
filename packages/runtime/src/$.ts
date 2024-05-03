@@ -2,7 +2,6 @@ import type {
 	Album,
 	AlbumFile,
 	Application,
-	//FsFile,
 	IRSensor,
 	NetworkInfo,
 	Profile,
@@ -140,10 +139,9 @@ export interface Init {
 	getSystemFont(): ArrayBuffer;
 
 	// fs.c
-	//fsFileInit(c: ClassOf<FsFile>): void;
 	fclose(f: FileHandle): Promise<void>;
 	fopen(path: string, mode: string): Promise<FileHandle>;
-	fread(f: FileHandle, buf: ArrayBuffer): Promise<number>;
+	fread(f: FileHandle, buf: ArrayBuffer): Promise<number | null>;
 	fwrite(f: FileHandle, data: ArrayBuffer): Promise<void>;
 	mkdirSync(path: string, mode: number): number;
 	readDirSync(path: string): string[] | null;

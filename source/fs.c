@@ -46,10 +46,11 @@ typedef struct
 {
 	int err;
 	FILE *file;
-	u8* buf;
+	u8 *buf;
 	size_t buf_size;
 	JSValue buf_val;
 	size_t bytes_read;
+	bool eof;
 } nx_fs_file_rw_async_t;
 
 typedef struct
@@ -242,8 +243,13 @@ void nx_fread_do(nx_work_t *req)
 {
 	nx_fs_file_rw_async_t *data = (nx_fs_file_rw_async_t *)req->data;
 	data->bytes_read = fread(data->buf, 1, data->buf_size, data->file);
-	if (ferror(data->file)) {
+	if (ferror(data->file))
+	{
 		data->err = errno;
+	}
+	else if (!data->bytes_read && feof(data->file))
+	{
+		data->eof = true;
 	}
 }
 
@@ -257,7 +263,7 @@ JSValue nx_fread_cb(JSContext *ctx, nx_work_t *req)
 		JS_DefinePropertyValueStr(ctx, err, "message", JS_NewString(ctx, strerror(data->err)), JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
 		return JS_Throw(ctx, err);
 	}
-	return JS_NewUint32(ctx, data->bytes_read);
+	return data->eof ? JS_NULL : JS_NewUint32(ctx, data->bytes_read);
 }
 
 JSValue nx_fread(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -268,8 +274,9 @@ JSValue nx_fread(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *
 		return JS_EXCEPTION;
 	}
 	size_t size;
-	u8* buf = JS_GetArrayBuffer(ctx, &size, argv[1]);
-	if (!buf) {
+	u8 *buf = JS_GetArrayBuffer(ctx, &size, argv[1]);
+	if (!buf)
+	{
 		return JS_EXCEPTION;
 	}
 	NX_INIT_WORK_T(nx_fs_file_rw_async_t);
@@ -284,7 +291,8 @@ void nx_fwrite_do(nx_work_t *req)
 {
 	nx_fs_file_rw_async_t *data = (nx_fs_file_rw_async_t *)req->data;
 	data->bytes_read = fwrite(data->buf, 1, data->buf_size, data->file);
-	if (ferror(data->file)) {
+	if (ferror(data->file))
+	{
 		data->err = errno;
 	}
 }
@@ -310,8 +318,9 @@ JSValue nx_fwrite(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst 
 		return JS_EXCEPTION;
 	}
 	size_t size;
-	u8* buf = JS_GetArrayBuffer(ctx, &size, argv[1]);
-	if (!buf) {
+	u8 *buf = JS_GetArrayBuffer(ctx, &size, argv[1]);
+	if (!buf)
+	{
 		return JS_EXCEPTION;
 	}
 	NX_INIT_WORK_T(nx_fs_file_rw_async_t);

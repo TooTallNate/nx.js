@@ -1,9 +1,5 @@
 import { $ } from './$';
-import {
-	bufferSourceToArrayBuffer,
-	//createInternal,
-	pathToString,
-} from './utils';
+import { bufferSourceToArrayBuffer, pathToString } from './utils';
 import { File } from './polyfills/file';
 import { decoder } from './polyfills/text-decoder';
 import { encoder } from './polyfills/text-encoder';
@@ -128,10 +124,6 @@ export function stat(path: PathLike) {
 	return $.stat(pathToString(path));
 }
 
-export const fopen = $.fopen;
-export const fclose = $.fclose;
-export const fread = $.fread;
-
 export interface FsFileOptions {
 	type?: string;
 }
@@ -145,8 +137,6 @@ export function file(path: PathLike, opts?: FsFileOptions) {
 	return new FsFile(path, opts);
 }
 
-//const _ = createInternal<FsFile, {}>();
-
 export class FsFile extends File {
 	constructor(path: PathLike, opts?: FsFileOptions) {
 		super([], pathToString(path), {
@@ -154,8 +144,8 @@ export class FsFile extends File {
 			...opts,
 		});
 		Object.defineProperty(this, 'lastModified', {
-			get() {
-				return statSync(this.name)?.mtime ?? 0;
+			get(): number {
+				return (statSync(this.name)?.mtime ?? 0) * 1000;
 			},
 		});
 	}
@@ -184,22 +174,22 @@ export class FsFile extends File {
 		return JSON.parse(await this.text());
 	}
 
-	stream(): ReadableStream<Uint8Array> {
+	stream(opts?: { chunkSize: number }): ReadableStream<Uint8Array> {
 		const { name } = this;
-		let h: Then<ReturnType<typeof $.fopen>>;
+		const chunkSize = opts?.chunkSize || 65536;
+		let h: Then<ReturnType<typeof $.fopen>> | null = null;
 		return new ReadableStream({
-			async start() {
-				h = await $.fopen(name, 'rb');
-			},
+			type: 'bytes',
 			async pull(controller) {
-				const b = new Uint8Array(100);
+				if (!h) h = await $.fopen(name, 'rb');
+				const b = new Uint8Array(chunkSize);
 				const n = await $.fread(h, b.buffer);
-				if (n > 0) {
-					controller.enqueue(b);
-				}
-				if (n < b.length) {
+				if (n === null) {
 					controller.close();
 					await $.fclose(h);
+					h = null;
+				} else if (n > 0) {
+					controller.enqueue(n < b.length ? b.subarray(0, n) : b);
 				}
 			},
 			async cancel() {
@@ -212,12 +202,10 @@ export class FsFile extends File {
 
 	get writable() {
 		const { name } = this;
-		let h: Then<ReturnType<typeof $.fopen>>;
+		let h: Then<ReturnType<typeof $.fopen>> | null = null;
 		return new WritableStream<BufferSource | string>({
-			async start() {
-				h = await $.fopen(name, 'w');
-			},
 			async write(chunk) {
+				if (!h) h = await $.fopen(name, 'w');
 				await $.fwrite(
 					h,
 					typeof chunk === 'string'
