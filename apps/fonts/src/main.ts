@@ -2,13 +2,12 @@ const ctx = screen.getContext('2d');
 
 const fontUrl = new URL('fonts/Alexandria.ttf', Switch.entrypoint);
 const fontData = Switch.readFileSync(fontUrl);
-const font = new FontFace('Alexandria', fontData);
+const font = new FontFace('Alexandria', fontData!);
 fonts.add(font);
 
-//const emojiFontUrl = new URL('fonts/NotoColorEmoji-Regular.ttf', Switch.entrypoint);
 const emojiFontUrl = new URL('fonts/Twemoji.ttf', Switch.entrypoint);
 const emojiFontData = Switch.readFileSync(emojiFontUrl);
-const emojiFont = new FontFace('Twemoji', emojiFontData);
+const emojiFont = new FontFace('Twemoji', emojiFontData!);
 fonts.add(emojiFont);
 
 ctx.textAlign = 'center';

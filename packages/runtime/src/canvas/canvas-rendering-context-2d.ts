@@ -47,7 +47,7 @@ export class CanvasRenderingContext2D {
 		const ctx = $.canvasContext2dNew(canvas);
 		Object.setPrototypeOf(ctx, CanvasRenderingContext2D.prototype);
 		_.set(ctx, { canvas });
-		ctx.font = '10px system-ui';
+		ctx.font = '10px sans-serif';
 		return ctx;
 	}
 
@@ -102,7 +102,10 @@ export class CanvasRenderingContext2D {
 		}
 		let font = findFont(fonts, parsed);
 		if (!font) {
-			if (parsed.family.includes('system-ui')) {
+			if (
+				parsed.family.includes('system-ui') ||
+				parsed.family.includes('sans-serif')
+			) {
 				font = addSystemFont(fonts);
 			} else {
 				return;

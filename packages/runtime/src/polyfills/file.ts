@@ -12,11 +12,11 @@ export class File extends Blob implements globalThis.File {
 
 	constructor(
 		fileParts: BlobPart[],
-		fileName: string,
+		name: string,
 		options: FilePropertyBag = {},
 	) {
 		super(fileParts, options);
-		this.name = fileName.replace(/\//g, ':');
+		this.name = name;
 		this.webkitRelativePath = '';
 		this.lastModified = +(options.lastModified
 			? new Date(options.lastModified)

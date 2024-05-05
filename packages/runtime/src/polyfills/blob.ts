@@ -178,12 +178,10 @@ export class Blob implements globalThis.Blob {
 
 		return new ReadableStream({
 			type: 'bytes',
-
 			async pull(ctrl) {
 				const chunk = await it.next();
 				chunk.done ? ctrl.close() : ctrl.enqueue(chunk.value);
 			},
-
 			async cancel() {
 				await it.return!();
 			},

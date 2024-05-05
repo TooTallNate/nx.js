@@ -36,10 +36,6 @@ async function* stringIterator(s: string) {
 	yield encoder.encode(s);
 }
 
-async function* blobIterator(b: Blob) {
-	yield new Uint8Array(await b.arrayBuffer());
-}
-
 async function* arrayBufferIterator(b: ArrayBuffer) {
 	yield new Uint8Array(b);
 }
@@ -97,7 +93,7 @@ export abstract class Body implements globalThis.Body {
 				this.body = asyncIteratorToStream(stringIterator(init));
 				contentType = 'text/plain;charset=UTF-8';
 			} else if (init instanceof Blob) {
-				this.body = asyncIteratorToStream(blobIterator(init));
+				this.body = init.stream();
 				contentType = init.type;
 			} else if (init instanceof URLSearchParams) {
 				this.body = asyncIteratorToStream(stringIterator(String(init)));

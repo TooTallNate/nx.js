@@ -76,15 +76,14 @@ JSValue nx_queue_async(JSContext *ctx, nx_work_t *req, nx_work_cb work_cb, nx_af
 {
 	JSValue promise, resolving_funcs[2];
 	promise = JS_NewPromiseCapability(ctx, resolving_funcs);
-
-	nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
 	req->done = 0;
-	req->resolve = JS_DupValue(ctx, resolving_funcs[0]);
-	req->reject = JS_DupValue(ctx, resolving_funcs[1]);
+	req->resolve = resolving_funcs[0];
+	req->reject = resolving_funcs[1];
 	req->work_cb = work_cb;
 	req->after_work_cb = after_work_cb;
 
 	// Add to linked list
+	nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
 	pthread_mutex_lock(&nx_ctx->async_done_mutex);
 	if (nx_ctx->work_queue)
 	{
