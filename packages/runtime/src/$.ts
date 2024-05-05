@@ -42,6 +42,7 @@ type ClassOf<T> = {
 	new (...args: any[]): T;
 };
 
+type FileHandle = Opaque<'FileHandle'>;
 type SaveDataIterator = Opaque<'SaveDataIterator'>;
 type URLSearchParamsIterator = Opaque<'URLSearchParamsIterator'>;
 
@@ -138,6 +139,10 @@ export interface Init {
 	getSystemFont(): ArrayBuffer;
 
 	// fs.c
+	fclose(f: FileHandle): Promise<void>;
+	fopen(path: string, mode: string): Promise<FileHandle>;
+	fread(f: FileHandle, buf: ArrayBuffer): Promise<number | null>;
+	fwrite(f: FileHandle, data: ArrayBuffer): Promise<void>;
 	mkdirSync(path: string, mode: number): number;
 	readDirSync(path: string): string[] | null;
 	readFile(path: string): Promise<ArrayBuffer | null>;

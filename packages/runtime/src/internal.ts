@@ -24,6 +24,8 @@ export type CallbackArguments<T> = T extends (
 	? U
 	: never;
 
+export type Then<T> = T extends Promise<infer U> ? U : never;
+
 export interface SocketOptionsInternal extends SocketOptions {
 	connect: typeof connect;
 }
