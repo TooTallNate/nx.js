@@ -221,4 +221,3 @@ export class FsFile extends File {
 		});
 	}
 }
-//$.fsFileInit(FsFile);
