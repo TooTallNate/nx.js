@@ -112,7 +112,8 @@ export function findFont(
 
 export function addSystemFont(fonts: FontFaceSet): FontFace {
 	const data = $.getSystemFont();
-	const font = new FontFace('system-ui', data);
-	fonts.add(font);
-	return font;
+	const f = new FontFace('system-ui', data);
+	fonts.add(f);
+	fonts.add(new FontFace('sans-serif', data));
+	return f;
 }

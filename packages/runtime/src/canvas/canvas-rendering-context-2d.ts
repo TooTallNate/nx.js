@@ -102,7 +102,10 @@ export class CanvasRenderingContext2D {
 		}
 		let font = findFont(fonts, parsed);
 		if (!font) {
-			if (parsed.family.includes('system-ui')) {
+			if (
+				parsed.family.includes('system-ui') ||
+				parsed.family.includes('sans-serif')
+			) {
 				font = addSystemFont(fonts);
 			} else {
 				return;
