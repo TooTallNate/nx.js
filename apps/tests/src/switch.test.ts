@@ -141,4 +141,45 @@ test('`Switch.removeSync()` removes nested directory', async () => {
 	assert.equal(Switch.statSync(path), null);
 });
 
+test('`Switch.file()` read text', async () => {
+	const file = Switch.file('romfs:/file.txt');
+	const data = await file.text();
+	assert.equal(data, 'this is a text file\n');
+});
+
+test('`Switch.file()` read json', async () => {
+	const file = Switch.file('romfs:/file.json');
+	const data = await file.json();
+	assert.equal(data, { foo: 'bar' });
+});
+
+test('`Switch.file()` read stream', async () => {
+	const file = Switch.file('romfs:/file.txt');
+	const stream = file.stream({ chunkSize: 3 });
+	const chunks: string[] = [];
+	const decoder = new TextDecoder();
+	for await (const chunk of stream) {
+		chunks.push(decoder.decode(chunk));
+	}
+	assert.equal(chunks, ['thi', 's i', 's a', ' te', 'xt ', 'fil', 'e\n']);
+});
+
+test('`Switch.file()` write stream', async () => {
+	const path = 'sdmc:/nxjs-test-file.txt';
+	try {
+		const file = Switch.file(path);
+
+		const writer = file.writable.getWriter();
+		writer.write('write');
+		writer.write(' a ');
+		writer.write('file ');
+		writer.write('streaming');
+		await writer.close();
+
+		assert.equal(await file.text(), 'write a file streaming');
+	} finally {
+		await Switch.remove(path);
+	}
+});
+
 test.run();
