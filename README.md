@@ -73,7 +73,7 @@ pull request in the [GitHub repository](https://github.com/TooTallNate/nx.js).
    ```
    dkp-pacman -S switch-dev switch-freetype switch-libjpeg-turbo switch-libpng switch-libwebp switch-mbedtls
    ```
-1. Install additional packages which are not in the official registry:
+1. Install additional packages which are not in the official registry (cairo, pixman, wasm3, harfbuzz, quickjs-ng):
    ```
    docker run -it --rm --mount type=bind,source="$(pwd)",target=/host ghcr.io/tootallnate/pacman-packages:nxjs sh -c 'cp packages/*/*.pkg.tar.zst /host'
    dkp-pacman -U *.pkg.tar.zst
