@@ -67,7 +67,9 @@ pull request in the [GitHub repository](https://github.com/TooTallNate/nx.js).
 
 ## Building from Source
 
-1. `jq` needs to be installed
+1. Node.js needs to be installed (`curl -sfLS install-node.vercel.app/20 | bash`)
+1. `pnpm` needs to be installed (`npm i -g pnpm`)
+1. `jq` needs to be installed (`brew install jq`)
 1. The [devKitPro](https://devkitpro.org/) compiler toolchain needs to be installed
 1. Install required packages from the official registry:
    ```bash
