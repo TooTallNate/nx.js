@@ -75,6 +75,7 @@ pull request in the [GitHub repository](https://github.com/TooTallNate/nx.js).
    ```
 1. Install additional packages which are not in the official registry (cairo, pixman, wasm3, harfbuzz, quickjs-ng):
    ```bash
+   docker pull ghcr.io/tootallnate/pacman-packages:nxjs
    docker run -it --rm --mount type=bind,source="$(pwd)",target=/host ghcr.io/tootallnate/pacman-packages:nxjs sh -c 'cp packages/*/*.pkg.tar.zst /host'
    dkp-pacman -U *.pkg.tar.zst
    ```
