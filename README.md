@@ -70,13 +70,17 @@ pull request in the [GitHub repository](https://github.com/TooTallNate/nx.js).
 1. `jq` needs to be installed
 1. The [devKitPro](https://devkitpro.org/) compiler toolchain needs to be installed
 1. Install required packages from the official registry:
-   ```
+   ```bash
    dkp-pacman -S switch-dev switch-freetype switch-libjpeg-turbo switch-libpng switch-libwebp switch-mbedtls
    ```
 1. Install additional packages which are not in the official registry (cairo, pixman, wasm3, harfbuzz, quickjs-ng):
-   ```
+   ```bash
    docker run -it --rm --mount type=bind,source="$(pwd)",target=/host ghcr.io/tootallnate/pacman-packages:nxjs sh -c 'cp packages/*/*.pkg.tar.zst /host'
    dkp-pacman -U *.pkg.tar.zst
+   ```
+1. Now you can compile one of the example apps into a self-contained `.nro`:
+   ```bash
+   ./build.sh hello-world
    ```
 
 ## License
