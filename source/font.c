@@ -2,6 +2,7 @@
 #include <harfbuzz/hb-ot.h>
 #include "types.h"
 #include "font.h"
+#include "error.h"
 
 static JSClassID nx_font_face_class_id;
 
@@ -52,12 +53,16 @@ static JSValue nx_new_font_face(JSContext *ctx, JSValueConst this_val, int argc,
 
 static JSValue nx_get_system_font(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
+	u32 type;
+	if (JS_ToUint32(ctx, &type, argv[0]))
+	{
+		return JS_EXCEPTION;
+	}
 	PlFontData font;
-	Result rc = plGetSharedFontByType(&font, PlSharedFontType_Standard);
+	Result rc = plGetSharedFontByType(&font, (PlSharedFontType)type);
 	if (R_FAILED(rc))
 	{
-		JS_ThrowTypeError(ctx, "Failed to load system font");
-		return JS_EXCEPTION;
+		return nx_throw_libnx_error(ctx, rc, "plGetSharedFontByType()");
 	}
 	return JS_NewArrayBufferCopy(ctx, font.address, font.size);
 }

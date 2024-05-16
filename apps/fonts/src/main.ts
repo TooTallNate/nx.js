@@ -12,23 +12,32 @@ fonts.add(emojiFont);
 
 ctx.textAlign = 'center';
 
+let y = 140;
 ctx.font = '48px Alexandria';
 ctx.fillStyle = 'purple';
-ctx.fillText('This is the "Alexandria" font', screen.width / 2, 250);
+ctx.fillText('This is the "Alexandria" font', screen.width / 2, y);
 
 ctx.font = '28px Alexandria';
 ctx.fillStyle = 'rgb(230, 200, 200)';
-ctx.fillText('Created by "Teaito"', screen.width / 2, 310);
+ctx.fillText('Created by "Teaito"', screen.width / 2, (y += 60));
+
+ctx.font = '26px system-ui';
+ctx.fillStyle = 'white';
+ctx.fillText(
+	'"system-icons" font to render Switch native icons',
+	screen.width / 2,
+	(y += 120),
+);
+ctx.font = '100px system-icons';
+ctx.fillText('\uE130\uE122\uE12C\uE0C4', screen.width / 2, (y += 114));
 
 ctx.font = '26px system-ui';
 ctx.fillStyle = 'orange';
-ctx.fillText('Emoji fonts work too!', screen.width / 2, 480);
-
+ctx.fillText('Emoji fonts work too!', screen.width / 2, (y += 120));
 ctx.font = '100px Twemoji';
-ctx.fillText('🇧🇷👩🏾‍🦱🥰🏀', screen.width / 2, 600);
+ctx.fillText('🇧🇷👩🏾‍🦱🥰🏀', screen.width / 2, (y += 100));
 
 ctx.textAlign = 'right';
-
 ctx.font = '24px system-ui';
 ctx.strokeStyle = 'rgb(200, 200, 230)';
 ctx.strokeText('Press + to exit', screen.width - 30, 30);

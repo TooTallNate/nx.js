@@ -111,9 +111,16 @@ export function findFont(
 }
 
 export function addSystemFont(fonts: FontFaceSet): FontFace {
-	const data = $.getSystemFont();
+	const data = $.getSystemFont(0 /* PlSharedFontType_Standard */);
 	const f = new FontFace('system-ui', data);
 	fonts.add(f);
 	fonts.add(new FontFace('sans-serif', data));
+	return f;
+}
+
+export function addIconFont(fonts: FontFaceSet): FontFace {
+	const data = $.getSystemFont(5 /* PlSharedFontType_NintendoExt */);
+	const f = new FontFace('system-icons', data);
+	fonts.add(f);
 	return f;
 }

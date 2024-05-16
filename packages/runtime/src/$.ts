@@ -136,7 +136,7 @@ export interface Init {
 
 	// font.c
 	fontFaceNew(data: ArrayBuffer): FontFace;
-	getSystemFont(): ArrayBuffer;
+	getSystemFont(type: number): ArrayBuffer;
 
 	// fs.c
 	fclose(f: FileHandle): Promise<void>;

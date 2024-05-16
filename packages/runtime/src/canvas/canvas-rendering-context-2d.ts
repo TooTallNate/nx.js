@@ -11,7 +11,12 @@ import {
 	stub,
 	returnOnThrow,
 } from '../utils';
-import { addSystemFont, findFont, fonts } from '../font/font-face-set';
+import {
+	addIconFont,
+	addSystemFont,
+	findFont,
+	fonts,
+} from '../font/font-face-set';
 import { DOMMatrix, type DOMMatrix2DInit } from '../dommatrix';
 import type { Path2D } from './path2d';
 import type { Screen } from '../screen';
@@ -70,7 +75,7 @@ export class CanvasRenderingContext2D {
 	 * This string uses the same syntax as the
 	 * [CSS font](https://developer.mozilla.org/docs/Web/CSS/font) specifier.
 	 *
-	 * @default "10px system-ui"
+	 * @default "10px sans-serif"
 	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/font
 	 */
 	get font(): string {
@@ -107,6 +112,8 @@ export class CanvasRenderingContext2D {
 				parsed.family.includes('sans-serif')
 			) {
 				font = addSystemFont(fonts);
+			} else if (parsed.family.includes('system-icons')) {
+				font = addIconFont(fonts);
 			} else {
 				return;
 			}
