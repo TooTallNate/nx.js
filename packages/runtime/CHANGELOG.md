@@ -1,5 +1,19 @@
 # nxjs-runtime
 
+## 0.0.46
+
+### Patch Changes
+
+- Don't mangle `name` parameter in `File` constructor ([`17cbe9d40b63c694cf3028691c84f45d57bfbb20`](https://github.com/TooTallNate/nx.js/commit/17cbe9d40b63c694cf3028691c84f45d57bfbb20))
+
+- "sans-serif" is the default font ([`75d89949c0ce163fda891ac7220a78be75514ebd`](https://github.com/TooTallNate/nx.js/commit/75d89949c0ce163fda891ac7220a78be75514ebd))
+
+- Add "system-icons" built-in font ([`13ba7013ac382863225b96d43f8a5f8b8950c7f5`](https://github.com/TooTallNate/nx.js/commit/13ba7013ac382863225b96d43f8a5f8b8950c7f5))
+
+- Use system font for "sans-serif" ([`4eef23bc27a92363f6e0f3f06f19632e519f26dc`](https://github.com/TooTallNate/nx.js/commit/4eef23bc27a92363f6e0f3f06f19632e519f26dc))
+
+- Add `Switch.file()` API ([#121](https://github.com/TooTallNate/nx.js/pull/121))
+
 ## 0.0.45
 
 ### Patch Changes
