@@ -64,9 +64,11 @@ export class Screen extends EventTarget implements globalThis.Screen {
 	 */
 	declare readonly height: number;
 
-	getContext(contextId: '2d'): CanvasRenderingContext2D {
+	getContext(contextId: '2d'): CanvasRenderingContext2D;
+	getContext(contextId: string): null;
+	getContext(contextId: string): CanvasRenderingContext2D | null {
 		if (contextId !== '2d') {
-			throw new TypeError('Only "2d" rendering context is supported');
+			return null;
 		}
 
 		const i = _(this);
