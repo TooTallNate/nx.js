@@ -12,30 +12,27 @@ fonts.add(emojiFont);
 
 ctx.textAlign = 'center';
 
+const x = screen.width / 2;
 let y = 140;
 ctx.font = '48px Alexandria';
 ctx.fillStyle = 'purple';
-ctx.fillText('This is the "Alexandria" font', screen.width / 2, y);
+ctx.fillText('This is the "Alexandria" font', x, y);
 
 ctx.font = '28px Alexandria';
 ctx.fillStyle = 'rgb(230, 200, 200)';
-ctx.fillText('Created by "Teaito"', screen.width / 2, (y += 60));
+ctx.fillText('Created by "Teaito"', x, (y += 60));
 
 ctx.font = '26px system-ui';
 ctx.fillStyle = 'white';
-ctx.fillText(
-	'"system-icons" font to render Switch native icons',
-	screen.width / 2,
-	(y += 120),
-);
+ctx.fillText('"system-icons" font renders Switch native icons', x, (y += 120));
 ctx.font = '100px system-icons';
-ctx.fillText('\uE130\uE122\uE12C\uE0C4', screen.width / 2, (y += 114));
+ctx.fillText('\uE130\uE122\uE12C\uE0C4', x, (y += 114));
 
 ctx.font = '26px system-ui';
 ctx.fillStyle = 'orange';
-ctx.fillText('Emoji fonts work too!', screen.width / 2, (y += 120));
+ctx.fillText('Emoji fonts work too!', x, (y += 120));
 ctx.font = '100px Twemoji';
-ctx.fillText('🇧🇷👩🏾‍🦱🥰🏀', screen.width / 2, (y += 100));
+ctx.fillText('🇧🇷👩🏾‍🦱🥰🏀', x, (y += 100));
 
 ctx.textAlign = 'right';
 ctx.font = '24px system-ui';
