@@ -1,5 +1,9 @@
 lockfileVersion: '6.0'
 
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
 importers:
 
   .:
@@ -167,8 +171,8 @@ importers:
         specifier: ^18.2.0
         version: 18.2.0
       react-tela:
-        specifier: 0.0.2
-        version: 0.0.2(react@18.2.0)
+        specifier: 0.0.3
+        version: 0.0.3(react@18.2.0)
     devDependencies:
       '@nx.js/nro':
         specifier: workspace:^
@@ -4338,8 +4342,8 @@ packages:
       scheduler: 0.23.0
     dev: false
 
-  /react-tela@0.0.2(react@18.2.0):
-    resolution: {integrity: sha512-+6KA4yLAtXy6nP+ZhnMiXAumXGo9JM4zMB5LYVyrFeAfgI9X4tOZy82IlM3sJKx4/RGpsfirO2FYoSBXVu3G+A==}
+  /react-tela@0.0.3(react@18.2.0):
+    resolution: {integrity: sha512-9xB0kg1ziMyvlHDMwbpwG0c+5wDfbAFut5u4nbJZadgvnc05GO1K8DugqrM0BynWM/hZ40gMbTZ9RQVEf+zmeQ==}
     peerDependencies:
       react: '18'
     dependencies:
