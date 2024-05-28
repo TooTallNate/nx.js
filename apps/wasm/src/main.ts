@@ -2,11 +2,10 @@
 // which invokes the imported function `imported_func()` with
 // a single parameter containing the value 42.
 // https://github.com/mdn/webassembly-examples/blob/main/js-api-examples/simple.wat
-import wasmPath from './simple.wasm';
+import wasm from './simple.wasm';
 
-const wasm = Switch.readFileSync(new URL(wasmPath, Switch.entrypoint));
+const mod = new WebAssembly.Module(wasm);
 
-const mod = new WebAssembly.Module(wasm!);
 console.log({
 	imports: WebAssembly.Module.imports(mod),
 	exports: WebAssembly.Module.exports(mod),
