@@ -1,15 +1,15 @@
-const ctx = screen.getContext('2d');
+import aPath from './fonts/Alexandria.ttf';
+import tPath from './fonts/Twemoji.ttf';
 
-const fontUrl = new URL('fonts/Alexandria.ttf', Switch.entrypoint);
-const fontData = Switch.readFileSync(fontUrl);
+const fontData = Switch.readFileSync(new URL(aPath, Switch.entrypoint));
 const font = new FontFace('Alexandria', fontData!);
 fonts.add(font);
 
-const emojiFontUrl = new URL('fonts/Twemoji.ttf', Switch.entrypoint);
-const emojiFontData = Switch.readFileSync(emojiFontUrl);
+const emojiFontData = Switch.readFileSync(new URL(tPath, Switch.entrypoint));
 const emojiFont = new FontFace('Twemoji', emojiFontData!);
 fonts.add(emojiFont);
 
+const ctx = screen.getContext('2d');
 ctx.textAlign = 'center';
 
 const x = screen.width / 2;

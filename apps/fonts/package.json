@@ -4,7 +4,7 @@
   "private": true,
   "description": "nx.js app using customs fonts",
   "scripts": {
-    "build": "esbuild --bundle --sourcemap --sources-content=false --target=es2022 --format=esm --outdir=romfs src/main.ts",
+    "build": "esbuild --bundle --sourcemap --sources-content=false --target=es2022 --format=esm --outdir=romfs --loader:.ttf=file src/main.ts",
     "nro": "nxjs-nro",
     "nsp": "nxjs-nsp"
   },
