@@ -1,11 +1,11 @@
 import aPath from './fonts/Alexandria.ttf';
 import tPath from './fonts/Twemoji.ttf';
 
-const fontData = Switch.readFileSync(new URL(aPath, Switch.entrypoint));
+const fontData = Switch.readFileSync(new URL(aPath, import.meta.url));
 const font = new FontFace('Alexandria', fontData!);
 fonts.add(font);
 
-const emojiFontData = Switch.readFileSync(new URL(tPath, Switch.entrypoint));
+const emojiFontData = Switch.readFileSync(new URL(tPath, import.meta.url));
 const emojiFont = new FontFace('Twemoji', emojiFontData!);
 fonts.add(emojiFont);
 
