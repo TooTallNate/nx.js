@@ -1,13 +1,13 @@
 import stripAnsi from 'strip-ansi';
 import { lineIterator } from './line-iterator';
+import geistMono from './fonts/GeistMono-Regular.otf';
 
 const LINES_PER_FRAME = 13;
 const decoder = new TextDecoder();
 const encoder = new TextEncoder();
 
 // Register "Geist Mono" font
-const fontUrl = new URL('fonts/GeistMono-Regular.otf', Switch.entrypoint);
-const fontData = Switch.readFileSync(fontUrl);
+const fontData = Switch.readFileSync(new URL(geistMono, import.meta.url));
 const font = new FontFace('Geist Mono', fontData!);
 fonts.add(font);
 
