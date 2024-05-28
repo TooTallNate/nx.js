@@ -4,7 +4,7 @@
   "private": true,
   "description": "nx.js port of the 2048 game",
   "scripts": {
-    "build": "esbuild --bundle --sourcemap --sources-content=false --target=es2022 src/main.js --outfile=romfs/main.js",
+    "build": "esbuild --bundle --sourcemap --sources-content=false --target=es2022 --format=esm --loader:.ttf=file --outdir=romfs src/main.js",
     "nro": "nxjs-nro",
     "nsp": "nxjs-nsp"
   },
