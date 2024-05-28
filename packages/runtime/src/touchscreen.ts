@@ -55,6 +55,8 @@ export function dispatchTouchEvents(screen: Screen) {
 		if (startTouches.length) {
 			screen.dispatchEvent(
 				new TouchEvent('touchstart', {
+					bubbles: true,
+					cancelable: true,
 					touches,
 					changedTouches: startTouches,
 				}),
@@ -63,6 +65,8 @@ export function dispatchTouchEvents(screen: Screen) {
 		if (changedTouches.length) {
 			screen.dispatchEvent(
 				new TouchEvent('touchmove', {
+					bubbles: true,
+					cancelable: true,
 					touches,
 					changedTouches,
 				}),
@@ -71,6 +75,8 @@ export function dispatchTouchEvents(screen: Screen) {
 		if (endTouches.length) {
 			screen.dispatchEvent(
 				new TouchEvent('touchend', {
+					bubbles: true,
+					cancelable: true,
 					touches,
 					changedTouches: endTouches,
 				}),
