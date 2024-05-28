@@ -5,7 +5,7 @@
   "type": "module",
   "description": "nx.js API tests",
   "scripts": {
-    "build": "esbuild --bundle --target=es2022 --sourcemap --sources-content=false --format=esm src/main.ts --outfile=romfs/main.js",
+    "build": "esbuild --bundle --sourcemap --sources-content=false --target=es2022 --format=esm --outdir=romfs src/main.ts",
     "nro": "nxjs-nro",
     "nsp": "nxjs-nsp"
   },

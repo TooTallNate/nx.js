@@ -4,7 +4,7 @@
   "private": true,
   "description": "Classic 'snake' game using nx.js",
   "scripts": {
-    "build": "esbuild --bundle --sourcemap --sources-content=false --target=es2022 src/main.ts --outfile=romfs/main.js",
+    "build": "esbuild --bundle --sourcemap --sources-content=false --target=es2022 --format=esm --outdir=romfs src/main.ts",
     "nro": "nxjs-nro",
     "nsp": "nxjs-nsp"
   },

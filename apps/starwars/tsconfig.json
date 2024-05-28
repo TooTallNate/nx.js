@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
     "target": "es2022",
-    "moduleResolution": "node",
-    "module": "ES2022",
+    "module": "es2022",
+    "moduleResolution": "Bundler",
     "noEmit": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true,
