@@ -1,0 +1,95 @@
+---
+title: Getting Started
+description: Bootstraping your nx.js app
+---
+
+To get started on creating your nx.js application, it is recommended that you start with one of the [templates](https://github.com/TooTallNate/nx.js/tree/main/apps) and modify the source code from there.
+
+Each template is configured with:
+
+ * TypeScript types properly configured for your code editor
+ * A `build` script which utilizes [`esbuild`][] to bundle the application into a single file
+ * A `nro` script to package your application into a standalone `.nro` file (which can be invoked from the Switch Homebrew menu)
+ * A `nsp` script to package your application into a standalone `.nsp` file (which can be installed to and launched from the homescreen)
+
+## Clone a template
+
+Create a new nx.js application by running the [`create-nxjs-app`](https://www.npmjs.com/package/create-nxjs-app) tool:
+
+<InstallTabs items={['npm', 'pnpm', 'yarn', 'bun']}>
+    <Tab value='npm'>
+
+```bash
+npx create-nxjs-app@latest
+```
+
+    </Tab>
+    <Tab value="pnpm">
+
+```bash
+pnpm create nxjs-app@latest
+```
+
+    </Tab>
+    <Tab value='yarn'>
+
+```bash
+yarn create nxjs-app@latest
+```
+
+    </Tab>
+    <Tab value='bun'>
+
+```bash
+bun create nxjs-app@latest
+```
+
+    </Tab>
+
+</InstallTabs>
+
+You will be prompted with the list of example applications to select from, as well as the name
+of your application and a few other personalization options.
+
+In the end, you will have a new directory which contains the cloned template for you to begin tinkering with.
+
+## Bundle the source code
+
+nx.js evaluates a single JavaScript file at runtime. It does _not_ implement a module loader. Therefore,
+when separating your application code into multiple files, it is the responsibility of a _bundler_ to
+combine the source files into a singular "bundle", which is the code that nx.js runs.
+
+All of the example templates are pre-configured to use [`esbuild`][], but you can use a different bundler
+if you prefer, such as Parcel or Rollup.
+
+Run the `build` script to bundle the application into the `romfs/main.js` file, which is the entrypoint
+of the nx.js app:
+
+```bash
+npm run build
+```
+
+> You may place other files within the `romfs` directory, and they will become embedded within the RomFS
+> filesystem in the final executable. This is useful for assets such as images, fonts, and other
+> data files. You can read files from the RomFS by using the `romfs:/` URL protocol.
+
+## Package the executable
+
+Now that the `romfs` directory is populated with the main app bundle (and possibly other assets), you can
+package the application into a standalone `.nro` file (which can be invoked from the Switch Homebrew menu).
+
+```bash
+npm run nro
+```
+
+This will result in a `<your app name>.nro` file in the root directory of your project. You can then upload
+this file to Switch via FTP or directly copy it to the SD card.
+
+## What is Next?
+
+<Cards>
+  <Card title="Learn more about Next.js" href="https://nextjs.org/docs" />
+  <Card title="Learn more about Fumadocs" href="https://fumadocs.vercel.app" />
+</Cards>
+
+[`esbuild`]: https://esbuild.github.io

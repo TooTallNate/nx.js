@@ -4,7 +4,8 @@
   "description": "Read-Eval-Print Loop for nx.js",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "docs-json": "typedoc --json docs.json"
   },
   "files": [
     "dist"

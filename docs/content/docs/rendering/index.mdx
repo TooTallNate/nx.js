@@ -1,0 +1,37 @@
+---
+title: Rendering Modes
+description: Rendering modes for nx.js applications
+---
+
+nx.js applications can be rendered in two different modes: __console rendering__ and __canvas rendering__.
+
+## Console Rendering
+
+The __console rendering__ mode is the default rendering mode for nx.js applications.
+It is useful for applications that do not require complex graphics or animations.
+
+To use the console rendering mode, you can use the `console` global object to print text to the console.
+
+```js
+console.log('Hello World');
+```
+
+## Canvas Rendering
+
+The __canvas rendering__ mode is useful for applications that require complex graphics or animations.
+It allows you to draw to the screen using the Canvas API, which provides a powerful and flexible way to create visually stunning applications.
+
+To use the canvas rendering mode, you can use the `screen` object to get access to a `CanvasRenderingContext2D` instance.
+
+```js
+const ctx = screen.getContext('2d');
+ctx.fillStyle = 'red';
+ctx.fillRect(0, 0, 100, 100);
+```
+
+## Cards
+
+<Cards>
+  <Card title="Learn more about Next.js" href="https://nextjs.org/docs" />
+  <Card title="Learn more about Fumadocs" href="https://fumadocs.vercel.app" />
+</Cards>

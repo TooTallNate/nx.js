@@ -22,7 +22,6 @@ export class FontFace implements globalThis.FontFace {
 	declare stretch: string;
 	declare style: string;
 	declare unicodeRange: string;
-	declare variant: string;
 	declare weight: string;
 
 	constructor(
@@ -49,7 +48,6 @@ export class FontFace implements globalThis.FontFace {
 		f.stretch = descriptors.stretch ?? 'normal';
 		f.style = descriptors.style ?? 'normal';
 		f.unicodeRange = descriptors.unicodeRange ?? '';
-		f.variant = descriptors.variant ?? 'normal';
 		f.weight = descriptors.weight ?? 'normal';
 		return f;
 	}

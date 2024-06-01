@@ -6,6 +6,10 @@
       "inputs": ["src/**"],
       "outputs": ["dist/**", "romfs/**"]
     },
+    "docs-json": {
+      "inputs": ["src/**", "typedoc.json"],
+      "outputs": ["docs.json"]
+    },
     "nro": {
       "dependsOn": ["build"],
       "inputs": ["src/**"],

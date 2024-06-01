@@ -1,0 +1,7 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "name": "@nx.js/repl",
+  "entryPoints": ["./src/index.ts"],
+  "out": "public",
+  "plugin": ["typedoc-plugin-mdn-links"]
+}

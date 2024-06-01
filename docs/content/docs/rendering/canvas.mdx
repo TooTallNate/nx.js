@@ -1,0 +1,38 @@
+---
+title: Canvas
+description: Drawing to the screen using the Canvas API
+---
+
+nx.js does not implement a full DOM for rendering content to the screen.
+Instead, it offers the Canvas API which allows your application to draw to the screen.
+
+The global `screen` object is used to create a `CanvasRenderingContext2D`
+instance, at which point the app is in __canvas rendering__ mode.
+
+> You should avoid using any `console` printing functions when in __canvas rendering__ mode.
+> Doing so will change the app back to [__console rendering__](/docs/rendering/console) mode.
+
+## Example
+
+```js
+// Drawing a house with Canvas API
+const ctx = screen.getContext('2d');
+ctx.font = '24px sans-serif';
+ctx.fillStyle = 'white';
+ctx.textAlign = 'center';
+ctx.textBaseline = 'middle';
+```
+
+## Modules
+
+Listed below are npm modules known to work well with nx.js when using the Console renderer:
+
+* [`kluer`](https://github.com/lukeed/kleur) - Output colored text with ANSI escape codes
+* [`sisteransi`](https://github.com/terkelg/sisteransi) - ANSI escape sequences for moving the cursor
+
+## Cards
+
+<Cards>
+  <Card title="Learn about rendering to the screen using React" href="/docs/react" />
+  <Card title="Learn about using custom fonts with the Canvas API" href="/docs/web/fonts" />
+</Cards>

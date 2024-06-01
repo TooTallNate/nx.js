@@ -100,7 +100,6 @@ export function findFont(
 				family === fontFace.family &&
 				desired.stretch === fontFace.stretch &&
 				desired.style === fontFace.style &&
-				desired.variant === fontFace.variant &&
 				desired.weight === fontFace.weight
 			) {
 				return fontFace;

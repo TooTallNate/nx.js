@@ -1,0 +1,36 @@
+---
+title: fetch()
+description: Using the `fetch()` global function
+---
+
+nx.js implements the `fetch()` global function for fetching data from the network. If you are familiar with the [Fetch API](https://developer.mozilla.org/docs/Web/API/Fetch_API), then you will find the nx.js `fetch()` function very similar.
+
+The following URL protocols are supported:
+
+- `http:` - Fetch data from the network using the HTTP protocol
+- `https:` - Fetch data from the network using the HTTPS protocol
+- `blob:` - Fetch data from a URL constructed by [`URL.createObjectURL()`](https://developer.mozilla.org/docs/Web/API/URL/createObjectURL)
+- `data:` - Fetch data from a Data URI (possibly base64-encoded)
+- `sdmc:` - Fetch data from a local file on the SD card
+- `romfs:` - Fetch data from the RomFS partition of the nx.js application
+- `file:` - Same as `sdmc:`
+
+## Usage
+
+The `fetch()` function takes a URL as its first argument, and returns a Promise that resolves to a `Response` object. The `Response` object contains information about the fetched data, such as the status code, headers, and body.
+
+```ts
+const response = await fetch('https://example.com/data.json');
+console.log(response.status); // 200
+console.log(response.headers.get('Content-Type')); // 'application/json'
+console.log(await response.json()); // { name: 'John Doe' }
+```
+
+You can also pass additional options to the `fetch()` function to customize its behavior. For example, you can specify a `method` to use for the request, or a `body` to send along with the request.
+
+```ts
+const response = await fetch('https://example.com/data.json', {
+  method: 'POST',
+  body: JSON.stringify({ name: 'John Doe' }),
+});
+```
