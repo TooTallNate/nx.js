@@ -1,6 +1,7 @@
 #pragma once
 #include <cairo.h>
 #include <harfbuzz/hb.h>
+#include <GLES2/gl2.h>
 #include "types.h"
 
 /**
@@ -87,5 +88,15 @@ typedef struct nx_canvas_context_2d_s
 } nx_canvas_context_2d_t;
 
 nx_canvas_context_2d_t *nx_get_canvas_context_2d(JSContext *ctx, JSValueConst obj);
+
+/**
+ * `WebGLRenderingContext`
+ */
+typedef struct nx_canvas_context_webgl_s
+{
+	nx_canvas_t *canvas;
+} nx_canvas_context_webgl_t;
+
+nx_canvas_context_webgl_t *nx_get_canvas_context_webgl(JSContext *ctx, JSValueConst obj);
 
 void nx_init_canvas(JSContext *ctx, JSValueConst init_obj);

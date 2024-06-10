@@ -6,6 +6,8 @@
 #include <inttypes.h>
 #include <switch.h>
 #include <quickjs.h>
+#include <EGL/egl.h>
+//#include <GLES2/gl2.h>
 
 #include "types.h"
 #include "account.h"
@@ -34,13 +36,21 @@
 
 #define LOG_FILENAME "nxjs-debug.log"
 
+static NWindow *win = NULL;
+
 // Text renderer
 static PrintConsole *print_console = NULL;
 
 // Framebuffer renderer
-static NWindow *win = NULL;
 static Framebuffer *framebuffer = NULL;
 static uint8_t *js_framebuffer = NULL;
+
+// EGL renderer
+static EGLDisplay egl_display;
+static EGLContext egl_context;
+static EGLSurface egl_surface;
+
+void nx_egl_exit();
 
 void nx_console_exit()
 {
@@ -55,6 +65,7 @@ static JSValue nx_framebuffer_init(JSContext *ctx, JSValueConst this_val, int ar
 {
 	nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
 	nx_console_exit();
+	nx_egl_exit();
 	if (win == NULL)
 	{
 		// Retrieve the default window
@@ -87,6 +98,88 @@ void nx_framebuffer_exit()
 		free(framebuffer);
 		framebuffer = NULL;
 		js_framebuffer = NULL;
+	}
+}
+
+static JSValue nx_egl_init(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	// TODO(lesderid): Proper error handling
+
+	nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
+	nx_console_exit();
+	nx_framebuffer_exit();
+	if (win == NULL)
+	{
+		// Retrieve the default window
+		win = nwindowGetDefault();
+	}
+
+	egl_display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+	if (!egl_display)
+	{
+		return JS_EXCEPTION;
+	}
+
+	eglInitialize(egl_display, NULL, NULL);
+
+	EGLConfig config;
+	EGLint numConfigs;
+	static const EGLint framebufferAttributeList[] =
+	{
+		EGL_RED_SIZE,	  8,
+		EGL_GREEN_SIZE,   8,
+		EGL_BLUE_SIZE,	  8,
+		EGL_ALPHA_SIZE,   8,
+		EGL_DEPTH_SIZE,   24,
+		EGL_STENCIL_SIZE, 8,
+		EGL_NONE
+	};
+	eglChooseConfig(egl_display, framebufferAttributeList, &config, 1, &numConfigs);
+	if (numConfigs == 0)
+	{
+		return JS_EXCEPTION;
+	}
+
+	egl_surface = eglCreateWindowSurface(egl_display, config, win, NULL);
+	if (!egl_surface)
+	{
+		return JS_EXCEPTION;
+	}
+
+	static const EGLint contextAttributeList[] =
+	{
+		EGL_CONTEXT_CLIENT_VERSION, 2,
+		EGL_NONE
+	};
+	egl_context = eglCreateContext(egl_display, config, EGL_NO_CONTEXT, contextAttributeList);
+	if (!egl_context)
+	{
+		return JS_EXCEPTION;
+	}
+
+	eglMakeCurrent(egl_display, egl_surface, egl_surface, egl_context);
+
+	nx_ctx->rendering_mode = NX_RENDERING_MODE_WEBGL;
+	return JS_UNDEFINED;
+}
+
+void nx_egl_exit()
+{
+	if (egl_display)
+	{
+		eglMakeCurrent(egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+		if (egl_context)
+		{
+			eglDestroyContext(egl_display, egl_context);
+			egl_context = NULL;
+		}
+		if (egl_surface)
+		{
+			eglDestroySurface(egl_display, egl_surface);
+			egl_surface = NULL;
+		}
+		eglTerminate(egl_display);
+		egl_display = NULL;
 	}
 }
 
@@ -174,6 +267,7 @@ static JSValue js_print(JSContext *ctx, JSValueConst this_val, int argc, JSValue
 	if (nx_ctx->rendering_mode != NX_RENDERING_MODE_CONSOLE)
 	{
 		nx_framebuffer_exit();
+		nx_egl_exit();
 		if (print_console == NULL)
 		{
 			print_console = consoleInit(NULL);
@@ -190,6 +284,7 @@ static JSValue js_print_err(JSContext *ctx, JSValueConst this_val, int argc, JSV
 {
 	const char *str = JS_ToCString(ctx, argv[0]);
 	fprintf(stderr, "%s", str);
+	fflush(stderr);
 	JS_FreeCString(ctx, str);
 	return JS_UNDEFINED;
 }
@@ -584,6 +679,9 @@ int main(int argc, char *argv[])
 		// framebuffer renderer
 		JS_CFUNC_DEF("framebufferInit", 1, nx_framebuffer_init),
 
+		// EGL renderer
+		JS_CFUNC_DEF("eglInit", 1, nx_egl_init),
+
 		// hid
 		JS_CFUNC_DEF("hidInitializeKeyboard", 0, js_hid_initialize_keyboard),
 		JS_CFUNC_DEF("hidInitializeVibrationDevices", 0, js_hid_initialize_vibration_devices),
@@ -729,6 +827,10 @@ main_loop:
 			memcpy(framebuf, js_framebuffer, 1280 * 720 * 4);
 			framebufferEnd(framebuffer);
 		}
+		else if (nx_ctx->rendering_mode == NX_RENDERING_MODE_WEBGL)
+		{
+			eglSwapBuffers(egl_display, egl_surface);
+		}
 	}
 
 	// XXX: Ideally we wouldn't `thpool_wait()` here,
@@ -747,6 +849,10 @@ main_loop:
 	else if (nx_ctx->rendering_mode == NX_RENDERING_MODE_CANVAS)
 	{
 		nx_framebuffer_exit();
+	}
+	else if (nx_ctx->rendering_mode == NX_RENDERING_MODE_WEBGL)
+	{
+		nx_egl_exit();
 	}
 
 	fclose(debug_fd);

@@ -65,7 +65,8 @@ struct nx_work_s
 enum nx_rendering_mode
 {
 	NX_RENDERING_MODE_CONSOLE,
-	NX_RENDERING_MODE_CANVAS
+	NX_RENDERING_MODE_CANVAS,
+	NX_RENDERING_MODE_WEBGL
 };
 
 typedef struct nx_context_s

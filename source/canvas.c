@@ -10,22 +10,22 @@
 #include "image.h"
 #include "canvas.h"
 
-#define CANVAS_CONTEXT_ARGV0                                                                   \
-	nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id); \
-	if (!context)                                                                              \
-	{                                                                                          \
-		return JS_EXCEPTION;                                                                   \
-	}                                                                                          \
-	cairo_t *cr = context->ctx;                                                                \
+#define CANVAS_CONTEXT_2D_ARGV0                                                                   \
+	nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, argv[0], nx_canvas_context_2d_class_id); \
+	if (!context)																				  \
+	{                                                                                          	  \
+		return JS_EXCEPTION;                                                                   	  \
+	}                                                                                          	  \
+	cairo_t *cr = context->ctx;                                                                	  \
 	(void)cr;
 
-#define CANVAS_CONTEXT_THIS                                                                     \
-	nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, this_val, nx_canvas_context_class_id); \
-	if (!context)                                                                               \
-	{                                                                                           \
-		return JS_EXCEPTION;                                                                    \
-	}                                                                                           \
-	cairo_t *cr = context->ctx;                                                                 \
+#define CANVAS_CONTEXT_2D_THIS                                                                     \
+	nx_canvas_context_2d_t *context = JS_GetOpaque2(ctx, this_val, nx_canvas_context_2d_class_id); \
+	if (!context)                                                                                  \
+	{                                                                                              \
+		return JS_EXCEPTION;                                                                       \
+	}                                                                                              \
+	cairo_t *cr = context->ctx;                                                                    \
 	(void)cr;
 
 #define RECT_ARGS                                        \
@@ -46,7 +46,8 @@ typedef struct Point
 } Point;
 
 static JSClassID nx_canvas_class_id;
-static JSClassID nx_canvas_context_class_id;
+static JSClassID nx_canvas_context_2d_class_id;
+static JSClassID nx_canvas_context_webgl_class_id;
 
 static inline int min(int a, int b)
 {
@@ -166,7 +167,7 @@ static void set_font_size(nx_canvas_context_2d_t *context, double font_size)
 
 static JSValue nx_canvas_context_2d_move_to(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	double args[2];
 	if (js_validate_doubles_args(ctx, argv, args, 2, 0))
 		return JS_EXCEPTION;
@@ -176,7 +177,7 @@ static JSValue nx_canvas_context_2d_move_to(JSContext *ctx, JSValueConst this_va
 
 static JSValue nx_canvas_context_2d_is_point_in_path(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	JSValue path = JS_NULL;
 	if (argc > 0 && JS_IsObject(argv[0])) {
 		path = argv[0];
@@ -219,7 +220,7 @@ static JSValue nx_canvas_context_2d_is_point_in_path(JSContext *ctx, JSValueCons
 
 static JSValue nx_canvas_context_2d_is_point_in_stroke(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	JSValue path = JS_NULL;
 	if (argc > 0 && JS_IsObject(argv[0])) {
 		path = argv[0];
@@ -258,7 +259,7 @@ static JSValue nx_canvas_context_2d_is_point_in_stroke(JSContext *ctx, JSValueCo
 
 static JSValue nx_canvas_context_2d_line_to(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	double args[2];
 	if (js_validate_doubles_args(ctx, argv, args, 2, 0))
 		return JS_EXCEPTION;
@@ -268,7 +269,7 @@ static JSValue nx_canvas_context_2d_line_to(JSContext *ctx, JSValueConst this_va
 
 static JSValue nx_canvas_context_2d_bezier_curve_to(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	double args[6];
 	if (js_validate_doubles_args(ctx, argv, args, 6, 0))
 		return JS_EXCEPTION;
@@ -281,7 +282,7 @@ static JSValue nx_canvas_context_2d_bezier_curve_to(JSContext *ctx, JSValueConst
  */
 static JSValue nx_canvas_context_2d_quadratic_curve_to(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	double args[4];
 	if (js_validate_doubles_args(ctx, argv, args, 4, 0))
 		return JS_EXCEPTION;
@@ -355,7 +356,7 @@ static double adjustEndAngle(double startAngle, double endAngle, int countercloc
  */
 static JSValue nx_canvas_context_2d_arc(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	double args[5];
 	if (js_validate_doubles_args(ctx, argv, args, 5, 0))
 		return JS_EXCEPTION;
@@ -398,7 +399,7 @@ static JSValue nx_canvas_context_2d_arc(JSContext *ctx, JSValueConst this_val, i
  */
 static JSValue nx_canvas_context_2d_arc_to(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	double args[5];
 	if (js_validate_doubles_args(ctx, argv, args, 5, 0))
 		return JS_EXCEPTION;
@@ -499,7 +500,7 @@ static JSValue nx_canvas_context_2d_arc_to(JSContext *ctx, JSValueConst this_val
 
 static JSValue nx_canvas_context_2d_ellipse(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	double args[7];
 	if (js_validate_doubles_args(ctx, argv, args, 7, 0))
 		return JS_EXCEPTION;
@@ -552,7 +553,7 @@ static JSValue nx_canvas_context_2d_ellipse(JSContext *ctx, JSValueConst this_va
 
 static JSValue nx_canvas_context_2d_rect(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	RECT_ARGS;
 	if (width == 0)
 	{
@@ -648,7 +649,7 @@ inline static bool get_radius(JSContext *ctx, JSValue v, Point *p)
 
 static JSValue nx_canvas_context_2d_round_rect(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	RECT_ARGS;
 
 	// 4. Let normalizedRadii be an empty list
@@ -799,13 +800,13 @@ static JSValue nx_canvas_context_2d_round_rect(JSContext *ctx, JSValueConst this
 
 static JSValue nx_canvas_context_2d_get_font(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_ARGV0;
+	CANVAS_CONTEXT_2D_ARGV0;
 	return JS_NewString(ctx, context->state->font_string ? context->state->font_string : "");
 }
 
 static JSValue nx_canvas_context_2d_set_font(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_ARGV0;
+	CANVAS_CONTEXT_2D_ARGV0;
 
 	context->state->font = argv[1];
 	nx_font_face_t *face = nx_get_font_face(ctx, context->state->font);
@@ -832,7 +833,7 @@ static JSValue nx_canvas_context_2d_set_font(JSContext *ctx, JSValueConst this_v
 
 static JSValue nx_canvas_context_2d_get_transform(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_ARGV0;
+	CANVAS_CONTEXT_2D_ARGV0;
 	cairo_matrix_t matrix;
 	cairo_get_matrix(cr, &matrix);
 	JSValue array = JS_NewArray(ctx);
@@ -847,7 +848,7 @@ static JSValue nx_canvas_context_2d_get_transform(JSContext *ctx, JSValueConst t
 
 static JSValue nx_canvas_context_2d_stroke_rect(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	RECT_ARGS;
 	if (width && height)
 	{
@@ -861,7 +862,7 @@ static JSValue nx_canvas_context_2d_stroke_rect(JSContext *ctx, JSValueConst thi
 
 static JSValue nx_canvas_context_2d_clear_rect(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	RECT_ARGS;
 	if (width && height)
 	{
@@ -907,7 +908,7 @@ double get_text_scale(nx_canvas_context_2d_t *context, const char *text, double 
 
 static JSValue nx_canvas_context_2d_fill_text(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	double args[2];
 	if (js_validate_doubles_args(ctx, argv, args, 2, 1))
 		return JS_EXCEPTION;
@@ -1028,7 +1029,7 @@ static JSValue nx_canvas_context_2d_fill_text(JSContext *ctx, JSValueConst this_
 
 static JSValue nx_canvas_context_2d_stroke_text(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	double args[2];
 	if (js_validate_doubles_args(ctx, argv, args, 2, 1))
 		return JS_EXCEPTION;
@@ -1148,7 +1149,7 @@ static JSValue nx_canvas_context_2d_stroke_text(JSContext *ctx, JSValueConst thi
 
 static JSValue nx_canvas_context_2d_measure_text(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	const char *text = JS_ToCString(ctx, argv[0]);
 
 	// Create HarfBuzz buffer
@@ -1206,7 +1207,7 @@ static void js_free_array_buffer(JSRuntime *rt, void *opaque, void *ptr)
 
 static JSValue nx_canvas_context_2d_put_image_data(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 
 	int sx = 0, sy = 0, sw = 0, sh = 0, dx, dy, image_data_width, image_data_height, rows, cols;
 	size_t src_offset, src_length, bytes_per_element;
@@ -1367,7 +1368,7 @@ static JSValue nx_canvas_context_2d_draw_image(JSContext *ctx, JSValueConst this
 	if (js_validate_doubles_args(ctx, argv, args, argc - 1, 1))
 		return JS_EXCEPTION;
 
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 
 	double sx = 0, sy = 0, sw = 0, sh = 0, dx = 0, dy = 0, dw = 0, dh = 0, source_w = 0, source_h = 0;
 	cairo_surface_t *surface;
@@ -1588,7 +1589,7 @@ static void finalizer_canvas_context_2d_state(JSRuntime *rt, nx_canvas_context_2
 static void finalizer_canvas_context_2d(JSRuntime *rt, JSValue val)
 {
 	// printf("finalizer_canvas_context_2d\n");
-	nx_canvas_context_2d_t *context = JS_GetOpaque(val, nx_canvas_context_class_id);
+	nx_canvas_context_2d_t *context = JS_GetOpaque(val, nx_canvas_context_2d_class_id);
 	if (context)
 	{
 		cairo_destroy(context->ctx);
@@ -1597,9 +1598,20 @@ static void finalizer_canvas_context_2d(JSRuntime *rt, JSValue val)
 	}
 }
 
+static void finalizer_canvas_context_webgl(JSRuntime *rt, JSValue val)
+{
+	// printf("finalizer_canvas_context_webgl\n");
+	nx_canvas_context_webgl_t *context = JS_GetOpaque(val, nx_canvas_context_webgl_class_id);
+	if (context)
+	{
+		// TODO(lesderid): Free
+		js_free_rt(rt, context);
+	}
+}
+
 nx_canvas_context_2d_t *nx_get_canvas_context_2d(JSContext *ctx, JSValueConst obj)
 {
-	return JS_GetOpaque2(ctx, obj, nx_canvas_context_class_id);
+	return JS_GetOpaque2(ctx, obj, nx_canvas_context_2d_class_id);
 }
 
 nx_canvas_t *nx_get_canvas(JSContext *ctx, JSValueConst obj)
@@ -1681,7 +1693,7 @@ static JSValue nx_canvas_init_class(JSContext *ctx, JSValueConst this_val, int a
 
 static JSValue nx_canvas_context_2d_get_fill_style(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_ARGV0;
+	CANVAS_CONTEXT_2D_ARGV0;
 	JSValue rgba = JS_NewArray(ctx);
 	JS_SetPropertyUint32(ctx, rgba, 0, JS_NewInt32(ctx, context->state->fill.r * 255));
 	JS_SetPropertyUint32(ctx, rgba, 1, JS_NewInt32(ctx, context->state->fill.g * 255));
@@ -1692,7 +1704,7 @@ static JSValue nx_canvas_context_2d_get_fill_style(JSContext *ctx, JSValueConst 
 
 static JSValue nx_canvas_context_2d_set_fill_style(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_ARGV0;
+	CANVAS_CONTEXT_2D_ARGV0;
 	double args[4];
 	if (js_validate_doubles_args(ctx, argv, args, 4, 1))
 		return JS_EXCEPTION;
@@ -1705,7 +1717,7 @@ static JSValue nx_canvas_context_2d_set_fill_style(JSContext *ctx, JSValueConst 
 
 static JSValue nx_canvas_context_2d_get_stroke_style(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_ARGV0;
+	CANVAS_CONTEXT_2D_ARGV0;
 	JSValue rgba = JS_NewArray(ctx);
 	JS_SetPropertyUint32(ctx, rgba, 0, JS_NewInt32(ctx, context->state->stroke.r * 255));
 	JS_SetPropertyUint32(ctx, rgba, 1, JS_NewInt32(ctx, context->state->stroke.g * 255));
@@ -1716,7 +1728,7 @@ static JSValue nx_canvas_context_2d_get_stroke_style(JSContext *ctx, JSValueCons
 
 static JSValue nx_canvas_context_2d_set_stroke_style(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_ARGV0;
+	CANVAS_CONTEXT_2D_ARGV0;
 	double args[4];
 	if (js_validate_doubles_args(ctx, argv, args, 4, 1))
 		return JS_EXCEPTION;
@@ -1729,21 +1741,21 @@ static JSValue nx_canvas_context_2d_set_stroke_style(JSContext *ctx, JSValueCons
 
 static JSValue nx_canvas_context_2d_begin_path(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	cairo_new_path(cr);
 	return JS_UNDEFINED;
 }
 
 static JSValue nx_canvas_context_2d_close_path(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	cairo_close_path(cr);
 	return JS_UNDEFINED;
 }
 
 static JSValue nx_canvas_context_2d_clip(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	set_fill_rule(ctx, argv[0], cr);
 	cairo_clip_preserve(cr);
 	return JS_UNDEFINED;
@@ -1751,7 +1763,7 @@ static JSValue nx_canvas_context_2d_clip(JSContext *ctx, JSValueConst this_val, 
 
 static JSValue nx_canvas_context_2d_fill(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	JSValue path = JS_NULL;
 	JSValue fill_rule = JS_NULL;
 	if (argc == 1)
@@ -1808,7 +1820,7 @@ static JSValue nx_canvas_context_2d_fill(JSContext *ctx, JSValueConst this_val, 
 
 static JSValue nx_canvas_context_2d_stroke(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	JSValue path = JS_NULL;
 	if (argc == 1)
 	{
@@ -1837,7 +1849,7 @@ static JSValue nx_canvas_context_2d_stroke(JSContext *ctx, JSValueConst this_val
 
 static JSValue nx_canvas_context_2d_save(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	cairo_save(cr);
 	nx_canvas_context_2d_state_t *state = js_mallocz(ctx, sizeof(nx_canvas_context_2d_state_t));
 	memcpy(state, context->state, sizeof(nx_canvas_context_2d_state_t));
@@ -1853,7 +1865,7 @@ static JSValue nx_canvas_context_2d_save(JSContext *ctx, JSValueConst this_val, 
 
 static JSValue nx_canvas_context_2d_restore(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	if (context->state->next)
 	{
 		cairo_restore(cr);
@@ -1874,7 +1886,7 @@ static JSValue nx_canvas_context_2d_restore(JSContext *ctx, JSValueConst this_va
 
 static JSValue nx_canvas_context_2d_fill_rect(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	RECT_ARGS;
 	if (width && height)
 	{
@@ -1891,13 +1903,13 @@ static JSValue nx_canvas_context_2d_fill_rect(JSContext *ctx, JSValueConst this_
 
 static JSValue nx_canvas_context_2d_get_line_width(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	return JS_NewFloat64(ctx, cairo_get_line_width(cr));
 }
 
 static JSValue nx_canvas_context_2d_set_line_width(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	double n;
 	if (JS_ToFloat64(ctx, &n, argv[0]))
 		return JS_EXCEPTION;
@@ -1907,7 +1919,7 @@ static JSValue nx_canvas_context_2d_set_line_width(JSContext *ctx, JSValueConst 
 
 static JSValue nx_canvas_context_2d_get_line_join(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	const char *join;
 	switch (cairo_get_line_join(cr))
 	{
@@ -1925,7 +1937,7 @@ static JSValue nx_canvas_context_2d_get_line_join(JSContext *ctx, JSValueConst t
 
 static JSValue nx_canvas_context_2d_set_line_join(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	const char *type = JS_ToCString(ctx, argv[0]);
 	if (!type)
 		return JS_EXCEPTION;
@@ -1949,7 +1961,7 @@ static JSValue nx_canvas_context_2d_set_line_join(JSContext *ctx, JSValueConst t
 
 static JSValue nx_canvas_context_2d_get_line_dash_offset(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	double offset;
 	cairo_get_dash(cr, NULL, &offset);
 	return JS_NewFloat64(ctx, offset);
@@ -1957,7 +1969,7 @@ static JSValue nx_canvas_context_2d_get_line_dash_offset(JSContext *ctx, JSValue
 
 static JSValue nx_canvas_context_2d_set_line_dash_offset(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	double offset;
 	if (JS_ToFloat64(ctx, &offset, argv[0]))
 		return JS_EXCEPTION;
@@ -1970,7 +1982,7 @@ static JSValue nx_canvas_context_2d_set_line_dash_offset(JSContext *ctx, JSValue
 
 static JSValue nx_canvas_context_2d_get_line_cap(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	const char *cap;
 	switch (cairo_get_line_cap(cr))
 	{
@@ -1988,7 +2000,7 @@ static JSValue nx_canvas_context_2d_get_line_cap(JSContext *ctx, JSValueConst th
 
 static JSValue nx_canvas_context_2d_set_line_cap(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	const char *type = JS_ToCString(ctx, argv[0]);
 	if (!type)
 		return JS_EXCEPTION;
@@ -2012,7 +2024,7 @@ static JSValue nx_canvas_context_2d_set_line_cap(JSContext *ctx, JSValueConst th
 
 static JSValue nx_canvas_context_2d_get_line_dash(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	int count = cairo_get_dash_count(cr);
 	double dashes[count];
 	cairo_get_dash(cr, dashes, NULL);
@@ -2027,7 +2039,7 @@ static JSValue nx_canvas_context_2d_get_line_dash(JSContext *ctx, JSValueConst t
 
 static JSValue nx_canvas_context_2d_set_line_dash(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	JSValue length_val = JS_GetPropertyStr(ctx, argv[0], "length");
 	uint32_t length;
 	if (JS_ToUint32(ctx, &length, length_val))
@@ -2063,13 +2075,13 @@ static JSValue nx_canvas_context_2d_set_line_dash(JSContext *ctx, JSValueConst t
 
 static JSValue nx_canvas_context_2d_get_global_alpha(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	return JS_NewFloat64(ctx, context->state->global_alpha);
 }
 
 static JSValue nx_canvas_context_2d_set_global_alpha(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	double value;
 	if (JS_ToFloat64(ctx, &value, argv[0]))
 		return JS_EXCEPTION;
@@ -2082,7 +2094,7 @@ static JSValue nx_canvas_context_2d_set_global_alpha(JSContext *ctx, JSValueCons
 
 static JSValue nx_canvas_context_2d_get_global_composite_operation(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	const char *op;
 	switch (cairo_get_operator(cr))
 	{
@@ -2188,7 +2200,7 @@ static JSValue nx_canvas_context_2d_get_global_composite_operation(JSContext *ct
 
 static JSValue nx_canvas_context_2d_set_global_composite_operation(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	int op = -1;
 	const char *str = JS_ToCString(ctx, argv[0]);
 	if (!str)
@@ -2326,13 +2338,13 @@ static JSValue nx_canvas_context_2d_set_global_composite_operation(JSContext *ct
 
 static JSValue nx_canvas_context_2d_get_image_smoothing_enabled(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	return JS_NewBool(ctx, context->state->image_smoothing_enabled);
 }
 
 static JSValue nx_canvas_context_2d_set_image_smoothing_enabled(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	int value = JS_ToBool(ctx, argv[0]);
 	if (value == -1)
 		return JS_EXCEPTION;
@@ -2342,7 +2354,7 @@ static JSValue nx_canvas_context_2d_set_image_smoothing_enabled(JSContext *ctx, 
 
 static JSValue nx_canvas_context_2d_get_image_smoothing_quality(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	const char *quality;
 	switch (context->state->image_smoothing_quality)
 	{
@@ -2360,7 +2372,7 @@ static JSValue nx_canvas_context_2d_get_image_smoothing_quality(JSContext *ctx, 
 
 static JSValue nx_canvas_context_2d_set_image_smoothing_quality(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	const char *str = JS_ToCString(ctx, argv[0]);
 	if (!str)
 		return JS_EXCEPTION;
@@ -2382,7 +2394,7 @@ static JSValue nx_canvas_context_2d_set_image_smoothing_quality(JSContext *ctx, 
 
 static JSValue nx_canvas_context_2d_get_image_data(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_ARGV0;
+	CANVAS_CONTEXT_2D_ARGV0;
 	uint32_t width = context->canvas->width;
 	uint32_t height = context->canvas->height;
 
@@ -2497,13 +2509,13 @@ static JSValue nx_canvas_context_2d_get_image_data(JSContext *ctx, JSValueConst 
 
 static JSValue nx_canvas_context_2d_get_miter_limit(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	return JS_NewFloat64(ctx, cairo_get_miter_limit(cr));
 }
 
 static JSValue nx_canvas_context_2d_set_miter_limit(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	double limit;
 	if (JS_ToFloat64(ctx, &limit, argv[0]))
 		return JS_EXCEPTION;
@@ -2516,7 +2528,7 @@ static JSValue nx_canvas_context_2d_set_miter_limit(JSContext *ctx, JSValueConst
 
 static JSValue nx_canvas_context_2d_get_text_align(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	const char *align;
 	switch (context->state->text_align)
 	{
@@ -2542,7 +2554,7 @@ static JSValue nx_canvas_context_2d_get_text_align(JSContext *ctx, JSValueConst 
 
 static JSValue nx_canvas_context_2d_set_text_align(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	const char *str = JS_ToCString(ctx, argv[0]);
 	if (!str)
 		return JS_EXCEPTION;
@@ -2572,7 +2584,7 @@ static JSValue nx_canvas_context_2d_set_text_align(JSContext *ctx, JSValueConst 
 
 static JSValue nx_canvas_context_2d_get_text_baseline(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	const char *v;
 	switch (context->state->text_baseline)
 	{
@@ -2600,7 +2612,7 @@ static JSValue nx_canvas_context_2d_get_text_baseline(JSContext *ctx, JSValueCon
 
 static JSValue nx_canvas_context_2d_set_text_baseline(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	const char *str = JS_ToCString(ctx, argv[0]);
 	if (!str)
 		return JS_EXCEPTION;
@@ -2634,7 +2646,7 @@ static JSValue nx_canvas_context_2d_set_text_baseline(JSContext *ctx, JSValueCon
 
 static JSValue nx_canvas_context_2d_rotate(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	double n;
 	if (JS_ToFloat64(ctx, &n, argv[0]))
 		return JS_EXCEPTION;
@@ -2644,7 +2656,7 @@ static JSValue nx_canvas_context_2d_rotate(JSContext *ctx, JSValueConst this_val
 
 static JSValue nx_canvas_context_2d_scale(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	double args[2];
 	if (js_validate_doubles_args(ctx, argv, args, 2, 0))
 		return JS_EXCEPTION;
@@ -2654,7 +2666,7 @@ static JSValue nx_canvas_context_2d_scale(JSContext *ctx, JSValueConst this_val,
 
 static JSValue nx_canvas_context_2d_transform(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	double args[6];
 	if (js_validate_doubles_args(ctx, argv, args, 6, 0))
 		return JS_EXCEPTION;
@@ -2666,7 +2678,7 @@ static JSValue nx_canvas_context_2d_transform(JSContext *ctx, JSValueConst this_
 
 static JSValue nx_canvas_context_2d_set_transform(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	if (argc == 1 && JS_IsObject(argv[0]))
 	{
 		nx_dommatrix_t *dommatrix = nx_get_dommatrix(ctx, argv[0]);
@@ -2712,14 +2724,14 @@ static JSValue nx_canvas_context_2d_set_transform(JSContext *ctx, JSValueConst t
 
 static JSValue nx_canvas_context_2d_reset_transform(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	cairo_identity_matrix(cr);
 	return JS_UNDEFINED;
 }
 
 static JSValue nx_canvas_context_2d_translate(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	CANVAS_CONTEXT_THIS;
+	CANVAS_CONTEXT_2D_THIS;
 	double args[2];
 	if (js_validate_doubles_args(ctx, argv, args, 2, 0))
 		return JS_EXCEPTION;
@@ -2789,7 +2801,7 @@ static JSValue nx_canvas_context_2d_new(JSContext *ctx, JSValueConst this_val, i
 	if (!context || !state)
 		return JS_EXCEPTION;
 
-	JSValue obj = JS_NewObjectClass(ctx, nx_canvas_context_class_id);
+	JSValue obj = JS_NewObjectClass(ctx, nx_canvas_context_2d_class_id);
 	if (JS_IsException(obj))
 	{
 		js_free(ctx, context);
@@ -2818,6 +2830,69 @@ static JSValue nx_canvas_context_2d_new(JSContext *ctx, JSValueConst this_val, i
 	return obj;
 }
 
+static JSValue nx_canvas_context_webgl_clear_color(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	double args[4];
+	if (js_validate_doubles_args(ctx, argv, args, 4, 0))
+	{
+		return JS_EXCEPTION;
+	}
+	double red = args[0];
+	double green = args[1];
+	double blue = args[2];
+	double alpha = args[3];
+
+	glClearColor(red, green, blue, alpha);
+
+	return JS_UNDEFINED;
+}
+
+static JSValue nx_canvas_context_webgl_clear(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	u32 mask;
+	if (JS_ToUint32(ctx, &mask, argv[0]))
+	{
+		fprintf(stderr, "webgl_clear 1'\n");
+		fflush(stderr);
+		return JS_EXCEPTION;
+	}
+
+	glClear(mask);
+
+	return JS_UNDEFINED;
+}
+
+static JSValue nx_canvas_context_webgl_init_class(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	//JSAtom atom;
+	JSValue proto = JS_GetPropertyStr(ctx, argv[0], "prototype");
+	NX_DEF_FUNC(proto, "clearColor", nx_canvas_context_webgl_clear_color, 4);
+	NX_DEF_FUNC(proto, "clear", nx_canvas_context_webgl_clear, 1);
+	JS_FreeValue(ctx, proto);
+	return JS_UNDEFINED;
+}
+
+static JSValue nx_canvas_context_webgl_new(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	nx_canvas_t *canvas = nx_get_canvas(ctx, argv[0]);
+
+	nx_canvas_context_webgl_t *context = js_mallocz(ctx, sizeof(nx_canvas_context_webgl_t));
+	if (!context)
+		return JS_EXCEPTION;
+
+	JSValue obj = JS_NewObjectClass(ctx, nx_canvas_context_webgl_class_id);
+	if (JS_IsException(obj))
+	{
+		js_free(ctx, context);
+		return obj;
+	}
+
+	context->canvas = canvas;
+
+	JS_SetOpaque(obj, context);
+	return obj;
+}
+
 static void finalizer_canvas(JSRuntime *rt, JSValue val)
 {
 	nx_canvas_t *context = JS_GetOpaque(val, nx_canvas_class_id);
@@ -2840,6 +2915,8 @@ static const JSCFunctionListEntry init_function_list[] = {
 	JS_CFUNC_DEF("canvasInitClass", 0, nx_canvas_init_class),
 	JS_CFUNC_DEF("canvasContext2dNew", 0, nx_canvas_context_2d_new),
 	JS_CFUNC_DEF("canvasContext2dInitClass", 0, nx_canvas_context_2d_init_class),
+	JS_CFUNC_DEF("canvasContextWebGLNew", 0, nx_canvas_context_webgl_new),
+	JS_CFUNC_DEF("canvasContextWebGLInitClass", 0, nx_canvas_context_webgl_init_class),
 	JS_CFUNC_DEF("canvasContext2dGetImageData", 0, nx_canvas_context_2d_get_image_data),
 	JS_CFUNC_DEF("canvasContext2dGetTransform", 0, nx_canvas_context_2d_get_transform),
 	JS_CFUNC_DEF("canvasContext2dGetFont", 0, nx_canvas_context_2d_get_font),
@@ -2861,12 +2938,19 @@ void nx_init_canvas(JSContext *ctx, JSValueConst init_obj)
 	};
 	JS_NewClass(rt, nx_canvas_class_id, &canvas_class);
 
-	JS_NewClassID(rt, &nx_canvas_context_class_id);
+	JS_NewClassID(rt, &nx_canvas_context_2d_class_id);
 	JSClassDef canvas_context_2d_class = {
 		"nx_canvas_context_2d_t",
 		.finalizer = finalizer_canvas_context_2d,
 	};
-	JS_NewClass(rt, nx_canvas_context_class_id, &canvas_context_2d_class);
+	JS_NewClass(rt, nx_canvas_context_2d_class_id, &canvas_context_2d_class);
+
+	JS_NewClassID(rt, &nx_canvas_context_webgl_class_id);
+	JSClassDef canvas_context_webgl_class = {
+		"nx_canvas_context_webgl_t",
+		.finalizer = finalizer_canvas_context_webgl,
+	};
+	JS_NewClass(rt, nx_canvas_context_webgl_class_id, &canvas_context_webgl_class);
 
 	JS_SetPropertyFunctionList(ctx, init_obj, init_function_list, countof(init_function_list));
 }
