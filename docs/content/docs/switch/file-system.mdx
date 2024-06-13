@@ -1,0 +1,59 @@
+---
+title: File System
+description: Performing file system operations
+---
+
+nx.js provides various functions for performing file system operations in your nx.js app. Since there is no universally
+agreed upon API by the current leading JavaScript runtimes, nx.js implements its own file system APIs which take inspiration
+from other runtimes.
+
+Some key differences compared to what you might be used to in Node.js:
+
+* Read functions (`Switch.readFile()`, `Switch.stat()`, `Switch.readDir()`, etc.) return `null` if a given path does not exist (they do not throw an error upon `ENOENT`).
+* Write functions (`Switch.writeFile()`, etc.) will recursively create parent directories as needed, so manually creating directories is rarely necessary.
+
+## Switch.FsFile
+
+`Switch.FsFile` is a special implementation of the web `File` class, which interacts with the system's physical file system.
+As such, it offers a convenient API for working with existing files, and also for writing files.
+
+Use the `Switch.file()` function to create instances of `Switch.FsFile`.
+
+### Read as JSON
+
+Reading and parsing a JSON file is a one-liner:
+
+```typescript
+const topScores = await Switch.file('sdmc:/top-scores.json').json();
+console.log(topScores);
+```
+
+### Read as a ReadableStream
+
+`Switch.FsFile` allows you to read a file using the web ReadableStream API, by invoking the `stream()`
+function which returns a ReadableStream instance:
+
+```typescript
+for await (const chunk of Switch.file('sdmc:/data.txt').stream()) {
+    console.log(chunk);
+}
+```
+
+### Write as a WritableStream
+
+`Switch.FsFile` may also be used to write files using the web WritableStream API, by accessing the
+`writable` property which contains a WritableStream instance:
+
+```typescript
+const file = Switch.file('sdmc:/does-not-yet-exist.txt');
+
+const writer = file.writable.getWriter();
+await writer.write('write');
+await writer.write(' a ');
+await writer.write('file ');
+await writer.write('incrementally');
+await writer.close();
+```
+
+> If the file path provided to `Switch.file()` does not yet exist, then a new file will be created
+> (as well as any necessary parent directories).
