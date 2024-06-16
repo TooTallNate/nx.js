@@ -1,0 +1,21 @@
+---
+title: Images
+description: Loading images for use with the Canvas API
+---
+
+Use the global `Image` constructor to load and decode image assets into a usable
+format when used in conjunction with [**canvas rendering**](/docs/rendering/canvas) mode.
+
+```typescript
+const img = new Image();
+
+img.onload = () => {
+    const ctx = screen.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+};
+
+img.src = 'https://nxjs.n8.io/logo.png';
+```
+
+> Setting the `"src"` property to load image data uses `fetch()` under the hood, so
+> [any protocol supported by `fetch()`](/docs/web/fetch) is also supported by the `Image` class.

@@ -22,8 +22,8 @@ console.log(app.title);
 > Using `Switch.Application.self` considers the various methods in which an nx.js app can be launched, and loads the correct
 > application metadata accordingly. Specifically it handles the following cases:
 > 1. Launched from the homebrew menu (`.nro` file)
-> 1. Launched from the home screen (`.nsp` file installation)
 > 1. Launched from the home screen via [forwarder](https://nsp-forwarder.n8.io) (`.nro` file)
+> 1. Launched from the home screen via installation (`.nsp` file)
 
 ## Iterate installed applications
 
@@ -38,7 +38,7 @@ for (const app of Switch.Application) {
         count++;
     }
 }
-console.log(`You have ${count} titles which include the word "Super" in the title`);
+console.log(`You have ${count} titles which include the word "Super" in the name`);
 ```
 
 ## By Title ID
@@ -47,7 +47,7 @@ If you know the specific title ID for an installed application, use the `new Swi
 instance of the class:
 
 ```typescript
-const app = new Switch.Application(0x016e782e6a730000b);
+const app = new Switch.Application(0x0100000000010000b);
 console.log(app.title);
 ```
 

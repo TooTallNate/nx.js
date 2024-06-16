@@ -51,10 +51,10 @@ if (!saveData) {
 // Mount the save data filesystem. The returned URL can be used with filesystem operations
 const url = saveData.mount();
 
-// Read from filesystem
+// Read from save data filesystem
 const data = await Switch.readFile(new URL('state.json', url));
 
-// Write to filesystem - be sure to `commit()` changes after a write!
+// Write to save data filesystem - be sure to `commit()` changes after a write!
 await Switch.writeFile(
     new URL('state.json', url),
     JSON.stringify({ count: 123 })
@@ -62,13 +62,13 @@ await Switch.writeFile(
 saveData.commit();
 ```
 
-> In the example above, `Switch.Application.self` is used which represents the currently
-> running nx.js app, however an instance of `Switch.Application` can be obtained for officially
-> installed and homebrew applications.
+> In the example above, `Switch.Application.self` is used, which represents the currently
+> running nx.js app. However, an instance of `Switch.Application` can be obtained for officially
+> installed applications or even homebrew apps.
 
 ## Learn more
 
 <Cards>
-  <Card title="Learn more about user profile selection" href="/docs/profiles" />
-  <Card title="Learn more about the `Switch.Application` class" href="/docs/applications" />
+  <Card title="Learn more about user profile selection" href="/docs/switch/profiles" />
+  <Card title="Learn more about the `Switch.Application` class" href="/docs/switch/applications" />
 </Cards>

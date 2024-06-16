@@ -1,0 +1,22 @@
+---
+title: Album
+description: Working with the screenshot / video albums
+---
+
+nx.js offers APIs for interacting with the "photo album" content stores on the system.
+Entries in albums are either screenshots (JPEG image files) or movie recordings (MP4 video files).
+
+There are two separate albums - one on the SD card and the other on the system internal memory (NAND).
+Your nx.js app will need to specify which of the albums it intends to interact with.
+
+```typescript
+import { CapsAlbumStorage } from '@nx.js/constants';
+
+// Create `Switch.Album` instance for the SD card album
+const album = new Switch.Album(CapsAlbumStorage.Sd);
+
+// Iterate over each entry in the album
+for (const file of album) {
+    console.log(file);
+}
+```

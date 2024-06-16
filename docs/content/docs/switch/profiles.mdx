@@ -1,0 +1,66 @@
+---
+title: Profiles
+description: Interacting with user profiles
+---
+
+The `Switch.Profile` API is used to interact with user accounts/profiles which exist on the system.
+
+Instances of `Switch.Profile` can read a profile's unique identifier (UID), nickname, and even
+retrieve the JPEG image contents of the profile image.
+
+## The "current" profile
+
+When an nx.js application is launched with a preselected user, then the `Switch.Profile.current`
+property will be set to a `Switch.Profile` instance representing the user that the app was launched
+with.
+
+Some built-in APIs (like `localStorage`) utilize this value to determine which save data profile to
+
+> You may _set_ the `Switch.Profile.current` property to force the "current" profile to the specified
+> profile. Doing so will prevent the user selection modal from being shown when accessing `localStorage`.
+
+
+## User selection modal
+
+To explicitly trigger the built-in user selection modal (i.e. the one you see when launching a game title),
+invoke the `Switch.Profile.select()` function. A `Switch.Profile` instance is returned if the user selected
+a profile, or `null` if the user canceled the modal.
+
+```typescript
+const profile = Switch.Profile.select();
+if (profile) {
+    console.log(`You selected profile for "${profile.nickname}"`);
+} else {
+    console.log(`You canceled the user selection modal`);
+}
+```
+
+## Iterate user profiles
+
+The `Switch.Profile` class can be used as an iterator for the purposes of iterating over all user profiles.
+This can be useful for i.e. listing out all user profiles by nickname.
+
+```typescript
+for (const profile of Switch.Profile) {
+    console.log(profile.nickname)
+}
+```
+
+Or perhaps you want to find a profile by a specific nickname:
+
+```typescript
+const profile = Array.from(Switch.Profile).find((p) => p.nickname === 'Nate');
+```
+
+## By Profile UID
+
+If you know the specific UID for an existing profile, use the `new Switch.Profile(uid)` constructor to create an
+instance of the class:
+
+```typescript
+const profile = new Switch.Profile([
+  0x10005d4864d166b7n,
+  0x965b8cb028cd8a81n,
+]);
+console.log(profile.nickname);
+```

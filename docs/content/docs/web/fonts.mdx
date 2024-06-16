@@ -3,4 +3,21 @@ title: Fonts
 description: Using custom fonts with the Canvas API
 ---
 
-asdfasdf
+It is possible to load your own font files into an nx.js application, and then render
+your fonts using [**canvas rendering**](/docs/rendering/canvas) mode.
+
+```typescript
+// Load the font data into a `FontFace` instance
+const fontData = await Switch.readFile('romfs:/fonts/Arial.ttf');
+const font = new FontFace('Arial', fontData);
+
+// Add the font to the global `fonts` configuration
+fonts.add(font);
+
+// Render to the screen using the Canvas API by setting the "font" property
+const ctx = screen.getContext('2d');
+ctx.font = '48px Arial';
+ctx.textAlign = 'center';
+ctx.fillStyle = 'cyan';
+ctx.fillText('This is the "Arial" font', screen.width / 2, 300);
+```
