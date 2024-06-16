@@ -170,6 +170,7 @@ export class Socket {
 			$.close(i.fd);
 			i.fd = -1;
 		}
+		i.closed.resolve();
 		return this.closed;
 	}
 
