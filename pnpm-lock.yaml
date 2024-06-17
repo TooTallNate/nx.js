@@ -416,8 +416,8 @@ importers:
   packages/constants:
     devDependencies:
       typescript:
-        specifier: ^5.3.2
-        version: 5.3.2
+        specifier: ^5.4.5
+        version: 5.4.5
 
   packages/create-nxjs-app:
     dependencies:
@@ -450,8 +450,8 @@ importers:
         specifier: ^2.0.39
         version: 2.0.39
       typescript:
-        specifier: ^5.3.2
-        version: 5.3.2
+        specifier: ^5.4.5
+        version: 5.4.5
 
   packages/http:
     dependencies:
@@ -463,8 +463,8 @@ importers:
         specifier: workspace:*
         version: link:../runtime
       typescript:
-        specifier: ^5.3.2
-        version: 5.3.2
+        specifier: ^5.4.5
+        version: 5.4.5
       vite:
         specifier: ^5.1.6
         version: 5.1.6
@@ -503,8 +503,8 @@ importers:
         specifier: ^20.10.3
         version: 20.10.3
       typescript:
-        specifier: ^5.3.2
-        version: 5.3.2
+        specifier: ^5.4.5
+        version: 5.4.5
 
   packages/nsp:
     dependencies:
@@ -537,8 +537,8 @@ importers:
         specifier: ^20.10.3
         version: 20.10.3
       typescript:
-        specifier: ^5.3.2
-        version: 5.3.2
+        specifier: ^5.4.5
+        version: 5.4.5
 
   packages/patch-nacp:
     dependencies:
@@ -559,8 +559,8 @@ importers:
         specifier: ^2.0.39
         version: 2.0.39
       typescript:
-        specifier: ^5.3.2
-        version: 5.3.2
+        specifier: ^5.4.5
+        version: 5.4.5
 
   packages/repl:
     dependencies:
@@ -575,8 +575,8 @@ importers:
         specifier: workspace:*
         version: link:../runtime
       typescript:
-        specifier: ^5.3.2
-        version: 5.3.2
+        specifier: ^5.4.5
+        version: 5.4.5
 
   packages/runtime:
     devDependencies:
@@ -611,8 +611,8 @@ importers:
         specifier: ^1.1.0
         version: 1.1.0
       typescript:
-        specifier: ^5.3.2
-        version: 5.3.2
+        specifier: ^5.4.5
+        version: 5.4.5
       web-streams-polyfill:
         specifier: ^3.2.1
         version: 3.2.1
@@ -2977,7 +2977,7 @@ packages:
     engines: {node: '>=14.0.0'}
     hasBin: true
     dependencies:
-      typescript: 5.3.2
+      typescript: 5.4.5
       yargs: 17.7.2
     dev: true
 
@@ -5110,8 +5110,8 @@ packages:
     hasBin: true
     dev: true
 
-  /typescript@5.3.2:
-    resolution: {integrity: sha512-6l+RyNy7oAHDfxC4FzSJcz9vnjTKxrLpDG5M2Vu4SHRVNg6xzqZp6LYSR9zjqQTu8DU/f5xwxUdADOkbrIX2gQ==}
+  /typescript@5.4.5:
+    resolution: {integrity: sha512-vcI4UpRgg81oIRUFwR0WSIHKt11nJ7SAVlYNIu+QpqeyXP+gpQJy/Z4+F0aGxSE4MqwjyXvW/TzgkLAx2AGHwQ==}
     engines: {node: '>=14.17'}
     hasBin: true
     dev: true

@@ -28,7 +28,7 @@
     "kleur": "github:TooTallNate/kleur#rgb",
     "parse-css-font": "^4.0.0",
     "to-px": "^1.1.0",
-    "typescript": "^5.3.2",
+    "typescript": "^5.4.5",
     "web-streams-polyfill": "^3.2.1"
   }
 }
