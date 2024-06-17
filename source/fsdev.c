@@ -572,6 +572,16 @@ static JSValue nx_save_data_create_sync(JSContext *ctx, JSValueConst this_val, i
 	FsSaveDataCreationInfo crt = {0};
 	FsSaveDataMetaInfo meta = {0};
 
+	val = JS_GetPropertyStr(ctx, argv[0], "type");
+	if (JS_IsNumber(val))
+	{
+		if (JS_ToUint32(ctx, (u32 *)&attr.save_data_type, val))
+		{
+			return JS_EXCEPTION;
+		}
+	}
+	JS_FreeValue(ctx, val);
+
 	if (argc >= 2 && !JS_IsUndefined(argv[1]))
 	{
 		size_t nacp_size;
@@ -580,6 +590,7 @@ static JSValue nx_save_data_create_sync(JSContext *ctx, JSValueConst this_val, i
 		{
 			return JS_ThrowTypeError(ctx, "Invalid NACP buffer (got %ld bytes, expected %ld)", nacp_size, sizeof(NacpStruct));
 		}
+		attr.application_id = nacp->save_data_owner_id;
 		switch (attr.save_data_type)
 		{
 		case FsSaveDataType_Account:
@@ -617,16 +628,6 @@ static JSValue nx_save_data_create_sync(JSContext *ctx, JSValueConst this_val, i
 	}
 	JS_FreeValue(ctx, val);
 
-	val = JS_GetPropertyStr(ctx, argv[0], "type");
-	if (JS_IsNumber(val))
-	{
-		if (JS_ToUint32(ctx, (u32 *)&attr.save_data_type, val))
-		{
-			return JS_EXCEPTION;
-		}
-	}
-	JS_FreeValue(ctx, val);
-
 	val = JS_GetPropertyStr(ctx, argv[0], "size");
 	if (JS_IsBigInt(ctx, val))
 	{
@@ -647,7 +648,7 @@ static JSValue nx_save_data_create_sync(JSContext *ctx, JSValueConst this_val, i
 	}
 	JS_FreeValue(ctx, val);
 
-	val = JS_GetPropertyStr(ctx, argv[1], "uid");
+	val = JS_GetPropertyStr(ctx, argv[0], "uid");
 	if (JS_IsArray(ctx, val))
 	{
 		if (
@@ -716,7 +717,6 @@ static JSValue nx_save_data_create_sync(JSContext *ctx, JSValueConst this_val, i
 	{
 		return nx_throw_libnx_error(ctx, rc, "fsCreateSaveDataFileSystem()");
 	}
-	printf("rc: %d\n", rc);
 
 	return JS_UNDEFINED;
 }
