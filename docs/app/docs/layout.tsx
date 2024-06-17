@@ -11,7 +11,7 @@ export default function RootDocsLayout({ children }: { children: ReactNode }) {
 				transparentMode: 'top',
 				title: (
 					<>
-						<Logo className='w-5 md:w-6' /> nx.js
+						<Logo className='w-5 md:w-6 drop-shadow' /> nx.js
 					</>
 				),
 				githubUrl: 'https://github.com/TooTallNate/nx.js',
