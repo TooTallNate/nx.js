@@ -486,7 +486,7 @@ int main(int argc, char *argv[])
 	FILE *debug_fd = freopen(LOG_FILENAME, "w", stderr);
 
 	// Configure our supported input layout: a single player with standard controller styles
-	padConfigureInput(1, HidNpadStyleSet_NpadStandard);
+	padConfigureInput(8, HidNpadStyleSet_NpadStandard);
 
 	// Initialize the default gamepad (which reads handheld mode inputs as well as the first connected controller)
 	PadState pad;
