@@ -9,8 +9,7 @@ let x = gap;
 let y = gap;
 for (const { icon, name } of Switch.Application) {
 	if (!icon) continue;
-	const img = new Image();
-	img.onload = () => {
+	createImageBitmap(new Blob([icon])).then((img) => {
 		if (x + img.width >= screen.width) {
 			x = gap;
 			y += img.height + 40 + gap;
@@ -18,8 +17,5 @@ for (const { icon, name } of Switch.Application) {
 		ctx.drawImage(img, x, y);
 		ctx.fillText(name, x + img.width / 2, y + img.height + 20, img.width);
 		x += img.width + gap;
-	};
-	const url = URL.createObjectURL(new Blob([icon]));
-	img.src = url;
-	//app.launch()
+	});
 }
