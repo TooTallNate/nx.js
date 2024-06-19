@@ -1,5 +1,5 @@
 import { $ } from './$';
-import { createInternal, def } from './utils';
+import { createInternal, def, proto } from './utils';
 import { fetch } from './fetch/fetch';
 import { URL } from './polyfills/url';
 import { Event, ErrorEvent } from './polyfills/event';
@@ -48,8 +48,7 @@ export class Image extends EventTarget {
 
 	constructor() {
 		super();
-		const i = $.imageNew() as Image;
-		Object.setPrototypeOf(i, Image.prototype);
+		const i = proto($.imageNew(), Image);
 		i.onload = null;
 		i.onerror = null;
 		i.decoding = 'auto';

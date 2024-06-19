@@ -105,4 +105,8 @@ export interface FontFaceDescriptors {
 	weight?: string;
 }
 
+export type ColorSpaceConversion = 'default' | 'none';
+export type ImageOrientation = 'flipY' | 'from-image' | 'none';
+export type PremultiplyAlpha = 'default' | 'none' | 'premultiply';
+export type ResizeQuality = 'high' | 'low' | 'medium' | 'pixelated';
 export type ImageBitmapSource = CanvasImageSource | Blob | ImageData;

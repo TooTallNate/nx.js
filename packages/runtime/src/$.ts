@@ -164,7 +164,7 @@ export interface Init {
 	// image.c
 	imageInit(c: ClassOf<Image | ImageBitmap>): void;
 	imageNew(width?: number, height?: number): Image | ImageBitmap;
-	imageDecode(img: Image, data: ArrayBuffer): Promise<void>;
+	imageDecode(img: Image | ImageBitmap, data: ArrayBuffer): Promise<void>;
 	imageClose(img: ImageBitmap): void;
 
 	// irs.c
