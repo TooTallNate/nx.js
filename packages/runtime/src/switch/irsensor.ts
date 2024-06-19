@@ -5,7 +5,7 @@ import { INTERNAL_SYMBOL } from '../internal';
 import { Event } from '../polyfills/event';
 import { Sensor } from '../sensor';
 import { clearInterval, setInterval } from '../timers';
-import { createInternal } from '../utils';
+import { createInternal, proto } from '../utils';
 
 let init = false;
 
@@ -71,10 +71,8 @@ export class IRSensor extends Sensor {
 		}
 		// @ts-expect-error Internal constructor
 		super(INTERNAL_SYMBOL);
-		const image = $.imageNew(320, 240) as ImageBitmap;
-		Object.setPrototypeOf(image, ImageBitmap.prototype);
-		const self = $.irsSensorNew(image, color);
-		Object.setPrototypeOf(self, IRSensor.prototype);
+		const image = proto($.imageNew(320, 240), ImageBitmap);
+		const self = proto($.irsSensorNew(image, color), IRSensor);
 		_.set(self, {
 			activated: false,
 			timestamp: null,

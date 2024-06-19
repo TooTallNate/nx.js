@@ -74,11 +74,8 @@ $.albumInit(Album);
  * ```typescript
  * const ctx = screen.getContext('2d');
  * const buf = await file.arrayBuffer();
- * const img = new Image();
- * img.onload = () => {
- *   ctx.drawImage(img, 0, 0);
- * };
- * img.src = URL.createObjectURL(new Blob([buf]));
+ * const img = await createImageBitmap(new Blob([buf]));
+ * ctx.drawImage(img, 0, 0);
  * ```
  */
 export class AlbumFile extends File {
@@ -133,11 +130,8 @@ export class AlbumFile extends File {
 	 * ```typescript
 	 * const ctx = screen.getContext('2d');
 	 * const buf = await file.thumbnail();
-	 * const img = new Image();
-	 * img.onload = () => {
-	 *   ctx.drawImage(img, 0, 0);
-	 * };
-	 * img.src = URL.createObjectURL(new Blob([buf]));
+	 * const img = await createImageBitmap(new Blob([buf]));
+	 * ctx.drawImage(img, 0, 0);
 	 * ```
 	 */
 	thumbnail(): Promise<ArrayBuffer> {
