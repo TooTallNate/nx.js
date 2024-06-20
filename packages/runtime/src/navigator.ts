@@ -126,7 +126,7 @@ export class Navigator {
 	 *
 	 * @see https://developer.mozilla.org/docs/Web/API/Navigator/getGamepads
 	 */
-	getGamepads(): Gamepad[] {
+	getGamepads(): (Gamepad | null)[] {
 		const g = Array(8);
 		for (let i = 0; i < 8; i++) {
 			const e = gamepads[i];

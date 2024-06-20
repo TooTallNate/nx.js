@@ -156,7 +156,6 @@ static JSValue nx_gamepad_get_connected(JSContext *ctx, JSValueConst this_val, i
     {
         connected = padIsNpadActive(&gamepad->pad, gamepad->id);
     }
-    // printf("nx_gamepad_get_connected: %d -> %d\n", gamepad->id, connected);
     return JS_NewBool(ctx, connected);
 }
 

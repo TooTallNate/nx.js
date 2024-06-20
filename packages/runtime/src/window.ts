@@ -96,6 +96,20 @@ export function addEventListener(
 ): void;
 
 /**
+ * The `beforeunload` event is fired when the `+` button is pressed on the first controller.
+ *
+ * This event gives the application a chance to prevent the default behavior of the
+ * application exiting. If the event is canceled, the application will **not** exit.
+ *
+ * @see https://developer.mozilla.org/docs/Web/API/Window/beforeunload_event
+ */
+export function addEventListener(
+	type: 'beforeunload',
+	callback: (event: Event) => any,
+	options?: AddEventListenerOptions | boolean,
+): void;
+
+/**
  * The `unload` event is fired when the application is exiting.
  *
  * By the time this event occurs, the event loop has already been stopped,

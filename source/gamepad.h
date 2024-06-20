@@ -4,8 +4,6 @@
 typedef struct
 {
     HidNpadIdType id;
-    HidAnalogStickState stick_left;
-    HidAnalogStickState stick_right;
     PadState pad;
 } nx_gamepad_t;
 
