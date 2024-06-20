@@ -166,3 +166,22 @@ export function first<T>(it: Iterator<T>): T | undefined {
 	const n = it.next();
 	return n.value || undefined;
 }
+
+export function lazyProp(
+	obj: any,
+	prop: PropertyKey,
+	init: () => any,
+	desc: PropertyDescriptor,
+) {
+	Object.defineProperty(obj, prop, {
+		...desc,
+		get() {
+			const v = init();
+			Object.defineProperty(obj, prop, {
+				...desc,
+				value: v,
+			});
+			return v;
+		},
+	});
+}

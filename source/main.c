@@ -21,6 +21,7 @@
 #include "font.h"
 #include "fs.h"
 #include "fsdev.h"
+#include "gamepad.h"
 #include "irs.h"
 #include "nifm.h"
 #include "ns.h"
@@ -485,12 +486,7 @@ int main(int argc, char *argv[])
 
 	FILE *debug_fd = freopen(LOG_FILENAME, "w", stderr);
 
-	// Configure our supported input layout: a single player with standard controller styles
 	padConfigureInput(8, HidNpadStyleSet_NpadStandard);
-
-	// Initialize the default gamepad (which reads handheld mode inputs as well as the first connected controller)
-	PadState pad;
-	padInitializeDefault(&pad);
 
 	JSRuntime *rt = JS_NewRuntime();
 	JSContext *ctx = JS_NewContext(rt);
@@ -505,6 +501,7 @@ int main(int argc, char *argv[])
 	nx_ctx->unhandled_rejection_handler = JS_UNDEFINED;
 	pthread_mutex_init(&(nx_ctx->async_done_mutex), NULL);
 	JS_SetContextOpaque(ctx, nx_ctx);
+	JS_SetRuntimeOpaque(rt, nx_ctx);
 	JS_SetHostPromiseRejectionTracker(rt, nx_promise_rejection_handler, ctx);
 
 	// First try the `main.js` file on the RomFS
@@ -553,6 +550,7 @@ int main(int argc, char *argv[])
 	nx_init_font(ctx, nx_ctx->init_obj);
 	nx_init_fs(ctx, nx_ctx->init_obj);
 	nx_init_fsdev(ctx, nx_ctx->init_obj);
+	nx_init_gamepad(ctx, nx_ctx->init_obj);
 	nx_init_image(ctx, nx_ctx->init_obj);
 	nx_init_irs(ctx, nx_ctx->init_obj);
 	nx_init_nifm(ctx, nx_ctx->init_obj);
@@ -684,24 +682,30 @@ main_loop:
 		if (!nx_ctx->had_error)
 			nx_process_pending_jobs(rt);
 
-		padUpdate(&pad);
-		u64 kDown = padGetButtons(&pad);
+		// Update controller pad states
+		for (int i = 0; i < 8; i++)
+		{
+			if (nx_ctx->pads[i])
+			{
+				padUpdate(nx_ctx->pads[i]);
+			}
+		}
 
 		if (nx_ctx->had_error)
 		{
-			if (kDown & HidNpadButton_Plus)
-			{
-				// When an initialization or unhandled error occurs,
-				// wait until the user presses "+" to fully exit so
-				// the user has a chance to read the error message.
-				break;
-			}
+			// if (kDown & HidNpadButton_Plus)
+			//{
+			//	// When an initialization or unhandled error occurs,
+			//	// wait until the user presses "+" to fully exit so
+			//	// the user has a chance to read the error message.
+			//	break;
+			// }
 		}
 		else
 		{
 			// Call frame handler
-			JSValueConst args[] = {JS_NewUint32(ctx, kDown)};
-			JSValue ret_val = JS_Call(ctx, nx_ctx->frame_handler, JS_NULL, 1, args);
+			// JSValueConst args[] = {JS_NewUint32(ctx, kDown)};
+			JSValue ret_val = JS_Call(ctx, nx_ctx->frame_handler, JS_NULL, 0, NULL);
 
 			if (JS_IsException(ret_val))
 			{
