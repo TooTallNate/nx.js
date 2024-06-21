@@ -31,6 +31,7 @@ import type { OffscreenCanvas } from './canvas/offscreen-canvas';
 import type { ImageBitmap } from './canvas/image-bitmap';
 import type { CanvasRenderingContext2D } from './canvas/canvas-rendering-context-2d';
 import type { OffscreenCanvasRenderingContext2D } from './canvas/offscreen-canvas-rendering-context-2d';
+import type { CanvasRenderingContextWebGL } from './canvas/canvas-rendering-context-webgl';
 import type { Image } from './image';
 import type { Screen } from './screen';
 import type { FontFace } from './font/font-face';
@@ -77,8 +78,12 @@ export interface Init {
 	canvasInitClass(c: ClassOf<Screen | OffscreenCanvas>): void;
 	canvasContext2dNew(c: Screen): CanvasRenderingContext2D;
 	canvasContext2dNew(c: OffscreenCanvas): OffscreenCanvasRenderingContext2D;
+	canvasContextWebGLNew(c: Screen): CanvasRenderingContextWebGL;
 	canvasContext2dInitClass(
 		c: ClassOf<CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D>,
+	): void;
+	canvasContextWebGLInitClass(
+		c: ClassOf<CanvasRenderingContextWebGL>,
 	): void;
 	canvasContext2dGetImageData(
 		ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
@@ -191,6 +196,7 @@ export interface Init {
 	onFrame(fn: (kDown: number) => void): void;
 	onExit(fn: () => void): void;
 	framebufferInit(screen: Screen): void;
+	eglInit(screen: Screen): void;
 	hidInitializeTouchScreen(): void;
 	hidGetTouchScreenStates(): Touch[] | undefined;
 	hidInitializeKeyboard(): void;
