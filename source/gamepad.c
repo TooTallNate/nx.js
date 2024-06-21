@@ -73,19 +73,6 @@ static JSValue nx_gamepad_new(JSContext *ctx, JSValueConst this_val, int argc, J
 
     JSValue obj = JS_NewObjectClass(ctx, nx_gamepad_class_id);
     JS_SetOpaque(obj, gamepad);
-
-    if (id == 0)
-    {
-        // Index 0 is a special case, which represents input from both
-        // the first controller as well as the handheld mode controller
-        padInitialize(gamepad->pad, id, HidNpadIdType_Handheld);
-    }
-    else
-    {
-        padInitialize(gamepad->pad, id);
-    }
-    padUpdate(gamepad->pad);
-
     return obj;
 }
 

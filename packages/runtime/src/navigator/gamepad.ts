@@ -84,8 +84,6 @@ export class GamepadHapticActuator implements globalThis.GamepadHapticActuator {
 }
 def(GamepadHapticActuator);
 
-export const gamepads: Gamepad[] = Array(8);
-
 export function gamepadNew(index: number) {
 	const g = proto($.gamepadNew(index), Gamepad);
 	// @ts-expect-error Readonly prop
@@ -96,3 +94,7 @@ export function gamepadNew(index: number) {
 	}
 	return g;
 }
+
+export const gamepads: Gamepad[] = Array(8)
+	.fill(0)
+	.map((_, i) => gamepadNew(i));

@@ -486,8 +486,6 @@ int main(int argc, char *argv[])
 
 	FILE *debug_fd = freopen(LOG_FILENAME, "w", stderr);
 
-	padConfigureInput(8, HidNpadStyleSet_NpadStandard | HidNpadStyleTag_NpadGc);
-
 	JSRuntime *rt = JS_NewRuntime();
 	JSContext *ctx = JS_NewContext(rt);
 
@@ -503,6 +501,16 @@ int main(int argc, char *argv[])
 	JS_SetContextOpaque(ctx, nx_ctx);
 	JS_SetRuntimeOpaque(rt, nx_ctx);
 	JS_SetHostPromiseRejectionTracker(rt, nx_promise_rejection_handler, ctx);
+
+	padConfigureInput(8, HidNpadStyleSet_NpadStandard | HidNpadStyleTag_NpadGc);
+	padInitializeDefault(&nx_ctx->pads[0]);
+	padInitialize(&nx_ctx->pads[1], HidNpadIdType_No2);
+	padInitialize(&nx_ctx->pads[2], HidNpadIdType_No3);
+	padInitialize(&nx_ctx->pads[3], HidNpadIdType_No4);
+	padInitialize(&nx_ctx->pads[4], HidNpadIdType_No5);
+	padInitialize(&nx_ctx->pads[5], HidNpadIdType_No6);
+	padInitialize(&nx_ctx->pads[6], HidNpadIdType_No7);
+	padInitialize(&nx_ctx->pads[7], HidNpadIdType_No8);
 
 	// First try the `main.js` file on the RomFS
 	size_t user_code_size;

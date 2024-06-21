@@ -1,7 +1,7 @@
 import { $ } from './$';
-import { assertInternalConstructor, def, lazyProp } from './utils';
+import { assertInternalConstructor, def } from './utils';
 import { BatteryManager } from './navigator/battery';
-import { type Gamepad, gamepads, gamepadNew } from './navigator/gamepad';
+import { type Gamepad, gamepads } from './navigator/gamepad';
 import { INTERNAL_SYMBOL, VibrationValues } from './internal';
 import { setTimeout, clearTimeout } from './timers';
 import {
@@ -130,23 +130,7 @@ export class Navigator {
 		const g = Array(8);
 		for (let i = 0; i < 8; i++) {
 			const e = gamepads[i];
-			if (e) {
-				g[i] = e.connected ? e : null;
-			} else {
-				lazyProp(
-					g,
-					i,
-					() => {
-						const v = gamepadNew(i);
-						gamepads[i] = v;
-						return v.connected ? v : null;
-					},
-					{
-						configurable: true,
-						enumerable: true,
-					},
-				);
-			}
+			g[i] = e.connected ? e : null;
 		}
 		return g;
 	}
