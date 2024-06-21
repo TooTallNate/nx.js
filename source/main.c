@@ -674,13 +674,17 @@ main_loop:
 			nx_poll(&nx_ctx->poll);
 		}
 
-		// Check if any thread pool tasks have completed
 		if (!nx_ctx->had_error)
+		{
+			// Check if any thread pool tasks have completed
 			nx_process_async(ctx, nx_ctx);
+		}
 
-		// Process any Promises that need to be fulfilled
 		if (!nx_ctx->had_error)
+		{
+			// Process any Promises that need to be fulfilled
 			nx_process_pending_jobs(rt);
+		}
 
 		// Update controller pad states
 		padUpdate(&nx_ctx->pads[0]);
