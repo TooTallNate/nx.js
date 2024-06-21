@@ -66,3 +66,21 @@ export enum HidDeviceTypeBits {
 	Lager = 1 << 17, ///< Sega Genesis controller
 	System = 1 << 31, ///< Generic controller.
 }
+
+/// HID controller styles
+export enum HidNpadStyleTag {
+	FullKey = 1 << 0, ///< Pro Controller
+	Handheld = 1 << 1, ///< Joy-Con controller in handheld mode
+	JoyDual = 1 << 2, ///< Joy-Con controller in dual mode
+	JoyLeft = 1 << 3, ///< Joy-Con left controller in single mode
+	JoyRight = 1 << 4, ///< Joy-Con right controller in single mode
+	Gc = 1 << 5, ///< GameCube controller
+	Palma = 1 << 6, ///< Poké Ball Plus controller
+	Lark = 1 << 7, ///< NES/Famicom controller
+	HandheldLark = 1 << 8, ///< NES/Famicom controller in handheld mode
+	Lucia = 1 << 9, ///< SNES controller
+	Lagon = 1 << 10, ///< N64 controller
+	Lager = 1 << 11, ///< Sega Genesis controller
+	SystemExt = 1 << 29, ///< Generic external controller
+	System = 1 << 30, ///< Generic controller
+}
