@@ -1,0 +1,18 @@
+export enum Button {
+	B,
+	A,
+	Y,
+	X,
+	L,
+	R,
+	ZL,
+	ZR,
+	Minus,
+	Plus,
+	StickL,
+	StickR,
+	Up,
+	Down,
+	Left,
+	Right,
+}
