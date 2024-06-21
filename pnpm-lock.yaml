@@ -132,6 +132,10 @@ importers:
         version: link:../../packages/runtime
 
   apps/gamepads:
+    dependencies:
+      '@nx.js/constants':
+        specifier: workspace:*
+        version: link:../../packages/constants
     devDependencies:
       '@nx.js/nro':
         specifier: workspace:^

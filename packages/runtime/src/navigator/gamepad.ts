@@ -22,6 +22,11 @@ export class Gamepad implements globalThis.Gamepad {
 	readonly timestamp!: number;
 	readonly vibrationActuator!: GamepadHapticActuator | null;
 
+	// Non-standard
+	readonly deviceType!: number;
+	readonly rawButtons!: bigint;
+	readonly styleSet!: number;
+
 	/**
 	 * @ignore
 	 */

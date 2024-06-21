@@ -9,6 +9,9 @@
     "nsp": "nxjs-nsp"
   },
   "license": "MIT",
+  "dependencies": {
+    "@nx.js/constants": "workspace:*"
+  },
   "devDependencies": {
     "@nx.js/nro": "workspace:^",
     "@nx.js/nsp": "workspace:^",

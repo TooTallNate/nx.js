@@ -138,6 +138,18 @@ static JSValue nx_gamepad_get_raw_buttons(JSContext *ctx, JSValueConst this_val,
     return JS_NewBigUint64(ctx, padGetButtons(&gamepad->pad));
 }
 
+static JSValue nx_gamepad_get_device_type(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    nx_gamepad_t *gamepad = nx_get_gamepad(ctx, this_val);
+    return JS_NewUint32(ctx, hidGetNpadDeviceType(gamepad->id));
+}
+
+static JSValue nx_gamepad_get_style_set(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    nx_gamepad_t *gamepad = nx_get_gamepad(ctx, this_val);
+    return JS_NewUint32(ctx, padGetStyleSet(&gamepad->pad));
+}
+
 static JSValue nx_gamepad_get_index(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     nx_gamepad_t *gamepad = nx_get_gamepad(ctx, this_val);
@@ -147,16 +159,7 @@ static JSValue nx_gamepad_get_index(JSContext *ctx, JSValueConst this_val, int a
 static JSValue nx_gamepad_get_connected(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     nx_gamepad_t *gamepad = nx_get_gamepad(ctx, this_val);
-    bool connected = false;
-    if (gamepad->id == 0)
-    {
-        connected = padIsNpadActive(&gamepad->pad, HidNpadIdType_Handheld);
-    }
-    if (!connected)
-    {
-        connected = padIsNpadActive(&gamepad->pad, gamepad->id);
-    }
-    return JS_NewBool(ctx, connected);
+    return JS_NewBool(ctx, padIsConnected(&gamepad->pad));
 }
 
 static JSValue nx_gamepad_button_get_pressed(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -193,7 +196,9 @@ static JSValue nx_gamepad_init_class(JSContext *ctx, JSValueConst this_val, int 
     NX_DEF_GET(proto, "connected", nx_gamepad_get_connected);
 
     // Non-standard
+    NX_DEF_GET(proto, "deviceType", nx_gamepad_get_device_type);
     NX_DEF_GET(proto, "rawButtons", nx_gamepad_get_raw_buttons);
+    NX_DEF_GET(proto, "styleSet", nx_gamepad_get_style_set);
 
     JS_FreeValue(ctx, proto);
     return JS_UNDEFINED;

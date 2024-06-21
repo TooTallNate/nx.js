@@ -486,7 +486,7 @@ int main(int argc, char *argv[])
 
 	FILE *debug_fd = freopen(LOG_FILENAME, "w", stderr);
 
-	padConfigureInput(8, HidNpadStyleSet_NpadStandard);
+	padConfigureInput(8, HidNpadStyleSet_NpadStandard | HidNpadStyleTag_NpadGc);
 
 	JSRuntime *rt = JS_NewRuntime();
 	JSContext *ctx = JS_NewContext(rt);
