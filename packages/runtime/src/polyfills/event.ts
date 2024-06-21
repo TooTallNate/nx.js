@@ -1,5 +1,6 @@
 import { assertInternalConstructor, createInternal, def } from '../utils';
 import type { EventTarget } from './event-target';
+import type { Gamepad } from '../navigator/gamepad';
 
 export interface EventInit {
 	bubbles?: boolean;
@@ -583,6 +584,18 @@ export class PromiseRejectionEvent
 	}
 }
 
+export interface GamepadEventInit extends EventInit {
+	gamepad: Gamepad;
+}
+
+export class GamepadEvent extends Event implements globalThis.GamepadEvent {
+	readonly gamepad: Gamepad;
+	constructor(type: string, options: GamepadEventInit) {
+		super(type, options);
+		this.gamepad = options.gamepad;
+	}
+}
+
 def(Event);
 def(CustomEvent);
 def(ErrorEvent);
@@ -590,3 +603,4 @@ def(PromiseRejectionEvent);
 def(UIEvent);
 def(KeyboardEvent);
 def(TouchEvent);
+def(GamepadEvent);

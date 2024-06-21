@@ -4,7 +4,7 @@
 typedef struct
 {
     HidNpadIdType id;
-    PadState pad;
+    PadState *pad;
 } nx_gamepad_t;
 
 typedef struct

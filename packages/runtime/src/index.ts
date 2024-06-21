@@ -89,7 +89,7 @@ def(setInterval);
 def(clearTimeout);
 def(clearInterval);
 
-import { navigator } from './navigator';
+import './navigator';
 
 import './source-map';
 import { $ } from './$';
@@ -180,20 +180,16 @@ $.onUnhandledRejection((p, r) => {
 	return 1;
 });
 
-let plusWasPressed: boolean | undefined;
-
-$.onFrame(() => {
+$.onFrame((plusDown) => {
 	// Default behavior is to exit when the "+" button is pressed on the first controller.
 	// Can be prevented by calling `preventDefault()` on the "beforeunload" event.
-	const plusPressed = navigator.getGamepads()[0]?.buttons[9].pressed;
-	if (plusPressed && !plusWasPressed) {
+	if (plusDown) {
 		const e = new Event('beforeunload', { cancelable: true });
 		globalThis.dispatchEvent(e);
 		if (!e.defaultPrevented) {
 			return $.exit();
 		}
 	}
-	plusWasPressed = plusPressed;
 
 	processTimers();
 	callRafCallbacks();

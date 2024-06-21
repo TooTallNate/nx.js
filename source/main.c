@@ -683,29 +683,33 @@ main_loop:
 			nx_process_pending_jobs(rt);
 
 		// Update controller pad states
-		for (int i = 0; i < 8; i++)
-		{
-			if (nx_ctx->pads[i])
-			{
-				padUpdate(nx_ctx->pads[i]);
-			}
-		}
+		padUpdate(&nx_ctx->pads[0]);
+		padUpdate(&nx_ctx->pads[1]);
+		padUpdate(&nx_ctx->pads[2]);
+		padUpdate(&nx_ctx->pads[3]);
+		padUpdate(&nx_ctx->pads[4]);
+		padUpdate(&nx_ctx->pads[5]);
+		padUpdate(&nx_ctx->pads[6]);
+		padUpdate(&nx_ctx->pads[7]);
+
+		u64 kDown = padGetButtonsDown(&nx_ctx->pads[0]);
+		bool plusDown = kDown & HidNpadButton_Plus;
 
 		if (nx_ctx->had_error)
 		{
-			// if (kDown & HidNpadButton_Plus)
-			//{
-			//	// When an initialization or unhandled error occurs,
-			//	// wait until the user presses "+" to fully exit so
-			//	// the user has a chance to read the error message.
-			//	break;
-			// }
+			if (plusDown)
+			{
+				// When an initialization or unhandled error occurs,
+				// wait until the user presses "+" to fully exit so
+				// the user has a chance to read the error message.
+				break;
+			}
 		}
 		else
 		{
 			// Call frame handler
-			// JSValueConst args[] = {JS_NewUint32(ctx, kDown)};
-			JSValue ret_val = JS_Call(ctx, nx_ctx->frame_handler, JS_NULL, 0, NULL);
+			JSValueConst args[] = {JS_NewBool(ctx, plusDown)};
+			JSValue ret_val = JS_Call(ctx, nx_ctx->frame_handler, JS_NULL, 1, args);
 
 			if (JS_IsException(ret_val))
 			{

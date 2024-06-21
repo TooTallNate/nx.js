@@ -35,10 +35,10 @@ nx_gamepad_button_t *nx_get_gamepad_button(JSContext *ctx, JSValueConst obj)
 static void finalizer_gamepad(JSRuntime *rt, JSValue val)
 {
     nx_gamepad_t *gamepad = JS_GetOpaque(val, nx_gamepad_class_id);
-    nx_context_t *nx_ctx = JS_GetRuntimeOpaque(rt);
+    // nx_context_t *nx_ctx = JS_GetRuntimeOpaque(rt);
     if (gamepad)
     {
-        nx_ctx->pads[gamepad->id] = NULL;
+        // nx_ctx->pads[gamepad->id] = NULL;
         js_free_rt(rt, gamepad);
     }
 }
@@ -66,25 +66,25 @@ static JSValue nx_gamepad_new(JSContext *ctx, JSValueConst this_val, int argc, J
         return JS_EXCEPTION;
     }
 
+    nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
+
     gamepad->id = id;
+    gamepad->pad = &nx_ctx->pads[id];
 
     JSValue obj = JS_NewObjectClass(ctx, nx_gamepad_class_id);
     JS_SetOpaque(obj, gamepad);
-
-    nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
-    nx_ctx->pads[id] = &gamepad->pad;
 
     if (id == 0)
     {
         // Index 0 is a special case, which represents input from both
         // the first controller as well as the handheld mode controller
-        padInitialize(&gamepad->pad, id, HidNpadIdType_Handheld);
+        padInitialize(gamepad->pad, id, HidNpadIdType_Handheld);
     }
     else
     {
-        padInitialize(&gamepad->pad, id);
+        padInitialize(gamepad->pad, id);
     }
-    padUpdate(&gamepad->pad);
+    padUpdate(gamepad->pad);
 
     return obj;
 }
@@ -117,8 +117,8 @@ static JSValue nx_gamepad_get_axes(JSContext *ctx, JSValueConst this_val, int ar
 {
     nx_gamepad_t *gamepad = nx_get_gamepad(ctx, this_val);
     JSValue arr = JS_NewArray(ctx);
-    HidAnalogStickState analog_stick_l = padGetStickPos(&gamepad->pad, 0);
-    HidAnalogStickState analog_stick_r = padGetStickPos(&gamepad->pad, 1);
+    HidAnalogStickState analog_stick_l = padGetStickPos(gamepad->pad, 0);
+    HidAnalogStickState analog_stick_r = padGetStickPos(gamepad->pad, 1);
     JS_SetPropertyUint32(ctx, arr, 0, JS_NewFloat64(ctx, (double)analog_stick_l.x / 32768.0));
     JS_SetPropertyUint32(ctx, arr, 1, JS_NewFloat64(ctx, (double)-analog_stick_l.y / 32768.0));
     JS_SetPropertyUint32(ctx, arr, 2, JS_NewFloat64(ctx, (double)analog_stick_r.x / 32768.0));
@@ -135,7 +135,7 @@ static JSValue nx_gamepad_get_id(JSContext *ctx, JSValueConst this_val, int argc
 static JSValue nx_gamepad_get_raw_buttons(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     nx_gamepad_t *gamepad = nx_get_gamepad(ctx, this_val);
-    return JS_NewBigUint64(ctx, padGetButtons(&gamepad->pad));
+    return JS_NewBigUint64(ctx, padGetButtons(gamepad->pad));
 }
 
 static JSValue nx_gamepad_get_device_type(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -147,7 +147,7 @@ static JSValue nx_gamepad_get_device_type(JSContext *ctx, JSValueConst this_val,
 static JSValue nx_gamepad_get_style_set(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     nx_gamepad_t *gamepad = nx_get_gamepad(ctx, this_val);
-    return JS_NewUint32(ctx, padGetStyleSet(&gamepad->pad));
+    return JS_NewUint32(ctx, padGetStyleSet(gamepad->pad));
 }
 
 static JSValue nx_gamepad_get_index(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -159,13 +159,13 @@ static JSValue nx_gamepad_get_index(JSContext *ctx, JSValueConst this_val, int a
 static JSValue nx_gamepad_get_connected(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     nx_gamepad_t *gamepad = nx_get_gamepad(ctx, this_val);
-    return JS_NewBool(ctx, padIsConnected(&gamepad->pad));
+    return JS_NewBool(ctx, padIsConnected(gamepad->pad));
 }
 
 static JSValue nx_gamepad_button_get_pressed(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     nx_gamepad_button_t *gamepad_button = nx_get_gamepad_button(ctx, this_val);
-    u64 kDown = padGetButtons(&gamepad_button->gamepad->pad);
+    u64 kDown = padGetButtons(gamepad_button->gamepad->pad);
     bool pressed = (kDown & gamepad_button->mask) != 0;
     return JS_NewBool(ctx, pressed);
 }
@@ -173,7 +173,7 @@ static JSValue nx_gamepad_button_get_pressed(JSContext *ctx, JSValueConst this_v
 static JSValue nx_gamepad_button_get_touched(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     nx_gamepad_button_t *gamepad_button = nx_get_gamepad_button(ctx, this_val);
-    u64 kDown = padGetButtons(&gamepad_button->gamepad->pad);
+    u64 kDown = padGetButtons(gamepad_button->gamepad->pad);
     bool pressed = (kDown & gamepad_button->mask) != 0;
     return JS_NewBool(ctx, pressed);
 }
@@ -181,7 +181,7 @@ static JSValue nx_gamepad_button_get_touched(JSContext *ctx, JSValueConst this_v
 static JSValue nx_gamepad_button_get_value(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     nx_gamepad_button_t *gamepad_button = nx_get_gamepad_button(ctx, this_val);
-    u64 kDown = padGetButtons(&gamepad_button->gamepad->pad);
+    u64 kDown = padGetButtons(gamepad_button->gamepad->pad);
     bool pressed = (kDown & gamepad_button->mask) != 0;
     return JS_NewUint32(ctx, pressed ? 1 : 0);
 }

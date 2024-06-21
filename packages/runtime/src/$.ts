@@ -195,7 +195,7 @@ export interface Init {
 	setenv(name: string, value: string): void;
 	unsetenv(name: string): void;
 	envToObject(): Record<string, string>;
-	onFrame(fn: (kDown: number) => void): void;
+	onFrame(fn: (plusDown: boolean) => void): void;
 	onExit(fn: () => void): void;
 	framebufferInit(screen: Screen): void;
 	hidInitializeTouchScreen(): void;
