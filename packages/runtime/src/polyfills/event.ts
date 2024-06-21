@@ -476,7 +476,6 @@ export class Touch implements globalThis.Touch {
 		this.target = init.target;
 	}
 }
-def(Touch);
 
 /**
  * A list of contact points on a touch surface. For example, if the user has three
@@ -508,7 +507,6 @@ export class TouchList implements globalThis.TouchList {
 		}
 	}
 }
-def(TouchList);
 
 function toTouchList(t: Touch[] = []): TouchList {
 	const r = Object.create(TouchList.prototype);
@@ -550,11 +548,11 @@ export interface ErrorEventInit extends EventInit {
 }
 
 export class ErrorEvent extends Event implements globalThis.ErrorEvent {
-	colno: number;
-	error: any;
-	filename: string;
-	lineno: number;
-	message: string;
+	readonly colno: number;
+	readonly error: any;
+	readonly filename: string;
+	readonly lineno: number;
+	readonly message: string;
 	constructor(type: string, options: ErrorEventInit) {
 		super(type, options);
 		this.colno = options.colno ?? 0;
@@ -574,8 +572,8 @@ export class PromiseRejectionEvent
 	extends Event
 	implements globalThis.PromiseRejectionEvent
 {
-	promise: Promise<any>;
-	reason: any;
+	readonly promise: Promise<any>;
+	readonly reason: any;
 	constructor(type: string, options: PromiseRejectionEventInit) {
 		super(type, options);
 		this.promise = options.promise;
@@ -589,4 +587,6 @@ def(ErrorEvent);
 def(PromiseRejectionEvent);
 def(UIEvent);
 def(KeyboardEvent);
+def(Touch);
+def(TouchList);
 def(TouchEvent);
