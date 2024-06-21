@@ -1,9 +1,9 @@
-import { erase } from 'sisteransi';
+import { erase, cursor } from 'sisteransi';
 import { bold, cyan, bgYellow } from 'kleur/colors';
 
 const decoder = new TextDecoder();
 const encoder = new TextEncoder();
-const cursorChar = (v: string) => bold(bgYellow(v || ' '));
+//const cursorChar = (v: string) => bold(bgYellow(v || ' '));
 
 const AsyncFunction = async function () {}.constructor;
 
@@ -21,12 +21,12 @@ export class REPL {
 
 	async renderPrompt() {
 		let b = this.buffer;
-		if (this.cursorPosition >= 0) {
-			const bufferL = this.buffer.slice(0, this.cursorPosition);
-			const bufferP = this.buffer[this.cursorPosition];
-			const bufferR = this.buffer.slice(this.cursorPosition + 1);
-			b = `${bufferL}${cursorChar(bufferP)}${bufferR}`;
-		}
+		//if (this.cursorPosition >= 0) {
+		//	const bufferL = this.buffer.slice(0, this.cursorPosition);
+		//	const bufferP = this.buffer[this.cursorPosition];
+		//	const bufferR = this.buffer.slice(this.cursorPosition + 1);
+		//	b = `${bufferL}${cursorChar(bufferP)}${bufferR}`;
+		//}
 		await this.print(`\r${erase.line}${this.prompt}${b}`);
 	}
 

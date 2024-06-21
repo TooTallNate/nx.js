@@ -413,6 +413,28 @@ importers:
         specifier: workspace:^
         version: link:../../packages/runtime
 
+  apps/xterm:
+    dependencies:
+      '@nx.js/constants':
+        specifier: workspace:*
+        version: link:../../packages/constants
+      '@xterm/headless':
+        specifier: ^5.4.0
+        version: 5.4.0
+      sisteransi:
+        specifier: ^1.0.5
+        version: 1.0.5
+    devDependencies:
+      '@nx.js/nro':
+        specifier: workspace:^
+        version: link:../../packages/nro
+      esbuild:
+        specifier: ^0.17.19
+        version: 0.17.19
+      nxjs-runtime:
+        specifier: workspace:^
+        version: link:../../packages/runtime
+
   packages/constants:
     devDependencies:
       typescript:
@@ -2422,6 +2444,10 @@ packages:
   /@xmldom/xmldom@0.8.10:
     resolution: {integrity: sha512-2WALfTl4xo2SkGCYRt6rDTFfk9R1czmBvUQy12gK2KuRKIpWEhcbbzy8EZXtz/jkRqHX8bFEc6FC1HjX4TUWYw==}
     engines: {node: '>=10.0.0'}
+    dev: false
+
+  /@xterm/headless@5.4.0:
+    resolution: {integrity: sha512-CrFsRbkdGe4w8RExNPuXCceJ71ZBPHNJSM4pIbB31ioJj4Bgx51xjc6825m9Ftqfy3Bc9JpHhC8zeFvFeGx9Hg==}
     dev: false
 
   /acorn-walk@8.3.2:

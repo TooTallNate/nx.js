@@ -1,0 +1,21 @@
+{
+  "name": "xterm",
+  "version": "0.0.0",
+  "private": true,
+  "description": "",
+  "scripts": {
+    "build": "esbuild --bundle --sourcemap --sources-content=false --target=es2022 --format=esm src/main.ts --outfile=romfs/main.js",
+    "nro": "nxjs-nro"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@nx.js/constants": "workspace:*",
+    "@xterm/headless": "^5.4.0",
+    "sisteransi": "^1.0.5"
+  },
+  "devDependencies": {
+    "@nx.js/nro": "workspace:^",
+    "esbuild": "^0.17.19",
+    "nxjs-runtime": "workspace:^"
+  }
+}
