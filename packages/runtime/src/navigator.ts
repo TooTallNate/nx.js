@@ -107,7 +107,7 @@ export class Navigator {
 	/**
 	 * Returns an array of {@link Gamepad} objects, one for each gamepad connected to the device.
 	 *
-	 * The indexes of the gamepads array map to the paired controller numbers assigned by the
+	 * The indicies of the gamepads array map to the paired controller numbers assigned by the
 	 * system. Index 0 is the first controller, index 1 is the second controller, and so on.
 	 *
 	 * Index 0 is a special case, which represents input from both the first controller as well
