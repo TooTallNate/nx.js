@@ -87,6 +87,8 @@ def(GamepadHapticActuator);
 export function gamepadNew(index: number) {
 	const g = proto($.gamepadNew(index), Gamepad);
 	// @ts-expect-error Readonly prop
+	g.mapping = 'standard';
+	// @ts-expect-error Readonly prop
 	g.buttons = Array(16);
 	for (let i = 0; i < 16; i++) {
 		// @ts-expect-error Readonly array
