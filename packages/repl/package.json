@@ -17,8 +17,7 @@
     "sisteransi": "^1.0.5"
   },
   "devDependencies": {
-    "nxjs-runtime": "workspace:*",
-    "typescript": "^5.5.2"
+    "nxjs-runtime": "workspace:*"
   },
   "keywords": [
     "repl",
