@@ -1,5 +1,5 @@
 import { def } from '../utils';
-import * as streams from 'web-streams-polyfill/ponyfill/es2018';
+import * as streams from 'web-streams-polyfill';
 import type { AbortSignal } from './abort-controller';
 
 for (const k of Object.keys(streams)) {
@@ -145,9 +145,8 @@ export interface Transformer<I = any, O = any> {
  */
 export declare class ByteLengthQueuingStrategy
 	implements
-		QueuingStrategy<ArrayBufferView>,
-		globalThis.ByteLengthQueuingStrategy
-{
+	QueuingStrategy<ArrayBufferView>,
+	globalThis.ByteLengthQueuingStrategy {
 	constructor(init: QueuingStrategyInit);
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/ByteLengthQueuingStrategy/highWaterMark) */
 	readonly highWaterMark: number;
@@ -161,8 +160,7 @@ export declare class ByteLengthQueuingStrategy
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CountQueuingStrategy)
  */
 export declare class CountQueuingStrategy
-	implements QueuingStrategy, globalThis.CountQueuingStrategy
-{
+	implements QueuingStrategy, globalThis.CountQueuingStrategy {
 	constructor(init: QueuingStrategyInit);
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CountQueuingStrategy/highWaterMark) */
 	readonly highWaterMark: number;
@@ -172,8 +170,7 @@ export declare class CountQueuingStrategy
 
 /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableByteStreamController) */
 export declare class ReadableByteStreamController
-	implements globalThis.ReadableByteStreamController
-{
+	implements globalThis.ReadableByteStreamController {
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableByteStreamController/byobRequest) */
 	readonly byobRequest: ReadableStreamBYOBRequest | null;
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableByteStreamController/desiredSize) */
@@ -194,12 +191,14 @@ export declare class ReadableByteStreamController
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStream)
  */
 export declare class ReadableStream<R = any>
-	implements globalThis.ReadableStream
-{
+	implements globalThis.ReadableStream {
 	constructor(
 		underlyingSource: UnderlyingByteSource,
 		strategy?: { highWaterMark?: number },
 	);
+	[Symbol.asyncIterator](
+		options?: ReadableStreamIteratorOptions,
+	): AsyncIterableIterator<any>;
 	constructor(
 		underlyingSource: UnderlyingDefaultSource<R>,
 		strategy?: QueuingStrategy<R>,
@@ -229,14 +228,15 @@ export declare class ReadableStream<R = any>
 	): Promise<void>;
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStream/tee) */
 	tee(): [ReadableStream<R>, ReadableStream<R>];
+	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStream/values) */
+	values(options?: ReadableStreamIteratorOptions): AsyncIterableIterator<any>;
 
 	[Symbol.asyncIterator](): AsyncIterableIterator<R>;
 }
 
 /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStreamBYOBReader) */
 export declare class ReadableStreamBYOBReader
-	implements ReadableStreamGenericReader, globalThis.ReadableStreamBYOBReader
-{
+	implements ReadableStreamGenericReader, globalThis.ReadableStreamBYOBReader {
 	constructor(stream: ReadableStream);
 	closed: Promise<undefined>;
 	cancel(reason?: any): Promise<void>;
@@ -250,8 +250,7 @@ export declare class ReadableStreamBYOBReader
 
 /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStreamBYOBRequest) */
 export declare class ReadableStreamBYOBRequest
-	implements globalThis.ReadableStreamBYOBRequest
-{
+	implements globalThis.ReadableStreamBYOBRequest {
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStreamBYOBRequest/view) */
 	readonly view: ArrayBufferView | null;
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStreamBYOBRequest/respond) */
@@ -262,8 +261,7 @@ export declare class ReadableStreamBYOBRequest
 
 /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStreamDefaultController) */
 export declare class ReadableStreamDefaultController<R = any>
-	implements globalThis.ReadableStreamDefaultController<R>
-{
+	implements globalThis.ReadableStreamDefaultController<R> {
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStreamDefaultController/desiredSize) */
 	readonly desiredSize: number | null;
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStreamDefaultController/close) */
@@ -277,9 +275,8 @@ export declare class ReadableStreamDefaultController<R = any>
 /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStreamDefaultReader) */
 export declare class ReadableStreamDefaultReader<R = any>
 	implements
-		ReadableStreamGenericReader,
-		globalThis.ReadableStreamDefaultReader<R>
-{
+	ReadableStreamGenericReader,
+	globalThis.ReadableStreamDefaultReader<R> {
 	closed: Promise<undefined>;
 	cancel(reason?: any): Promise<void>;
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStreamDefaultReader/read) */
