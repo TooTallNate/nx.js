@@ -1,5 +1,30 @@
 # nxjs-runtime
 
+## 0.0.47
+
+### Patch Changes
+
+- Make touch events cancelable / bubble ([`0e2ea688d3dc365cc480af8c475d0a25fb8d99e8`](https://github.com/TooTallNate/nx.js/commit/0e2ea688d3dc365cc480af8c475d0a25fb8d99e8))
+
+- Implement `navigator.getGamepads()` ([#135](https://github.com/TooTallNate/nx.js/pull/135))
+
+  - Allows for up to 8 gamepads to be individually controlled
+  - Adds support for l/r analog stick positions to be utilzed
+  - Removes non-standard `buttondown` and `buttonup` events
+  - Use `preventDefault()` on "beforeunload" event to prevent exiting
+
+- Fix issue with save data from NACP logic ([`d2e10844298701a38ceec362e0a53d33bef3698c`](https://github.com/TooTallNate/nx.js/commit/d2e10844298701a38ceec362e0a53d33bef3698c))
+
+- Resolve `closed` promise when closing TCP socket ([`6d0efbfca4bd47df3eae71dd16ac7e82738acc70`](https://github.com/TooTallNate/nx.js/commit/6d0efbfca4bd47df3eae71dd16ac7e82738acc70))
+
+- Add basic support for `createImageBitmap()` with Blob source ([`79d71f6d7db2d11deb8d788653d828fe7fece959`](https://github.com/TooTallNate/nx.js/commit/79d71f6d7db2d11deb8d788653d828fe7fece959))
+
+- Export `FontFaceDescriptors` interface ([`c398250e8f353720e1dbecf98b257e295d81d080`](https://github.com/TooTallNate/nx.js/commit/c398250e8f353720e1dbecf98b257e295d81d080))
+
+- Update TypeScript to v5.5 ([#136](https://github.com/TooTallNate/nx.js/pull/136))
+
+- Return `null` for invalid rendering context in `screen.getContext()` ([`c21f2ff8fa114bd184aad0a81ad737104d34b099`](https://github.com/TooTallNate/nx.js/commit/c21f2ff8fa114bd184aad0a81ad737104d34b099))
+
 ## 0.0.46
 
 ### Patch Changes

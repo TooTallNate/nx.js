@@ -1,5 +1,11 @@
 # @nx.js/repl
 
+## 0.0.3
+
+### Patch Changes
+
+- Update TypeScript to v5.5 ([#136](https://github.com/TooTallNate/nx.js/pull/136))
+
 ## 0.0.2
 
 ### Patch Changes

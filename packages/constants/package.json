@@ -1,6 +1,6 @@
 {
   "name": "@nx.js/constants",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Constants and enums for use with nx.js",
   "sideEffects": false,
   "main": "./dist/index.js",
