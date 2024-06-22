@@ -20,7 +20,7 @@ export class Gamepad implements globalThis.Gamepad {
 	readonly index!: number;
 	readonly mapping!: GamepadMappingType;
 	readonly timestamp!: number;
-	readonly vibrationActuator!: GamepadHapticActuator | null;
+	readonly vibrationActuator!: GamepadHapticActuator;
 
 	// Non-standard
 	readonly deviceType!: number;
