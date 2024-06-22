@@ -39,7 +39,6 @@ async function* toIterator(
 				yield part;
 			}
 		} else {
-			// @ts-expect-error TS ReadableStream does not have `Symbol.asyncIterator`
 			yield* part.stream();
 		}
 	}
