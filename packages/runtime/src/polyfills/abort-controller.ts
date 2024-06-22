@@ -42,6 +42,12 @@ export class AbortSignal extends EventTarget implements globalThis.AbortSignal {
 		}
 		return super.dispatchEvent(event);
 	}
+
+	// NOTE: This is new in TypeScript 5.5, however, it's supposed to be a static function.
+	// The TypeScript types are apparently incorrect, but we'll keep it for now to keep TS happy.
+	any(signals: Iterable<AbortSignal>): AbortSignal {
+		throw new Error('Method not implemented.');
+	}
 }
 
 export class AbortController implements globalThis.AbortController {
