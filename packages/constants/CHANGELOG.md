@@ -1,5 +1,19 @@
 # @nx.js/constants
 
+## 0.1.3
+
+### Patch Changes
+
+- Add `HidDeviceTypeBits` enum ([#135](https://github.com/TooTallNate/nx.js/pull/135))
+
+- Add gamepad `Button` enum ([#135](https://github.com/TooTallNate/nx.js/pull/135))
+
+- Compile TypeScript to ESM ([`2a5d0b589fe6ffe7be1abbcc1719da4e31c3fc43`](https://github.com/TooTallNate/nx.js/commit/2a5d0b589fe6ffe7be1abbcc1719da4e31c3fc43))
+
+- Add `HidNpadStyleTag` enum ([#135](https://github.com/TooTallNate/nx.js/pull/135))
+
+- Update TypeScript to v5.5 ([#136](https://github.com/TooTallNate/nx.js/pull/136))
+
 ## 0.1.2
 
 ### Patch Changes

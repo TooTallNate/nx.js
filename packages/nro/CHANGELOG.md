@@ -1,5 +1,14 @@
 # @nx.js/nro
 
+## 0.0.47
+
+### Patch Changes
+
+- Update TypeScript to v5.5 ([#136](https://github.com/TooTallNate/nx.js/pull/136))
+
+- Updated dependencies [[`cdd73da4ba0e3bd44be1c9a7664e741d1701d3d8`](https://github.com/TooTallNate/nx.js/commit/cdd73da4ba0e3bd44be1c9a7664e741d1701d3d8)]:
+  - @nx.js/patch-nacp@0.0.4
+
 ## 0.0.46
 
 ## 0.0.45

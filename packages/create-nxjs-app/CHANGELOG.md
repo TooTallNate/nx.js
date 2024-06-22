@@ -1,5 +1,11 @@
 # create-nxjs-app
 
+## 0.0.47
+
+### Patch Changes
+
+- Update TypeScript to v5.5 ([#136](https://github.com/TooTallNate/nx.js/pull/136))
+
 ## 0.0.46
 
 ## 0.0.45
