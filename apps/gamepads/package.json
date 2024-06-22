@@ -1,0 +1,21 @@
+{
+  "name": "gamepads",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Example app which uses the `navigator.getGamepads()` API",
+  "scripts": {
+    "build": "esbuild --bundle --sourcemap --sources-content=false --target=es2022 --format=esm --outdir=romfs src/main.ts",
+    "nro": "nxjs-nro",
+    "nsp": "nxjs-nsp"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@nx.js/constants": "workspace:*"
+  },
+  "devDependencies": {
+    "@nx.js/nro": "workspace:^",
+    "@nx.js/nsp": "workspace:^",
+    "esbuild": "^0.17.19",
+    "nxjs-runtime": "workspace:^"
+  }
+}

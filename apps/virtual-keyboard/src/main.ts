@@ -1,4 +1,4 @@
-import { HidNpadButton, SwkbdType } from '@nx.js/constants';
+import { Button, SwkbdType } from '@nx.js/constants';
 
 const ctx = screen.getContext('2d');
 const vk = navigator.virtualKeyboard;
@@ -25,20 +25,29 @@ function render() {
 	}
 }
 
-addEventListener('buttondown', (e) => {
+// Prevent "+" from exiting the app while the virtual keyboard is open
+addEventListener('beforeunload', (e) => {
 	const isOpen = vk.boundingRect.height > 0;
 	if (isOpen) {
-		if (e.detail & HidNpadButton.Plus) {
-			e.preventDefault();
-		} else if (e.detail & HidNpadButton.ZL) {
+		e.preventDefault();
+	}
+});
+
+function handleInput() {
+	requestAnimationFrame(handleInput);
+	const gp = navigator.getGamepads()[0];
+	if (!gp) return;
+	const isOpen = vk.boundingRect.height > 0;
+	if (isOpen) {
+		if (gp.buttons[Button.ZL].pressed) {
 			vk.hide();
 		}
 	} else {
-		if (e.detail & HidNpadButton.ZR) {
+		if (gp.buttons[Button.ZR].pressed) {
 			vk.type = SwkbdType.Normal;
 			vk.okButtonText = 'Done';
 			vk.show();
-		} else if (e.detail & HidNpadButton.ZL) {
+		} else if (gp.buttons[Button.ZL].pressed) {
 			vk.type = SwkbdType.NumPad;
 			vk.okButtonText = 'Submit';
 			vk.leftButtonText = ':';
@@ -46,9 +55,10 @@ addEventListener('buttondown', (e) => {
 			vk.show();
 		}
 	}
-});
+}
 
 vk.addEventListener('change', render);
 vk.addEventListener('cursormove', render);
 vk.addEventListener('geometrychange', render);
+handleInput();
 render();

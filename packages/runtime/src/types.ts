@@ -110,3 +110,12 @@ export type ImageOrientation = 'flipY' | 'from-image' | 'none';
 export type PremultiplyAlpha = 'default' | 'none' | 'premultiply';
 export type ResizeQuality = 'high' | 'low' | 'medium' | 'pixelated';
 export type ImageBitmapSource = CanvasImageSource | Blob | ImageData;
+
+export type GamepadMappingType = '' | 'standard' | 'xr-standard';
+export type GamepadHapticActuatorType = 'vibration';
+export interface GamepadEffectParameters {
+	duration?: number;
+	startDelay?: number;
+	strongMagnitude?: number;
+	weakMagnitude?: number;
+}

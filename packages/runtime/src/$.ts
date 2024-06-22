@@ -37,6 +37,7 @@ import type { FontFace } from './font/font-face';
 import type { URL, URLSearchParams } from './polyfills/url';
 import type { DOMPoint, DOMPointInit } from './dompoint';
 import type { DOMMatrix, DOMMatrixReadOnly, DOMMatrixInit } from './dommatrix';
+import type { Gamepad, GamepadButton } from './navigator/gamepad';
 
 type ClassOf<T> = {
 	new (...args: any[]): T;
@@ -161,6 +162,12 @@ export interface Init {
 	fsOpenSaveDataInfoReader(saveDataSpaceId: number): SaveDataIterator | null;
 	fsSaveDataInfoReaderNext(iterator: SaveDataIterator): SaveData | null;
 
+	// gamepad.c
+	gamepadInit(c: ClassOf<Gamepad>): void;
+	gamepadNew(index: number): Gamepad;
+	gamepadButtonInit(c: ClassOf<GamepadButton>): void;
+	gamepadButtonNew(gamepad: Gamepad, index: number): void;
+
 	// image.c
 	imageInit(c: ClassOf<Image | ImageBitmap>): void;
 	imageNew(width?: number, height?: number): Image | ImageBitmap;
@@ -188,7 +195,7 @@ export interface Init {
 	setenv(name: string, value: string): void;
 	unsetenv(name: string): void;
 	envToObject(): Record<string, string>;
-	onFrame(fn: (kDown: number) => void): void;
+	onFrame(fn: (plusDown: boolean) => void): void;
 	onExit(fn: () => void): void;
 	framebufferInit(screen: Screen): void;
 	hidInitializeTouchScreen(): void;

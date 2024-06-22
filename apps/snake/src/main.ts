@@ -1,5 +1,5 @@
 import { FPS } from './fps';
-import { HidNpadButton } from '@nx.js/constants';
+import { Button } from '@nx.js/constants';
 
 interface Position {
 	x: number;
@@ -143,9 +143,10 @@ function draw() {
 
 	// Snake body
 	for (let i = 1; i < snakeBody.length - 1; i++) {
+		const part = snakeBody[i];
 		ctx.rect(
-			boardX + snakeBody[i].x * gridSize,
-			boardY + snakeBody[i].y * gridSize,
+			boardX + part.x * gridSize,
+			boardY + part.y * gridSize,
 			gridSize,
 			gridSize,
 		);
@@ -280,42 +281,6 @@ function gameOver() {
 	ctx.fillText('Press + to exit...', boxX + 150, textY);
 }
 
-addEventListener('buttondown', (event) => {
-	if (state === State.Playing) {
-		if (event.detail & HidNpadButton.Plus) {
-			event.preventDefault();
-			pause();
-		} else if (!directionChange) {
-			if (event.detail & HidNpadButton.AnyLeft) {
-				if (direction !== Direction.Right) {
-					directionChange = Direction.Left;
-				}
-			} else if (event.detail & HidNpadButton.AnyUp) {
-				if (direction !== Direction.Down) {
-					directionChange = Direction.Up;
-				}
-			} else if (event.detail & HidNpadButton.AnyRight) {
-				if (direction !== Direction.Left) {
-					directionChange = Direction.Right;
-				}
-			} else if (event.detail & HidNpadButton.AnyDown) {
-				if (direction !== Direction.Up) {
-					directionChange = Direction.Down;
-				}
-			}
-		}
-	} else if (state === State.Paused) {
-		if (event.detail & HidNpadButton.Plus) {
-			event.preventDefault();
-			play();
-		}
-	} else if (state === State.Gameover) {
-		if (event.detail & HidNpadButton.A) {
-			start();
-		}
-	}
-});
-
 function updateScore() {
 	ctx.fillStyle = 'black';
 	ctx.fillRect(32, 0, 250, 30);
@@ -336,8 +301,52 @@ fps.addEventListener('update', () => {
 	ctx.fillText(`FPS: ${Math.round(fps.rate)}`, screen.width - 104, 26);
 });
 
+// Allow "+" to (un)pause the game, instead of exiting (except during gameover)
+addEventListener('beforeunload', (event) => {
+	if (state === State.Playing) {
+		event.preventDefault();
+		pause();
+	} else if (state === State.Paused) {
+		event.preventDefault();
+		play();
+	}
+});
+
+function handleInput(gamepad?: Gamepad | null) {
+	if (!gamepad) return;
+
+	if (state === State.Playing) {
+		if (!directionChange) {
+			if (gamepad.buttons[Button.Left].pressed) {
+				if (direction !== Direction.Right) {
+					directionChange = Direction.Left;
+				}
+			} else if (gamepad.buttons[Button.Up].pressed) {
+				if (direction !== Direction.Down) {
+					directionChange = Direction.Up;
+				}
+			} else if (gamepad.buttons[Button.Right].pressed) {
+				if (direction !== Direction.Left) {
+					directionChange = Direction.Right;
+				}
+			} else if (gamepad.buttons[Button.Down].pressed) {
+				if (direction !== Direction.Up) {
+					directionChange = Direction.Down;
+				}
+			}
+		}
+	}
+
+	if (state === State.Gameover) {
+		if (gamepad.buttons[Button.A].pressed) {
+			start();
+		}
+	}
+}
+
 function step() {
 	fps.tick();
+	handleInput(navigator.getGamepads()[0]);
 	if (state === State.Playing) draw();
 	requestAnimationFrame(step);
 }

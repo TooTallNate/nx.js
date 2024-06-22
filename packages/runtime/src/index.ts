@@ -9,17 +9,17 @@ import {
 } from './timers';
 import { callRafCallbacks } from './raf';
 import { console } from './console';
-import {
-	Event,
-	ErrorEvent,
-	UIEvent,
-	PromiseRejectionEvent,
-} from './polyfills/event';
+import { Event, ErrorEvent, PromiseRejectionEvent } from './polyfills/event';
 
 export type * from './types';
 export type * from './console';
 export type * from './navigator';
 export type * from './navigator/battery';
+export type {
+	Gamepad,
+	GamepadButton,
+	GamepadHapticActuator,
+} from './navigator/gamepad';
 export type { VirtualKeyboard } from './navigator/virtual-keyboard';
 export type * from './polyfills/event-target';
 export type { URL, URLSearchParams } from './polyfills/url';
@@ -180,38 +180,21 @@ $.onUnhandledRejection((p, r) => {
 	return 1;
 });
 
-const btnPlus = 1 << 10; ///< Plus button
-let previousButtons = 0;
-
-$.onFrame((kDown) => {
-	processTimers();
-	callRafCallbacks();
-
-	const buttonsDown = ~previousButtons & kDown;
-	const buttonsUp = previousButtons & ~kDown;
-	previousButtons = kDown;
-
-	if (buttonsDown !== 0) {
-		const ev = new UIEvent('buttondown', {
-			cancelable: true,
-			detail: buttonsDown,
-		});
-		globalThis.dispatchEvent(ev);
-		if (!ev.defaultPrevented && buttonsDown & btnPlus) {
+$.onFrame((plusDown) => {
+	// Default behavior is to exit when the "+" button is pressed on the first controller.
+	// Can be prevented by calling `preventDefault()` on the "beforeunload" event.
+	if (plusDown) {
+		const e = new Event('beforeunload', { cancelable: true });
+		globalThis.dispatchEvent(e);
+		if (!e.defaultPrevented) {
 			return $.exit();
 		}
 	}
 
-	if (buttonsUp !== 0) {
-		globalThis.dispatchEvent(
-			new UIEvent('buttonup', {
-				detail: buttonsUp,
-			}),
-		);
-	}
-
-	dispatchKeyboardEvents(globalThis);
+	processTimers();
+	callRafCallbacks();
 	dispatchTouchEvents(screen);
+	dispatchKeyboardEvents(globalThis);
 });
 
 $.onExit(() => {

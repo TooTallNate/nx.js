@@ -7,7 +7,6 @@ import {
 import type { console } from './console';
 import type {
 	Event,
-	UIEvent,
 	ErrorEvent,
 	PromiseRejectionEvent,
 } from './polyfills/event';
@@ -31,18 +30,6 @@ def(Window);
 export var window: Window & typeof globalThis = globalThis;
 Object.setPrototypeOf(window, Window.prototype);
 def(window, 'window');
-
-export function addEventListener(
-	type: 'buttondown',
-	callback: EventListenerOrEventListenerObject<UIEvent>,
-	options?: AddEventListenerOptions | boolean,
-): void;
-
-export function addEventListener(
-	type: 'buttonup',
-	callback: EventListenerOrEventListenerObject<UIEvent>,
-	options?: AddEventListenerOptions | boolean,
-): void;
 
 /**
  * @see https://developer.mozilla.org/docs/Web/API/Element/keydown_event
@@ -92,6 +79,20 @@ export function addEventListener(
 export function addEventListener(
 	type: 'unhandledrejection',
 	callback: EventListenerOrEventListenerObject<PromiseRejectionEvent>,
+	options?: AddEventListenerOptions | boolean,
+): void;
+
+/**
+ * The `beforeunload` event is fired when the `+` button is pressed on the first controller.
+ *
+ * This event gives the application a chance to prevent the default behavior of the
+ * application exiting. If the event is canceled, the application **will not exit**.
+ *
+ * @see https://developer.mozilla.org/docs/Web/API/Window/beforeunload_event
+ */
+export function addEventListener(
+	type: 'beforeunload',
+	callback: (event: Event) => any,
 	options?: AddEventListenerOptions | boolean,
 ): void;
 

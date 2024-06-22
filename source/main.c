@@ -21,6 +21,7 @@
 #include "font.h"
 #include "fs.h"
 #include "fsdev.h"
+#include "gamepad.h"
 #include "irs.h"
 #include "nifm.h"
 #include "ns.h"
@@ -485,13 +486,6 @@ int main(int argc, char *argv[])
 
 	FILE *debug_fd = freopen(LOG_FILENAME, "w", stderr);
 
-	// Configure our supported input layout: a single player with standard controller styles
-	padConfigureInput(8, HidNpadStyleSet_NpadStandard);
-
-	// Initialize the default gamepad (which reads handheld mode inputs as well as the first connected controller)
-	PadState pad;
-	padInitializeDefault(&pad);
-
 	JSRuntime *rt = JS_NewRuntime();
 	JSContext *ctx = JS_NewContext(rt);
 
@@ -505,7 +499,18 @@ int main(int argc, char *argv[])
 	nx_ctx->unhandled_rejection_handler = JS_UNDEFINED;
 	pthread_mutex_init(&(nx_ctx->async_done_mutex), NULL);
 	JS_SetContextOpaque(ctx, nx_ctx);
+	JS_SetRuntimeOpaque(rt, nx_ctx);
 	JS_SetHostPromiseRejectionTracker(rt, nx_promise_rejection_handler, ctx);
+
+	padConfigureInput(8, HidNpadStyleSet_NpadStandard | HidNpadStyleTag_NpadGc);
+	padInitializeDefault(&nx_ctx->pads[0]);
+	padInitialize(&nx_ctx->pads[1], HidNpadIdType_No2);
+	padInitialize(&nx_ctx->pads[2], HidNpadIdType_No3);
+	padInitialize(&nx_ctx->pads[3], HidNpadIdType_No4);
+	padInitialize(&nx_ctx->pads[4], HidNpadIdType_No5);
+	padInitialize(&nx_ctx->pads[5], HidNpadIdType_No6);
+	padInitialize(&nx_ctx->pads[6], HidNpadIdType_No7);
+	padInitialize(&nx_ctx->pads[7], HidNpadIdType_No8);
 
 	// First try the `main.js` file on the RomFS
 	size_t user_code_size;
@@ -553,6 +558,7 @@ int main(int argc, char *argv[])
 	nx_init_font(ctx, nx_ctx->init_obj);
 	nx_init_fs(ctx, nx_ctx->init_obj);
 	nx_init_fsdev(ctx, nx_ctx->init_obj);
+	nx_init_gamepad(ctx, nx_ctx->init_obj);
 	nx_init_image(ctx, nx_ctx->init_obj);
 	nx_init_irs(ctx, nx_ctx->init_obj);
 	nx_init_nifm(ctx, nx_ctx->init_obj);
@@ -688,12 +694,22 @@ main_loop:
 			nx_process_pending_jobs(rt);
 		}
 
-		padUpdate(&pad);
-		u64 kDown = padGetButtons(&pad);
+		// Update controller pad states
+		padUpdate(&nx_ctx->pads[0]);
+		padUpdate(&nx_ctx->pads[1]);
+		padUpdate(&nx_ctx->pads[2]);
+		padUpdate(&nx_ctx->pads[3]);
+		padUpdate(&nx_ctx->pads[4]);
+		padUpdate(&nx_ctx->pads[5]);
+		padUpdate(&nx_ctx->pads[6]);
+		padUpdate(&nx_ctx->pads[7]);
+
+		u64 kDown = padGetButtonsDown(&nx_ctx->pads[0]);
+		bool plusDown = kDown & HidNpadButton_Plus;
 
 		if (nx_ctx->had_error)
 		{
-			if (kDown & HidNpadButton_Plus)
+			if (plusDown)
 			{
 				// When an initialization or unhandled error occurs,
 				// wait until the user presses "+" to fully exit so
@@ -704,7 +720,7 @@ main_loop:
 		else
 		{
 			// Call frame handler
-			JSValueConst args[] = {JS_NewUint32(ctx, kDown)};
+			JSValueConst args[] = {JS_NewBool(ctx, plusDown)};
 			JSValue ret_val = JS_Call(ctx, nx_ctx->frame_handler, JS_NULL, 1, args);
 
 			if (JS_IsException(ret_val))
