@@ -2,7 +2,7 @@
   "name": "gamepads",
   "version": "0.0.0",
   "private": true,
-  "description": "Example app which uses the `navigator.getGamepads()` API",
+  "description": "nx.js app that uses the web Gamepad API",
   "scripts": {
     "build": "esbuild --bundle --sourcemap --sources-content=false --target=es2022 --format=esm --outdir=romfs src/main.ts",
     "nro": "nxjs-nro",
