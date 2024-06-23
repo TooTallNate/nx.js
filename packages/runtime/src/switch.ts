@@ -29,6 +29,7 @@ export interface Versions {
 	cairo: string;
 	freetype2: string;
 	harfbuzz: string;
+	hos: string;
 	nxjs: string;
 	png: string;
 	quickjs: string;

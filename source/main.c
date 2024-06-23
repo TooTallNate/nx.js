@@ -599,10 +599,14 @@ int main(int argc, char *argv[])
 	JS_SetPropertyFunctionList(ctx, nx_ctx->init_obj, init_function_list, countof(init_function_list));
 
 	// `Switch.version`
+	char version_str[12];
 	JSValue version_obj = JS_NewObject(ctx);
 	JS_SetPropertyStr(ctx, version_obj, "cairo", JS_NewString(ctx, cairo_version_string()));
 	JS_SetPropertyStr(ctx, version_obj, "freetype2", JS_NewString(ctx, FREETYPE_VERSION_STR));
 	JS_SetPropertyStr(ctx, version_obj, "harfbuzz", JS_NewString(ctx, HB_VERSION_STRING));
+	u32 hos_version = hosversionGet();
+	snprintf(version_str, 12, "%d.%d.%d", HOSVER_MAJOR(hos_version), HOSVER_MINOR(hos_version), HOSVER_MICRO(hos_version));
+	JS_SetPropertyStr(ctx, version_obj, "hos", JS_NewString(ctx, version_str));
 	JS_SetPropertyStr(ctx, version_obj, "mbedtls", JS_NewString(ctx, MBEDTLS_VERSION_STRING));
 	JS_SetPropertyStr(ctx, version_obj, "nxjs", JS_NewString(ctx, NXJS_VERSION));
 	JS_SetPropertyStr(ctx, version_obj, "png", JS_NewString(ctx, PNG_LIBPNG_VER_STRING));
@@ -610,9 +614,8 @@ int main(int argc, char *argv[])
 	JS_SetPropertyStr(ctx, version_obj, "turbojpeg", JS_NewString(ctx, LIBTURBOJPEG_VERSION));
 	JS_SetPropertyStr(ctx, version_obj, "wasm3", JS_NewString(ctx, M3_VERSION));
 	const int webp_version = WebPGetDecoderVersion();
-	char webp_version_str[12];
-	snprintf(webp_version_str, 12, "%d.%d.%d", (webp_version >> 16) & 0xFF, (webp_version >> 8) & 0xFF, webp_version & 0xFF);
-	JS_SetPropertyStr(ctx, version_obj, "webp", JS_NewString(ctx, webp_version_str));
+	snprintf(version_str, 12, "%d.%d.%d", (webp_version >> 16) & 0xFF, (webp_version >> 8) & 0xFF, webp_version & 0xFF);
+	JS_SetPropertyStr(ctx, version_obj, "webp", JS_NewString(ctx, version_str));
 	JS_SetPropertyStr(ctx, nx_ctx->init_obj, "version", version_obj);
 
 	// `Switch.entrypoint`
