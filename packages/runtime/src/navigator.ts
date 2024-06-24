@@ -72,7 +72,14 @@ export class Navigator {
 	get userAgent() {
 		if (!state.ua) {
 			const { name, version } = Application.self;
-			state.ua = `${name}/${version} (Switch; en-us) nx.js/${$.version.nxjs}`;
+			const rv = [$.version.hos];
+			const ams = $.version.ams;
+			if (ams) {
+				rv.push(`AMS ${ams}`, $.version.emummc ? 'E' : 'S');
+			}
+			state.ua = `${name}/${version} (Switch; en-us; rv:${rv.join(
+				'|',
+			)}) nx.js/${$.version.nxjs}`;
 		}
 		return state.ua;
 	}
