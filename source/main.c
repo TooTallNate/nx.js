@@ -424,6 +424,34 @@ static JSValue nx_set_exit_handler(JSContext *ctx, JSValueConst this_val, int ar
 	return JS_UNDEFINED;
 }
 
+static JSValue nx_version_get_ams(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	if (!hosversionIsAtmosphere())
+	{
+		return JS_UNDEFINED;
+	}
+
+	nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
+	if (!nx_ctx->spl_initialized)
+	{
+		nx_ctx->spl_initialized = true;
+		splInitialize();
+	}
+
+	u64 packed_version;
+	Result rc = splGetConfig((SplConfigItem)65000, &packed_version);
+	if (R_FAILED(rc))
+	{
+		return nx_throw_libnx_error(ctx, rc, "splGetConfig(ExosphereApiVersion)");
+	}
+	u8 major_version = (packed_version >> 56) & 0xFF;
+	u8 minor_version = (packed_version >> 48) & 0xFF;
+	u8 micro_version = (packed_version >> 40) & 0xFF;
+	char version_str[12];
+	snprintf(version_str, 12, "%u.%u.%u", major_version, minor_version, micro_version);
+	return JS_NewString(ctx, version_str);
+}
+
 int nx_module_set_import_meta(JSContext *ctx, JSValueConst func_val,
 							  const char *url, JS_BOOL is_main)
 {
@@ -599,8 +627,10 @@ int main(int argc, char *argv[])
 	JS_SetPropertyFunctionList(ctx, nx_ctx->init_obj, init_function_list, countof(init_function_list));
 
 	// `Switch.version`
+	JSAtom atom;
 	char version_str[12];
 	JSValue version_obj = JS_NewObject(ctx);
+	NX_DEF_GET_(version_obj, "ams", nx_version_get_ams, JS_PROP_C_W_E);
 	JS_SetPropertyStr(ctx, version_obj, "cairo", JS_NewString(ctx, cairo_version_string()));
 	JS_SetPropertyStr(ctx, version_obj, "freetype2", JS_NewString(ctx, FREETYPE_VERSION_STR));
 	JS_SetPropertyStr(ctx, version_obj, "harfbuzz", JS_NewString(ctx, HB_VERSION_STRING));
@@ -791,6 +821,11 @@ main_loop:
 	if (nx_ctx->ft_library)
 	{
 		FT_Done_FreeType(nx_ctx->ft_library);
+	}
+
+	if (nx_ctx->spl_initialized)
+	{
+		splExit();
 	}
 
 	free(nx_ctx);

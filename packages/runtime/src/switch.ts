@@ -26,6 +26,10 @@ export { Socket, Server };
 export type PathLike = string | URL;
 
 export interface Versions {
+	/**
+	 * The version of the Atmosphère custom firmware running on the Switch, or `undefined` if not running Atmosphère.
+	 */
+	ams: string | undefined;
 	cairo: string;
 	freetype2: string;
 	harfbuzz: string;
