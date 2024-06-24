@@ -1,0 +1,24 @@
+---
+title: requestAnimationFrame()
+description: Callback-based animation frame request
+---
+
+To hook into each frame of the event loop in nx.js, use the
+[`requestAnimationFrame()`](https://developer.mozilla.org/docs/Web/API/Window/requestAnimationFrame)
+function. This allows your app to update its state at a fixed frame rate (60 FPS).
+
+```typescript
+const ctx = screen.getContext('2d');
+ctx.fillStyle = 'white';
+ctx.font = '40px sans-serif';
+
+// The `update()` function is called for every frame of the event loop
+function update() {
+  requestAnimationFrame(update);
+
+  ctx.clearRect(0, 0, screen.width, screen.height);
+  ctx.fillText(new Date().toISOString(), 10, 50);
+}
+
+update();
+```

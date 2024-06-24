@@ -4,7 +4,8 @@ description: Drawing to the screen using the Canvas API
 ---
 
 nx.js does not implement a full DOM for rendering content to the screen.
-Instead, it offers the Canvas API which allows your application to draw to the screen.
+Instead, it offers the more low-level Canvas API which allows your application
+to draw to the screen.
 
 The global `screen` object is used to create a `CanvasRenderingContext2D`
 instance, at which point the app is in __canvas rendering__ mode.
@@ -44,12 +45,29 @@ ctx.stroke();
 
 > This example was adapted from the [MDN Canvas tutorial](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D#basic_example).
 
-## Modules
+## Using React
 
-Listed below are npm modules known to work well with nx.js when using the Console renderer:
+The Canvas API is a low-level API, and it's not very well suited to building
+complex UIs. However, it can be used to build simple UIs, and it's also possible
+to use React with the Canvas API.
 
-* [`kluer`](https://github.com/lukeed/kleur) - Output colored text with ANSI escape codes
-* [`sisteransi`](https://github.com/terkelg/sisteransi) - ANSI escape sequences for moving the cursor
+To use React with the Canvas API, you'll need to use a library like
+[`react-canvas`](https://github.com/react-canvas/react-canvas).
+
+Here's an example of a simple React app that uses the Canvas API:
+
+```jsx
+import React from 'react';
+import ReactDOM from 'react-dom';
+import Canvas from 'react-canvas';
+
+class App extends React.Component {
+  render() {
+    return (
+      <Canvas
+        width={300}
+        height={300}
+        style={{ border: '1px solid black' }}
 
 ## Cards
 
