@@ -29,21 +29,21 @@ export interface Versions {
 	/**
 	 * The version of the Atmosphère custom firmware running on the Switch, or `undefined` if not running Atmosphère.
 	 */
-	ams: string | undefined;
-	cairo: string;
+	readonly ams: string | undefined;
+	readonly cairo: string;
 	/**
 	 * `true` if the Switch is running Atmosphère from emuMMC, `false` if running sysMMC, or `undefined` if not running Atmosphère.
 	 */
-	emummc: boolean | undefined;
-	freetype2: string;
-	harfbuzz: string;
-	hos: string;
-	nxjs: string;
-	png: string;
-	quickjs: string;
-	turbojpeg: string;
-	wasm3: string;
-	webp: string;
+	readonly emummc: boolean | undefined;
+	readonly freetype2: string;
+	readonly harfbuzz: string;
+	readonly hos: string;
+	readonly nxjs: string;
+	readonly png: string;
+	readonly quickjs: string;
+	readonly turbojpeg: string;
+	readonly wasm3: string;
+	readonly webp: string;
 }
 
 export interface Vibration {
