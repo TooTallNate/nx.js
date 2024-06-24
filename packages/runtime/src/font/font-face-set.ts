@@ -81,7 +81,7 @@ def(FontFaceSet);
  * Contains the available fonts for use on the screen Canvas context.
  * By default, `"system-ui"` is the only font available, which is the system font provided by the Switch operating system.
  *
- * @demo See the [fonts](../apps/fonts/) application for an example of using custom fonts.
+ * @demo See the `fonts` application for an example of using custom fonts.
  */
 // @ts-expect-error Internal constructor
 export var fonts = new FontFaceSet(INTERNAL_SYMBOL);

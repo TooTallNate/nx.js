@@ -16,5 +16,6 @@
         "wasm3.h": "c",
         "poll.h": "c"
     },
-    "C_Cpp.default.compilerPath": "/opt/devkitpro/devkitA64/bin/aarch64-none-elf-gcc"
+    "C_Cpp.default.compilerPath": "/opt/devkitpro/devkitA64/bin/aarch64-none-elf-gcc",
+    "typescript.tsdk": "node_modules/typescript/lib"
 }

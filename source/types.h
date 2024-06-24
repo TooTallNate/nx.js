@@ -27,10 +27,12 @@
 // Useful for functions defined on class `prototype`s
 #define JS_PROP_C_W (JS_PROP_CONFIGURABLE | JS_PROP_WRITABLE)
 
-#define NX_DEF_GET(THISARG, NAME, FN)                                                                            \
-	atom = JS_NewAtom(ctx, NAME);                                                                                \
-	JS_DefinePropertyGetSet(ctx, THISARG, atom, JS_NewCFunction(ctx, FN, "get " NAME, 0), JS_NULL, JS_PROP_C_W); \
+#define NX_DEF_GET_(THISARG, NAME, FN, FLAGS)                                                              \
+	atom = JS_NewAtom(ctx, NAME);                                                                          \
+	JS_DefinePropertyGetSet(ctx, THISARG, atom, JS_NewCFunction(ctx, FN, "get " NAME, 0), JS_NULL, FLAGS); \
 	JS_FreeAtom(ctx, atom);
+
+#define NX_DEF_GET(THISARG, NAME, FN) NX_DEF_GET_(THISARG, NAME, FN, JS_PROP_C_W)
 
 #define NX_DEF_GETSET(THISARG, NAME, GET_FN, SET_FN)                                                                                                      \
 	atom = JS_NewAtom(ctx, NAME);                                                                                                                         \
@@ -84,9 +86,12 @@ typedef struct nx_context_s
 	JSValue exit_handler;
 	JSValue error_handler;
 	JSValue unhandled_rejection_handler;
+	PadState pads[8];
 
 	// mbedtls structures shared by all TLS connections
 	bool mbedtls_initialized;
 	mbedtls_entropy_context entropy;
 	mbedtls_ctr_drbg_context ctr_drbg;
+
+	bool spl_initialized;
 } nx_context_t;

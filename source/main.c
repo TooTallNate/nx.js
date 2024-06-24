@@ -21,6 +21,7 @@
 #include "font.h"
 #include "fs.h"
 #include "fsdev.h"
+#include "gamepad.h"
 #include "irs.h"
 #include "nifm.h"
 #include "ns.h"
@@ -423,6 +424,57 @@ static JSValue nx_set_exit_handler(JSContext *ctx, JSValueConst this_val, int ar
 	return JS_UNDEFINED;
 }
 
+static JSValue nx_version_get_ams(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	if (!hosversionIsAtmosphere())
+	{
+		return JS_UNDEFINED;
+	}
+
+	nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
+	if (!nx_ctx->spl_initialized)
+	{
+		nx_ctx->spl_initialized = true;
+		splInitialize();
+	}
+
+	u64 packed_version;
+	Result rc = splGetConfig((SplConfigItem)65000, &packed_version);
+	if (R_FAILED(rc))
+	{
+		return nx_throw_libnx_error(ctx, rc, "splGetConfig(ExosphereApiVersion)");
+	}
+	u8 major_version = (packed_version >> 56) & 0xFF;
+	u8 minor_version = (packed_version >> 48) & 0xFF;
+	u8 micro_version = (packed_version >> 40) & 0xFF;
+	char version_str[12];
+	snprintf(version_str, 12, "%u.%u.%u", major_version, minor_version, micro_version);
+	return JS_NewString(ctx, version_str);
+}
+
+static JSValue nx_version_get_emummc(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	if (!hosversionIsAtmosphere())
+	{
+		return JS_UNDEFINED;
+	}
+
+	nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
+	if (!nx_ctx->spl_initialized)
+	{
+		nx_ctx->spl_initialized = true;
+		splInitialize();
+	}
+
+	u64 is_emummc;
+	Result rc = splGetConfig((SplConfigItem)65007, &is_emummc);
+	if (R_FAILED(rc))
+	{
+		return nx_throw_libnx_error(ctx, rc, "splGetConfig(ExosphereEmummcType)");
+	}
+	return JS_NewBool(ctx, is_emummc ? true : false);
+}
+
 int nx_module_set_import_meta(JSContext *ctx, JSValueConst func_val,
 							  const char *url, JS_BOOL is_main)
 {
@@ -485,13 +537,6 @@ int main(int argc, char *argv[])
 
 	FILE *debug_fd = freopen(LOG_FILENAME, "w", stderr);
 
-	// Configure our supported input layout: a single player with standard controller styles
-	padConfigureInput(1, HidNpadStyleSet_NpadStandard);
-
-	// Initialize the default gamepad (which reads handheld mode inputs as well as the first connected controller)
-	PadState pad;
-	padInitializeDefault(&pad);
-
 	JSRuntime *rt = JS_NewRuntime();
 	JSContext *ctx = JS_NewContext(rt);
 
@@ -505,7 +550,18 @@ int main(int argc, char *argv[])
 	nx_ctx->unhandled_rejection_handler = JS_UNDEFINED;
 	pthread_mutex_init(&(nx_ctx->async_done_mutex), NULL);
 	JS_SetContextOpaque(ctx, nx_ctx);
+	JS_SetRuntimeOpaque(rt, nx_ctx);
 	JS_SetHostPromiseRejectionTracker(rt, nx_promise_rejection_handler, ctx);
+
+	padConfigureInput(8, HidNpadStyleSet_NpadStandard | HidNpadStyleTag_NpadGc);
+	padInitializeDefault(&nx_ctx->pads[0]);
+	padInitialize(&nx_ctx->pads[1], HidNpadIdType_No2);
+	padInitialize(&nx_ctx->pads[2], HidNpadIdType_No3);
+	padInitialize(&nx_ctx->pads[3], HidNpadIdType_No4);
+	padInitialize(&nx_ctx->pads[4], HidNpadIdType_No5);
+	padInitialize(&nx_ctx->pads[5], HidNpadIdType_No6);
+	padInitialize(&nx_ctx->pads[6], HidNpadIdType_No7);
+	padInitialize(&nx_ctx->pads[7], HidNpadIdType_No8);
 
 	// First try the `main.js` file on the RomFS
 	size_t user_code_size;
@@ -553,6 +609,7 @@ int main(int argc, char *argv[])
 	nx_init_font(ctx, nx_ctx->init_obj);
 	nx_init_fs(ctx, nx_ctx->init_obj);
 	nx_init_fsdev(ctx, nx_ctx->init_obj);
+	nx_init_gamepad(ctx, nx_ctx->init_obj);
 	nx_init_image(ctx, nx_ctx->init_obj);
 	nx_init_irs(ctx, nx_ctx->init_obj);
 	nx_init_nifm(ctx, nx_ctx->init_obj);
@@ -593,10 +650,17 @@ int main(int argc, char *argv[])
 	JS_SetPropertyFunctionList(ctx, nx_ctx->init_obj, init_function_list, countof(init_function_list));
 
 	// `Switch.version`
+	JSAtom atom;
+	char version_str[12];
 	JSValue version_obj = JS_NewObject(ctx);
+	NX_DEF_GET_(version_obj, "ams", nx_version_get_ams, JS_PROP_C_W_E);
 	JS_SetPropertyStr(ctx, version_obj, "cairo", JS_NewString(ctx, cairo_version_string()));
+	NX_DEF_GET_(version_obj, "emummc", nx_version_get_emummc, JS_PROP_C_W_E);
 	JS_SetPropertyStr(ctx, version_obj, "freetype2", JS_NewString(ctx, FREETYPE_VERSION_STR));
 	JS_SetPropertyStr(ctx, version_obj, "harfbuzz", JS_NewString(ctx, HB_VERSION_STRING));
+	u32 hos_version = hosversionGet();
+	snprintf(version_str, 12, "%d.%d.%d", HOSVER_MAJOR(hos_version), HOSVER_MINOR(hos_version), HOSVER_MICRO(hos_version));
+	JS_SetPropertyStr(ctx, version_obj, "hos", JS_NewString(ctx, version_str));
 	JS_SetPropertyStr(ctx, version_obj, "mbedtls", JS_NewString(ctx, MBEDTLS_VERSION_STRING));
 	JS_SetPropertyStr(ctx, version_obj, "nxjs", JS_NewString(ctx, NXJS_VERSION));
 	JS_SetPropertyStr(ctx, version_obj, "png", JS_NewString(ctx, PNG_LIBPNG_VER_STRING));
@@ -604,9 +668,8 @@ int main(int argc, char *argv[])
 	JS_SetPropertyStr(ctx, version_obj, "turbojpeg", JS_NewString(ctx, LIBTURBOJPEG_VERSION));
 	JS_SetPropertyStr(ctx, version_obj, "wasm3", JS_NewString(ctx, M3_VERSION));
 	const int webp_version = WebPGetDecoderVersion();
-	char webp_version_str[12];
-	snprintf(webp_version_str, 12, "%d.%d.%d", (webp_version >> 16) & 0xFF, (webp_version >> 8) & 0xFF, webp_version & 0xFF);
-	JS_SetPropertyStr(ctx, version_obj, "webp", JS_NewString(ctx, webp_version_str));
+	snprintf(version_str, 12, "%d.%d.%d", (webp_version >> 16) & 0xFF, (webp_version >> 8) & 0xFF, webp_version & 0xFF);
+	JS_SetPropertyStr(ctx, version_obj, "webp", JS_NewString(ctx, version_str));
 	JS_SetPropertyStr(ctx, nx_ctx->init_obj, "version", version_obj);
 
 	// `Switch.entrypoint`
@@ -676,20 +739,34 @@ main_loop:
 			nx_poll(&nx_ctx->poll);
 		}
 
-		// Check if any thread pool tasks have completed
 		if (!nx_ctx->had_error)
+		{
+			// Check if any thread pool tasks have completed
 			nx_process_async(ctx, nx_ctx);
+		}
 
-		// Process any Promises that need to be fulfilled
 		if (!nx_ctx->had_error)
+		{
+			// Process any Promises that need to be fulfilled
 			nx_process_pending_jobs(rt);
+		}
 
-		padUpdate(&pad);
-		u64 kDown = padGetButtons(&pad);
+		// Update controller pad states
+		padUpdate(&nx_ctx->pads[0]);
+		padUpdate(&nx_ctx->pads[1]);
+		padUpdate(&nx_ctx->pads[2]);
+		padUpdate(&nx_ctx->pads[3]);
+		padUpdate(&nx_ctx->pads[4]);
+		padUpdate(&nx_ctx->pads[5]);
+		padUpdate(&nx_ctx->pads[6]);
+		padUpdate(&nx_ctx->pads[7]);
+
+		u64 kDown = padGetButtonsDown(&nx_ctx->pads[0]);
+		bool plusDown = kDown & HidNpadButton_Plus;
 
 		if (nx_ctx->had_error)
 		{
-			if (kDown & HidNpadButton_Plus)
+			if (plusDown)
 			{
 				// When an initialization or unhandled error occurs,
 				// wait until the user presses "+" to fully exit so
@@ -700,7 +777,7 @@ main_loop:
 		else
 		{
 			// Call frame handler
-			JSValueConst args[] = {JS_NewUint32(ctx, kDown)};
+			JSValueConst args[] = {JS_NewBool(ctx, plusDown)};
 			JSValue ret_val = JS_Call(ctx, nx_ctx->frame_handler, JS_NULL, 1, args);
 
 			if (JS_IsException(ret_val))
@@ -768,6 +845,11 @@ main_loop:
 	if (nx_ctx->ft_library)
 	{
 		FT_Done_FreeType(nx_ctx->ft_library);
+	}
+
+	if (nx_ctx->spl_initialized)
+	{
+		splExit();
 	}
 
 	free(nx_ctx);

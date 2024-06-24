@@ -1,6 +1,13 @@
 import { $ } from '../$';
-import { assertInternalConstructor, def } from '../utils';
-import type { ImageBitmapSource } from '../types';
+import { Blob } from '../polyfills/blob';
+import { assertInternalConstructor, def, proto } from '../utils';
+import type {
+	ColorSpaceConversion,
+	ImageOrientation,
+	PremultiplyAlpha,
+	ResizeQuality,
+	ImageBitmapSource,
+} from '../types';
 
 /**
  * Represents a bitmap image which can be drawn to a `<canvas>` without undue latency.
@@ -78,6 +85,12 @@ export async function createImageBitmap(
 	sh?: number,
 	options?: ImageBitmapOptions,
 ): Promise<ImageBitmap> {
-	throw new Error('Function not implemented');
+	if (image instanceof Blob) {
+		const buf = await image.arrayBuffer();
+		const img = proto($.imageNew(), ImageBitmap);
+		await $.imageDecode(img, buf);
+		return img;
+	}
+	throw new Error(`Unsupported image source: ${image.constructor.name}`);
 }
 def(createImageBitmap);

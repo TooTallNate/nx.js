@@ -43,3 +43,44 @@ export enum HidNpadButton {
 	AnySL = (1 << 24) | (1 << 26), ///< Bitmask containing SL buttons on both Joy-Cons (Left/Right)
 	AnySR = (1 << 25) | (1 << 27), ///< Bitmask containing SR buttons on both Joy-Cons (Left/Right)
 }
+
+/// DeviceType (system)
+export enum HidDeviceTypeBits {
+	FullKey = 1 << 0, ///< Pro Controller and Gc controller.
+	DebugPad = 1 << 1, ///< DebugPad
+	HandheldLeft = 1 << 2, ///< Joy-Con/Famicom/NES left controller in handheld mode.
+	HandheldRight = 1 << 3, ///< Joy-Con/Famicom/NES right controller in handheld mode.
+	JoyLeft = 1 << 4, ///< Joy-Con left controller.
+	JoyRight = 1 << 5, ///< Joy-Con right controller.
+	Palma = 1 << 6, ///< Poké Ball Plus controller.
+	LarkHvcLeft = 1 << 7, ///< Famicom left controller.
+	LarkHvcRight = 1 << 8, ///< Famicom right controller (with microphone).
+	LarkNesLeft = 1 << 9, ///< NES left controller.
+	LarkNesRight = 1 << 10, ///< NES right controller.
+	HandheldLarkHvcLeft = 1 << 11, ///< Famicom left controller in handheld mode.
+	HandheldLarkHvcRight = 1 << 12, ///< Famicom right controller (with microphone) in handheld mode.
+	HandheldLarkNesLeft = 1 << 13, ///< NES left controller in handheld mode.
+	HandheldLarkNesRight = 1 << 14, ///< NES right controller in handheld mode.
+	Lucia = 1 << 15, ///< SNES controller
+	Lagon = 1 << 16, ///< N64 controller
+	Lager = 1 << 17, ///< Sega Genesis controller
+	System = 1 << 31, ///< Generic controller.
+}
+
+/// HID controller styles
+export enum HidNpadStyleTag {
+	FullKey = 1 << 0, ///< Pro Controller
+	Handheld = 1 << 1, ///< Joy-Con controller in handheld mode
+	JoyDual = 1 << 2, ///< Joy-Con controller in dual mode
+	JoyLeft = 1 << 3, ///< Joy-Con left controller in single mode
+	JoyRight = 1 << 4, ///< Joy-Con right controller in single mode
+	Gc = 1 << 5, ///< GameCube controller
+	Palma = 1 << 6, ///< Poké Ball Plus controller
+	Lark = 1 << 7, ///< NES/Famicom controller
+	HandheldLark = 1 << 8, ///< NES/Famicom controller in handheld mode
+	Lucia = 1 << 9, ///< SNES controller
+	Lagon = 1 << 10, ///< N64 controller
+	Lager = 1 << 11, ///< Sega Genesis controller
+	SystemExt = 1 << 29, ///< Generic external controller
+	System = 1 << 30, ///< Generic controller
+}

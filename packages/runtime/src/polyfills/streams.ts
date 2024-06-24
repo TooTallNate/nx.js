@@ -1,5 +1,5 @@
 import { def } from '../utils';
-import * as streams from 'web-streams-polyfill/ponyfill/es2018';
+import * as streams from 'web-streams-polyfill';
 import type { AbortSignal } from './abort-controller';
 
 for (const k of Object.keys(streams)) {
@@ -130,6 +130,17 @@ export interface ReadableStreamGenericReader {
 	cancel(reason?: any): Promise<void>;
 }
 
+export interface ReadableStreamIteratorOptions {
+	/**
+	 * Asynchronously iterates over the chunks in the stream's internal queue.
+	 *
+	 * Asynchronously iterating over the stream will lock it, preventing any other consumer from acquiring a reader. The lock will be released if the async iterator's return() method is called, e.g. by breaking out of the loop.
+	 *
+	 * By default, calling the async iterator's return() method will also cancel the stream. To prevent this, use the stream's values() method, passing true for the preventCancel option.
+	 */
+	preventCancel?: boolean;
+}
+
 export interface Transformer<I = any, O = any> {
 	flush?: TransformerFlushCallback<O>;
 	readableType?: undefined;
@@ -229,8 +240,12 @@ export declare class ReadableStream<R = any>
 	): Promise<void>;
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStream/tee) */
 	tee(): [ReadableStream<R>, ReadableStream<R>];
+	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStream/values) */
+	values(options?: ReadableStreamIteratorOptions): AsyncIterableIterator<any>;
 
-	[Symbol.asyncIterator](): AsyncIterableIterator<R>;
+	[Symbol.asyncIterator](
+		options?: ReadableStreamIteratorOptions,
+	): AsyncIterableIterator<R>;
 }
 
 /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStreamBYOBReader) */

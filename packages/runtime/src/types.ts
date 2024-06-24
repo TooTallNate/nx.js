@@ -93,5 +93,29 @@ export interface TextMetrics {
 export type FontDisplay = 'auto' | 'block' | 'fallback' | 'optional' | 'swap';
 export type FontFaceLoadStatus = 'error' | 'loaded' | 'loading' | 'unloaded';
 export type FontFaceSetLoadStatus = 'loaded' | 'loading';
+export interface FontFaceDescriptors {
+	ascentOverride?: string;
+	descentOverride?: string;
+	display?: FontDisplay;
+	featureSettings?: string;
+	lineGapOverride?: string;
+	stretch?: string;
+	style?: string;
+	unicodeRange?: string;
+	weight?: string;
+}
 
+export type ColorSpaceConversion = 'default' | 'none';
+export type ImageOrientation = 'flipY' | 'from-image' | 'none';
+export type PremultiplyAlpha = 'default' | 'none' | 'premultiply';
+export type ResizeQuality = 'high' | 'low' | 'medium' | 'pixelated';
 export type ImageBitmapSource = CanvasImageSource | Blob | ImageData;
+
+export type GamepadMappingType = '' | 'standard' | 'xr-standard';
+export type GamepadHapticActuatorType = 'vibration';
+export interface GamepadEffectParameters {
+	duration?: number;
+	startDelay?: number;
+	strongMagnitude?: number;
+	weakMagnitude?: number;
+}

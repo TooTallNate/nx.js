@@ -1,6 +1,7 @@
 import { $ } from './$';
 import { assertInternalConstructor, def } from './utils';
 import { BatteryManager } from './navigator/battery';
+import { type Gamepad, gamepads } from './navigator/gamepad';
 import { INTERNAL_SYMBOL, VibrationValues } from './internal';
 import { setTimeout, clearTimeout } from './timers';
 import {
@@ -71,7 +72,14 @@ export class Navigator {
 	get userAgent() {
 		if (!state.ua) {
 			const { name, version } = Application.self;
-			state.ua = `${name}/${version} (Switch; en-us) nx.js/${$.version.nxjs}`;
+			const rv = [$.version.hos];
+			const ams = $.version.ams;
+			if (ams) {
+				rv.push(`AMS ${ams}`, $.version.emummc ? 'E' : 'S');
+			}
+			state.ua = `${name}/${version} (Switch; en-us; rv:${rv.join(
+				'|',
+			)}) nx.js/${$.version.nxjs}`;
 		}
 		return state.ua;
 	}
@@ -101,6 +109,37 @@ export class Navigator {
 			);
 		}
 		return state.batt;
+	}
+
+	/**
+	 * Returns an array of {@link Gamepad} objects, one for each gamepad connected to the device.
+	 *
+	 * The indicies of the gamepads array map to the paired controller numbers assigned by the
+	 * system. Index 0 is the first controller, index 1 is the second controller, and so on.
+	 *
+	 * Index 0 is a special case, which represents input from both the first controller as well
+	 * as the handheld mode controller.
+	 *
+	 * The gamepads array contains 8 entries, so up to 8 controllers can be connected to the
+	 * device at a time. Disconnected controllers will have `null` values in the array.
+	 *
+	 * @example
+	 *
+	 * ```typescript
+	 * if (navigator.getGamepads()[0].buttons[0].pressed) {
+	 *   console.log('Button B is pressed on the first controller');
+	 * }
+	 * ```
+	 *
+	 * @see https://developer.mozilla.org/docs/Web/API/Navigator/getGamepads
+	 */
+	getGamepads(): (Gamepad | null)[] {
+		const g = Array(8);
+		for (let i = 0; i < 8; i++) {
+			const e = gamepads[i];
+			g[i] = e.connected ? e : null;
+		}
+		return g;
 	}
 
 	/**

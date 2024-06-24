@@ -1,6 +1,10 @@
 import { $ } from '../$';
 import { bufferSourceToArrayBuffer, def } from '../utils';
-import type { FontFaceLoadStatus, FontDisplay } from '../types';
+import type {
+	FontFaceLoadStatus,
+	FontDisplay,
+	FontFaceDescriptors,
+} from '../types';
 
 /**
  * Defines the source of a font face, either a URL to an external resource or a
