@@ -452,6 +452,29 @@ static JSValue nx_version_get_ams(JSContext *ctx, JSValueConst this_val, int arg
 	return JS_NewString(ctx, version_str);
 }
 
+static JSValue nx_version_get_emummc(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	if (!hosversionIsAtmosphere())
+	{
+		return JS_UNDEFINED;
+	}
+
+	nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
+	if (!nx_ctx->spl_initialized)
+	{
+		nx_ctx->spl_initialized = true;
+		splInitialize();
+	}
+
+	u64 is_emummc;
+	Result rc = splGetConfig((SplConfigItem)65007, &is_emummc);
+	if (R_FAILED(rc))
+	{
+		return nx_throw_libnx_error(ctx, rc, "splGetConfig(ExosphereEmummcType)");
+	}
+	return JS_NewBool(ctx, is_emummc ? true : false);
+}
+
 int nx_module_set_import_meta(JSContext *ctx, JSValueConst func_val,
 							  const char *url, JS_BOOL is_main)
 {
@@ -632,6 +655,7 @@ int main(int argc, char *argv[])
 	JSValue version_obj = JS_NewObject(ctx);
 	NX_DEF_GET_(version_obj, "ams", nx_version_get_ams, JS_PROP_C_W_E);
 	JS_SetPropertyStr(ctx, version_obj, "cairo", JS_NewString(ctx, cairo_version_string()));
+	NX_DEF_GET_(version_obj, "emummc", nx_version_get_emummc, JS_PROP_C_W_E);
 	JS_SetPropertyStr(ctx, version_obj, "freetype2", JS_NewString(ctx, FREETYPE_VERSION_STR));
 	JS_SetPropertyStr(ctx, version_obj, "harfbuzz", JS_NewString(ctx, HB_VERSION_STRING));
 	u32 hos_version = hosversionGet();

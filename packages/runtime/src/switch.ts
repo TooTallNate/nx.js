@@ -31,6 +31,10 @@ export interface Versions {
 	 */
 	ams: string | undefined;
 	cairo: string;
+	/**
+	 * `true` if the Switch is running Atmosphère from emuMMC, `false` if running sysMMC, or `undefined` if not running Atmosphère.
+	 */
+	emummc: boolean | undefined;
 	freetype2: string;
 	harfbuzz: string;
 	hos: string;
