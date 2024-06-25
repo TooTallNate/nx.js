@@ -71,7 +71,7 @@ npm run build
 
 > You may place other files within the `romfs` directory, and they will become embedded within the RomFS
 > filesystem in the final executable. This is useful for assets such as images, fonts, and other
-> data files. You can read files from the RomFS by using the `romfs:/` URL protocol.
+> data files. You can read files from the RomFS partition by using the `romfs:/` URL protocol.
 
 ## Package the executable
 
@@ -83,7 +83,7 @@ npm run nro
 ```
 
 This will result in a `<your app name>.nro` file in the root directory of your project. You can then upload
-this file to Switch via FTP or directly copy it to the SD card.
+this file to Switch via FTP or directly copy it to the SD card, and then launch it from the homebrew menu.
 
 ## What is Next?
 

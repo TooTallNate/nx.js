@@ -47,27 +47,14 @@ ctx.stroke();
 
 ## Using React
 
-The Canvas API is a low-level API, and it's not very well suited to building
-complex UIs. However, it can be used to build simple UIs, and it's also possible
-to use React with the Canvas API.
+One of the original goals of nx.js was to be able to render homebrew applications using [React](https://reactjs.org).
 
-To use React with the Canvas API, you'll need to use a library like
-[`react-canvas`](https://github.com/react-canvas/react-canvas).
+To achieve that goal, [`react-tela`](https://github.com/TooTallNate/react-tela) was created
+which uses the Canvas API to render the application's UI. `react-tela` is compatible with
+web browsers and Node.js, but was specifically designed to work with nx.js.
 
-Here's an example of a simple React app that uses the Canvas API:
+### Example
 
-```jsx
-import React from 'react';
-import ReactDOM from 'react-dom';
-import Canvas from 'react-canvas';
-
-class App extends React.Component {
-  render() {
-    return (
-      <Canvas
-        width={300}
-        height={300}
-        style={{ border: '1px solid black' }}
 
 ## Cards
 

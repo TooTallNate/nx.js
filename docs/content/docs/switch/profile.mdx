@@ -1,5 +1,5 @@
 ---
-title: Profiles
+title: Profile
 description: Interacting with user profiles
 ---
 
@@ -14,10 +14,10 @@ When an nx.js application is launched with a preselected user, then the `Switch.
 property will be set to a `Switch.Profile` instance representing the user that the app was launched
 with.
 
-Some built-in APIs (like `localStorage`) utilize this value to determine which save data profile to
+You may _set_ the `Switch.Profile.current` property to force the "current" profile to the specified
+profile. Doing so will prevent the user selection modal from being shown when accessing `localStorage`.
 
-> You may _set_ the `Switch.Profile.current` property to force the "current" profile to the specified
-> profile. Doing so will prevent the user selection modal from being shown when accessing `localStorage`.
+> The `localStorage` API utilizes this value to determine which user profile to associate the data with.
 
 
 ## User selection modal
@@ -34,6 +34,9 @@ if (profile) {
     console.log(`You canceled the user selection modal`);
 }
 ```
+
+> The user selection modal is _synchronous_, so it will __block the application event loop__
+> until the user selects a profile.
 
 ## Iterate user profiles
 
