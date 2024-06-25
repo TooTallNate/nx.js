@@ -3,7 +3,5 @@
   "name": "@nx.js/repl",
   "entryPoints": ["./src/index.ts"],
   "out": "public",
-  "plugin": ["typedoc-plugin-mdn-links", "typedoc-plugin-markdown"],
-  "fileExtension": ".mdx",
-  "entryFileName": "index"
+  "plugin": ["typedoc-plugin-mdn-links", "typedoc-plugin-markdown"]
 }

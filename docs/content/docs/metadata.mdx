@@ -1,0 +1,79 @@
+---
+title: Package Metadata
+description: Customizing the title, version, author & icon of your nx.js application
+---
+
+You will likely want to customize some metadata for your application, as well as use a custom icon:
+* Metadata information can be specified by adding specific fields to the `package.json` file
+* The icon can be specified by adding a `logo.jpg` file to the root of your project
+
+## Title ID
+
+The title ID of your application is used to uniquely identify your application. This is
+primarily relevant when utilizing the [Save Data API](/docs/switch/save-data) via `localStorage`.
+
+To set the title ID of your application, add a `titleId` field to your `package.json` file.
+It should contain a 16-character hexadecimal string which starts with `01` and ends with `0000`:
+
+```json
+{
+  "titleId": "0123456789ab0000",
+  … rest of your `package.json` file …
+}
+```
+
+> The `create-nxjs-app` tool automatically generatess a random title ID for you,
+> so normally you will not need to create this field manually.
+
+## Name
+
+To set the title of your application (as shown in the homebrew menu), add either a
+`productName` or `name` field to your `package.json` file:
+
+```json
+{
+  "productName": "My Application",
+  "name": "my-application",
+  … rest of your `package.json` file …
+}
+```
+
+> `productName` takes precedence over `name`, and allows for a "pretty" name to be
+> displayed for your app. But it's recommended to specify both fields, since
+> package managers will complain if `name` is missing.
+
+## Version
+
+To set the version of your application, add a `version` field to your `package.json` file:
+
+```json
+{
+  "version": "0.0.1",
+  … rest of your `package.json` file …
+}
+```
+
+## Author
+
+To set the author of your application, add an `author` field to your `package.json` file:
+
+```json
+{
+  "author": "Nathan Rajlich <n@n8.io>",
+  … rest of your `package.json` file …
+}
+```
+
+## Icon
+
+To set the icon of your application, add a `logo.jpg` file to the root of your project:
+
+```bash
+├── logo.jpg
+├── package.json
+└── src
+    └── main.ts
+```
+
+> The icon should be a square image. It will be resized to 256x256 pixels. If this file is
+> not present, then the default nx.js icon will be used.

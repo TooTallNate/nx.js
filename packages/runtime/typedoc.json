@@ -3,5 +3,7 @@
   "name": "nx.js",
   "entryPoints": ["./src/index.ts"],
   "out": "public",
-  "plugin": ["typedoc-plugin-mdn-links"]
+  "plugin": ["typedoc-plugin-mdn-links", "typedoc-plugin-markdown"],
+  "fileExtension": ".mdx",
+  "entryFileName": "index"
 }

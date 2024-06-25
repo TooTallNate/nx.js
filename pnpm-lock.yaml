@@ -23,6 +23,9 @@ importers:
       typedoc:
         specifier: ^0.26.0
         version: 0.26.0(typescript@5.5.2)
+      typedoc-plugin-markdown:
+        specifier: ^4.1.0
+        version: 4.1.0(typedoc@0.26.0)
       typedoc-plugin-mdn-links:
         specifier: ^3.1.6
         version: 3.1.6(typedoc@0.26.0)
@@ -8055,6 +8058,15 @@ packages:
       call-bind: 1.0.5
       for-each: 0.3.3
       is-typed-array: 1.1.12
+    dev: true
+
+  /typedoc-plugin-markdown@4.1.0(typedoc@0.26.0):
+    resolution: {integrity: sha512-sUiEJVaa6+MOFShRy14j1OP/VXC5OLyHNecJ2nKeGuBy2M3YiMatSLoIiddFAqVptSuILJTZiJzCBIY6yzAVyg==}
+    engines: {node: '>= 18'}
+    peerDependencies:
+      typedoc: 0.26.x
+    dependencies:
+      typedoc: 0.26.0(typescript@5.5.2)
     dev: true
 
   /typedoc-plugin-mdn-links@3.1.6(typedoc@0.26.0):
