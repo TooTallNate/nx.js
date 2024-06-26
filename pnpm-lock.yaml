@@ -444,14 +444,14 @@ importers:
         specifier: ^1.3.1
         version: 1.3.1(next@14.2.4)(react@18.3.1)
       fumadocs-core:
-        specifier: ^11.3.2
-        version: 11.3.2(@types/react@18.3.3)(next@14.2.4)(react-dom@18.3.1)(react@18.3.1)
+        specifier: ^12.2.5
+        version: 12.2.5(@types/react@18.3.3)(next@14.2.4)(react-dom@18.3.1)(react@18.3.1)
       fumadocs-mdx:
         specifier: ^8.2.33
-        version: 8.2.33(fumadocs-core@11.3.2)(next@14.2.4)
+        version: 8.2.33(fumadocs-core@12.2.5)(next@14.2.4)
       fumadocs-ui:
-        specifier: ^11.3.2
-        version: 11.3.2(@types/react-dom@18.3.0)(@types/react@18.3.3)(next@14.2.4)(react-dom@18.3.1)(react@18.3.1)(tailwindcss@3.4.4)
+        specifier: ^12.2.5
+        version: 12.2.5(@types/react-dom@18.3.0)(@types/react@18.3.3)(next@14.2.4)(react-dom@18.3.1)(react@18.3.1)(tailwindcss@3.4.4)
       geist:
         specifier: ^1.3.0
         version: 1.3.0(next@14.2.4)
@@ -3048,46 +3048,6 @@ packages:
       react-dom: 18.3.1(react@18.3.1)
     dev: false
 
-  /@radix-ui/react-select@2.1.1(@types/react-dom@18.3.0)(@types/react@18.3.3)(react-dom@18.3.1)(react@18.3.1):
-    resolution: {integrity: sha512-8iRDfyLtzxlprOo9IicnzvpsO1wNCkuwzzCM+Z5Rb5tNOpCdMvcc2AkzX0Fz+Tz9v6NJ5B/7EEgyZveo4FBRfQ==}
-    peerDependencies:
-      '@types/react': '*'
-      '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-    peerDependenciesMeta:
-      '@types/react':
-        optional: true
-      '@types/react-dom':
-        optional: true
-    dependencies:
-      '@radix-ui/number': 1.1.0
-      '@radix-ui/primitive': 1.1.0
-      '@radix-ui/react-collection': 1.1.0(@types/react-dom@18.3.0)(@types/react@18.3.3)(react-dom@18.3.1)(react@18.3.1)
-      '@radix-ui/react-compose-refs': 1.1.0(@types/react@18.3.3)(react@18.3.1)
-      '@radix-ui/react-context': 1.1.0(@types/react@18.3.3)(react@18.3.1)
-      '@radix-ui/react-direction': 1.1.0(@types/react@18.3.3)(react@18.3.1)
-      '@radix-ui/react-dismissable-layer': 1.1.0(@types/react-dom@18.3.0)(@types/react@18.3.3)(react-dom@18.3.1)(react@18.3.1)
-      '@radix-ui/react-focus-guards': 1.1.0(@types/react@18.3.3)(react@18.3.1)
-      '@radix-ui/react-focus-scope': 1.1.0(@types/react-dom@18.3.0)(@types/react@18.3.3)(react-dom@18.3.1)(react@18.3.1)
-      '@radix-ui/react-id': 1.1.0(@types/react@18.3.3)(react@18.3.1)
-      '@radix-ui/react-popper': 1.2.0(@types/react-dom@18.3.0)(@types/react@18.3.3)(react-dom@18.3.1)(react@18.3.1)
-      '@radix-ui/react-portal': 1.1.1(@types/react-dom@18.3.0)(@types/react@18.3.3)(react-dom@18.3.1)(react@18.3.1)
-      '@radix-ui/react-primitive': 2.0.0(@types/react-dom@18.3.0)(@types/react@18.3.3)(react-dom@18.3.1)(react@18.3.1)
-      '@radix-ui/react-slot': 1.1.0(@types/react@18.3.3)(react@18.3.1)
-      '@radix-ui/react-use-callback-ref': 1.1.0(@types/react@18.3.3)(react@18.3.1)
-      '@radix-ui/react-use-controllable-state': 1.1.0(@types/react@18.3.3)(react@18.3.1)
-      '@radix-ui/react-use-layout-effect': 1.1.0(@types/react@18.3.3)(react@18.3.1)
-      '@radix-ui/react-use-previous': 1.1.0(@types/react@18.3.3)(react@18.3.1)
-      '@radix-ui/react-visually-hidden': 1.1.0(@types/react-dom@18.3.0)(@types/react@18.3.3)(react-dom@18.3.1)(react@18.3.1)
-      '@types/react': 18.3.3
-      '@types/react-dom': 18.3.0
-      aria-hidden: 1.2.4
-      react: 18.3.1
-      react-dom: 18.3.1(react@18.3.1)
-      react-remove-scroll: 2.5.7(@types/react@18.3.3)(react@18.3.1)
-    dev: false
-
   /@radix-ui/react-slot@1.0.2(@types/react@18.3.3)(react@18.3.1):
     resolution: {integrity: sha512-YeTpuq4deV+6DusvVUW4ivBgnkHwECUu0BiN43L5UCDFgdhsRUWAghhTF5MbvNTPzmiFOx90asDSUjWuCNapwg==}
     peerDependencies:
@@ -3256,19 +3216,6 @@ packages:
       react: 18.3.1
     dev: false
 
-  /@radix-ui/react-use-previous@1.1.0(@types/react@18.3.3)(react@18.3.1):
-    resolution: {integrity: sha512-Z/e78qg2YFnnXcW88A4JmTtm4ADckLno6F7OXotmkQfeuCVaKuYzqAATPhVzl3delXE7CxIV8shofPn3jPc5Og==}
-    peerDependencies:
-      '@types/react': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-    peerDependenciesMeta:
-      '@types/react':
-        optional: true
-    dependencies:
-      '@types/react': 18.3.3
-      react: 18.3.1
-    dev: false
-
   /@radix-ui/react-use-rect@1.1.0(@types/react@18.3.3)(react@18.3.1):
     resolution: {integrity: sha512-0Fmkebhr6PiseyZlYAOtLS+nb7jLmpqTrJyv61Pe68MKYW6OWdRE2kI70TaYY27u7H0lajqM3hSMMLFq18Z7nQ==}
     peerDependencies:
@@ -3295,26 +3242,6 @@ packages:
       '@radix-ui/react-use-layout-effect': 1.1.0(@types/react@18.3.3)(react@18.3.1)
       '@types/react': 18.3.3
       react: 18.3.1
-    dev: false
-
-  /@radix-ui/react-visually-hidden@1.1.0(@types/react-dom@18.3.0)(@types/react@18.3.3)(react-dom@18.3.1)(react@18.3.1):
-    resolution: {integrity: sha512-N8MDZqtgCgG5S3aV60INAB475osJousYpZ4cTJ2cFbMpdHS5Y6loLTH8LPtkj2QN0x93J30HT/M3qJXM0+lyeQ==}
-    peerDependencies:
-      '@types/react': '*'
-      '@types/react-dom': '*'
-      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
-    peerDependenciesMeta:
-      '@types/react':
-        optional: true
-      '@types/react-dom':
-        optional: true
-    dependencies:
-      '@radix-ui/react-primitive': 2.0.0(@types/react-dom@18.3.0)(@types/react@18.3.3)(react-dom@18.3.1)(react@18.3.1)
-      '@types/react': 18.3.3
-      '@types/react-dom': 18.3.0
-      react: 18.3.1
-      react-dom: 18.3.1(react@18.3.1)
     dev: false
 
   /@radix-ui/rect@1.1.0:
@@ -4879,8 +4806,8 @@ packages:
     requiresBuild: true
     optional: true
 
-  /fumadocs-core@11.3.2(@types/react@18.3.3)(next@14.2.4)(react-dom@18.3.1)(react@18.3.1):
-    resolution: {integrity: sha512-MNpMwXE7m/+EDPaRt0ge5jihMVKgIZcyDv7hOmw5ozA0XELOUPsMQhbcAIA1RgZxK3wpouiTBILFvCUkaM3byQ==}
+  /fumadocs-core@12.2.5(@types/react@18.3.3)(next@14.2.4)(react-dom@18.3.1)(react@18.3.1):
+    resolution: {integrity: sha512-AKr3H4DZNA4882dRgX9CKYkiDFvBT93CV+mYAKiXw/AV9PUvoNN9PfppWXYVK+31UTqvLuw+hSQOR1X9ADGiYw==}
     peerDependencies:
       next: '>= 14.1.0'
       react: '>= 18'
@@ -4891,7 +4818,6 @@ packages:
       '@shikijs/transformers': 1.9.0
       flexsearch: 0.7.21
       github-slugger: 2.0.0
-      hast-util-to-estree: 3.1.0
       negotiator: 0.6.3
       next: 14.2.4(react-dom@18.3.1)(react@18.3.1)
       npm-to-yarn: 2.2.1
@@ -4910,7 +4836,7 @@ packages:
       - supports-color
     dev: false
 
-  /fumadocs-mdx@8.2.33(fumadocs-core@11.3.2)(next@14.2.4):
+  /fumadocs-mdx@8.2.33(fumadocs-core@12.2.5)(next@14.2.4):
     resolution: {integrity: sha512-bKT4CaFMWrPYUqsM2MD6uN4i2XIgZ2mCw9XoMJMpPS3Oq2Eq5MlNs9B5L6ItO7FfckCb9hoCA6LHdT1tVkgtyQ==}
     peerDependencies:
       fumadocs-core: 12.x.x
@@ -4920,7 +4846,7 @@ packages:
       cross-spawn: 7.0.3
       estree-util-value-to-estree: 3.1.2
       fast-glob: 3.3.2
-      fumadocs-core: 11.3.2(@types/react@18.3.3)(next@14.2.4)(react-dom@18.3.1)(react@18.3.1)
+      fumadocs-core: 12.2.5(@types/react@18.3.3)(next@14.2.4)(react-dom@18.3.1)(react@18.3.1)
       gray-matter: 4.0.3
       next: 14.2.4(react-dom@18.3.1)(react@18.3.1)
       zod: 3.23.8
@@ -4928,8 +4854,8 @@ packages:
       - supports-color
     dev: false
 
-  /fumadocs-ui@11.3.2(@types/react-dom@18.3.0)(@types/react@18.3.3)(next@14.2.4)(react-dom@18.3.1)(react@18.3.1)(tailwindcss@3.4.4):
-    resolution: {integrity: sha512-6FaSLXfNm3qYjgH7aT56myMH47WUFoXOZMiH3+TJLfKnxtSE3LbSYVeVHqJN5Ijg8gsKVbbU4alvLUYjbWhIGg==}
+  /fumadocs-ui@12.2.5(@types/react-dom@18.3.0)(@types/react@18.3.3)(next@14.2.4)(react-dom@18.3.1)(react@18.3.1)(tailwindcss@3.4.4):
+    resolution: {integrity: sha512-Cl8AfPrUF2qBAfBu+cIBsyN+ICmNDSTnT7h6uUmnulPaAPLBY8k1VOrdtHn/+zUZxG6Vyxo0cWpt55Kjv0qpBg==}
     peerDependencies:
       next: '>= 14.1.0'
       react: '>= 18'
@@ -4941,13 +4867,12 @@ packages:
       '@radix-ui/react-direction': 1.1.0(@types/react@18.3.3)(react@18.3.1)
       '@radix-ui/react-popover': 1.1.1(@types/react-dom@18.3.0)(@types/react@18.3.3)(react-dom@18.3.1)(react@18.3.1)
       '@radix-ui/react-scroll-area': 1.1.0(@types/react-dom@18.3.0)(@types/react@18.3.3)(react-dom@18.3.1)(react@18.3.1)
-      '@radix-ui/react-select': 2.1.1(@types/react-dom@18.3.0)(@types/react@18.3.3)(react-dom@18.3.1)(react@18.3.1)
       '@radix-ui/react-tabs': 1.1.0(@types/react-dom@18.3.0)(@types/react@18.3.3)(react-dom@18.3.1)(react@18.3.1)
       '@tailwindcss/typography': 0.5.13(tailwindcss@3.4.4)
       class-variance-authority: 0.7.0
       cmdk: 1.0.0(@types/react-dom@18.3.0)(@types/react@18.3.3)(react-dom@18.3.1)(react@18.3.1)
-      fumadocs-core: 11.3.2(@types/react@18.3.3)(next@14.2.4)(react-dom@18.3.1)(react@18.3.1)
-      lucide-react: 0.379.0(react@18.3.1)
+      fumadocs-core: 12.2.5(@types/react@18.3.3)(next@14.2.4)(react-dom@18.3.1)(react@18.3.1)
+      lucide-react: 0.395.0(react@18.3.1)
       next: 14.2.4(react-dom@18.3.1)(react@18.3.1)
       next-themes: 0.3.0(react-dom@18.3.1)(react@18.3.1)
       react: 18.3.1
@@ -5687,8 +5612,8 @@ packages:
       yallist: 4.0.0
     dev: true
 
-  /lucide-react@0.379.0(react@18.3.1):
-    resolution: {integrity: sha512-KcdeVPqmhRldldAAgptb8FjIunM2x2Zy26ZBh1RsEUcdLIvsEmbcw7KpzFYUy5BbpGeWhPu9Z9J5YXfStiXwhg==}
+  /lucide-react@0.395.0(react@18.3.1):
+    resolution: {integrity: sha512-6hzdNH5723A4FLaYZWpK50iyZH8iS2Jq5zuPRRotOFkhu6kxxJiebVdJ72tCR5XkiIeYFOU5NUawFZOac+VeYw==}
     peerDependencies:
       react: ^16.5.1 || ^17.0.0 || ^18.0.0
     dependencies:
