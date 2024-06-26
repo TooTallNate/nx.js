@@ -6,12 +6,12 @@ import { Analytics } from '@vercel/analytics/react';
 import type { ReactNode } from 'react';
 
 export default function Layout({ children }: { children: ReactNode }) {
-  return (
-    <html lang="en" className={`${GeistSans.className}`}>
-      <body>
-        <RootProvider>{children}</RootProvider>
-        <Analytics />
-      </body>
-    </html>
-  );
+	return (
+		<html lang='en' className={`${GeistSans.className}`}>
+			<body>
+				<RootProvider>{children}</RootProvider>
+				<Analytics />
+			</body>
+		</html>
+	);
 }

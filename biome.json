@@ -6,6 +6,7 @@
     "ignore": [
       "romfs",
       "**/*/dist",
+      "docs/.next/**",
       "packages/*/docs.json",
       "packages/runtime/runtime.js",
       "packages/runtime/public",
