@@ -1,0 +1,69 @@
+---
+title: Application
+description: Interacting with installed applications
+---
+
+The `Switch.Application` API is used to interact with installed applications (game titles) and/or homebrew apps (`.nro` files).
+
+Instances of `Switch.Application` can read the app's title, author information, and other metadata. It is also possible to retrieve a JPEG format image of the title's box art (256 x 256 format). 
+
+Additionally, working with [Save Data](./save-data) is preferred to be done by first retrieving the `Switch.Application` instance which your app is interested in working with.
+
+## Instance of current app
+
+Use the special getter `Switch.Application.self` to retrieve an instance of `Switch.Application` which represents
+the currently running nx.js application.
+
+```typescript
+const app = Switch.Application.self;
+console.log(app.title);
+```
+
+> Using `Switch.Application.self` considers the various methods in which an nx.js app can be launched, and loads the correct
+> application metadata accordingly. Specifically it handles the following cases:
+> 1. Launched from the homebrew menu (`.nro` file)
+> 1. Launched from the home screen via [forwarder](https://nsp-forwarder.n8.io) (`.nro` file)
+> 1. Launched from the home screen via installation (`.nsp` file)
+
+## Iterate installed applications
+
+The `Switch.Application` class can be used as an iterator for the purposes of iterating over the installed titles.
+This can be useful for i.e. rendering a title launcher screen or gathering information about which titles are currently
+installed.
+
+```typescript
+let count = 0;
+for (const app of Switch.Application) {
+    if (app.name.includes('Super')) {
+        count++;
+    }
+}
+console.log(`You have ${count} titles which include the word "Super" in the name`);
+```
+
+## By Title ID
+
+If you know the specific title ID for an installed application, use the `new Switch.Application(id)` constructor to create an
+instance of the class:
+
+```typescript
+const app = new Switch.Application(0x0100000000010000b);
+console.log(app.title);
+```
+
+> If the specified title is not currently installed on the system, then the accessor methods will throw an error.
+
+## By NRO blob
+
+After reading a homebrew `.nro` file into memory, it is possible to use the `new Switch.Application(nroBlob)` constructor to create
+and instance of the class:
+
+```typescript
+const nro = await Switch.readFile('sdmc:/hbmenu.nro');
+const app = new Switch.Application(nro);
+console.log(app.title);
+// Logs "Homebrew Menu"
+```
+
+> The `app.launch()` function is currently not implemented for instances of `Switch.Application` which are backed by homebrew `.nro`
+> files. This may change in the future - see [GitHub Issue #125](https://github.com/TooTallNate/nx.js/issues/125).

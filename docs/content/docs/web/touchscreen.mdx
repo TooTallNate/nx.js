@@ -1,0 +1,25 @@
+---
+title: Touchscreen
+description: Handling user input from the touchscreen
+---
+
+Your nx.js application can listen for the `touchstart`, `touchmove`,
+and `touchend` events, which work the same way as in web app environments.
+
+> Touch events are dispatched to the global `screen` object.
+
+## Example
+
+```typescript
+screen.addEventListener('touchstart', (e) => {
+  console.log('Touch started at', e.touches[0].clientX, e.touches[0].clientY);
+});
+
+screen.addEventListener('touchmove', (e) => {
+  console.log('Touch moved at', e.touches[0].clientX, e.touches[0].clientY);
+});
+
+screen.addEventListener('touchend', (e) => {
+  console.log('Touch ended at', e.touches[0].clientX, e.touches[0].clientY);
+});
+```

@@ -1,0 +1,62 @@
+---
+title: TCP
+description: Client and Server Networking
+---
+
+nx.js provides a simple API for creating TCP client connections and servers. The TCP socket interface is based on the [WinterCG Socket API proposal](https://sockets-api.proposal.wintercg.org).
+
+## TCP Client
+
+```typescript
+// "tcpbin.com" is a public TCP echo server
+const socket = Switch.connect('tcpbin.com:4242');
+
+const decoder = new TextDecoder();
+const encoder = new TextEncoder();
+const reader = socket.readable.getReader();
+const writer = socket.writable.getWriter();
+
+const payload = 'Hello World!\n';
+console.log('Sending:  %j', payload);
+await writer.write(encoder.encode(payload));
+
+console.log('Received: %j', decoder.decode(await reader.read()));
+// Prints "Hello World!\n"
+
+await writer.close();
+reader.releaseLock();
+socket.close();
+```
+
+## TCP Server
+
+```typescript
+// A simple echo server
+const port = 2323;
+
+const server = Switch.listen({
+    port,
+    async accept(socket) {
+        console.log('Client connection established');
+        const reader = socket.readable.getReader();
+        const writer = socket.writable.getWriter();
+        for await (const chunk of reader) {
+            if (chunk.done) break;
+            await writer.write(chunk.value);
+        }
+        await writer.close();
+        reader.releaseLock();
+        console.log('Client closed connection');
+    },
+});
+
+const { ip } = Switch.networkInfo();
+console.log('Echo server listening on "%s:%d"', ip, port);
+```
+
+## Learn more
+
+<Cards>
+  <Card title="Learn about making HTTP client requests using `fetch()`" href="/docs/web/fetch" />
+  <Card title="Learn about hosting an HTTP server using the `@nx.js/http` package." href="/api/@nx.js/http" />
+</Cards>

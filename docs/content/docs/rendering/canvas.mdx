@@ -1,0 +1,65 @@
+---
+title: Canvas
+description: Drawing to the screen using the Canvas API
+---
+
+nx.js does not implement a full DOM for rendering content to the screen.
+Instead, it offers the more low-level Canvas API which allows your application
+to draw to the screen.
+
+The global `screen` object is used to create a `CanvasRenderingContext2D`
+instance, at which point the app is in __canvas rendering__ mode.
+
+> You should avoid using any `console` printing functions when in __canvas rendering__ mode.
+> Doing so will change the app back to [__console rendering__](/docs/rendering/console) mode.
+
+## Example
+
+Let's draw a simple house with the Canvas API:
+
+```js
+// Creating the canvas context enters "canvas rendering" mode
+const ctx = screen.getContext('2d');
+
+// The default background color is black, so draw the house as white
+ctx.fillStyle = 'white';
+ctx.strokeStyle = 'white';
+
+// Set line width
+ctx.lineWidth = 10;
+
+// Wall
+ctx.strokeRect(75, 140, 150, 110);
+
+// Door
+ctx.fillRect(130, 190, 40, 60);
+
+// Roof
+ctx.beginPath();
+ctx.moveTo(50, 140);
+ctx.lineTo(150, 60);
+ctx.lineTo(250, 140);
+ctx.closePath();
+ctx.stroke();
+```
+
+> This example was adapted from the [MDN Canvas tutorial](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D#basic_example).
+
+## Using React
+
+One of the original goals of nx.js was to be able to render homebrew applications using [React](https://reactjs.org).
+
+To achieve that goal, [`react-tela`](https://github.com/TooTallNate/react-tela) was created
+which uses the Canvas API to render the application's UI. `react-tela` is compatible with
+web browsers and Node.js, but was specifically designed to work with nx.js.
+
+### Example
+
+
+
+## Cards
+
+<Cards>
+  <Card title="Learn about rendering to the screen using React" href="/docs/react" />
+  <Card title="Learn about using custom fonts with the Canvas API" href="/docs/web/fonts" />
+</Cards>

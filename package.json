@@ -1,11 +1,12 @@
 {
+  "name": "nx.js",
   "private": true,
   "packageManager": "pnpm@8.15.8",
   "scripts": {
     "build": "turbo run build",
     "nro": "turbo run nro",
     "bundle": "turbo run bundle",
-    "format": "biome format --write apps packages",
+    "format": "biome format --write apps packages docs",
     "ci:version": "changeset version && node .github/scripts/cleanup-examples.mjs && pnpm install --no-frozen-lockfile",
     "ci:publish": "pnpm publish -r && node .github/scripts/create-git-tag.mjs"
   },
@@ -13,8 +14,9 @@
     "@biomejs/biome": "^1.5.3",
     "@changesets/cli": "^2.27.1",
     "@svitejs/changesets-changelog-github-compact": "^1.1.0",
-    "turbo": "^1.12.5",
+    "turbo": "^2.0.4",
     "typedoc": "^0.26.0",
+    "typedoc-plugin-markdown": "^4.1.0",
     "typedoc-plugin-mdn-links": "^3.1.6",
     "typescript": "^5.5.2",
     "yauzl": "^2.10.0"

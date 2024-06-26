@@ -1,0 +1,53 @@
+---
+title: FontFace
+description: Using custom fonts with the Canvas API
+---
+
+It is possible to load your own font files into an nx.js application, and then render
+your fonts using [**canvas rendering**](/docs/rendering/canvas) mode.
+
+## Loading a font
+
+To load a font, you'll need to create an instance of the
+[`FontFace`](https://developer.mozilla.org/docs/Web/API/FontFace) class,
+by providing the name of the font and the font data as an `ArrayBuffer`:
+
+```typescript
+// Load the font data into a `FontFace` instance
+const fontData = await Switch.readFile('romfs:/fonts/Arial.ttf');
+const font = new FontFace('Arial', fontData);
+```
+
+> The [FreeType 2](https://freetype.org/) library is used to renders fonts,
+> so any font file format which is supported by FreeType 2 (typically `.ttf`
+> or `.otf`) will work with nx.js.
+
+## Registering a font
+
+Once you've loaded a font, you'll need to register it with the
+[`FontFaceSet`](https://developer.mozilla.org/docs/Web/API/FontFaceSet) registry.
+The global `fonts` is available for this purpose, similar to how you would
+register a font in a "web worker" context.
+
+```typescript
+// Add the font to the global `fonts` configuration
+fonts.add(font);
+```
+
+The `fonts` registry is a global object that contains all the fonts that have been
+loaded into the application. You can use this registry to render text to the screen
+using the Canvas API.
+
+## Example
+
+```typescript
+const fontData = await Switch.readFile('romfs:/fonts/Arial.ttf');
+const font = new FontFace('Arial', fontData);
+fonts.add(font);
+
+// Render to the screen using the Canvas API by setting the "font" property
+const ctx = screen.getContext('2d');
+ctx.font = '48px Arial';
+ctx.fillStyle = 'cyan';
+ctx.fillText('This is the "Arial" font', 50, 300);
+```

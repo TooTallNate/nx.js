@@ -1,0 +1,74 @@
+---
+title: Save Data
+description: Accessing the Save Data filesystem
+---
+
+nx.js includes built-in APIs for interacting with the Switch save data filesystem. This allows for two main use cases:
+
+ * Allows your app to persist its own save data, such as user configuration or game state
+ * Allows your app to interact with save data for other installed applications, i.e. for backup purposes
+
+## Persisting data using localStorage
+
+The [`localStorage`](https://developer.mozilla.org/docs/Web/API/Window/localStorage) API provides a high-level interface for persisting data that is stored in the Switch's save data filesystem. Data stored into local storage is unique across user profiles and individual nx.js apps, and will be persisted across subsequent launches of the app.
+
+The user selection dialog will be shown upon accessing the `localStorage` object, if the app was not launched with a profile selected.
+
+```typescript
+// Read from the save data filesystem the `lastOpened` value
+const lastOpened = localStorage.lastOpened;
+
+const lastOpenedString = lastOpened ? new Date(Number(lastOpened)) : 'never';
+console.log(`App last opened: ${lastOpenedString}`);
+
+// Update the `lastOpened` value to the current timestamp
+localStorage.lastOpened = Date.now();
+```
+
+## Accessing save data for other applications
+
+The low-level save data interface allows mounting the save data filesystem for any installed application and for the various types of save data filesystems (account, cache, bcat, etc.).
+
+Use the `Switch.Application` class to mount a save data filesystem:
+
+```typescript
+import { FsSaveDataType } from '@nx.js/constants';
+
+// Show the user selection dialog
+const profile = Switch.Profile.select();
+
+// Attempt to find the save data filesystem associated with the user profile and current app
+let saveData = Switch.Application.self.findSaveData({
+    type: FsSaveDataType.Account,
+    uid: profile.uid,
+});
+
+// If there is no save data associated with this user, create it
+if (!saveData) {
+    saveData = Switch.Application.self.createProfileSaveDataSync(profile);
+}
+
+// Mount the save data filesystem. The returned URL can be used with filesystem operations
+const url = saveData.mount();
+
+// Read from save data filesystem
+const data = await Switch.readFile(new URL('state.json', url));
+
+// Write to save data filesystem - be sure to `commit()` changes after a write!
+await Switch.writeFile(
+    new URL('state.json', url),
+    JSON.stringify({ count: 123 })
+);
+saveData.commit();
+```
+
+> In the example above, `Switch.Application.self` is used, which represents the currently
+> running nx.js app. However, an instance of `Switch.Application` can be obtained for officially
+> installed applications or even homebrew apps.
+
+## Learn more
+
+<Cards>
+  <Card title="Learn more about user profile selection" href="/docs/switch/profiles" />
+  <Card title="Learn more about the `Switch.Application` class" href="/docs/switch/applications" />
+</Cards>
