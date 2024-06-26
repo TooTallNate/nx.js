@@ -1,19 +1,37 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "pipeline": {
+  "tasks": {
     "build": {
-      "dependsOn": ["^build"],
-      "inputs": ["src/**"],
-      "outputs": ["dist/**", "romfs/**"]
+      "dependsOn": [
+        "^build"
+      ],
+      "inputs": [
+        "src/**"
+      ],
+      "outputs": [
+        "dist/**",
+        "romfs/**"
+      ]
     },
     "docs-json": {
-      "inputs": ["src/**", "typedoc.json"],
-      "outputs": ["docs.json"]
+      "inputs": [
+        "src/**",
+        "typedoc.json"
+      ],
+      "outputs": [
+        "docs.json"
+      ]
     },
     "nro": {
-      "dependsOn": ["build"],
-      "inputs": ["src/**"],
-      "outputs": ["*.nro"]
+      "dependsOn": [
+        "build"
+      ],
+      "inputs": [
+        "src/**"
+      ],
+      "outputs": [
+        "*.nro"
+      ]
     }
   }
 }
