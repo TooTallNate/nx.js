@@ -55,11 +55,42 @@ web browsers and Node.js, but was specifically designed to work with nx.js.
 
 ### Example
 
+```typescript
+import React, { useState, useEffect } from 'react';
+import { Rect } from 'react-tela';
+import { render } from 'react-tela/render';
 
+function App() {
+	const [rotate, setRotate] = useState(0);
+
+    useEffect(() => {
+        let id: number;
+        function update() {
+            id = requestAnimationFrame(update);
+            setRotate(r => r += 1);
+        }
+        update();
+        return () => cancelAnimationFrame(id);
+    }, []);
+
+	return (
+		<Rect
+			fill='green'
+			rotate={rotate}
+			width={100}
+			height={70}
+			x={200}
+			y={200}
+		/>
+	);
+}
+
+render(<App />, screen);
+```
 
 ## Cards
 
 <Cards>
   <Card title="Learn about rendering to the screen using React" href="/docs/react" />
-  <Card title="Learn about using custom fonts with the Canvas API" href="/docs/web/fonts" />
+  <Card title="Learn about using custom fonts with the Canvas API" href="/docs/web/font-face" />
 </Cards>
