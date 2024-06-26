@@ -7,6 +7,7 @@ export default function RootDocsLayout({ children }: { children: ReactNode }) {
 	return (
 		<DocsLayout
 			tree={pageTree}
+			githubUrl={'https://github.com/TooTallNate/nx.js'}
 			nav={{
 				transparentMode: 'top',
 				title: (
@@ -14,7 +15,6 @@ export default function RootDocsLayout({ children }: { children: ReactNode }) {
 						<Logo className='w-5 md:w-6 drop-shadow' /> nx.js
 					</>
 				),
-				githubUrl: 'https://github.com/TooTallNate/nx.js',
 				//children: ['a'],
 			}}
 		>
