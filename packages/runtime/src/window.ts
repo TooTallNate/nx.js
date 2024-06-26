@@ -31,6 +31,8 @@ export var window: Window & typeof globalThis = globalThis;
 Object.setPrototypeOf(window, Window.prototype);
 def(window, 'window');
 
+Object.defineProperty(window, Symbol.toStringTag, { get() { return 'Window'; } });
+
 /**
  * @see https://developer.mozilla.org/docs/Web/API/Element/keydown_event
  */

@@ -1,6 +1,8 @@
 {
+  "productName": "ASCII Star Wars",
   "name": "starwars",
   "version": "0.0.0",
+  "author": "Darth Vader",
   "private": true,
   "description": "nx.js app that renders the Star Wars ASCII text",
   "scripts": {
