@@ -14,9 +14,6 @@
       ]
     },
     "docs": {
-      "dependsOn": [
-        "^build"
-      ],
       "inputs": [
         "src/**",
         "typedoc.json"
