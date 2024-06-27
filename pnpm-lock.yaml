@@ -468,6 +468,12 @@ importers:
         specifier: ^18.3.1
         version: 18.3.1(react@18.3.1)
     devDependencies:
+      '@nx.js/http':
+        specifier: workspace:*
+        version: link:../packages/http
+      '@nx.js/repl':
+        specifier: workspace:*
+        version: link:../packages/repl
       '@types/mdx':
         specifier: ^2.0.13
         version: 2.0.13
@@ -480,6 +486,9 @@ importers:
       autoprefixer:
         specifier: ^10.4.19
         version: 10.4.19(postcss@8.4.38)
+      nx.js:
+        specifier: workspace:*
+        version: link:..
       postcss:
         specifier: ^8.4.38
         version: 8.4.38

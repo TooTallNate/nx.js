@@ -18,6 +18,9 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@nx.js/http": "workspace:*",
+    "@nx.js/repl": "workspace:*",
+    "nx.js": "workspace:*",
     "@types/mdx": "^2.0.13",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
