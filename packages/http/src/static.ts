@@ -1,5 +1,8 @@
 import mime from 'mime';
 
+/**
+ * Options object for the {@link createStaticFileHandler | `http.createStaticFileHandler()`} function.
+ */
 export interface StaticFileHandlerOpts {
 	headers?: HeadersInit | ((req: Request, path: URL) => HeadersInit);
 }

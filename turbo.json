@@ -13,13 +13,16 @@
         "romfs/**"
       ]
     },
-    "docs-json": {
+    "docs": {
+      "dependsOn": [
+        "^docs"
+      ],
       "inputs": [
         "src/**",
         "typedoc.json"
       ],
       "outputs": [
-        "docs.json"
+        "docs/**"
       ]
     },
     "nro": {

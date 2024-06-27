@@ -1,8 +1,7 @@
 node_modules
 .turbo
 /packages/*/dist
-/packages/*/public
-/packages/*/docs.json
+/packages/*/docs
 /lib/*/lib
 /lib/*/debug
 /lib/*/release
