@@ -16,7 +16,7 @@ export function load(app) {
 		},
 	);
 
-	// Remove ".mdx" from the file extension for each page
+	// Remove ".mdx" from the file extension for each link on every page
 	app.renderer.on(
 		MarkdownPageEvent.END,
 		/** @param {import('typedoc-plugin-markdown').MarkdownPageEvent} page */
