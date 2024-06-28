@@ -1,8 +1,5 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalDependencies": [
-    "formatter.mjs"
-  ],
   "tasks": {
     "build": {
       "dependsOn": [
@@ -22,7 +19,8 @@
       ],
       "inputs": [
         "src/**",
-        "typedoc.json"
+        "typedoc.json",
+        "../../formatter.mjs"
       ],
       "outputs": [
         "docs/**"
