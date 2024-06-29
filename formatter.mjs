@@ -29,7 +29,8 @@ export function load(app) {
 			const rel = relative(root, dirname(page.filename));
 			const parts = rel.split('/');
 			const pkg = parts[1];
-			const dir = parts.length === 4 ? `${parts[3]}/` : '';
+			const dirParts = parts.slice(3);
+			const dir = dirParts.length ? `${dirParts.join('/')}/` : '';
 			page.contents = page.contents.replace(
 				/\[(.*?)\]\((.*?)\)/g
 				, (_, text, link) => {
