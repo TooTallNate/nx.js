@@ -6,7 +6,7 @@ export function Toggle() {
 		<RootToggle
 			options={[
 				{
-					title: 'Core Runtime',
+					title: 'Runtime',
 					description: 'Global APIs',
 					url: '/runtime',
 					icon: <TbGlobe size={24} />,
