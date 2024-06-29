@@ -5,7 +5,8 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
-    "test": "vitest"
+    "test": "vitest",
+    "docs": "typedoc && ../../type-aliases-meta.sh"
   },
   "files": [
     "dist"

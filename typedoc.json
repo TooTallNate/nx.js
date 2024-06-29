@@ -1,0 +1,24 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "out": "docs",
+  "plugin": [
+    "typedoc-plugin-mdn-links",
+    "typedoc-plugin-markdown",
+    "typedoc-plugin-frontmatter",
+    "./formatter.mjs"
+  ],
+  "readme": "none",
+  "hidePageHeader": true,
+  "hideBreadcrumbs": true,
+  "hideGroupHeadings": true,
+  "hidePageTitle": true,
+  "indexFormat": "table",
+  "parametersFormat": "table",
+  "classPropertiesFormat": "table",
+  "enumMembersFormat": "table",
+  "typeDeclarationFormat": "table",
+  "propertyMembersFormat": "table",
+  "interfacePropertiesFormat": "table",
+  "fileExtension": ".mdx",
+  "entryFileName": "index"
+}

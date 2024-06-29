@@ -7,8 +7,7 @@
     "build": "node build.mjs",
     "bundle": "node bundle.mjs",
     "bundle-minify": "MINIFY=1 node bundle.mjs",
-    "docs": "typedoc && cp -r ../../assets/* public/assets && cp ../../assets/logo.png public/favicon.ico",
-    "docs-json": "typedoc --json docs.json"
+    "docs": "typedoc && ../../type-aliases-meta.sh"
   },
   "files": [
     "dist"

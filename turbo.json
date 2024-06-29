@@ -13,13 +13,21 @@
         "romfs/**"
       ]
     },
-    "docs-json": {
+    "docs": {
+      "dependsOn": [
+        "^build",
+        "^docs"
+      ],
       "inputs": [
         "src/**",
-        "typedoc.json"
+        "typedoc.json",
+        "../../typedoc.json",
+        "../../type-aliases-meta.sh",
+        "../../type-aliases.meta.json",
+        "../../formatter.mjs"
       ],
       "outputs": [
-        "docs.json"
+        "docs/**"
       ]
     },
     "nro": {

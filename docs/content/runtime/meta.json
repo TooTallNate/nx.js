@@ -1,0 +1,11 @@
+{
+  "root": true,
+  "pages": [
+    "--- Guide ---",
+    "index",
+    "metadata",
+    "...",
+    "--- API Reference ---",
+    "...api"
+  ]
+}

@@ -24,15 +24,16 @@ export interface ListenOptions extends Omit<Switch.ListenOptions, 'accept'> {
  * @param handler The HTTP handler function to invoke when an HTTP request is received
  */
 export function createServerHandler(handler: ServerHandler) {
-	return async ({ socket }: Switch.SocketEvent) => {
-		const unshiftable = new UnshiftableStream(socket.readable);
+	return async (event: Switch.SocketEvent) => {
+		const s = event.socket;
+		const unshiftable = new UnshiftableStream(s.readable);
 		while (true) {
 			const req = await readRequest(unshiftable);
 			if (!req) break;
 			const res = await handler(req);
-			writeResponse(socket.writable, res, 'HTTP/1.1');
+			writeResponse(s.writable, res, 'HTTP/1.1');
 		}
-		socket.close();
+		s.close();
 	};
 }
 

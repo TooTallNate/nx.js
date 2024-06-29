@@ -23,6 +23,9 @@ importers:
       typedoc:
         specifier: ^0.26.0
         version: 0.26.0(typescript@5.5.2)
+      typedoc-plugin-frontmatter:
+        specifier: ^1.0.0
+        version: 1.0.0(typedoc-plugin-markdown@4.1.0)
       typedoc-plugin-markdown:
         specifier: ^4.1.0
         version: 4.1.0(typedoc@0.26.0)
@@ -464,10 +467,22 @@ importers:
       react-dom:
         specifier: ^18.3.1
         version: 18.3.1(react@18.3.1)
+      react-icons:
+        specifier: ^5.2.1
+        version: 5.2.1(react@18.3.1)
     devDependencies:
+      '@nx.js/http':
+        specifier: workspace:*
+        version: link:../packages/http
+      '@nx.js/repl':
+        specifier: workspace:*
+        version: link:../packages/repl
       '@types/mdx':
         specifier: ^2.0.13
         version: 2.0.13
+      '@types/node':
+        specifier: '20'
+        version: 20.10.3
       '@types/react':
         specifier: ^18.3.3
         version: 18.3.3
@@ -477,6 +492,9 @@ importers:
       autoprefixer:
         specifier: ^10.4.19
         version: 10.4.19(postcss@8.4.38)
+      nxjs-runtime:
+        specifier: workspace:*
+        version: link:../packages/runtime
       postcss:
         specifier: ^8.4.38
         version: 8.4.38
@@ -6891,6 +6909,14 @@ packages:
       scheduler: 0.23.2
     dev: false
 
+  /react-icons@5.2.1(react@18.3.1):
+    resolution: {integrity: sha512-zdbW5GstTzXaVKvGSyTaBalt7HSfuK5ovrzlpyiWHAFXndXTdd/1hdDHI4xBM1Mn7YriT6aqESucFl9kEXzrdw==}
+    peerDependencies:
+      react: '*'
+    dependencies:
+      react: 18.3.1
+    dev: false
+
   /react-is@18.2.0:
     resolution: {integrity: sha512-xWGDIW6x921xtzPkhiULtthJHoJvBbF3q26fzloPCK0hsvxtPVelvftw3zjbHWSkR2km9Z+4uxbDDK/6Zw9B8w==}
     dev: true
@@ -7983,6 +8009,15 @@ packages:
       call-bind: 1.0.5
       for-each: 0.3.3
       is-typed-array: 1.1.12
+    dev: true
+
+  /typedoc-plugin-frontmatter@1.0.0(typedoc-plugin-markdown@4.1.0):
+    resolution: {integrity: sha512-Mqn96+RjUjPUz/42H8MOp/8eOKjE5MVIgZRFDGmSI2YuggnMZSfh5MMpvd6ykjNTpq7gV5D2iwjqLt8nYRg9rg==}
+    peerDependencies:
+      typedoc-plugin-markdown: '>=4.0.0'
+    dependencies:
+      typedoc-plugin-markdown: 4.1.0(typedoc@0.26.0)
+      yaml: 2.4.5
     dev: true
 
   /typedoc-plugin-markdown@4.1.0(typedoc@0.26.0):
