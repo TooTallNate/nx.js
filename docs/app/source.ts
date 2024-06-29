@@ -7,3 +7,9 @@ export const { getPage, getPages, pageTree } = loader({
 	rootDir: 'docs',
 	source: createMDXSource(map),
 });
+
+export const api = loader({
+	baseUrl: '/api',
+	rootDir: 'api',
+	source: createMDXSource(map),
+});

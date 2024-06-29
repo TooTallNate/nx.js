@@ -4,7 +4,13 @@
   "tasks": {
     "build": {
       "dependsOn": ["^docs"],
-      "inputs": ["$TURBO_DEFAULT$", ".env*", "content/**", "app/**"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        ".env*",
+        "content/**",
+        "app/**",
+        "api.template/**"
+      ],
       "outputs": [".next/**", "!.next/cache/**"]
     },
     "dev": {

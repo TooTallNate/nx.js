@@ -15,11 +15,13 @@
     },
     "docs": {
       "dependsOn": [
-        "^build"
+        "^build",
+        "^docs"
       ],
       "inputs": [
         "src/**",
         "typedoc.json",
+        "../../typedoc.json",
         "../../formatter.mjs"
       ],
       "outputs": [

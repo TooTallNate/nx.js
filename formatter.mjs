@@ -26,12 +26,19 @@ export function load(app) {
 		/** @param {import('typedoc-plugin-markdown').MarkdownPageEvent} page */
 		(page) => {
 			if (!page.contents) return;
-			const rel = relative(root, dirname(page.filename)).split('/').slice(1).join('/');
+			const rel = relative(root, dirname(page.filename));
+			const parts = rel.split('/');
+			const pkg = parts[1];
+			const dir = parts.length === 4 ? `${parts[3]}/` : '';
 			page.contents = page.contents.replace(
 				/\[(.*?)\]\((.*?)\)/g
 				, (_, text, link) => {
 				if (!link.includes('://')) {
-					link = new URL(link, `http://e.com/docs/api/${rel}`).pathname;
+					const url = new URL(link, `http://e.com/api/${pkg}/${dir}`);
+					link = `${url.pathname}${url.search}${url.hash}`;
+					if (link.endsWith('/index')) {
+						link = link.slice(0, -6);
+					}
 				}
 				return `[${text}](${link})`;
 			});
