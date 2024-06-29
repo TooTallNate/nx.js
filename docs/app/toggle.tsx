@@ -13,13 +13,13 @@ export function Toggle() {
 				},
 				{
 					title: '@nx.js/http',
-					description: 'HTTP server npm package',
+					description: 'HTTP server for nx.js',
 					url: '/http',
 					icon: <TbBrowser size={24} />,
 				},
 				{
 					title: '@nx.js/repl',
-					description: 'REPL class npm package',
+					description: 'Read-Eval-Print Loop for nx.js',
 					url: '/repl',
 					icon: <TbBrandPowershell size={24} />,
 				},
