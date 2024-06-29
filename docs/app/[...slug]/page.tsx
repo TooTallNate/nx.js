@@ -59,9 +59,9 @@ export default async function Page({
 }
 
 export async function generateStaticParams() {
-	return Array.from(loaders.values()).flatMap((loader) =>
+	return Array.from(loaders.entries()).flatMap(([root, loader]) =>
 		loader.getPages().map((page) => ({
-			slug: page.slugs,
+			slug: [root].concat(page.slugs),
 		})),
 	);
 }
