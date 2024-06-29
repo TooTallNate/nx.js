@@ -1,15 +1,22 @@
+import { join } from 'node:path';
+import { readdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { map } from '@/.map';
 import { createMDXSource } from 'fumadocs-mdx';
 import { loader } from 'fumadocs-core/source';
 
-export const { getPage, getPages, pageTree } = loader({
-	baseUrl: '/docs',
-	rootDir: 'docs',
-	source: createMDXSource(map),
-});
+const contentDir = join(fileURLToPath(import.meta.url), '../../content');
 
-export const api = loader({
-	baseUrl: '/api',
-	rootDir: 'api',
-	source: createMDXSource(map),
-});
+export const loaders: Map<
+	string,
+	ReturnType<typeof loader<{ source: ReturnType<typeof createMDXSource> }>>
+> = new Map(
+	readdirSync(contentDir).map((name) => [
+		name,
+		loader({
+			baseUrl: `/${name}`,
+			rootDir: name,
+			source: createMDXSource(map),
+		}),
+	]),
+);

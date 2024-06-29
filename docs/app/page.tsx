@@ -15,11 +15,14 @@ export default function HomePage() {
 				</h2>
 			</div>
 			<p className='text-muted-foreground'>
-				Go to{' '}
-				<Link href='/docs' className='text-foreground font-semibold underline'>
-					/docs
+				Go to the{' '}
+				<Link
+					href='/runtime'
+					className='text-foreground font-semibold underline'
+				>
+					Getting Started
 				</Link>{' '}
-				to read the documentation.
+				page to jump into the documentation.
 			</p>
 			<div className='flex text-5xl gap-8'>
 				<a

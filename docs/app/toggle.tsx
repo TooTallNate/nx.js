@@ -1,19 +1,27 @@
+import { TbGlobe, TbBrowser, TbBrandPowershell } from 'react-icons/tb';
 import { RootToggle } from 'fumadocs-ui/components/layout/root-toggle';
+
 export function Toggle() {
 	return (
 		<RootToggle
 			options={[
 				{
-					title: 'Documentation',
-					description: 'Pages in folder 1',
-					url: '/docs',
-					icon: 'docs',
+					title: 'Core Runtime',
+					description: 'Global APIs',
+					url: '/runtime',
+					icon: <TbGlobe size={24} />,
 				},
 				{
-					title: 'API Reference',
-					description: 'Pages in folder 2',
-					url: '/api',
-					icon: 'api',
+					title: '@nx.js/http',
+					description: 'HTTP server npm package',
+					url: '/http',
+					icon: <TbBrowser size={24} />,
+				},
+				{
+					title: '@nx.js/repl',
+					description: 'REPL class npm package',
+					url: '/repl',
+					icon: <TbBrandPowershell size={24} />,
 				},
 			]}
 		/>

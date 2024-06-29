@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
-API_DIR="docs/content/api"
 set -euo pipefail
+
+CONTENT_DIR="docs/content"
 cd ..
-rm -rf "$API_DIR"
-cp -r docs/api.template "$API_DIR"
 for d in packages/*/docs; do
-    cp -rv "$d" "${API_DIR}/$(basename "$(dirname "$d")")"
+    PKG="$(basename "$(dirname "$d")")"
+    API_DIR="$CONTENT_DIR/$PKG/api"
+    rm -rf "$API_DIR"
+    mkdir -p "$API_DIR"
+    cp -rv "$d"/* "$API_DIR"
 done

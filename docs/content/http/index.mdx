@@ -1,0 +1,21 @@
+---
+title: "@nx.js/http"
+description: nx.js HTTP server
+---
+
+nx.js provides a simple API for creating HTTP servers using the [`Switch.listen()`](/runtime/Switch/listen) function.
+
+## Example
+
+```ts
+import { Switch } from '@nx.js/runtime';
+
+Switch.listen({
+    port: 8080,
+
+    async fetch(req) {
+        console.log(`Got HTTP ${req.method} request for "${req.url}"`);
+        return new Response('Hello World!');
+    },
+});
+```

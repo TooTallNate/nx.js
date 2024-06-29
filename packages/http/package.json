@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc",
     "test": "vitest",
-    "docs": "typedoc"
+    "docs": "typedoc && ../../type-aliases-meta.sh"
   },
   "files": [
     "dist"

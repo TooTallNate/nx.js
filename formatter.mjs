@@ -32,10 +32,10 @@ export function load(app) {
 			const dirParts = parts.slice(3);
 			const dir = dirParts.length ? `${dirParts.join('/')}/` : '';
 			page.contents = page.contents.replace(
-				/\[(.*?)\]\((.*?)\)/g
-				, (_, text, link) => {
+				/(?<!\\)\[(.*?)]\((.*?)\)/g,
+				(_, text, link) => {
 				if (!link.includes('://')) {
-					const url = new URL(link, `http://e.com/api/${pkg}/${dir}`);
+					const url = new URL(link, `http://e.com/${pkg}/api/${dir}`);
 					link = `${url.pathname}${url.search}${url.hash}`;
 					if (link.endsWith('/index')) {
 						link = link.slice(0, -6);
