@@ -1,6 +1,6 @@
 // @ts-check
-import { relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { dirname, relative } from 'node:path';
 import { MarkdownPageEvent } from 'typedoc-plugin-markdown';
 
 /**
@@ -20,19 +20,18 @@ export function load(app) {
 		},
 	);
 
-	// Resolve all links to root relative
+	// Resolve all Markdown links to root relative
 	app.renderer.on(
 		MarkdownPageEvent.END,
 		/** @param {import('typedoc-plugin-markdown').MarkdownPageEvent} page */
 		(page) => {
 			if (!page.contents) return;
-			const rel = relative(root, page.filename);
-			const pkg = rel.split('/')[1];
+			const rel = relative(root, dirname(page.filename)).split('/').slice(1).join('/');
 			page.contents = page.contents.replace(
 				/\[(.*?)\]\((.*?)\)/g
 				, (_, text, link) => {
 				if (!link.includes('://')) {
-					link = resolve(`/docs/api/${pkg}`, link);
+					link = new URL(link, `http://e.com/docs/api/${rel}`).pathname;
 				}
 				return `[${text}](${link})`;
 			});
