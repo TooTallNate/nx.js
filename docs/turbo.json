@@ -11,7 +11,7 @@
         "app/**",
         "api.template/**"
       ],
-      "outputs": [".next/**", "!.next/cache/**"]
+      "outputs": [".next/**", "!.next/cache/**", "content/*/api/**"]
     },
     "dev": {
       "cache": false,
