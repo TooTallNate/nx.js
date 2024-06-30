@@ -3,6 +3,8 @@ title: Metadata
 description: Customizing the title, version, author & icon of your nx.js application
 ---
 
+import { File, Folder, Files } from 'fumadocs-ui/components/files';
+
 For distribution, you will likely want to customize the metadata for your application, as well as use a custom icon:
 * Metadata information can be specified by adding specific fields to the `package.json` file
 * The icon can be specified by adding a `logo.jpg` file to the root of your project
@@ -15,14 +17,14 @@ primarily relevant when utilizing the [Save Data API](/docs/switch/save-data) vi
 To set the title ID of your application, add a `titleId` field to your `package.json` file.
 It should contain a 16-character hexadecimal string which starts with `01` and ends with `0000`:
 
-```json
+```json title="package.json"
 {
   "titleId": "0123456789ab0000",
   … rest of your `package.json` file …
 }
 ```
 
-> The `create-nxjs-app` tool automatically generatess a random title ID for you,
+> The `create-nxjs-app` tool automatically generates a random title ID for you,
 > so normally you will not need to create this field manually.
 
 ## Name
@@ -30,7 +32,7 @@ It should contain a 16-character hexadecimal string which starts with `01` and e
 To set the title of your application (as shown in the homebrew menu), add either a
 `productName` or `name` field to your `package.json` file:
 
-```json
+```json title="package.json"
 {
   "productName": "My Application",
   "name": "my-application",
@@ -46,7 +48,7 @@ To set the title of your application (as shown in the homebrew menu), add either
 
 To set the version of your application, add a `version` field to your `package.json` file:
 
-```json
+```json title="package.json"
 {
   "version": "0.0.1",
   … rest of your `package.json` file …
@@ -57,7 +59,7 @@ To set the version of your application, add a `version` field to your `package.j
 
 To set the author of your application, add an `author` field to your `package.json` file:
 
-```json
+```json title="package.json"
 {
   "author": "Nathan Rajlich <n@n8.io>",
   … rest of your `package.json` file …
@@ -68,12 +70,13 @@ To set the author of your application, add an `author` field to your `package.js
 
 To set the icon of your application, add a `logo.jpg` file to the root of your project:
 
-```bash
-├── logo.jpg
-├── package.json
-└── src
-    └── main.ts
-```
+<Files>
+  <File name="logo.jpg" />
+  <File name="package.json" />
+  <Folder name="src" defaultOpen>
+    <File name="main.ts" />
+  </Folder>
+</Files>
 
 > The icon should be a square image. It will be resized to 256x256 pixels. If this file is
 > not present, then the default nx.js icon will be used.
