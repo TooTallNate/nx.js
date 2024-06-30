@@ -46,7 +46,7 @@ export default async function Page({
 				banner: <Toggle />,
 			}}
 		>
-			<DocsPage toc={page.data.exports.toc}>
+			<DocsPage toc={page.data.exports.toc.filter((t) => t.depth <= 3)}>
 				<DocsBody>
 					<h1>{page.data.title}</h1>
 					<p className='mb-8 text-lg text-muted-foreground'>

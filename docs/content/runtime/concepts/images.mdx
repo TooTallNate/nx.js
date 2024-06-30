@@ -8,13 +8,13 @@ conjunction with [**canvas rendering**](/runtime/rendering/canvas) mode.
 
 There are two primary ways to load images in nx.js:
 
-1. Using the `createImageBitmap()` function _(preferred)_
-1. Using the `Image` class
+1. Using the [`createImageBitmap()`](#createimagebitmap) function _(preferred)_
+1. Using the [`Image`](#image-class) class
 
 ## createImageBitmap()
 
-Use the `createImageBitmap()` function to asynchronously load and decode an image into
-an [`ImageBitmap`](https://developer.mozilla.org/en-US/docs/Web/API/createImageBitmap) instance:
+Use the [`createImageBitmap()`](/runtime/api/functions/createImageBitmap) function to
+asynchronously load and decode an image into an instance of [`ImageBitmap`](/runtime/api/classes/ImageBitmap):
 
 ```typescript
 const res = await fetch('https://nxjs.n8.io/logo.png');
@@ -28,7 +28,7 @@ ctx.drawImage(img, 0, 0);
 ## Image class
 
 Alternatively, your app can use the [`Image`](/runtime/api/classes/Image)
-constructor to load and decode images:
+constructor to load and decode images.
 
 Setting the `"src"` property to load image data uses [`fetch()`](/runtime/api/functions/fetch) under
 the hood, so any protocol supported by `fetch()` is also supported by the `Image` class.
