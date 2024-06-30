@@ -1,4 +1,9 @@
-import { TbGlobe, TbBrowser, TbBrandPowershell } from 'react-icons/tb';
+import {
+	TbGlobe,
+	TbBrowser,
+	TbBraces,
+	TbBrandPowershell,
+} from 'react-icons/tb';
 import { RootToggle } from 'fumadocs-ui/components/layout/root-toggle';
 
 export function Toggle() {
@@ -10,6 +15,12 @@ export function Toggle() {
 					description: 'Global APIs',
 					url: '/runtime',
 					icon: <TbGlobe size={24} />,
+				},
+				{
+					title: '@nx.js/constants',
+					description: 'Constants and enums for nx.js',
+					url: '/constants',
+					icon: <TbBraces size={24} />,
 				},
 				{
 					title: '@nx.js/http',
