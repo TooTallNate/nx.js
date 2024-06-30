@@ -19,6 +19,7 @@
     "react-icons": "^5.2.1"
   },
   "devDependencies": {
+    "@nx.js/constants": "workspace:*",
     "@nx.js/http": "workspace:*",
     "@nx.js/repl": "workspace:*",
     "@types/mdx": "^2.0.13",
