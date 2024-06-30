@@ -1,15 +1,15 @@
 ---
-title: FontFace
-description: Using custom fonts with the Canvas API
+title: Fonts
+description: Loading custom fonts for use with the Canvas API
 ---
 
 It is possible to load your own font files into an nx.js application, and then render
-your fonts using [**canvas rendering**](/docs/rendering/canvas) mode.
+your fonts using [**canvas rendering**](/runtime/rendering/canvas) mode.
 
 ## Loading a font
 
 To load a font, you'll need to create an instance of the
-[`FontFace`](https://developer.mozilla.org/docs/Web/API/FontFace) class,
+[`FontFace`](/runtime/api/classes/FontFace) class,
 by providing the name of the font and the font data as an `ArrayBuffer`:
 
 ```typescript
@@ -25,12 +25,12 @@ const font = new FontFace('Arial', fontData);
 ## Registering a font
 
 Once you've loaded a font, you'll need to register it with the
-[`FontFaceSet`](https://developer.mozilla.org/docs/Web/API/FontFaceSet) registry.
-The global `fonts` is available for this purpose, similar to how you would
-register a font in a "web worker" context.
+[`FontFaceSet`](/runtime/api/classes/FontFaceSet) registry.
+The [`fonts`](/runtime/api/variables/fonts) global is available for this purpose,
+similar to how you would register a font in a "web worker" context.
 
 ```typescript
-// Add the font to the global `fonts` configuration
+// Add the font to the global `fonts` registry
 fonts.add(font);
 ```
 

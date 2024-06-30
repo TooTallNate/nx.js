@@ -1,5 +1,5 @@
 ---
-title: Gamepad
+title: Controller Input
 description: Handling user input on connected controllers
 ---
 
@@ -7,11 +7,12 @@ nx.js supports up to __eight__ connected controllers. Your application can use t
 [Gamepad API](https://developer.mozilla.org/docs/Web/API/Gamepad_API) to read the
 state of these controllers.
 
-The `navigator.getGamepads()` function returns an array (always with a length of `8`)
-containing either `Gamepad` instances, or `null` for indicies where the controller is
-not connected.
+The [`navigator.getGamepads()`](/runtime/api/classes/Navigator#getgamepads) function
+returns an array (always with a length of `8`) containing either [`Gamepad`](/runtime/api/classes/Gamepad) instances,
+or `null` for indicies where the controller is not connected.
 
-> Index `0` of the gamepads array is the "main" gamepad, which is a special case that reports the state of both the first connected controller as well as the handheld mode controller.
+> Index `0` of the gamepads array is the "main" gamepad, which is a special case that
+> reports the state of both the _first_ connected controller as well as the _handheld mode_ controller.
 
 ## Example
 

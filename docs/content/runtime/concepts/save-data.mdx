@@ -10,7 +10,7 @@ nx.js includes built-in APIs for interacting with the Switch save data filesyste
 
 ## Persisting data using localStorage
 
-The [`localStorage`](https://developer.mozilla.org/docs/Web/API/Window/localStorage) API provides a high-level interface for persisting data that is stored in the Switch's save data filesystem. Data stored into local storage is unique across user profiles and individual nx.js apps, and will be persisted across subsequent launches of the app.
+The [`localStorage`](/runtime/api/variables/localStorage) API provides a high-level interface for persisting data that is stored in the Switch's save data filesystem. Data stored into local storage is unique across user profiles and individual nx.js apps, and will be persisted across subsequent launches of the app.
 
 The user selection dialog will be shown upon accessing the `localStorage` object, if the app was not launched with a profile selected.
 
@@ -62,13 +62,13 @@ await Switch.writeFile(
 saveData.commit();
 ```
 
-> In the example above, `Switch.Application.self` is used, which represents the currently
-> running nx.js app. However, an instance of `Switch.Application` can be obtained for officially
+> In the example above, [`Switch.Application.self`](/runtime/api/namespaces/Switch/classes/Application#self) is used, which represents the currently
+> running nx.js app. However, an instance of [`Switch.Application`](/runtime/api/namespaces/Switch/classes/Application) can be obtained for officially
 > installed applications or even homebrew apps.
 
 ## Learn more
 
 <Cards>
-  <Card title="Learn more about user profile selection" href="/runtime/switch/profiles" />
-  <Card title="Learn more about the `Switch.Application` class" href="/runtime/switch/applications" />
+  <Card title="Learn more about user profile selection" href="/runtime/concepts/profiles" />
+  <Card title="Learn more about the `Switch.Application` class" href="/runtime/concepts/applications" />
 </Cards>

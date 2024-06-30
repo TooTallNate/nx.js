@@ -1,10 +1,10 @@
 ---
-title: Image
+title: Images
 description: Loading images for use with the Canvas API
 ---
 
 Your app can load image assets and display them when used in
-conjunction with [**canvas rendering**](/docs/rendering/canvas) mode.
+conjunction with [**canvas rendering**](/runtime/rendering/canvas) mode.
 
 There are two primary ways to load images in nx.js:
 
@@ -27,10 +27,10 @@ ctx.drawImage(img, 0, 0);
 
 ## Image class
 
-Alternatively, your app can use the [`Image`](https://developer.mozilla.org/en-US/docs/Web/API/Image)
+Alternatively, your app can use the [`Image`](/runtime/api/classes/Image)
 constructor to load and decode images:
 
-Setting the `"src"` property to load image data uses [`fetch()`](/docs/web/fetch) under
+Setting the `"src"` property to load image data uses [`fetch()`](/runtime/api/functions/fetch) under
 the hood, so any protocol supported by `fetch()` is also supported by the `Image` class.
 
 ```typescript
