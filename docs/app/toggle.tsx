@@ -18,7 +18,7 @@ export function Toggle() {
 				},
 				{
 					title: '@nx.js/constants',
-					description: 'Constants and enums for nx.js',
+					description: 'Constants and enums',
 					url: '/constants',
 					icon: <TbBraces size={24} />,
 				},

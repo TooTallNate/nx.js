@@ -7,6 +7,7 @@
     "typedoc-plugin-frontmatter",
     "./formatter.mjs"
   ],
+  "disableSources": true,
   "readme": "none",
   "hidePageHeader": true,
   "hideBreadcrumbs": true,
