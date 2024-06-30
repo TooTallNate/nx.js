@@ -32,7 +32,7 @@ export default async function Page({
 	return (
 		<DocsLayout
 			tree={loader.pageTree}
-			githubUrl={'https://github.com/TooTallNate/nx.js'}
+			githubUrl='https://github.com/TooTallNate/nx.js'
 			nav={{
 				transparentMode: 'top',
 				title: (
@@ -42,6 +42,7 @@ export default async function Page({
 				),
 			}}
 			sidebar={{
+				defaultOpenLevel: 0,
 				banner: <Toggle />,
 			}}
 		>
