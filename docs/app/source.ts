@@ -5,7 +5,9 @@ import { createMDXSource } from 'fumadocs-mdx';
 import { loader } from 'fumadocs-core/source';
 
 const dirnameParts = __dirname.split('/');
-const docsDir = dirnameParts.slice(0, dirnameParts.indexOf('docs') + 1).join('/');
+const docsDir = dirnameParts
+	.slice(0, dirnameParts.indexOf('docs') + 1)
+	.join('/');
 const contentDir = join(docsDir, 'content');
 
 export const loaders: Map<
