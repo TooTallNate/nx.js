@@ -28,34 +28,7 @@ right at home.
 
 ## Getting Started
 
-1. Set up a custom firmware on your Switch, so that it can run homebrew applications ([instructions](https://nh-server.github.io/switch-guide/)).
-1. Download the `nxjs.nro` file from the [Releases](https://github.com/TooTallNate/nx.js/releases) page.
-1. Create a file called `nxjs.js` with the following contents:
-    ```javascript
-    console.log('Hello Switch, from JavaScript!');
-    ```
-1. Copy both files into the `/switch` directory on your SD card.
-1. Launch the app from the homebrew loader.
-1. Profit!
-
-See the [API docs](https://nxjs.n8.io) for further details, and check out the [`apps`](./apps) directory for examples.
-
-## Creating an application
-
-Run the following command to bootstrap the creation of an nx.js application:
-
-```bash
-npm create nxjs-app@latest
-```
-
-You will be able to choose from one of the example applications as a starting point.
-Follow the prompts, and afterwards a new directory will be created with the project
-name that you entered.
-
-The following `package.json` scripts are configured:
-
- * `build` - Bundle the application code into a single JavaScript file using [`esbuild`](https://esbuild.github.io)
- * `nro` - Package the bundled app (+ any other files in the `romfs` dir) into a self-contained `.nro` file
+Please see the [Getting Started](https://nxjs.n8.io/runtime) guide.
 
 ## Contributing
 
@@ -65,7 +38,7 @@ pull request in the [GitHub repository](https://github.com/TooTallNate/nx.js).
 
 [**Join the Discord server!**](https://discord.gg/MMmn73nsGz)
 
-## Building from Source
+### Building from Source
 
 1. Node.js needs to be installed (`curl -sfLS install-node.vercel.app/20 | bash`)
 1. `pnpm` needs to be installed (`npm i -g pnpm`)
