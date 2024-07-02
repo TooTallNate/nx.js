@@ -21,6 +21,8 @@
     "nxjs-runtime": "workspace:*"
   },
   "keywords": [
+    "nx.js",
+    "switch",
     "repl",
     "read-eval-print"
   ],
