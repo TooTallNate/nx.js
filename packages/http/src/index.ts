@@ -9,7 +9,7 @@ export { createStaticFileHandler, type StaticFileHandlerOpts } from './static';
 export type ServerHandler = (req: Request) => Response | Promise<Response>;
 
 /**
- * Options object for the {@link listen | `http.listen()`} function.
+ * Options object for the {@link listen | `listen()`} function.
  */
 export interface ListenOptions extends Omit<Switch.ListenOptions, 'accept'> {
 	fetch: ServerHandler;
@@ -19,7 +19,7 @@ export interface ListenOptions extends Omit<Switch.ListenOptions, 'accept'> {
  * Creates a socket handler function which accepts a socket
  * event and parses the incoming data as an HTTP request.
  *
- * @note This is a low-level function which usually should not be used directly. See {@link listen | `http.listen()`} instead.
+ * @note This is a low-level function which usually should not be used directly. See {@link listen | `listen()`} instead.
  *
  * @param handler The HTTP handler function to invoke when an HTTP request is received
  */
@@ -44,7 +44,9 @@ export function createServerHandler(handler: ServerHandler) {
  * @example
  *
  * ```typescript
- * http.listen({
+ * import { listen } from '@nx.js/http';
+ *
+ * listen({
  *   port: 8080,
  *   fetch(req) {
  *     console.log(`Got HTTP ${req.method} request for "${req.url}"`);

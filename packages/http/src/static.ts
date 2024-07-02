@@ -1,9 +1,13 @@
 import mime from 'mime';
 
 /**
- * Options object for the {@link createStaticFileHandler | `http.createStaticFileHandler()`} function.
+ * Options object for the {@link createStaticFileHandler | `createStaticFileHandler()`} function.
  */
 export interface StaticFileHandlerOpts {
+	/**
+	 * Addional HTTP headers to include in the response. Can be a static
+	 * `Headers` object, or a function which returns a `Headers` object.
+	 */
 	headers?: HeadersInit | ((req: Request, path: URL) => HeadersInit);
 }
 
@@ -19,9 +23,11 @@ export function resolvePath(url: string, root: string): URL {
  * @example
  *
  * ```typescript
- * const fileHandler = http.createStaticFileHandler('sdmc:/switch/');
+ * import { createStaticFileHandler, listen } from '@nx.js/http';
  *
- * http.listen({
+ * const fileHandler = createStaticFileHandler('sdmc:/switch/');
+ *
+ * listen({
  *   port: 8080,
  *   async fetch(req) {
  *     let res = await fileHandler(req);
@@ -34,13 +40,15 @@ export function resolvePath(url: string, root: string): URL {
  * ```
  *
  * @param root Root directory where static files are served from
+ * @param opts Optional options object
  */
 export function createStaticFileHandler(
 	root: Switch.PathLike,
-	opts: StaticFileHandlerOpts = {},
+	opts?: StaticFileHandlerOpts,
 ) {
 	let rootStr = String(root);
 	if (!rootStr.endsWith('/')) rootStr += '/';
+	const oHeaders = opts?.headers;
 	return async (req: Request): Promise<Response | null> => {
 		const url = resolvePath(req.url, rootStr);
 		const stat = await Switch.stat(url);
@@ -49,9 +57,9 @@ export function createStaticFileHandler(
 		const data = await Switch.readFile(url);
 		if (!data) return null;
 		const headers = new Headers(
-			typeof opts.headers === 'function'
-				? opts.headers(req, url)
-				: opts.headers,
+			typeof oHeaders === 'function'
+				? oHeaders(req, url)
+				: oHeaders,
 		);
 		headers.set('content-length', String(data.byteLength));
 		headers.set(
