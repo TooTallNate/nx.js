@@ -1,5 +1,7 @@
 # create-nxjs-app
 
+## 0.0.48
+
 ## 0.0.47
 
 ### Patch Changes
