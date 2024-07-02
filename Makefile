@@ -163,7 +163,14 @@ endif
 #---------------------------------------------------------------------------------
 all: $(BUILD)
 
-$(BUILD):
+source/runtime.c: packages/runtime/runtime.js
+	@qjsc -o source/runtime.c packages/runtime/runtime.js
+
+romfs/runtime.js.map: packages/runtime/runtime.js.map
+	@mkdir -p romfs
+	@cp -v packages/runtime/runtime.js.map romfs
+
+$(BUILD): source/runtime.c romfs/runtime.js.map
 	@[ -d $@ ] || mkdir -p $@
 	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
 

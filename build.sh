@@ -5,8 +5,6 @@ APP="${1-hello-world}"
 
 # Build JS runtime
 pnpm bundle
-mkdir -p romfs
-cp -v ./packages/runtime/runtime.* ./romfs/
 
 # Build packages and example app
 pnpm build --filter "$APP"
