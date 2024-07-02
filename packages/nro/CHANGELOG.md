@@ -1,5 +1,7 @@
 # @nx.js/nro
 
+## 0.0.48
+
 ## 0.0.47
 
 ### Patch Changes
