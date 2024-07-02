@@ -4,6 +4,8 @@ import { Toggle } from '@/app/toggle';
 import { DocsPage, DocsBody } from 'fumadocs-ui/page';
 import { notFound } from 'next/navigation';
 import { DocsLayout } from 'fumadocs-ui/layout';
+import Discord from '../discord';
+import GbaTemp from '../gbatemp';
 import type { Metadata } from 'next';
 
 export default async function Page({
@@ -41,6 +43,18 @@ export default async function Page({
 					</>
 				),
 			}}
+			links={[
+				{
+					icon: <Discord className='fill-current' />,
+					text: 'Join the Discord server',
+					url: 'https://discord.gg/MMmn73nsGz',
+				},
+				{
+					icon: <GbaTemp className='fill-current' />,
+					text: 'GBATemp Thread',
+					url: 'https://gbatemp.net/threads/nx-js-javascript-runtime-for-nintendo-switch-homebrew-applications.639171/',
+				},
+			]}
 			sidebar={{
 				defaultOpenLevel: 0,
 				banner: <Toggle />,

@@ -37,14 +37,17 @@ export default function HomePage() {
 					target='_blank'
 					title='Discord Server'
 				>
-					<Discord className='hover:drop-shadow-[0_0_2px_rgba(0,0,0,0.4)] dark:hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.4)] transition-all' />
+					<Discord className='fill-gray-700 dark:fill-white hover:drop-shadow-[0_0_2px_rgba(0,0,0,0.4)] dark:hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.4)] transition-all' />
 				</a>
 				<a
 					href='https://gbatemp.net/threads/nx-js-javascript-runtime-for-nintendo-switch-homebrew-applications.639171/'
 					target='_blank'
 					title='GBATemp Thread'
 				>
-					<GbaTemp className='hover:drop-shadow-[0_0_1.5px_rgba(0,0,0,0.4)] dark:hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.6)] transition-all' />
+					<GbaTemp
+						className='fill-gray-600 dark:fill-white hover:drop-shadow-[0_0_1.5px_rgba(0,0,0,0.4)] dark:hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.6)] transition-all'
+						eyesClassName='fill-[#ff9600]'
+					/>
 				</a>
 			</div>
 		</main>
