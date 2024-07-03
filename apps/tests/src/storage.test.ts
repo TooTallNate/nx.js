@@ -1,6 +1,11 @@
 import { suite } from 'uvu';
 import * as assert from 'uvu/assert';
 
+// Set the current profile to the first profile
+// so that the profile selector is not shown
+const firstProfile = Array.from(Switch.Profile)[0];
+Switch.Profile.current = firstProfile;
+
 const test = suite('Storage');
 const storage = localStorage;
 
