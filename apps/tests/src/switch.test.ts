@@ -70,7 +70,7 @@ test('`Switch.resolveDns()` rejects with invalid hostname', async () => {
 });
 
 test('`Switch.readFile()` works with string path', async () => {
-	const data = await Switch.readFile('romfs:/runtime.js');
+	const data = await Switch.readFile('romfs:/runtime.js.map');
 	assert.ok(data instanceof ArrayBuffer);
 	assert.ok(data.byteLength > 0);
 });
