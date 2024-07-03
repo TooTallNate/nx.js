@@ -84,7 +84,7 @@ export VPATH	:=	$(foreach dir,$(SOURCES),$(CURDIR)/$(dir)) \
 
 export DEPSDIR	:=	$(CURDIR)/$(BUILD)
 
-CFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
+CFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c))) runtime.c
 CPPFILES	:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp)))
 SFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
 BINFILES	:=	$(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.*)))
@@ -165,6 +165,7 @@ all: $(BUILD)
 
 source/runtime.c: packages/runtime/runtime.js
 	@qjsc -o source/runtime.c packages/runtime/runtime.js
+	@echo "compiled 'source/runtime.c' with qjsc"
 
 romfs/runtime.js.map: packages/runtime/runtime.js.map
 	@mkdir -p romfs
