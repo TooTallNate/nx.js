@@ -35,6 +35,10 @@
 
 #define LOG_FILENAME "nxjs-debug.log"
 
+// Defined in runtime.c
+extern const uint32_t qjsc_runtime_size;
+extern const uint8_t qjsc_runtime[];
+
 // Text renderer
 static PrintConsole *print_console = NULL;
 
@@ -685,28 +689,24 @@ int main(int argc, char *argv[])
 
 	JS_SetPropertyStr(ctx, global_obj, "$", nx_ctx->init_obj);
 
-	size_t runtime_buffer_size;
-	char *runtime_path = "romfs:/runtime.js";
-	char *runtime_buffer = (char *)read_file(runtime_path, &runtime_buffer_size);
-	if (runtime_buffer == NULL)
-	{
-		printf("%s: %s\n", strerror(errno), runtime_path);
-		nx_ctx->had_error = 1;
-		goto main_loop;
-	}
-
-	JSValue runtime_init_result = JS_Eval(ctx, runtime_buffer, runtime_buffer_size, runtime_path, JS_EVAL_TYPE_GLOBAL);
-	if (JS_IsException(runtime_init_result))
+	// Initialize runtime
+	JSValue runtime_init_func, runtime_init_result;
+	runtime_init_func = JS_ReadObject(ctx, qjsc_runtime, qjsc_runtime_size, JS_READ_OBJ_BYTECODE);
+	if (JS_IsException(runtime_init_func))
 	{
 		print_js_error(ctx);
 		nx_ctx->had_error = 1;
-	}
-	JS_FreeValue(ctx, runtime_init_result);
-	free(runtime_buffer);
-	if (nx_ctx->had_error)
-	{
 		goto main_loop;
 	}
+	runtime_init_result = JS_EvalFunction(ctx, runtime_init_func);
+	if (JS_IsException(runtime_init_result))
+	{
+		printf("Runtime initialization failed\n");
+		print_js_error(ctx);
+		nx_ctx->had_error = 1;
+		goto main_loop;
+	}
+	JS_FreeValue(ctx, runtime_init_result);
 
 	// Run the user code
 	JSValue user_code_result = JS_Eval(ctx, user_code, user_code_size, js_path, JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY);

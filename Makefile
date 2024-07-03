@@ -89,6 +89,11 @@ CPPFILES	:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp)))
 SFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
 BINFILES	:=	$(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.*)))
 
+# Add `runtime.c` to CFILES if necessary (i.e. on CI)
+ifneq ($(filter runtime.c,$(CFILES)),runtime.c)
+	CFILES := $(CFILES) runtime.c
+endif
+
 #---------------------------------------------------------------------------------
 # use CXX for linking C++ projects, CC for standard C
 #---------------------------------------------------------------------------------
@@ -163,7 +168,15 @@ endif
 #---------------------------------------------------------------------------------
 all: $(BUILD)
 
-$(BUILD):
+$(SOURCES)/runtime.c: packages/runtime/runtime.js
+	@qjsc -o $(SOURCES)/runtime.c packages/runtime/runtime.js
+	@echo "compiled '$(SOURCES)/runtime.c' with qjsc"
+
+$(ROMFS)/runtime.js.map: packages/runtime/runtime.js.map
+	@mkdir -p $(ROMFS)
+	@cp -v packages/runtime/runtime.js.map $(ROMFS)
+
+$(BUILD): source/runtime.c romfs/runtime.js.map
 	@[ -d $@ ] || mkdir -p $@
 	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
 
