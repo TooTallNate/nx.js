@@ -694,7 +694,6 @@ int main(int argc, char *argv[])
 	runtime_init_func = JS_ReadObject(ctx, qjsc_runtime, qjsc_runtime_size, JS_READ_OBJ_BYTECODE);
 	if (JS_IsException(runtime_init_func))
 	{
-		printf("Runtime initialization failed\n");
 		print_js_error(ctx);
 		nx_ctx->had_error = 1;
 		goto main_loop;
