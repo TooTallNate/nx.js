@@ -57,9 +57,7 @@ export function createStaticFileHandler(
 		const data = await Switch.readFile(url);
 		if (!data) return null;
 		const headers = new Headers(
-			typeof oHeaders === 'function'
-				? oHeaders(req, url)
-				: oHeaders,
+			typeof oHeaders === 'function' ? oHeaders(req, url) : oHeaders,
 		);
 		headers.set('content-length', String(data.byteLength));
 		headers.set(
