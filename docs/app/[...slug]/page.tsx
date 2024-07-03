@@ -51,7 +51,7 @@ export default async function Page({
 				},
 				{
 					icon: <GbaTemp className='fill-current' />,
-					text: 'GBATemp Thread',
+					text: 'GBATemp thread',
 					url: 'https://gbatemp.net/threads/nx-js-javascript-runtime-for-nintendo-switch-homebrew-applications.639171/',
 				},
 			]}

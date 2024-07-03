@@ -2,6 +2,12 @@
 title: Installation
 ---
 
+The `@nx.js/constants` package provides access to constants and enums which may be used in nx.js applications.
+
+They may to constants and bitmask types defined by `libnx`. The reason they are defined
+in a separate package is to avoid bloating the core bundle with values which your application
+may not need.
+
 <InstallTabs items={['npm', 'pnpm', 'yarn', 'bun']}>
     <Tab value='npm'>
 
@@ -33,3 +39,5 @@ bun add @nx.js/constants
     </Tab>
 
 </InstallTabs>
+
+> View the [API Reference](/constants/api) for more information.
