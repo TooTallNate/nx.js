@@ -7,7 +7,7 @@ import {
 	type CodeBlockProps,
 } from 'fumadocs-ui/components/codeblock';
 import type { MDXComponents } from 'mdx/types';
-import { Children, cloneElement, type ReactNode } from 'react';
+import { Children, cloneElement } from 'react';
 
 type CalloutProps = React.ComponentProps<typeof Callout>;
 
@@ -25,7 +25,7 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
 			children,
 		}: {
 			items: string[];
-			children: ReactNode;
+			children: React.ReactNode;
 		}) => (
 			<Tabs items={items} id='package-manager'>
 				{children}
@@ -58,9 +58,9 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
 }
 
 function mapStringChildren(
-	children: ReactNode,
+	children: React.ReactNode,
 	fn: (str: string) => string,
-): ReactNode {
+): React.ReactNode {
 	if (typeof children === 'string') {
 		return fn(children);
 	}
@@ -70,7 +70,9 @@ function mapStringChildren(
 	if (Array.isArray(children)) {
 		return Children.map(children, (child) => mapStringChildren(child, fn));
 	}
+	// @ts-expect-error
 	return cloneElement(children, {
+		// @ts-expect-error
 		children: mapStringChildren(children.props.children, fn),
 	});
 }
