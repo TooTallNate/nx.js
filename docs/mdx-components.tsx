@@ -32,23 +32,35 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
 			</Tabs>
 		),
 		blockquote: (props) => {
+			let icon: CalloutProps['icon'] = undefined;
 			let type: CalloutProps['type'] = 'info';
 			let title: CalloutProps['title'] = undefined;
 			const children = mapStringChildren(props.children, (str) => {
-				if (str.startsWith('[!NOTE]')) {
-					type = 'warn';
-					title = 'Warning';
-					return str.slice(7);
-				}
-				if (str.startsWith('NOTE: ')) {
-					type = 'warn';
-					title = 'Warning';
-					return str.slice(6);
-				}
-				return str;
+				return str.replace(/^(?:\[!([A-Z]+)\]|([A-Z]+):)/, (_, t1, t2) => {
+					const t = t1 || t2;
+					if (t === 'NOTE') {
+						type = 'info';
+						title = 'Note';
+					} else if (t === 'TIP') {
+						type = undefined;
+						title = 'Tip';
+						icon = '💡';
+					} else if (t === 'IMPORTANT') {
+						type = undefined;
+						title = 'Important';
+						icon = '⚠️';
+					} else if (t === 'WARNING') {
+						type = 'warn';
+						title = 'Warning';
+					} else if (t === 'CAUTION') {
+						type = 'error';
+						title = 'Caution';
+					}
+					return '';
+				});
 			});
 			return (
-				<Callout type={type} title={title}>
+				<Callout type={type} title={title} icon={icon}>
 					{children}
 				</Callout>
 			);
