@@ -72,8 +72,9 @@ export class Console {
 	 * Prints string `s` to the debug log file, without any formatting applied.
 	 * Newline is _not_ appending to the end of the string.
 	 *
+	 * > TIP: This function **does not** invoke _text rendering mode_, so it can safely be used when rendering with the Canvas API.
+	 *
 	 * @param s The text to print to the log file.
-	 * @note This function **does not** invoke _text rendering mode_, so it can safely be used when rendering with the Canvas API.
 	 */
 	printErr = (s: string) => {
 		_(this).printErr.call(this, s);
@@ -103,7 +104,7 @@ export class Console {
 	/**
 	 * Writes the formatted `input` to the debug log file.
 	 *
-	 * @note This function **does not** invoke _text rendering mode_, so it can safely be used when rendering with the Canvas API.
+	 * > TIP: This function **does not** invoke _text rendering mode_, so it can safely be used when rendering with the Canvas API.
 	 */
 	debug = (...input: unknown[]) => {
 		this.printErr(`${format(...input)}\n`);
@@ -130,9 +131,9 @@ export class Console {
  * for formatting, and the {@link console.print | `console.print()`} method
  * to output to the screen.
  *
- * > **NOTE:** Invoking any method on the `console` object switches the
- * > application to _text rendering mode_, clearing any pixels previously
- * > drawn on the screen using the Canvas API.
+ * > IMPORTANT: Unless otherwise stated, invoking any method on the `console`
+ * > object switches the application to _text rendering mode_, clearing any
+ * > pixels previously drawn on the screen using the Canvas API.
  *
  * @see https://developer.mozilla.org/docs/Web/API/console
  */

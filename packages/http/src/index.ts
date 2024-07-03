@@ -19,7 +19,9 @@ export interface ListenOptions extends Omit<Switch.ListenOptions, 'accept'> {
  * Creates a socket handler function which accepts a socket
  * event and parses the incoming data as an HTTP request.
  *
- * @note This is a low-level function which usually should not be used directly. See {@link listen | `listen()`} instead.
+ * > NOTE: This is a low-level function which usually should not be used directly.
+ * > See {@link listen | `listen()`} instead, which is a higher-level wrapper
+ * > around this function.
  *
  * @param handler The HTTP handler function to invoke when an HTTP request is received
  */

@@ -4,7 +4,7 @@
   "packageManager": "pnpm@8.15.8",
   "scripts": {
     "build": "turbo run build",
-    "docs": "turbo run docs",
+    "docs": "turbo watch docs",
     "nro": "turbo run nro",
     "bundle": "turbo run bundle",
     "format": "biome format --write apps packages docs",
