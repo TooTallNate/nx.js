@@ -84,10 +84,15 @@ export VPATH	:=	$(foreach dir,$(SOURCES),$(CURDIR)/$(dir)) \
 
 export DEPSDIR	:=	$(CURDIR)/$(BUILD)
 
-CFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c))) runtime.c
+CFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
 CPPFILES	:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp)))
 SFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
 BINFILES	:=	$(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.*)))
+
+# Add `runtime.c` to CFILES if necessary (i.e. on CI)
+ifneq ($(filter runtime.c,$(CFILES)),runtime.c)
+	CFILES := $(CFILES) runtime.c
+endif
 
 #---------------------------------------------------------------------------------
 # use CXX for linking C++ projects, CC for standard C
@@ -163,13 +168,13 @@ endif
 #---------------------------------------------------------------------------------
 all: $(BUILD)
 
-source/runtime.c: packages/runtime/runtime.js
-	@qjsc -o source/runtime.c packages/runtime/runtime.js
-	@echo "compiled 'source/runtime.c' with qjsc"
+$(SOURCES)/runtime.c: packages/runtime/runtime.js
+	@qjsc -o $(SOURCES)/runtime.c packages/runtime/runtime.js
+	@echo "compiled '$(SOURCES)/runtime.c' with qjsc"
 
-romfs/runtime.js.map: packages/runtime/runtime.js.map
-	@mkdir -p romfs
-	@cp -v packages/runtime/runtime.js.map romfs
+$(ROMFS)/runtime.js.map: packages/runtime/runtime.js.map
+	@mkdir -p $(ROMFS)
+	@cp -v packages/runtime/runtime.js.map $(ROMFS)
 
 $(BUILD): source/runtime.c romfs/runtime.js.map
 	@[ -d $@ ] || mkdir -p $@
