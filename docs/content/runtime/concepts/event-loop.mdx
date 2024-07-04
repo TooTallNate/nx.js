@@ -7,7 +7,9 @@ To hook into each frame of the event loop in nx.js, use the
 [`requestAnimationFrame()`](/runtime/api/functions/requestAnimationFrame)
 function. This allows your app to update its state at a fixed frame rate (60 FPS).
 
-```typescript
+## Example
+
+```typescript title="src/main.ts"
 const ctx = screen.getContext('2d');
 ctx.fillStyle = 'white';
 ctx.font = '40px sans-serif';

@@ -19,11 +19,9 @@ const app = Switch.Application.self;
 console.log(app.title);
 ```
 
-> Using `Switch.Application.self` considers the various methods in which an nx.js app can be launched, and loads the correct
-> application metadata accordingly. Specifically it handles the following cases:
-> 1. Launched from the homebrew menu (`.nro` file)
-> 1. Launched from the home screen via [forwarder](https://nsp-forwarder.n8.io) (`.nro` file)
-> 1. Launched from the home screen via installation (`.nsp` file)
+> [!NOTE]
+> Using `Switch.Application.self` considers the various methods in which a Switch
+> homebrew app can be launched, and loads the correct application metadata accordingly.
 
 ## Iterate installed applications
 
@@ -51,6 +49,7 @@ const app = new Switch.Application(0x0100000000010000b);
 console.log(app.title);
 ```
 
+> [!CAUTION]
 > If the specified title is not currently installed on the system, then the accessor methods will throw an error.
 
 ## By NRO blob
@@ -65,5 +64,6 @@ console.log(app.title);
 // Logs "Homebrew Menu"
 ```
 
-> The `app.launch()` function is currently not implemented for instances of `Switch.Application` which are backed by homebrew `.nro`
-> files. This may change in the future - see [#125](https://github.com/TooTallNate/nx.js/issues/125).
+> [!NOTE]
+> The [`app.launch()`](/runtime/api/namespaces/Switch/classes/Application#launch) function is currently not implemented for instances of `Switch.Application` which were created from a homebrew `.nro`
+> file. This may change in the future - see [#125](https://github.com/TooTallNate/nx.js/issues/125).

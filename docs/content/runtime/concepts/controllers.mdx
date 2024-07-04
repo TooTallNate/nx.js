@@ -11,12 +11,13 @@ The [`navigator.getGamepads()`](/runtime/api/classes/Navigator#getgamepads) func
 returns an array (always with a length of `8`) containing either [`Gamepad`](/runtime/api/classes/Gamepad) instances,
 or `null` for indicies where the controller is not connected.
 
+> [!IMPORTANT]
 > Index `0` of the gamepads array is the "main" gamepad, which is a special case that
-> reports the state of both the _first_ connected controller as well as the _handheld mode_ controller.
+> reports the state of the _first_ connected controller, as well as the _handheld mode_ controller.
 
 ## Example
 
-```js
+```js title="src/main.ts"
 function update() {
   requestAnimationFrame(update);
 

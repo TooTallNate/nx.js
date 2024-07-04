@@ -6,8 +6,15 @@ import {
 	CodeBlock,
 	type CodeBlockProps,
 } from 'fumadocs-ui/components/codeblock';
-import type { MDXComponents } from 'mdx/types';
 import { Children, cloneElement } from 'react';
+import {
+	TbInfoCircle,
+	TbBulb,
+	TbAlertTriangle,
+	TbHandStop,
+	TbAlertOctagon,
+} from 'react-icons/tb';
+import type { MDXComponents } from 'mdx/types';
 
 type CalloutProps = React.ComponentProps<typeof Callout>;
 
@@ -33,34 +40,51 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
 		),
 		blockquote: (props) => {
 			let icon: CalloutProps['icon'] = undefined;
-			let type: CalloutProps['type'] = 'info';
 			let title: CalloutProps['title'] = undefined;
 			const children = mapStringChildren(props.children, (str) => {
 				return str.replace(/^(?:\[!([A-Z]+)\]|([A-Z]+):)/, (_, t1, t2) => {
 					const t = t1 || t2;
 					if (t === 'NOTE') {
-						type = 'info';
-						title = 'Note';
+						title = <span className='text-blue-500'>Note</span>;
+						icon = (
+							<div className='border-l-blue-500 border-l-2 text-blue-500 pl-1 text-lg'>
+								<TbInfoCircle />
+							</div>
+						);
 					} else if (t === 'TIP') {
-						type = undefined;
-						title = 'Tip';
-						icon = '💡';
+						title = <span className='text-emerald-500'>Tip</span>;
+						icon = (
+							<div className='border-l-emerald-500 border-l-2 text-emerald-500 pl-1 text-lg'>
+								<TbBulb />
+							</div>
+						);
 					} else if (t === 'IMPORTANT') {
-						type = undefined;
-						title = 'Important';
-						icon = '⚠️';
+						title = <span className='text-purple-500'>Important</span>;
+						icon = (
+							<div className='border-l-purple-500 border-l-2 text-purple-500 pl-1 text-lg'>
+								<TbAlertOctagon />
+							</div>
+						);
 					} else if (t === 'WARNING') {
-						type = 'warn';
-						title = 'Warning';
+						title = <span className='text-yellow-500'>Warning</span>;
+						icon = (
+							<div className='border-l-yellow-500 border-l-2 text-yellow-500 pl-1 text-lg'>
+								<TbAlertTriangle />
+							</div>
+						);
 					} else if (t === 'CAUTION') {
-						type = 'error';
-						title = 'Caution';
+						title = <span className='text-rose-500'>Caution</span>;
+						icon = (
+							<div className='border-l-rose-500 border-l-2 text-rose-500 pl-1 text-lg'>
+								<TbHandStop />
+							</div>
+						);
 					}
 					return '';
 				});
 			});
 			return (
-				<Callout type={type} title={title} icon={icon}>
+				<Callout title={title} icon={icon}>
 					{children}
 				</Callout>
 			);

@@ -9,7 +9,9 @@ Entries in albums are either screenshots (JPEG image files) or movie recordings 
 There are two separate albums - one on the SD card and the other on the system internal memory (NAND).
 Your nx.js app will need to specify which of the albums it intends to interact with.
 
-```typescript
+## Example
+
+```typescript title="src/main.ts"
 import { CapsAlbumStorage } from '@nx.js/constants';
 
 // Create `Switch.Album` instance for the SD card album

@@ -3,12 +3,13 @@ title: Getting Started
 description: Bootstraping your nx.js app
 ---
 
+> [!IMPORTANT]
 > This guide assumes that you have a homebrew enabled Switch. If you don't,
 > you can follow the [NH Switch Guide](https://nh-server.github.io/switch-guide/)
 > to get started.
 >
-> It is also assumes that you have [Node.js](https://nodejs.org) installed on your
-> development machine, in order to run the tooling described in this guide.
+> [Node.js](https://nodejs.org) must also be installed on your development machine,
+> in order to run the tooling described in this guide.
 
 To get started on creating your nx.js application, it is recommended that you start with one of the [templates](https://github.com/TooTallNate/nx.js/tree/main/apps) and modify the source code from there.
 
@@ -76,6 +77,7 @@ of the nx.js app:
 npm run build
 ```
 
+> [!TIP]
 > You may place other files within the `romfs` directory, and they will become embedded within the RomFS
 > filesystem in the final executable. This is useful for assets such as images, fonts, and other
 > data files. You can read files from the RomFS partition by using the `romfs:/` URL protocol.

@@ -3,28 +3,33 @@ title: User Profiles
 description: Interacting with user profiles
 ---
 
-The `Switch.Profile` API is used to interact with user accounts/profiles which exist on the system.
+The [`Switch.Profile`](/runtime/api/namespaces/Switch/classes/Profile) API is used
+to interact with user accounts/profiles which exist on the system.
 
-Instances of `Switch.Profile` can read a profile's unique identifier (UID), nickname, and even
-retrieve the JPEG image contents of the profile image.
+Instances of `Switch.Profile` can read a profile's unique identifier (UID), nickname,
+and even retrieve the JPEG image contents of the profile image.
 
 ## The "current" profile
 
-When an nx.js application is launched with a preselected user, then the `Switch.Profile.current`
-property will be set to a `Switch.Profile` instance representing the user that the app was launched
-with.
+When an nx.js application is launched with a preselected user, then the
+[`Switch.Profile.current`](/runtime/api/namespaces/Switch/classes/Profile#current)
+property will be set to a `Switch.Profile` instance representing the user that the
+app was launched with.
 
-You may _set_ the `Switch.Profile.current` property to force the "current" profile to the specified
-profile. Doing so will prevent the user selection modal from being shown when accessing `localStorage`.
+You may _set_ the `Switch.Profile.current` property to force the "current" profile to
+the specified profile. Doing so will prevent the user selection modal from being
+shown when accessing [`localStorage`](/runtime/api/variables/localStorage).
 
 > The `localStorage` API utilizes this value to determine which user profile to associate the data with.
 
 
 ## User selection modal
 
-To explicitly trigger the built-in user selection modal (i.e. the one you see when launching a game title),
-invoke the `Switch.Profile.select()` function. A `Switch.Profile` instance is returned if the user selected
-a profile, or `null` if the user canceled the modal.
+To explicitly trigger the built-in user selection modal (i.e. the one you see when
+launching a game title), invoke the
+[`Switch.Profile.select()`](/runtime/api/namespaces/Switch/classes/Profile#select) function.
+A `Switch.Profile` instance is returned if the user selected a profile,
+or `null` if the user canceled the modal.
 
 ```typescript
 const profile = Switch.Profile.select();
