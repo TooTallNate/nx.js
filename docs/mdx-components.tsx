@@ -54,28 +54,28 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
 					} else if (t === 'TIP') {
 						title = <span className='text-emerald-500'>Tip</span>;
 						icon = (
-							<div className='border-l-emerald-500 border-l-2 text-emerald-500 pl-1 text-lg'>
+							<div className='border-l-emerald-500 border-l-2 text-emerald-500 pl-2 text-lg'>
 								<TbBulb />
 							</div>
 						);
 					} else if (t === 'IMPORTANT') {
 						title = <span className='text-purple-500'>Important</span>;
 						icon = (
-							<div className='border-l-purple-500 border-l-2 text-purple-500 pl-1 text-lg'>
+							<div className='border-l-purple-500 border-l-2 text-purple-500 pl-2 text-lg'>
 								<TbAlertOctagon />
 							</div>
 						);
 					} else if (t === 'WARNING') {
 						title = <span className='text-yellow-500'>Warning</span>;
 						icon = (
-							<div className='border-l-yellow-500 border-l-2 text-yellow-500 pl-1 text-lg'>
+							<div className='border-l-yellow-500 border-l-2 text-yellow-500 pl-2 text-lg'>
 								<TbAlertTriangle />
 							</div>
 						);
 					} else if (t === 'CAUTION') {
 						title = <span className='text-rose-500'>Caution</span>;
 						icon = (
-							<div className='border-l-rose-500 border-l-2 text-rose-500 pl-1 text-lg'>
+							<div className='border-l-rose-500 border-l-2 text-rose-500 pl-2 text-lg'>
 								<TbHandStop />
 							</div>
 						);
