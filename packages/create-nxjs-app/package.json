@@ -2,6 +2,12 @@
   "name": "create-nxjs-app",
   "version": "0.0.47",
   "description": "Initialize a `nx.js` homebrew application",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TooTallNate/nx.js.git",
+    "directory": "packages/create-nxjs-app"
+  },
+  "homepage": "https://nxjs.n8.io/runtime",
   "type": "module",
   "bin": "./dist/main.js",
   "files": [

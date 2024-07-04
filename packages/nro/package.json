@@ -2,6 +2,12 @@
   "name": "@nx.js/nro",
   "version": "0.0.47",
   "description": "Package nx.js app into a `.nro` file",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TooTallNate/nx.js.git",
+    "directory": "packages/nro"
+  },
+  "homepage": "https://nxjs.n8.io/nro",
   "bin": {
     "nxjs-nro": "./dist/main.js"
   },

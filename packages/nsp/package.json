@@ -2,6 +2,12 @@
   "name": "@nx.js/nsp",
   "version": "0.0.47",
   "description": "Package nx.js applications into a `.nsp` file",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TooTallNate/nx.js.git",
+    "directory": "packages/nsp"
+  },
+  "homepage": "https://nxjs.n8.io/nsp",
   "bin": {
     "nxjs-nsp": "dist/main.js"
   },
