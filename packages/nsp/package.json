@@ -1,6 +1,6 @@
 {
   "name": "@nx.js/nsp",
-  "version": "0.0.47",
+  "version": "0.0.48",
   "description": "Package nx.js applications into a `.nsp` file",
   "repository": {
     "type": "git",

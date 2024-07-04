@@ -1,5 +1,11 @@
 # @nx.js/constants
 
+## 0.1.4
+
+### Patch Changes
+
+- Add "repository" and "homepage" fields to `package.json` ([`dfcedb338987565f93273e929b558a8214e32e06`](https://github.com/TooTallNate/nx.js/commit/dfcedb338987565f93273e929b558a8214e32e06))
+
 ## 0.1.3
 
 ### Patch Changes
