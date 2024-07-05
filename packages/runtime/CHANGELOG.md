@@ -1,5 +1,25 @@
 # nxjs-runtime
 
+## 0.0.48
+
+### Patch Changes
+
+- Mark all `Switch.version` properties as `readonly` ([`eebb9634423f37c7be315213c07d962efa81bf60`](https://github.com/TooTallNate/nx.js/commit/eebb9634423f37c7be315213c07d962efa81bf60))
+
+- Fix `toStringTag` on global scope after quickjs update ([#139](https://github.com/TooTallNate/nx.js/pull/139))
+
+- Incorporate Atmosphère version into `navigator.userAgent` ([`54ff338b09ce9ec335ae4b6ba1cab2327d10b764`](https://github.com/TooTallNate/nx.js/commit/54ff338b09ce9ec335ae4b6ba1cab2327d10b764))
+
+- Load `runtime.js` from bytecode ([#142](https://github.com/TooTallNate/nx.js/pull/142))
+
+- Add `Switch.version.hos` to get system firmware version ([`ca85cb19c073c7fea60170b4382bfaf10b2a9f57`](https://github.com/TooTallNate/nx.js/commit/ca85cb19c073c7fea60170b4382bfaf10b2a9f57))
+
+- Add `Switch.version.emummc` to determine if Atmosphère is running from emuMMC or sysMMC ([`b526c8ef0cb7a4f5946613b035ef0e54158541f6`](https://github.com/TooTallNate/nx.js/commit/b526c8ef0cb7a4f5946613b035ef0e54158541f6))
+
+- Add "repository" and "homepage" fields to `package.json` ([`dfcedb338987565f93273e929b558a8214e32e06`](https://github.com/TooTallNate/nx.js/commit/dfcedb338987565f93273e929b558a8214e32e06))
+
+- Add `Switch.version.ams` to get the version of Atmosphère custom firmware ([`1b5d56e42f32d1e15d7aaf429de958d781ef0cb8`](https://github.com/TooTallNate/nx.js/commit/1b5d56e42f32d1e15d7aaf429de958d781ef0cb8))
+
 ## 0.0.47
 
 ### Patch Changes
