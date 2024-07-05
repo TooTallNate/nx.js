@@ -98,7 +98,9 @@ export class SaveData {
 	/**
 	 * Deletes the save data store.
 	 *
-	 * @warn This is a destructive operation! Use caution when using this function to avoid accidental data loss.
+	 * > CAUTION: This is a destructive operation! Use caution when using
+	 * > this function to avoid accidental data loss, such as prompting the
+	 * > user to confirm the deletion.
 	 */
 	delete() {
 		stub();

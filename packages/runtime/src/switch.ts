@@ -165,6 +165,8 @@ export interface SocketInfo {
 
 /**
  * A Map-like object providing methods to interact with the environment variables of the process.
+ *
+ * See {@link Env | `Switch.Env`} for more information.
  */
 export const env = new Env();
 
