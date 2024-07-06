@@ -24,6 +24,7 @@ It should contain a 16-character hexadecimal string which starts with `01` and e
 }
 ```
 
+> [!TIP]
 > The `create-nxjs-app` tool automatically generates a random title ID for you,
 > so normally you will not need to create this field manually.
 
@@ -40,6 +41,7 @@ To set the title of your application (as shown in the homebrew menu), add either
 }
 ```
 
+> [!TIP]
 > `productName` takes precedence over `name`, and allows for a "pretty" name to be
 > displayed for your app. But it's recommended to specify both fields, since
 > package managers will complain if `name` is missing.
@@ -78,5 +80,6 @@ To set the icon of your application, add an `icon.jpg` file to the root of your 
   </Folder>
 </Files>
 
+> [!NOTE]
 > The icon should be a square image. It will be resized to 256x256 pixels. If this file is
 > not present, then the default nx.js icon will be used.
