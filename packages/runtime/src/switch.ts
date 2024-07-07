@@ -168,7 +168,8 @@ export interface SocketInfo {
  *
  * See {@link Env | `Switch.Env`} for more information.
  */
-export const env = new Env();
+// @ts-expect-error Internal constructor
+export const env = new Env(INTERNAL_SYMBOL);
 
 /**
  * Array of the arguments passed to the process. Under normal circumstances, this array contains a single entry with the absolute path to the `.nro` file.
