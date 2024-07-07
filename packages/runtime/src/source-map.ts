@@ -52,28 +52,39 @@ function filenameToTracer(filename: string) {
 	// `null` means the source map could not be retrieved for this file
 	tracer = null;
 
-	const contentsBuffer = readFileSync(filename);
-	if (contentsBuffer) {
-		const contents = decoder.decode(contentsBuffer).trimEnd();
-		const lastNewline = contents.lastIndexOf('\n');
-		const lastLine = contents.slice(lastNewline + 1);
-		if (lastLine.startsWith(SOURCE_MAPPING_URL_PREFIX)) {
-			const sourceMappingURL = lastLine.slice(SOURCE_MAPPING_URL_PREFIX.length);
-			let sourceMapBuffer: ArrayBuffer | null;
-			if (sourceMappingURL.startsWith('data:')) {
-				sourceMapBuffer = dataUriToBuffer(sourceMappingURL).buffer;
-			} else {
-				sourceMapBuffer = readFileSync(new URL(sourceMappingURL, filename));
-			}
-			if (sourceMapBuffer) {
-				const sourceMap: EncodedSourceMap = JSON.parse(
-					decoder.decode(sourceMapBuffer),
-				);
-				tracer = new TraceMap(sourceMap);
+	// Check for the `.map` file based on the filename as a shortcut / default
+	let sourceMappingURL: string | URL = new URL(`${filename}.map`, filename);
+	let sourceMapBuffer = readFileSync(sourceMappingURL);
+
+	if (!sourceMapBuffer) {
+		// When the `.map` file is not found, try to find it based on the
+		// `sourceMappingURL` embedded in the source code, which handles
+		// source maps embedded in as data URIs or in a non-standard location
+		const contentsBuffer = readFileSync(filename);
+		if (contentsBuffer) {
+			const contents = decoder.decode(contentsBuffer).trimEnd();
+			const lastNewline = contents.lastIndexOf('\n');
+			const lastLine = contents.slice(lastNewline + 1);
+			if (lastLine.startsWith(SOURCE_MAPPING_URL_PREFIX)) {
+				sourceMappingURL = lastLine.slice(SOURCE_MAPPING_URL_PREFIX.length);
+				if (sourceMappingURL.startsWith('data:')) {
+					sourceMapBuffer = dataUriToBuffer(sourceMappingURL).buffer;
+				} else {
+					sourceMapBuffer = readFileSync(new URL(sourceMappingURL, filename));
+				}
 			}
 		}
-		sourceMapCache.set(filename, tracer);
 	}
+
+	if (sourceMapBuffer) {
+		const sourceMap: EncodedSourceMap = JSON.parse(
+			decoder.decode(sourceMapBuffer),
+		);
+		tracer = new TraceMap(sourceMap);
+	}
+
+	sourceMapCache.set(filename, tracer);
+
 	return tracer;
 }
 

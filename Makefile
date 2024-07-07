@@ -169,7 +169,7 @@ endif
 all: $(BUILD)
 
 $(SOURCES)/runtime.c: packages/runtime/runtime.js
-	@qjsc -o $(SOURCES)/runtime.c packages/runtime/runtime.js
+	@qjsc -o $(SOURCES)/runtime.c -n "romfs:/runtime.js" packages/runtime/runtime.js
 	@echo "compiled '$(SOURCES)/runtime.c' with qjsc"
 
 $(ROMFS)/runtime.js.map: packages/runtime/runtime.js.map
