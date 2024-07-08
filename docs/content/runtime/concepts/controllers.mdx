@@ -30,3 +30,26 @@ function update() {
 
 update();
 ```
+
+## Plus button behavior
+
+By default, pressing the `+` button on the first controller _will exit the application_.
+This is a typical convention for homebrew applications, and is also the default behavior
+for nx.js apps.
+
+### Preventing exit
+
+If you would like to have different behavior for the `+` button (such as showing a pause
+screen for your game) you can call `preventDefault()` on event object during the global
+`beforeunload` event:
+
+```typescript
+addEventListener('beforeunload', (event) => {
+  // Prevent the "+" button from exiting the application
+  event.preventDefault();
+});
+```
+
+> [!TIP]
+> Your application can still use the [`Switch.exit()`](/runtime/api/namespaces/Switch/functions/exit)
+> function to forcefully exit the application.
