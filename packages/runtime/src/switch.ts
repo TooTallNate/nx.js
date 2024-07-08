@@ -190,7 +190,8 @@ export const entrypoint = $.entrypoint;
 export const version = $.version;
 
 /**
- * Signals for the nx.js application process to exit. The "exit" event will be invoked once the event loop is stopped.
+ * Signals for the nx.js application to exit. The global "unload"
+ * event will be invoked after the event loop has stopped.
  */
 export function exit(): never {
 	$.exit();
