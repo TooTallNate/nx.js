@@ -1,5 +1,7 @@
 #pragma once
 #include "queue.h"
+#include <poll.h>
+#include <stddef.h>
 
 typedef struct nx_poll_s nx_poll_t;
 typedef struct nx_read_s nx_read_t;
