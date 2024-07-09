@@ -1,13 +1,12 @@
 #pragma once
+#include "types.h"
 #include <cairo.h>
 #include <harfbuzz/hb.h>
-#include "types.h"
 
 /**
  * `Screen` / `OffscreenCanvas` / `Image` / `ImageBitmap`
  */
-typedef struct
-{
+typedef struct {
 	uint32_t width;
 	uint32_t height;
 	uint8_t *data;
@@ -16,16 +15,14 @@ typedef struct
 
 nx_canvas_t *nx_get_canvas(JSContext *ctx, JSValueConst obj);
 
-typedef struct nx_rgba_s
-{
+typedef struct nx_rgba_s {
 	double r;
 	double g;
 	double b;
 	double a;
 } nx_rgba_t;
 
-typedef enum
-{
+typedef enum {
 	TEXT_BASELINE_ALPHABETIC,
 	TEXT_BASELINE_TOP,
 	TEXT_BASELINE_BOTTOM,
@@ -34,8 +31,7 @@ typedef enum
 	TEXT_BASELINE_HANGING
 } text_baseline_t;
 
-typedef enum
-{
+typedef enum {
 	TEXT_ALIGN_LEFT,
 	TEXT_ALIGN_CENTER,
 	TEXT_ALIGN_RIGHT,
@@ -49,8 +45,7 @@ typedef enum
  * Used in conjunction with `ctx.save()` / `ctx.restore()` since
  * cairo's gstate maintains only a single source pattern at a time.
  */
-typedef struct nx_canvas_context_2d_state_s
-{
+typedef struct nx_canvas_context_2d_state_s {
 
 	nx_rgba_t fill;
 	nx_rgba_t stroke;
@@ -78,14 +73,14 @@ typedef struct nx_canvas_context_2d_state_s
 /**
  * `CanvasRenderingContext2D` / `OffscreenCanvasRenderingContext2D`
  */
-typedef struct nx_canvas_context_2d_s
-{
+typedef struct nx_canvas_context_2d_s {
 	nx_canvas_t *canvas;
 	cairo_t *ctx;
 	cairo_path_t *path;
 	nx_canvas_context_2d_state_t *state;
 } nx_canvas_context_2d_t;
 
-nx_canvas_context_2d_t *nx_get_canvas_context_2d(JSContext *ctx, JSValueConst obj);
+nx_canvas_context_2d_t *nx_get_canvas_context_2d(JSContext *ctx,
+												 JSValueConst obj);
 
 void nx_init_canvas(JSContext *ctx, JSValueConst init_obj);

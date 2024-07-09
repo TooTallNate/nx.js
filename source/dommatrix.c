@@ -1,35 +1,31 @@
-#include <math.h>
 #include "dommatrix.h"
+#include <math.h>
 
 #define RADS_PER_DEGREE (M_PI / 180.)
 
 #define ARG_IS_NUM(INDEX) (argc > INDEX && JS_IsNumber(argv[INDEX]))
 
-#define ARG_TO_NUM(INDEX, VAR)                    \
-	if (ARG_IS_NUM(INDEX))                        \
-	{                                             \
-		if (JS_ToFloat64(ctx, &VAR, argv[INDEX])) \
-		{                                         \
-			return JS_EXCEPTION;                  \
-		}                                         \
+#define ARG_TO_NUM(INDEX, VAR)                                                 \
+	if (ARG_IS_NUM(INDEX)) {                                                   \
+		if (JS_ToFloat64(ctx, &VAR, argv[INDEX])) {                            \
+			return JS_EXCEPTION;                                               \
+		}                                                                      \
 	}
 
-#define DOMMATRIX_THIS                                                            \
-	nx_dommatrix_t *matrix = JS_GetOpaque2(ctx, this_val, nx_dommatrix_class_id); \
-	if (!matrix)                                                                  \
-	{                                                                             \
-		return JS_EXCEPTION;                                                      \
+#define DOMMATRIX_THIS                                                         \
+	nx_dommatrix_t *matrix =                                                   \
+		JS_GetOpaque2(ctx, this_val, nx_dommatrix_class_id);                   \
+	if (!matrix) {                                                             \
+		return JS_EXCEPTION;                                                   \
 	}
 
 static JSClassID nx_dommatrix_class_id;
 
-nx_dommatrix_t *nx_get_dommatrix(JSContext *ctx, JSValueConst obj)
-{
+nx_dommatrix_t *nx_get_dommatrix(JSContext *ctx, JSValueConst obj) {
 	return JS_GetOpaque2(ctx, obj, nx_dommatrix_class_id);
 }
 
-void matrix_values(nx_dommatrix_values_t *m, double *v)
-{
+void matrix_values(nx_dommatrix_values_t *m, double *v) {
 	m->m11 = v[0];
 	m->m12 = v[1];
 	m->m13 = v[2];
@@ -48,81 +44,92 @@ void matrix_values(nx_dommatrix_values_t *m, double *v)
 	m->m44 = v[15];
 }
 
-void multiply(const nx_dommatrix_values_t *a, const nx_dommatrix_values_t *b, nx_dommatrix_values_t *result)
-{
+void multiply(const nx_dommatrix_values_t *a, const nx_dommatrix_values_t *b,
+			  nx_dommatrix_values_t *result) {
 	*result = (nx_dommatrix_values_t){0};
 
-	result->m11 = a->m11 * b->m11 + a->m12 * b->m21 + a->m13 * b->m31 + a->m14 * b->m41;
-	result->m12 = a->m11 * b->m12 + a->m12 * b->m22 + a->m13 * b->m32 + a->m14 * b->m42;
-	result->m13 = a->m11 * b->m13 + a->m12 * b->m23 + a->m13 * b->m33 + a->m14 * b->m43;
-	result->m14 = a->m11 * b->m14 + a->m12 * b->m24 + a->m13 * b->m34 + a->m14 * b->m44;
+	result->m11 =
+		a->m11 * b->m11 + a->m12 * b->m21 + a->m13 * b->m31 + a->m14 * b->m41;
+	result->m12 =
+		a->m11 * b->m12 + a->m12 * b->m22 + a->m13 * b->m32 + a->m14 * b->m42;
+	result->m13 =
+		a->m11 * b->m13 + a->m12 * b->m23 + a->m13 * b->m33 + a->m14 * b->m43;
+	result->m14 =
+		a->m11 * b->m14 + a->m12 * b->m24 + a->m13 * b->m34 + a->m14 * b->m44;
 
-	result->m21 = a->m21 * b->m11 + a->m22 * b->m21 + a->m23 * b->m31 + a->m24 * b->m41;
-	result->m22 = a->m21 * b->m12 + a->m22 * b->m22 + a->m23 * b->m32 + a->m24 * b->m42;
-	result->m23 = a->m21 * b->m13 + a->m22 * b->m23 + a->m23 * b->m33 + a->m24 * b->m43;
-	result->m24 = a->m21 * b->m14 + a->m22 * b->m24 + a->m23 * b->m34 + a->m24 * b->m44;
+	result->m21 =
+		a->m21 * b->m11 + a->m22 * b->m21 + a->m23 * b->m31 + a->m24 * b->m41;
+	result->m22 =
+		a->m21 * b->m12 + a->m22 * b->m22 + a->m23 * b->m32 + a->m24 * b->m42;
+	result->m23 =
+		a->m21 * b->m13 + a->m22 * b->m23 + a->m23 * b->m33 + a->m24 * b->m43;
+	result->m24 =
+		a->m21 * b->m14 + a->m22 * b->m24 + a->m23 * b->m34 + a->m24 * b->m44;
 
-	result->m31 = a->m31 * b->m11 + a->m32 * b->m21 + a->m33 * b->m31 + a->m34 * b->m41;
-	result->m32 = a->m31 * b->m12 + a->m32 * b->m22 + a->m33 * b->m32 + a->m34 * b->m42;
-	result->m33 = a->m31 * b->m13 + a->m32 * b->m23 + a->m33 * b->m33 + a->m34 * b->m43;
-	result->m34 = a->m31 * b->m14 + a->m32 * b->m24 + a->m33 * b->m34 + a->m34 * b->m44;
+	result->m31 =
+		a->m31 * b->m11 + a->m32 * b->m21 + a->m33 * b->m31 + a->m34 * b->m41;
+	result->m32 =
+		a->m31 * b->m12 + a->m32 * b->m22 + a->m33 * b->m32 + a->m34 * b->m42;
+	result->m33 =
+		a->m31 * b->m13 + a->m32 * b->m23 + a->m33 * b->m33 + a->m34 * b->m43;
+	result->m34 =
+		a->m31 * b->m14 + a->m32 * b->m24 + a->m33 * b->m34 + a->m34 * b->m44;
 
-	result->m41 = a->m41 * b->m11 + a->m42 * b->m21 + a->m43 * b->m31 + a->m44 * b->m41;
-	result->m42 = a->m41 * b->m12 + a->m42 * b->m22 + a->m43 * b->m32 + a->m44 * b->m42;
-	result->m43 = a->m41 * b->m13 + a->m42 * b->m23 + a->m43 * b->m33 + a->m44 * b->m43;
-	result->m44 = a->m41 * b->m14 + a->m42 * b->m24 + a->m43 * b->m34 + a->m44 * b->m44;
+	result->m41 =
+		a->m41 * b->m11 + a->m42 * b->m21 + a->m43 * b->m31 + a->m44 * b->m41;
+	result->m42 =
+		a->m41 * b->m12 + a->m42 * b->m22 + a->m43 * b->m32 + a->m44 * b->m42;
+	result->m43 =
+		a->m41 * b->m13 + a->m42 * b->m23 + a->m43 * b->m33 + a->m44 * b->m43;
+	result->m44 =
+		a->m41 * b->m14 + a->m42 * b->m24 + a->m43 * b->m34 + a->m44 * b->m44;
 }
 
-#define NX_DOMMATRIX_NEW_GET_INDEX(INDEX, FIELD)         \
-	v = JS_GetPropertyUint32(ctx, argv[0], INDEX);       \
-	if (JS_IsNumber(v))                                  \
-	{                                                    \
-		if (JS_ToFloat64(ctx, &matrix->values.FIELD, v)) \
-		{                                                \
-			return JS_EXCEPTION;                         \
-		}                                                \
-	}                                                    \
+#define NX_DOMMATRIX_NEW_GET_INDEX(INDEX, FIELD)                               \
+	v = JS_GetPropertyUint32(ctx, argv[0], INDEX);                             \
+	if (JS_IsNumber(v)) {                                                      \
+		if (JS_ToFloat64(ctx, &matrix->values.FIELD, v)) {                     \
+			return JS_EXCEPTION;                                               \
+		}                                                                      \
+	}                                                                          \
 	JS_FreeValue(ctx, v);
 
-static JSValue nx_dommatrix_new(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
+static JSValue nx_dommatrix_new(JSContext *ctx, JSValueConst this_val, int argc,
+								JSValueConst *argv) {
 	nx_dommatrix_t *matrix = js_mallocz(ctx, sizeof(nx_dommatrix_t));
-	if (!matrix)
-	{
+	if (!matrix) {
 		return JS_EXCEPTION;
 	}
 
 	// Initialize as identity matrix
 	matrix->is_2d = true;
-	matrix->values.m11 = matrix->values.m22 = matrix->values.m33 = matrix->values.m44 = 1.;
+	matrix->values.m11 = matrix->values.m22 = matrix->values.m33 =
+		matrix->values.m44 = 1.;
 
-	if (argc > 0 && JS_IsArray(ctx, argv[0]))
-	{
+	if (argc > 0 && JS_IsArray(ctx, argv[0])) {
 		int length;
 		JSValue lengthVal = JS_GetPropertyStr(ctx, argv[0], "length");
-		if (JS_ToInt32(ctx, &length, lengthVal))
-		{
+		if (JS_ToInt32(ctx, &length, lengthVal)) {
 			js_free(ctx, matrix);
 			return JS_EXCEPTION;
 		}
 		JS_FreeValue(ctx, lengthVal);
-		if (length != 6 && length != 16)
-		{
+		if (length != 6 && length != 16) {
 			js_free(ctx, matrix);
-			return JS_ThrowTypeError(ctx, "Matrix init sequence must have a length of 6 or 16 (actual value: %d)", length);
+			return JS_ThrowTypeError(ctx,
+									 "Matrix init sequence must have a length "
+									 "of 6 or 16 (actual value: %d)",
+									 length);
 		}
 		JSValue v;
-		if (length == 6)
-		{
+		if (length == 6) {
 			NX_DOMMATRIX_NEW_GET_INDEX(0, m11)
 			NX_DOMMATRIX_NEW_GET_INDEX(1, m12)
 			NX_DOMMATRIX_NEW_GET_INDEX(2, m21)
 			NX_DOMMATRIX_NEW_GET_INDEX(3, m22)
 			NX_DOMMATRIX_NEW_GET_INDEX(4, m41)
 			NX_DOMMATRIX_NEW_GET_INDEX(5, m42)
-		}
-		else
-		{
+		} else {
 			NX_DOMMATRIX_NEW_GET_INDEX(0, m11)
 			NX_DOMMATRIX_NEW_GET_INDEX(1, m12)
 			NX_DOMMATRIX_NEW_GET_INDEX(2, m13)
@@ -147,19 +154,17 @@ static JSValue nx_dommatrix_new(JSContext *ctx, JSValueConst this_val, int argc,
 	return obj;
 }
 
-#define NX_DOMMATRIX_INIT_GET_PROP(NAME, FIELD)          \
-	v = JS_GetPropertyStr(ctx, obj, #NAME);              \
-	if (JS_IsNumber(v))                                  \
-	{                                                    \
-		if (JS_ToFloat64(ctx, &matrix->values.FIELD, v)) \
-		{                                                \
-			return 1;                                    \
-		}                                                \
-	}                                                    \
+#define NX_DOMMATRIX_INIT_GET_PROP(NAME, FIELD)                                \
+	v = JS_GetPropertyStr(ctx, obj, #NAME);                                    \
+	if (JS_IsNumber(v)) {                                                      \
+		if (JS_ToFloat64(ctx, &matrix->values.FIELD, v)) {                     \
+			return 1;                                                          \
+		}                                                                      \
+	}                                                                          \
 	JS_FreeValue(ctx, v);
 
-int nx_dommatrix_init(JSContext *ctx, JSValueConst obj, nx_dommatrix_t *matrix)
-{
+int nx_dommatrix_init(JSContext *ctx, JSValueConst obj,
+					  nx_dommatrix_t *matrix) {
 	if (!JS_IsObject(obj))
 		return 0;
 
@@ -188,11 +193,9 @@ int nx_dommatrix_init(JSContext *ctx, JSValueConst obj, nx_dommatrix_t *matrix)
 	NX_DOMMATRIX_INIT_GET_PROP(m44, m44)
 
 	v = JS_GetPropertyStr(ctx, obj, "is2D");
-	if (JS_IsBool(v))
-	{
+	if (JS_IsBool(v)) {
 		int b = JS_ToBool(ctx, v);
-		if (b == -1)
-		{
+		if (b == -1) {
 			return 1;
 		}
 		matrix->is_2d = b;
@@ -202,20 +205,19 @@ int nx_dommatrix_init(JSContext *ctx, JSValueConst obj, nx_dommatrix_t *matrix)
 	return 0;
 }
 
-static JSValue nx_dommatrix_from_matrix(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
+static JSValue nx_dommatrix_from_matrix(JSContext *ctx, JSValueConst this_val,
+										int argc, JSValueConst *argv) {
 	nx_dommatrix_t *matrix = js_mallocz(ctx, sizeof(nx_dommatrix_t));
-	if (!matrix)
-	{
+	if (!matrix) {
 		return JS_EXCEPTION;
 	}
 
 	// Initialize as identity matrix
 	matrix->is_2d = true;
-	matrix->values.m11 = matrix->values.m22 = matrix->values.m33 = matrix->values.m44 = 1.;
+	matrix->values.m11 = matrix->values.m22 = matrix->values.m33 =
+		matrix->values.m44 = 1.;
 
-	if (argc > 0)
-	{
+	if (argc > 0) {
 		if (nx_dommatrix_init(ctx, argv[0], matrix)) {
 			return JS_EXCEPTION;
 		}
@@ -226,41 +228,38 @@ static JSValue nx_dommatrix_from_matrix(JSContext *ctx, JSValueConst this_val, i
 	return obj;
 }
 
-#define DEFINE_GETTER(NAME)                                                                                     \
-	static JSValue nx_dommatrix_get_##NAME(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv) \
-	{                                                                                                           \
-		DOMMATRIX_THIS;                                                                                         \
-		return JS_NewFloat64(ctx, matrix->values.NAME);                                                         \
+#define DEFINE_GETTER(NAME)                                                    \
+	static JSValue nx_dommatrix_get_##NAME(                                    \
+		JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv) { \
+		DOMMATRIX_THIS;                                                        \
+		return JS_NewFloat64(ctx, matrix->values.NAME);                        \
 	}
 
-#define DEFINE_GETTER_SETTER(NAME)                                                                              \
-	DEFINE_GETTER(NAME)                                                                                         \
-	static JSValue nx_dommatrix_set_##NAME(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv) \
-	{                                                                                                           \
-		DOMMATRIX_THIS;                                                                                         \
-		if (JS_ToFloat64(ctx, &matrix->values.NAME, argv[0]))                                                   \
-		{                                                                                                       \
-			return JS_EXCEPTION;                                                                                \
-		}                                                                                                       \
-		return JS_UNDEFINED;                                                                                    \
+#define DEFINE_GETTER_SETTER(NAME)                                             \
+	DEFINE_GETTER(NAME)                                                        \
+	static JSValue nx_dommatrix_set_##NAME(                                    \
+		JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv) { \
+		DOMMATRIX_THIS;                                                        \
+		if (JS_ToFloat64(ctx, &matrix->values.NAME, argv[0])) {                \
+			return JS_EXCEPTION;                                               \
+		}                                                                      \
+		return JS_UNDEFINED;                                                   \
 	}
 
-#define DEFINE_GETTER_SETTER_3D(NAME, DEFAULT_VAL)                                                              \
-	DEFINE_GETTER(NAME)                                                                                         \
-	static JSValue nx_dommatrix_set_##NAME(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv) \
-	{                                                                                                           \
-		DOMMATRIX_THIS;                                                                                         \
-		double val;                                                                                             \
-		if (JS_ToFloat64(ctx, &val, argv[0]))                                                                   \
-		{                                                                                                       \
-			return JS_EXCEPTION;                                                                                \
-		}                                                                                                       \
-		matrix->values.NAME = val;                                                                              \
-		if (val != DEFAULT_VAL)                                                                                 \
-		{                                                                                                       \
-			matrix->is_2d = false;                                                                              \
-		}                                                                                                       \
-		return JS_UNDEFINED;                                                                                    \
+#define DEFINE_GETTER_SETTER_3D(NAME, DEFAULT_VAL)                             \
+	DEFINE_GETTER(NAME)                                                        \
+	static JSValue nx_dommatrix_set_##NAME(                                    \
+		JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv) { \
+		DOMMATRIX_THIS;                                                        \
+		double val;                                                            \
+		if (JS_ToFloat64(ctx, &val, argv[0])) {                                \
+			return JS_EXCEPTION;                                               \
+		}                                                                      \
+		matrix->values.NAME = val;                                             \
+		if (val != DEFAULT_VAL) {                                              \
+			matrix->is_2d = false;                                             \
+		}                                                                      \
+		return JS_UNDEFINED;                                                   \
 	}
 
 DEFINE_GETTER_SETTER(m11)
@@ -280,23 +279,24 @@ DEFINE_GETTER_SETTER(m42)
 DEFINE_GETTER_SETTER_3D(m43, 0.0)
 DEFINE_GETTER_SETTER_3D(m44, 1.0)
 
-static JSValue nx_dommatrix_is_2d(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
+static JSValue nx_dommatrix_is_2d(JSContext *ctx, JSValueConst this_val,
+								  int argc, JSValueConst *argv) {
 	DOMMATRIX_THIS;
 	return JS_NewBool(ctx, matrix->is_2d);
 }
 
-bool nx_dommatrix_is_identity_(nx_dommatrix_t* matrix)
-{
+bool nx_dommatrix_is_identity_(nx_dommatrix_t *matrix) {
 	nx_dommatrix_values_t *values = &matrix->values;
-	return values->m11 == 1. && values->m12 == 0. && values->m13 == 0. && values->m14 == 0. &&
-		values->m21 == 0. && values->m22 == 1. && values->m23 == 0. && values->m24 == 0. &&
-		values->m31 == 0. && values->m32 == 0. && values->m33 == 1. && values->m34 == 0. &&
-		values->m41 == 0. && values->m42 == 0. && values->m43 == 0. && values->m44 == 1.;
+	return values->m11 == 1. && values->m12 == 0. && values->m13 == 0. &&
+		   values->m14 == 0. && values->m21 == 0. && values->m22 == 1. &&
+		   values->m23 == 0. && values->m24 == 0. && values->m31 == 0. &&
+		   values->m32 == 0. && values->m33 == 1. && values->m34 == 0. &&
+		   values->m41 == 0. && values->m42 == 0. && values->m43 == 0. &&
+		   values->m44 == 1.;
 }
 
-static JSValue nx_dommatrix_is_identity(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
+static JSValue nx_dommatrix_is_identity(JSContext *ctx, JSValueConst this_val,
+										int argc, JSValueConst *argv) {
 	DOMMATRIX_THIS;
 	return JS_NewBool(ctx, nx_dommatrix_is_identity_(matrix));
 }
@@ -306,78 +306,63 @@ void translate(nx_dommatrix_t *matrix, double tx, double ty, double tz) {
 		nx_dommatrix_values_t result;
 		nx_dommatrix_values_t b;
 		double values[] = {
-			1, 0, 0, 0,
-			0, 1, 0, 0,
-			0, 0, 1, 0,
-			tx, ty, tz, 1,
+			1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, tx, ty, tz, 1,
 		};
 		matrix_values(&b, values);
 		multiply(&b, &matrix->values, &result);
 		*(&matrix->values) = result;
-		if (tz != 0)
-		{
+		if (tz != 0) {
 			matrix->is_2d = false;
 		}
 	}
 }
 
-void nx_dommatrix_invert_self_(nx_dommatrix_t* matrix)
-{
+void nx_dommatrix_invert_self_(nx_dommatrix_t *matrix) {
 	double inv[16] = {0};
 
-    inv[0] = matrix->values.m22 * matrix->values.m33 * matrix->values.m44 -
-            matrix->values.m22 * matrix->values.m34 * matrix->values.m43 -
-            matrix->values.m32 * matrix->values.m23 * matrix->values.m44 +
-            matrix->values.m32 * matrix->values.m24 * matrix->values.m43 +
-            matrix->values.m42 * matrix->values.m23 * matrix->values.m34 -
-            matrix->values.m42 * matrix->values.m24 * matrix->values.m33;
+	inv[0] = matrix->values.m22 * matrix->values.m33 * matrix->values.m44 -
+			 matrix->values.m22 * matrix->values.m34 * matrix->values.m43 -
+			 matrix->values.m32 * matrix->values.m23 * matrix->values.m44 +
+			 matrix->values.m32 * matrix->values.m24 * matrix->values.m43 +
+			 matrix->values.m42 * matrix->values.m23 * matrix->values.m34 -
+			 matrix->values.m42 * matrix->values.m24 * matrix->values.m33;
 
-    inv[4] = -matrix->values.m21 * matrix->values.m33 * matrix->values.m44 +
-            matrix->values.m21 * matrix->values.m34 * matrix->values.m43 +
-            matrix->values.m31 * matrix->values.m23 * matrix->values.m44 -
-            matrix->values.m31 * matrix->values.m24 * matrix->values.m43 -
-            matrix->values.m41 * matrix->values.m23 * matrix->values.m34 +
-            matrix->values.m41 * matrix->values.m24 * matrix->values.m33;
+	inv[4] = -matrix->values.m21 * matrix->values.m33 * matrix->values.m44 +
+			 matrix->values.m21 * matrix->values.m34 * matrix->values.m43 +
+			 matrix->values.m31 * matrix->values.m23 * matrix->values.m44 -
+			 matrix->values.m31 * matrix->values.m24 * matrix->values.m43 -
+			 matrix->values.m41 * matrix->values.m23 * matrix->values.m34 +
+			 matrix->values.m41 * matrix->values.m24 * matrix->values.m33;
 
-    inv[8] = matrix->values.m21 * matrix->values.m32 * matrix->values.m44 -
-            matrix->values.m21 * matrix->values.m34 * matrix->values.m42 -
-            matrix->values.m31 * matrix->values.m22 * matrix->values.m44 +
-            matrix->values.m31 * matrix->values.m24 * matrix->values.m42 +
-            matrix->values.m41 * matrix->values.m22 * matrix->values.m34 -
-            matrix->values.m41 * matrix->values.m24 * matrix->values.m32;
+	inv[8] = matrix->values.m21 * matrix->values.m32 * matrix->values.m44 -
+			 matrix->values.m21 * matrix->values.m34 * matrix->values.m42 -
+			 matrix->values.m31 * matrix->values.m22 * matrix->values.m44 +
+			 matrix->values.m31 * matrix->values.m24 * matrix->values.m42 +
+			 matrix->values.m41 * matrix->values.m22 * matrix->values.m34 -
+			 matrix->values.m41 * matrix->values.m24 * matrix->values.m32;
 
-    inv[12] = -matrix->values.m21 * matrix->values.m32 * matrix->values.m43 +
-            matrix->values.m21 * matrix->values.m33 * matrix->values.m42 +
-            matrix->values.m31 * matrix->values.m22 * matrix->values.m43 -
-            matrix->values.m31 * matrix->values.m23 * matrix->values.m42 -
-            matrix->values.m41 * matrix->values.m22 * matrix->values.m33 +
-            matrix->values.m41 * matrix->values.m23 * matrix->values.m32;
+	inv[12] = -matrix->values.m21 * matrix->values.m32 * matrix->values.m43 +
+			  matrix->values.m21 * matrix->values.m33 * matrix->values.m42 +
+			  matrix->values.m31 * matrix->values.m22 * matrix->values.m43 -
+			  matrix->values.m31 * matrix->values.m23 * matrix->values.m42 -
+			  matrix->values.m41 * matrix->values.m22 * matrix->values.m33 +
+			  matrix->values.m41 * matrix->values.m23 * matrix->values.m32;
 
-	double det = matrix->values.m11 * inv[0] + matrix->values.m12 * inv[4] + matrix->values.m13 * inv[8] + matrix->values.m14 * inv[12];
+	double det = matrix->values.m11 * inv[0] + matrix->values.m12 * inv[4] +
+				 matrix->values.m13 * inv[8] + matrix->values.m14 * inv[12];
 
-    // If the determinant is zero, this matrix cannot be inverted, and all
-    // values should be set to `NaN`, with the `is2D` flag set to `false`.
+	// If the determinant is zero, this matrix cannot be inverted, and all
+	// values should be set to `NaN`, with the `is2D` flag set to `false`.
 	if (det == 0) {
-	  matrix->values.m11 =
-	  matrix->values.m12 =
-	  matrix->values.m13 =
-	  matrix->values.m14 =
-	  matrix->values.m21 =
-	  matrix->values.m22 =
-	  matrix->values.m23 =
-	  matrix->values.m24 =
-	  matrix->values.m31 =
-	  matrix->values.m32 =
-	  matrix->values.m33 =
-	  matrix->values.m34 =
-	  matrix->values.m41 =
-	  matrix->values.m42 =
-	  matrix->values.m43 =
-	  matrix->values.m44 = NAN;
-	  matrix->is_2d = false;
-	}
-	else
-	{
+		matrix->values.m11 = matrix->values.m12 = matrix->values.m13 =
+			matrix->values.m14 = matrix->values.m21 = matrix->values.m22 =
+				matrix->values.m23 = matrix->values.m24 = matrix->values.m31 =
+					matrix->values.m32 = matrix->values.m33 =
+						matrix->values.m34 = matrix->values.m41 =
+							matrix->values.m42 = matrix->values.m43 =
+								matrix->values.m44 = NAN;
+		matrix->is_2d = false;
+	} else {
 		inv[1] = -matrix->values.m12 * matrix->values.m33 * matrix->values.m44 +
 				 matrix->values.m12 * matrix->values.m34 * matrix->values.m43 +
 				 matrix->values.m32 * matrix->values.m13 * matrix->values.m44 -
@@ -427,12 +412,13 @@ void nx_dommatrix_invert_self_(nx_dommatrix_t* matrix)
 				  matrix->values.m41 * matrix->values.m12 * matrix->values.m24 -
 				  matrix->values.m41 * matrix->values.m14 * matrix->values.m22;
 
-		inv[14] = -matrix->values.m11 * matrix->values.m22 * matrix->values.m43 +
-				  matrix->values.m11 * matrix->values.m23 * matrix->values.m42 +
-				  matrix->values.m21 * matrix->values.m12 * matrix->values.m43 -
-				  matrix->values.m21 * matrix->values.m13 * matrix->values.m42 -
-				  matrix->values.m41 * matrix->values.m12 * matrix->values.m23 +
-				  matrix->values.m41 * matrix->values.m13 * matrix->values.m22;
+		inv[14] =
+			-matrix->values.m11 * matrix->values.m22 * matrix->values.m43 +
+			matrix->values.m11 * matrix->values.m23 * matrix->values.m42 +
+			matrix->values.m21 * matrix->values.m12 * matrix->values.m43 -
+			matrix->values.m21 * matrix->values.m13 * matrix->values.m42 -
+			matrix->values.m41 * matrix->values.m12 * matrix->values.m23 +
+			matrix->values.m41 * matrix->values.m13 * matrix->values.m22;
 
 		inv[3] = -matrix->values.m12 * matrix->values.m23 * matrix->values.m34 +
 				 matrix->values.m12 * matrix->values.m24 * matrix->values.m33 +
@@ -448,12 +434,13 @@ void nx_dommatrix_invert_self_(nx_dommatrix_t* matrix)
 				 matrix->values.m31 * matrix->values.m13 * matrix->values.m24 -
 				 matrix->values.m31 * matrix->values.m14 * matrix->values.m23;
 
-		inv[11] = -matrix->values.m11 * matrix->values.m22 * matrix->values.m34 +
-				  matrix->values.m11 * matrix->values.m24 * matrix->values.m32 +
-				  matrix->values.m21 * matrix->values.m12 * matrix->values.m34 -
-				  matrix->values.m21 * matrix->values.m14 * matrix->values.m32 -
-				  matrix->values.m31 * matrix->values.m12 * matrix->values.m24 +
-				  matrix->values.m31 * matrix->values.m14 * matrix->values.m22;
+		inv[11] =
+			-matrix->values.m11 * matrix->values.m22 * matrix->values.m34 +
+			matrix->values.m11 * matrix->values.m24 * matrix->values.m32 +
+			matrix->values.m21 * matrix->values.m12 * matrix->values.m34 -
+			matrix->values.m21 * matrix->values.m14 * matrix->values.m32 -
+			matrix->values.m31 * matrix->values.m12 * matrix->values.m24 +
+			matrix->values.m31 * matrix->values.m14 * matrix->values.m22;
 
 		inv[15] = matrix->values.m11 * matrix->values.m22 * matrix->values.m33 -
 				  matrix->values.m11 * matrix->values.m23 * matrix->values.m32 -
@@ -481,26 +468,23 @@ void nx_dommatrix_invert_self_(nx_dommatrix_t* matrix)
 	}
 }
 
-static JSValue nx_dommatrix_invert_self(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
+static JSValue nx_dommatrix_invert_self(JSContext *ctx, JSValueConst this_val,
+										int argc, JSValueConst *argv) {
 	DOMMATRIX_THIS;
 	nx_dommatrix_invert_self_(matrix);
 	return JS_DupValue(ctx, this_val);
 }
 
-static JSValue nx_dommatrix_multiply_self(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
+static JSValue nx_dommatrix_multiply_self(JSContext *ctx, JSValueConst this_val,
+										  int argc, JSValueConst *argv) {
 	DOMMATRIX_THIS;
-	if (argc == 1 && JS_IsObject(argv[0]))
-	{
+	if (argc == 1 && JS_IsObject(argv[0])) {
 		nx_dommatrix_t *other = nx_get_dommatrix(ctx, argv[0]);
 		bool needs_free = false;
-		if (!other)
-		{
+		if (!other) {
 			other = js_malloc(ctx, sizeof(nx_dommatrix_t));
 			needs_free = true;
-			if (nx_dommatrix_init(ctx, argv[0], other))
-			{
+			if (nx_dommatrix_init(ctx, argv[0], other)) {
 				js_free(ctx, other);
 				return JS_EXCEPTION;
 			}
@@ -517,19 +501,17 @@ static JSValue nx_dommatrix_multiply_self(JSContext *ctx, JSValueConst this_val,
 	return JS_DupValue(ctx, this_val);
 }
 
-static JSValue nx_dommatrix_premultiply_self(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
+static JSValue nx_dommatrix_premultiply_self(JSContext *ctx,
+											 JSValueConst this_val, int argc,
+											 JSValueConst *argv) {
 	DOMMATRIX_THIS;
-	if (argc == 1 && JS_IsObject(argv[0]))
-	{
+	if (argc == 1 && JS_IsObject(argv[0])) {
 		nx_dommatrix_t *other = nx_get_dommatrix(ctx, argv[0]);
 		bool needs_free = false;
-		if (!other)
-		{
+		if (!other) {
 			other = js_malloc(ctx, sizeof(nx_dommatrix_t));
 			needs_free = true;
-			if (nx_dommatrix_init(ctx, argv[0], other))
-			{
+			if (nx_dommatrix_init(ctx, argv[0], other)) {
 				js_free(ctx, other);
 				return JS_EXCEPTION;
 			}
@@ -546,8 +528,10 @@ static JSValue nx_dommatrix_premultiply_self(JSContext *ctx, JSValueConst this_v
 	return JS_DupValue(ctx, this_val);
 }
 
-static JSValue nx_dommatrix_rotate_axis_angle_self(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
+static JSValue nx_dommatrix_rotate_axis_angle_self(JSContext *ctx,
+												   JSValueConst this_val,
+												   int argc,
+												   JSValueConst *argv) {
 	DOMMATRIX_THIS;
 	double x = 0, y = 0, z = 0, angle = 0;
 	ARG_TO_NUM(0, x);
@@ -577,25 +561,34 @@ static JSValue nx_dommatrix_rotate_axis_angle_self(JSContext *ctx, JSValueConst 
 
 	nx_dommatrix_values_t b;
 	nx_dommatrix_values_t result;
-	double values[] = {
-		tx * x + c, tx * y + s * z, tx * z - s * y, 0,
-		tx * y - s * z, ty * y + c, ty * z + s * x, 0,
-		tx * z + s * y, ty * z - s * x, t * z * z + c, 0,
-		0, 0, 0, 1
-	};
+	double values[] = {tx * x + c,
+					   tx * y + s * z,
+					   tx * z - s * y,
+					   0,
+					   tx * y - s * z,
+					   ty * y + c,
+					   ty * z + s * x,
+					   0,
+					   tx * z + s * y,
+					   ty * z - s * x,
+					   t * z * z + c,
+					   0,
+					   0,
+					   0,
+					   0,
+					   1};
 	matrix_values(&b, values);
 	multiply(&b, &matrix->values, &result);
 	*(&matrix->values) = result;
 
-	if (x != 0 || y != 0)
-	{
+	if (x != 0 || y != 0) {
 		matrix->is_2d = false;
 	}
 	return JS_DupValue(ctx, this_val);
 }
 
-static JSValue nx_dommatrix_rotate_self(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
+static JSValue nx_dommatrix_rotate_self(JSContext *ctx, JSValueConst this_val,
+										int argc, JSValueConst *argv) {
 	DOMMATRIX_THIS;
 	double rotX = 0;
 	double rotY = 0;
@@ -612,8 +605,7 @@ static JSValue nx_dommatrix_rotate_self(JSContext *ctx, JSValueConst this_val, i
 		ARG_TO_NUM(2, rotZ);
 	}
 
-	if (rotX != 0 || rotY != 0)
-	{
+	if (rotX != 0 || rotY != 0) {
 		matrix->is_2d = false;
 	}
 
@@ -628,10 +620,7 @@ static JSValue nx_dommatrix_rotate_self(JSContext *ctx, JSValueConst this_val, i
 	c = cos(rotZ);
 	s = sin(rotZ);
 	double valuesZ[] = {
-		c, s, 0, 0,
-		-s, c, 0, 0,
-		0, 0, 1, 0,
-		0, 0, 0, 1,
+		c, s, 0, 0, -s, c, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,
 	};
 	matrix_values(&b, valuesZ);
 	multiply(&b, &matrix->values, &result);
@@ -640,10 +629,7 @@ static JSValue nx_dommatrix_rotate_self(JSContext *ctx, JSValueConst this_val, i
 	c = cos(rotY);
 	s = sin(rotY);
 	double valuesY[] = {
-		c, 0, -s, 0,
-		0, 1, 0, 0,
-		s, 0, c, 0,
-		0, 0, 0, 1,
+		c, 0, -s, 0, 0, 1, 0, 0, s, 0, c, 0, 0, 0, 0, 1,
 	};
 	matrix_values(&b, valuesY);
 	multiply(&b, &matrix->values, &result);
@@ -652,10 +638,7 @@ static JSValue nx_dommatrix_rotate_self(JSContext *ctx, JSValueConst this_val, i
 	c = cos(rotX);
 	s = sin(rotX);
 	double valuesX[] = {
-		1, 0, 0, 0,
-		0, c, s, 0,
-		0, -s, c, 0,
-		0, 0, 0, 1,
+		1, 0, 0, 0, 0, c, s, 0, 0, -s, c, 0, 0, 0, 0, 1,
 	};
 	matrix_values(&b, valuesX);
 	multiply(&b, &matrix->values, &result);
@@ -664,8 +647,8 @@ static JSValue nx_dommatrix_rotate_self(JSContext *ctx, JSValueConst this_val, i
 	return JS_DupValue(ctx, this_val);
 }
 
-static JSValue nx_dommatrix_scale_self(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
+static JSValue nx_dommatrix_scale_self(JSContext *ctx, JSValueConst this_val,
+									   int argc, JSValueConst *argv) {
 	DOMMATRIX_THIS;
 	double originX = 0, originY = 0, originZ = 0;
 	ARG_TO_NUM(3, originX);
@@ -685,10 +668,7 @@ static JSValue nx_dommatrix_scale_self(JSContext *ctx, JSValueConst this_val, in
 	nx_dommatrix_values_t result;
 	nx_dommatrix_values_t b;
 	double values[] = {
-		scaleX, 0, 0, 0,
-		0, scaleY, 0, 0,
-		0, 0, scaleZ, 0,
-		0, 0, 0, 1,
+		scaleX, 0, 0, 0, 0, scaleY, 0, 0, 0, 0, scaleZ, 0, 0, 0, 0, 1,
 	};
 	matrix_values(&b, values);
 	multiply(&b, &matrix->values, &result);
@@ -703,21 +683,17 @@ static JSValue nx_dommatrix_scale_self(JSContext *ctx, JSValueConst this_val, in
 	return JS_DupValue(ctx, this_val);
 }
 
-static JSValue nx_dommatrix_skew_x_self(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
+static JSValue nx_dommatrix_skew_x_self(JSContext *ctx, JSValueConst this_val,
+										int argc, JSValueConst *argv) {
 	DOMMATRIX_THIS;
 	double sx = 0;
 	ARG_TO_NUM(0, sx);
-	if (sx != 0)
-	{
+	if (sx != 0) {
 		double t = tan(sx * RADS_PER_DEGREE);
 		nx_dommatrix_values_t result;
 		nx_dommatrix_values_t b;
 		double values[] = {
-			1, 0, 0, 0,
-			t, 1, 0, 0,
-			0, 0, 1, 0,
-			0, 0, 0, 1,
+			1, 0, 0, 0, t, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,
 		};
 		matrix_values(&b, values);
 		multiply(&b, &matrix->values, &result);
@@ -726,21 +702,17 @@ static JSValue nx_dommatrix_skew_x_self(JSContext *ctx, JSValueConst this_val, i
 	return JS_DupValue(ctx, this_val);
 }
 
-static JSValue nx_dommatrix_skew_y_self(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
+static JSValue nx_dommatrix_skew_y_self(JSContext *ctx, JSValueConst this_val,
+										int argc, JSValueConst *argv) {
 	DOMMATRIX_THIS;
 	double sy = 0;
 	ARG_TO_NUM(0, sy);
-	if (sy != 0)
-	{
+	if (sy != 0) {
 		double t = tan(sy * RADS_PER_DEGREE);
 		nx_dommatrix_values_t result;
 		nx_dommatrix_values_t b;
 		double values[] = {
-			1, t, 0, 0,
-			0, 1, 0, 0,
-			0, 0, 1, 0,
-			0, 0, 0, 1,
+			1, t, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,
 		};
 		matrix_values(&b, values);
 		multiply(&b, &matrix->values, &result);
@@ -749,8 +721,9 @@ static JSValue nx_dommatrix_skew_y_self(JSContext *ctx, JSValueConst this_val, i
 	return JS_DupValue(ctx, this_val);
 }
 
-static JSValue nx_dommatrix_translate_self(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
+static JSValue nx_dommatrix_translate_self(JSContext *ctx,
+										   JSValueConst this_val, int argc,
+										   JSValueConst *argv) {
 	DOMMATRIX_THIS;
 	double tx = 0;
 	double ty = 0;
@@ -762,31 +735,19 @@ static JSValue nx_dommatrix_translate_self(JSContext *ctx, JSValueConst this_val
 	return JS_DupValue(ctx, this_val);
 }
 
-void nx_dommatrix_transform_point_(nx_dommatrix_t *matrix, double *x, double *y, double *z, double *w)
-{
-	double nx =
-		matrix->values.m11 * (*x) +
-		matrix->values.m21 * (*y) +
-		matrix->values.m31 * (*z) +
-		matrix->values.m41 * (*w);
+void nx_dommatrix_transform_point_(nx_dommatrix_t *matrix, double *x, double *y,
+								   double *z, double *w) {
+	double nx = matrix->values.m11 * (*x) + matrix->values.m21 * (*y) +
+				matrix->values.m31 * (*z) + matrix->values.m41 * (*w);
 
-	double ny =
-		matrix->values.m12 * (*x) +
-		matrix->values.m22 * (*y) +
-		matrix->values.m32 * (*z) +
-		matrix->values.m42 * (*w);
+	double ny = matrix->values.m12 * (*x) + matrix->values.m22 * (*y) +
+				matrix->values.m32 * (*z) + matrix->values.m42 * (*w);
 
-	double nz =
-		matrix->values.m13 * (*x) +
-		matrix->values.m23 * (*y) +
-		matrix->values.m33 * (*z) +
-		matrix->values.m43 * (*w);
+	double nz = matrix->values.m13 * (*x) + matrix->values.m23 * (*y) +
+				matrix->values.m33 * (*z) + matrix->values.m43 * (*w);
 
-	double nw =
-		matrix->values.m14 * (*x) +
-		matrix->values.m24 * (*y) +
-		matrix->values.m34 * (*z) +
-		matrix->values.m44 * (*w);
+	double nw = matrix->values.m14 * (*x) + matrix->values.m24 * (*y) +
+				matrix->values.m34 * (*z) + matrix->values.m44 * (*w);
 
 	*x = nx;
 	*y = ny;
@@ -794,29 +755,33 @@ void nx_dommatrix_transform_point_(nx_dommatrix_t *matrix, double *x, double *y,
 	*w = nw;
 }
 
-static JSValue nx_dommatrix_transform_point(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
+static JSValue nx_dommatrix_transform_point(JSContext *ctx,
+											JSValueConst this_val, int argc,
+											JSValueConst *argv) {
 	nx_dommatrix_t *matrix = JS_GetOpaque2(ctx, argv[0], nx_dommatrix_class_id);
-	if (!matrix)
-	{
+	if (!matrix) {
 		return JS_EXCEPTION;
 	}
 	double x = 0, y = 0, z = 0, w = 1;
 	JSValue v;
 	v = JS_GetPropertyStr(ctx, argv[1], "x");
-	if (JS_IsNumber(v)) JS_ToFloat64(ctx, &x, v);
+	if (JS_IsNumber(v))
+		JS_ToFloat64(ctx, &x, v);
 	JS_FreeValue(ctx, v);
 
 	v = JS_GetPropertyStr(ctx, argv[1], "y");
-	if (JS_IsNumber(v)) JS_ToFloat64(ctx, &y, v);
+	if (JS_IsNumber(v))
+		JS_ToFloat64(ctx, &y, v);
 	JS_FreeValue(ctx, v);
 
 	v = JS_GetPropertyStr(ctx, argv[1], "z");
-	if (JS_IsNumber(v)) JS_ToFloat64(ctx, &z, v);
+	if (JS_IsNumber(v))
+		JS_ToFloat64(ctx, &z, v);
 	JS_FreeValue(ctx, v);
 
 	v = JS_GetPropertyStr(ctx, argv[1], "w");
-	if (JS_IsNumber(v)) JS_ToFloat64(ctx, &w, v);
+	if (JS_IsNumber(v))
+		JS_ToFloat64(ctx, &w, v);
 	JS_FreeValue(ctx, v);
 
 	nx_dommatrix_transform_point_(matrix, &x, &y, &z, &w);
@@ -829,9 +794,9 @@ static JSValue nx_dommatrix_transform_point(JSContext *ctx, JSValueConst this_va
 	return point;
 }
 
-
-static JSValue nx_dommatrix_read_only_init_class(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
+static JSValue nx_dommatrix_read_only_init_class(JSContext *ctx,
+												 JSValueConst this_val,
+												 int argc, JSValueConst *argv) {
 	JSAtom atom;
 	JSValue proto = JS_GetPropertyStr(ctx, argv[0], "prototype");
 	NX_DEF_GET(proto, "a", nx_dommatrix_get_m11);
@@ -862,8 +827,8 @@ static JSValue nx_dommatrix_read_only_init_class(JSContext *ctx, JSValueConst th
 	return JS_UNDEFINED;
 }
 
-static JSValue nx_dommatrix_init_class(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
+static JSValue nx_dommatrix_init_class(JSContext *ctx, JSValueConst this_val,
+									   int argc, JSValueConst *argv) {
 	JSAtom atom;
 	JSValue proto = JS_GetPropertyStr(ctx, argv[0], "prototype");
 	NX_DEF_GETSET(proto, "a", nx_dommatrix_get_m11, nx_dommatrix_set_m11);
@@ -891,7 +856,8 @@ static JSValue nx_dommatrix_init_class(JSContext *ctx, JSValueConst this_val, in
 	NX_DEF_FUNC(proto, "invertSelf", nx_dommatrix_invert_self, 0);
 	NX_DEF_FUNC(proto, "multiplySelf", nx_dommatrix_multiply_self, 0);
 	NX_DEF_FUNC(proto, "preMultiplySelf", nx_dommatrix_premultiply_self, 0);
-	NX_DEF_FUNC(proto, "rotateAxisAngleSelf", nx_dommatrix_rotate_axis_angle_self, 0);
+	NX_DEF_FUNC(proto, "rotateAxisAngleSelf",
+				nx_dommatrix_rotate_axis_angle_self, 0);
 	NX_DEF_FUNC(proto, "rotateSelf", nx_dommatrix_rotate_self, 0);
 	NX_DEF_FUNC(proto, "scaleSelf", nx_dommatrix_scale_self, 0);
 	NX_DEF_FUNC(proto, "skewXSelf", nx_dommatrix_skew_x_self, 0);
@@ -901,11 +867,9 @@ static JSValue nx_dommatrix_init_class(JSContext *ctx, JSValueConst this_val, in
 	return JS_UNDEFINED;
 }
 
-static void finalizer_dommatrix(JSRuntime *rt, JSValue val)
-{
+static void finalizer_dommatrix(JSRuntime *rt, JSValue val) {
 	nx_dommatrix_t *m = JS_GetOpaque(val, nx_dommatrix_class_id);
-	if (m)
-	{
+	if (m) {
 		js_free_rt(rt, m);
 	}
 }
@@ -918,8 +882,7 @@ static const JSCFunctionListEntry function_list[] = {
 	JS_CFUNC_DEF("dommatrixTransformPoint", 0, nx_dommatrix_transform_point),
 };
 
-void nx_init_dommatrix(JSContext *ctx, JSValueConst init_obj)
-{
+void nx_init_dommatrix(JSContext *ctx, JSValueConst init_obj) {
 	JSRuntime *rt = JS_GetRuntime(ctx);
 
 	JS_NewClassID(rt, &nx_dommatrix_class_id);
@@ -929,5 +892,6 @@ void nx_init_dommatrix(JSContext *ctx, JSValueConst init_obj)
 	};
 	JS_NewClass(rt, nx_dommatrix_class_id, &dommatrix_class);
 
-	JS_SetPropertyFunctionList(ctx, init_obj, function_list, countof(function_list));
+	JS_SetPropertyFunctionList(ctx, init_obj, function_list,
+							   countof(function_list));
 }

@@ -1,16 +1,16 @@
 #pragma once
-#include <stdbool.h>
-#include <wasm3.h>
-#include <pthread.h>
-#include <quickjs.h>
+#include "poll.h"
+#include "thpool.h"
 #include <cairo-ft.h>
 #include <ft2build.h>
-#include <poll.h>
-#include <switch.h>
-#include <mbedtls/entropy.h>
 #include <mbedtls/ctr_drbg.h>
-#include "thpool.h"
-#include "poll.h"
+#include <mbedtls/entropy.h>
+#include <poll.h>
+#include <pthread.h>
+#include <quickjs.h>
+#include <stdbool.h>
+#include <switch.h>
+#include <wasm3.h>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -27,22 +27,29 @@
 // Useful for functions defined on class `prototype`s
 #define JS_PROP_C_W (JS_PROP_CONFIGURABLE | JS_PROP_WRITABLE)
 
-#define NX_DEF_GET_(THISARG, NAME, FN, FLAGS)                                                              \
-	atom = JS_NewAtom(ctx, NAME);                                                                          \
-	JS_DefinePropertyGetSet(ctx, THISARG, atom, JS_NewCFunction(ctx, FN, "get " NAME, 0), JS_NULL, FLAGS); \
+#define NX_DEF_GET_(THISARG, NAME, FN, FLAGS)                                  \
+	atom = JS_NewAtom(ctx, NAME);                                              \
+	JS_DefinePropertyGetSet(ctx, THISARG, atom,                                \
+							JS_NewCFunction(ctx, FN, "get " NAME, 0), JS_NULL, \
+							FLAGS);                                            \
 	JS_FreeAtom(ctx, atom);
 
-#define NX_DEF_GET(THISARG, NAME, FN) NX_DEF_GET_(THISARG, NAME, FN, JS_PROP_C_W)
+#define NX_DEF_GET(THISARG, NAME, FN)                                          \
+	NX_DEF_GET_(THISARG, NAME, FN, JS_PROP_C_W)
 
-#define NX_DEF_GETSET(THISARG, NAME, GET_FN, SET_FN)                                                                                                      \
-	atom = JS_NewAtom(ctx, NAME);                                                                                                                         \
-	JS_DefinePropertyGetSet(ctx, THISARG, atom, JS_NewCFunction(ctx, GET_FN, "get " NAME, 0), JS_NewCFunction(ctx, SET_FN, "set " NAME, 0), JS_PROP_C_W); \
+#define NX_DEF_GETSET(THISARG, NAME, GET_FN, SET_FN)                           \
+	atom = JS_NewAtom(ctx, NAME);                                              \
+	JS_DefinePropertyGetSet(                                                   \
+		ctx, THISARG, atom, JS_NewCFunction(ctx, GET_FN, "get " NAME, 0),      \
+		JS_NewCFunction(ctx, SET_FN, "set " NAME, 0), JS_PROP_C_W);            \
 	JS_FreeAtom(ctx, atom);
 
-#define NX_DEF_FUNC(THISARG, NAME, FN, LENGTH) (JS_DefinePropertyValueStr(ctx, THISARG, NAME, JS_NewCFunction(ctx, FN, NAME, LENGTH), JS_PROP_C_W))
+#define NX_DEF_FUNC(THISARG, NAME, FN, LENGTH)                                 \
+	(JS_DefinePropertyValueStr(ctx, THISARG, NAME,                             \
+							   JS_NewCFunction(ctx, FN, NAME, LENGTH),         \
+							   JS_PROP_C_W))
 
-typedef struct
-{
+typedef struct {
 	JSContext *context;
 	JSValue callback;
 	JSValue buffer;
@@ -52,8 +59,7 @@ typedef struct nx_work_s nx_work_t;
 typedef void (*nx_work_cb)(nx_work_t *req);
 typedef JSValue (*nx_after_work_cb)(JSContext *ctx, nx_work_t *req);
 
-struct nx_work_s
-{
+struct nx_work_s {
 	nx_work_t *next;
 	int done;
 	JSValue resolve;
@@ -64,14 +70,9 @@ struct nx_work_s
 	void *data;
 };
 
-enum nx_rendering_mode
-{
-	NX_RENDERING_MODE_CONSOLE,
-	NX_RENDERING_MODE_CANVAS
-};
+enum nx_rendering_mode { NX_RENDERING_MODE_CONSOLE, NX_RENDERING_MODE_CANVAS };
 
-typedef struct nx_context_s
-{
+typedef struct nx_context_s {
 	int had_error;
 	enum nx_rendering_mode rendering_mode;
 	nx_poll_t poll;

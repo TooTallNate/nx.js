@@ -5,16 +5,9 @@
 
 #define LIBTURBOJPEG_VERSION "2.1.2"
 
-enum ImageFormat
-{
-	FORMAT_PNG,
-	FORMAT_JPEG,
-	FORMAT_WEBP,
-	FORMAT_UNKNOWN
-};
+enum ImageFormat { FORMAT_PNG, FORMAT_JPEG, FORMAT_WEBP, FORMAT_UNKNOWN };
 
-typedef struct
-{
+typedef struct {
 	u32 width;
 	u32 height;
 	u8 *data;

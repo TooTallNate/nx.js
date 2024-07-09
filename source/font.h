@@ -1,16 +1,16 @@
 #pragma once
 #include <cairo.h>
-#include <quickjs.h>
 #include <ft2build.h>
-#include <harfbuzz/hb.h>
 #include <harfbuzz/hb-ft.h>
+#include <harfbuzz/hb.h>
+#include <quickjs.h>
 
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
-#define FREETYPE_VERSION_STR STR(FREETYPE_MAJOR) "." STR(FREETYPE_MINOR) "." STR(FREETYPE_PATCH)
+#define FREETYPE_VERSION_STR                                                   \
+	STR(FREETYPE_MAJOR) "." STR(FREETYPE_MINOR) "." STR(FREETYPE_PATCH)
 
-typedef struct
-{
+typedef struct {
 	FT_Face ft_face;
 	hb_font_t *hb_font;
 	cairo_font_face_t *cairo_font;

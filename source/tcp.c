@@ -1,25 +1,22 @@
+#include "tcp.h"
+#include "error.h"
+#include "poll.h"
+#include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/socket.h>
-#include <arpa/inet.h>
-#include "tcp.h"
-#include "poll.h"
-#include "error.h"
 
-void nx_on_connect(nx_poll_t *p, nx_connect_t *req)
-{
+void nx_on_connect(nx_poll_t *p, nx_connect_t *req) {
 	nx_js_callback_t *req_cb = (nx_js_callback_t *)req->opaque;
 	JSContext *ctx = req_cb->context;
 	JSValue args[] = {JS_UNDEFINED, JS_UNDEFINED};
 
-	if (req->err)
-	{
+	if (req->err) {
 		/* Error during connect. */
 		args[0] = JS_NewError(ctx);
-		JS_SetPropertyStr(ctx, args[0], "message", JS_NewString(ctx, strerror(req->err)));
-	}
-	else
-	{
+		JS_SetPropertyStr(ctx, args[0], "message",
+						  JS_NewString(ctx, strerror(req->err)));
+	} else {
 		args[1] = JS_NewInt32(ctx, req->fd);
 	}
 
@@ -27,8 +24,7 @@ void nx_on_connect(nx_poll_t *p, nx_connect_t *req)
 	JS_FreeValue(ctx, args[0]);
 	JS_FreeValue(ctx, args[1]);
 	JS_FreeValue(ctx, req_cb->callback);
-	if (JS_IsException(ret_val))
-	{
+	if (JS_IsException(ret_val)) {
 		nx_emit_error_event(ctx);
 	}
 	JS_FreeValue(ctx, ret_val);
@@ -36,12 +32,11 @@ void nx_on_connect(nx_poll_t *p, nx_connect_t *req)
 	free(req);
 }
 
-JSValue nx_js_tcp_connect(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
+JSValue nx_js_tcp_connect(JSContext *ctx, JSValueConst this_val, int argc,
+						  JSValueConst *argv) {
 	int port;
 	const char *ip = JS_ToCString(ctx, argv[1]);
-	if (!ip || JS_ToInt32(ctx, &port, argv[2]))
-	{
+	if (!ip || JS_ToInt32(ctx, &port, argv[2])) {
 		JS_ThrowTypeError(ctx, "invalid input");
 		return JS_EXCEPTION;
 	}
@@ -64,22 +59,19 @@ JSValue nx_js_tcp_connect(JSContext *ctx, JSValueConst this_val, int argc, JSVal
 	return JS_UNDEFINED;
 }
 
-void nx_on_read(nx_poll_t *p, nx_read_t *req)
-{
+void nx_on_read(nx_poll_t *p, nx_read_t *req) {
 	nx_js_callback_t *req_cb = (nx_js_callback_t *)req->opaque;
 	JSContext *ctx = req_cb->context;
 	JS_FreeValue(ctx, req_cb->buffer);
 
 	JSValue args[] = {JS_UNDEFINED, JS_UNDEFINED};
 
-	if (req->err)
-	{
+	if (req->err) {
 		/* Error during read. */
 		args[0] = JS_NewError(ctx);
-		JS_SetPropertyStr(ctx, args[0], "message", JS_NewString(ctx, strerror(req->err)));
-	}
-	else
-	{
+		JS_SetPropertyStr(ctx, args[0], "message",
+						  JS_NewString(ctx, strerror(req->err)));
+	} else {
 		args[1] = JS_NewInt32(ctx, req->bytes_read);
 	}
 
@@ -87,8 +79,7 @@ void nx_on_read(nx_poll_t *p, nx_read_t *req)
 	JS_FreeValue(ctx, args[0]);
 	JS_FreeValue(ctx, args[1]);
 	JS_FreeValue(ctx, req_cb->callback);
-	if (JS_IsException(ret_val))
-	{
+	if (JS_IsException(ret_val)) {
 		nx_emit_error_event(ctx);
 	}
 	JS_FreeValue(ctx, ret_val);
@@ -96,14 +87,13 @@ void nx_on_read(nx_poll_t *p, nx_read_t *req)
 	free(req);
 }
 
-JSValue nx_js_tcp_read(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
+JSValue nx_js_tcp_read(JSContext *ctx, JSValueConst this_val, int argc,
+					   JSValueConst *argv) {
 	size_t buffer_size;
 	JSValue buffer_value = JS_DupValue(ctx, argv[2]);
 	uint8_t *buffer = JS_GetArrayBuffer(ctx, &buffer_size, buffer_value);
 	int fd;
-	if (!buffer || JS_ToInt32(ctx, &fd, argv[1]))
-	{
+	if (!buffer || JS_ToInt32(ctx, &fd, argv[1])) {
 		return JS_EXCEPTION;
 	}
 
@@ -120,22 +110,19 @@ JSValue nx_js_tcp_read(JSContext *ctx, JSValueConst this_val, int argc, JSValueC
 	return JS_UNDEFINED;
 }
 
-void nx_on_write(nx_poll_t *p, nx_write_t *req)
-{
+void nx_on_write(nx_poll_t *p, nx_write_t *req) {
 	nx_js_callback_t *req_cb = (nx_js_callback_t *)req->opaque;
 	JSContext *ctx = req_cb->context;
 	JS_FreeValue(ctx, req_cb->buffer);
 
 	JSValue args[] = {JS_UNDEFINED, JS_UNDEFINED};
 
-	if (req->err)
-	{
+	if (req->err) {
 		/* Error during write. */
 		args[0] = JS_NewError(ctx);
-		JS_SetPropertyStr(ctx, args[0], "message", JS_NewString(ctx, strerror(req->err)));
-	}
-	else
-	{
+		JS_SetPropertyStr(ctx, args[0], "message",
+						  JS_NewString(ctx, strerror(req->err)));
+	} else {
 		args[1] = JS_NewInt32(ctx, req->bytes_written);
 	}
 
@@ -143,8 +130,7 @@ void nx_on_write(nx_poll_t *p, nx_write_t *req)
 	JS_FreeValue(ctx, args[0]);
 	JS_FreeValue(ctx, args[1]);
 	JS_FreeValue(ctx, req_cb->callback);
-	if (JS_IsException(ret_val))
-	{
+	if (JS_IsException(ret_val)) {
 		nx_emit_error_event(ctx);
 	}
 	JS_FreeValue(ctx, ret_val);
@@ -152,14 +138,13 @@ void nx_on_write(nx_poll_t *p, nx_write_t *req)
 	free(req);
 }
 
-JSValue nx_js_tcp_write(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
+JSValue nx_js_tcp_write(JSContext *ctx, JSValueConst this_val, int argc,
+						JSValueConst *argv) {
 	size_t buffer_size;
 	JSValue buffer_val = JS_DupValue(ctx, argv[2]);
 	uint8_t *buffer = JS_GetArrayBuffer(ctx, &buffer_size, buffer_val);
 	int fd;
-	if (!buffer || JS_ToInt32(ctx, &fd, argv[1]))
-	{
+	if (!buffer || JS_ToInt32(ctx, &fd, argv[1])) {
 		JS_ThrowTypeError(ctx, "invalid input");
 		return JS_EXCEPTION;
 	}
@@ -177,27 +162,24 @@ JSValue nx_js_tcp_write(JSContext *ctx, JSValueConst this_val, int argc, JSValue
 	return JS_UNDEFINED;
 }
 
-JSValue nx_js_tcp_close(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
+JSValue nx_js_tcp_close(JSContext *ctx, JSValueConst this_val, int argc,
+						JSValueConst *argv) {
 	int fd;
-	if (JS_ToInt32(ctx, &fd, argv[0]))
-	{
+	if (JS_ToInt32(ctx, &fd, argv[0])) {
 		return JS_EXCEPTION;
 	}
 
-	nx_context_t* nx_ctx = JS_GetContextOpaque(ctx);
+	nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
 	nx_watcher_t *watcher;
 	nx_watcher_t *twatcher;
-	SLIST_FOREACH_SAFE(watcher, &nx_ctx->poll.watchers_head, next, twatcher)
-	{
+	SLIST_FOREACH_SAFE(watcher, &nx_ctx->poll.watchers_head, next, twatcher) {
 		if (watcher->fd == fd) {
 			// TODO: reject promise for this watcher?
 			nx_remove_watcher(&nx_ctx->poll, watcher);
 		}
 	}
 
-	if (close(fd))
-	{
+	if (close(fd)) {
 		// TODO: Throw a regular error
 		JS_ThrowTypeError(ctx, strerror(errno));
 		return JS_EXCEPTION;
@@ -208,61 +190,54 @@ JSValue nx_js_tcp_close(JSContext *ctx, JSValueConst this_val, int argc, JSValue
 
 static JSClassID nx_tcp_server_class_id;
 
-typedef struct
-{
+typedef struct {
 	nx_server_t server;
 	nx_js_callback_t cb;
 } nx_js_tcp_server_t;
 
-static nx_js_tcp_server_t *nx_js_tcp_server_get(JSContext *ctx, JSValueConst obj)
-{
+static nx_js_tcp_server_t *nx_js_tcp_server_get(JSContext *ctx,
+												JSValueConst obj) {
 	return JS_GetOpaque2(ctx, obj, nx_tcp_server_class_id);
 }
 
-static void finalizer_tcp_server(JSRuntime *rt, JSValue val)
-{
+static void finalizer_tcp_server(JSRuntime *rt, JSValue val) {
 	fprintf(stderr, "finalizer_tcp_server\n");
 	nx_js_tcp_server_t *data = JS_GetOpaque(val, nx_tcp_server_class_id);
-	if (data)
-	{
+	if (data) {
 		nx_context_t *nx_ctx = JS_GetContextOpaque(data->cb.context);
 		nx_remove_watcher(&nx_ctx->poll, (nx_watcher_t *)&data->server);
-		if (!JS_IsUndefined(data->cb.callback))
-		{
+		if (!JS_IsUndefined(data->cb.callback)) {
 			JS_FreeValue(data->cb.context, data->cb.callback);
 		}
 		js_free_rt(rt, data);
 	}
 }
 
-void nx_on_accept(nx_poll_t *p, nx_server_t *req, int client_fd)
-{
+void nx_on_accept(nx_poll_t *p, nx_server_t *req, int client_fd) {
 	// Handle new client connection here
 	// client_fd is the file descriptor for the new client
 	nx_js_callback_t *req_cb = (nx_js_callback_t *)req->opaque;
 	JSValue args[] = {JS_NewInt32(req_cb->context, client_fd)};
-	JSValue ret_val = JS_Call(req_cb->context, req_cb->callback, JS_NULL, 1, args);
-	if (JS_IsException(ret_val))
-	{
+	JSValue ret_val =
+		JS_Call(req_cb->context, req_cb->callback, JS_NULL, 1, args);
+	if (JS_IsException(ret_val)) {
 		nx_emit_error_event(req_cb->context);
 	}
 	JS_FreeValue(req_cb->context, ret_val);
 }
 
-JSValue nx_js_tcp_server_new(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
+JSValue nx_js_tcp_server_new(JSContext *ctx, JSValueConst this_val, int argc,
+							 JSValueConst *argv) {
 	const char *ip = JS_ToCString(ctx, argv[0]);
 	int port;
-	if (!ip || JS_ToInt32(ctx, &port, argv[1]))
-	{
+	if (!ip || JS_ToInt32(ctx, &port, argv[1])) {
 		JS_ThrowTypeError(ctx, "invalid input");
 		return JS_EXCEPTION;
 	}
 
 	JSValue obj = JS_NewObjectClass(ctx, nx_tcp_server_class_id);
 	nx_js_tcp_server_t *data = js_mallocz(ctx, sizeof(nx_js_tcp_server_t));
-	if (!data)
-	{
+	if (!data) {
 		JS_ThrowOutOfMemory(ctx);
 		return JS_EXCEPTION;
 	}
@@ -274,11 +249,11 @@ JSValue nx_js_tcp_server_new(JSContext *ctx, JSValueConst this_val, int argc, JS
 	data->cb.buffer = JS_UNDEFINED;
 	data->server.opaque = &data->cb;
 
-	int fd = nx_tcp_server(&nx_ctx->poll, &data->server, ip, port, nx_on_accept);
+	int fd =
+		nx_tcp_server(&nx_ctx->poll, &data->server, ip, port, nx_on_accept);
 	JS_FreeCString(ctx, ip);
 
-	if (fd < 0)
-	{
+	if (fd < 0) {
 		JS_ThrowTypeError(ctx, strerror(errno));
 		return JS_EXCEPTION;
 	}
@@ -286,8 +261,8 @@ JSValue nx_js_tcp_server_new(JSContext *ctx, JSValueConst this_val, int argc, JS
 	return obj;
 }
 
-JSValue nx_js_tcp_server_close(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
+JSValue nx_js_tcp_server_close(JSContext *ctx, JSValueConst this_val, int argc,
+							   JSValueConst *argv) {
 	nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
 	nx_js_tcp_server_t *data = nx_js_tcp_server_get(ctx, this_val);
 	nx_remove_watcher(&nx_ctx->poll, (nx_watcher_t *)&data->server);
@@ -298,8 +273,8 @@ JSValue nx_js_tcp_server_close(JSContext *ctx, JSValueConst this_val, int argc, 
 	return JS_UNDEFINED;
 }
 
-static JSValue nx_js_tcp_init_server(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
+static JSValue nx_js_tcp_init_server(JSContext *ctx, JSValueConst this_val,
+									 int argc, JSValueConst *argv) {
 	JSValue proto = JS_GetPropertyStr(ctx, argv[0], "prototype");
 	NX_DEF_FUNC(proto, "close", nx_js_tcp_server_close, 0);
 	JS_FreeValue(ctx, proto);
@@ -315,8 +290,7 @@ static const JSCFunctionListEntry function_list[] = {
 	JS_CFUNC_DEF("tcpServerInit", 1, nx_js_tcp_init_server),
 	JS_CFUNC_DEF("tcpServerNew", 3, nx_js_tcp_server_new)};
 
-void nx_init_tcp(JSContext *ctx, JSValueConst init_obj)
-{
+void nx_init_tcp(JSContext *ctx, JSValueConst init_obj) {
 	JSRuntime *rt = JS_GetRuntime(ctx);
 
 	/* TCP Server */
@@ -327,5 +301,6 @@ void nx_init_tcp(JSContext *ctx, JSValueConst init_obj)
 	};
 	JS_NewClass(rt, nx_tcp_server_class_id, &nx_tcp_server_class);
 
-	JS_SetPropertyFunctionList(ctx, init_obj, function_list, countof(function_list));
+	JS_SetPropertyFunctionList(ctx, init_obj, function_list,
+							   countof(function_list));
 }

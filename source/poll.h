@@ -14,22 +14,20 @@ typedef void (*nx_read_cb)(nx_poll_t *p, nx_read_t *req);
 typedef void (*nx_connect_cb)(nx_poll_t *p, nx_connect_t *req);
 typedef void (*nx_server_cb)(nx_poll_t *p, nx_server_t *req, int client_fd);
 
-#define NX_WATCHER_FIELDS           \
-	int fd;                         \
-	int events;                     \
-	int err;                        \
-	nx_watcher_cb watcher_callback; \
-	void *opaque;                   \
-	SLIST_ENTRY(nx_watcher_s)       \
+#define NX_WATCHER_FIELDS                                                      \
+	int fd;                                                                    \
+	int events;                                                                \
+	int err;                                                                   \
+	nx_watcher_cb watcher_callback;                                            \
+	void *opaque;                                                              \
+	SLIST_ENTRY(nx_watcher_s)                                                  \
 	next;
 
-struct nx_watcher_s
-{
+struct nx_watcher_s {
 	NX_WATCHER_FIELDS
 };
 
-struct nx_read_s
-{
+struct nx_read_s {
 	NX_WATCHER_FIELDS
 	const uint8_t *buffer;
 	size_t buffer_size;
@@ -37,8 +35,7 @@ struct nx_read_s
 	nx_read_cb callback;
 };
 
-struct nx_write_s
-{
+struct nx_write_s {
 	NX_WATCHER_FIELDS
 	const uint8_t *buffer;
 	size_t buffer_size;
@@ -46,20 +43,17 @@ struct nx_write_s
 	nx_write_cb callback;
 };
 
-struct nx_connect_s
-{
+struct nx_connect_s {
 	NX_WATCHER_FIELDS
 	nx_connect_cb callback;
 };
 
-struct nx_server_s
-{
+struct nx_server_s {
 	NX_WATCHER_FIELDS
 	nx_server_cb callback;
 };
 
-struct nx_poll_s
-{
+struct nx_poll_s {
 	struct pollfd *poll_fds;
 	nfds_t poll_fds_used;
 	nfds_t poll_fds_size;
@@ -68,10 +62,14 @@ struct nx_poll_s
 };
 
 // High-level API
-int nx_tcp_connect(nx_poll_t *p, nx_connect_t *req, const char *ip, int port, nx_connect_cb callback);
-int nx_tcp_server(nx_poll_t *p, nx_server_t *req, const char *ip, int port, nx_server_cb callback);
-int nx_read(nx_poll_t *p, nx_read_t *req, int fd, const uint8_t *buffer, size_t buffer_size, nx_read_cb callback);
-int nx_write(nx_poll_t *p, nx_write_t *req, int fd, const uint8_t *data, size_t num_bytes, nx_write_cb callback);
+int nx_tcp_connect(nx_poll_t *p, nx_connect_t *req, const char *ip, int port,
+				   nx_connect_cb callback);
+int nx_tcp_server(nx_poll_t *p, nx_server_t *req, const char *ip, int port,
+				  nx_server_cb callback);
+int nx_read(nx_poll_t *p, nx_read_t *req, int fd, const uint8_t *buffer,
+			size_t buffer_size, nx_read_cb callback);
+int nx_write(nx_poll_t *p, nx_write_t *req, int fd, const uint8_t *data,
+			 size_t num_bytes, nx_write_cb callback);
 
 // Low-level API
 int nx_add_watcher(nx_poll_t *p, nx_watcher_t *req);

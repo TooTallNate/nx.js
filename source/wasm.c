@@ -3,37 +3,32 @@
  *  - https://github.com/saghul/txiki.js/blob/master/src/wasm.c
  *  - https://github.com/saghul/txiki.js/blob/master/src/js/polyfills/wasm.js
  */
-#include "types.h"
 #include "wasm.h"
+#include "types.h"
 #include <m3_env.h>
 
 static M3Result nx_wasm_js_error = "JS error was thrown";
 
 // https://webassembly.github.io/spec/js-api/index.html#towebassemblyvalue
-static int nx__wasm_towebassemblyvalue(JSContext *ctx, JSValueConst val, M3ValueType type, void *stack)
-{
+static int nx__wasm_towebassemblyvalue(JSContext *ctx, JSValueConst val,
+									   M3ValueType type, void *stack) {
 	int r = 0;
-	switch (type)
-	{
-	case c_m3Type_i32:
-	{
+	switch (type) {
+	case c_m3Type_i32: {
 		r = JS_ToInt32(ctx, (int32_t *)stack, val);
 		break;
 	};
-	case c_m3Type_i64:
-	{
+	case c_m3Type_i64: {
 		r = JS_ToInt64(ctx, (int64_t *)stack, val);
 		break;
 	};
 	case c_m3Type_f32:
-	case c_m3Type_f64:
-	{
+	case c_m3Type_f64: {
 		r = JS_ToFloat64(ctx, (double *)stack, val);
 		break;
 	};
 	case c_m3Type_none:
-	case c_m3Type_unknown:
-	{
+	case c_m3Type_unknown: {
 		/* shrug */
 		break;
 	}
@@ -42,30 +37,25 @@ static int nx__wasm_towebassemblyvalue(JSContext *ctx, JSValueConst val, M3Value
 }
 
 // https://webassembly.github.io/spec/js-api/index.html#tojsvalue
-static JSValue nx__wasm_tojsvalue(JSContext *ctx, M3ValueType type, const void *stack)
-{
-	switch (type)
-	{
-	case c_m3Type_i32:
-	{
+static JSValue nx__wasm_tojsvalue(JSContext *ctx, M3ValueType type,
+								  const void *stack) {
+	switch (type) {
+	case c_m3Type_i32: {
 		int32_t val = *(int32_t *)stack;
 		return JS_NewInt32(ctx, val);
 	}
-	case c_m3Type_i64:
-	{
+	case c_m3Type_i64: {
 		int64_t val = *(int64_t *)stack;
 		if (val == (int32_t)val)
 			return JS_NewInt32(ctx, (int32_t)val);
 		else
 			return JS_NewBigInt64(ctx, val);
 	}
-	case c_m3Type_f32:
-	{
+	case c_m3Type_f32: {
 		float val = *(float *)stack;
 		return JS_NewFloat64(ctx, (double)val);
 	}
-	case c_m3Type_f64:
-	{
+	case c_m3Type_f64: {
 		double val = *(double *)stack;
 		return JS_NewFloat64(ctx, val);
 	}
@@ -74,12 +64,12 @@ static JSValue nx__wasm_tojsvalue(JSContext *ctx, M3ValueType type, const void *
 	}
 }
 
-JSValue nx_throw_wasm_error(JSContext *ctx, const char *name, M3Result r)
-{
-	// CHECK_NOT_NULL(r);
+JSValue nx_throw_wasm_error(JSContext *ctx, const char *name, M3Result r) {
 	JSValue obj = JS_NewError(ctx);
-	JS_DefinePropertyValueStr(ctx, obj, "message", JS_NewString(ctx, r), JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
-	JS_DefinePropertyValueStr(ctx, obj, "wasmError", JS_NewString(ctx, name), JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+	JS_DefinePropertyValueStr(ctx, obj, "message", JS_NewString(ctx, r),
+							  JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+	JS_DefinePropertyValueStr(ctx, obj, "wasmError", JS_NewString(ctx, name),
+							  JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
 	if (JS_IsException(obj))
 		obj = JS_NULL;
 	return JS_Throw(ctx, obj);
@@ -87,27 +77,21 @@ JSValue nx_throw_wasm_error(JSContext *ctx, const char *name, M3Result r)
 
 static JSClassID nx_wasm_memory_class_id;
 
-typedef struct
-{
+typedef struct {
 	IM3Memory mem;
 	bool needs_free;
 	int is_shared;
 } nx_wasm_memory_t;
 
-static nx_wasm_memory_t *nx_wasm_memory_get(JSContext *ctx, JSValueConst obj)
-{
+static nx_wasm_memory_t *nx_wasm_memory_get(JSContext *ctx, JSValueConst obj) {
 	return JS_GetOpaque2(ctx, obj, nx_wasm_memory_class_id);
 }
 
-static void finalizer_wasm_memory(JSRuntime *rt, JSValue val)
-{
+static void finalizer_wasm_memory(JSRuntime *rt, JSValue val) {
 	nx_wasm_memory_t *data = JS_GetOpaque(val, nx_wasm_memory_class_id);
-	if (data)
-	{
-		if (data->needs_free && data->mem)
-		{
-			if (data->mem->mallocated)
-			{
+	if (data) {
+		if (data->needs_free && data->mem) {
+			if (data->mem->mallocated) {
 				m3_Free(data->mem->mallocated);
 			}
 			js_free_rt(rt, data->mem);
@@ -116,12 +100,10 @@ static void finalizer_wasm_memory(JSRuntime *rt, JSValue val)
 	}
 }
 
-static JSValue nx_wasm_memory_new_(JSContext *ctx)
-{
+static JSValue nx_wasm_memory_new_(JSContext *ctx) {
 	JSValue obj = JS_NewObjectClass(ctx, nx_wasm_memory_class_id);
 	nx_wasm_memory_t *data = js_mallocz(ctx, sizeof(nx_wasm_memory_t));
-	if (!data)
-	{
+	if (!data) {
 		JS_ThrowOutOfMemory(ctx);
 		return JS_EXCEPTION;
 	}
@@ -131,32 +113,26 @@ static JSValue nx_wasm_memory_new_(JSContext *ctx)
 
 static JSClassID nx_wasm_table_class_id;
 
-typedef struct
-{
+typedef struct {
 	IM3Function *table;
 	u32 *table_size;
 } nx_wasm_table_t;
 
-static nx_wasm_table_t *nx_wasm_table_get(JSContext *ctx, JSValueConst obj)
-{
+static nx_wasm_table_t *nx_wasm_table_get(JSContext *ctx, JSValueConst obj) {
 	return JS_GetOpaque2(ctx, obj, nx_wasm_table_class_id);
 }
 
-static void finalizer_wasm_table(JSRuntime *rt, JSValue val)
-{
+static void finalizer_wasm_table(JSRuntime *rt, JSValue val) {
 	nx_wasm_table_t *data = JS_GetOpaque(val, nx_wasm_table_class_id);
-	if (data)
-	{
+	if (data) {
 		js_free_rt(rt, data);
 	}
 }
 
-static JSValue nx_wasm_table_new_(JSContext *ctx)
-{
+static JSValue nx_wasm_table_new_(JSContext *ctx) {
 	JSValue obj = JS_NewObjectClass(ctx, nx_wasm_table_class_id);
 	nx_wasm_table_t *data = js_mallocz(ctx, sizeof(nx_wasm_table_t));
-	if (!data)
-	{
+	if (!data) {
 		JS_ThrowOutOfMemory(ctx);
 		return JS_EXCEPTION;
 	}
@@ -166,31 +142,28 @@ static JSValue nx_wasm_table_new_(JSContext *ctx)
 
 static JSClassID nx_wasm_exported_func_class_id;
 
-typedef struct
-{
+typedef struct {
 	IM3Function function;
 } nx_wasm_exported_func_t;
 
-static nx_wasm_exported_func_t *nx_wasm_exported_func_get(JSContext *ctx, JSValueConst obj)
-{
+static nx_wasm_exported_func_t *nx_wasm_exported_func_get(JSContext *ctx,
+														  JSValueConst obj) {
 	return JS_GetOpaque2(ctx, obj, nx_wasm_exported_func_class_id);
 }
 
-static void finalizer_wasm_exported_func(JSRuntime *rt, JSValue val)
-{
-	nx_wasm_exported_func_t *data = JS_GetOpaque(val, nx_wasm_exported_func_class_id);
-	if (data)
-	{
+static void finalizer_wasm_exported_func(JSRuntime *rt, JSValue val) {
+	nx_wasm_exported_func_t *data =
+		JS_GetOpaque(val, nx_wasm_exported_func_class_id);
+	if (data) {
 		js_free_rt(rt, data);
 	}
 }
 
-static JSValue nx_wasm_exported_func_new(JSContext *ctx, IM3Function func)
-{
+static JSValue nx_wasm_exported_func_new(JSContext *ctx, IM3Function func) {
 	JSValue obj = JS_NewObjectClass(ctx, nx_wasm_exported_func_class_id);
-	nx_wasm_exported_func_t *data = js_mallocz(ctx, sizeof(nx_wasm_exported_func_t));
-	if (!data)
-	{
+	nx_wasm_exported_func_t *data =
+		js_mallocz(ctx, sizeof(nx_wasm_exported_func_t));
+	if (!data) {
 		JS_ThrowOutOfMemory(ctx);
 		return JS_EXCEPTION;
 	}
@@ -201,23 +174,19 @@ static JSValue nx_wasm_exported_func_new(JSContext *ctx, IM3Function func)
 
 static JSClassID nx_wasm_module_class_id;
 
-typedef struct
-{
+typedef struct {
 	IM3Module module;
 	uint8_t *data;
 	size_t size;
 } nx_wasm_module_t;
 
-static nx_wasm_module_t *nx_wasm_module_get(JSContext *ctx, JSValueConst obj)
-{
+static nx_wasm_module_t *nx_wasm_module_get(JSContext *ctx, JSValueConst obj) {
 	return JS_GetOpaque2(ctx, obj, nx_wasm_module_class_id);
 }
 
-static void finalizer_wasm_module(JSRuntime *rt, JSValue val)
-{
+static void finalizer_wasm_module(JSRuntime *rt, JSValue val) {
 	nx_wasm_module_t *m = JS_GetOpaque(val, nx_wasm_module_class_id);
-	if (m)
-	{
+	if (m) {
 		if (m->module)
 			m3_FreeModule(m->module);
 		js_free_rt(rt, m);
@@ -226,33 +195,28 @@ static void finalizer_wasm_module(JSRuntime *rt, JSValue val)
 
 static JSClassID nx_wasm_global_class_id;
 
-typedef struct
-{
+typedef struct {
 	IM3Global global;
 } nx_wasm_global_t;
 
-static nx_wasm_global_t *nx_wasm_global_get(JSContext *ctx, JSValueConst obj)
-{
+static nx_wasm_global_t *nx_wasm_global_get(JSContext *ctx, JSValueConst obj) {
 	return JS_GetOpaque2(ctx, obj, nx_wasm_global_class_id);
 }
 
-static void finalizer_wasm_global(JSRuntime *rt, JSValue val)
-{
+static void finalizer_wasm_global(JSRuntime *rt, JSValue val) {
 	nx_wasm_global_t *g = JS_GetOpaque(val, nx_wasm_global_class_id);
-	if (g)
-	{
+	if (g) {
 		// Don't need to free `global` since the Runtime instance owns it
 		g->global = NULL;
 		js_free_rt(rt, g);
 	}
 }
 
-static JSValue nx_wasm_new_global(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
+static JSValue nx_wasm_new_global(JSContext *ctx, JSValueConst this_val,
+								  int argc, JSValueConst *argv) {
 	JSValue obj = JS_NewObjectClass(ctx, nx_wasm_global_class_id);
 	nx_wasm_global_t *g = js_mallocz(ctx, sizeof(nx_wasm_global_t));
-	if (!g)
-	{
+	if (!g) {
 		JS_ThrowOutOfMemory(ctx);
 		return JS_EXCEPTION;
 	}
@@ -265,43 +229,41 @@ static JSValue nx_wasm_new_global(JSContext *ctx, JSValueConst this_val, int arg
 	return obj;
 }
 
-static JSValue nx_wasm_global_value_get(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
+static JSValue nx_wasm_global_value_get(JSContext *ctx, JSValueConst this_val,
+										int argc, JSValueConst *argv) {
 	nx_wasm_global_t *g = nx_wasm_global_get(ctx, argv[0]);
 	if (!g)
 		return JS_EXCEPTION;
 
 	IM3Global global = g->global;
-	if (!global)
-	{
+	if (!global) {
 		// Not bound
 		return JS_ThrowTypeError(ctx, "Global not defined");
 	}
 
 	M3TaggedValue val;
 	M3Result r = m3_GetGlobal(global, &val);
-	if (r)
-	{
+	if (r) {
 		return nx_throw_wasm_error(ctx, "LinkError", r);
 	}
 
 	return nx__wasm_tojsvalue(ctx, val.type, &val.value);
 }
 
-static JSValue nx_wasm_global_value_set(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
+static JSValue nx_wasm_global_value_set(JSContext *ctx, JSValueConst this_val,
+										int argc, JSValueConst *argv) {
 	nx_wasm_global_t *g = nx_wasm_global_get(ctx, argv[0]);
 	if (!g)
 		return JS_EXCEPTION;
 
 	IM3Global global = g->global;
-	if (!global)
-	{
+	if (!global) {
 		// Not bound
 		return JS_ThrowTypeError(ctx, "Global not defined");
 	}
 
-	if (nx__wasm_towebassemblyvalue(ctx, argv[1], global->type, &global->i32Value))
+	if (nx__wasm_towebassemblyvalue(ctx, argv[1], global->type,
+									&global->i32Value))
 		return JS_EXCEPTION;
 
 	return JS_UNDEFINED;
@@ -309,25 +271,22 @@ static JSValue nx_wasm_global_value_set(JSContext *ctx, JSValueConst this_val, i
 
 static JSClassID nx_wasm_instance_class_id;
 
-typedef struct
-{
+typedef struct {
 	IM3Runtime runtime;
 	IM3Module module;
 	bool loaded;
 } nx_wasm_instance_t;
 
-// static nx_wasm_instance_t *nx_wasm_instance_get(JSContext *ctx, JSValueConst obj)
+// static nx_wasm_instance_t *nx_wasm_instance_get(JSContext *ctx, JSValueConst
+// obj)
 //{
 //     return JS_GetOpaque2(ctx, obj, nx_wasm_instance_class_id);
 // }
 
-static void finalizer_wasm_instance(JSRuntime *rt, JSValue val)
-{
+static void finalizer_wasm_instance(JSRuntime *rt, JSValue val) {
 	nx_wasm_instance_t *i = JS_GetOpaque(val, nx_wasm_instance_class_id);
-	if (i)
-	{
-		if (i->module)
-		{
+	if (i) {
+		if (i->module) {
 			// Free the module, only if it wasn't previously loaded.
 			if (!i->loaded)
 				m3_FreeModule(i->module);
@@ -338,19 +297,17 @@ static void finalizer_wasm_instance(JSRuntime *rt, JSValue val)
 	}
 }
 
-static JSValue nx_wasm_new_module(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
+static JSValue nx_wasm_new_module(JSContext *ctx, JSValueConst this_val,
+								  int argc, JSValueConst *argv) {
 	nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
 
-	if (nx_ctx->wasm_env == NULL)
-	{
+	if (nx_ctx->wasm_env == NULL) {
 		nx_ctx->wasm_env = m3_NewEnvironment();
 	}
 
 	JSValue obj = JS_NewObjectClass(ctx, nx_wasm_module_class_id);
 	nx_wasm_module_t *m = js_mallocz(ctx, sizeof(nx_wasm_module_t));
-	if (!m)
-	{
+	if (!m) {
 		return JS_EXCEPTION;
 	}
 
@@ -363,8 +320,7 @@ static JSValue nx_wasm_new_module(JSContext *ctx, JSValueConst this_val, int arg
 	}
 
 	M3Result r = m3_ParseModule(nx_ctx->wasm_env, &m->module, buf, size);
-	if (r)
-	{
+	if (r) {
 		JS_FreeValue(ctx, obj);
 		return nx_throw_wasm_error(ctx, "CompileError", r);
 	}
@@ -375,14 +331,12 @@ static JSValue nx_wasm_new_module(JSContext *ctx, JSValueConst this_val, int arg
 	return obj;
 }
 
-typedef struct
-{
+typedef struct {
 	JSContext *ctx;
 	JSValue func;
 } nx_wasm_imported_func_t;
 
-m3ApiRawFunction(nx_wasm_imported_func)
-{
+m3ApiRawFunction(nx_wasm_imported_func) {
 	IM3Function func = _ctx->function;
 	IM3FuncType funcType = func->funcType;
 	nx_wasm_imported_func_t *js = _ctx->userdata;
@@ -392,26 +346,24 @@ m3ApiRawFunction(nx_wasm_imported_func)
 
 	// Map the WASM arguments to JS values
 	JSValue args[funcType->numArgs];
-	for (int i = 0; i < funcType->numArgs; i++)
-	{
+	for (int i = 0; i < funcType->numArgs; i++) {
 		u8 type = funcType->types[funcType->numRets + i];
 		args[i] = nx__wasm_tojsvalue(js->ctx, type, _sp);
 		_sp++;
 	}
 
 	// Invoke the JavaScript user function
-	JSValue ret_val = JS_Call(js->ctx, js->func, JS_NULL, funcType->numArgs, args);
-	if (JS_IsException(ret_val))
-	{
+	JSValue ret_val =
+		JS_Call(js->ctx, js->func, JS_NULL, funcType->numArgs, args);
+	if (JS_IsException(ret_val)) {
 		JS_FreeValue(js->ctx, ret_val);
 		return nx_wasm_js_error;
 	}
 
 	// Map the JS return value to WASM
-	if (funcType->numRets > 0)
-	{
-		if (nx__wasm_towebassemblyvalue(js->ctx, ret_val, funcType->types[0], retValAddr))
-		{
+	if (funcType->numRets > 0) {
+		if (nx__wasm_towebassemblyvalue(js->ctx, ret_val, funcType->types[0],
+										retValAddr)) {
 			JS_FreeValue(js->ctx, ret_val);
 			return nx_wasm_js_error;
 		}
@@ -422,23 +374,23 @@ m3ApiRawFunction(nx_wasm_imported_func)
 	m3ApiSuccess();
 }
 
-static JSValue find_matching_import(JSContext *ctx, M3ImportInfo *info, JSValue imports_array, size_t imports_array_length)
-{
-	for (size_t i = 0; i < imports_array_length; i++)
-	{
+static JSValue find_matching_import(JSContext *ctx, M3ImportInfo *info,
+									JSValue imports_array,
+									size_t imports_array_length) {
+	for (size_t i = 0; i < imports_array_length; i++) {
 		JSValue entry = JS_GetPropertyUint32(ctx, imports_array, i);
 
-		const char *module_name = JS_ToCString(ctx, JS_GetPropertyStr(ctx, entry, "module"));
-		if (strcmp(info->moduleUtf8, module_name) != 0)
-		{
+		const char *module_name =
+			JS_ToCString(ctx, JS_GetPropertyStr(ctx, entry, "module"));
+		if (strcmp(info->moduleUtf8, module_name) != 0) {
 			JS_FreeCString(ctx, module_name);
 			JS_FreeValue(ctx, entry);
 			continue;
 		}
 
-		const char *field_name = JS_ToCString(ctx, JS_GetPropertyStr(ctx, entry, "name"));
-		if (strcmp(info->fieldUtf8, field_name) != 0)
-		{
+		const char *field_name =
+			JS_ToCString(ctx, JS_GetPropertyStr(ctx, entry, "name"));
+		if (strcmp(info->fieldUtf8, field_name) != 0) {
 			JS_FreeCString(ctx, module_name);
 			JS_FreeCString(ctx, field_name);
 			JS_FreeValue(ctx, entry);
@@ -453,14 +405,13 @@ static JSValue find_matching_import(JSContext *ctx, M3ImportInfo *info, JSValue 
 	return JS_UNDEFINED;
 }
 
-static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
+static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val,
+									int argc, JSValueConst *argv) {
 	nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
 
 	JSValue opaque = JS_NewObjectClass(ctx, nx_wasm_instance_class_id);
 	nx_wasm_instance_t *instance = js_mallocz(ctx, sizeof(nx_wasm_instance_t));
-	if (!instance)
-	{
+	if (!instance) {
 		JS_ThrowOutOfMemory(ctx);
 		return JS_EXCEPTION;
 	}
@@ -469,13 +420,13 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val, int a
 
 	nx_wasm_module_t *m = nx_wasm_module_get(ctx, argv[0]);
 
-	M3Result r = m3_ParseModule(nx_ctx->wasm_env, &instance->module, m->data, m->size);
-	// CHECK_NULL(r);  // Should never fail because we already parsed it. TODO: clone it?
+	M3Result r =
+		m3_ParseModule(nx_ctx->wasm_env, &instance->module, m->data, m->size);
 
 	/* Create a runtime per module to avoid symbol clash. */
-	IM3Runtime runtime = m3_NewRuntime(nx_ctx->wasm_env, /* TODO: adjust */ 512 * 1024, NULL);
-	if (!runtime)
-	{
+	IM3Runtime runtime =
+		m3_NewRuntime(nx_ctx->wasm_env, /* TODO: adjust */ 512 * 1024, NULL);
+	if (!runtime) {
 		JS_FreeValue(ctx, opaque);
 		JS_ThrowOutOfMemory(ctx);
 		return JS_EXCEPTION;
@@ -484,21 +435,21 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val, int a
 
 	JSValue imports_array = argv[1];
 	uint32_t imports_array_length;
-	if (JS_ToUint32(ctx, &imports_array_length, JS_GetPropertyStr(ctx, imports_array, "length")))
-	{
+	if (JS_ToUint32(ctx, &imports_array_length,
+					JS_GetPropertyStr(ctx, imports_array, "length"))) {
 		return JS_EXCEPTION;
 	}
 
 	/* When the WASM module declares the memory as an import, we need to "map"
 	   the provided `WebAssembly.Memory` data into the runtime here, before
 	   loading the module. */
-	if (instance->module->memoryImported)
-	{
+	if (instance->module->memoryImported) {
 		M3ImportInfo *import = &instance->module->memoryImport;
-		JSValue matching_import = find_matching_import(ctx, import, imports_array, imports_array_length);
-		if (JS_IsUndefined(matching_import))
-		{
-			JS_ThrowTypeError(ctx, "Missing import memory \"%s.%s\"", import->moduleUtf8, import->fieldUtf8);
+		JSValue matching_import = find_matching_import(
+			ctx, import, imports_array, imports_array_length);
+		if (JS_IsUndefined(matching_import)) {
+			JS_ThrowTypeError(ctx, "Missing import memory \"%s.%s\"",
+							  import->moduleUtf8, import->fieldUtf8);
 			return JS_EXCEPTION;
 		}
 
@@ -507,12 +458,12 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val, int a
 
 		memcpy(&runtime->memory, data->mem, sizeof(M3Memory));
 		runtime->memory.mallocated->runtime = runtime;
-		runtime->memory.mallocated->maxStack = (m3slot_t *)runtime->stack + runtime->numStackSlots;
+		runtime->memory.mallocated->maxStack =
+			(m3slot_t *)runtime->stack + runtime->numStackSlots;
 
 		// TODO: what if "numPages" or "maxPages" conflict?
 
-		if (data->needs_free)
-		{
+		if (data->needs_free) {
 			js_free(ctx, data->mem);
 		}
 		data->mem = &runtime->memory;
@@ -523,8 +474,7 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val, int a
 	}
 
 	r = m3_LoadModule(runtime, instance->module);
-	if (r)
-	{
+	if (r) {
 		JS_FreeValue(ctx, opaque);
 		return nx_throw_wasm_error(ctx, "LinkError", r);
 	}
@@ -534,25 +484,23 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val, int a
 	JSValue exports_array = JS_NewArray(ctx);
 	size_t exports_index = 0;
 
-	for (size_t i = 0; i < instance->module->numFunctions; ++i)
-	{
+	for (size_t i = 0; i < instance->module->numFunctions; ++i) {
 		IM3Function f = &instance->module->functions[i];
-		if (f->import.moduleUtf8 && f->import.fieldUtf8)
-		{
+		if (f->import.moduleUtf8 && f->import.fieldUtf8) {
 			// Imported `Function`
-			JSValue matching_import = find_matching_import(ctx, &f->import, imports_array, imports_array_length);
-			if (JS_IsUndefined(matching_import))
-			{
-				JS_ThrowTypeError(ctx, "Missing import function \"%s.%s\"", f->import.moduleUtf8, f->import.fieldUtf8);
+			JSValue matching_import = find_matching_import(
+				ctx, &f->import, imports_array, imports_array_length);
+			if (JS_IsUndefined(matching_import)) {
+				JS_ThrowTypeError(ctx, "Missing import function \"%s.%s\"",
+								  f->import.moduleUtf8, f->import.fieldUtf8);
 				return JS_EXCEPTION;
 			}
 
 			JSValue v = JS_GetPropertyStr(ctx, matching_import, "val");
-			if (JS_IsFunction(ctx, v))
-			{
-				nx_wasm_imported_func_t *js = js_malloc(ctx, sizeof(nx_wasm_imported_func_t));
-				if (!js)
-				{
+			if (JS_IsFunction(ctx, v)) {
+				nx_wasm_imported_func_t *js =
+					js_malloc(ctx, sizeof(nx_wasm_imported_func_t));
+				if (!js) {
 					JS_FreeValue(ctx, v);
 					JS_FreeValue(ctx, matching_import);
 					JS_ThrowOutOfMemory(ctx);
@@ -560,19 +508,15 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val, int a
 				}
 				js->ctx = ctx;
 
-				// TODO: when do we de-dup this func? probably when the instance is being finalized?
+				// TODO: when do we de-dup this func? probably when the instance
+				// is being finalized?
 				js->func = JS_DupValue(ctx, v);
 				// js->func = v;
 
 				M3Result r = m3_LinkRawFunctionEx(
-					instance->module,
-					f->import.moduleUtf8,
-					f->import.fieldUtf8,
-					NULL,
-					nx_wasm_imported_func,
-					js);
-				if (r)
-				{
+					instance->module, f->import.moduleUtf8, f->import.fieldUtf8,
+					NULL, nx_wasm_imported_func, js);
+				if (r) {
 					JS_FreeValue(ctx, v);
 					JS_FreeValue(ctx, matching_import);
 					JS_FreeValue(ctx, js->func);
@@ -583,32 +527,34 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val, int a
 
 			JS_FreeValue(ctx, v);
 			JS_FreeValue(ctx, matching_import);
-		}
-		else if (f->export_name)
-		{
+		} else if (f->export_name) {
 			// Exported `Function`
 			JSValue val = nx_wasm_exported_func_new(ctx, f);
 			if (JS_IsException(val))
 				return JS_EXCEPTION;
 
 			JSValue item = JS_NewObject(ctx);
-			JS_DefinePropertyValueStr(ctx, item, "kind", JS_NewString(ctx, "function"), JS_PROP_C_W_E);
-			JS_DefinePropertyValueStr(ctx, item, "name", JS_NewString(ctx, f->export_name), JS_PROP_C_W_E);
+			JS_DefinePropertyValueStr(ctx, item, "kind",
+									  JS_NewString(ctx, "function"),
+									  JS_PROP_C_W_E);
+			JS_DefinePropertyValueStr(ctx, item, "name",
+									  JS_NewString(ctx, f->export_name),
+									  JS_PROP_C_W_E);
 			JS_DefinePropertyValueStr(ctx, item, "val", val, JS_PROP_C_W_E);
-			JS_DefinePropertyValueUint32(ctx, exports_array, exports_index++, item, JS_PROP_C_W_E);
+			JS_DefinePropertyValueUint32(ctx, exports_array, exports_index++,
+										 item, JS_PROP_C_W_E);
 		}
 	}
 
-	for (size_t i = 0; i < instance->module->numGlobals; i++)
-	{
+	for (size_t i = 0; i < instance->module->numGlobals; i++) {
 		const IM3Global g = &instance->module->globals[i];
-		if (g->imported)
-		{
+		if (g->imported) {
 			// Imported `Global`
-			JSValue matching_import = find_matching_import(ctx, &g->import, imports_array, imports_array_length);
-			if (JS_IsUndefined(matching_import))
-			{
-				JS_ThrowTypeError(ctx, "Missing import global \"%s.%s\"", g->import.moduleUtf8, g->import.fieldUtf8);
+			JSValue matching_import = find_matching_import(
+				ctx, &g->import, imports_array, imports_array_length);
+			if (JS_IsUndefined(matching_import)) {
+				JS_ThrowTypeError(ctx, "Missing import global \"%s.%s\"",
+								  g->import.moduleUtf8, g->import.fieldUtf8);
 				return JS_EXCEPTION;
 			}
 
@@ -619,44 +565,43 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val, int a
 			nx_wasm_global_t *nx_g = nx_wasm_global_get(ctx, v);
 			nx_g->global = g;
 
-			JSValue initial_value = JS_GetPropertyStr(ctx, matching_import, "i");
+			JSValue initial_value =
+				JS_GetPropertyStr(ctx, matching_import, "i");
 			JS_FreeValue(ctx, v);
 
-			if (nx__wasm_towebassemblyvalue(ctx, initial_value, g->type, &g->i32Value))
-			{
+			if (nx__wasm_towebassemblyvalue(ctx, initial_value, g->type,
+											&g->i32Value)) {
 				JS_FreeValue(ctx, initial_value);
 				return JS_EXCEPTION;
 			}
 
 			JS_FreeValue(ctx, initial_value);
-		}
-		else if (g->name)
-		{
+		} else if (g->name) {
 			// Exported `Global`
 			JSValue op = nx_wasm_new_global(ctx, JS_UNDEFINED, 0, NULL);
-			if (JS_IsException(op))
-			{
+			if (JS_IsException(op)) {
 				return JS_EXCEPTION;
 			}
 			nx_wasm_global_t *nx_g = nx_wasm_global_get(ctx, op);
-			if (!nx_g)
-			{
+			if (!nx_g) {
 				return JS_EXCEPTION;
 			}
 			nx_g->global = g;
 
 			JSValue item = JS_NewObject(ctx);
-			JS_DefinePropertyValueStr(ctx, item, "kind", JS_NewString(ctx, "global"), JS_PROP_C_W_E);
-			JS_DefinePropertyValueStr(ctx, item, "name", JS_NewString(ctx, g->name), JS_PROP_C_W_E);
+			JS_DefinePropertyValueStr(
+				ctx, item, "kind", JS_NewString(ctx, "global"), JS_PROP_C_W_E);
+			JS_DefinePropertyValueStr(
+				ctx, item, "name", JS_NewString(ctx, g->name), JS_PROP_C_W_E);
 			JS_DefinePropertyValueStr(ctx, item, "val", op, JS_PROP_C_W_E);
 			// TODO: value ("i32")
 			// TODO: mutable (true, false)
-			JS_DefinePropertyValueUint32(ctx, exports_array, exports_index++, item, JS_PROP_C_W_E);
+			JS_DefinePropertyValueUint32(ctx, exports_array, exports_index++,
+										 item, JS_PROP_C_W_E);
 		}
 	}
 
-	if (instance->module->memoryExportName)
-	{
+	if (instance->module->memoryExportName) {
 		// Exported `Memory`
 		JSValue val = nx_wasm_memory_new_(ctx);
 		if (JS_IsException(val))
@@ -667,14 +612,18 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val, int a
 		data->needs_free = false;
 
 		JSValue item = JS_NewObject(ctx);
-		JS_DefinePropertyValueStr(ctx, item, "kind", JS_NewString(ctx, "memory"), JS_PROP_C_W_E);
-		JS_DefinePropertyValueStr(ctx, item, "name", JS_NewString(ctx, instance->module->memoryExportName), JS_PROP_C_W_E);
+		JS_DefinePropertyValueStr(ctx, item, "kind",
+								  JS_NewString(ctx, "memory"), JS_PROP_C_W_E);
+		JS_DefinePropertyValueStr(
+			ctx, item, "name",
+			JS_NewString(ctx, instance->module->memoryExportName),
+			JS_PROP_C_W_E);
 		JS_DefinePropertyValueStr(ctx, item, "val", val, JS_PROP_C_W_E);
-		JS_DefinePropertyValueUint32(ctx, exports_array, exports_index++, item, JS_PROP_C_W_E);
+		JS_DefinePropertyValueUint32(ctx, exports_array, exports_index++, item,
+									 JS_PROP_C_W_E);
 	}
 
-	if (instance->module->table0ExportName)
-	{
+	if (instance->module->table0ExportName) {
 		// Exported `Table`
 		JSValue val = nx_wasm_table_new_(ctx);
 		if (JS_IsException(val))
@@ -685,10 +634,15 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val, int a
 		data->table_size = &instance->module->table0Size;
 
 		JSValue item = JS_NewObject(ctx);
-		JS_DefinePropertyValueStr(ctx, item, "kind", JS_NewString(ctx, "table"), JS_PROP_C_W_E);
-		JS_DefinePropertyValueStr(ctx, item, "name", JS_NewString(ctx, instance->module->table0ExportName), JS_PROP_C_W_E);
+		JS_DefinePropertyValueStr(ctx, item, "kind", JS_NewString(ctx, "table"),
+								  JS_PROP_C_W_E);
+		JS_DefinePropertyValueStr(
+			ctx, item, "name",
+			JS_NewString(ctx, instance->module->table0ExportName),
+			JS_PROP_C_W_E);
 		JS_DefinePropertyValueStr(ctx, item, "val", val, JS_PROP_C_W_E);
-		JS_DefinePropertyValueUint32(ctx, exports_array, exports_index++, item, JS_PROP_C_W_E);
+		JS_DefinePropertyValueUint32(ctx, exports_array, exports_index++, item,
+									 JS_PROP_C_W_E);
 	}
 
 	instance->loaded = true;
@@ -699,8 +653,8 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val, int a
 	return rtn;
 }
 
-static JSValue nx_wasm_module_imports(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
+static JSValue nx_wasm_module_imports(JSContext *ctx, JSValueConst this_val,
+									  int argc, JSValueConst *argv) {
 	nx_wasm_module_t *m = nx_wasm_module_get(ctx, argv[0]);
 	if (!m)
 		return JS_EXCEPTION;
@@ -710,39 +664,55 @@ static JSValue nx_wasm_module_imports(JSContext *ctx, JSValueConst this_val, int
 		return imports;
 
 	size_t index = 0;
-	for (size_t i = 0; i < m->module->numFunctions; ++i)
-	{
+	for (size_t i = 0; i < m->module->numFunctions; ++i) {
 		IM3Function f = &m->module->functions[i];
-		if (f->import.moduleUtf8 && f->import.fieldUtf8)
-		{
+		if (f->import.moduleUtf8 && f->import.fieldUtf8) {
 			JSValue item = JS_NewObject(ctx);
-			JS_DefinePropertyValueStr(ctx, item, "kind", JS_NewString(ctx, "function"), JS_PROP_C_W_E);
-			JS_DefinePropertyValueStr(ctx, item, "module", JS_NewString(ctx, f->import.moduleUtf8), JS_PROP_C_W_E);
-			JS_DefinePropertyValueStr(ctx, item, "name", JS_NewString(ctx, f->import.fieldUtf8), JS_PROP_C_W_E);
-			JS_DefinePropertyValueUint32(ctx, imports, index++, item, JS_PROP_C_W_E);
+			JS_DefinePropertyValueStr(ctx, item, "kind",
+									  JS_NewString(ctx, "function"),
+									  JS_PROP_C_W_E);
+			JS_DefinePropertyValueStr(ctx, item, "module",
+									  JS_NewString(ctx, f->import.moduleUtf8),
+									  JS_PROP_C_W_E);
+			JS_DefinePropertyValueStr(ctx, item, "name",
+									  JS_NewString(ctx, f->import.fieldUtf8),
+									  JS_PROP_C_W_E);
+			JS_DefinePropertyValueUint32(ctx, imports, index++, item,
+										 JS_PROP_C_W_E);
 		}
 	}
 
-	for (size_t i = 0; i < m->module->numGlobals; i++)
-	{
+	for (size_t i = 0; i < m->module->numGlobals; i++) {
 		IM3Global g = &m->module->globals[i];
-		if (g->imported && g->import.moduleUtf8 && g->import.fieldUtf8)
-		{
+		if (g->imported && g->import.moduleUtf8 && g->import.fieldUtf8) {
 			JSValue item = JS_NewObject(ctx);
-			JS_DefinePropertyValueStr(ctx, item, "kind", JS_NewString(ctx, "global"), JS_PROP_C_W_E);
-			JS_DefinePropertyValueStr(ctx, item, "module", JS_NewString(ctx, g->import.moduleUtf8), JS_PROP_C_W_E);
-			JS_DefinePropertyValueStr(ctx, item, "name", JS_NewString(ctx, g->import.fieldUtf8), JS_PROP_C_W_E);
-			JS_DefinePropertyValueUint32(ctx, imports, index++, item, JS_PROP_C_W_E);
+			JS_DefinePropertyValueStr(
+				ctx, item, "kind", JS_NewString(ctx, "global"), JS_PROP_C_W_E);
+			JS_DefinePropertyValueStr(ctx, item, "module",
+									  JS_NewString(ctx, g->import.moduleUtf8),
+									  JS_PROP_C_W_E);
+			JS_DefinePropertyValueStr(ctx, item, "name",
+									  JS_NewString(ctx, g->import.fieldUtf8),
+									  JS_PROP_C_W_E);
+			JS_DefinePropertyValueUint32(ctx, imports, index++, item,
+										 JS_PROP_C_W_E);
 		}
 	}
 
-	if (m->module->memoryImported)
-	{
+	if (m->module->memoryImported) {
 		JSValue item = JS_NewObject(ctx);
-		JS_DefinePropertyValueStr(ctx, item, "kind", JS_NewString(ctx, "memory"), JS_PROP_C_W_E);
-		JS_DefinePropertyValueStr(ctx, item, "module", JS_NewString(ctx, m->module->memoryImport.moduleUtf8), JS_PROP_C_W_E);
-		JS_DefinePropertyValueStr(ctx, item, "name", JS_NewString(ctx, m->module->memoryImport.fieldUtf8), JS_PROP_C_W_E);
-		JS_DefinePropertyValueUint32(ctx, imports, index++, item, JS_PROP_C_W_E);
+		JS_DefinePropertyValueStr(ctx, item, "kind",
+								  JS_NewString(ctx, "memory"), JS_PROP_C_W_E);
+		JS_DefinePropertyValueStr(
+			ctx, item, "module",
+			JS_NewString(ctx, m->module->memoryImport.moduleUtf8),
+			JS_PROP_C_W_E);
+		JS_DefinePropertyValueStr(
+			ctx, item, "name",
+			JS_NewString(ctx, m->module->memoryImport.fieldUtf8),
+			JS_PROP_C_W_E);
+		JS_DefinePropertyValueUint32(ctx, imports, index++, item,
+									 JS_PROP_C_W_E);
 	}
 
 	// TODO: "table" import types (wasm3 doesn't currently support)
@@ -750,8 +720,8 @@ static JSValue nx_wasm_module_imports(JSContext *ctx, JSValueConst this_val, int
 	return imports;
 }
 
-static JSValue nx_wasm_module_exports(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
+static JSValue nx_wasm_module_exports(JSContext *ctx, JSValueConst this_val,
+									  int argc, JSValueConst *argv) {
 	nx_wasm_module_t *m = nx_wasm_module_get(ctx, argv[0]);
 	if (!m)
 		return JS_EXCEPTION;
@@ -761,116 +731,113 @@ static JSValue nx_wasm_module_exports(JSContext *ctx, JSValueConst this_val, int
 		return exports;
 
 	size_t index = 0;
-	for (size_t i = 0; i < m->module->numFunctions; ++i)
-	{
+	for (size_t i = 0; i < m->module->numFunctions; ++i) {
 		IM3Function f = &m->module->functions[i];
-		if (f->export_name)
-		{
+		if (f->export_name) {
 			JSValue item = JS_NewObject(ctx);
-			JS_DefinePropertyValueStr(ctx, item, "kind", JS_NewString(ctx, "function"), JS_PROP_C_W_E);
-			JS_DefinePropertyValueStr(ctx, item, "name", JS_NewString(ctx, f->export_name), JS_PROP_C_W_E);
-			JS_DefinePropertyValueUint32(ctx, exports, index++, item, JS_PROP_C_W_E);
+			JS_DefinePropertyValueStr(ctx, item, "kind",
+									  JS_NewString(ctx, "function"),
+									  JS_PROP_C_W_E);
+			JS_DefinePropertyValueStr(ctx, item, "name",
+									  JS_NewString(ctx, f->export_name),
+									  JS_PROP_C_W_E);
+			JS_DefinePropertyValueUint32(ctx, exports, index++, item,
+										 JS_PROP_C_W_E);
 		}
 	}
 
-	for (size_t i = 0; i < m->module->numGlobals; ++i)
-	{
+	for (size_t i = 0; i < m->module->numGlobals; ++i) {
 		IM3Global g = &m->module->globals[i];
-		if (!g->imported && g->name)
-		{
+		if (!g->imported && g->name) {
 			JSValue item = JS_NewObject(ctx);
-			JS_DefinePropertyValueStr(ctx, item, "kind", JS_NewString(ctx, "global"), JS_PROP_C_W_E);
-			JS_DefinePropertyValueStr(ctx, item, "name", JS_NewString(ctx, g->name), JS_PROP_C_W_E);
-			JS_DefinePropertyValueUint32(ctx, exports, index++, item, JS_PROP_C_W_E);
+			JS_DefinePropertyValueStr(
+				ctx, item, "kind", JS_NewString(ctx, "global"), JS_PROP_C_W_E);
+			JS_DefinePropertyValueStr(
+				ctx, item, "name", JS_NewString(ctx, g->name), JS_PROP_C_W_E);
+			JS_DefinePropertyValueUint32(ctx, exports, index++, item,
+										 JS_PROP_C_W_E);
 		}
 	}
 
-	if (!m->module->memoryImported && m->module->memoryExportName)
-	{
+	if (!m->module->memoryImported && m->module->memoryExportName) {
 		JSValue item = JS_NewObject(ctx);
-		JS_DefinePropertyValueStr(ctx, item, "kind", JS_NewString(ctx, "memory"), JS_PROP_C_W_E);
-		JS_DefinePropertyValueStr(ctx, item, "name", JS_NewString(ctx, m->module->memoryExportName), JS_PROP_C_W_E);
-		JS_DefinePropertyValueUint32(ctx, exports, index++, item, JS_PROP_C_W_E);
+		JS_DefinePropertyValueStr(ctx, item, "kind",
+								  JS_NewString(ctx, "memory"), JS_PROP_C_W_E);
+		JS_DefinePropertyValueStr(
+			ctx, item, "name", JS_NewString(ctx, m->module->memoryExportName),
+			JS_PROP_C_W_E);
+		JS_DefinePropertyValueUint32(ctx, exports, index++, item,
+									 JS_PROP_C_W_E);
 	}
 
-	if (m->module->table0ExportName)
-	{
+	if (m->module->table0ExportName) {
 		JSValue item = JS_NewObject(ctx);
-		JS_DefinePropertyValueStr(ctx, item, "kind", JS_NewString(ctx, "table"), JS_PROP_C_W_E);
-		JS_DefinePropertyValueStr(ctx, item, "name", JS_NewString(ctx, m->module->table0ExportName), JS_PROP_C_W_E);
-		JS_DefinePropertyValueUint32(ctx, exports, index++, item, JS_PROP_C_W_E);
+		JS_DefinePropertyValueStr(ctx, item, "kind", JS_NewString(ctx, "table"),
+								  JS_PROP_C_W_E);
+		JS_DefinePropertyValueStr(
+			ctx, item, "name", JS_NewString(ctx, m->module->table0ExportName),
+			JS_PROP_C_W_E);
+		JS_DefinePropertyValueUint32(ctx, exports, index++, item,
+									 JS_PROP_C_W_E);
 	}
 
 	return exports;
 }
 
-static JSValue nx_wasm_call_func(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
+static JSValue nx_wasm_call_func(JSContext *ctx, JSValueConst this_val,
+								 int argc, JSValueConst *argv) {
 	nx_wasm_exported_func_t *data = nx_wasm_exported_func_get(ctx, argv[0]);
 	if (!data)
 		return JS_EXCEPTION;
 
 	IM3Function func = data->function;
-	if (!func)
-	{
-		return nx_throw_wasm_error(ctx, "RuntimeError", "Missing function reference");
+	if (!func) {
+		return nx_throw_wasm_error(ctx, "RuntimeError",
+								   "Missing function reference");
 	}
 
 	M3Result r = m3Err_none;
-	if (!func->compiled)
-	{
+	if (!func->compiled) {
 		r = CompileFunction(func);
 	}
-	if (r)
-	{
+	if (r) {
 		return nx_throw_wasm_error(ctx, "RuntimeError", r);
 	}
 
 	int nargs = m3_GetArgCount(func);
-	if (nargs == 0)
-	{
+	if (nargs == 0) {
 		r = m3_Call(func, 0, NULL);
-	}
-	else
-	{
+	} else {
 		const char *m3_argv[nargs + 1];
-		for (int i = 0; i < nargs; i++)
-		{
+		for (int i = 0; i < nargs; i++) {
 			m3_argv[i] = JS_ToCString(ctx, argv[i + 1]);
 		}
 		m3_argv[nargs] = NULL;
 		r = m3_CallArgv(func, nargs, m3_argv);
-		for (int i = 0; i < nargs; i++)
-		{
+		for (int i = 0; i < nargs; i++) {
 			JS_FreeCString(ctx, m3_argv[i]);
 		}
 	}
 
-	if (r)
-	{
-		if (r == nx_wasm_js_error)
-		{
+	if (r) {
+		if (r == nx_wasm_js_error) {
 			// If a JavaScript error was returned then that means an
 			// imported function threw an error, so re-throw here
 			return JS_EXCEPTION;
-		}
-		else
-		{
+		} else {
 			return nx_throw_wasm_error(ctx, "RuntimeError", r);
 		}
 	}
 
 	int ret_count = m3_GetRetCount(func);
-	if (ret_count == 0)
-	{
+	if (ret_count == 0) {
 		return JS_UNDEFINED;
 	}
 
 	uint64_t valbuff[ret_count];
 	const void *valptrs[ret_count];
 	memset(valbuff, 0, sizeof(valbuff));
-	for (int i = 0; i < ret_count; i++)
-	{
+	for (int i = 0; i < ret_count; i++) {
 		valptrs[i] = &valbuff[i];
 	}
 
@@ -878,23 +845,21 @@ static JSValue nx_wasm_call_func(JSContext *ctx, JSValueConst this_val, int argc
 	if (r)
 		return nx_throw_wasm_error(ctx, "RuntimeError", r);
 
-	if (ret_count == 1)
-	{
+	if (ret_count == 1) {
 		return nx__wasm_tojsvalue(ctx, m3_GetRetType(func, 0), valptrs[0]);
-	}
-	else
-	{
+	} else {
 		JSValue rets = JS_NewArray(ctx);
-		for (int i = 0; i < ret_count; i++)
-		{
-			JS_SetPropertyUint32(ctx, rets, i, nx__wasm_tojsvalue(ctx, m3_GetRetType(func, i), valptrs[i]));
+		for (int i = 0; i < ret_count; i++) {
+			JS_SetPropertyUint32(
+				ctx, rets, i,
+				nx__wasm_tojsvalue(ctx, m3_GetRetType(func, i), valptrs[i]));
 		}
 		return rets;
 	}
 }
 
-static JSValue nx_wasm_memory_new(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
+static JSValue nx_wasm_memory_new(JSContext *ctx, JSValueConst this_val,
+								  int argc, JSValueConst *argv) {
 	JSValue obj = nx_wasm_memory_new_(ctx);
 	if (JS_IsException(obj))
 		return JS_EXCEPTION;
@@ -923,7 +888,8 @@ static JSValue nx_wasm_memory_new(JSContext *ctx, JSValueConst this_val, int arg
 
 	size_t numBytes = d_m3MemPageSize * initial;
 	size_t numPreviousBytes = 0;
-	void *newMem = m3_Realloc("Wasm Linear Memory", mem->mallocated, numBytes, numPreviousBytes);
+	void *newMem = m3_Realloc("Wasm Linear Memory", mem->mallocated, numBytes,
+							  numPreviousBytes);
 	mem->mallocated = (M3MemoryHeader *)newMem;
 	mem->mallocated->length = numBytes;
 
@@ -933,24 +899,21 @@ static JSValue nx_wasm_memory_new(JSContext *ctx, JSValueConst this_val, int arg
 }
 
 // `Memory#buffer` getter function
-static JSValue nx_wasm_memory_buffer_get(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
+static JSValue nx_wasm_memory_buffer_get(JSContext *ctx, JSValueConst this_val,
+										 int argc, JSValueConst *argv) {
 	nx_wasm_memory_t *data = nx_wasm_memory_get(ctx, this_val);
-	if (!data)
-	{
+	if (!data) {
 		return JS_EXCEPTION;
 	}
 
 	IM3Memory mem = data->mem;
-	if (!mem)
-	{
+	if (!mem) {
 		JS_ThrowTypeError(ctx, "Memory not set");
 		return JS_EXCEPTION;
 	}
 
 	M3MemoryHeader *mallocated = mem->mallocated;
-	if (!mallocated)
-	{
+	if (!mallocated) {
 		JS_ThrowTypeError(ctx, "Memory not allocated");
 		return JS_EXCEPTION;
 	}
@@ -958,9 +921,9 @@ static JSValue nx_wasm_memory_buffer_get(JSContext *ctx, JSValueConst this_val, 
 	size_t size = mallocated->length;
 	uint8_t *memory = m3MemData(mallocated);
 
-	JSValue buf = JS_NewArrayBuffer(ctx, memory, size, NULL, NULL, data->is_shared);
-	if (JS_IsException(buf))
-	{
+	JSValue buf =
+		JS_NewArrayBuffer(ctx, memory, size, NULL, NULL, data->is_shared);
+	if (JS_IsException(buf)) {
 		return JS_EXCEPTION;
 	}
 	// TODO: return same instance. invalidate when size changes
@@ -968,22 +931,20 @@ static JSValue nx_wasm_memory_buffer_get(JSContext *ctx, JSValueConst this_val, 
 }
 
 // `Memory#grow()` function
-static JSValue nx_wasm_memory_grow(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
+static JSValue nx_wasm_memory_grow(JSContext *ctx, JSValueConst this_val,
+								   int argc, JSValueConst *argv) {
 	nx_wasm_memory_t *data = nx_wasm_memory_get(ctx, this_val);
 	if (!data)
 		return JS_EXCEPTION;
 
 	IM3Memory memory = data->mem;
-	if (!memory)
-	{
+	if (!memory) {
 		JS_ThrowTypeError(ctx, "Memory not set");
 		return JS_EXCEPTION;
 	}
 
 	M3MemoryHeader *mallocated = memory->mallocated;
-	if (!mallocated)
-	{
+	if (!mallocated) {
 		JS_ThrowTypeError(ctx, "Memory not allocated");
 		return JS_EXCEPTION;
 	}
@@ -992,20 +953,20 @@ static JSValue nx_wasm_memory_grow(JSContext *ctx, JSValueConst this_val, int ar
 	if (JS_ToInt32(ctx, &numPagesToGrow, argv[0]))
 		return JS_EXCEPTION;
 
-	if (numPagesToGrow < 0)
-	{
-		JS_ThrowTypeError(ctx, "WebAssembly.Memory.grow(): Argument 0 must be non-negative");
+	if (numPagesToGrow < 0) {
+		JS_ThrowTypeError(
+			ctx, "WebAssembly.Memory.grow(): Argument 0 must be non-negative");
 		return JS_EXCEPTION;
 	}
 
 	JSValue prevSize = JS_NewUint32(ctx, memory->numPages);
 
-	if (numPagesToGrow > 0)
-	{
+	if (numPagesToGrow > 0) {
 		IM3Runtime runtime = m3MemRuntime(mallocated);
-		if (!runtime)
-		{
-			JS_ThrowTypeError(ctx, "WebAssembly.Memory.grow(): Memory not bound to an instance");
+		if (!runtime) {
+			JS_ThrowTypeError(
+				ctx,
+				"WebAssembly.Memory.grow(): Memory not bound to an instance");
 			return JS_EXCEPTION;
 		}
 		u32 requiredPages = memory->numPages + numPagesToGrow;
@@ -1018,8 +979,8 @@ static JSValue nx_wasm_memory_grow(JSContext *ctx, JSValueConst this_val, int ar
 }
 
 // `Table#get()` function
-static JSValue nx_wasm_table_get_fn(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
+static JSValue nx_wasm_table_get_fn(JSContext *ctx, JSValueConst this_val,
+									int argc, JSValueConst *argv) {
 	nx_wasm_table_t *data = nx_wasm_table_get(ctx, argv[0]);
 	if (!data)
 		return JS_EXCEPTION;
@@ -1030,15 +991,16 @@ static JSValue nx_wasm_table_get_fn(JSContext *ctx, JSValueConst this_val, int a
 
 	u32 size = *data->table_size;
 
-	if (index >= size)
-	{
-		JS_ThrowRangeError(ctx, "WebAssembly.Table.get(): invalid index %u into funcref table of size %u", index, size);
+	if (index >= size) {
+		JS_ThrowRangeError(ctx,
+						   "WebAssembly.Table.get(): invalid index %u into "
+						   "funcref table of size %u",
+						   index, size);
 		return JS_EXCEPTION;
 	}
 
 	IM3Function func = data->table[index];
-	if (!func)
-	{
+	if (!func) {
 		return JS_NULL;
 	}
 
@@ -1046,16 +1008,14 @@ static JSValue nx_wasm_table_get_fn(JSContext *ctx, JSValueConst this_val, int a
 }
 
 // `Table#length` getter function
-static JSValue nx_wasm_table_length_get(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
+static JSValue nx_wasm_table_length_get(JSContext *ctx, JSValueConst this_val,
+										int argc, JSValueConst *argv) {
 	nx_wasm_table_t *data = nx_wasm_table_get(ctx, this_val);
-	if (!data)
-	{
+	if (!data) {
 		return JS_EXCEPTION;
 	}
 
-	if (!data->table_size)
-	{
+	if (!data->table_size) {
 		JS_ThrowTypeError(ctx, "Table size not set");
 		return JS_EXCEPTION;
 	}
@@ -1064,8 +1024,8 @@ static JSValue nx_wasm_table_length_get(JSContext *ctx, JSValueConst this_val, i
 }
 
 /* Initialize the `Memory` class */
-static JSValue nx_wasm_init_memory_class(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
+static JSValue nx_wasm_init_memory_class(JSContext *ctx, JSValueConst this_val,
+										 int argc, JSValueConst *argv) {
 	JSAtom atom;
 	JSValue proto = JS_GetPropertyStr(ctx, argv[0], "prototype");
 	NX_DEF_GET(proto, "buffer", nx_wasm_memory_buffer_get);
@@ -1075,8 +1035,8 @@ static JSValue nx_wasm_init_memory_class(JSContext *ctx, JSValueConst this_val, 
 }
 
 /* Initialize the `Table` class */
-static JSValue nx_wasm_init_table_class(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
+static JSValue nx_wasm_init_table_class(JSContext *ctx, JSValueConst this_val,
+										int argc, JSValueConst *argv) {
 	JSAtom atom;
 	JSValue proto = JS_GetPropertyStr(ctx, argv[0], "prototype");
 	// NX_DEF_FUNC(proto, "get", nx_wasm_table_get_fn, 1);
@@ -1101,8 +1061,7 @@ static const JSCFunctionListEntry init_function_list[] = {
 	JS_CFUNC_DEF("wasmGlobalSet", 1, nx_wasm_global_value_set),
 };
 
-void nx_init_wasm(JSContext *ctx, JSValueConst init_obj)
-{
+void nx_init_wasm(JSContext *ctx, JSValueConst init_obj) {
 	JSRuntime *rt = JS_GetRuntime(ctx);
 
 	/* WebAssembly.Global */
@@ -1135,7 +1094,8 @@ void nx_init_wasm(JSContext *ctx, JSValueConst init_obj)
 		"WebAssembly.Function",
 		.finalizer = finalizer_wasm_exported_func,
 	};
-	JS_NewClass(rt, nx_wasm_exported_func_class_id, &nx_wasm_exported_func_class);
+	JS_NewClass(rt, nx_wasm_exported_func_class_id,
+				&nx_wasm_exported_func_class);
 
 	/* WebAssembly.Module */
 	JS_NewClassID(rt, &nx_wasm_module_class_id);
@@ -1153,5 +1113,6 @@ void nx_init_wasm(JSContext *ctx, JSValueConst init_obj)
 	};
 	JS_NewClass(rt, nx_wasm_instance_class_id, &nx_wasm_instance_class);
 
-	JS_SetPropertyFunctionList(ctx, init_obj, init_function_list, countof(init_function_list));
+	JS_SetPropertyFunctionList(ctx, init_obj, init_function_list,
+							   countof(init_function_list));
 }
