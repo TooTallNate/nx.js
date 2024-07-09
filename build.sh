@@ -19,5 +19,5 @@ pnpm nro --filter "$APP"
 if [ -n "${UPLOAD-}" ]; then
 	app_path="$(pnpm list -r --depth -1 --json | jq -r '.[] | select(.name=="'"${APP}"'") | .path')"
 	nro_name="$(jq -r '.productName // .name' "${app_path}/package.json")"
-	curl --netrc "ftp://192.168.86.115:5000/switch/" --upload-file "${app_path}/${nro_name}.nro"
+	curl --netrc "ftp://192.168.86.110:5000/switch/" --upload-file "${app_path}/${nro_name}.nro"
 fi
