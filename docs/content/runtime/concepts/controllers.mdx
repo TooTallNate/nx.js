@@ -18,18 +18,24 @@ or `null` for indicies where the controller is not connected.
 ## Example
 
 ```js title="src/main.ts"
+import { Button } from '@nx.js/constants';
+
 function update() {
   requestAnimationFrame(update);
 
   const pads = navigator.getGamepads();
   const playerOne = pads[0];
-  if (playerOne.buttons[0].pressed) {
+  if (playerOne.buttons[Button.B].pressed) {
     console.log('Button "B" is being pressed on the first controller');
   }
 }
 
 update();
 ```
+
+> [!TIP]
+> It is optional, but recommended to use the [`Button`](/constants/api/enumerations/Button)
+> enum from `@nx.js/constants` to refer to the button indices, as shown in the example above.
 
 ## Plus button behavior
 
@@ -39,9 +45,9 @@ for nx.js apps.
 
 ### Preventing exit
 
-If you would like to have different behavior for the `+` button (such as showing a pause
-screen for your game) you can call `preventDefault()` on event object during the global
-`beforeunload` event:
+If you would like to have different behavior for the `+` button (for example, showing
+a pause screen for your game) you can call `preventDefault()` on the event object
+during the global `beforeunload` event:
 
 ```typescript
 addEventListener('beforeunload', (event) => {
