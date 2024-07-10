@@ -157,9 +157,9 @@ Object.defineProperty(globalThis, 'localStorage', {
 			key(index: number): string | null {
 				if (index < 0) return null;
 				const i = index % 0x100000000;
-				const keys = Object.keys(keyMap);
-				if (i >= keys.length) return null;
-				return keyMap[keys[i]] ?? null;
+				const v = Object.values(keyMap);
+				if (i >= v.length) return null;
+				return v[i] ?? null;
 			},
 			removeItem(key: string): void {
 				const d = keyDigest(key);
