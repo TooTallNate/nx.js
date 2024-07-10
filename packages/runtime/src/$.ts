@@ -118,6 +118,7 @@ export interface Init {
 	// crypto.c
 	cryptoDigest(algorithm: string, buf: ArrayBuffer): Promise<ArrayBuffer>;
 	cryptoRandomBytes(buf: ArrayBuffer, offset: number, length: number): void;
+	sha256Hex(str: string): string;
 
 	// dommatrix.c
 	dommatrixNew(values?: number[]): DOMMatrix | DOMMatrixReadOnly;

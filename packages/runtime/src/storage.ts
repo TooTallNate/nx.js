@@ -1,21 +1,17 @@
-import {
-	readDirSync,
-	readFileSync,
-	removeSync,
-	statSync,
-	writeFileSync,
-} from './fs';
+import { $ } from './$';
+import { readFileSync, removeSync, writeFileSync } from './fs';
 import { URL } from './polyfills/url';
 import { Profile } from './switch/profile';
 import { Application } from './switch/ns';
 import { INTERNAL_SYMBOL } from './internal';
 import {
+	def,
 	assertInternalConstructor,
 	createInternal,
 	decodeUTF16,
-	def,
 	encodeUTF16,
 } from './utils';
+import { decoder } from './polyfills/text-decoder';
 
 interface StorageImpl {
 	clear(): void;
@@ -137,52 +133,52 @@ Object.defineProperty(globalThis, 'localStorage', {
 			saveData = self.createProfileSaveDataSync(profile);
 		}
 		const base = new URL('localStorage/', saveData.mount());
+		const keyMapUrl = new URL('keys.json', base);
+		let keyMap: Record<string, string> = (() => {
+			const keyMapBuffer = readFileSync(keyMapUrl);
+			if (!keyMapBuffer) return {};
+			return JSON.parse(decoder.decode(keyMapBuffer));
+		})();
 
-		const keyToPath = (key: any) => {
-			const url = `${base.href}_${Array.from(String(key))
-				.map((l) => l.charCodeAt(0).toString(16))
-				.join('_')}`;
-			return url;
-		};
-
-		const pathToKey = (path: string) => {
-			const key = String.fromCharCode(
-				...path
-					.slice(1)
-					.split('_')
-					.map((h) => parseInt(h, 16)),
-			);
-			return key;
-		};
+		const keyDigest = (key: any) => $.sha256Hex(String(key));
 
 		const impl: StorageImpl = {
 			clear() {
+				keyMap = {};
 				removeSync(base);
 				saveData!.commit();
 			},
 			getItem(key: string): string | null {
-				const b = readFileSync(keyToPath(key));
+				const d = keyDigest(key);
+				const b = readFileSync(new URL(d, base));
 				if (!b) return null;
 				return decodeUTF16(b);
 			},
 			key(index: number): string | null {
 				if (index < 0) return null;
 				const i = index % 0x100000000;
-				const keys = readDirSync(base) || [];
+				const keys = Object.keys(keyMap);
 				if (i >= keys.length) return null;
-				return pathToKey(keys[i]);
+				return keyMap[keys[i]] ?? null;
 			},
 			removeItem(key: string): void {
-				removeSync(keyToPath(key));
+				const d = keyDigest(key);
+				removeSync(new URL(d, base));
+				delete keyMap[d];
+				writeFileSync(keyMapUrl, JSON.stringify(keyMap));
 				saveData!.commit();
 			},
 			setItem(key: string, value: string): void {
-				writeFileSync(keyToPath(key), encodeUTF16(String(value)));
+				const d = keyDigest(key);
+				writeFileSync(new URL(d, base), encodeUTF16(String(value)));
+				if (!keyMap[d]) {
+					keyMap[d] = key;
+					writeFileSync(keyMapUrl, JSON.stringify(keyMap));
+				}
 				saveData!.commit();
 			},
 			length(): number {
-				const keys = readDirSync(base);
-				return keys ? keys.length : 0;
+				return Object.keys(keyMap).length;
 			},
 		};
 		// @ts-expect-error internal constructor
@@ -190,8 +186,7 @@ Object.defineProperty(globalThis, 'localStorage', {
 		const proxy = new Proxy(storage, {
 			has(_, p) {
 				if (typeof p !== 'string') return false;
-				const s = statSync(keyToPath(p));
-				return s !== null;
+				return !!Object.values(keyMap).find((k) => k === p);
 			},
 			get(target, p) {
 				if (typeof p !== 'string') return undefined;
@@ -211,7 +206,7 @@ Object.defineProperty(globalThis, 'localStorage', {
 				return true;
 			},
 			ownKeys() {
-				return (readDirSync(base) || []).map((p) => pathToKey(p));
+				return Object.values(keyMap);
 			},
 			getOwnPropertyDescriptor(target, p) {
 				if (typeof p !== 'string') return;
