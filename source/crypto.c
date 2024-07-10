@@ -109,7 +109,7 @@ static JSValue nx_crypto_sha256_hex(JSContext *ctx, JSValueConst this_val,
 	}
 	sha256CalculateHash(digest, str, size);
 	JS_FreeCString(ctx, str);
-	char *hex = js_malloc(ctx, SHA256_HASH_SIZE * 2);
+	char *hex = js_malloc(ctx, (SHA256_HASH_SIZE * 2) + 1);
 	for (int i = 0; i < SHA256_HASH_SIZE; i++) {
 		snprintf(hex + i * 2, 3, "%02x", digest[i]);
 	}
