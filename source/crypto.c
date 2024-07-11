@@ -96,9 +96,32 @@ static JSValue nx_crypto_random_bytes(JSContext *ctx, JSValueConst this_val,
 	return JS_UNDEFINED;
 }
 
+static JSValue nx_crypto_sha256_hex(JSContext *ctx, JSValueConst this_val,
+									int argc, JSValueConst *argv) {
+	size_t size;
+	const char *str = JS_ToCStringLen(ctx, &size, argv[0]);
+	if (!str) {
+		return JS_EXCEPTION;
+	}
+	u8 *digest = js_mallocz(ctx, SHA256_HASH_SIZE);
+	if (!digest) {
+		return JS_EXCEPTION;
+	}
+	sha256CalculateHash(digest, str, size);
+	JS_FreeCString(ctx, str);
+	char hex[SHA256_HASH_SIZE * 2 + 1];
+	for (int i = 0; i < SHA256_HASH_SIZE; i++) {
+		snprintf(hex + i * 2, 3, "%02x", digest[i]);
+	}
+	JSValue hex_val = JS_NewString(ctx, hex);
+	js_free(ctx, digest);
+	return hex_val;
+}
+
 static const JSCFunctionListEntry function_list[] = {
 	JS_CFUNC_DEF("cryptoDigest", 0, nx_crypto_digest),
 	JS_CFUNC_DEF("cryptoRandomBytes", 0, nx_crypto_random_bytes),
+	JS_CFUNC_DEF("sha256Hex", 0, nx_crypto_sha256_hex),
 };
 
 void nx_init_crypto(JSContext *ctx, JSValueConst init_obj) {
