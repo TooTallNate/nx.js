@@ -291,13 +291,15 @@ const fetchers = new Map<string, (req: Request, url: URL) => Promise<Response>>(
  *
  * ### Supported Protocols
  *
- *  - `http:` - Fetch data from the network using the HTTP protocol
- *  - `https:` - Fetch data from the network using the HTTPS protocol
- *  - `blob:` - Fetch data from a URL constructed by {@link URL.createObjectURL | `URL.createObjectURL()`}
- *  - `data:` - Fetch data from a Data URI (possibly base64-encoded)
- *  - `sdmc:` - Fetch data from a local file on the SD card
- *  - `romfs:` - Fetch data from the RomFS partition of the nx.js application
- *  - `file:` - Same as `sdmc:`
+ * | Protocol | Description                                                                 |
+ * |----------|-----------------------------------------------------------------------------|
+ * | `http:`  | Fetch data from the network using the HTTP protocol                         |
+ * | `https:` | Fetch data from the network using the HTTPS protocol                        |
+ * | `blob:`  | Fetch data from a URL constructed by {@link URL.createObjectURL | `URL.createObjectURL()`}                |
+ * | `data:`  | Fetch data from a [Data URI](https://developer.mozilla.org/docs/Web/HTTP/Basics_of_HTTP/Data_URLs) (possibly base64-encoded)                        |
+ * | `sdmc:`  | Fetch data from a local file on the SD card                                 |
+ * | `romfs:` | Fetch data from the RomFS partition of the nx.js application                |
+ * | `file:`  | Same as `sdmc:`                                                             |
  *
  * @example
  *
