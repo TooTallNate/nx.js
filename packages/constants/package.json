@@ -23,5 +23,8 @@
     "access": "public"
   },
   "author": "Nathan Rajlich <n@n8.io>",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "nxjs-runtime": "workspace:*"
+  }
 }

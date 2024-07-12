@@ -508,7 +508,11 @@ importers:
         specifier: ^5.5.2
         version: 5.5.2
 
-  packages/constants: {}
+  packages/constants:
+    devDependencies:
+      nxjs-runtime:
+        specifier: workspace:*
+        version: link:../runtime
 
   packages/create-nxjs-app:
     dependencies:
