@@ -119,5 +119,8 @@ Switch.listen({
 	},
 });
 
+// Disable auto sleep
+Switch.setMediaPlaybackState(true);
+
 const { ip } = Switch.networkInfo();
 console.log('REPL server listening on "%s:%d"', ip, port);
