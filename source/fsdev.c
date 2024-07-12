@@ -1,8 +1,14 @@
 #include "fsdev.h"
 #include "error.h"
 
+static JSClassID nx_file_system_class_id;
 static JSClassID nx_save_data_class_id;
 static JSClassID nx_save_data_iterator_class_id;
+
+typedef struct {
+	FsFileSystem fs;
+	char mount_name[32];
+} nx_file_system_t;
 
 typedef struct {
 	bool info_loaded;
@@ -15,6 +21,17 @@ typedef struct {
 	FsSaveDataInfoReader it;
 	FsSaveDataFilter filter;
 } nx_save_data_iterator_t;
+
+static void finalizer_file_system(JSRuntime *rt, JSValue val) {
+	nx_file_system_t *file_system = JS_GetOpaque(val, nx_file_system_class_id);
+	if (file_system) {
+		if (strlen(file_system->mount_name) > 0) {
+			fsdevUnmountDevice(file_system->mount_name);
+			fsFsClose(&file_system->fs);
+		}
+		js_free_rt(rt, file_system);
+	}
+}
 
 static void finalizer_save_data(JSRuntime *rt, JSValue val) {
 	nx_save_data_t *save_data = JS_GetOpaque(val, nx_save_data_class_id);
@@ -43,6 +60,64 @@ void strip_trailing_colon(char *str) {
 	if (str[len - 1] == ':') {
 		str[len - 1] = '\0';
 	}
+}
+
+static JSValue nx_fs_mount(JSContext *ctx, JSValueConst this_val, int argc,
+						   JSValueConst *argv) {
+	nx_file_system_t *file_system =
+		JS_GetOpaque2(ctx, argv[0], nx_file_system_class_id);
+	if (!file_system) {
+		return JS_EXCEPTION;
+	}
+	const char *name = JS_ToCString(ctx, argv[1]);
+	if (!name) {
+		return JS_EXCEPTION;
+	}
+	int r = fsdevMountDevice(name, file_system->fs);
+	if (r < 0) {
+		JS_FreeCString(ctx, name);
+		return nx_throw_libnx_error(ctx, r, "fsdevMountDevice()");
+	}
+	strncpy(file_system->mount_name, name, sizeof(file_system->mount_name) - 1);
+	JS_FreeCString(ctx, name);
+	return JS_UNDEFINED;
+}
+
+static JSValue nx_fs_open_bis(JSContext *ctx, JSValueConst this_val, int argc,
+							  JSValueConst *argv) {
+	u32 id;
+	if (JS_ToUint32(ctx, &id, argv[0])) {
+		return JS_EXCEPTION;
+	}
+	nx_file_system_t *file_system = js_mallocz(ctx, sizeof(nx_file_system_t));
+	if (!file_system) {
+		return JS_EXCEPTION;
+	}
+	Result rc = fsOpenBisFileSystem(&file_system->fs, id, "/");
+	if (R_FAILED(rc)) {
+		return nx_throw_libnx_error(ctx, rc, "fsOpenBisFileSystem()");
+	}
+	JSValue obj = JS_NewObjectClass(ctx, nx_file_system_class_id);
+	JS_SetOpaque(obj, file_system);
+	return obj;
+}
+
+static JSValue nx_fs_free_space(JSContext *ctx, JSValueConst this_val, int argc,
+								JSValueConst *argv) {
+	nx_file_system_t *file_system =
+		JS_GetOpaque2(ctx, this_val, nx_file_system_class_id);
+	if (!file_system) {
+		return JS_EXCEPTION;
+	}
+	if (strlen(file_system->mount_name) == 0) {
+		return JS_ThrowTypeError(ctx, "FileSystem is not mounted");
+	}
+	s64 space;
+	Result rc = fsFsGetFreeSpace(&file_system->fs, "/", &space);
+	if (R_FAILED(rc)) {
+		return nx_throw_libnx_error(ctx, rc, "fsFsGetFreeSpace()");
+	}
+	return JS_NewBigInt64(ctx, space);
 }
 
 static JSValue nx_save_data_id(JSContext *ctx, JSValueConst this_val, int argc,
@@ -447,29 +522,6 @@ static JSValue nx_save_data_filter(JSContext *ctx, JSValueConst this_val,
 	}
 	JS_FreeValue(ctx, rank_val);
 
-	// if (save_data_iterator->filter.filter_by_application_id)
-	//{
-	//	printf("app id: %lu\n", save_data_iterator->filter.attr.application_id);
-	// }
-	// if (save_data_iterator->filter.filter_by_index)
-	//{
-	//	printf("index: %u\n", save_data_iterator->filter.attr.save_data_index);
-	// }
-	// if (save_data_iterator->filter.filter_by_save_data_type)
-	//{
-	//	printf("type: %u\n", save_data_iterator->filter.attr.save_data_type);
-	// }
-	// if (save_data_iterator->filter.filter_by_system_save_data_id)
-	//{
-	//	printf("systemId: %lu\n",
-	//save_data_iterator->filter.attr.system_save_data_id);
-	// }
-	// if (save_data_iterator->filter.filter_by_user_id)
-	//{
-	//	printf("uid: %lu%lu\n", save_data_iterator->filter.attr.uid.uid[0],
-	//save_data_iterator->filter.attr.uid.uid[1]);
-	// }
-
 	Result rc = fsOpenSaveDataInfoReaderWithFilter(&save_data_iterator->it,
 												   (FsSaveDataSpaceId)space_id,
 												   &save_data_iterator->filter);
@@ -676,6 +728,14 @@ static JSValue nx_save_data_create_sync(JSContext *ctx, JSValueConst this_val,
 	return JS_UNDEFINED;
 }
 
+static JSValue nx_fs_init(JSContext *ctx, JSValueConst this_val, int argc,
+						  JSValueConst *argv) {
+	JSValue proto = JS_GetPropertyStr(ctx, argv[0], "prototype");
+	NX_DEF_FUNC(proto, "freeSpace", nx_fs_free_space, 0);
+	JS_FreeValue(ctx, proto);
+	return JS_UNDEFINED;
+}
+
 static JSValue nx_save_data_init(JSContext *ctx, JSValueConst this_val,
 								 int argc, JSValueConst *argv) {
 	JSAtom atom;
@@ -693,17 +753,21 @@ static JSValue nx_save_data_init(JSContext *ctx, JSValueConst this_val,
 	NX_DEF_FUNC(proto, "delete", nx_save_data_delete, 0);
 	NX_DEF_FUNC(proto, "extend", nx_save_data_extend, 2);
 	NX_DEF_FUNC(proto, "unmount", nx_save_data_unmount, 0);
-	NX_DEF_FUNC(proto, "freeSpace", nx_save_data_free_space, 0);
 	NX_DEF_FUNC(proto, "totalSpace", nx_save_data_total_space, 0);
 	JS_FreeValue(ctx, proto);
 	return JS_UNDEFINED;
 }
 
 static const JSCFunctionListEntry function_list[] = {
+	JS_CFUNC_DEF("fsInit", 1, nx_fs_init),
+	JS_CFUNC_DEF("fsMount", 1, nx_fs_mount),
+	JS_CFUNC_DEF("fsOpenBis", 1, nx_fs_open_bis),
+
 	JS_CFUNC_DEF("saveDataInit", 1, nx_save_data_init),
 	JS_CFUNC_DEF("saveDataMount", 1, nx_save_data_mount),
 	JS_CFUNC_DEF("saveDataFilter", 1, nx_save_data_filter),
 	JS_CFUNC_DEF("saveDataCreateSync", 1, nx_save_data_create_sync),
+
 	JS_CFUNC_DEF("fsOpenSaveDataInfoReader", 1,
 				 nx_fs_open_save_data_info_reader),
 	JS_CFUNC_DEF("fsSaveDataInfoReaderNext", 1,
@@ -712,6 +776,13 @@ static const JSCFunctionListEntry function_list[] = {
 
 void nx_init_fsdev(JSContext *ctx, JSValueConst init_obj) {
 	JSRuntime *rt = JS_GetRuntime(ctx);
+
+	JS_NewClassID(rt, &nx_file_system_class_id);
+	JSClassDef file_system_class = {
+		"FileSystem",
+		.finalizer = finalizer_file_system,
+	};
+	JS_NewClass(rt, nx_file_system_class_id, &file_system_class);
 
 	JS_NewClassID(rt, &nx_save_data_class_id);
 	JSClassDef save_data_class = {

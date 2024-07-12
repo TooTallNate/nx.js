@@ -21,6 +21,7 @@ export * from './switch/ns';
 export * from './switch/irsensor';
 export * from './switch/profile';
 export * from './switch/album';
+export * from './switch/file-system';
 export { Socket, Server };
 
 export type PathLike = string | URL;

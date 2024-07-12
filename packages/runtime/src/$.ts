@@ -2,6 +2,7 @@ import type {
 	Album,
 	AlbumFile,
 	Application,
+	FileSystem,
 	IRSensor,
 	NetworkInfo,
 	Profile,
@@ -156,6 +157,9 @@ export interface Init {
 	writeFileSync(path: string, data: ArrayBuffer): void;
 
 	// fsdev.c
+	fsInit(c: ClassOf<FileSystem>): void;
+	fsMount(fs: FileSystem, name: string): void;
+	fsOpenBis(id: number): FileSystem;
 	saveDataInit(c: ClassOf<SaveData>): void;
 	saveDataCreateSync(info: SaveDataCreationInfo, nacp?: ArrayBuffer): void;
 	saveDataMount(saveData: SaveData, name: string): void;
