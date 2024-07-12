@@ -1,11 +1,9 @@
 import { $ } from '../$';
+import { runOnce } from '../utils';
 
-let nifmInitialized = false;
+const init = runOnce(() => addEventListener('unload', $.nifmInitialize()));
 
 export function networkInfo() {
-	if (!nifmInitialized) {
-		addEventListener('unload', $.nifmInitialize());
-		nifmInitialized = true;
-	}
+	init();
 	return $.networkInfo();
 }

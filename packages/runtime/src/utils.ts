@@ -166,3 +166,12 @@ export function first<T>(it: Iterator<T>): T | undefined {
 	const n = it.next();
 	return n.value || undefined;
 }
+
+export function runOnce(fn: () => void) {
+	let ran = false;
+	return () => {
+		if (ran) return;
+		ran = true;
+		fn();
+	};
+}
