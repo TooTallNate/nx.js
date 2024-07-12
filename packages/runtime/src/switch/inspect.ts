@@ -1,5 +1,5 @@
 import { bold, cyan, green, magenta, red, rgb, yellow } from 'kleur/colors';
-import { $ } from './$';
+import { $ } from '../$';
 
 const grey = rgb(100, 100, 100);
 

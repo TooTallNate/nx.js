@@ -1,27 +1,27 @@
-import { $ } from './$';
-import { INTERNAL_SYMBOL } from './internal';
+import { $ } from '../$';
+import { INTERNAL_SYMBOL } from '../internal';
 import { Env } from './env';
-import { Event } from './polyfills/event';
-import { pathToString } from './utils';
+import { Event } from '../polyfills/event';
+import { pathToString } from '../utils';
 import {
 	Socket,
 	connect as tcpConnect,
 	createServer,
 	parseAddress,
 	Server,
-} from './tcp';
+} from '../tcp';
 
 export * from './dns';
 export * from './env';
-export * from './fs';
+export * from '../fs';
 export * from './inspect';
-export * from './switch/savedata';
-export * from './switch/nifm';
-export * from './switch/ns';
-export * from './switch/irsensor';
-export * from './switch/profile';
-export * from './switch/album';
-export * from './switch/file-system';
+export * from './savedata';
+export * from './nifm';
+export * from './ns';
+export * from './irsensor';
+export * from './profile';
+export * from './album';
+export * from './file-system';
 export { Socket, Server };
 
 export type PathLike = string | URL;

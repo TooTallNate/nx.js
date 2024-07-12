@@ -1,5 +1,5 @@
 import { $ } from './$';
-import { resolveDns } from './dns';
+import { resolveDns } from './switch/dns';
 import { EventTarget } from './polyfills/event-target';
 import { SocketEvent, type SocketAddress, type SocketInfo } from './switch';
 import {

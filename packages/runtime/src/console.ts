@@ -1,6 +1,6 @@
 import { bgRgb, bold, red, yellow } from 'kleur/colors';
 import { $ } from './$';
-import { inspect } from './inspect';
+import { inspect } from './switch/inspect';
 import { createInternal } from './utils';
 
 const bgRedDim = bgRgb(60, 0, 0);

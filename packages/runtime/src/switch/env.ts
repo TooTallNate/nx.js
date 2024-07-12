@@ -1,6 +1,6 @@
-import { $ } from './$';
-import { assertInternalConstructor } from './utils';
-import type { env } from './switch';
+import { $ } from '../$';
+import { assertInternalConstructor } from '../utils';
+import type { env } from './';
 
 /**
  * A Map-like object providing methods to interact with the environment variables of the process.

@@ -1,5 +1,5 @@
 import { $ } from '../$';
-import { inspect } from '../inspect';
+import { inspect } from './inspect';
 import { proto } from '../utils';
 
 let init = false;

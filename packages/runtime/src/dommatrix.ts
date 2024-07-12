@@ -2,7 +2,7 @@
 // Ref: https://github.com/Automattic/node-canvas/blob/master/lib/DOMMatrix.js
 import { $ } from './$';
 import { def, proto, stub } from './utils';
-import { inspect } from './inspect';
+import { inspect } from './switch/inspect';
 import { DOMPoint, type DOMPointInit } from './dompoint';
 
 const DEGREE_PER_RAD = 180 / Math.PI;

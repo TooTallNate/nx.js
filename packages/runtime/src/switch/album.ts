@@ -1,5 +1,5 @@
 import { $ } from '../$';
-import { inspect } from '../inspect';
+import { inspect } from './inspect';
 import { File } from '../polyfills/file';
 import { proto, stub } from '../utils';
 import type { Blob } from '../polyfills/blob';

@@ -4,7 +4,7 @@ import {
 	SaveDataCreationInfoWithNacp,
 	SaveDataFilter,
 } from './savedata';
-import { inspect } from '../inspect';
+import { inspect } from './inspect';
 import { readFileSync } from '../fs';
 import { first, proto, stub } from '../utils';
 import type { Profile } from './profile';

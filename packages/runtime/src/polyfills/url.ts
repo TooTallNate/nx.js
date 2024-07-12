@@ -2,7 +2,7 @@ import { $ } from '../$';
 import { Blob } from './blob';
 import { def, stub } from '../utils';
 import { crypto } from '../crypto';
-import { inspect } from '../inspect';
+import { inspect } from '../switch/inspect';
 
 export const objectUrls = new Map<string, Blob>();
 

@@ -1,4 +1,4 @@
-import { $ } from './$';
+import { $ } from '../$';
 
 /**
  * Performs a DNS lookup to resolve a hostname to an array of IP addresses.

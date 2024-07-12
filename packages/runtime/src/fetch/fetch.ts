@@ -313,16 +313,18 @@ const fetchers = new Map<string, (req: Request, url: URL) => Promise<Response>>(
  *
  * @see https://developer.mozilla.org/docs/Web/API/fetch
  */
-export function fetch(input: string | URL | Request, init?: RequestInit) {
+export async function fetch(
+	input: string | URL | Request,
+	init?: RequestInit,
+): Promise<Response> {
 	const req = new Request(input, init);
 	const url = new URL(req.url);
 	const fetcher = fetchers.get(url.protocol);
 	if (!fetcher) {
 		throw new Error(`scheme '${url.protocol.slice(0, -1)}' not supported`);
 	}
-	return fetcher(req, url).then((res) => {
-		if (!res.url) res.url = url.href;
-		return res;
-	});
+	const res = await fetcher(req, url);
+	if (!res.url) res.url = url.href;
+	return res;
 }
 def(fetch);

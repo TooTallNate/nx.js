@@ -1,7 +1,7 @@
 import { $ } from '../$';
 import { URL } from '../polyfills/url';
 import { crypto } from '../crypto';
-import { inspect } from '../inspect';
+import { inspect } from './inspect';
 import { assertInternalConstructor, first, proto, stub } from '../utils';
 import type { ProfileUid } from './profile';
 
