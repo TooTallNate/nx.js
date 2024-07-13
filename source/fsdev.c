@@ -753,6 +753,7 @@ static JSValue nx_save_data_init(JSContext *ctx, JSValueConst this_val,
 	NX_DEF_FUNC(proto, "delete", nx_save_data_delete, 0);
 	NX_DEF_FUNC(proto, "extend", nx_save_data_extend, 2);
 	NX_DEF_FUNC(proto, "unmount", nx_save_data_unmount, 0);
+	NX_DEF_FUNC(proto, "freeSpace", nx_save_data_free_space, 0);
 	NX_DEF_FUNC(proto, "totalSpace", nx_save_data_total_space, 0);
 	JS_FreeValue(ctx, proto);
 	return JS_UNDEFINED;
