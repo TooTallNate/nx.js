@@ -146,6 +146,7 @@ export interface Init {
 	fopen(path: string, mode: string): Promise<FileHandle>;
 	fread(f: FileHandle, buf: ArrayBuffer): Promise<number | null>;
 	fwrite(f: FileHandle, data: ArrayBuffer): Promise<void>;
+	fsCreateBigFile(path: string): void;
 	mkdirSync(path: string, mode: number): number;
 	readDirSync(path: string): string[] | null;
 	readFile(path: string): Promise<ArrayBuffer | null>;

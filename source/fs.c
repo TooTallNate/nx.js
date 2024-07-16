@@ -1,5 +1,6 @@
 #include "fs.h"
 #include "async.h"
+#include "error.h"
 #include <dirent.h>
 #include <errno.h>
 #include <stdbool.h>
@@ -685,11 +686,42 @@ JSValue nx_remove_sync(JSContext *ctx, JSValueConst this_val, int argc,
 	return JS_UNDEFINED;
 }
 
+JSValue nx_fs_create_big_file(JSContext *ctx, JSValueConst this_val, int argc,
+							  JSValueConst *argv) {
+	const char *path = JS_ToCString(ctx, argv[0]);
+	if (!path)
+		return JS_EXCEPTION;
+
+	char *protocol = js_strdup(ctx, path);
+	char *end_of_protocol = strstr(protocol, ":/");
+	end_of_protocol[0] = '\0';
+	char *name = end_of_protocol + 1;
+
+	FsFileSystem *fs = fsdevGetDeviceFileSystem(protocol);
+	if (!fs) {
+		js_free(ctx, protocol);
+		JS_FreeCString(ctx, path);
+		return JS_ThrowTypeError(ctx, "Invalid protocol: %s", protocol);
+	}
+
+	Result rc = fsFsCreateFile(fs, name, 0, FsCreateOption_BigFile);
+	if (R_FAILED(rc)) {
+		js_free(ctx, protocol);
+		JS_FreeCString(ctx, path);
+		return nx_throw_libnx_error(ctx, rc, "fsFsCreateFile()");
+	}
+
+	js_free(ctx, protocol);
+	JS_FreeCString(ctx, path);
+	return JS_UNDEFINED;
+}
+
 static const JSCFunctionListEntry function_list[] = {
 	JS_CFUNC_DEF("fclose", 1, nx_fclose),
 	JS_CFUNC_DEF("fopen", 1, nx_fopen),
 	JS_CFUNC_DEF("fread", 1, nx_fread),
 	JS_CFUNC_DEF("fwrite", 1, nx_fwrite),
+	JS_CFUNC_DEF("fsCreateBigFile", 1, nx_fs_create_big_file),
 	JS_CFUNC_DEF("mkdirSync", 1, nx_mkdir_sync),
 	JS_CFUNC_DEF("readDirSync", 1, nx_readdir_sync),
 	JS_CFUNC_DEF("readFile", 2, nx_read_file),

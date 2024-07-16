@@ -124,8 +124,19 @@ export function stat(path: PathLike) {
 	return $.stat(pathToString(path));
 }
 
+/**
+ * Options object for the {@link File | `Switch.file()`} function.
+ */
 export interface FsFileOptions {
 	type?: string;
+
+	/**
+	 * Create a "big file", which is a directory with the "archive" bit set.
+	 * This will cause HOS to treat the directory as if it were a file
+	 * containing the directory's concatenated contents, allowing you to
+	 * write file contents larger than 4GB.
+	 */
+	bigFile?: boolean;
 }
 
 /**
@@ -139,15 +150,19 @@ export function file(path: PathLike, opts?: FsFileOptions) {
 
 export class FsFile extends File {
 	constructor(path: PathLike, opts?: FsFileOptions) {
+		const { bigFile, ...rest } = opts ?? {};
 		super([], pathToString(path), {
 			type: 'text/plain;charset=utf-8',
-			...opts,
+			...rest,
 		});
 		Object.defineProperty(this, 'lastModified', {
 			get(): number {
 				return (statSync(this.name)?.mtime ?? 0) * 1000;
 			},
 		});
+		if (bigFile) {
+			$.fsCreateBigFile(this.name);
+		}
 	}
 
 	get size() {

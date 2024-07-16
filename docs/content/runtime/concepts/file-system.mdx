@@ -64,3 +64,26 @@ await writer.close();
 
 > If the file path provided to `Switch.file()` does not yet exist, then a new file will be created
 > (as well as any necessary parent directories).
+
+### Big files
+
+If you need to write files larger than 4gb, can create a "big file" by passing
+the `bigFile: true` option to `Switch.file()`:
+
+```typescript
+const file = Switch.file('sdmc:/test.txt', {
+    bigFile: true
+});
+
+const writer = file.writable.getWriter();
+// … write more than 4gb worth of data to the file …
+await writer.close();
+```
+
+> [!NOTE]
+> This works even on FAT32 partitions, which normally have a 4gb limit.
+> How "big files" work under the hood is that a directory is created with the
+> "archive" bit set, which causes the directory to be treated as a file
+> containing the directory's concatenated contents. This is all handled
+> transparently by the operating system, so your application code can treat
+> it as if it were a normal file.
