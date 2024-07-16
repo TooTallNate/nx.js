@@ -1,12 +1,48 @@
 ---
 title: Fonts
-description: Loading custom fonts for use with the Canvas API
+description: Built-in fonts and custom fonts for use with the Canvas API
 ---
 
 It is possible to load your own font files into an nx.js application, and then render
 your fonts using [**canvas rendering**](/runtime/rendering/canvas) mode.
 
-## Loading a font
+## Built-in fonts
+
+nx.js comes with a set of built-in fonts which are available for use in your application.
+
+| Font | Description |
+| --- | --- |
+| `"system-ui"` | The default font which is used by the Switch operating system. |
+| `"system-icons"` | A font which contains the icons used by the Switch operating system. |
+
+### system-ui
+
+The default font which is used by the Switch operating system.
+The Canvas API's default font `sans-serif` is also an alias for this font.
+
+```typescript
+const ctx = screen.getContext('2d');
+ctx.font = '48px system-ui';
+ctx.fillStyle = 'white';
+ctx.fillText('This is the "system-ui" font', 50, 300);
+```
+
+### system-icons
+
+The `"system-icons"` font is a font which contains the icons used by the Switch operating system.
+When using this font, you will need to reference the correct unicode codepoint for the icon
+when invoking the `fillText()` function to render the icon glyphs.
+
+```typescript
+const ctx = screen.getContext('2d');
+ctx.font = '48px system-icons';
+ctx.fillStyle = 'white';
+ctx.fillText('\uE122', 50, 300);
+```
+
+## Custom fonts
+
+### Loading a font
 
 To load a font, you'll need to create an instance of the
 [`FontFace`](/runtime/api/classes/FontFace) class,
@@ -22,7 +58,7 @@ const font = new FontFace('Arial', fontData);
 > so any font file format which is supported by FreeType 2 (typically `.ttf`
 > or `.otf`) will work with nx.js.
 
-## Registering a font
+### Registering a font
 
 Once you've loaded a font, you'll need to register it with the
 [`FontFaceSet`](/runtime/api/classes/FontFaceSet) registry.
