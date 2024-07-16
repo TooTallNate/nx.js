@@ -3,8 +3,9 @@ title: Fonts
 description: Built-in fonts and custom fonts for use with the Canvas API
 ---
 
-It is possible to load your own font files into an nx.js application, and then render
-your fonts using [**canvas rendering**](/runtime/rendering/canvas) mode.
+When your application is using [**canvas rendering**](/runtime/rendering/canvas) mode,
+nx.js offers a set of built-in fonts which are available for use in your application.
+You may also load custom fonts from font files.
 
 ## Built-in fonts
 
@@ -42,6 +43,12 @@ ctx.fillText('\uE122', 50, 300);
 
 ## Custom fonts
 
+It is possible to load your own font files into an nx.js application, which involves a few steps:
+
+1. Create a `FontFace` instance
+1. Register the font with the `FontFaceSet` registry
+1. Use the font with the Canvas API
+
 ### Loading a font
 
 To load a font, you'll need to create an instance of the
@@ -74,7 +81,7 @@ The `fonts` registry is a global object that contains all the fonts that have be
 loaded into the application. You can use this registry to render text to the screen
 using the Canvas API.
 
-## Example
+### Example
 
 ```typescript title="src/main.ts"
 const fontData = await Switch.readFile('romfs:/fonts/Arial.ttf');
