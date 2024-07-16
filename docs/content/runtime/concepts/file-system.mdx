@@ -67,8 +67,8 @@ await writer.close();
 
 ### Big files
 
-If you need to write files larger than 4gb, can create a "big file" by passing
-the `bigFile: true` option to `Switch.file()`:
+If you need to write a file larger than 4gb, your application can create a
+"big file" by passing the `bigFile: true` option to `Switch.file()`:
 
 ```typescript
 const file = Switch.file('sdmc:/test.txt', {
@@ -76,12 +76,15 @@ const file = Switch.file('sdmc:/test.txt', {
 });
 
 const writer = file.writable.getWriter();
+
 // … write more than 4gb worth of data to the file …
+
 await writer.close();
 ```
 
+This works even on FAT32 partitions, which normally have a 4gb limit.
+
 > [!NOTE]
-> This works even on FAT32 partitions, which normally have a 4gb limit.
 > How "big files" work under the hood is that a directory is created with the
 > "archive" bit set, which causes the directory to be treated as a file
 > containing the directory's concatenated contents. This is all handled
