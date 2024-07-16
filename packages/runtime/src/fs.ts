@@ -125,7 +125,7 @@ export function stat(path: PathLike) {
 }
 
 /**
- * Options object for the {@link File | `Switch.file()`} function.
+ * Options object for the {@link file | `Switch.file()`} function.
  */
 export interface FsFileOptions {
 	type?: string;
