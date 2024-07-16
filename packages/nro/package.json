@@ -1,6 +1,6 @@
 {
   "name": "@nx.js/nro",
-  "version": "0.0.48",
+  "version": "0.0.49",
   "description": "Package nx.js app into a `.nro` file",
   "repository": {
     "type": "git",

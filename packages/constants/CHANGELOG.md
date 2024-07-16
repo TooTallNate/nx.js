@@ -1,5 +1,11 @@
 # @nx.js/constants
 
+## 0.1.5
+
+### Patch Changes
+
+- Add `BisPartitionId` enum ([`027c9ffef77d7c65cb10657e42864a82af663882`](https://github.com/TooTallNate/nx.js/commit/027c9ffef77d7c65cb10657e42864a82af663882))
+
 ## 0.1.4
 
 ### Patch Changes
