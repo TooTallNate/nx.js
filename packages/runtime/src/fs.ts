@@ -140,7 +140,19 @@ export interface FsFileOptions {
 }
 
 /**
- * Returns an {@link FsFile} instance for the given `path`.
+ * Options object for the {@link FsFile.stream | `Switch.FsFile#stream()`} function.
+ */
+export interface FsFileStreamOptions {
+	/**
+	 * The size of each chunk to read from the file.
+	 *
+	 * @default 65536
+	 */
+	chunkSize: number;
+}
+
+/**
+ * Returns a {@link FsFile | `Switch.FsFile`} instance for the given `path`.
  *
  * @param path
  */
@@ -148,6 +160,14 @@ export function file(path: PathLike, opts?: FsFileOptions) {
 	return new FsFile(path, opts);
 }
 
+/**
+ * The `Switch.FsFile` class is a special implementation of the
+ * global {@link File | `File`} class, which interacts with the
+ * system's physical file system.
+ *
+ * It offers a convenient API for working with existing files, and
+ * also for writing files.
+ */
 export class FsFile extends File {
 	constructor(path: PathLike, opts?: FsFileOptions) {
 		const { bigFile, ...rest } = opts ?? {};
@@ -189,7 +209,7 @@ export class FsFile extends File {
 		return JSON.parse(await this.text());
 	}
 
-	stream(opts?: { chunkSize: number }): ReadableStream<Uint8Array> {
+	stream(opts?: FsFileStreamOptions): ReadableStream<Uint8Array> {
 		const { name } = this;
 		const chunkSize = opts?.chunkSize || 65536;
 		let h: Then<ReturnType<typeof $.fopen>> | null = null;
