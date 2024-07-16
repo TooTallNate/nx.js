@@ -1,5 +1,19 @@
 # nxjs-runtime
 
+## 0.0.49
+
+### Patch Changes
+
+- Update to QuickJS @ b071d36 ([`628d6888fdcc64c85da146ab3bb49eb2828bfab8`](https://github.com/TooTallNate/nx.js/commit/628d6888fdcc64c85da146ab3bb49eb2828bfab8))
+
+- Add `bigFile` option to `Switch.file()` ([`b0aadd7aea589631de7ec323a36d95be79c4aa72`](https://github.com/TooTallNate/nx.js/commit/b0aadd7aea589631de7ec323a36d95be79c4aa72))
+
+- Support arbitrary key name length in `localStorage` ([#145](https://github.com/TooTallNate/nx.js/pull/145))
+
+- Introduce `Switch.FileSystem` class ([`c7359abe21f6018bba53ddaa542f0745141b3160`](https://github.com/TooTallNate/nx.js/commit/c7359abe21f6018bba53ddaa542f0745141b3160))
+
+- Attempt to read `.map` file for source maps by default, for bytecode files ([`90ab2e3799193a99420497fe215086b24df7aedd`](https://github.com/TooTallNate/nx.js/commit/90ab2e3799193a99420497fe215086b24df7aedd))
+
 ## 0.0.48
 
 ### Patch Changes
