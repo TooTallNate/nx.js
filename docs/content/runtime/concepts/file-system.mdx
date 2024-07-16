@@ -86,7 +86,8 @@ This works even on FAT32 partitions, which normally have a 4gb limit.
 
 > [!NOTE]
 > How "big files" work under the hood is that a directory is created with the
-> "archive" bit set, which causes the directory to be treated as a file
-> containing the directory's concatenated contents. This is all handled
+> ["archive" bit](https://en.wikipedia.org/wiki/Archive_bit) set, which causes
+> the directory to be treated as a file containing the directory's concatenated
+> contents. This is all handled
 > transparently by the operating system, so your application code can treat
 > it as if it were a normal file.
