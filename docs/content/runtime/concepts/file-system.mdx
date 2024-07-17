@@ -28,7 +28,7 @@ instances of `Switch.FsFile`.
 
 ### Read as JSON
 
-Reading and parsing a JSON file is a one-liner:
+Reading and parsing a JSON file is a one-liner via the [`json()`](/runtime/api/namespaces/Switch/classes/FsFile#json) function:
 
 ```typescript
 const topScores = await Switch.file('sdmc:/top-scores.json').json();
@@ -37,8 +37,8 @@ console.log(topScores);
 
 ### Readable stream
 
-`Switch.FsFile` allows you to read a file using the web ReadableStream API, by invoking the `stream()`
-function which returns a ReadableStream instance:
+To read a file using the [Web Streams API](https://developer.mozilla.org/docs/Web/API/Streams_API), invoke the [`stream()`](/runtime/api/namespaces/Switch/classes/FsFile#stream)
+function which returns a [`ReadableStream`](/runtime/api/classes/ReadableStream) instance:
 
 ```typescript
 for await (const chunk of Switch.file('sdmc:/data.txt').stream()) {

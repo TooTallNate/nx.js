@@ -1,5 +1,5 @@
 ---
-title: User Profiles
+title: Profiles
 description: Interacting with user profiles
 ---
 
@@ -20,6 +20,7 @@ You may _set_ the `Switch.Profile.current` property to force the "current" profi
 the specified profile. Doing so will prevent the user selection modal from being
 shown when accessing [`localStorage`](/runtime/api/variables/localStorage).
 
+> [!NOTE]
 > The `localStorage` API utilizes this value to determine which user profile to associate the data with.
 
 
@@ -40,7 +41,8 @@ if (profile) {
 }
 ```
 
-> The user selection modal is _synchronous_, so it will __block the application event loop__
+> [!WARNING]
+> The user selection modal is _synchronous_, so it will __block the event loop__
 > until the user selects a profile.
 
 ## Iterate user profiles
