@@ -17,7 +17,7 @@ Each template is configured with:
 
  * TypeScript types properly configured for your code editor
  * A `build` script which utilizes [`esbuild`][] to bundle the application into a single file
- * A `nro` script to package your application into a standalone `.nro` file (which can be invoked from the Switch Homebrew menu)
+ * A `nro` script to package your application into a standalone `.nro` file (which can be launched from the Switch Homebrew menu)
  * A `nsp` script to package your application into a standalone `.nsp` file (which can be installed to and launched from the homescreen)
 
 ## Clone a template
@@ -85,7 +85,7 @@ npm run build
 ## Package the executable
 
 Now that the `romfs` directory is populated with the main app bundle (and possibly other assets), you can
-package the application into a standalone `.nro` file (which can be invoked from the Switch Homebrew menu).
+package the application into a standalone `.nro` file (which can be launched from the Switch Homebrew menu).
 
 ```bash
 npm run nro
