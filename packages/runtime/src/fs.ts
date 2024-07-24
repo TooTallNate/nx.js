@@ -3,7 +3,6 @@ import { bufferSourceToArrayBuffer, pathToString } from './utils';
 import { File } from './polyfills/file';
 import { decoder } from './polyfills/text-decoder';
 import { encoder } from './polyfills/text-encoder';
-import type { Then } from './internal';
 import type { PathLike } from './switch';
 import { BufferSource } from './types';
 
@@ -212,7 +211,7 @@ export class FsFile extends File {
 	stream(opts?: FsFileStreamOptions): ReadableStream<Uint8Array> {
 		const { name } = this;
 		const chunkSize = opts?.chunkSize || 65536;
-		let h: Then<ReturnType<typeof $.fopen>> | null = null;
+		let h: Awaited<ReturnType<typeof $.fopen>> | null = null;
 		return new ReadableStream({
 			type: 'bytes',
 			async pull(controller) {
@@ -237,7 +236,7 @@ export class FsFile extends File {
 
 	get writable() {
 		const { name } = this;
-		let h: Then<ReturnType<typeof $.fopen>> | null = null;
+		let h: Awaited<ReturnType<typeof $.fopen>> | null = null;
 		return new WritableStream<BufferSource | string>({
 			async write(chunk) {
 				if (!h) h = await $.fopen(name, 'w');
