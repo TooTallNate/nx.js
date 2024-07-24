@@ -211,7 +211,7 @@ export class FsFile extends File {
 	stream(opts?: FsFileStreamOptions): ReadableStream<Uint8Array> {
 		const { name } = this;
 		const chunkSize = opts?.chunkSize || 65536;
-		let h: Awaited<ReturnType<typeof $.fopen>> | null = null;
+		let h: Awaited<ReturnType<typeof $.fopen>> | undefined | null;
 		return new ReadableStream({
 			type: 'bytes',
 			async pull(controller) {
@@ -236,7 +236,7 @@ export class FsFile extends File {
 
 	get writable() {
 		const { name } = this;
-		let h: Awaited<ReturnType<typeof $.fopen>> | null = null;
+		let h: Awaited<ReturnType<typeof $.fopen>> | undefined | null;
 		return new WritableStream<BufferSource | string>({
 			async write(chunk) {
 				if (!h) h = await $.fopen(name, 'w');
@@ -250,6 +250,7 @@ export class FsFile extends File {
 			async close() {
 				if (h) {
 					await $.fclose(h);
+					h = null;
 				}
 			},
 		});
