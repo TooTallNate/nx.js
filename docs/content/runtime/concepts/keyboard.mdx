@@ -1,0 +1,30 @@
+---
+title: Keyboard Input
+description: Handling user input from a USB keyboard
+---
+
+You nx.js application can handle input from a connected USB keyboard
+by handling the global `keydown`, `keyup`, and `keypress` events.
+These events work the same way as in the web browser.
+
+## Example
+
+```typescript
+addEventListener('keydown', (e) => {
+  console.log('Keydown', e.keyCode);
+});
+
+addEventListener('keyup', (e) => {
+  console.log('Keyup', e.keyCode);
+});
+
+addEventListener('keypress', (e) => {
+  console.log('Keypress', e.keyCode);
+});
+```
+
+## Learn more
+
+<Cards>
+  <Card title="" href="" />
+</Cards>
