@@ -79,6 +79,7 @@ export abstract class Body implements globalThis.Body {
 		this.bodyUsed = false;
 		this.headers = new Headers(headers);
 		let contentType: string | undefined;
+		let contentLength: number | undefined;
 
 		if (init && typeof init === 'object' && 'body' in init) {
 			if (init.bodyUsed) {
@@ -95,6 +96,7 @@ export abstract class Body implements globalThis.Body {
 			} else if (init instanceof Blob) {
 				this.body = init.stream();
 				contentType = init.type;
+				contentLength = init.size;
 			} else if (init instanceof URLSearchParams) {
 				this.body = asyncIteratorToStream(stringIterator(String(init)));
 				contentType = 'application/x-www-form-urlencoded;charset=UTF-8';
@@ -108,14 +110,18 @@ export abstract class Body implements globalThis.Body {
 				this.body = asyncIteratorToStream(formDataIterator(init, boundary));
 				contentType = `multipart/form-data; boundary=${boundary}`;
 			} else {
-				this.body = asyncIteratorToStream(
-					arrayBufferIterator(bufferSourceToArrayBuffer(init)),
-				);
+				const ab = bufferSourceToArrayBuffer(init);
+				contentLength = ab.byteLength;
+				this.body = asyncIteratorToStream(arrayBufferIterator(ab));
 			}
 		}
 
 		if (contentType && !this.headers.has('content-type')) {
 			this.headers.set('content-type', contentType);
+		}
+
+		if (contentLength && !this.headers.has('content-length')) {
+			this.headers.set('content-length', String(contentLength));
 		}
 	}
 

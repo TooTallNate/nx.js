@@ -120,6 +120,7 @@ async function fetchHttp(req: Request, url: URL): Promise<Response> {
 	const isHttps = url.protocol === 'https:';
 	const { hostname } = url;
 	const port = +url.port || (isHttps ? 443 : 80);
+	const hasContentLength = req.headers.has('content-length');
 	const socket = new Socket(
 		// @ts-expect-error Internal constructor
 		INTERNAL_SYMBOL,
@@ -127,7 +128,6 @@ async function fetchHttp(req: Request, url: URL): Promise<Response> {
 		{ secureTransport: isHttps ? 'on' : 'off', connect },
 	);
 
-	req.headers.set('connection', 'close');
 	if (!req.headers.has('host')) {
 		req.headers.set('host', url.host);
 	}
@@ -138,6 +138,13 @@ async function fetchHttp(req: Request, url: URL): Promise<Response> {
 		req.headers.set('accept', '*/*');
 	}
 
+	if (hasContentLength) {
+		req.headers.set('connection', 'close');
+	} else {
+		req.headers.set('connection', 'keep-alive');
+		req.headers.set('transfer-encoding', 'chunked');
+	}
+
 	let header = `${req.method} ${url.pathname}${url.search} HTTP/1.1\r\n`;
 	for (const [name, value] of req.headers) {
 		header += `${name}: ${value}\r\n`;
@@ -145,6 +152,23 @@ async function fetchHttp(req: Request, url: URL): Promise<Response> {
 	header += '\r\n';
 	const w = socket.writable.getWriter();
 	await w.write(encoder.encode(header));
+
+	// Flush the request body
+	// TODO: flush async?
+	if (req.body) {
+		if (hasContentLength) {
+			w.releaseLock();
+			await req.body.pipeTo(socket.writable);
+		} else {
+			for await (const chunk of req.body) {
+				await w.write(encoder.encode(`${chunk.byteLength.toString(16)}\r\n`));
+				await w.write(chunk);
+				await w.write(encoder.encode(`\r\n`));
+			}
+			await w.write(encoder.encode('0\r\n\r\n'));
+			w.releaseLock();
+		}
+	}
 
 	const resHeaders = new Headers();
 	const r = socket.readable.getReader();
@@ -206,6 +230,7 @@ async function fetchHttp(req: Request, url: URL): Promise<Response> {
 		resHeaders.get('transfer-encoding') === 'chunked'
 			? createChunkedParseStream()
 			: new TransformStream();
+
 	if (leftover) {
 		const w = resStream.writable.getWriter();
 		w.write(leftover);
