@@ -243,7 +243,8 @@ export class URL implements globalThis.URL {
 	/**
 	 * Returns a string containing a URL which represents the provided {@link Blob | `Blob`} object.
 	 *
-	 * @param obj - The object for which an object URL is to be created.
+	 * @param obj The object for which an object URL is to be created.
+	 * @see https://developer.mozilla.org/docs/Web/API/URL/createObjectURL_static
 	 */
 	static createObjectURL(obj: Blob): string {
 		if (!(obj instanceof Blob)) {
@@ -255,9 +256,10 @@ export class URL implements globalThis.URL {
 	}
 
 	/**
-	 * Revokes an object URL previously created using URL.createObjectURL().
+	 * Revokes an object URL previously created using {@link URL.createObjectURL | `URL.createObjectURL()`}.
 	 *
-	 * @param url - A string representing a URL that was created by calling URL.createObjectURL().
+	 * @param url A string representing a URL that was created by calling `URL.createObjectURL()`.
+	 * @see https://developer.mozilla.org/docs/Web/API/URL/revokeObjectURL_static
 	 */
 	static revokeObjectURL(url: string): void {
 		objectUrls.delete(url);
