@@ -1,5 +1,5 @@
 import { $ } from './$';
-import { assertInternalConstructor, createInternal, def } from './utils';
+import { assertInternalConstructor, createInternal, def, proto } from './utils';
 import { EventTarget } from './polyfills/event-target';
 import { INTERNAL_SYMBOL } from './internal';
 import { CanvasRenderingContext2D } from './canvas/canvas-rendering-context-2d';
@@ -19,8 +19,7 @@ export class Screen extends EventTarget implements globalThis.Screen {
 	constructor() {
 		assertInternalConstructor(arguments);
 		super();
-		const c = $.canvasNew(1280, 720) as Screen;
-		Object.setPrototypeOf(c, Screen.prototype);
+		const c = proto($.canvasNew(1280, 720), Screen);
 		_.set(c, {});
 		return c;
 	}

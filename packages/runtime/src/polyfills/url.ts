@@ -1,6 +1,6 @@
 import { $ } from '../$';
 import { Blob } from './blob';
-import { def, stub } from '../utils';
+import { def, proto, stub } from '../utils';
 import { crypto } from '../crypto';
 import { inspect } from '../switch/inspect';
 
@@ -15,8 +15,7 @@ export class URLSearchParams implements globalThis.URLSearchParams {
 		if (init && (typeof init === 'string' || init instanceof URLSearchParams)) {
 			input = String(init);
 		}
-		const p = $.urlSearchNew(input, arguments[1]);
-		Object.setPrototypeOf(p, URLSearchParams.prototype);
+		const p = proto($.urlSearchNew(input, arguments[1]), URLSearchParams);
 		if (!input) {
 			if (Array.isArray(init)) {
 				for (const [k, v] of init) {
@@ -196,9 +195,7 @@ export class URL implements globalThis.URL {
 	 * @param base The base URL to use in case the input URL is a relative URL.
 	 */
 	constructor(url: string | URL, base?: string | URL) {
-		const u = $.urlNew(url, base);
-		Object.setPrototypeOf(u, URL.prototype);
-		return u;
+		return proto($.urlNew(url, base), URL);
 	}
 
 	declare hash: string;

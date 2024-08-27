@@ -1,6 +1,6 @@
 import { $ } from '../$';
 import { DOMRect } from '../domrect';
-import { assertInternalConstructor, def } from '../utils';
+import { assertInternalConstructor, def, proto } from '../utils';
 import { Event } from '../polyfills/event';
 import { EventTarget } from '../polyfills/event-target';
 import { requestAnimationFrame, cancelAnimationFrame } from '../raf';
@@ -148,13 +148,15 @@ function onSubmit(this: VirtualKeyboard, str: string) {
 }
 
 export function create() {
-	const k = $.swkbdCreate({
-		onCancel,
-		onChange,
-		onCursorMove,
-		onSubmit,
-	});
-	Object.setPrototypeOf(k, VirtualKeyboard.prototype);
+	const k = proto(
+		$.swkbdCreate({
+			onCancel,
+			onChange,
+			onCursorMove,
+			onSubmit,
+		}),
+		VirtualKeyboard,
+	);
 	// @ts-expect-error
 	k.boundingRect = new DOMRect();
 	update = () => {

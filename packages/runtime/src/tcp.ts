@@ -7,6 +7,7 @@ import {
 	assertInternalConstructor,
 	bufferSourceToArrayBuffer,
 	createInternal,
+	proto,
 	toPromise,
 } from './utils';
 import type { BufferSource } from './types';
@@ -237,6 +238,5 @@ export function createServer(ip: string, port: number) {
 		});
 		server.dispatchEvent(new SocketEvent('accept', { socket }));
 	});
-	Object.setPrototypeOf(server, Server.prototype);
-	return server;
+	return proto(server, Server);
 }

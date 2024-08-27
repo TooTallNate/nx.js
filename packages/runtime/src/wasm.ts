@@ -1,5 +1,5 @@
 import { $ } from './$';
-import { bufferSourceToArrayBuffer } from './utils';
+import { bufferSourceToArrayBuffer, proto } from './utils';
 import type { BufferSource } from './types';
 import type {
 	WasmModuleOpaque,
@@ -174,11 +174,9 @@ function wrapExports(ex: any[]): Exports {
 			bindGlobal(g, v.val);
 			e[v.name] = g;
 		} else if (v.kind === 'memory') {
-			Object.setPrototypeOf(v.val, Memory.prototype);
-			e[v.name] = v.val;
+			e[v.name] = proto(v.val, Memory);
 		} else if (v.kind === 'table') {
-			Object.setPrototypeOf(v.val, Table.prototype);
-			e[v.name] = v.val;
+			e[v.name] = proto(v.val, Table);
 		} else {
 			throw new LinkError(`Unsupported export type "${v.kind}"`);
 		}
@@ -226,9 +224,7 @@ function callFunc(
  */
 export class Memory implements WebAssembly.Memory {
 	constructor(descriptor: MemoryDescriptor) {
-		const that = $.wasmMemNew(descriptor);
-		Object.setPrototypeOf(that, Memory.prototype);
-		return that;
+		return proto($.wasmMemNew(descriptor), Memory);
 	}
 
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/Memory/buffer) */

@@ -1,4 +1,4 @@
-import { assertInternalConstructor, def } from './utils';
+import { assertInternalConstructor, def, proto } from './utils';
 import { initKeyboard } from './keyboard';
 import {
 	EventTarget,
@@ -28,8 +28,7 @@ export class Window extends EventTarget {
 def(Window);
 
 export var window: Window & typeof globalThis = globalThis;
-Object.setPrototypeOf(window, Window.prototype);
-def(window, 'window');
+def(proto(window, Window), 'window');
 
 Object.defineProperty(window, Symbol.toStringTag, {
 	get() {

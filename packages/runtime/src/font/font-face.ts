@@ -1,5 +1,5 @@
 import { $ } from '../$';
-import { bufferSourceToArrayBuffer, def } from '../utils';
+import { bufferSourceToArrayBuffer, def, proto } from '../utils';
 import type {
 	FontFaceLoadStatus,
 	FontDisplay,
@@ -37,8 +37,7 @@ export class FontFace implements globalThis.FontFace {
 			throw new Error('Font `source` must be an ArrayBuffer');
 		}
 		const buffer = bufferSourceToArrayBuffer(source);
-		const f = $.fontFaceNew(buffer);
-		Object.setPrototypeOf(f, FontFace.prototype);
+		const f = proto($.fontFaceNew(buffer), FontFace);
 		f.family = family;
 		f.ascentOverride = descriptors.ascentOverride ?? 'normal';
 		f.descentOverride = descriptors.descentOverride ?? 'normal';

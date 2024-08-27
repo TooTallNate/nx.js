@@ -1,7 +1,7 @@
 import { $ } from '../$';
 import { Blob } from '../polyfills/blob';
 import { EventTarget } from '../polyfills/event-target';
-import { createInternal, def } from '../utils';
+import { createInternal, def, proto } from '../utils';
 import { OffscreenCanvasRenderingContext2D } from './offscreen-canvas-rendering-context-2d';
 import type { ImageEncodeOptions } from '../types';
 import { INTERNAL_SYMBOL } from '../internal';
@@ -39,10 +39,9 @@ export class OffscreenCanvas
 	 */
 	constructor(width: number, height: number) {
 		super();
-		const c = $.canvasNew(width, height) as OffscreenCanvas;
-		Object.setPrototypeOf(c, OffscreenCanvas.prototype);
+		const c = proto($.canvasNew(width, height), OffscreenCanvas);
 		_.set(c, {});
-		return c as OffscreenCanvas;
+		return c;
 	}
 
 	convertToBlob(options?: ImageEncodeOptions | undefined): Promise<Blob> {

@@ -10,6 +10,7 @@ import {
 	rgbaToString,
 	stub,
 	returnOnThrow,
+	proto,
 } from '../utils';
 import {
 	addIconFont,
@@ -49,8 +50,7 @@ export class CanvasRenderingContext2D {
 	constructor() {
 		assertInternalConstructor(arguments);
 		const canvas: Screen = arguments[1];
-		const ctx = $.canvasContext2dNew(canvas);
-		Object.setPrototypeOf(ctx, CanvasRenderingContext2D.prototype);
+		const ctx = proto($.canvasContext2dNew(canvas), CanvasRenderingContext2D);
 		_.set(ctx, { canvas });
 		ctx.font = '10px sans-serif';
 		return ctx;
