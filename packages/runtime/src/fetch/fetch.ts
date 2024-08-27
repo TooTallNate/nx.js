@@ -138,7 +138,7 @@ async function fetchHttp(req: Request, url: URL): Promise<Response> {
 		req.headers.set('accept', '*/*');
 	}
 
-	if (hasContentLength) {
+	if (!req.body || hasContentLength) {
 		req.headers.set('connection', 'close');
 	} else {
 		req.headers.set('connection', 'keep-alive');
