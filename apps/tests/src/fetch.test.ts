@@ -50,12 +50,12 @@ test('Should work with `https:`', async () => {
 });
 
 test('Should work with `romfs:`', async () => {
-	const res = await fetch('romfs:/runtime.js');
-	assert.equal(res.url, 'romfs:/runtime.js');
+	const res = await fetch('romfs:/main.js');
+	assert.equal(res.url, 'romfs:/main.js');
 	assert.equal(res.ok, true);
 	assert.equal(res.status, 200);
 	const body = await res.text();
-	assert.ok(body.endsWith('//# sourceMappingURL=runtime.js.map\n'));
+	assert.ok(body.endsWith('//# sourceMappingURL=main.js.map\n'));
 });
 
 test(`Should follow redirects - 301`, async () => {

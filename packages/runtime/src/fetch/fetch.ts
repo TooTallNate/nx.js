@@ -338,7 +338,8 @@ const fetchers = new Map<string, (req: Request, url: URL) => Promise<Response>>(
  *
  * @see https://developer.mozilla.org/docs/Web/API/fetch
  */
-export async function fetch(
+// NOTE: Intentionally not an async function so that `Object.prototype.toString` returns "[object Function]"
+export function fetch(
 	input: string | URL | Request,
 	init?: RequestInit,
 ): Promise<Response> {
@@ -348,8 +349,9 @@ export async function fetch(
 	if (!fetcher) {
 		throw new Error(`scheme '${url.protocol.slice(0, -1)}' not supported`);
 	}
-	const res = await fetcher(req, url);
-	if (!res.url) res.url = url.href;
-	return res;
+	return fetcher(req, url).then((res) => {
+		if (!res.url) res.url = url.href;
+		return res;
+	});
 }
 def(fetch);
