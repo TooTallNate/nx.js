@@ -39,9 +39,10 @@ import type { URL, URLSearchParams } from './polyfills/url';
 import type { DOMPoint, DOMPointInit } from './dompoint';
 import type { DOMMatrix, DOMMatrixReadOnly, DOMMatrixInit } from './dommatrix';
 import type { Gamepad, GamepadButton } from './navigator/gamepad';
+import type { PromiseState } from '@nx.js/inspect';
 
 type ClassOf<T> = {
-	new (...args: any[]): T;
+	new(...args: any[]): T;
 };
 
 type FileHandle = Opaque<'FileHandle'>;
@@ -196,7 +197,7 @@ export interface Init {
 	chdir(dir: string): void;
 	print(v: string): void;
 	printErr(v: string): void;
-	getInternalPromiseState(p: Promise<unknown>): [number, unknown];
+	getInternalPromiseState(p: Promise<unknown>): [PromiseState, unknown];
 	getenv(name: string): string | undefined;
 	setenv(name: string, value: string): void;
 	unsetenv(name: string): void;

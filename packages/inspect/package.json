@@ -1,0 +1,39 @@
+{
+  "name": "@nx.js/inspect",
+  "version": "0.0.0",
+  "description": "JavaScript value inspect utility for nx.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TooTallNate/nx.js.git",
+    "directory": "packages/inspect"
+  },
+  "type": "module",
+  "homepage": "https://nxjs.n8.io/inspect",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest",
+    "docs": "typedoc && ../../type-aliases-meta.sh"
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "kleur": "github:TooTallNate/kleur#rgb"
+  },
+  "devDependencies": {
+    "nxjs-runtime": "workspace:*",
+    "vite": "^5.4.2",
+    "vitest": "^2.0.5"
+  },
+  "keywords": [
+    "nx.js",
+    "switch",
+    "inspect"
+  ],
+  "author": "Nathan Rajlich <n@n8.io>",
+  "license": "MIT"
+}
