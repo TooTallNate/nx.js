@@ -2,4 +2,4 @@
 "@nx.js/repl": patch
 ---
 
-Add abstract base `REPL` class and add basic vitest tests
+Allow customizing `REPL` class (for example for use with Node.js)
