@@ -33,6 +33,10 @@ jobs:
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build dependent packages
+        working-directory: packages/runtime
+        run: pnpm build
+
       - name: Bundle `runtime.js`
         run: pnpm bundle
 
