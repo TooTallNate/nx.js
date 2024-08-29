@@ -586,9 +586,6 @@ importers:
         specifier: github:TooTallNate/kleur#rgb
         version: github.com/TooTallNate/kleur/aa22b05da68d29ff6d2ce5eba5895ac654b7f25a
     devDependencies:
-      nxjs-runtime:
-        specifier: workspace:*
-        version: link:../runtime
       vite:
         specifier: ^5.4.2
         version: 5.4.2

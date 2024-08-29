@@ -7,10 +7,7 @@
     "moduleResolution": "node",
     "forceConsistentCasingInFileNames": true,
     "strict": true,
-    "skipLibCheck": true,
-    "types": [
-      "nxjs-runtime"
-    ]
+    "skipLibCheck": true
   },
   "include": [
     "src/**/*.ts"
