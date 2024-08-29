@@ -1,20 +1,19 @@
 import util from 'node:util';
 import { describe, expect, test } from 'vitest';
-import { REPL } from '../src/repl';
+import { REPL, type REPLOptions } from '../src/index';
 
 const encoder = new TextEncoder();
 
-class NodeREPL extends REPL {
+const opts: REPLOptions = {
 	inspect(v: unknown): string {
 		return util.inspect(v);
-	}
-	escape(): void {}
-}
+	},
+};
 
 describe('REPL', () => {
 	test('Renders empty prompt', async () => {
 		const stream = new TextDecoderStream();
-		const repl = new NodeREPL(stream.writable.getWriter());
+		const repl = new REPL(stream.writable.getWriter(), opts);
 		const reader = stream.readable.getReader();
 
 		repl.renderPrompt();
@@ -27,7 +26,7 @@ describe('REPL', () => {
 
 	test('Echoes user input', async () => {
 		const stream = new TextDecoderStream();
-		const repl = new NodeREPL(stream.writable.getWriter());
+		const repl = new REPL(stream.writable.getWriter(), opts);
 		const reader = stream.readable.getReader();
 
 		repl.write(encoder.encode('hello world'));
@@ -41,7 +40,7 @@ describe('REPL', () => {
 	describe('submit()', () => {
 		test('Evaluates user input', async () => {
 			const stream = new TextDecoderStream();
-			const repl = new NodeREPL(stream.writable.getWriter());
+			const repl = new REPL(stream.writable.getWriter(), opts);
 			const reader = stream.readable.getReader();
 
 			repl.write(encoder.encode('1 + 1'));
