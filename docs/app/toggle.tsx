@@ -31,7 +31,7 @@ export function Toggle() {
 				},
 				{
 					title: '@nx.js/inspect',
-					description: 'JavaScript value inspect utility for nx.js',
+					description: 'Inspection utility for nx.js',
 					url: '/inspect',
 					icon: <TbZoomQuestion size={24} />,
 				},
