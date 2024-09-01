@@ -18,11 +18,6 @@ export interface InspectOptions {
 	refs?: Map<{}, number>;
 }
 
-export const custom = Symbol('inspect.custom');
-export const keys = Symbol('inspect.keys');
-export const values = Symbol('inspect.values');
-export const entries = Symbol('inspect.entries');
-
 export function createInspect(opts?: CreateInspectOptions) {
 	const { getPromiseState } = opts ?? {};
 
@@ -154,10 +149,10 @@ export function createInspect(opts?: CreateInspectOptions) {
 		return `? ${v}`;
 	};
 
-	inspect.custom = custom;
-	inspect.keys = keys;
-	inspect.values = values;
-	inspect.entries = entries;
+	inspect.custom = Symbol('inspect.custom');
+	inspect.keys = Symbol('inspect.keys');
+	inspect.values = Symbol('inspect.values');
+	inspect.entries = Symbol('inspect.entries');
 
 	function printObject(v: any, opts: InspectOptions) {
 		const { depth = 1 } = opts;
