@@ -13,5 +13,5 @@ export type { InspectOptions } from '@nx.js/inspect';
  * @returns A string representation of `v` with ANSI color codes.
  */
 export const inspect = createInspect({
-	getPromiseState: $.getInternalPromiseState
+	getPromiseState: $.getInternalPromiseState,
 });

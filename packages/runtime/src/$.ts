@@ -42,7 +42,7 @@ import type { Gamepad, GamepadButton } from './navigator/gamepad';
 import type { PromiseState } from '@nx.js/inspect';
 
 type ClassOf<T> = {
-	new(...args: any[]): T;
+	new (...args: any[]): T;
 };
 
 type FileHandle = Opaque<'FileHandle'>;

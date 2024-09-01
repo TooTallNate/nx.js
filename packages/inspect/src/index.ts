@@ -7,7 +7,11 @@ export const PROMISE_STATE_PENDING = 0 as const;
 export const PROMISE_STATE_FULFILLED = 1 as const;
 export const PROMISE_STATE_REJECTED = 2 as const;
 
-export type PromiseState = typeof PROMISE_STATE_UNKNOWN | typeof PROMISE_STATE_PENDING | typeof PROMISE_STATE_FULFILLED | typeof PROMISE_STATE_REJECTED;
+export type PromiseState =
+	| typeof PROMISE_STATE_UNKNOWN
+	| typeof PROMISE_STATE_PENDING
+	| typeof PROMISE_STATE_FULFILLED
+	| typeof PROMISE_STATE_REJECTED;
 
 export interface CreateInspectOptions {
 	getPromiseState?: (p: Promise<unknown>) => [PromiseState, unknown];
@@ -89,7 +93,9 @@ export function createInspect(opts?: CreateInspectOptions) {
 			const contents =
 				v.length === 0
 					? ''
-					: ` ${v.map((e) => inspect(e, { ...opts, refs, depth })).join(', ')} `;
+					: ` ${v
+							.map((e) => inspect(e, { ...opts, refs, depth }))
+							.join(', ')} `;
 			return `[${contents}]`;
 		}
 		if (isRegExp(v)) {
@@ -100,7 +106,10 @@ export function createInspect(opts?: CreateInspectOptions) {
 		}
 		if (isPromise(v)) {
 			let val = '';
-			const [state, result] = getPromiseState?.(v) ?? [PROMISE_STATE_UNKNOWN, undefined];
+			const [state, result] = getPromiseState?.(v) ?? [
+				PROMISE_STATE_UNKNOWN,
+				undefined,
+			];
 			if (state === PROMISE_STATE_PENDING) {
 				val = cyan('<pending>');
 			} else if (state === PROMISE_STATE_UNKNOWN) {
@@ -147,7 +156,7 @@ export function createInspect(opts?: CreateInspectOptions) {
 			return printObject(v, { ...opts, refs, depth });
 		}
 		return `? ${v}`;
-	};
+	}
 
 	inspect.custom = Symbol('inspect.custom');
 	inspect.keys = Symbol('inspect.keys');

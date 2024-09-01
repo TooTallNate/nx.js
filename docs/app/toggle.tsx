@@ -3,6 +3,7 @@ import {
 	TbBrowser,
 	TbBraces,
 	TbBrandPowershell,
+	TbZoomQuestion,
 } from 'react-icons/tb';
 import { RootToggle } from 'fumadocs-ui/components/layout/root-toggle';
 
@@ -27,6 +28,12 @@ export function Toggle() {
 					description: 'HTTP server for nx.js',
 					url: '/http',
 					icon: <TbBrowser size={24} />,
+				},
+				{
+					title: '@nx.js/inspect',
+					description: 'JavaScript value inspect utility for nx.js',
+					url: '/inspect',
+					icon: <TbZoomQuestion size={24} />,
 				},
 				{
 					title: '@nx.js/repl',
