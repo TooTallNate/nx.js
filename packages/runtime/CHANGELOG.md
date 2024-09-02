@@ -1,5 +1,15 @@
 # nxjs-runtime
 
+## 0.0.50
+
+### Patch Changes
+
+- Make `fetch()` be a regular function (not async) to fix test ([`5db454d2a532ddcb09845c42ec13f7176edb593c`](https://github.com/TooTallNate/nx.js/commit/5db454d2a532ddcb09845c42ec13f7176edb593c))
+
+- Initial `fetch()` request body support ([`0180154015c3d988c4f3a44e6f74d80a27a4df10`](https://github.com/TooTallNate/nx.js/commit/0180154015c3d988c4f3a44e6f74d80a27a4df10))
+
+- Set `connection: close` HTTP request header when there is no request body ([`49730f3a42ad9156fda12f1ec61fe5463f23d569`](https://github.com/TooTallNate/nx.js/commit/49730f3a42ad9156fda12f1ec61fe5463f23d569))
+
 ## 0.0.49
 
 ### Patch Changes

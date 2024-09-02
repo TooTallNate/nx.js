@@ -1,6 +1,6 @@
 {
   "name": "@nx.js/inspect",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "JavaScript value inspect utility for nx.js",
   "repository": {
     "type": "git",

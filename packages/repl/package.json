@@ -1,6 +1,6 @@
 {
   "name": "@nx.js/repl",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Read-Eval-Print Loop for nx.js",
   "repository": {
     "type": "git",

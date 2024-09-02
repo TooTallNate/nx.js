@@ -1,5 +1,11 @@
 # @nx.js/repl
 
+## 0.0.5
+
+### Patch Changes
+
+- Allow customizing `REPL` class (for example for use with Node.js) ([`e9a52551fd1c6b4fee5c8960e075857e8b748448`](https://github.com/TooTallNate/nx.js/commit/e9a52551fd1c6b4fee5c8960e075857e8b748448))
+
 ## 0.0.4
 
 ### Patch Changes
