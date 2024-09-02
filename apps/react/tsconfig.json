@@ -11,7 +11,7 @@
     "skipLibCheck": true,
     "jsx": "react",
     "types": [
-      "nxjs-runtime"
+      "@nx.js/runtime"
     ]
   },
   "include": [

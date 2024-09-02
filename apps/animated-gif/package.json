@@ -13,7 +13,7 @@
     "@nx.js/nro": "workspace:^",
     "@nx.js/nsp": "workspace:^",
     "esbuild": "^0.17.19",
-    "nxjs-runtime": "workspace:^"
+    "@nx.js/runtime": "workspace:^"
   },
   "dependencies": {
     "decode-gif": "^1.0.1"

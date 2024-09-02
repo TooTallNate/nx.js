@@ -9,8 +9,8 @@
     [
       "@nx.js/nro",
       "@nx.js/nsp",
-      "create-nxjs-app",
-      "nxjs-runtime"
+      "@nx.js/runtime",
+      "create-nxjs-app"
     ]
   ],
   "linked": [],

@@ -14,7 +14,7 @@
     "@nx.js/nsp": "workspace:^",
     "@types/color-hash": "^1.0.5",
     "esbuild": "^0.17.19",
-    "nxjs-runtime": "workspace:^"
+    "@nx.js/runtime": "workspace:^"
   },
   "dependencies": {
     "color-hash": "^2.0.2"

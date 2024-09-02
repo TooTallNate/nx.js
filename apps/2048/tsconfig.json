@@ -10,7 +10,7 @@
     "skipLibCheck": true,
     "allowJs": true,
     "types": [
-      "nxjs-runtime"
+      "@nx.js/runtime"
     ]
   },
   "include": [
