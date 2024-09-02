@@ -12,8 +12,8 @@
   "devDependencies": {
     "@nx.js/nro": "workspace:^",
     "@nx.js/nsp": "workspace:^",
-    "esbuild": "^0.17.19",
-    "@nx.js/runtime": "workspace:^"
+    "@nx.js/runtime": "workspace:^",
+    "esbuild": "^0.17.19"
   },
   "dependencies": {
     "@xmldom/xmldom": "^0.8.10",
