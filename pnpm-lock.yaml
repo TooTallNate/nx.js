@@ -51,12 +51,12 @@ importers:
       '@nx.js/nsp':
         specifier: workspace:^
         version: link:../../packages/nsp
+      '@nx.js/runtime':
+        specifier: workspace:^
+        version: link:../../packages/runtime
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
-      nxjs-runtime:
-        specifier: workspace:^
-        version: link:../../packages/runtime
 
   apps/animated-gif:
     dependencies:
@@ -70,12 +70,12 @@ importers:
       '@nx.js/nsp':
         specifier: workspace:^
         version: link:../../packages/nsp
+      '@nx.js/runtime':
+        specifier: workspace:^
+        version: link:../../packages/runtime
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
-      nxjs-runtime:
-        specifier: workspace:^
-        version: link:../../packages/runtime
 
   apps/ansi:
     dependencies:
@@ -92,12 +92,12 @@ importers:
       '@nx.js/nsp':
         specifier: workspace:^
         version: link:../../packages/nsp
+      '@nx.js/runtime':
+        specifier: workspace:^
+        version: link:../../packages/runtime
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
-      nxjs-runtime:
-        specifier: workspace:^
-        version: link:../../packages/runtime
 
   apps/app-launch:
     devDependencies:
@@ -107,12 +107,12 @@ importers:
       '@nx.js/nsp':
         specifier: workspace:^
         version: link:../../packages/nsp
+      '@nx.js/runtime':
+        specifier: workspace:^
+        version: link:../../packages/runtime
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
-      nxjs-runtime:
-        specifier: workspace:^
-        version: link:../../packages/runtime
 
   apps/battery:
     devDependencies:
@@ -122,12 +122,12 @@ importers:
       '@nx.js/nsp':
         specifier: workspace:^
         version: link:../../packages/nsp
+      '@nx.js/runtime':
+        specifier: workspace:^
+        version: link:../../packages/runtime
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
-      nxjs-runtime:
-        specifier: workspace:^
-        version: link:../../packages/runtime
 
   apps/canvas:
     devDependencies:
@@ -137,12 +137,12 @@ importers:
       '@nx.js/nsp':
         specifier: workspace:^
         version: link:../../packages/nsp
+      '@nx.js/runtime':
+        specifier: workspace:^
+        version: link:../../packages/runtime
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
-      nxjs-runtime:
-        specifier: workspace:^
-        version: link:../../packages/runtime
 
   apps/fonts:
     devDependencies:
@@ -152,12 +152,12 @@ importers:
       '@nx.js/nsp':
         specifier: workspace:^
         version: link:../../packages/nsp
+      '@nx.js/runtime':
+        specifier: workspace:^
+        version: link:../../packages/runtime
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
-      nxjs-runtime:
-        specifier: workspace:^
-        version: link:../../packages/runtime
 
   apps/gamepads:
     dependencies:
@@ -171,12 +171,12 @@ importers:
       '@nx.js/nsp':
         specifier: workspace:^
         version: link:../../packages/nsp
+      '@nx.js/runtime':
+        specifier: workspace:^
+        version: link:../../packages/runtime
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
-      nxjs-runtime:
-        specifier: workspace:^
-        version: link:../../packages/runtime
 
   apps/hello-world:
     devDependencies:
@@ -186,12 +186,12 @@ importers:
       '@nx.js/nsp':
         specifier: workspace:^
         version: link:../../packages/nsp
+      '@nx.js/runtime':
+        specifier: workspace:^
+        version: link:../../packages/runtime
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
-      nxjs-runtime:
-        specifier: workspace:^
-        version: link:../../packages/runtime
 
   apps/http-server:
     dependencies:
@@ -205,12 +205,12 @@ importers:
       '@nx.js/nsp':
         specifier: workspace:^
         version: link:../../packages/nsp
+      '@nx.js/runtime':
+        specifier: workspace:^
+        version: link:../../packages/runtime
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
-      nxjs-runtime:
-        specifier: workspace:^
-        version: link:../../packages/runtime
 
   apps/react:
     dependencies:
@@ -227,15 +227,15 @@ importers:
       '@nx.js/nsp':
         specifier: workspace:^
         version: link:../../packages/nsp
+      '@nx.js/runtime':
+        specifier: workspace:^
+        version: link:../../packages/runtime
       '@types/react':
         specifier: ^18.2.56
         version: 18.2.56
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
-      nxjs-runtime:
-        specifier: workspace:^
-        version: link:../../packages/runtime
 
   apps/repl:
     dependencies:
@@ -252,12 +252,12 @@ importers:
       '@nx.js/nsp':
         specifier: workspace:^
         version: link:../../packages/nsp
+      '@nx.js/runtime':
+        specifier: workspace:^
+        version: link:../../packages/runtime
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
-      nxjs-runtime:
-        specifier: workspace:^
-        version: link:../../packages/runtime
 
   apps/repl-server:
     dependencies:
@@ -274,12 +274,12 @@ importers:
       '@nx.js/nsp':
         specifier: workspace:^
         version: link:../../packages/nsp
+      '@nx.js/runtime':
+        specifier: workspace:^
+        version: link:../../packages/runtime
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
-      nxjs-runtime:
-        specifier: workspace:^
-        version: link:../../packages/runtime
 
   apps/save-data:
     devDependencies:
@@ -289,12 +289,12 @@ importers:
       '@nx.js/nsp':
         specifier: workspace:^
         version: link:../../packages/nsp
+      '@nx.js/runtime':
+        specifier: workspace:^
+        version: link:../../packages/runtime
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
-      nxjs-runtime:
-        specifier: workspace:^
-        version: link:../../packages/runtime
 
   apps/snake:
     dependencies:
@@ -308,12 +308,12 @@ importers:
       '@nx.js/nsp':
         specifier: workspace:^
         version: link:../../packages/nsp
+      '@nx.js/runtime':
+        specifier: workspace:^
+        version: link:../../packages/runtime
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
-      nxjs-runtime:
-        specifier: workspace:^
-        version: link:../../packages/runtime
 
   apps/starwars:
     dependencies:
@@ -327,12 +327,12 @@ importers:
       '@nx.js/nsp':
         specifier: workspace:^
         version: link:../../packages/nsp
+      '@nx.js/runtime':
+        specifier: workspace:^
+        version: link:../../packages/runtime
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
-      nxjs-runtime:
-        specifier: workspace:^
-        version: link:../../packages/runtime
 
   apps/svg:
     dependencies:
@@ -349,12 +349,12 @@ importers:
       '@nx.js/nsp':
         specifier: workspace:^
         version: link:../../packages/nsp
+      '@nx.js/runtime':
+        specifier: workspace:^
+        version: link:../../packages/runtime
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
-      nxjs-runtime:
-        specifier: workspace:^
-        version: link:../../packages/runtime
 
   apps/tcp-server:
     devDependencies:
@@ -364,12 +364,12 @@ importers:
       '@nx.js/nsp':
         specifier: workspace:^
         version: link:../../packages/nsp
+      '@nx.js/runtime':
+        specifier: workspace:^
+        version: link:../../packages/runtime
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
-      nxjs-runtime:
-        specifier: workspace:^
-        version: link:../../packages/runtime
 
   apps/tests:
     dependencies:
@@ -383,12 +383,12 @@ importers:
       '@nx.js/nsp':
         specifier: workspace:^
         version: link:../../packages/nsp
+      '@nx.js/runtime':
+        specifier: workspace:^
+        version: link:../../packages/runtime
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
-      nxjs-runtime:
-        specifier: workspace:^
-        version: link:../../packages/runtime
 
   apps/touchscreen:
     dependencies:
@@ -402,15 +402,15 @@ importers:
       '@nx.js/nsp':
         specifier: workspace:^
         version: link:../../packages/nsp
+      '@nx.js/runtime':
+        specifier: workspace:^
+        version: link:../../packages/runtime
       '@types/color-hash':
         specifier: ^1.0.5
         version: 1.0.5
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
-      nxjs-runtime:
-        specifier: workspace:^
-        version: link:../../packages/runtime
 
   apps/vibrate:
     devDependencies:
@@ -420,12 +420,12 @@ importers:
       '@nx.js/nsp':
         specifier: workspace:^
         version: link:../../packages/nsp
+      '@nx.js/runtime':
+        specifier: workspace:^
+        version: link:../../packages/runtime
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
-      nxjs-runtime:
-        specifier: workspace:^
-        version: link:../../packages/runtime
 
   apps/virtual-keyboard:
     devDependencies:
@@ -438,12 +438,12 @@ importers:
       '@nx.js/nsp':
         specifier: workspace:^
         version: link:../../packages/nsp
+      '@nx.js/runtime':
+        specifier: workspace:^
+        version: link:../../packages/runtime
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
-      nxjs-runtime:
-        specifier: workspace:^
-        version: link:../../packages/runtime
 
   apps/wasm:
     devDependencies:
@@ -453,12 +453,12 @@ importers:
       '@nx.js/nsp':
         specifier: workspace:^
         version: link:../../packages/nsp
+      '@nx.js/runtime':
+        specifier: workspace:^
+        version: link:../../packages/runtime
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
-      nxjs-runtime:
-        specifier: workspace:^
-        version: link:../../packages/runtime
 
   docs:
     dependencies:
@@ -499,6 +499,9 @@ importers:
       '@nx.js/repl':
         specifier: workspace:*
         version: link:../packages/repl
+      '@nx.js/runtime':
+        specifier: workspace:*
+        version: link:../packages/runtime
       '@types/mdx':
         specifier: ^2.0.13
         version: 2.0.13
@@ -514,9 +517,6 @@ importers:
       autoprefixer:
         specifier: ^10.4.19
         version: 10.4.19(postcss@8.4.38)
-      nxjs-runtime:
-        specifier: workspace:*
-        version: link:../packages/runtime
       postcss:
         specifier: ^8.4.38
         version: 8.4.38
@@ -529,7 +529,7 @@ importers:
 
   packages/constants:
     devDependencies:
-      nxjs-runtime:
+      '@nx.js/runtime':
         specifier: workspace:*
         version: link:../runtime
 
@@ -570,7 +570,7 @@ importers:
         specifier: ^4.0.1
         version: 4.0.1
     devDependencies:
-      nxjs-runtime:
+      '@nx.js/runtime':
         specifier: workspace:*
         version: link:../runtime
       vite:
@@ -683,7 +683,7 @@ importers:
         specifier: ^1.0.5
         version: 1.0.5
     devDependencies:
-      nxjs-runtime:
+      '@nx.js/runtime':
         specifier: workspace:*
         version: link:../runtime
       vite:

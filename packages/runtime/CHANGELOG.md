@@ -1,4 +1,4 @@
-# nxjs-runtime
+# @nx.js/runtime
 
 ## 0.0.50
 

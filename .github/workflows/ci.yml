@@ -34,7 +34,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build dependent packages
-        run: pnpm build --filter nxjs-runtime
+        run: pnpm build --filter @nx.js/runtime
 
       - name: Bundle `runtime.js`
         run: pnpm bundle

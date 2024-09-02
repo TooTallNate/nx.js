@@ -21,7 +21,7 @@
     "access": "public"
   },
   "devDependencies": {
-    "nxjs-runtime": "workspace:*",
+    "@nx.js/runtime": "workspace:*",
     "vite": "^5.4.2",
     "vitest": "^2.0.5"
   },

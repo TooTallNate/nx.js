@@ -25,6 +25,6 @@
   "author": "Nathan Rajlich <n@n8.io>",
   "license": "MIT",
   "devDependencies": {
-    "nxjs-runtime": "workspace:*"
+    "@nx.js/runtime": "workspace:*"
   }
 }
