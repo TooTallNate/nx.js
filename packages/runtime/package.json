@@ -31,7 +31,7 @@
     "color-rgba": "^2.4.0",
     "data-uri-to-buffer": "^6.0.1",
     "dts-bundle-generator": "^8.1.2",
-    "esbuild": "^0.17.19",
+    "esbuild": "^0.23.1",
     "kleur": "github:TooTallNate/kleur#rgb",
     "parse-css-font": "^4.0.0",
     "to-px": "^1.1.0",

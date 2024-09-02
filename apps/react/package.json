@@ -14,7 +14,7 @@
     "@nx.js/nsp": "workspace:^",
     "@nx.js/runtime": "workspace:^",
     "@types/react": "^18.2.56",
-    "esbuild": "^0.17.19"
+    "esbuild": "^0.23.1"
   },
   "dependencies": {
     "react": "^18.2.0",

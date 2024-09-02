@@ -16,6 +16,6 @@
     "@nx.js/nro": "workspace:^",
     "@nx.js/nsp": "workspace:^",
     "@nx.js/runtime": "workspace:^",
-    "esbuild": "^0.17.19"
+    "esbuild": "^0.23.1"
   }
 }
