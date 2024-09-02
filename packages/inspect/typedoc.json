@@ -1,0 +1,7 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "extends": ["../../typedoc.json"],
+  "name": "@nx.js/inspect",
+  "entryPoints": ["./src/index.ts"],
+  "out": "docs"
+}

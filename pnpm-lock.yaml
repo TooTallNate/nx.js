@@ -580,6 +580,19 @@ importers:
         specifier: ^2.0.5
         version: 2.0.5
 
+  packages/inspect:
+    dependencies:
+      kleur:
+        specifier: github:TooTallNate/kleur#rgb
+        version: github.com/TooTallNate/kleur/aa22b05da68d29ff6d2ce5eba5895ac654b7f25a
+    devDependencies:
+      vite:
+        specifier: ^5.4.2
+        version: 5.4.2
+      vitest:
+        specifier: ^2.0.5
+        version: 2.0.5
+
   packages/nro:
     dependencies:
       '@nx.js/patch-nacp':
@@ -685,6 +698,9 @@ importers:
       '@jridgewell/trace-mapping':
         specifier: ^0.3.20
         version: 0.3.20
+      '@nx.js/inspect':
+        specifier: workspace:*
+        version: link:../inspect
       '@types/color-rgba':
         specifier: ^2.1.2
         version: 2.1.2
@@ -8557,7 +8573,6 @@ packages:
     name: kleur
     version: 4.1.5
     engines: {node: '>=6'}
-    dev: true
 
   github.com/TooTallNate/uvu/a19ad72ffe3e5b91b256ddc58b77aac04d056316:
     resolution: {tarball: https://codeload.github.com/TooTallNate/uvu/tar.gz/a19ad72ffe3e5b91b256ddc58b77aac04d056316}
