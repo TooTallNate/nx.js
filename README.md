@@ -54,6 +54,7 @@ pull request in the [GitHub repository](https://github.com/TooTallNate/nx.js).
    docker run -it --rm --mount type=bind,source="$(pwd)",target=/host ghcr.io/tootallnate/pacman-packages:nxjs sh -c 'cp packages/*/*.pkg.tar.zst /host'
    dkp-pacman -U *.pkg.tar.zst
    ```
+1. `qjsc` needs to be installed (**note**: must match the version of the QuickJS dkp package installed in the previous step)
 1. Now you can compile one of the example apps into a self-contained `.nro`:
    ```bash
    ./build.sh hello-world
