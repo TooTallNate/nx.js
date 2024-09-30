@@ -87,6 +87,15 @@ export function writeFileSync(path: PathLike, data: string | BufferSource) {
 }
 
 /**
+ * Removes the file or directory recursively specified by `path`.
+ *
+ * @param path File path to remove.
+ */
+export function remove(path: PathLike) {
+	return $.remove(pathToString(path));
+}
+
+/**
  * Synchronously removes the file or directory recursively specified by `path`.
  *
  * @param path File path to remove.
@@ -96,12 +105,13 @@ export function removeSync(path: PathLike) {
 }
 
 /**
- * Removes the file or directory recursively specified by `path`.
+ * Renames a file or directory.
  *
- * @param path File path to remove.
+ * @param path Source file path to rename.
+ * @param dest Destination file path to rename to.
  */
-export function remove(path: PathLike) {
-	return $.remove(pathToString(path));
+export function rename(path: PathLike, dest: PathLike) {
+	return $.rename(pathToString(path), pathToString(dest));
 }
 
 /**

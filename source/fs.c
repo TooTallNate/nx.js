@@ -65,6 +65,12 @@ typedef struct {
 	const char *filename;
 } nx_fs_remove_async_t;
 
+typedef struct {
+	int err;
+	const char *src;
+	const char *dest;
+} nx_fs_rename_async_t;
+
 char *dirname(const char *path) {
 	if (path == NULL || *path == '\0') {
 		return strdup("."); // Current directory for empty paths
@@ -686,6 +692,43 @@ JSValue nx_remove_sync(JSContext *ctx, JSValueConst this_val, int argc,
 	return JS_UNDEFINED;
 }
 
+void nx_rename_do(nx_work_t *req) {
+	nx_fs_rename_async_t *data = (nx_fs_rename_async_t *)req->data;
+	if (rename(data->src, data->dest) != 0) {
+		data->err = errno;
+	}
+}
+
+JSValue nx_rename_cb(JSContext *ctx, nx_work_t *req) {
+	nx_fs_rename_async_t *data = (nx_fs_rename_async_t *)req->data;
+	JS_FreeCString(ctx, data->src);
+	JS_FreeCString(ctx, data->dest);
+
+	if (data->err) {
+		JSValue err = JS_NewError(ctx);
+		JS_DefinePropertyValueStr(ctx, err, "message",
+								  JS_NewString(ctx, strerror(data->err)),
+								  JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+		return JS_Throw(ctx, err);
+	}
+
+	return JS_NULL;
+}
+
+JSValue nx_rename(JSContext *ctx, JSValueConst this_val, int argc,
+				  JSValueConst *argv) {
+	NX_INIT_WORK_T(nx_fs_rename_async_t);
+	data->src = JS_ToCString(ctx, argv[0]);
+	if (!data->src) {
+		return JS_EXCEPTION;
+	}
+	data->dest = JS_ToCString(ctx, argv[1]);
+	if (!data->dest) {
+		return JS_EXCEPTION;
+	}
+	return nx_queue_async(ctx, req, nx_rename_do, nx_rename_cb);
+}
+
 JSValue nx_rename_sync(JSContext *ctx, JSValueConst this_val, int argc,
 					   JSValueConst *argv) {
 	const char *old_path = JS_ToCString(ctx, argv[0]);
@@ -739,18 +782,19 @@ JSValue nx_fs_create_big_file(JSContext *ctx, JSValueConst this_val, int argc,
 
 static const JSCFunctionListEntry function_list[] = {
 	JS_CFUNC_DEF("fclose", 1, nx_fclose),
-	JS_CFUNC_DEF("fopen", 1, nx_fopen),
-	JS_CFUNC_DEF("fread", 1, nx_fread),
-	JS_CFUNC_DEF("fwrite", 1, nx_fwrite),
+	JS_CFUNC_DEF("fopen", 2, nx_fopen),
+	JS_CFUNC_DEF("fread", 2, nx_fread),
+	JS_CFUNC_DEF("fwrite", 2, nx_fwrite),
 	JS_CFUNC_DEF("fsCreateBigFile", 1, nx_fs_create_big_file),
-	JS_CFUNC_DEF("mkdirSync", 1, nx_mkdir_sync),
+	JS_CFUNC_DEF("mkdirSync", 2, nx_mkdir_sync),
 	JS_CFUNC_DEF("readDirSync", 1, nx_readdir_sync),
-	JS_CFUNC_DEF("readFile", 2, nx_read_file),
+	JS_CFUNC_DEF("readFile", 1, nx_read_file),
 	JS_CFUNC_DEF("readFileSync", 1, nx_read_file_sync),
-	JS_CFUNC_DEF("remove", 2, nx_remove),
+	JS_CFUNC_DEF("remove", 1, nx_remove),
 	JS_CFUNC_DEF("removeSync", 1, nx_remove_sync),
+	JS_CFUNC_DEF("rename", 2, nx_rename),
 	JS_CFUNC_DEF("renameSync", 2, nx_rename_sync),
-	JS_CFUNC_DEF("stat", 2, nx_stat),
+	JS_CFUNC_DEF("stat", 1, nx_stat),
 	JS_CFUNC_DEF("statSync", 1, nx_stat_sync),
 	JS_CFUNC_DEF("writeFileSync", 1, nx_write_file_sync),
 };
