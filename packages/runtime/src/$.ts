@@ -154,6 +154,7 @@ export interface Init {
 	readFileSync(path: string): ArrayBuffer | null;
 	remove(path: string): Promise<void>;
 	removeSync(path: string): void;
+	renameSync(path: string, dest: string): void;
 	stat(path: string): Promise<Stats | null>;
 	statSync(path: string): Stats | null;
 	writeFileSync(path: string, data: ArrayBuffer): void;

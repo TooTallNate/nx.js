@@ -92,7 +92,7 @@ export function writeFileSync(path: PathLike, data: string | BufferSource) {
  * @param path File path to remove.
  */
 export function removeSync(path: PathLike) {
-	return $.removeSync(pathToString(path));
+	$.removeSync(pathToString(path));
 }
 
 /**
@@ -102,6 +102,16 @@ export function removeSync(path: PathLike) {
  */
 export function remove(path: PathLike) {
 	return $.remove(pathToString(path));
+}
+
+/**
+ * Synchronously renames a file or directory.
+ *
+ * @param path Source file path to rename.
+ * @param dest Destination file path to rename to.
+ */
+export function renameSync(path: PathLike, dest: PathLike) {
+	$.renameSync(pathToString(path), pathToString(dest));
 }
 
 /**

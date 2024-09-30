@@ -686,6 +686,27 @@ JSValue nx_remove_sync(JSContext *ctx, JSValueConst this_val, int argc,
 	return JS_UNDEFINED;
 }
 
+JSValue nx_rename_sync(JSContext *ctx, JSValueConst this_val, int argc,
+					   JSValueConst *argv) {
+	const char *old_path = JS_ToCString(ctx, argv[0]);
+	if (!old_path)
+		return JS_EXCEPTION;
+	const char *new_path = JS_ToCString(ctx, argv[1]);
+	if (!new_path)
+		return JS_EXCEPTION;
+	int result = rename(old_path, new_path);
+	JS_FreeCString(ctx, old_path);
+	JS_FreeCString(ctx, new_path);
+	if (result != 0) {
+		JSValue error = JS_NewError(ctx);
+		JS_DefinePropertyValueStr(ctx, error, "message",
+								  JS_NewString(ctx, strerror(errno)),
+								  JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+		return JS_Throw(ctx, error);
+	}
+	return JS_UNDEFINED;
+}
+
 JSValue nx_fs_create_big_file(JSContext *ctx, JSValueConst this_val, int argc,
 							  JSValueConst *argv) {
 	const char *path = JS_ToCString(ctx, argv[0]);
@@ -727,9 +748,10 @@ static const JSCFunctionListEntry function_list[] = {
 	JS_CFUNC_DEF("readFile", 2, nx_read_file),
 	JS_CFUNC_DEF("readFileSync", 1, nx_read_file_sync),
 	JS_CFUNC_DEF("remove", 2, nx_remove),
-	JS_CFUNC_DEF("removeSync", 2, nx_remove_sync),
+	JS_CFUNC_DEF("removeSync", 1, nx_remove_sync),
+	JS_CFUNC_DEF("renameSync", 2, nx_rename_sync),
 	JS_CFUNC_DEF("stat", 2, nx_stat),
-	JS_CFUNC_DEF("statSync", 2, nx_stat_sync),
+	JS_CFUNC_DEF("statSync", 1, nx_stat_sync),
 	JS_CFUNC_DEF("writeFileSync", 1, nx_write_file_sync),
 };
 
