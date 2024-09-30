@@ -1,6 +1,6 @@
 {
   "name": "create-nxjs-app",
-  "version": "0.0.50",
+  "version": "0.0.51",
   "description": "Initialize a `nx.js` homebrew application",
   "repository": {
     "type": "git",

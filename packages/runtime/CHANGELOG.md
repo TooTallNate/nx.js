@@ -1,5 +1,17 @@
 # @nx.js/runtime
 
+## 0.0.51
+
+### Patch Changes
+
+- Rename `nxjs-rumtime` to `@nx.js/runtime` ([#148](https://github.com/TooTallNate/nx.js/pull/148))
+
+- Add `Switch.rename()` function ([`6a3bff639c0f60a22ccf2a5e5ffe4a03a3a378ee`](https://github.com/TooTallNate/nx.js/commit/6a3bff639c0f60a22ccf2a5e5ffe4a03a3a378ee))
+
+- Add `Switch.renameSync()` function ([`12ca89ed3b31983244fbf34e9e1de4eb6df66595`](https://github.com/TooTallNate/nx.js/commit/12ca89ed3b31983244fbf34e9e1de4eb6df66595))
+
+- Update QuickJS to v0.6.1 ([`a760f159f9072b99d80ec6fd4976cb1d6854b873`](https://github.com/TooTallNate/nx.js/commit/a760f159f9072b99d80ec6fd4976cb1d6854b873))
+
 ## 0.0.50
 
 ### Patch Changes
