@@ -7,7 +7,7 @@ import type { ReactNode } from 'react';
 
 export default function Layout({ children }: { children: ReactNode }) {
 	return (
-		<html lang='en' className={`${GeistSans.className}`}>
+		<html lang='en' className={`${GeistSans.variable} ${GeistMono.variable}`}>
 			<body>
 				<RootProvider>{children}</RootProvider>
 				<Analytics />

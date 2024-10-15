@@ -9,5 +9,13 @@ export default {
 		'./mdx-components.{ts,tsx}',
 		'./node_modules/fumadocs-ui/dist/**/*.js',
 	],
+	theme: {
+		extend: {
+			fontFamily: {
+				sans: ['var(--font-geist-sans)'],
+				mono: ['var(--font-geist-mono)'],
+			},
+		},
+	},
 	presets: [createPreset()],
 };
