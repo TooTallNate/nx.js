@@ -7,8 +7,9 @@ nx.js does not implement a full DOM for rendering content to the screen.
 Instead, it offers the more low-level Canvas API which allows your application
 to draw to the screen.
 
-The global `screen` object is used to create a `CanvasRenderingContext2D`
-instance, at which point the app is in __canvas rendering__ mode.
+The global [`screen`](/runtime/api/variables/screen) object may be used to create
+a `CanvasRenderingContext2D` instance, at which point the app is considered to
+be in __canvas rendering__ mode.
 
 > [!IMPORTANT]
 > You should avoid using any `console` printing functions when in __canvas rendering__ mode.
