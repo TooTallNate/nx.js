@@ -3,6 +3,8 @@ title: Canvas
 description: Drawing to the screen using the Canvas API
 ---
 
+import CanvasHouseScreenshot from '@/public/screenshots/canvas-house.jpg';
+
 nx.js does not implement a full DOM for rendering content to the screen.
 Instead, it offers the more low-level Canvas API which allows your application
 to draw to the screen.
@@ -17,9 +19,11 @@ be in __canvas rendering__ mode.
 
 ## Example
 
-Let's draw a simple house with the Canvas API:
+> This example was adapted from the [MDN Canvas tutorial](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D#basic_example).
 
-```js
+Let's draw a simple house to the screen by using the Canvas API:
+
+```typescript title="src/main.ts"
 // Creating the canvas context enters "canvas rendering" mode
 const ctx = screen.getContext('2d');
 
@@ -45,7 +49,7 @@ ctx.closePath();
 ctx.stroke();
 ```
 
-> This example was adapted from the [MDN Canvas tutorial](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D#basic_example).
+<Screenshot src={CanvasHouseScreenshot} />
 
 ## Using React
 

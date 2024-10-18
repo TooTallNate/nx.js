@@ -3,6 +3,8 @@ title: Console
 description: Logging to the Console for text based applications
 ---
 
+import HelloWorldScreenshot from '@/public/screenshots/hello-world.jpg';
+
 If your application is purely text-based, you can use the familiar
 global [`console`](/runtime/api/variables/console) object to write textual data to the screen of the application
 in the terminal-like interface that [`libnx`](https://github.com/switchbrew/libnx) provides.
@@ -12,9 +14,14 @@ in the terminal-like interface that [`libnx`](https://github.com/switchbrew/libn
 
 ## Example
 
-```js
-console.log('Hello World');
+```typescript title="src/main.ts"
+console.log('Hello World!');
+console.log(' - <3 nx.js');
+console.log('');
+console.log('Press the + button to exit...');
 ```
+
+<Screenshot src={HelloWorldScreenshot} />
 
 ## ANSI Escape Codes
 
