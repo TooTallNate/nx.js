@@ -14,6 +14,7 @@ import {
 	TbHandStop,
 	TbAlertOctagon,
 } from 'react-icons/tb';
+import { Screenshot } from '@/app/screenshot';
 import type { MDXComponents } from 'mdx/types';
 
 type CalloutProps = React.ComponentProps<typeof Callout>;
@@ -38,6 +39,7 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
 				{children}
 			</Tabs>
 		),
+		Screenshot,
 		blockquote: (props) => {
 			let icon: CalloutProps['icon'] = undefined;
 			let title: CalloutProps['title'] = undefined;
