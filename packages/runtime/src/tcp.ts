@@ -103,11 +103,15 @@ export class Socket {
 		this.opened = i.opened.promise;
 		this.closed = i.closed.promise;
 
-		const readBuffer = new ArrayBuffer(64 * 1024);
+		let readBuffer: ArrayBuffer | undefined;
 		this.readable = new ReadableStream({
 			async pull(controller) {
 				if (i.opened.pending) {
 					await socket.opened;
+				}
+				if (!readBuffer) {
+					// Matches the configured `tcp_rx_buf_size` in `main.c`
+					readBuffer = new ArrayBuffer(1024 * 1024);
 				}
 				const bytesRead = await (i.tls
 					? tlsRead(i.tls, readBuffer)
@@ -122,6 +126,7 @@ export class Socket {
 				controller.enqueue(new Uint8Array(readBuffer.slice(0, bytesRead)));
 			},
 		});
+
 		this.writable = new WritableStream({
 			async write(chunk) {
 				if (i.opened.pending) {
