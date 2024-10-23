@@ -159,13 +159,32 @@ void nx_tls_do_read(nx_poll_t *p, nx_watcher_t *watcher, int revents) {
 	nx_tls_read_t *req = (nx_tls_read_t *)watcher;
 	nx_js_callback_t *req_cb = (nx_js_callback_t *)req->opaque;
 
-	int ret = mbedtls_ssl_read(&req->data->ssl, req->buffer, req->buffer_size);
-	if (ret == MBEDTLS_ERR_SSL_WANT_READ) {
-		return;
-	}
+	size_t total_read = 0;
+	int ret;
 
-	if (ret == MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY) {
-		ret = 0;
+	while (total_read < req->buffer_size) {
+		ret = mbedtls_ssl_read(&req->data->ssl, req->buffer + total_read,
+							   req->buffer_size - total_read);
+
+		if (ret > 0) {
+			total_read += ret;
+		} else if (ret == 0) {
+			// End of data stream reached
+			break;
+		} else if (ret == MBEDTLS_ERR_SSL_WANT_READ) {
+			// Need more data, break the loop if we've read anything
+			if (total_read > 0) {
+				break;
+			}
+			return;
+		} else if (ret == MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY) {
+			// Connection closed
+			break;
+		} else if (ret < 0) {
+			// Error occurred
+			req->err = ret;
+			break;
+		}
 	}
 
 	nx_remove_watcher(p, watcher);
@@ -175,15 +194,15 @@ void nx_tls_do_read(nx_poll_t *p, nx_watcher_t *watcher, int revents) {
 
 	JSValue args[] = {JS_UNDEFINED, JS_UNDEFINED};
 
-	if (ret < 0) {
+	if (req->err) {
 		/* Error during read. */
 		char error_buf[100];
-		mbedtls_strerror(ret, error_buf, 100);
+		mbedtls_strerror(req->err, error_buf, 100);
 		args[0] = JS_NewError(ctx);
 		JS_SetPropertyStr(ctx, args[0], "message",
 						  JS_NewString(ctx, error_buf));
 	} else {
-		args[1] = JS_NewInt32(ctx, ret);
+		args[1] = JS_NewInt32(ctx, total_read);
 	}
 
 	JSValue ret_val = JS_Call(ctx, req_cb->callback, JS_NULL, 2, args);
