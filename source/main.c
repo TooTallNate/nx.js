@@ -473,7 +473,12 @@ int nx_module_set_import_meta(JSContext *ctx, JSValueConst func_val,
 void nx_process_pending_jobs(JSRuntime *rt) {
 	JSContext *ctx;
 	int err;
-	for (;;) {
+	// Don't allow an infinite number of pending jobs
+	// to allow the UI to update periodically. The number
+	// of iterations was chosen arbitrarily - maybe could
+	// be optimized by using a timer instead of a fixed
+	// number of iterations.
+	for (u8 i = 0; i < 20; i++) {
 		err = JS_ExecutePendingJob(rt, &ctx);
 		if (err <= 0) {
 			if (err < 0) {
@@ -507,7 +512,6 @@ int main(int argc, char *argv[]) {
 
 	print_console = consoleInit(NULL);
 
-	// rc = socketInitializeDefault();
 	rc = socketInitialize(&s_socketInitConfig);
 	if (R_FAILED(rc)) {
 		diagAbortWithResult(rc);
