@@ -51,7 +51,8 @@
 
 typedef struct {
 	JSContext *context;
-	JSValue callback;
+	JSValue resolve;
+	JSValue reject;
 	JSValue buffer;
 } nx_js_callback_t;
 

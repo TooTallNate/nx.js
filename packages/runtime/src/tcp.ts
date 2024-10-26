@@ -7,7 +7,6 @@ import {
 	bufferSourceToArrayBuffer,
 	createInternal,
 	proto,
-	toPromise,
 } from './utils';
 import type { BufferSource } from './types';
 import {
@@ -32,31 +31,31 @@ export async function connect(opts: SocketAddress) {
 	if (!ip) {
 		throw new Error(`Could not resolve "${hostname}" to an IP address`);
 	}
-	return toPromise($.connect, ip, port);
+	return $.connect(ip, port);
 }
 
 function read(fd: number, buffer: BufferSource) {
 	const ab = bufferSourceToArrayBuffer(buffer);
-	return toPromise($.read, fd, ab);
+	return $.read(fd, ab);
 }
 
 function write(fd: number, data: BufferSource) {
 	const ab = bufferSourceToArrayBuffer(data);
-	return toPromise($.write, fd, ab);
+	return $.write(fd, ab);
 }
 
 function tlsHandshake(fd: number, hostname: string) {
-	return toPromise($.tlsHandshake, fd, hostname);
+	return $.tlsHandshake(fd, hostname);
 }
 
 function tlsRead(ctx: TlsContextOpaque, buffer: BufferSource) {
 	const ab = bufferSourceToArrayBuffer(buffer);
-	return toPromise($.tlsRead, ctx, ab);
+	return $.tlsRead(ctx, ab);
 }
 
 function tlsWrite(ctx: TlsContextOpaque, data: BufferSource) {
 	const ab = bufferSourceToArrayBuffer(data);
-	return toPromise($.tlsWrite, ctx, ab);
+	return $.tlsWrite(ctx, ab);
 }
 
 interface SocketInternal {

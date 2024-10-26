@@ -1,12 +1,6 @@
 import type { PathLike } from './switch';
 import type { BufferSource } from './types';
-import {
-	INTERNAL_SYMBOL,
-	type Callback,
-	type CallbackArguments,
-	type CallbackReturnType,
-	type RGBA,
-} from './internal';
+import { INTERNAL_SYMBOL, type RGBA } from './internal';
 
 export const proto = <T extends new (...args: any) => any>(
 	o: any,
@@ -55,24 +49,6 @@ export function asyncIteratorToStream<T>(it: AsyncIterableIterator<T>) {
 				controller.enqueue(next.value);
 			}
 		},
-	});
-}
-
-export function toPromise<
-	Func extends (cb: Callback<any>, ...args: any[]) => any,
->(fn: Func, ...args: CallbackArguments<Func>) {
-	return new Promise<CallbackReturnType<Func>>((resolve, reject) => {
-		try {
-			fn(
-				(err, result) => {
-					if (err) return reject(err);
-					resolve(result);
-				},
-				...args,
-			);
-		} catch (err) {
-			reject(err);
-		}
 	});
 }
 
