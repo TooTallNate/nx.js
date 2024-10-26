@@ -1,5 +1,23 @@
 # @nx.js/runtime
 
+## 0.0.52
+
+### Patch Changes
+
+- Define `StreamPipeOptions` interface ([`dc4092266ba8271546d562acd9062da5f98f533a`](https://github.com/TooTallNate/nx.js/commit/dc4092266ba8271546d562acd9062da5f98f533a))
+
+- Expose `Promise.withResolvers()` type definition ([`78a3fac9070405eb5cd79e3db87befc5dba213df`](https://github.com/TooTallNate/nx.js/commit/78a3fac9070405eb5cd79e3db87befc5dba213df))
+
+- Use `Promise.withResolvers()` internally and remove equivalent `Deferred` class ([`bb94e10d9fe7e74eface679e35120caa9ce7cc97`](https://github.com/TooTallNate/nx.js/commit/bb94e10d9fe7e74eface679e35120caa9ce7cc97))
+
+- Use 1mb read buffer for TCP sockets ([`4d9f9c22b833e53d0d95236e88d08dd939b52ca9`](https://github.com/TooTallNate/nx.js/commit/4d9f9c22b833e53d0d95236e88d08dd939b52ca9))
+
+- Fill as much of TLS read buffer as possible before blocking ([`16b0dc167cb19f9bb8862b0d735765115d2108ae`](https://github.com/TooTallNate/nx.js/commit/16b0dc167cb19f9bb8862b0d735765115d2108ae))
+
+- Don't allow resolved Promises to starve the event loop ([`d37aaef252f2289abfb7202e732a39c48cda2615`](https://github.com/TooTallNate/nx.js/commit/d37aaef252f2289abfb7202e732a39c48cda2615))
+
+- Refactor TCP and TLS code to remove `toPromise()` wrapper ([`f305fd41342b1230ab19c7b49451966cef6153fe`](https://github.com/TooTallNate/nx.js/commit/f305fd41342b1230ab19c7b49451966cef6153fe))
+
 ## 0.0.51
 
 ### Patch Changes
