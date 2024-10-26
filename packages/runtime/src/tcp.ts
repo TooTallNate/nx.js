@@ -3,7 +3,6 @@ import { resolveDns } from './switch/dns';
 import { EventTarget } from './polyfills/event-target';
 import { SocketEvent, type SocketAddress, type SocketInfo } from './switch';
 import {
-	Deferred,
 	assertInternalConstructor,
 	bufferSourceToArrayBuffer,
 	createInternal,
@@ -63,8 +62,8 @@ function tlsWrite(ctx: TlsContextOpaque, data: BufferSource) {
 interface SocketInternal {
 	fd: number;
 	tls?: TlsContextOpaque;
-	opened: Deferred<SocketInfo>;
-	closed: Deferred<void>;
+	opened: PromiseWithResolvers<SocketInfo>;
+	closed: PromiseWithResolvers<void>;
 }
 
 const _ = createInternal<Socket, SocketInternal>();
@@ -96,8 +95,8 @@ export class Socket {
 		const socket = this;
 		const i: SocketInternal = {
 			fd: -1,
-			opened: new Deferred(),
-			closed: new Deferred(),
+			opened: Promise.withResolvers(),
+			closed: Promise.withResolvers(),
 		};
 		_.set(this, i);
 		this.opened = i.opened.promise;
@@ -106,9 +105,7 @@ export class Socket {
 		let readBuffer: ArrayBuffer | undefined;
 		this.readable = new ReadableStream({
 			async pull(controller) {
-				if (i.opened.pending) {
-					await socket.opened;
-				}
+				await socket.opened;
 				if (!readBuffer) {
 					// Matches the configured `tcp_rx_buf_size` in `main.c`
 					readBuffer = new ArrayBuffer(1024 * 1024);
@@ -129,9 +126,7 @@ export class Socket {
 
 		this.writable = new WritableStream({
 			async write(chunk) {
-				if (i.opened.pending) {
-					await socket.opened;
-				}
+				await socket.opened;
 				await (i.tls ? tlsWrite(i.tls, chunk) : write(i.fd, chunk));
 			},
 			close() {
@@ -169,9 +164,7 @@ export class Socket {
 			this.writable.abort(reason);
 		}
 		const i = _(this);
-		if (i.opened.pending) {
-			i.opened.reject(reason);
-		}
+		i.opened.reject(reason);
 		if (i.fd !== -1) {
 			$.close(i.fd);
 			i.fd = -1;

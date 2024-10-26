@@ -1,10 +1,8 @@
-import { Deferred } from './deferred';
-
 export class UnshiftableStream {
 	buffer: Uint8Array;
 	reader: ReadableStreamDefaultReader<Uint8Array>;
 	readable: ReadableStream<Uint8Array>;
-	paused?: Deferred<void>;
+	paused?: PromiseWithResolvers<void>;
 
 	constructor(sourceStream: ReadableStream<Uint8Array>) {
 		this.buffer = new Uint8Array();
@@ -37,34 +35,27 @@ export class UnshiftableStream {
 
 	pause() {
 		if (this.paused) return;
-		//console.log('pause');
-		this.paused = new Deferred();
+		this.paused = Promise.withResolvers();
 	}
 
 	resume() {
 		const p = this.paused;
 		if (!p) return;
-		//console.log('resume');
 		this.paused = undefined;
 		p.resolve();
 	}
 
 	// Read method that checks the buffer first
 	async read() {
-		//console.log('read')
 		if (this.paused) {
-			//console.log('read paused')
 			await this.paused.promise;
 		}
-		//console.log('read resume')
 		if (this.buffer.length > 0) {
 			const value = this.buffer;
-			//console.log('buffer', { value })
 			this.buffer = new Uint8Array(); // Clear the buffer after reading
 			return { done: false, value };
 		} else {
 			const result = await this.reader.read();
-			//console.log({ result })
 			return result; // Return data from the source stream
 		}
 	}

@@ -84,25 +84,6 @@ export function pathToString(p: PathLike): string {
 	return typeof p === 'string' ? p : decodeURI(p.href);
 }
 
-export class Deferred<T> {
-	pending = true;
-	promise: Promise<T>;
-	resolve!: (value: T | PromiseLike<T>) => void;
-	reject!: (v: any) => void;
-	constructor() {
-		this.promise = new Promise<T>((res, rej) => {
-			this.resolve = (v) => {
-				this.pending = false;
-				res(v);
-			};
-			this.reject = (v) => {
-				this.pending = false;
-				rej(v);
-			};
-		});
-	}
-}
-
 export const createInternal = <K extends object, V>() => {
 	const wm = new WeakMap<K, V>();
 	const _ = (k: K): V => {

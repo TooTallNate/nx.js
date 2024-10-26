@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "es2022",
+    "target": "ESNext",
     "module": "commonjs",
     "noEmit": true,
     "outDir": "./dist",
