@@ -1,5 +1,11 @@
 # @nx.js/http
 
+## 0.0.6
+
+### Patch Changes
+
+- Use `Promise.withResolvers()` internally and remove equivalent `Deferred` class ([`bb94e10d9fe7e74eface679e35120caa9ce7cc97`](https://github.com/TooTallNate/nx.js/commit/bb94e10d9fe7e74eface679e35120caa9ce7cc97))
+
 ## 0.0.5
 
 ### Patch Changes
