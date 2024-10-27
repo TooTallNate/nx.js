@@ -3,6 +3,10 @@ title: Fonts
 description: Built-in fonts and custom fonts for use with the Canvas API
 ---
 
+import SystemUiScreenshot from '@/screenshots/system-ui.jpg';
+import SystemIconsScreenshot from '@/screenshots/system-icons.jpg';
+import CustomFontsScreenshot from '@/screenshots/custom-fonts.jpg';
+
 When your application is using [**canvas rendering**](/runtime/rendering/canvas) mode,
 nx.js offers a set of built-in fonts which are available for use in your application.
 You may also load custom fonts from font files.
@@ -24,9 +28,11 @@ The Canvas API's default font `sans-serif` is also an alias for this font.
 ```typescript
 const ctx = screen.getContext('2d');
 ctx.font = '48px system-ui';
-ctx.fillStyle = 'white';
-ctx.fillText('This is the "system-ui" font', 50, 300);
+ctx.fillStyle = 'violet';
+ctx.fillText('This is the "system-ui" font', 300, 300);
 ```
+
+<Screenshot src={SystemUiScreenshot} />
 
 ### system-icons
 
@@ -36,10 +42,12 @@ when invoking the `fillText()` function to render the icon glyphs.
 
 ```typescript
 const ctx = screen.getContext('2d');
-ctx.font = '48px system-icons';
-ctx.fillStyle = 'white';
-ctx.fillText('\uE122', 50, 300);
+ctx.font = '200px system-icons';
+ctx.fillStyle = 'cyan';
+ctx.fillText('\uE122', 250, 300);
 ```
+
+<Screenshot src={SystemIconsScreenshot} />
 
 ## Custom fonts
 
@@ -84,13 +92,26 @@ using the Canvas API.
 ### Example
 
 ```typescript title="src/main.ts"
-const fontData = await Switch.readFile('romfs:/fonts/Arial.ttf');
-const font = new FontFace('Arial', fontData);
+const ctx = screen.getContext('2d');
+
+// Load regular Clear Sans font
+const fontData = await Switch.readFile('romfs:/ClearSans-Regular.ttf');
+const font = new FontFace('Clear Sans', fontData);
 fonts.add(font);
 
+// Load bold Clear Sans font
+const boldFontData = await Switch.readFile('romfs:/ClearSans-Bold.ttf');
+const boldFont = new FontFace('Clear Sans', boldFontData, { weight: 'bold' });
+fonts.add(boldFont);
+
 // Render to the screen using the Canvas API by setting the "font" property
-const ctx = screen.getContext('2d');
-ctx.font = '48px Arial';
-ctx.fillStyle = 'cyan';
-ctx.fillText('This is the "Arial" font', 50, 300);
+ctx.font = '48px "Clear Sans"';
+ctx.fillStyle = 'orange';
+ctx.fillText('This is the "Clear Sans" font', 200, 300);
+
+ctx.font = 'bold 52px "Clear Sans"';
+ctx.fillStyle = 'red';
+ctx.fillText('This is the bold "Clear Sans" font', 200, 400);
 ```
+
+<Screenshot src={CustomFontsScreenshot} />
