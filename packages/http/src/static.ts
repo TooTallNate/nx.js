@@ -3,7 +3,7 @@ import mime from 'mime';
 /**
  * Options object for the {@link createStaticFileHandler | `createStaticFileHandler()`} function.
  */
-export interface StaticFileHandlerOpts {
+export interface StaticFileHandlerOptions {
 	/**
 	 * Addional HTTP headers to include in the response. Can be a static
 	 * `Headers` object, or a function which returns a `Headers` object.
@@ -44,7 +44,7 @@ export function resolvePath(url: string, root: string): URL {
  */
 export function createStaticFileHandler(
 	root: Switch.PathLike,
-	opts?: StaticFileHandlerOpts,
+	opts?: StaticFileHandlerOptions,
 ) {
 	let rootStr = String(root);
 	if (!rootStr.endsWith('/')) rootStr += '/';
