@@ -13,6 +13,7 @@ static nx_tls_context_t *nx_tls_context_get(JSContext *ctx, JSValueConst obj) {
 }
 
 static void finalizer_tls_context(JSRuntime *rt, JSValue val) {
+	fprintf(stderr, "finalizer_tls_context\n");
 	nx_tls_context_t *data = JS_GetOpaque(val, nx_tls_context_class_id);
 	if (data) {
 		mbedtls_net_free(&data->server_fd);
@@ -24,32 +25,28 @@ static void finalizer_tls_context(JSRuntime *rt, JSValue val) {
 
 void nx_tls_on_connect(nx_poll_t *p, nx_tls_connect_t *req) {
 	nx_js_callback_t *req_cb = (nx_js_callback_t *)req->opaque;
-	JSContext *ctx = req_cb->context;
-	JSValue ret_val;
-	JSValue args[1];
+	JSValue args[] = {JS_UNDEFINED, JS_UNDEFINED};
 
 	if (req->err) {
 		/* Error during TLS handshake */
 		char error_buf[100];
 		mbedtls_strerror(req->err, error_buf, 100);
-		args[0] = JS_NewError(ctx);
-		JS_SetPropertyStr(ctx, args[0], "message",
-						  JS_NewString(ctx, error_buf));
-		ret_val = JS_Call(ctx, req_cb->reject, JS_NULL, 1, args);
+		args[0] = JS_NewError(req_cb->context);
+		JS_SetPropertyStr(req_cb->context, args[0], "message",
+						  JS_NewString(req_cb->context, error_buf));
 	} else {
 		/* Handshake complete */
-		args[0] = req_cb->buffer;
-		ret_val = JS_Call(ctx, req_cb->resolve, JS_NULL, 1, args);
+		args[1] = req_cb->buffer;
 	}
 
-	JS_FreeValue(ctx, args[0]);
-	JS_FreeValue(ctx, req_cb->resolve);
-	JS_FreeValue(ctx, req_cb->reject);
-	JS_FreeValue(ctx, req_cb->buffer);
+	JSValue ret_val =
+		JS_Call(req_cb->context, req_cb->callback, JS_NULL, 2, args);
+	JS_FreeValue(req_cb->context, req_cb->buffer);
+	JS_FreeValue(req_cb->context, req_cb->callback);
 	if (JS_IsException(ret_val)) {
-		nx_emit_error_event(ctx);
+		nx_emit_error_event(req_cb->context);
 	}
-	JS_FreeValue(ctx, ret_val);
+	JS_FreeValue(req_cb->context, ret_val);
 	free(req_cb);
 	free(req);
 }
@@ -91,14 +88,16 @@ JSValue nx_tls_handshake(JSContext *ctx, JSValueConst this_val, int argc,
 	}
 
 	int fd;
-	const char *hostname = JS_ToCString(ctx, argv[1]);
-	if (!hostname || JS_ToInt32(ctx, &fd, argv[0])) {
+	const char *hostname = JS_ToCString(ctx, argv[2]);
+	if (!hostname || JS_ToInt32(ctx, &fd, argv[1])) {
+		JS_ThrowTypeError(ctx, "invalid input");
 		return JS_EXCEPTION;
 	}
 
 	JSValue obj = JS_NewObjectClass(ctx, nx_tls_context_class_id);
 	nx_tls_context_t *data = js_mallocz(ctx, sizeof(nx_tls_context_t));
 	if (!data) {
+		JS_ThrowOutOfMemory(ctx);
 		return JS_EXCEPTION;
 	}
 	JS_SetOpaque(obj, data);
@@ -107,8 +106,8 @@ JSValue nx_tls_handshake(JSContext *ctx, JSValueConst this_val, int argc,
 	mbedtls_ssl_init(&data->ssl);
 	mbedtls_ssl_config_init(&data->conf);
 
-	// Setup the SSL/TLS structure and set the
-	// hostname for Server Name Indication (SNI)
+	// Setup the SSL/TLS structure and set the hostname for Server Name
+	// Indication (SNI)
 	if ((ret = mbedtls_ssl_config_defaults(&data->conf, MBEDTLS_SSL_IS_CLIENT,
 										   MBEDTLS_SSL_TRANSPORT_STREAM,
 										   MBEDTLS_SSL_PRESET_DEFAULT)) != 0) {
@@ -141,10 +140,7 @@ JSValue nx_tls_handshake(JSContext *ctx, JSValueConst this_val, int argc,
 	nx_tls_connect_t *req = malloc(sizeof(nx_tls_connect_t));
 	nx_js_callback_t *req_cb = malloc(sizeof(nx_js_callback_t));
 	req_cb->context = ctx;
-	JSValue promise, resolving_funcs[2];
-	promise = JS_NewPromiseCapability(ctx, resolving_funcs);
-	req_cb->resolve = resolving_funcs[0];
-	req_cb->reject = resolving_funcs[1];
+	req_cb->callback = JS_DupValue(ctx, argv[0]);
 	req_cb->buffer = JS_DupValue(ctx, obj);
 	req->opaque = req_cb;
 	req->data = data;
@@ -156,7 +152,7 @@ JSValue nx_tls_handshake(JSContext *ctx, JSValueConst this_val, int argc,
 	nx_add_watcher(&nx_ctx->poll, (nx_watcher_t *)req);
 	nx_tls_do_handshake(&nx_ctx->poll, (nx_watcher_t *)req, 0);
 
-	return promise;
+	return JS_UNDEFINED;
 }
 
 void nx_tls_do_read(nx_poll_t *p, nx_watcher_t *watcher, int revents) {
@@ -195,8 +191,8 @@ void nx_tls_do_read(nx_poll_t *p, nx_watcher_t *watcher, int revents) {
 
 	JSContext *ctx = req_cb->context;
 	JS_FreeValue(ctx, req_cb->buffer);
-	JSValue ret_val;
-	JSValue args[1];
+
+	JSValue args[] = {JS_UNDEFINED, JS_UNDEFINED};
 
 	if (req->err) {
 		/* Error during read. */
@@ -205,15 +201,14 @@ void nx_tls_do_read(nx_poll_t *p, nx_watcher_t *watcher, int revents) {
 		args[0] = JS_NewError(ctx);
 		JS_SetPropertyStr(ctx, args[0], "message",
 						  JS_NewString(ctx, error_buf));
-		ret_val = JS_Call(ctx, req_cb->reject, JS_NULL, 1, args);
 	} else {
-		args[0] = JS_NewInt32(ctx, total_read);
-		ret_val = JS_Call(ctx, req_cb->resolve, JS_NULL, 1, args);
+		args[1] = JS_NewInt32(ctx, total_read);
 	}
 
+	JSValue ret_val = JS_Call(ctx, req_cb->callback, JS_NULL, 2, args);
 	JS_FreeValue(ctx, args[0]);
-	JS_FreeValue(ctx, req_cb->resolve);
-	JS_FreeValue(ctx, req_cb->reject);
+	JS_FreeValue(ctx, args[1]);
+	JS_FreeValue(ctx, req_cb->callback);
 	if (JS_IsException(ret_val)) {
 		nx_emit_error_event(ctx);
 	}
@@ -227,23 +222,20 @@ JSValue nx_tls_read(JSContext *ctx, JSValueConst this_val, int argc,
 	nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
 	size_t buffer_size;
 
-	nx_tls_context_t *data = nx_tls_context_get(ctx, argv[0]);
+	nx_tls_context_t *data = nx_tls_context_get(ctx, argv[1]);
 	if (!data)
 		return JS_EXCEPTION;
 
-	uint8_t *buffer = JS_GetArrayBuffer(ctx, &buffer_size, argv[1]);
+	uint8_t *buffer = JS_GetArrayBuffer(ctx, &buffer_size, argv[2]);
 	if (!buffer)
 		return JS_EXCEPTION;
 
-	JSValue buffer_value = JS_DupValue(ctx, argv[1]);
+	JSValue buffer_value = JS_DupValue(ctx, argv[2]);
 
 	nx_tls_read_t *req = malloc(sizeof(nx_tls_read_t));
 	nx_js_callback_t *req_cb = malloc(sizeof(nx_js_callback_t));
 	req_cb->context = ctx;
-	JSValue promise, resolving_funcs[2];
-	promise = JS_NewPromiseCapability(ctx, resolving_funcs);
-	req_cb->resolve = resolving_funcs[0];
-	req_cb->reject = resolving_funcs[1];
+	req_cb->callback = JS_DupValue(ctx, argv[0]);
 	req_cb->buffer = buffer_value;
 	req->fd = data->server_fd.fd;
 	req->events = POLLIN | POLLERR;
@@ -257,7 +249,7 @@ JSValue nx_tls_read(JSContext *ctx, JSValueConst this_val, int argc,
 	nx_add_watcher(&nx_ctx->poll, (nx_watcher_t *)req);
 	nx_tls_do_read(&nx_ctx->poll, (nx_watcher_t *)req, 0);
 
-	return promise;
+	return JS_UNDEFINED;
 }
 
 void nx_tls_do_write(nx_poll_t *p, nx_watcher_t *watcher, int revents) {
@@ -271,8 +263,7 @@ void nx_tls_do_write(nx_poll_t *p, nx_watcher_t *watcher, int revents) {
 	}
 
 	JSContext *ctx = req_cb->context;
-	JSValue ret_val;
-	JSValue args[1];
+	JSValue args[] = {JS_UNDEFINED, JS_UNDEFINED};
 
 	if (ret < 0) {
 		/* Error during write */
@@ -281,7 +272,6 @@ void nx_tls_do_write(nx_poll_t *p, nx_watcher_t *watcher, int revents) {
 		args[0] = JS_NewError(ctx);
 		JS_SetPropertyStr(ctx, args[0], "message",
 						  JS_NewString(ctx, error_buf));
-		ret_val = JS_Call(ctx, req_cb->reject, JS_NULL, 1, args);
 	} else {
 		req->bytes_written += ret;
 		if (req->bytes_written < req->buffer_size) {
@@ -289,17 +279,18 @@ void nx_tls_do_write(nx_poll_t *p, nx_watcher_t *watcher, int revents) {
 			return;
 		}
 
-		args[0] = JS_NewInt32(ctx, req->bytes_written);
-		ret_val = JS_Call(ctx, req_cb->resolve, JS_NULL, 1, args);
+		args[1] = JS_NewInt32(ctx, ret);
 	}
 
 	// If we got to here then all the data was written
 	nx_remove_watcher(p, watcher);
 
-	JS_FreeValue(ctx, args[0]);
-	JS_FreeValue(ctx, req_cb->resolve);
-	JS_FreeValue(ctx, req_cb->reject);
 	JS_FreeValue(ctx, req_cb->buffer);
+
+	JSValue ret_val = JS_Call(ctx, req_cb->callback, JS_NULL, 2, args);
+	JS_FreeValue(ctx, args[0]);
+	JS_FreeValue(ctx, args[1]);
+	JS_FreeValue(ctx, req_cb->callback);
 	if (JS_IsException(ret_val)) {
 		nx_emit_error_event(ctx);
 	}
@@ -313,23 +304,20 @@ JSValue nx_tls_write(JSContext *ctx, JSValueConst this_val, int argc,
 	nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
 	size_t buffer_size;
 
-	nx_tls_context_t *data = nx_tls_context_get(ctx, argv[0]);
+	nx_tls_context_t *data = nx_tls_context_get(ctx, argv[1]);
 	if (!data)
 		return JS_EXCEPTION;
 
-	uint8_t *buffer = JS_GetArrayBuffer(ctx, &buffer_size, argv[1]);
+	uint8_t *buffer = JS_GetArrayBuffer(ctx, &buffer_size, argv[2]);
 	if (!buffer)
 		return JS_EXCEPTION;
 
-	JSValue buffer_value = JS_DupValue(ctx, argv[1]);
+	JSValue buffer_value = JS_DupValue(ctx, argv[2]);
 
 	nx_tls_write_t *req = malloc(sizeof(nx_tls_write_t));
 	nx_js_callback_t *req_cb = malloc(sizeof(nx_js_callback_t));
 	req_cb->context = ctx;
-	JSValue promise, resolving_funcs[2];
-	promise = JS_NewPromiseCapability(ctx, resolving_funcs);
-	req_cb->resolve = resolving_funcs[0];
-	req_cb->reject = resolving_funcs[1];
+	req_cb->callback = JS_DupValue(ctx, argv[0]);
 	req_cb->buffer = buffer_value;
 	req->fd = data->server_fd.fd;
 	req->events = POLLOUT | POLLERR;
@@ -344,7 +332,7 @@ JSValue nx_tls_write(JSContext *ctx, JSValueConst this_val, int argc,
 	nx_add_watcher(&nx_ctx->poll, (nx_watcher_t *)req);
 	nx_tls_do_write(&nx_ctx->poll, (nx_watcher_t *)req, 0);
 
-	return promise;
+	return JS_UNDEFINED;
 }
 
 static const JSCFunctionListEntry function_list[] = {

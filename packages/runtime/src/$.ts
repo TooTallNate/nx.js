@@ -14,6 +14,7 @@ import type {
 	Versions,
 } from './switch';
 import type {
+	Callback,
 	Keys,
 	Opaque,
 	RGBA,
@@ -245,9 +246,9 @@ export interface Init {
 	swkbdUpdate(this: VirtualKeyboard): void;
 
 	// tcp.c
-	connect(ip: string, port: number): Promise<number>;
-	write(fd: number, data: ArrayBuffer): Promise<number>;
-	read(fd: number, buffer: ArrayBuffer): Promise<number>;
+	connect(cb: Callback<number>, ip: string, port: number): void;
+	write(cb: Callback<number>, fd: number, data: ArrayBuffer): void;
+	read(cb: Callback<number>, fd: number, buffer: ArrayBuffer): void;
 	close(fd: number): void;
 	tcpServerInit(c: any): void;
 	tcpServerNew(
@@ -257,9 +258,21 @@ export interface Init {
 	): Server;
 
 	// tls.c
-	tlsHandshake(fd: number, hostname: string): Promise<TlsContextOpaque>;
-	tlsWrite(ctx: TlsContextOpaque, data: ArrayBuffer): Promise<number>;
-	tlsRead(ctx: TlsContextOpaque, buffer: ArrayBuffer): Promise<number>;
+	tlsHandshake(
+		cb: Callback<TlsContextOpaque>,
+		fd: number,
+		hostname: string,
+	): void;
+	tlsWrite(
+		cb: Callback<number>,
+		ctx: TlsContextOpaque,
+		data: ArrayBuffer,
+	): void;
+	tlsRead(
+		cb: Callback<number>,
+		ctx: TlsContextOpaque,
+		buffer: ArrayBuffer,
+	): void;
 
 	// url.c
 	urlInit(c: ClassOf<URL>): void;
