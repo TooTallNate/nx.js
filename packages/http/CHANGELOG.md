@@ -1,5 +1,11 @@
 # @nx.js/http
 
+## 0.0.7
+
+### Patch Changes
+
+- Rename `StaticFileHandlerOpts` interface to `StaticFileHandlerOptions` ([`8d86759eafb0a468031226e3791c42044a88f077`](https://github.com/TooTallNate/nx.js/commit/8d86759eafb0a468031226e3791c42044a88f077))
+
 ## 0.0.6
 
 ### Patch Changes
