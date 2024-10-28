@@ -25,26 +25,26 @@ static void finalizer_tls_context(JSRuntime *rt, JSValue val) {
 void nx_tls_on_connect(nx_poll_t *p, nx_tls_connect_t *req) {
 	nx_js_callback_t *req_cb = (nx_js_callback_t *)req->opaque;
 	JSContext *ctx = req_cb->context;
-	JSValue ret_val;
-	JSValue args[1];
+	JSValue arg;
+	bool is_error = false;
 
 	if (req->err) {
 		/* Error during TLS handshake */
 		char error_buf[100];
 		mbedtls_strerror(req->err, error_buf, 100);
-		args[0] = JS_NewError(ctx);
-		JS_SetPropertyStr(ctx, args[0], "message",
-						  JS_NewString(ctx, error_buf));
-		ret_val = JS_Call(ctx, req_cb->reject, JS_NULL, 1, args);
+		arg = JS_NewError(ctx);
+		JS_SetPropertyStr(ctx, arg, "message", JS_NewString(ctx, error_buf));
+		is_error = true;
 	} else {
 		/* Handshake complete */
-		args[0] = req_cb->buffer;
-		ret_val = JS_Call(ctx, req_cb->resolve, JS_NULL, 1, args);
+		arg = req_cb->buffer;
 	}
 
-	JS_FreeValue(ctx, args[0]);
-	JS_FreeValue(ctx, req_cb->resolve);
-	JS_FreeValue(ctx, req_cb->reject);
+	JSValue ret_val =
+		JS_Call(ctx, req_cb->resolving_funcs[is_error], JS_NULL, 1, &arg);
+	JS_FreeValue(ctx, arg);
+	JS_FreeValue(ctx, req_cb->resolving_funcs[0]);
+	JS_FreeValue(ctx, req_cb->resolving_funcs[1]);
 	JS_FreeValue(ctx, req_cb->buffer);
 	if (JS_IsException(ret_val)) {
 		nx_emit_error_event(ctx);
@@ -141,10 +141,7 @@ JSValue nx_tls_handshake(JSContext *ctx, JSValueConst this_val, int argc,
 	nx_tls_connect_t *req = malloc(sizeof(nx_tls_connect_t));
 	nx_js_callback_t *req_cb = malloc(sizeof(nx_js_callback_t));
 	req_cb->context = ctx;
-	JSValue promise, resolving_funcs[2];
-	promise = JS_NewPromiseCapability(ctx, resolving_funcs);
-	req_cb->resolve = resolving_funcs[0];
-	req_cb->reject = resolving_funcs[1];
+	JSValue promise = JS_NewPromiseCapability(ctx, req_cb->resolving_funcs);
 	req_cb->buffer = JS_DupValue(ctx, obj);
 	req->opaque = req_cb;
 	req->data = data;
@@ -195,25 +192,25 @@ void nx_tls_do_read(nx_poll_t *p, nx_watcher_t *watcher, int revents) {
 
 	JSContext *ctx = req_cb->context;
 	JS_FreeValue(ctx, req_cb->buffer);
-	JSValue ret_val;
-	JSValue args[1];
+	JSValue arg;
+	bool is_error = false;
 
 	if (req->err) {
 		/* Error during read. */
 		char error_buf[100];
 		mbedtls_strerror(req->err, error_buf, 100);
-		args[0] = JS_NewError(ctx);
-		JS_SetPropertyStr(ctx, args[0], "message",
-						  JS_NewString(ctx, error_buf));
-		ret_val = JS_Call(ctx, req_cb->reject, JS_NULL, 1, args);
+		arg = JS_NewError(ctx);
+		JS_SetPropertyStr(ctx, arg, "message", JS_NewString(ctx, error_buf));
+		is_error = true;
 	} else {
-		args[0] = JS_NewInt32(ctx, total_read);
-		ret_val = JS_Call(ctx, req_cb->resolve, JS_NULL, 1, args);
+		arg = JS_NewInt32(ctx, total_read);
 	}
 
-	JS_FreeValue(ctx, args[0]);
-	JS_FreeValue(ctx, req_cb->resolve);
-	JS_FreeValue(ctx, req_cb->reject);
+	JSValue ret_val =
+		JS_Call(ctx, req_cb->resolving_funcs[is_error], JS_NULL, 1, &arg);
+	JS_FreeValue(ctx, arg);
+	JS_FreeValue(ctx, req_cb->resolving_funcs[0]);
+	JS_FreeValue(ctx, req_cb->resolving_funcs[1]);
 	if (JS_IsException(ret_val)) {
 		nx_emit_error_event(ctx);
 	}
@@ -240,10 +237,7 @@ JSValue nx_tls_read(JSContext *ctx, JSValueConst this_val, int argc,
 	nx_tls_read_t *req = malloc(sizeof(nx_tls_read_t));
 	nx_js_callback_t *req_cb = malloc(sizeof(nx_js_callback_t));
 	req_cb->context = ctx;
-	JSValue promise, resolving_funcs[2];
-	promise = JS_NewPromiseCapability(ctx, resolving_funcs);
-	req_cb->resolve = resolving_funcs[0];
-	req_cb->reject = resolving_funcs[1];
+	JSValue promise = JS_NewPromiseCapability(ctx, req_cb->resolving_funcs);
 	req_cb->buffer = buffer_value;
 	req->fd = data->server_fd.fd;
 	req->events = POLLIN | POLLERR;
@@ -271,17 +265,16 @@ void nx_tls_do_write(nx_poll_t *p, nx_watcher_t *watcher, int revents) {
 	}
 
 	JSContext *ctx = req_cb->context;
-	JSValue ret_val;
-	JSValue args[1];
+	JSValue arg;
+	bool is_error = false;
 
 	if (ret < 0) {
 		/* Error during write */
 		char error_buf[100];
 		mbedtls_strerror(ret, error_buf, 100);
-		args[0] = JS_NewError(ctx);
-		JS_SetPropertyStr(ctx, args[0], "message",
-						  JS_NewString(ctx, error_buf));
-		ret_val = JS_Call(ctx, req_cb->reject, JS_NULL, 1, args);
+		arg = JS_NewError(ctx);
+		JS_SetPropertyStr(ctx, arg, "message", JS_NewString(ctx, error_buf));
+		is_error = true;
 	} else {
 		req->bytes_written += ret;
 		if (req->bytes_written < req->buffer_size) {
@@ -289,16 +282,17 @@ void nx_tls_do_write(nx_poll_t *p, nx_watcher_t *watcher, int revents) {
 			return;
 		}
 
-		args[0] = JS_NewInt32(ctx, req->bytes_written);
-		ret_val = JS_Call(ctx, req_cb->resolve, JS_NULL, 1, args);
+		arg = JS_NewInt32(ctx, req->bytes_written);
 	}
 
 	// If we got to here then all the data was written
 	nx_remove_watcher(p, watcher);
 
-	JS_FreeValue(ctx, args[0]);
-	JS_FreeValue(ctx, req_cb->resolve);
-	JS_FreeValue(ctx, req_cb->reject);
+	JSValue ret_val =
+		JS_Call(ctx, req_cb->resolving_funcs[is_error], JS_NULL, 1, &arg);
+	JS_FreeValue(ctx, arg);
+	JS_FreeValue(ctx, req_cb->resolving_funcs[0]);
+	JS_FreeValue(ctx, req_cb->resolving_funcs[1]);
 	JS_FreeValue(ctx, req_cb->buffer);
 	if (JS_IsException(ret_val)) {
 		nx_emit_error_event(ctx);
@@ -326,10 +320,7 @@ JSValue nx_tls_write(JSContext *ctx, JSValueConst this_val, int argc,
 	nx_tls_write_t *req = malloc(sizeof(nx_tls_write_t));
 	nx_js_callback_t *req_cb = malloc(sizeof(nx_js_callback_t));
 	req_cb->context = ctx;
-	JSValue promise, resolving_funcs[2];
-	promise = JS_NewPromiseCapability(ctx, resolving_funcs);
-	req_cb->resolve = resolving_funcs[0];
-	req_cb->reject = resolving_funcs[1];
+	JSValue promise = JS_NewPromiseCapability(ctx, req_cb->resolving_funcs);
 	req_cb->buffer = buffer_value;
 	req->fd = data->server_fd.fd;
 	req->events = POLLOUT | POLLERR;

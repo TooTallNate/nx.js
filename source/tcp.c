@@ -9,23 +9,24 @@
 void nx_on_connect(nx_poll_t *p, nx_connect_t *req) {
 	nx_js_callback_t *req_cb = (nx_js_callback_t *)req->opaque;
 	JSContext *ctx = req_cb->context;
-	JSValue ret_val;
-	JSValue args[1];
+	JSValue arg;
+	bool is_error = false;
 
 	if (req->err) {
 		/* Error during connect. */
-		args[0] = JS_NewError(ctx);
-		JS_SetPropertyStr(ctx, args[0], "message",
+		arg = JS_NewError(ctx);
+		JS_SetPropertyStr(ctx, arg, "message",
 						  JS_NewString(ctx, strerror(req->err)));
-		ret_val = JS_Call(ctx, req_cb->reject, JS_NULL, 1, args);
+		is_error = true;
 	} else {
-		args[0] = JS_NewInt32(ctx, req->fd);
-		ret_val = JS_Call(ctx, req_cb->resolve, JS_NULL, 1, args);
+		arg = JS_NewInt32(ctx, req->fd);
 	}
 
-	JS_FreeValue(ctx, args[0]);
-	JS_FreeValue(ctx, req_cb->resolve);
-	JS_FreeValue(ctx, req_cb->reject);
+	JSValue ret_val =
+		JS_Call(ctx, req_cb->resolving_funcs[is_error], JS_NULL, 1, &arg);
+	JS_FreeValue(ctx, arg);
+	JS_FreeValue(ctx, req_cb->resolving_funcs[0]);
+	JS_FreeValue(ctx, req_cb->resolving_funcs[1]);
 	if (JS_IsException(ret_val)) {
 		nx_emit_error_event(ctx);
 	}
@@ -46,10 +47,7 @@ JSValue nx_js_tcp_connect(JSContext *ctx, JSValueConst this_val, int argc,
 	nx_connect_t *req = malloc(sizeof(nx_connect_t));
 	nx_js_callback_t *req_cb = malloc(sizeof(nx_js_callback_t));
 	req_cb->context = ctx;
-	JSValue promise, resolving_funcs[2];
-	promise = JS_NewPromiseCapability(ctx, resolving_funcs);
-	req_cb->resolve = resolving_funcs[0];
-	req_cb->reject = resolving_funcs[1];
+	JSValue promise = JS_NewPromiseCapability(ctx, req_cb->resolving_funcs);
 	req_cb->buffer = JS_UNDEFINED;
 	req->opaque = req_cb;
 
@@ -67,23 +65,24 @@ void nx_on_read(nx_poll_t *p, nx_read_t *req) {
 	nx_js_callback_t *req_cb = (nx_js_callback_t *)req->opaque;
 	JSContext *ctx = req_cb->context;
 	JS_FreeValue(ctx, req_cb->buffer);
-	JSValue ret_val;
-	JSValue args[1];
+	JSValue arg;
+	bool is_error = false;
 
 	if (req->err) {
 		/* Error during read. */
-		args[0] = JS_NewError(ctx);
-		JS_SetPropertyStr(ctx, args[0], "message",
+		arg = JS_NewError(ctx);
+		JS_SetPropertyStr(ctx, arg, "message",
 						  JS_NewString(ctx, strerror(req->err)));
-		ret_val = JS_Call(ctx, req_cb->reject, JS_NULL, 1, args);
+		is_error = true;
 	} else {
-		args[0] = JS_NewInt32(ctx, req->bytes_read);
-		ret_val = JS_Call(ctx, req_cb->resolve, JS_NULL, 1, args);
+		arg = JS_NewInt32(ctx, req->bytes_read);
 	}
 
-	JS_FreeValue(ctx, args[0]);
-	JS_FreeValue(ctx, req_cb->resolve);
-	JS_FreeValue(ctx, req_cb->reject);
+	JSValue ret_val =
+		JS_Call(ctx, req_cb->resolving_funcs[is_error], JS_NULL, 1, &arg);
+	JS_FreeValue(ctx, arg);
+	JS_FreeValue(ctx, req_cb->resolving_funcs[0]);
+	JS_FreeValue(ctx, req_cb->resolving_funcs[1]);
 	if (JS_IsException(ret_val)) {
 		nx_emit_error_event(ctx);
 	}
@@ -106,10 +105,7 @@ JSValue nx_js_tcp_read(JSContext *ctx, JSValueConst this_val, int argc,
 	nx_read_t *req = malloc(sizeof(nx_read_t));
 	nx_js_callback_t *req_cb = malloc(sizeof(nx_js_callback_t));
 	req_cb->context = ctx;
-	JSValue promise, resolving_funcs[2];
-	promise = JS_NewPromiseCapability(ctx, resolving_funcs);
-	req_cb->resolve = resolving_funcs[0];
-	req_cb->reject = resolving_funcs[1];
+	JSValue promise = JS_NewPromiseCapability(ctx, req_cb->resolving_funcs);
 	req_cb->buffer = buffer_value;
 	req->opaque = req_cb;
 
@@ -122,23 +118,24 @@ void nx_on_write(nx_poll_t *p, nx_write_t *req) {
 	nx_js_callback_t *req_cb = (nx_js_callback_t *)req->opaque;
 	JSContext *ctx = req_cb->context;
 	JS_FreeValue(ctx, req_cb->buffer);
-	JSValue ret_val;
-	JSValue args[1];
+	JSValue arg;
+	bool is_error = false;
 
 	if (req->err) {
 		/* Error during write. */
-		args[0] = JS_NewError(ctx);
-		JS_SetPropertyStr(ctx, args[0], "message",
+		arg = JS_NewError(ctx);
+		JS_SetPropertyStr(ctx, arg, "message",
 						  JS_NewString(ctx, strerror(req->err)));
-		ret_val = JS_Call(ctx, req_cb->reject, JS_NULL, 1, args);
+		is_error = true;
 	} else {
-		args[0] = JS_NewInt32(ctx, req->bytes_written);
-		ret_val = JS_Call(ctx, req_cb->resolve, JS_NULL, 1, args);
+		arg = JS_NewInt32(ctx, req->bytes_written);
 	}
 
-	JS_FreeValue(ctx, args[0]);
-	JS_FreeValue(ctx, req_cb->resolve);
-	JS_FreeValue(ctx, req_cb->reject);
+	JSValue ret_val =
+		JS_Call(ctx, req_cb->resolving_funcs[is_error], JS_NULL, 1, &arg);
+	JS_FreeValue(ctx, arg);
+	JS_FreeValue(ctx, req_cb->resolving_funcs[0]);
+	JS_FreeValue(ctx, req_cb->resolving_funcs[1]);
 	if (JS_IsException(ret_val)) {
 		nx_emit_error_event(ctx);
 	}
@@ -161,10 +158,7 @@ JSValue nx_js_tcp_write(JSContext *ctx, JSValueConst this_val, int argc,
 	nx_write_t *req = malloc(sizeof(nx_write_t));
 	nx_js_callback_t *req_cb = malloc(sizeof(nx_js_callback_t));
 	req_cb->context = ctx;
-	JSValue promise, resolving_funcs[2];
-	promise = JS_NewPromiseCapability(ctx, resolving_funcs);
-	req_cb->resolve = resolving_funcs[0];
-	req_cb->reject = resolving_funcs[1];
+	JSValue promise = JS_NewPromiseCapability(ctx, req_cb->resolving_funcs);
 	req_cb->buffer = buffer_val;
 	req->opaque = req_cb;
 
