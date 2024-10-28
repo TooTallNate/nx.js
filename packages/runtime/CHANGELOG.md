@@ -1,5 +1,11 @@
 # @nx.js/runtime
 
+## 0.0.53
+
+### Patch Changes
+
+- Revert "Refactor TCP and TLS code to remove `toPromise()` wrapper (f305fd4)" ([`3b0f156c79c89b8528fa5bbdcb01d028c51bec71`](https://github.com/TooTallNate/nx.js/commit/3b0f156c79c89b8528fa5bbdcb01d028c51bec71))
+
 ## 0.0.52
 
 ### Patch Changes
