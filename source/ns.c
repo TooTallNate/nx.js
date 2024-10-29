@@ -49,7 +49,7 @@ static JSValue nx_ns_app_new(JSContext *ctx, JSValueConst this_val, int argc,
 			return JS_EXCEPTION;
 		}
 	} else if (JS_IsBigInt(ctx, argv[0])) {
-		if (JS_ToBigInt64(ctx, (int64_t *)&application_id, argv[0])) {
+		if (JS_ToBigUint64(ctx, &application_id, argv[0])) {
 			return JS_EXCEPTION;
 		}
 	} else {

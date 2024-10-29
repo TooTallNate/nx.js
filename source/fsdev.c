@@ -456,12 +456,10 @@ static JSValue nx_save_data_filter(JSContext *ctx, JSValueConst this_val,
 	// "uid"
 	JSValue uid_val = JS_GetPropertyStr(ctx, argv[0], "uid");
 	if (JS_IsArray(ctx, uid_val)) {
-		if (JS_ToBigInt64(
-				ctx, (int64_t *)&save_data_iterator->filter.attr.uid.uid[0],
-				JS_GetPropertyUint32(ctx, uid_val, 0)) ||
-			JS_ToBigInt64(
-				ctx, (int64_t *)&save_data_iterator->filter.attr.uid.uid[1],
-				JS_GetPropertyUint32(ctx, uid_val, 1))) {
+		if (JS_ToBigUint64(ctx, &save_data_iterator->filter.attr.uid.uid[0],
+						   JS_GetPropertyUint32(ctx, uid_val, 0)) ||
+			JS_ToBigUint64(ctx, &save_data_iterator->filter.attr.uid.uid[1],
+						   JS_GetPropertyUint32(ctx, uid_val, 1))) {
 			js_free(ctx, save_data_iterator);
 			return JS_EXCEPTION;
 		}
@@ -473,7 +471,7 @@ static JSValue nx_save_data_filter(JSContext *ctx, JSValueConst this_val,
 	JSValue system_id_val = JS_GetPropertyStr(ctx, argv[0], "systemId");
 	if (JS_IsBigInt(ctx, system_id_val)) {
 		u64 system_id;
-		if (JS_ToBigInt64(ctx, (s64 *)&system_id, system_id_val)) {
+		if (JS_ToBigUint64(ctx, &system_id, system_id_val)) {
 			js_free(ctx, save_data_iterator);
 			return JS_EXCEPTION;
 		}
@@ -487,7 +485,7 @@ static JSValue nx_save_data_filter(JSContext *ctx, JSValueConst this_val,
 		JS_GetPropertyStr(ctx, argv[0], "applicationId");
 	if (JS_IsBigInt(ctx, application_id_val)) {
 		u64 application_id;
-		if (JS_ToBigInt64(ctx, (s64 *)&application_id, application_id_val)) {
+		if (JS_ToBigUint64(ctx, &application_id, application_id_val)) {
 			js_free(ctx, save_data_iterator);
 			return JS_EXCEPTION;
 		}
@@ -666,10 +664,10 @@ static JSValue nx_save_data_create_sync(JSContext *ctx, JSValueConst this_val,
 
 	val = JS_GetPropertyStr(ctx, argv[0], "uid");
 	if (JS_IsArray(ctx, val)) {
-		if (JS_ToBigInt64(ctx, (int64_t *)&attr.uid.uid[0],
-						  JS_GetPropertyUint32(ctx, val, 0)) ||
-			JS_ToBigInt64(ctx, (int64_t *)&attr.uid.uid[1],
-						  JS_GetPropertyUint32(ctx, val, 1))) {
+		if (JS_ToBigUint64(ctx, &attr.uid.uid[0],
+						   JS_GetPropertyUint32(ctx, val, 0)) ||
+			JS_ToBigUint64(ctx, &attr.uid.uid[1],
+						   JS_GetPropertyUint32(ctx, val, 1))) {
 			return JS_EXCEPTION;
 		}
 	}
@@ -677,7 +675,7 @@ static JSValue nx_save_data_create_sync(JSContext *ctx, JSValueConst this_val,
 
 	val = JS_GetPropertyStr(ctx, argv[0], "systemId");
 	if (JS_IsBigInt(ctx, val)) {
-		if (JS_ToBigInt64(ctx, (s64 *)&attr.system_save_data_id, val)) {
+		if (JS_ToBigUint64(ctx, &attr.system_save_data_id, val)) {
 			return JS_EXCEPTION;
 		}
 	}
@@ -685,7 +683,7 @@ static JSValue nx_save_data_create_sync(JSContext *ctx, JSValueConst this_val,
 
 	val = JS_GetPropertyStr(ctx, argv[0], "applicationId");
 	if (JS_IsBigInt(ctx, val)) {
-		if (JS_ToBigInt64(ctx, (s64 *)&attr.application_id, val)) {
+		if (JS_ToBigUint64(ctx, &attr.application_id, val)) {
 			return JS_EXCEPTION;
 		}
 	}

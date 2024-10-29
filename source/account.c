@@ -91,10 +91,10 @@ static JSValue nx_account_select_profile(JSContext *ctx, JSValueConst this_val,
 static JSValue nx_account_profile_new(JSContext *ctx, JSValueConst this_val,
 									  int argc, JSValueConst *argv) {
 	AccountUid uid;
-	if (JS_ToBigInt64(ctx, (int64_t *)&uid.uid[0],
-					  JS_GetPropertyUint32(ctx, argv[0], 0)) ||
-		JS_ToBigInt64(ctx, (int64_t *)&uid.uid[1],
-					  JS_GetPropertyUint32(ctx, argv[0], 1))) {
+	if (JS_ToBigUint64(ctx, &uid.uid[0],
+					   JS_GetPropertyUint32(ctx, argv[0], 0)) ||
+		JS_ToBigUint64(ctx, &uid.uid[1],
+					   JS_GetPropertyUint32(ctx, argv[0], 1))) {
 		return JS_EXCEPTION;
 	}
 	return profile_new(ctx, uid);
