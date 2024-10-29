@@ -255,8 +255,8 @@ static JSValue nx_save_data_extend(JSContext *ctx, JSValueConst this_val,
 	s64 journal_size;
 	nx_save_data_t *save_data =
 		JS_GetOpaque2(ctx, this_val, nx_save_data_class_id);
-	if (!save_data || JS_ToBigInt64(ctx, &data_size, argv[2]) ||
-		JS_ToBigInt64(ctx, &journal_size, argv[3])) {
+	if (!save_data || JS_ToBigInt64(ctx, &data_size, argv[0]) ||
+		JS_ToBigInt64(ctx, &journal_size, argv[1])) {
 		return JS_EXCEPTION;
 	}
 	Result rc = fsExtendSaveDataFileSystem(save_data->info.save_data_space_id,
