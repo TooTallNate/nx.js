@@ -24,6 +24,16 @@ test('`Switch.cwd()` is a URL string representation', async () => {
 	assert.ok(cwd.endsWith('/'));
 });
 
+test('`Switch.chdir()` can change directory to romfs:/', async () => {
+	const cwd = Switch.cwd();
+	try {
+		Switch.chdir('romfs:/');
+		assert.equal(Switch.cwd(), 'romfs:/');
+	} finally {
+		Switch.chdir(cwd);
+	}
+});
+
 test('`Switch.readDirSync()` works on relative path', () => {
 	const files = Switch.readDirSync('.');
 	assert.ok(Array.isArray(files));
