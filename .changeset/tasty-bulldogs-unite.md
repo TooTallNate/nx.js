@@ -2,4 +2,4 @@
 "@nx.js/constants": minor
 ---
 
-Add `Errno` enum
+Export `errno` names mapped to their integer values
