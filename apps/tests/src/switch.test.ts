@@ -1,4 +1,4 @@
-import { Errno } from '@nx.js/constants';
+import { ENOENT } from '@nx.js/constants';
 import { suite } from 'uvu';
 import * as assert from 'uvu/assert';
 
@@ -185,7 +185,7 @@ test('`Switch.file()` read stream throws on ENOENT', async () => {
 		err = _err as Error;
 	}
 	assert.ok(err);
-	assert.equal((err as any).errno, Errno.ENOENT);
+	assert.equal((err as any).errno, ENOENT);
 });
 
 test('`Switch.file()` write stream', async () => {
