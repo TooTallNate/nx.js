@@ -377,6 +377,9 @@ importers:
         specifier: github:TooTallNate/uvu#master
         version: github.com/TooTallNate/uvu/a19ad72ffe3e5b91b256ddc58b77aac04d056316
     devDependencies:
+      '@nx.js/constants':
+        specifier: workspace:^
+        version: link:../../packages/constants
       '@nx.js/nro':
         specifier: workspace:^
         version: link:../../packages/nro

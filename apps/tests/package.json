@@ -11,6 +11,7 @@
   },
   "license": "MIT",
   "devDependencies": {
+    "@nx.js/constants": "workspace:^",
     "@nx.js/nro": "workspace:^",
     "@nx.js/nsp": "workspace:^",
     "@nx.js/runtime": "workspace:^",
