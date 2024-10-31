@@ -16,11 +16,11 @@
     "@changesets/cli": "^2.27.1",
     "@svitejs/changesets-changelog-github-compact": "^1.1.0",
     "turbo": "^2.0.4",
-    "typedoc": "^0.26.0",
+    "typedoc": "^0.26.10",
     "typedoc-plugin-frontmatter": "^1.0.0",
     "typedoc-plugin-markdown": "^4.1.0",
     "typedoc-plugin-mdn-links": "^3.1.6",
-    "typescript": "^5.5.2",
+    "typescript": "^5.6.3",
     "yauzl": "^2.10.0"
   }
 }

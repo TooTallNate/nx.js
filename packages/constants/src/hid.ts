@@ -32,9 +32,11 @@ export enum HidNpadButton {
 	Verification = 1 << 29, ///< Verification
 	HandheldLeftB = 1 << 30, ///< B button on Left NES/HVC controller in Handheld mode
 	LagonCLeft = 1 << 31, ///< Left C button in N64 controller
-	LagonCUp = 1 << 32, ///< Up C button in N64 controller
-	LagonCRight = 1 << 33, ///< Right C button in N64 controller
-	LagonCDown = 1 << 34, ///< Down C button in N64 controller
+
+	// These values overflow the 32-bit bitmask - they should not be used
+	LagonCUp = 1 << 0 /*1 << 32*/, ///< Up C button in N64 controller
+	LagonCRight = 1 << 1 /*1 << 33*/, ///< Right C button in N64 controller
+	LagonCDown = 1 << 2 /*1 << 34*/, ///< Down C button in N64 controller
 
 	AnyLeft = (1 << 12) | (1 << 16) | (1 << 20), ///< Bitmask containing all buttons that are considered Left (D-Pad, Sticks)
 	AnyUp = (1 << 13) | (1 << 17) | (1 << 21), ///< Bitmask containing all buttons that are considered Up (D-Pad, Sticks)

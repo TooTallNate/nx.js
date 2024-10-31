@@ -39,17 +39,17 @@ export class Album extends Set<AlbumFile> {
 		this.storage = storage;
 	}
 
-	*values(): IterableIterator<AlbumFile> {
+	*values(): SetIterator<AlbumFile> {
 		for (const f of $.albumFileList(this)) {
 			yield proto(f, AlbumFile);
 		}
 	}
 
-	keys(): IterableIterator<AlbumFile> {
+	keys(): SetIterator<AlbumFile> {
 		return this.values();
 	}
 
-	*entries(): IterableIterator<[AlbumFile, AlbumFile]> {
+	*entries(): SetIterator<[AlbumFile, AlbumFile]> {
 		for (const f of this) {
 			yield [f, f];
 		}

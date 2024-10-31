@@ -241,11 +241,13 @@ export declare class ReadableStream<R = any>
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStream/tee) */
 	tee(): [ReadableStream<R>, ReadableStream<R>];
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStream/values) */
-	values(options?: ReadableStreamIteratorOptions): AsyncIterableIterator<any>;
+	values(
+		options?: ReadableStreamIteratorOptions,
+	): ReadableStreamAsyncIterator<any>;
 
 	[Symbol.asyncIterator](
 		options?: ReadableStreamIteratorOptions,
-	): AsyncIterableIterator<R>;
+	): ReadableStreamAsyncIterator<R>;
 }
 
 /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStreamBYOBReader) */

@@ -80,25 +80,25 @@ export class FormData implements globalThis.FormData {
 		}
 	}
 
-	*entries(): IterableIterator<[string, FormDataEntryValue]> {
+	*entries(): FormDataIterator<[string, FormDataEntryValue]> {
 		for (const entry of _(this)) {
 			yield entry;
 		}
 	}
 
-	*keys(): IterableIterator<string> {
+	*keys(): FormDataIterator<string> {
 		for (const [key] of _(this)) {
 			yield key;
 		}
 	}
 
-	*values(): IterableIterator<FormDataEntryValue> {
+	*values(): FormDataIterator<FormDataEntryValue> {
 		for (const [_k, value] of _(this)) {
 			yield value;
 		}
 	}
 
-	[Symbol.iterator]() {
+	[Symbol.iterator](): FormDataIterator<[string, FormDataEntryValue]> {
 		return this.entries();
 	}
 }

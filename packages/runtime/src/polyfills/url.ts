@@ -132,7 +132,7 @@ export class URLSearchParams implements globalThis.URLSearchParams {
 	}
 
 	/** Returns a list of keys in the search params. */
-	*keys(): IterableIterator<string> {
+	*keys(): URLSearchParamsIterator<string> {
 		const it = $.urlSearchIterator(this, 0);
 		while (1) {
 			const n = $.urlSearchIteratorNext(it);
@@ -142,7 +142,7 @@ export class URLSearchParams implements globalThis.URLSearchParams {
 	}
 
 	/** Returns a list of values in the search params. */
-	*values(): IterableIterator<string> {
+	*values(): URLSearchParamsIterator<string> {
 		const it = $.urlSearchIterator(this, 1);
 		while (1) {
 			const n = $.urlSearchIteratorNext(it);
@@ -152,7 +152,7 @@ export class URLSearchParams implements globalThis.URLSearchParams {
 	}
 
 	/** Returns an array of key, value pairs for every entry in the search params. */
-	*entries(): IterableIterator<[string, string]> {
+	*entries(): URLSearchParamsIterator<[string, string]> {
 		const it = $.urlSearchIterator(this, 2);
 		while (1) {
 			const n = $.urlSearchIteratorNext(it);
@@ -161,7 +161,7 @@ export class URLSearchParams implements globalThis.URLSearchParams {
 		}
 	}
 
-	[Symbol.iterator](): IterableIterator<[string, string]> {
+	[Symbol.iterator](): URLSearchParamsIterator<[string, string]> {
 		return this.entries();
 	}
 }

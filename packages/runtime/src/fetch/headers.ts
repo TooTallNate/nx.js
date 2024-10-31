@@ -96,7 +96,7 @@ export class Headers implements globalThis.Headers {
 	}
 
 	/** Returns an iterator allowing to go through all key/value pairs contained in this object. */
-	*entries(): IterableIterator<[string, string]> {
+	*entries(): HeadersIterator<[string, string]> {
 		const map = _(this);
 		for (const [name, values] of map.entries()) {
 			if (name === 'set-cookie') {
@@ -110,14 +110,14 @@ export class Headers implements globalThis.Headers {
 	}
 
 	/** Returns an iterator allowing to go through all keys of the key/value pairs contained in this object. */
-	*keys(): IterableIterator<string> {
+	*keys(): HeadersIterator<string> {
 		for (const [name] of this.entries()) {
 			yield name;
 		}
 	}
 
 	/** Returns an iterator allowing to go through all values of the key/value pairs contained in this object. */
-	*values(): IterableIterator<string> {
+	*values(): HeadersIterator<string> {
 		for (const [_n, value] of this.entries()) {
 			yield value;
 		}
@@ -126,7 +126,7 @@ export class Headers implements globalThis.Headers {
 	/**
 	 * Same as {@link Headers.entries | `entries()`}.
 	 */
-	[Symbol.iterator](): IterableIterator<[string, string]> {
+	[Symbol.iterator](): HeadersIterator<[string, string]> {
 		return this.entries();
 	}
 }

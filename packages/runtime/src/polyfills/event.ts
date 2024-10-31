@@ -502,7 +502,7 @@ export class TouchList implements globalThis.TouchList {
 		return this[index];
 	}
 
-	*[Symbol.iterator](): IterableIterator<Touch> {
+	*[Symbol.iterator](): ArrayIterator<Touch> {
 		for (let i = 0; i < this.length; i++) {
 			yield this[i];
 		}
