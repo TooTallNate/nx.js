@@ -184,10 +184,27 @@ static JSValue js_print_err(JSContext *ctx, JSValueConst this_val, int argc,
 
 static JSValue js_cwd(JSContext *ctx, JSValueConst this_val, int argc,
 					  JSValueConst *argv) {
-	char cwd[1024]; // buffer to hold current working directory
-
+	char cwd[1024];
 	if (getcwd(cwd, sizeof(cwd)) != NULL) {
-		return JS_NewString(ctx, cwd);
+		char final_path[1029];
+
+		// Emulators such as Ryujinx don't have
+		// the "sdmc:" prefix, so add it
+		if (cwd[0] == '/') {
+			snprintf(final_path, sizeof(final_path), "sdmc:%s", cwd);
+		} else {
+			snprintf(final_path, sizeof(final_path), "%s", cwd);
+		}
+
+		// Ensure the path ends with a trailing slash
+		// so that it works nicely with `new URL()`
+		size_t len = strlen(final_path);
+		if (len > 0 && final_path[len - 1] != '/') {
+			final_path[len] = '/';
+			final_path[len + 1] = '\0';
+		}
+
+		return JS_NewString(ctx, final_path);
 	}
 	return JS_UNDEFINED;
 }
@@ -490,8 +507,6 @@ void nx_process_pending_jobs(JSRuntime *rt) {
 }
 
 static SocketInitConfig const s_socketInitConfig = {
-	//.bsdsockets_version = 1,
-
 	.tcp_tx_buf_size = 1 * 1024 * 1024,
 	.tcp_rx_buf_size = 1 * 1024 * 1024,
 	.tcp_tx_buf_max_size = 4 * 1024 * 1024,

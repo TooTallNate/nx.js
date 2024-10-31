@@ -204,7 +204,7 @@ export function exit(): never {
  * @example "sdmc:/switch/"
  */
 export function cwd() {
-	return `${$.cwd()}/`;
+	return $.cwd();
 }
 
 /**
