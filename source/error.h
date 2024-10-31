@@ -3,6 +3,8 @@
 
 void print_js_error(JSContext *ctx);
 
+JSValue nx_throw_errno_error(JSContext *ctx, int errno, char *syscall);
+
 // Error codes explanations:
 //  - https://switchbrew.org/wiki/Error_codes
 //  - https://github.com/backupbrew/switchbrew/blob/master/Error%20codes.md

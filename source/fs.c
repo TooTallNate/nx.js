@@ -148,11 +148,7 @@ void nx_fclose_do(nx_work_t *req) {
 JSValue nx_fclose_cb(JSContext *ctx, nx_work_t *req) {
 	nx_fs_fclose_async_t *data = (nx_fs_fclose_async_t *)req->data;
 	if (data->err) {
-		JSValue err = JS_NewError(ctx);
-		JS_DefinePropertyValueStr(ctx, err, "message",
-								  JS_NewString(ctx, strerror(data->err)),
-								  JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
-		return JS_Throw(ctx, err);
+		return nx_throw_errno_error(ctx, data->err, "fclose");
 	}
 	return JS_UNDEFINED;
 }
@@ -199,11 +195,7 @@ JSValue nx_fopen_cb(JSContext *ctx, nx_work_t *req) {
 	// Throw even on parent directory ENOENT, since the parent
 	// dirs were supposed to be created by the worker thread
 	if (data->err) {
-		JSValue err = JS_NewError(ctx);
-		JS_DefinePropertyValueStr(ctx, err, "message",
-								  JS_NewString(ctx, strerror(data->err)),
-								  JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
-		return JS_Throw(ctx, err);
+		return nx_throw_errno_error(ctx, data->err, "fopen");
 	}
 
 	JSValue f = JS_NewObjectClass(ctx, nx_file_class_id);
@@ -238,11 +230,7 @@ JSValue nx_fread_cb(JSContext *ctx, nx_work_t *req) {
 	nx_fs_file_rw_async_t *data = (nx_fs_file_rw_async_t *)req->data;
 	JS_FreeValue(ctx, data->buf_val);
 	if (data->err) {
-		JSValue err = JS_NewError(ctx);
-		JS_DefinePropertyValueStr(ctx, err, "message",
-								  JS_NewString(ctx, strerror(data->err)),
-								  JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
-		return JS_Throw(ctx, err);
+		return nx_throw_errno_error(ctx, data->err, "fread");
 	}
 	return data->eof ? JS_NULL : JS_NewUint32(ctx, data->bytes_read);
 }
@@ -278,11 +266,7 @@ JSValue nx_fwrite_cb(JSContext *ctx, nx_work_t *req) {
 	nx_fs_file_rw_async_t *data = (nx_fs_file_rw_async_t *)req->data;
 	JS_FreeValue(ctx, data->buf_val);
 	if (data->err) {
-		JSValue err = JS_NewError(ctx);
-		JS_DefinePropertyValueStr(ctx, err, "message",
-								  JS_NewString(ctx, strerror(data->err)),
-								  JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
-		return JS_Throw(ctx, err);
+		return nx_throw_errno_error(ctx, data->err, "fwrite");
 	}
 	return JS_NewUint32(ctx, data->bytes_read);
 }
@@ -320,11 +304,7 @@ JSValue nx_mkdir_sync(JSContext *ctx, JSValueConst this_val, int argc,
 	int created = createDirectoryRecursively((char *)path, mode);
 	JS_FreeCString(ctx, path);
 	if (created == -1) {
-		JSValue error = JS_NewError(ctx);
-		JS_DefinePropertyValueStr(ctx, error, "message",
-								  JS_NewString(ctx, strerror(errno)),
-								  JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
-		return JS_Throw(ctx, error);
+		return nx_throw_errno_error(ctx, errno, "mkdir");
 	}
 	return JS_NewInt32(ctx, created);
 }
@@ -345,11 +325,7 @@ JSValue nx_readdir_sync(JSContext *ctx, JSValueConst this_val, int argc,
 		if (errno == ENOENT) {
 			return JS_NULL;
 		}
-		JSValue error = JS_NewError(ctx);
-		JS_DefinePropertyValueStr(ctx, error, "message",
-								  JS_NewString(ctx, strerror(errno)),
-								  JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
-		return JS_Throw(ctx, error);
+		return nx_throw_errno_error(ctx, errno, "opendir");
 	}
 
 	int i = 0;
@@ -376,11 +352,7 @@ JSValue nx_readdir_sync(JSContext *ctx, JSValueConst this_val, int argc,
 	{
 		JS_FreeValue(ctx, arr);
 		closedir(dir);
-		JSValue error = JS_NewError(ctx);
-		JS_DefinePropertyValueStr(ctx, error, "message",
-								  JS_NewString(ctx, strerror(errno)),
-								  JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
-		return JS_Throw(ctx, error);
+		return nx_throw_errno_error(ctx, errno, "readdir");
 	}
 
 	closedir(dir);
@@ -429,12 +401,10 @@ JSValue nx_read_file_cb(JSContext *ctx, nx_work_t *req) {
 
 	if (data->err == ENOENT) {
 		return JS_NULL;
-	} else if (data->err) {
-		JSValue err = JS_NewError(ctx);
-		JS_DefinePropertyValueStr(ctx, err, "message",
-								  JS_NewString(ctx, strerror(data->err)),
-								  JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
-		return JS_Throw(ctx, err);
+	}
+
+	if (data->err) {
+		return nx_throw_errno_error(ctx, data->err, "fread");
 	}
 	return JS_NewArrayBuffer(ctx, data->result, data->size, free_array_buffer,
 							 NULL, false);
@@ -561,12 +531,9 @@ JSValue nx_stat_cb(JSContext *ctx, nx_work_t *req) {
 
 	if (data->err == ENOENT) {
 		return JS_NULL;
-	} else if (data->err) {
-		JSValue err = JS_NewError(ctx);
-		JS_DefinePropertyValueStr(ctx, err, "message",
-								  JS_NewString(ctx, strerror(data->err)),
-								  JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
-		return JS_Throw(ctx, err);
+	}
+	if (data->err) {
+		return nx_throw_errno_error(ctx, data->err, "stat");
 	}
 	return statToObject(ctx, &data->st);
 }
@@ -591,11 +558,7 @@ JSValue nx_stat_sync(JSContext *ctx, JSValueConst this_val, int argc,
 		if (errno == ENOENT) {
 			return JS_NULL;
 		}
-		JSValue error = JS_NewError(ctx);
-		JS_DefinePropertyValueStr(ctx, error, "message",
-								  JS_NewString(ctx, strerror(errno)),
-								  JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
-		return JS_Throw(ctx, error);
+		return nx_throw_errno_error(ctx, errno, "stat");
 	}
 	return statToObject(ctx, &st);
 }
@@ -670,11 +633,7 @@ JSValue nx_remove_cb(JSContext *ctx, nx_work_t *req) {
 	JS_FreeCString(ctx, data->filename);
 
 	if (data->err) {
-		JSValue err = JS_NewError(ctx);
-		JS_DefinePropertyValueStr(ctx, err, "message",
-								  JS_NewString(ctx, strerror(data->err)),
-								  JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
-		return JS_Throw(ctx, err);
+		return nx_throw_errno_error(ctx, errno, "remove");
 	}
 
 	return JS_NULL;
@@ -698,11 +657,7 @@ JSValue nx_remove_sync(JSContext *ctx, JSValueConst this_val, int argc,
 	int result = removeFileOrDirectory(path);
 	JS_FreeCString(ctx, path);
 	if (result != 0) {
-		JSValue error = JS_NewError(ctx);
-		JS_DefinePropertyValueStr(ctx, error, "message",
-								  JS_NewString(ctx, strerror(errno)),
-								  JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
-		return JS_Throw(ctx, error);
+		return nx_throw_errno_error(ctx, errno, "unlink");
 	}
 	return JS_UNDEFINED;
 }
@@ -720,11 +675,7 @@ JSValue nx_rename_cb(JSContext *ctx, nx_work_t *req) {
 	JS_FreeCString(ctx, data->dest);
 
 	if (data->err) {
-		JSValue err = JS_NewError(ctx);
-		JS_DefinePropertyValueStr(ctx, err, "message",
-								  JS_NewString(ctx, strerror(data->err)),
-								  JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
-		return JS_Throw(ctx, err);
+		return nx_throw_errno_error(ctx, data->err, "rename");
 	}
 
 	return JS_NULL;
@@ -756,11 +707,7 @@ JSValue nx_rename_sync(JSContext *ctx, JSValueConst this_val, int argc,
 	JS_FreeCString(ctx, old_path);
 	JS_FreeCString(ctx, new_path);
 	if (result != 0) {
-		JSValue error = JS_NewError(ctx);
-		JS_DefinePropertyValueStr(ctx, error, "message",
-								  JS_NewString(ctx, strerror(errno)),
-								  JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
-		return JS_Throw(ctx, error);
+		return nx_throw_errno_error(ctx, errno, "rename");
 	}
 	return JS_UNDEFINED;
 }

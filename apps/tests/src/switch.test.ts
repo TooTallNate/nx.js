@@ -1,3 +1,4 @@
+import { Errno } from '@nx.js/constants';
 import { suite } from 'uvu';
 import * as assert from 'uvu/assert';
 
@@ -174,7 +175,7 @@ test('`Switch.file()` read stream throws on ENOENT', async () => {
 		err = _err as Error;
 	}
 	assert.ok(err);
-	assert.equal(err.message, 'No such file or directory');
+	assert.equal((err as any).errno, Errno.ENOENT);
 });
 
 test('`Switch.file()` write stream', async () => {
@@ -210,7 +211,7 @@ test('`Switch.file()` creates parent directories', async () => {
 		await writer.close();
 
 		// Ensure directory exists
-		assert.not.equal(Switch.statSync(dir), null);
+		assert.ok(Switch.statSync(dir));
 	} finally {
 		await Switch.remove(dir);
 	}
