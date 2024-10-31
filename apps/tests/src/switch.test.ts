@@ -164,6 +164,19 @@ test('`Switch.file()` read stream', async () => {
 	assert.equal(chunks, ['thi', 's i', 's a', ' te', 'xt ', 'fil', 'e\n']);
 });
 
+test('`Switch.file()` read stream throws on ENOENT', async () => {
+	let err: Error | undefined;
+	const file = Switch.file('romfs:/does_not_exist');
+	try {
+		for await (const _ of file.stream()) {
+		}
+	} catch (_err) {
+		err = _err as Error;
+	}
+	assert.ok(err);
+	assert.equal(err.message, 'No such file or directory');
+});
+
 test('`Switch.file()` write stream', async () => {
 	const path = 'sdmc:/nxjs-test-file.txt';
 	try {
@@ -179,6 +192,27 @@ test('`Switch.file()` write stream', async () => {
 		assert.equal(await file.text(), 'write a file streaming');
 	} finally {
 		await Switch.remove(path);
+	}
+});
+
+test('`Switch.file()` creates parent directories', async () => {
+	const dir = 'sdmc:/__nxjs_test__/';
+
+	// Ensure directory does not exist
+	assert.equal(Switch.statSync(dir), null);
+
+	const filePath = new URL('test/file.txt', dir);
+	try {
+		const file = Switch.file(filePath);
+
+		const writer = file.writable.getWriter();
+		writer.write('a');
+		await writer.close();
+
+		// Ensure directory exists
+		assert.not.equal(Switch.statSync(dir), null);
+	} finally {
+		await Switch.remove(dir);
 	}
 });
 

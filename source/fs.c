@@ -171,6 +171,20 @@ JSValue nx_fclose(JSContext *ctx, JSValueConst this_val, int argc,
 
 void nx_fopen_do(nx_work_t *req) {
 	nx_fs_fopen_async_t *data = (nx_fs_fopen_async_t *)req->data;
+
+	// Create any parent directories (only for write mode)
+	if (data->mode[0] == 'w') {
+		char *dir = dirname(data->path);
+		if (dir) {
+			if (createDirectoryRecursively(dir, 0777) == -1) {
+				data->err = errno;
+				free(dir);
+				return;
+			}
+			free(dir);
+		}
+	}
+
 	data->file = fopen(data->path, data->mode);
 	if (!data->file) {
 		data->err = errno;
@@ -182,15 +196,16 @@ JSValue nx_fopen_cb(JSContext *ctx, nx_work_t *req) {
 	JS_FreeCString(ctx, data->path);
 	JS_FreeCString(ctx, data->mode);
 
-	if (data->err == ENOENT) {
-		return JS_NULL;
-	} else if (data->err) {
+	// Throw even on parent directory ENOENT, since the parent
+	// dirs were supposed to be created by the worker thread
+	if (data->err) {
 		JSValue err = JS_NewError(ctx);
 		JS_DefinePropertyValueStr(ctx, err, "message",
 								  JS_NewString(ctx, strerror(data->err)),
 								  JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
 		return JS_Throw(ctx, err);
 	}
+
 	JSValue f = JS_NewObjectClass(ctx, nx_file_class_id);
 	nx_file_t *file = js_mallocz(ctx, sizeof(nx_file_t));
 	file->file = data->file;
