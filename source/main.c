@@ -673,7 +673,7 @@ int main(int argc, char *argv[]) {
 	JSAtom atom;
 	char version_str[12];
 	JSValue version_obj = JS_NewObject(ctx);
-	JS_SetPropertyStr(ctx, version_obj, "ada", JS_NewString(ctx, ""));
+	JS_SetPropertyStr(ctx, version_obj, "ada", JS_NewString(ctx, "2.9.2"));
 	NX_DEF_GET_(version_obj, "ams", nx_version_get_ams, JS_PROP_C_W_E);
 	JS_SetPropertyStr(ctx, version_obj, "cairo",
 					  JS_NewString(ctx, cairo_version_string()));

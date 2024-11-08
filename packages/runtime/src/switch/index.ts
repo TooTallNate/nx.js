@@ -28,6 +28,10 @@ export type PathLike = string | URL;
 
 export interface Versions {
 	/**
+	 * The version of the ada URL parsing library.
+	 */
+	readonly ada: string;
+	/**
 	 * The version of the Atmosphère custom firmware running on the Switch, or `undefined` if not running Atmosphère.
 	 */
 	readonly ams: string | undefined;
