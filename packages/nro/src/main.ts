@@ -53,9 +53,9 @@ console.log(await terminalImage.buffer(logoBuf, { height: 18 }));
 
 // NACP
 const nacp = new NACP(await nxjsNro.nacp!.arrayBuffer());
+const packageJson = patchNACP(nacp, new URL('package.json', appRoot));
 console.log();
 console.log(chalk.bold('Setting metadata:'));
-patchNACP(nacp, new URL('package.json', appRoot));
 console.log(`  ID: ${chalk.green(nacp.id.toString(16).padStart(16, '0'))}`);
 console.log(`  Title: ${chalk.green(nacp.title)}`);
 console.log(`  Version: ${chalk.green(nacp.version)}`);
@@ -100,7 +100,7 @@ try {
 	if (err.code !== 'ENOENT') throw err;
 }
 
-const outputNroName = `${nacp.title}.nro`;
+const outputNroName = `${packageJson.name}.nro`;
 
 if (!(romfs['main.js'] instanceof Blob)) {
 	console.log();
@@ -113,7 +113,9 @@ if (!(romfs['main.js'] instanceof Blob)) {
 	);
 	console.log(
 		chalk.yellow(
-			`The entrypoint file ${chalk.bold(`"${nacp.title}.js"`)} will need to`,
+			`The entrypoint file ${chalk.bold(
+				`"${packageJson.name}.js"`,
+			)} will need to`,
 		),
 	);
 	console.log(

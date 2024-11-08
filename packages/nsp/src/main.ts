@@ -100,7 +100,7 @@ try {
 		throw err;
 	}
 
-	patchNACP(nacp, new URL('package.json', appRoot));
+	const packageJson = patchNACP(nacp, new URL('package.json', appRoot));
 	writeFileSync(new URL('control.nacp', controlDir), Buffer.from(nacp.buffer));
 	const titleid = nacp.id.toString(16).padStart(16, '0');
 	console.log();
@@ -174,7 +174,7 @@ try {
 		// move NSP file
 		const nspFileName = readdirSync(nspDir)[0];
 		const nspSrc = new URL(nspFileName, nspDir);
-		const outputNspName = `${nacp.title}.nsp`;
+		const outputNspName = `${packageJson.name}.nsp`;
 		const nspDest = new URL(outputNspName, appRoot);
 		cpSync(nspSrc, nspDest);
 		console.log(
