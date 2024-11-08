@@ -25,4 +25,5 @@ export function patchNACP(nacp: NACP, packageJsonUrl: URL) {
 	if (title) nacp.title = title;
 	if (version) nacp.version = version;
 	if (author?.name) nacp.author = author.name;
+	return packageJson;
 }

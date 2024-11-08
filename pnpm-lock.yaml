@@ -663,6 +663,9 @@ importers:
       parse-author:
         specifier: ^2.0.0
         version: 2.0.0
+      types-package-json:
+        specifier: ^2.0.39
+        version: 2.0.39
     devDependencies:
       '@tootallnate/nacp':
         specifier: ^0.0.1
@@ -673,9 +676,6 @@ importers:
       '@types/parse-author':
         specifier: ^2.0.3
         version: 2.0.3
-      types-package-json:
-        specifier: ^2.0.39
-        version: 2.0.39
 
   packages/repl:
     dependencies:
@@ -8131,7 +8131,6 @@ packages:
 
   /types-package-json@2.0.39:
     resolution: {integrity: sha512-c8ua5W1Uu6x7LAwtwSGCl46cHmj+r2eAA+lXR1CluIZotu9V03ZHcGB9wKRZE2oIAX5IzMP/rxDV9g9ikCg9Nw==}
-    dev: true
 
   /typescript@5.6.3:
     resolution: {integrity: sha512-hjcS1mhfuyi4WW8IWtjP7brDrG2cuDZukyrYrSauoXGNgx0S7zceP07adYkJycEr56BOUTNPzbInooiN3fn1qw==}
