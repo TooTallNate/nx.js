@@ -1,5 +1,14 @@
 # @nx.js/nro
 
+## 0.0.54
+
+### Patch Changes
+
+- Use `package.json` "name" field to determine the output `.nro` file name ([`e9ebb7399c3de42c846d92be41d2a08bcf3f2020`](https://github.com/TooTallNate/nx.js/commit/e9ebb7399c3de42c846d92be41d2a08bcf3f2020))
+
+- Updated dependencies [[`f918c7548efb9a3316e331b4a264f0d8d810613f`](https://github.com/TooTallNate/nx.js/commit/f918c7548efb9a3316e331b4a264f0d8d810613f)]:
+  - @nx.js/patch-nacp@0.1.0
+
 ## 0.0.53
 
 ## 0.0.52

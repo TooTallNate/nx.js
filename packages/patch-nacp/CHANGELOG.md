@@ -1,5 +1,11 @@
 # @nx.js/patch-nacp
 
+## 0.1.0
+
+### Minor Changes
+
+- Return the `package.json` contents ([`f918c7548efb9a3316e331b4a264f0d8d810613f`](https://github.com/TooTallNate/nx.js/commit/f918c7548efb9a3316e331b4a264f0d8d810613f))
+
 ## 0.0.4
 
 ### Patch Changes

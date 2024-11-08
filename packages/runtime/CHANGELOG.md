@@ -1,5 +1,25 @@
 # @nx.js/runtime
 
+## 0.0.54
+
+### Patch Changes
+
+- Use `JS_ToBigUint64()` where appropriate instead of casting ([`e9ffe16659d025cd2b43dfebb2a1feb3a99f22b2`](https://github.com/TooTallNate/nx.js/commit/e9ffe16659d025cd2b43dfebb2a1feb3a99f22b2))
+
+- Add `err.errno` property to filesystem errors ([`17c24550d1ba61046d351e38b176db1b92ba502a`](https://github.com/TooTallNate/nx.js/commit/17c24550d1ba61046d351e38b176db1b92ba502a))
+
+- Ensure `Switch.cwd()` includes "sdmc:" prefix when missing ([`e58e43283e50750756a590599111d650893a6ef8`](https://github.com/TooTallNate/nx.js/commit/e58e43283e50750756a590599111d650893a6ef8))
+
+- Fix `SaveData#extend()` parameter indicies ([`1cd325109f3720b82c63f0fa779e22abe94ee13c`](https://github.com/TooTallNate/nx.js/commit/1cd325109f3720b82c63f0fa779e22abe94ee13c))
+
+- Add type definition for `Switch.version.ada` ([`4caac84c143f97515d473ffb6e10a0467449adc1`](https://github.com/TooTallNate/nx.js/commit/4caac84c143f97515d473ffb6e10a0467449adc1))
+
+- Update ada to v2.9.2 ([`a7da1dd652acbf72c8331e776acea752447ae3bf`](https://github.com/TooTallNate/nx.js/commit/a7da1dd652acbf72c8331e776acea752447ae3bf))
+
+- Create parent directories in `Switch.file()` write mode ([`c1640a887ae0d2859d20969c7ba6e22729010052`](https://github.com/TooTallNate/nx.js/commit/c1640a887ae0d2859d20969c7ba6e22729010052))
+
+- Update to TypeScript v5.6.3 ([#154](https://github.com/TooTallNate/nx.js/pull/154))
+
 ## 0.0.53
 
 ### Patch Changes

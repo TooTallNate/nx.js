@@ -1,5 +1,11 @@
 # @nx.js/constants
 
+## 0.2.0
+
+### Minor Changes
+
+- Export `errno` names mapped to their integer values ([`ddcf7d1a6adb44bdf2c7e2699d27c6f54bf4385f`](https://github.com/TooTallNate/nx.js/commit/ddcf7d1a6adb44bdf2c7e2699d27c6f54bf4385f))
+
 ## 0.1.5
 
 ### Patch Changes
