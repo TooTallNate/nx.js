@@ -44,14 +44,14 @@ function format(...input: unknown[]): string {
 }
 
 export interface ConsoleOptions {
-	print(s: string): void;
-	printErr(s: string): void;
+	print?(s: string): void;
+	printErr?(s: string): void;
 }
 
-const _ = createInternal<Console, ConsoleOptions>();
+const _ = createInternal<Console, Required<ConsoleOptions>>();
 
 export class Console {
-	constructor(opts: Partial<ConsoleOptions> = {}) {
+	constructor(opts: ConsoleOptions = {}) {
 		_.set(this, {
 			print: opts.print || $.print,
 			printErr: opts.print || $.printErr,
