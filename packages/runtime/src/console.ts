@@ -132,7 +132,7 @@ export class Console {
  * to output to the screen.
  *
  * > IMPORTANT: Unless otherwise stated, invoking any method on the `console`
- * > object switches the application to _text rendering mode_, clearing any
+ * > object switches the application to _console rendering mode_, clearing any
  * > pixels previously drawn on the screen using the Canvas API.
  *
  * @see https://developer.mozilla.org/docs/Web/API/console
