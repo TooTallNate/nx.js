@@ -39,25 +39,6 @@ importers:
         specifier: ^2.10.0
         version: 2.10.0
 
-  apps/2048:
-    dependencies:
-      '@nx.js/constants':
-        specifier: workspace:*
-        version: link:../../packages/constants
-    devDependencies:
-      '@nx.js/nro':
-        specifier: workspace:^
-        version: link:../../packages/nro
-      '@nx.js/nsp':
-        specifier: workspace:^
-        version: link:../../packages/nsp
-      '@nx.js/runtime':
-        specifier: workspace:^
-        version: link:../../packages/runtime
-      esbuild:
-        specifier: ^0.17.19
-        version: 0.17.19
-
   apps/animated-gif:
     dependencies:
       decode-gif:
@@ -301,25 +282,6 @@ importers:
       '@nx.js/constants':
         specifier: workspace:*
         version: link:../../packages/constants
-    devDependencies:
-      '@nx.js/nro':
-        specifier: workspace:^
-        version: link:../../packages/nro
-      '@nx.js/nsp':
-        specifier: workspace:^
-        version: link:../../packages/nsp
-      '@nx.js/runtime':
-        specifier: workspace:^
-        version: link:../../packages/runtime
-      esbuild:
-        specifier: ^0.17.19
-        version: 0.17.19
-
-  apps/starwars:
-    dependencies:
-      strip-ansi:
-        specifier: ^7.1.0
-        version: 7.1.0
     devDependencies:
       '@nx.js/nro':
         specifier: workspace:^
