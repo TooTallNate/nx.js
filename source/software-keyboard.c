@@ -109,8 +109,7 @@ static JSValue nx_swkbd_create(JSContext *ctx, JSValueConst this_val, int argc,
 
 	Result rc = swkbdInlineCreate(&data->kbdinline);
 	if (R_FAILED(rc)) {
-		JS_ThrowInternalError(ctx, "swkbdInlineCreate() returned 0x%x", rc);
-		return JS_EXCEPTION;
+		return nx_throw_libnx_error(ctx, rc, "swkbdInlineCreate()");
 	}
 
 	swkbdInlineSetFinishedInitializeCallback(&data->kbdinline, finishinit_cb);
@@ -119,18 +118,14 @@ static JSValue nx_swkbd_create(JSContext *ctx, JSValueConst this_val, int argc,
 	rc = swkbdInlineLaunchForLibraryApplet(&data->kbdinline,
 										   SwkbdInlineMode_AppletDisplay, 0);
 	if (R_FAILED(rc)) {
-		JS_ThrowInternalError(
-			ctx, "swkbdInlineLaunchForLibraryApplet() returned 0x%x", rc);
-		return JS_EXCEPTION;
+		return nx_throw_libnx_error(ctx, rc,
+									"swkbdInlineLaunchForLibraryApplet()");
 	}
 
-	// Set the callbacks.
 	swkbdInlineSetChangedStringCallback(&data->kbdinline, strchange_cb);
 	swkbdInlineSetMovedCursorCallback(&data->kbdinline, movedcursor_cb);
 	swkbdInlineSetDecidedEnterCallback(&data->kbdinline, decidedenter_cb);
 	swkbdInlineSetDecidedCancelCallback(&data->kbdinline, decidedcancel_cb);
-
-	// Make the applet appear, can be used whenever.
 	swkbdInlineMakeAppearArg(&data->appearArg, SwkbdType_Normal);
 
 	return obj;
@@ -232,10 +227,33 @@ static JSValue nx_swkbd_update(JSContext *ctx, JSValueConst this_val, int argc,
 	return JS_UNDEFINED;
 }
 
+static JSValue nx_swkbd_set_cursor_pos(JSContext *ctx, JSValueConst this_val,
+									   int argc, JSValueConst *argv) {
+	nx_swkbd_t *data = nx_swkbd_get(ctx, argv[0]);
+	s32 pos;
+	if (JS_ToInt32(ctx, &pos, argv[1]))
+		return JS_EXCEPTION;
+	swkbdInlineSetCursorPos(&data->kbdinline, pos);
+	return JS_UNDEFINED;
+}
+
+static JSValue nx_swkbd_set_input_text(JSContext *ctx, JSValueConst this_val,
+									   int argc, JSValueConst *argv) {
+	nx_swkbd_t *data = nx_swkbd_get(ctx, argv[0]);
+	const char *value = JS_ToCString(ctx, argv[1]);
+	if (!value)
+		return JS_EXCEPTION;
+	swkbdInlineSetInputText(&data->kbdinline, value);
+	JS_FreeCString(ctx, value);
+	return JS_UNDEFINED;
+}
+
 static const JSCFunctionListEntry function_list[] = {
 	JS_CFUNC_DEF("swkbdCreate", 1, nx_swkbd_create),
-	JS_CFUNC_DEF("swkbdShow", 1, nx_swkbd_show),
 	JS_CFUNC_DEF("swkbdHide", 1, nx_swkbd_hide),
+	JS_CFUNC_DEF("swkbdShow", 1, nx_swkbd_show),
+	JS_CFUNC_DEF("swkbdSetCursorPos", 1, nx_swkbd_set_cursor_pos),
+	JS_CFUNC_DEF("swkbdSetInputText", 1, nx_swkbd_set_input_text),
 	JS_CFUNC_DEF("swkbdUpdate", 1, nx_swkbd_update),
 };
 

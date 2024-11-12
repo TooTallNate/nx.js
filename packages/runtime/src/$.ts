@@ -241,6 +241,8 @@ export interface Init {
 			cursorPos: number,
 		) => void;
 	}): VirtualKeyboard;
+	swkbdSetCursorPos(s: VirtualKeyboard, cursorPos: number): void;
+	swkbdSetInputText(s: VirtualKeyboard, value: string): void;
 	swkbdShow(s: VirtualKeyboard): [number, number, number, number];
 	swkbdHide(s: VirtualKeyboard): void;
 	swkbdUpdate(this: VirtualKeyboard): void;

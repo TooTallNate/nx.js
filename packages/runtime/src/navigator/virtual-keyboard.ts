@@ -93,8 +93,18 @@ export class VirtualKeyboard extends EventTarget {
 		return value;
 	}
 
+	set value(v: string) {
+		$.swkbdSetInputText(this, v);
+		value = v;
+	}
+
 	get cursorIndex() {
 		return cursorPos;
+	}
+
+	set cursorIndex(i: number) {
+		$.swkbdSetCursorPos(this, i);
+		cursorPos = i;
 	}
 
 	/**
