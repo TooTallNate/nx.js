@@ -3,6 +3,8 @@ title: Images
 description: Loading images for use with the Canvas API
 ---
 
+import DogScreenshot from '@/screenshots/dog.jpg';
+
 Your app can load image assets and display them when used in
 conjunction with [**canvas rendering**](/runtime/rendering/canvas) mode.
 
@@ -17,13 +19,19 @@ Use the [`createImageBitmap()`](/runtime/api/functions/createImageBitmap) functi
 asynchronously load and decode an image into an instance of [`ImageBitmap`](/runtime/api/classes/ImageBitmap):
 
 ```typescript
-const res = await fetch('https://nxjs.n8.io/logo.png');
-const data = await res.arrayBuffer();
+const res = await fetch('https://dog.ceo/api/breeds/image/random');
+const body = await res.json();
+
+const imageRes = await fetch(body.message);
+const data = await imageRes.arrayBuffer();
 const img = await createImageBitmap(new Blob([data]));
 
+// Draw image centered on screen
 const ctx = screen.getContext('2d');
-ctx.drawImage(img, 0, 0);
+ctx.drawImage(img, screen.width / 2 - img.width / 2, screen.height / 2 - img.height / 2);
 ```
+
+<Screenshot src={DogScreenshot} />
 
 ## Image class
 
@@ -35,6 +43,7 @@ the hood, so any protocol supported by `fetch()` is also supported by the `Image
 
 ```typescript
 const img = new Image();
+const ctx = screen.getContext('2d');
 
 img.onload = () => {
     const ctx = screen.getContext('2d');
