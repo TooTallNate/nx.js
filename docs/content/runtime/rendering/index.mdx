@@ -7,9 +7,9 @@ There are two different rendering modes available for nx.js applications: __cons
 
 ## Console Rendering
 
-The [__console rendering__](/runtime/rendering/console) mode is useful for text-based applications, which do not require complex graphics or animations.
+[__Console rendering__](/runtime/rendering/console) mode is useful for text-based applications, which do not require complex graphics or animations.
 
-To use the console rendering mode, simply use the functions available on the global [`console`](/runtime/api/variables/console) object to print text to the console:
+To use console rendering mode, use the functions available on the global [`console`](/runtime/api/variables/console) object to print text to the console:
 
 ```js
 console.log('Hello World');
@@ -17,10 +17,11 @@ console.log('Hello World');
 
 ## Canvas Rendering
 
-The [__canvas rendering__](/runtime/rendering/canvas) mode is useful for games and applications that require complex graphics or animations.
-It allows you to draw to the screen using the web Canvas API, which provides a low-level interface for drawing shapes, images, and text to the screen.
+[__Canvas rendering__](/runtime/rendering/canvas) mode is useful for graphical user interfaces and games.
+It allows you to draw to the screen using the [web Canvas API](https://developer.mozilla.org/docs/Web/API/Canvas_API),
+which provides a low-level interface for drawing shapes, images, and text to the screen.
 
-To use the canvas rendering mode, invoke the `screen.getContext()` function to get access to a canvas rendering context:
+To use canvas rendering mode, invoke the [`screen.getContext()`](/runtime/api/classes/Screen#getcontext) function to get access to a canvas rendering context:
 
 ```js
 const ctx = screen.getContext('2d');
