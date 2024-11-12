@@ -1,0 +1,65 @@
+---
+title: Virtual Keyboard
+description: Triggering the native on-screen virtual keyboard
+---
+
+Your nx.js application can utilize the virtual keyboard
+by invoking the web [Virtual Keyboard API](/runtime/api/classes/VirtualKeyboard),
+by accessing the [`navigator.virtualKeyboard`](/runtime/api/classes/Navigator#virtualkeyboard) property.
+
+Rendering the contents of the virtual keyboard is handled by your application itself,
+and virtual keyboard API is used to trigger the keyboard to appear, and react to state
+updates from user input.
+
+## Example
+
+```typescript title="src/main.ts"
+import { erase } from 'sisteransi';
+import { green, bgCyan } from 'kleur/colors';
+
+const vk = navigator.virtualKeyboard;
+
+function prompt(message: string) {
+	function update() {
+		const valLeft = vk.value.slice(0, vk.cursorIndex);
+		const valCursor = vk.value[vk.cursorIndex] || ' ';
+		const valRight = vk.value.slice(vk.cursorIndex + 1);
+		console.print(`\r${erase.line}${valLeft}${bgCyan(valCursor)}${valRight}`);
+	}
+	console.log(green(message));
+	vk.addEventListener('change', update);
+	vk.addEventListener('cursormove', update);
+	vk.show();
+	return new Promise<string>((resolve) => {
+		vk.addEventListener(
+			'submit',
+			() => {
+				vk.removeEventListener('change', update);
+				vk.removeEventListener('cursormove', update);
+				console.print(`\r${erase.line}${vk.value}\n`);
+				resolve(vk.value);
+			},
+			{ once: true },
+		);
+	});
+}
+
+const name = await prompt('What is your name?');
+console.log(`\nHello, ${name}!`);
+```
+
+## Keyboard Layouts
+
+Your application can configure the virtual keyboard to show different keyboard layouts by setting the `type` property,
+which should be set to one of the [`SwkbdType`](/constants/api/enumerations/SwkbdType) enum values.
+
+For example, to show a numeric keypad:
+
+```typescript
+import { SwkbdType } from '@nx.js/constants';
+
+// Configure the virtual keyboard to show a numeric keypad
+navigator.virtualKeyboard.type = SwkbdType.NumPad;
+
+navigator.virtualKeyboard.show();
+```
