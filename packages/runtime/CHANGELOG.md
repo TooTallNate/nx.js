@@ -1,5 +1,15 @@
 # @nx.js/runtime
 
+## 0.0.55
+
+### Patch Changes
+
+- Make `ConsoleOptions` methods be optional ([`38dee85b04e0b3205d000503a6cc688c0f5b14af`](https://github.com/TooTallNate/nx.js/commit/38dee85b04e0b3205d000503a6cc688c0f5b14af))
+
+- Add setters for Virtual Keyboard `value` and `cursorIndex` ([`193d857af2b63a357b1b8cef800626b026b3f3a4`](https://github.com/TooTallNate/nx.js/commit/193d857af2b63a357b1b8cef800626b026b3f3a4))
+
+- Prevent `+` from exiting while virtual keyboard is shown ([`fca631a3bb1f5acb7f1aed1bd8e9c4bae61704f6`](https://github.com/TooTallNate/nx.js/commit/fca631a3bb1f5acb7f1aed1bd8e9c4bae61704f6))
+
 ## 0.0.54
 
 ### Patch Changes
