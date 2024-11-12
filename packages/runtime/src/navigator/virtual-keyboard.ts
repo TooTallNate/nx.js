@@ -10,6 +10,10 @@ let id = -1;
 let value = '';
 let cursorPos = 0;
 
+function preventExit(e: Event) {
+	e.preventDefault();
+}
+
 /**
  * @see https://developer.mozilla.org/docs/Web/API/VirtualKeyboard
  */
@@ -100,6 +104,7 @@ export class VirtualKeyboard extends EventTarget {
 	 * @see https://developer.mozilla.org/docs/Web/API/VirtualKeyboard/show
 	 */
 	show() {
+		globalThis.addEventListener('beforeunload', preventExit);
 		Object.assign(this.boundingRect, $.swkbdShow(this));
 		this.dispatchEvent(new Event('geometrychange'));
 		id = requestAnimationFrame(update);
@@ -119,6 +124,7 @@ export class VirtualKeyboard extends EventTarget {
 def(VirtualKeyboard);
 
 function onHide(k: VirtualKeyboard) {
+	globalThis.removeEventListener('beforeunload', preventExit);
 	cancelAnimationFrame(id);
 	const b = k.boundingRect;
 	b.x = b.y = b.width = b.height = 0;
