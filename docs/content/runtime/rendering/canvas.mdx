@@ -73,7 +73,7 @@ function App() {
         let id: number;
         function update() {
             id = requestAnimationFrame(update);
-            setRotate(r => r += 1);
+            setRotate(r => r + 1);
         }
         update();
         return () => cancelAnimationFrame(id);
