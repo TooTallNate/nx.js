@@ -25,14 +25,6 @@ function render() {
 	}
 }
 
-// Prevent "+" from exiting the app while the virtual keyboard is open
-addEventListener('beforeunload', (e) => {
-	const isOpen = vk.boundingRect.height > 0;
-	if (isOpen) {
-		e.preventDefault();
-	}
-});
-
 function handleInput() {
 	requestAnimationFrame(handleInput);
 	const gp = navigator.getGamepads()[0];
