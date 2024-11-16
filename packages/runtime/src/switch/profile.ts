@@ -52,15 +52,33 @@ export class Profile {
 		return proto($.accountProfileNew(uid), Profile);
 	}
 
+	/**
+	 * Gets or sets the "current" user profile.
+	 *
+	 * Initially, this value will correspond to the user profile that was selected
+	 * via the user selection interface when the application was launched.
+	 *
+	 * Will be `null` if no user profile is currently selected.
+	 *
+	 * @example
+	 *
+	 * ```typescript
+	 * const profile = Switch.Profile.current;
+	 * if (profile) {
+	 *   console.log(`Current user: ${profile.nickname}`);
+	 * } else {
+	 *   console.log('No user is currently selected');
+	 * }
+	 * ```
+	 */
+	static set current(v: Profile | null) {
+		p = v;
+	}
 	static get current(): Profile | null {
 		if (typeof p !== 'undefined') return p;
 		_init();
 		p = $.accountCurrentProfile();
 		return p;
-	}
-
-	static set current(v: Profile | null) {
-		p = v;
 	}
 
 	/**
