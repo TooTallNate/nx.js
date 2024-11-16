@@ -189,6 +189,7 @@ ${transform(name, input, { removeTypes: globalNames })
 const output = `/// <reference no-default-lib="true"/>
 /// <reference lib="es2022" />
 /// <reference lib="esnext.promise" />
+/// <reference lib="esnext.iterator" />
 
 ${transform('globalThis', globalTypes)}
 
