@@ -119,7 +119,7 @@ export class SaveData {
 	/**
 	 * Mounts the save data such that filesystem operations may be used.
 	 *
-	 * @param name The name of the mount for filesystem paths. By default, a random name is generated. Shouldn't exceed 31 characters, and shouldn't have a trailing colon.
+	 * @param name The name of the mount for filesystem paths. By default, a random name is generated. Should not exceed 31 characters, and should not have a trailing colon.
 	 */
 	mount(name = genName()) {
 		$.saveDataMount(this, name);
