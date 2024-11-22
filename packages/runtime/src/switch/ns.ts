@@ -118,8 +118,7 @@ export class Application {
 	 * @example
 	 *
 	 * ```typescript
-	 * const profile = Switch.currentProfile({ required: true });
-	 * app.createSaveData(profile);
+	 * app.createProfileSaveDataSync(Switch.Profile.current);
 	 * ```
 	 *
 	 * @param profile The {@link Profile} to create the save data for.
