@@ -19,7 +19,6 @@ typedef struct {
 
 typedef struct {
 	FsSaveDataInfoReader it;
-	FsSaveDataFilter filter;
 } nx_save_data_iterator_t;
 
 static void finalizer_file_system(JSRuntime *rt, JSValue val) {
@@ -447,120 +446,6 @@ static JSValue nx_save_data_total_space(JSContext *ctx, JSValueConst this_val,
 	return JS_NewBigInt64(ctx, space);
 }
 
-static JSValue nx_save_data_filter(JSContext *ctx, JSValueConst this_val,
-								   int argc, JSValueConst *argv) {
-	nx_save_data_iterator_t *save_data_iterator =
-		js_mallocz(ctx, sizeof(nx_save_data_iterator_t));
-	if (!save_data_iterator) {
-		return JS_EXCEPTION;
-	}
-
-	// "spaceId"
-	u32 space_id = -1;
-	JSValue val = JS_GetPropertyStr(ctx, argv[0], "spaceId");
-	if (JS_IsNumber(val)) {
-		if (JS_ToUint32(ctx, &space_id, val)) {
-			js_free(ctx, save_data_iterator);
-			return JS_EXCEPTION;
-		}
-	}
-	JS_FreeValue(ctx, val);
-	printf("space id: %u\n", space_id);
-
-	// "type"
-	JSValue type_val = JS_GetPropertyStr(ctx, argv[0], "type");
-	if (JS_IsNumber(type_val)) {
-		u32 type;
-		if (JS_ToUint32(ctx, &type, type_val)) {
-			js_free(ctx, save_data_iterator);
-			return JS_EXCEPTION;
-		}
-		save_data_iterator->filter.attr.save_data_type = (u8)type;
-		save_data_iterator->filter.filter_by_save_data_type = true;
-	}
-	JS_FreeValue(ctx, type_val);
-
-	// "uid"
-	JSValue uid_val = JS_GetPropertyStr(ctx, argv[0], "uid");
-	if (JS_IsArray(ctx, uid_val)) {
-		if (JS_ToBigUint64(ctx, &save_data_iterator->filter.attr.uid.uid[0],
-						   JS_GetPropertyUint32(ctx, uid_val, 0)) ||
-			JS_ToBigUint64(ctx, &save_data_iterator->filter.attr.uid.uid[1],
-						   JS_GetPropertyUint32(ctx, uid_val, 1))) {
-			js_free(ctx, save_data_iterator);
-			return JS_EXCEPTION;
-		}
-		save_data_iterator->filter.filter_by_user_id = true;
-	}
-	JS_FreeValue(ctx, uid_val);
-
-	// "systemId"
-	JSValue system_id_val = JS_GetPropertyStr(ctx, argv[0], "systemId");
-	if (JS_IsBigInt(ctx, system_id_val)) {
-		u64 system_id;
-		if (JS_ToBigUint64(ctx, &system_id, system_id_val)) {
-			js_free(ctx, save_data_iterator);
-			return JS_EXCEPTION;
-		}
-		save_data_iterator->filter.attr.system_save_data_id = system_id;
-		save_data_iterator->filter.filter_by_system_save_data_id = true;
-	}
-	JS_FreeValue(ctx, system_id_val);
-
-	// "applicationId"
-	JSValue application_id_val =
-		JS_GetPropertyStr(ctx, argv[0], "applicationId");
-	if (JS_IsBigInt(ctx, application_id_val)) {
-		u64 application_id;
-		if (JS_ToBigUint64(ctx, &application_id, application_id_val)) {
-			js_free(ctx, save_data_iterator);
-			return JS_EXCEPTION;
-		}
-		save_data_iterator->filter.attr.application_id = application_id;
-		save_data_iterator->filter.filter_by_application_id = true;
-	}
-	JS_FreeValue(ctx, application_id_val);
-
-	// "index"
-	JSValue index_val = JS_GetPropertyStr(ctx, argv[0], "index");
-	if (JS_IsNumber(index_val)) {
-		u32 index;
-		if (JS_ToUint32(ctx, &index, index_val)) {
-			js_free(ctx, save_data_iterator);
-			return JS_EXCEPTION;
-		}
-		save_data_iterator->filter.attr.save_data_index = index;
-		save_data_iterator->filter.filter_by_index = true;
-	}
-	JS_FreeValue(ctx, index_val);
-
-	// "rank"
-	JSValue rank_val = JS_GetPropertyStr(ctx, argv[0], "rank");
-	if (JS_IsNumber(rank_val)) {
-		u32 rank;
-		if (JS_ToUint32(ctx, &rank, rank_val)) {
-			js_free(ctx, save_data_iterator);
-			return JS_EXCEPTION;
-		}
-		save_data_iterator->filter.attr.save_data_rank = rank;
-		save_data_iterator->filter.save_data_rank = rank;
-	}
-	JS_FreeValue(ctx, rank_val);
-
-	Result rc = fsOpenSaveDataInfoReaderWithFilter(&save_data_iterator->it,
-												   (FsSaveDataSpaceId)space_id,
-												   &save_data_iterator->filter);
-	if (R_FAILED(rc)) {
-		js_free(ctx, save_data_iterator);
-		return nx_throw_libnx_error(ctx, rc,
-									"fsOpenSaveDataInfoReaderWithFilter()");
-	}
-
-	JSValue it = JS_NewObjectClass(ctx, nx_save_data_iterator_class_id);
-	JS_SetOpaque(it, save_data_iterator);
-	return it;
-}
-
 static JSValue nx_fs_open_save_data_info_reader(JSContext *ctx,
 												JSValueConst this_val, int argc,
 												JSValueConst *argv) {
@@ -793,7 +678,6 @@ static const JSCFunctionListEntry function_list[] = {
 
 	JS_CFUNC_DEF("saveDataInit", 1, nx_save_data_init),
 	JS_CFUNC_DEF("saveDataMount", 1, nx_save_data_mount),
-	JS_CFUNC_DEF("saveDataFilter", 1, nx_save_data_filter),
 	JS_CFUNC_DEF("saveDataCreateSync", 1, nx_save_data_create_sync),
 
 	JS_CFUNC_DEF("fsOpenSaveDataInfoReader", 1,

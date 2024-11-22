@@ -9,7 +9,6 @@ import type {
 	ProfileUid,
 	SaveData,
 	SaveDataCreationInfo,
-	SaveDataFilter,
 	Stats,
 	Versions,
 } from './switch';
@@ -168,7 +167,6 @@ export interface Init {
 	saveDataInit(c: ClassOf<SaveData>): void;
 	saveDataCreateSync(info: SaveDataCreationInfo, nacp?: ArrayBuffer): void;
 	saveDataMount(saveData: SaveData, name: string): void;
-	saveDataFilter(filter: SaveDataFilter): SaveDataIterator;
 	fsOpenSaveDataInfoReader(saveDataSpaceId: number): SaveDataIterator | null;
 	fsSaveDataInfoReaderNext(iterator: SaveDataIterator): SaveData | null;
 

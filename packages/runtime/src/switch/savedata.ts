@@ -2,20 +2,15 @@ import { $ } from '../$';
 import { URL } from '../polyfills/url';
 import { crypto } from '../crypto';
 import { inspect } from './inspect';
-import { assertInternalConstructor, first, proto, stub } from '../utils';
+import {
+	assertInternalConstructor,
+	FunctionPrototypeWithIteratorHelpers,
+	proto,
+	stub,
+} from '../utils';
 import type { ProfileUid } from './profile';
 
 const genName = () => `s${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}`;
-
-export interface SaveDataFilter {
-	spaceId?: number;
-	type?: number;
-	uid?: ProfileUid;
-	systemId?: bigint;
-	applicationId?: bigint;
-	index?: number;
-	rank?: number;
-}
 
 export interface SaveDataCreationInfoBase {
 	spaceId: number;
