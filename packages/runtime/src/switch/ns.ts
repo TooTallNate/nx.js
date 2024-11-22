@@ -1,12 +1,8 @@
 import { $ } from '../$';
-import {
-	SaveData,
-	SaveDataCreationInfoWithNacp,
-	SaveDataFilter,
-} from './savedata';
+import { SaveData, SaveDataCreationInfoWithNacp } from './savedata';
 import { inspect } from './inspect';
 import { readFileSync } from '../fs';
-import { first, proto, stub } from '../utils';
+import { FunctionPrototypeWithIteratorHelpers, proto, stub } from '../utils';
 import type { Profile } from './profile';
 
 let init = false;
@@ -152,16 +148,19 @@ export class Application {
 		});
 	}
 
-	*filterSaveData(filter?: Omit<SaveDataFilter, 'applicationId'>) {
-		const nacp = new DataView(this.nacp);
-		yield* SaveData.filter({
-			applicationId: getSaveDataOwnerId(nacp),
-			...filter,
+	*filterSaveData(
+		fn?: (saveData: SaveData) => boolean,
+	): Generator<SaveData, void> {
+		const id = getSaveDataOwnerId(new DataView(this.nacp));
+		yield* Iterator.from(SaveData).filter((s) => {
+			if (s.applicationId !== id) return false;
+			return fn ? fn(s) : true;
 		});
 	}
 
-	findSaveData(filter: Omit<SaveDataFilter, 'applicationId'>) {
-		return first(this.filterSaveData(filter));
+	findSaveData(fn?: (saveData: SaveData) => boolean) {
+		const { done, value } = this.filterSaveData(fn).next();
+		return done ? undefined : value;
 	}
 
 	/**
@@ -195,3 +194,5 @@ Object.defineProperty(Application.prototype, inspect.keys, {
 	enumerable: false,
 	value: () => ['id', 'nacp', 'icon', 'name', 'version', 'author'],
 });
+
+Object.setPrototypeOf(Application, FunctionPrototypeWithIteratorHelpers);

@@ -43,6 +43,37 @@ export type SaveDataCreationInfo =
 	| SaveDataCreationInfoBase
 	| SaveDataCreationInfoWithNacp;
 
+function matches(
+	saveData: SaveData,
+	info: Omit<SaveDataCreationInfoBase, 'size' | 'journalSize'>,
+) {
+	if (typeof info.spaceId === 'number' && saveData.spaceId !== info.spaceId) {
+		return false;
+	}
+	if (typeof info.type === 'number' && saveData.type !== info.type) {
+		return false;
+	}
+	if (
+		typeof info.applicationId === 'bigint' &&
+		saveData.applicationId !== info.applicationId
+	) {
+		return false;
+	}
+	if (
+		info.uid &&
+		(saveData.uid[0] !== info.uid[0] || saveData.uid[1] !== info.uid[1])
+	) {
+		return false;
+	}
+	if (typeof info.index === 'number' && saveData.index !== info.index) {
+		return false;
+	}
+	if (typeof info.rank === 'number' && saveData.rank !== info.rank) {
+		return false;
+	}
+	return true;
+}
+
 /**
  * Represents a "save data store".
  */
@@ -159,45 +190,11 @@ export class SaveData {
 	): SaveData;
 	static createSync(init: SaveDataCreationInfo, nacp?: ArrayBuffer): SaveData {
 		$.saveDataCreateSync(init, nacp);
-		const s = SaveData.find(init);
+		const s = Iterator.from(SaveData).find((s) => matches(s, init));
 		if (!s) {
 			throw new Error('Could not find newly created save data');
 		}
 		return s;
-	}
-
-	static *filter(filter: SaveDataFilter) {
-		// TODO: `saveDataFilter` doesn't seem to work correctly :/
-		//const it = $.saveDataFilter(filter);
-		//while (1) {
-		//	const info = $.fsSaveDataInfoReaderNext(it);
-		//	if (!info) break;
-		//	yield proto(info, SaveData);
-		//}
-		for (const s of SaveData) {
-			if (typeof filter.spaceId === 'number' && s.spaceId !== filter.spaceId) {
-				continue;
-			}
-			if (typeof filter.type === 'number' && s.type !== filter.type) continue;
-			if (
-				typeof filter.applicationId === 'bigint' &&
-				s.applicationId !== filter.applicationId
-			)
-				continue;
-			if (
-				filter.uid &&
-				(s.uid[0] !== filter.uid[0] || s.uid[1] !== filter.uid[1])
-			)
-				continue;
-			if (typeof filter.index === 'number' && s.index !== filter.index)
-				continue;
-			if (typeof filter.rank === 'number' && s.rank !== filter.rank) continue;
-			yield s;
-		}
-	}
-
-	static find(filter: SaveDataFilter): SaveData | undefined {
-		return first(SaveData.filter(filter));
 	}
 
 	static *[Symbol.iterator]() {
@@ -229,3 +226,5 @@ Object.defineProperty(SaveData.prototype, inspect.keys, {
 		'rank',
 	],
 });
+
+Object.setPrototypeOf(SaveData, FunctionPrototypeWithIteratorHelpers);

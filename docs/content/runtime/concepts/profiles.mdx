@@ -59,7 +59,7 @@ for (const profile of Switch.Profile) {
 Or perhaps you want to find a profile by a specific nickname:
 
 ```typescript
-const profile = Array.from(Switch.Profile).find((p) => p.nickname === 'Nate');
+const profile = Switch.Profile.find(p => p.nickname === 'Nate');
 ```
 
 ## By Profile UID

@@ -143,16 +143,22 @@ export function decodeUTF16(buffer: ArrayBuffer) {
 	return result;
 }
 
-export function first<T>(it: Iterator<T>): T | undefined {
-	const n = it.next();
-	return n.value || undefined;
-}
-
 export function runOnce(fn: () => void) {
 	let ran = false;
 	return () => {
 		if (ran) return;
 		ran = true;
 		fn();
+	};
+}
+
+export const FunctionPrototypeWithIteratorHelpers = {};
+Object.setPrototypeOf(FunctionPrototypeWithIteratorHelpers, Function.prototype);
+for (const name of Object.getOwnPropertyNames(Iterator.prototype)) {
+	if (name === 'constructor') continue;
+	(FunctionPrototypeWithIteratorHelpers as any)[name] = function (
+		...args: unknown[]
+	) {
+		return (Iterator.from(this) as any)[name](...args);
 	};
 }

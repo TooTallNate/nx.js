@@ -34,26 +34,32 @@ Use the `Switch.Application` class to mount a save data filesystem:
 ```typescript
 import { FsSaveDataType } from '@nx.js/constants';
 
-const app = Array.from(Switch.Application).find(app => app.name === 'Super Mario 64');
+const user = Switch.Profile.current;
+const app = Switch.Application.find(app => app.name === 'Super Mario 64');
 
-// Attempt to find the save data filesystem associated with the user profile and current app
-let saveData = app.findSaveData({
-    type: FsSaveDataType.Account,
-    uid: Switch.Profile.current.uid,
+// Attempt to find the save data filesystem
+// for the app and current user profile.
+let saveData = app.findSaveData(s => {
+    return s.type === FsSaveDataType.Account &&
+      s.uid[0] === user.uid[0] &&
+      s.uid[1] === user.uid[1];
 });
 
-// If there is no save data associated with this user, create it
+// If there is no save data associated with
+// this user, then create it.
 if (!saveData) {
-    saveData = app.createProfileSaveDataSync(profile);
+    saveData = app.createProfileSaveDataSync(user);
 }
 
-// Mount the save data filesystem. The returned URL can be used with filesystem operations
+// Mount the save data filesystem.
+// The returned URL can be used with filesystem operations.
 const url = saveData.mount();
 
-// Read from save data filesystem
+// Read from save data filesystem.
 const data = await Switch.readFile(new URL('state.json', url));
 
-// Write to save data filesystem - be sure to `commit()` changes after a write!
+// Write to save data filesystem.
+// (Be sure to `commit()` changes after a write!)
 await Switch.writeFile(
     new URL('state.json', url),
     JSON.stringify({ count: 123 })

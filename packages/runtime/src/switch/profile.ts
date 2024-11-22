@@ -1,6 +1,6 @@
 import { $ } from '../$';
 import { inspect } from './inspect';
-import { proto } from '../utils';
+import { FunctionPrototypeWithIteratorHelpers, proto } from '../utils';
 
 let init = false;
 
@@ -119,3 +119,5 @@ Object.defineProperty(Profile.prototype, inspect.keys, {
 	enumerable: false,
 	value: () => ['uid', 'nickname', 'image'],
 });
+
+Object.setPrototypeOf(Profile, FunctionPrototypeWithIteratorHelpers);

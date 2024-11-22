@@ -125,10 +125,12 @@ Object.defineProperty(globalThis, 'localStorage', {
 			profile = Profile.current = Profile.select();
 		}
 
-		let saveData = self.findSaveData({
-			type: 1 /* FsSaveDataType_Account */,
-			uid: profile.uid,
-		});
+		let saveData = self.findSaveData(
+			(s) =>
+				s.type === 1 /* FsSaveDataType_Account */ &&
+				s.uid[0] === profile.uid[0] &&
+				s.uid[1] === profile.uid[1],
+		);
 		if (!saveData) {
 			saveData = self.createProfileSaveDataSync(profile);
 		}
