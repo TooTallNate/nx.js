@@ -40,6 +40,9 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
 			</Tabs>
 		),
 		Screenshot,
+		Icon: ({ children }: { children: React.ReactNode }) => (
+			<span className='font-icons'>{children}</span>
+		),
 		blockquote: (props) => {
 			let icon: CalloutProps['icon'] = undefined;
 			let title: CalloutProps['title'] = undefined;
