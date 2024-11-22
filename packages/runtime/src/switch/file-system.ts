@@ -26,10 +26,16 @@ export class FileSystem {
 		assertInternalConstructor(arguments);
 	}
 
+	/**
+	 * The amount of free space available on the filesystem, in bytes.
+	 */
 	freeSpace(): bigint {
 		stub();
 	}
 
+	/**
+	 * The total amount of space available on the filesystem, in bytes.
+	 */
 	totalSpace(): bigint {
 		stub();
 	}
@@ -69,6 +75,11 @@ export class FileSystem {
 
 	/**
 	 * Opens a file system partition for the SD card.
+	 *
+	 * Note that the SD card is automatically mounted under the `sdmc:` protocol,
+	 * so your application will not need to call this function under most circumstances.
+	 * However, it is useful for querying metatdata about the SD card, such as
+	 * the amount of free space available.
 	 *
 	 * @example
 	 *
