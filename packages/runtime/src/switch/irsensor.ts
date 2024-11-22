@@ -39,8 +39,7 @@ export interface IRSensorInit {
 }
 
 /**
- * The `IRSensor` class is a `Sensor` subclass. When the sensor is
- * activated, the controller's IR (infrared) camera is enabled,
+ * The `IRSensor` class reads the controller's IR (infrared) camera,
  * allowing the application to get the image data for each frame of
  * the camera.
  *
