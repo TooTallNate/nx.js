@@ -109,13 +109,25 @@ static JSValue nx_fs_free_space(JSContext *ctx, JSValueConst this_val, int argc,
 	if (!file_system) {
 		return JS_EXCEPTION;
 	}
-	if (strlen(file_system->mount_name) == 0) {
-		return JS_ThrowTypeError(ctx, "FileSystem is not mounted");
-	}
 	s64 space;
 	Result rc = fsFsGetFreeSpace(&file_system->fs, "/", &space);
 	if (R_FAILED(rc)) {
 		return nx_throw_libnx_error(ctx, rc, "fsFsGetFreeSpace()");
+	}
+	return JS_NewBigInt64(ctx, space);
+}
+
+static JSValue nx_fs_total_space(JSContext *ctx, JSValueConst this_val,
+								 int argc, JSValueConst *argv) {
+	nx_file_system_t *file_system =
+		JS_GetOpaque2(ctx, this_val, nx_file_system_class_id);
+	if (!file_system) {
+		return JS_EXCEPTION;
+	}
+	s64 space;
+	Result rc = fsFsGetTotalSpace(&file_system->fs, "/", &space);
+	if (R_FAILED(rc)) {
+		return nx_throw_libnx_error(ctx, rc, "fsFsGetTotalSpace()");
 	}
 	return JS_NewBigInt64(ctx, space);
 }
@@ -730,6 +742,7 @@ static JSValue nx_fs_init(JSContext *ctx, JSValueConst this_val, int argc,
 						  JSValueConst *argv) {
 	JSValue proto = JS_GetPropertyStr(ctx, argv[0], "prototype");
 	NX_DEF_FUNC(proto, "freeSpace", nx_fs_free_space, 0);
+	NX_DEF_FUNC(proto, "totalSpace", nx_fs_total_space, 0);
 	JS_FreeValue(ctx, proto);
 	return JS_UNDEFINED;
 }

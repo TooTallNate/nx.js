@@ -1,7 +1,7 @@
 import { $ } from '../$';
 import { crypto } from '../crypto';
 import { URL } from '../polyfills/url';
-import { assertInternalConstructor, proto } from '../utils';
+import { assertInternalConstructor, proto, stub } from '../utils';
 
 const genName = () => `f${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}`;
 
@@ -24,6 +24,14 @@ export class FileSystem {
 	 */
 	constructor() {
 		assertInternalConstructor(arguments);
+	}
+
+	freeSpace(): bigint {
+		stub();
+	}
+
+	totalSpace(): bigint {
+		stub();
 	}
 
 	/**
