@@ -102,6 +102,21 @@ static JSValue nx_fs_open_bis(JSContext *ctx, JSValueConst this_val, int argc,
 	return obj;
 }
 
+static JSValue nx_fs_open_sdmc(JSContext *ctx, JSValueConst this_val, int argc,
+							   JSValueConst *argv) {
+	nx_file_system_t *file_system = js_mallocz(ctx, sizeof(nx_file_system_t));
+	if (!file_system) {
+		return JS_EXCEPTION;
+	}
+	Result rc = fsOpenSdCardFileSystem(&file_system->fs);
+	if (R_FAILED(rc)) {
+		return nx_throw_libnx_error(ctx, rc, "fsOpenSdCardFileSystem()");
+	}
+	JSValue obj = JS_NewObjectClass(ctx, nx_file_system_class_id);
+	JS_SetOpaque(obj, file_system);
+	return obj;
+}
+
 static JSValue nx_fs_free_space(JSContext *ctx, JSValueConst this_val, int argc,
 								JSValueConst *argv) {
 	nx_file_system_t *file_system =
@@ -774,6 +789,7 @@ static const JSCFunctionListEntry function_list[] = {
 	JS_CFUNC_DEF("fsInit", 1, nx_fs_init),
 	JS_CFUNC_DEF("fsMount", 1, nx_fs_mount),
 	JS_CFUNC_DEF("fsOpenBis", 1, nx_fs_open_bis),
+	JS_CFUNC_DEF("fsOpenSdmc", 1, nx_fs_open_sdmc),
 
 	JS_CFUNC_DEF("saveDataInit", 1, nx_save_data_init),
 	JS_CFUNC_DEF("saveDataMount", 1, nx_save_data_mount),

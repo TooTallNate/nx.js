@@ -66,5 +66,20 @@ export class FileSystem {
 	static openBis(id: number): FileSystem {
 		return proto($.fsOpenBis(id), FileSystem);
 	}
+
+	/**
+	 * Opens a file system partition for the SD card.
+	 *
+	 * @example
+	 *
+	 * ```typescript
+	 * const fs = Switch.FileSystem.openSdmc();
+	 * console.log(fs.freeSpace());
+	 * console.log(fs.totalSpace());
+	 * ```
+	 */
+	static openSdmc(): FileSystem {
+		return proto($.fsOpenSdmc(), FileSystem);
+	}
 }
 $.fsInit(FileSystem);
