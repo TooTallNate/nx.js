@@ -106,7 +106,7 @@ export class SaveData {
 	/**
 	 * Commits to the disk any write operations that have occurred on this filesystem mount since the previous commit.
 	 *
-	 * Failure to call this function after writes will cause the data to be lost after the application exits.
+	 * > WARNING: Failure to call this function after writes will cause the data to be lost after the application exits.
 	 *
 	 * @example
 	 *
