@@ -56,9 +56,6 @@ export interface IRSensorInit {
  * ```
  */
 export class IRSensor extends Sensor {
-	/**
-	 * @ignore
-	 */
 	constructor(opts: IRSensorInit = {}) {
 		if (!init) {
 			init = true;
