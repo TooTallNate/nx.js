@@ -148,11 +148,9 @@ export class Application {
 		});
 	}
 
-	*filterSaveData(
-		fn?: (saveData: SaveData) => boolean,
-	): Generator<SaveData, void> {
+	filterSaveData(fn?: (saveData: SaveData) => boolean) {
 		const id = getSaveDataOwnerId(new DataView(this.nacp));
-		yield* Iterator.from(SaveData).filter((s) => {
+		return Iterator.from(SaveData).filter((s) => {
 			if (s.applicationId !== id) return false;
 			return fn ? fn(s) : true;
 		});
