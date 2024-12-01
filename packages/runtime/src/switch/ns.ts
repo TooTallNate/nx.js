@@ -1,8 +1,13 @@
 import { $ } from '../$';
+import { URL } from '../polyfills/url';
 import { SaveData, SaveDataCreationInfoWithNacp } from './savedata';
 import { inspect } from './inspect';
-import { readFileSync } from '../fs';
-import { FunctionPrototypeWithIteratorHelpers, proto, stub } from '../utils';
+import {
+	FunctionPrototypeWithIteratorHelpers,
+	pathToString,
+	proto,
+	stub,
+} from '../utils';
 import type { Profile } from './profile';
 
 let init = false;
@@ -76,6 +81,20 @@ export class Application {
 	 */
 	constructor(id: bigint);
 	/**
+	 * Creates an `Application` instance from the string path
+	 * containing the contents of a `.nro` homebrew application.
+	 *
+	 * @example
+	 *
+	 * ```typescript
+	 * const app = new Switch.Application('sdmc:/hbmenu.nro');
+	 * console.log(app.name);
+	 * ```
+	 *
+	 * @param path The path of the `.nro` file.
+	 */
+	constructor(path: string | URL);
+	/**
 	 * Creates an `Application` instance from an `ArrayBuffer`
 	 * containing the contents of a `.nro` homebrew application.
 	 *
@@ -90,9 +109,12 @@ export class Application {
 	 * @param nro The contents of the `.nro` file.
 	 */
 	constructor(nro: ArrayBuffer);
-	constructor(v: bigint | ArrayBuffer) {
+	constructor(v: string | bigint | ArrayBuffer | URL) {
 		_init();
-		return proto($.nsAppNew(v), Application);
+		return proto(
+			$.nsAppNew(v instanceof URL ? pathToString(v) : v),
+			Application,
+		);
 	}
 
 	/**
@@ -167,11 +189,11 @@ export class Application {
 	static get self(): Application {
 		if (!self) {
 			_init();
-			let nro: ArrayBuffer | null = null;
+			let p: string | null = null;
 			if ($.argv.length) {
-				nro = readFileSync($.argv[0]);
+				p = $.argv[0];
 			}
-			self = proto($.nsAppNew(nro), Application);
+			self = proto($.nsAppNew(p), Application);
 		}
 		return self;
 	}

@@ -220,7 +220,7 @@ export interface Init {
 	// ns.c
 	nsInitialize(): () => void;
 	nsAppInit(c: ClassOf<Application>): void;
-	nsAppNew(id: BigInt | ArrayBuffer | null): Application;
+	nsAppNew(id: string | bigint | ArrayBuffer | null): Application;
 	nsAppNext(index: number): bigint | null;
 
 	// software-keyboard.c

@@ -1,6 +1,7 @@
 #include "ns.h"
 #include "applet.h"
 #include "error.h"
+#include <errno.h>
 
 static JSClassID nx_app_class_id;
 
@@ -51,6 +52,49 @@ static JSValue nx_ns_app_new(JSContext *ctx, JSValueConst this_val, int argc,
 		if (JS_ToBigUint64(ctx, &application_id, argv[0])) {
 			return JS_EXCEPTION;
 		}
+	} else if (JS_IsString(argv[0])) {
+		// Get app ID from opening the path specified at the string value, which
+		// contains an NRO file.
+		const char *path = JS_ToCString(ctx, argv[0]);
+		if (!path) {
+			return JS_EXCEPTION;
+		}
+		FILE *file = fopen(path, "rb");
+		JS_FreeCString(ctx, path);
+
+		if (file == NULL) {
+			return nx_throw_errno_error(ctx, errno, "fopen()");
+		}
+
+		// Seek to offset 0x18 and read a u32 from the NRO file, which
+		// contains the offset of the asset header.
+		u32 asset_header_offset;
+		fseek(file, 0x18, SEEK_SET);
+		fread(&asset_header_offset, sizeof(u32), 1, file);
+
+		// Seek the file to the asset header offset and allocate buffer
+		uint8_t *asset_header = malloc(0x28); // Size needed for header info
+		fseek(file, asset_header_offset, SEEK_SET);
+		fread(asset_header, 0x28, 1, file);
+
+		u32 icon_section_offset = *(u32 *)(asset_header + 0x8);
+		u32 icon_section_size = *(u32 *)(asset_header + 0x10);
+		u32 nacp_section_offset = *(u32 *)(asset_header + 0x18);
+		u32 nacp_section_size = *(u32 *)(asset_header + 0x20);
+
+		// Seek to the icon section offset and read the icon data
+		fseek(file, asset_header_offset + icon_section_offset, SEEK_SET);
+		fread(&data->data.icon, icon_section_size, 1, file);
+
+		// Seek to the nacp section offset and read the nacp data
+		fseek(file, asset_header_offset + nacp_section_offset, SEEK_SET);
+		fread(&data->data.nacp, nacp_section_size, 1, file);
+
+		free(asset_header);
+		fclose(file);
+
+		data->icon_size = icon_section_size;
+		loaded = true;
 	} else {
 		// Get app ID from parsing the array buffer which contains an NRO file.
 		// This is the case when running the NRO through hbmenu or a forwarder.
