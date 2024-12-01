@@ -1,5 +1,23 @@
 # @nx.js/runtime
 
+## 0.0.56
+
+### Patch Changes
+
+- Add `Switch.FileSystem.openSdmc()` ([`a66c99119bba028425d3ee855a3d2faf0eb6b739`](https://github.com/TooTallNate/nx.js/commit/a66c99119bba028425d3ee855a3d2faf0eb6b739))
+
+- Add `Iterator` helper methods to `Switch.Application`, `Switch.Profile` and `Switch.SaveData` ([`bb87d1c40ba3e2d0b603705d5152997c928ed23f`](https://github.com/TooTallNate/nx.js/commit/bb87d1c40ba3e2d0b603705d5152997c928ed23f))
+
+- Expose `Iterator` helpers types ([`782f106f6010c5eeeed229db9719f3375b79e672`](https://github.com/TooTallNate/nx.js/commit/782f106f6010c5eeeed229db9719f3375b79e672))
+
+- Update QuickJS to v0.7.0 ([`9117d809a41872a0c73e64905a6747ee58810bc5`](https://github.com/TooTallNate/nx.js/commit/9117d809a41872a0c73e64905a6747ee58810bc5))
+
+- Add `Switch.FileSystem#freeSpace()` and `Switch.FileSystem.totalSpace()` ([`43c6a1a32c5d07141f663cd6427c7093cdeedc5b`](https://github.com/TooTallNate/nx.js/commit/43c6a1a32c5d07141f663cd6427c7093cdeedc5b))
+
+- Throw libnx-style error for `Switch.Application` errors ([`e4c39c414ab9f78835eddab622a9d871fc714b1c`](https://github.com/TooTallNate/nx.js/commit/e4c39c414ab9f78835eddab622a9d871fc714b1c))
+
+- Support string / URL initialization parameter to `new Switch.Application()` ([`41fcbbbc6ced9d178281c710cc34bbcd64680cba`](https://github.com/TooTallNate/nx.js/commit/41fcbbbc6ced9d178281c710cc34bbcd64680cba))
+
 ## 0.0.55
 
 ### Patch Changes
