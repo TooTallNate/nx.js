@@ -1,5 +1,6 @@
 #include "ns.h"
 #include "applet.h"
+#include "error.h"
 
 static JSClassID nx_app_class_id;
 
@@ -24,8 +25,7 @@ static JSValue nx_ns_initialize(JSContext *ctx, JSValueConst this_val, int argc,
 								JSValueConst *argv) {
 	Result rc = nsInitialize();
 	if (R_FAILED(rc)) {
-		JS_ThrowInternalError(ctx, "nsInitialize() returned 0x%x", rc);
-		return JS_EXCEPTION;
+		return nx_throw_libnx_error(ctx, rc, "nsInitialize()");
 	}
 	return JS_NewCFunction(ctx, nx_ns_exit, "nsExit", 0);
 }
@@ -45,8 +45,7 @@ static JSValue nx_ns_app_new(JSContext *ctx, JSValueConst this_val, int argc,
 		Result rc = svcGetInfo(&application_id, InfoType_ProgramId,
 							   CUR_PROCESS_HANDLE, 0);
 		if (R_FAILED(rc)) {
-			JS_ThrowInternalError(ctx, "svcGetInfo() returned 0x%x", rc);
-			return JS_EXCEPTION;
+			return nx_throw_libnx_error(ctx, rc, "svcGetInfo()");
 		}
 	} else if (JS_IsBigInt(ctx, argv[0])) {
 		if (JS_ToBigUint64(ctx, &application_id, argv[0])) {
@@ -77,8 +76,8 @@ static JSValue nx_ns_app_new(JSContext *ctx, JSValueConst this_val, int argc,
 			NsApplicationControlSource_Storage, application_id, &data->data,
 			sizeof(data->data), &outSize);
 		if (R_FAILED(rc)) {
-			return JS_ThrowInternalError(
-				ctx, "nsGetApplicationControlData() returned 0x%x", rc);
+			return nx_throw_libnx_error(ctx, rc,
+										"nsGetApplicationControlData()");
 		}
 		data->icon_size = outSize > 0 ? outSize - sizeof(data->data.nacp) : 0;
 	}
@@ -128,8 +127,11 @@ static JSValue nx_ns_app_name(JSContext *ctx, JSValueConst this_val, int argc,
 	}
 	NacpLanguageEntry *langEntry;
 	Result rc = nacpGetLanguageEntry(&app->data.nacp, &langEntry);
-	if (R_FAILED(rc) || !langEntry) {
-		JS_ThrowInternalError(ctx, "nacpGetLanguageEntry() returned 0x%x", rc);
+	if (R_FAILED(rc)) {
+		return nx_throw_libnx_error(ctx, rc, "nacpGetLanguageEntry()");
+	}
+	if (!langEntry) {
+		JS_ThrowPlainError(ctx, "No language entry found");
 		return JS_EXCEPTION;
 	}
 	return JS_NewString(ctx, langEntry->name);
@@ -143,8 +145,11 @@ static JSValue nx_ns_app_author(JSContext *ctx, JSValueConst this_val, int argc,
 	}
 	NacpLanguageEntry *langEntry;
 	Result rc = nacpGetLanguageEntry(&app->data.nacp, &langEntry);
-	if (R_FAILED(rc) || !langEntry) {
-		JS_ThrowInternalError(ctx, "nacpGetLanguageEntry() returned 0x%x", rc);
+	if (R_FAILED(rc)) {
+		return nx_throw_libnx_error(ctx, rc, "nacpGetLanguageEntry()");
+	}
+	if (!langEntry) {
+		JS_ThrowPlainError(ctx, "No language entry found");
 		return JS_EXCEPTION;
 	}
 	return JS_NewString(ctx, langEntry->author);
@@ -162,9 +167,7 @@ static JSValue nx_ns_app_next(JSContext *ctx, JSValueConst this_val, int argc,
 
 	Result rc = nsListApplicationRecord(&record, 1, offset, &record_count);
 	if (R_FAILED(rc)) {
-		JS_ThrowInternalError(ctx, "nsListApplicationRecord() returned 0x%x",
-							  rc);
-		return JS_EXCEPTION;
+		return nx_throw_libnx_error(ctx, rc, "nsListApplicationRecord()");
 	}
 
 	if (!record_count) {
