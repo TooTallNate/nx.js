@@ -1,5 +1,11 @@
 # @nx.js/constants
 
+## 0.3.0
+
+### Minor Changes
+
+- Add `SfBufferAttr` and `SfOutHandleAttr` enums ([#161](https://github.com/TooTallNate/nx.js/pull/161))
+
 ## 0.2.0
 
 ### Minor Changes
