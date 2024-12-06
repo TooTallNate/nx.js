@@ -22,6 +22,7 @@ export * from './irsensor';
 export * from './profile';
 export * from './album';
 export * from './file-system';
+export * from './service';
 export { Socket, Server };
 
 export type PathLike = string | URL;

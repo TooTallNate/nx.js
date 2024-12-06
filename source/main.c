@@ -26,6 +26,7 @@
 #include "nifm.h"
 #include "ns.h"
 #include "poll.h"
+#include "service.h"
 #include "software-keyboard.h"
 #include "tcp.h"
 #include "tls.h"
@@ -629,6 +630,7 @@ int main(int argc, char *argv[]) {
 	nx_init_irs(ctx, nx_ctx->init_obj);
 	nx_init_nifm(ctx, nx_ctx->init_obj);
 	nx_init_ns(ctx, nx_ctx->init_obj);
+	nx_init_service(ctx, nx_ctx->init_obj);
 	nx_init_tcp(ctx, nx_ctx->init_obj);
 	nx_init_tls(ctx, nx_ctx->init_obj);
 	nx_init_url(ctx, nx_ctx->init_obj);

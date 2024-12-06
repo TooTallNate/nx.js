@@ -9,6 +9,7 @@ import type {
 	ProfileUid,
 	SaveData,
 	SaveDataCreationInfo,
+	Service,
 	Stats,
 	Versions,
 } from './switch';
@@ -222,6 +223,10 @@ export interface Init {
 	nsAppInit(c: ClassOf<Application>): void;
 	nsAppNew(id: string | bigint | ArrayBuffer | null): Application;
 	nsAppNext(index: number): bigint | null;
+
+	// service.c
+	serviceInit(c: ClassOf<Service>): () => void;
+	serviceNew(name?: string): Service;
 
 	// software-keyboard.c
 	swkbdCreate(fns: {
