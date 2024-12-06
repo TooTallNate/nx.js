@@ -44,6 +44,10 @@ export class Service {
 		stub();
 	}
 
+	isDomain() {
+		stub();
+	}
+
 	isOverride() {
 		stub();
 	}
