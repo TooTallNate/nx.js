@@ -1,6 +1,6 @@
 {
   "name": "@nx.js/clkrst",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "`clkrst` service IPC wrapper for nx.js",
   "repository": {
     "type": "git",
@@ -21,7 +21,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@nx.js/constants": "^0.2.0"
+    "@nx.js/constants": "^0.3.0"
   },
   "devDependencies": {
     "@nx.js/runtime": "workspace:*",

@@ -1,6 +1,6 @@
 {
   "name": "@nx.js/constants",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Constants and enums for use with nx.js",
   "repository": {
     "type": "git",

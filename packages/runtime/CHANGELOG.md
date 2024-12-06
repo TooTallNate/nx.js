@@ -1,5 +1,11 @@
 # @nx.js/runtime
 
+## 0.0.57
+
+### Patch Changes
+
+- Add `Switch.Service` class ([#161](https://github.com/TooTallNate/nx.js/pull/161))
+
 ## 0.0.56
 
 ### Patch Changes
