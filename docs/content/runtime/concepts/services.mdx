@@ -1,0 +1,193 @@
+---
+title: Services
+description: Interacting with system service modules via IPC
+---
+
+`libnx`, the core C library used by nx.js to interact with the Switch, contains a
+vast number of functions for interacting with various system services in a myriad
+of different ways. Many of these functions are higher level wrappers on top of
+the Switch's IPC communication mechanism, also known as ["service modules"](https://switchbrew.org/wiki/Services_API#Service_List).
+
+It would not be reasonable for nx.js to attempt to expose all of these functions
+directly, so instead nx.js provides a low-level API for interacting with these
+system modules via IPC, which allows functionality that is not directly exposed by
+nx.js to be implemented in userland.
+
+> [!WARNING]
+This is a low-level API which is not recommended to be used directly in most cases.
+You should look for an npm package which provides a higher-level API for the service
+you are trying to interact with.
+
+## Porting libnx functions to nx.js
+
+### Example with output value
+
+Let's say you want your application to retrieve the current system region code. In `libnx`,
+this can be done using the `setGetRegionCode()` function, which is exposed by the
+[`set`](https://switchbrew.org/wiki/Settings_services#set) service module.
+
+However, nx.js does not directly expose this function, so your app can use the
+`Switch.Service` class to interact with the `set` service module.
+
+To do this correctly, you may need to reference the [libnx source code](https://github.com/switchbrew/libnx)
+to understand which command ID and parameters are required for the command
+you are attempting to port.
+
+For example, the [`setGetRegionCode()` function](https://github.com/switchbrew/libnx/blob/e79dd7ac52cc7fdc41134c9b55e6f55ec8b8799f/nx/source/services/set.c#L216-L221) is implemented as follows:
+
+```c title="libnx/source/services/set.c"
+Result setGetRegionCode(SetRegion *out) {
+    s32 code=0;
+    Result rc = _setCmdNoInOutU32(&g_setSrv, (u32*)&code, 4);
+    if (R_SUCCEEDED(rc) && out) *out = code;
+    return rc;
+}
+```
+
+Based on this implementation, we can see that:
+
+* [`set`](https://switchbrew.org/wiki/Settings_services#set) is the named service module
+* The command ID is `4`
+* There is no input data
+* The output data is a [region code](https://switchbrew.org/wiki/Settings_services#RegionCode), which is a `u32` value
+
+Porting this function to nx.js would look like this:
+
+```typescript title="src/main.ts"
+const setSrv = new Switch.Service('set');
+
+function getRegionCode() {
+	const code = new Uint32Array(1);
+	setSrv.dispatchOut(4, code.buffer);
+	return code[0];
+}
+
+console.log(getRegionCode());
+```
+
+### Example with input value
+
+Let's say you want to interact with a function which takes an input value, such as `setsysSetRegionCode()`.
+
+The [`setsysSetRegionCode()` function](https://github.com/switchbrew/libnx/blob/e79dd7ac52cc7fdc41134c9b55e6f55ec8b8799f/nx/source/services/set.c#L546-L548) is implemented as follows:
+
+```c title="libnx/source/services/set.c"
+Result setsysSetRegionCode(SetRegion region) {
+    return _setCmdInU32NoOut(&g_setsysSrv, region, 57);
+}
+```
+
+* [`set:sys`](https://switchbrew.org/wiki/Settings_services#set:sys) is the named service module
+* The command ID is `57`
+* The input data is a [region code](https://switchbrew.org/wiki/Settings_services#RegionCode), which is a `u32` value
+* There is no output data
+
+Porting this function to nx.js would look like this:
+
+```typescript title="src/main.ts"
+const setSysSrv = new Switch.Service('set:sys');
+
+function setRegionCode(region: number) {
+	setSysSrv.dispatchIn(57, new Uint32Array([region]).buffer);
+}
+
+const regionCode = 1; // SetRegion_USA
+setRegionCode(regionCode);
+```
+
+### Example with buffers
+
+Some commands require use of input and/or output buffers, such as `setGetAvailableLanguageCodes()`. Let's take a look at how to port this function to nx.js.
+
+The [`setGetAvailableLanguageCodes()` function](https://github.com/switchbrew/libnx/blob/e79dd7ac52cc7fdc41134c9b55e6f55ec8b8799f/nx/source/services/set.c#L187-L204) is implemented as follows (some parts are omitted for brevity):
+
+```c title="libnx/source/services/set.c"
+Result setGetAvailableLanguageCodes(s32 *total_entries, u64 *LanguageCodes, size_t max_entries) {
+    return serviceDispatchOut(&g_setSrv, 5, *total_entries,
+        .buffer_attrs = { SfBufferAttr_HipcMapAlias | SfBufferAttr_Out },
+        .buffers = { { LanguageCodes, max_entries*sizeof(u64) } },
+    );
+}
+```
+
+* [`set`](https://switchbrew.org/wiki/Settings_services#set) is the named service module
+* The command ID is `5`
+* There is no input data
+* The output data is a `s32` number representing the number of entries that were returned
+* The output buffer is an array of `u64` values, which represent the available language codes
+
+> [!IMPORTANT]
+> Additionally, looking at the [Switchbrew wiki for `LanguageCode`](https://switchbrew.org/wiki/Settings_services#LanguageCode),
+> we can see that the language codes are represented as a `u64` value, which is _actually_ a NUL-terminated string.
+
+Porting this function to nx.js would look like this:
+
+```typescript title="src/main.ts"
+import { SfBufferAttr } from '@nx.js/constants';
+
+const setSrv = new Switch.Service('set');
+
+function getAvailableLanguageCodes() {
+    const totalEntriesArr = new Int32Array(1);
+    const languageCodesBuf = new ArrayBuffer(20 * 8);
+    setSrv.dispatchOut(5, totalEntriesArr.buffer, {
+        bufferAttrs: [SfBufferAttr.HipcMapAlias | SfBufferAttr.Out],
+        buffers: [languageCodesBuf],
+    });
+
+    const decoder = new TextDecoder();
+    const languageCodes: string[] = [];
+
+    // Process the output buffer into the list of language codes as strings
+    const totalEntries = totalEntriesArr[0];
+    for (let i = 0; i < totalEntries; i++) {
+        const data = languageCodesBuf.slice(i * 8, i * 8 + 8);
+        const nul = new Uint8Array(data).indexOf(0);
+        languageCodes.push(decoder.decode(data.slice(0, nul)));
+    }
+
+    return languageCodes;
+}
+
+console.log(getAvailableLanguageCodes());
+```
+
+### Example with output service object
+
+In some cases, the result of a command is itself a new `Switch.Service` instance.
+
+One such example is the [`clkrstOpenSession()` function](https://github.com/switchbrew/libnx/blob/e79dd7ac52cc7fdc41134c9b55e6f55ec8b8799f/nx/source/services/clkrst.c#L25-L34):
+
+```c title="libnx/source/services/clkrst.c"
+Result clkrstOpenSession(ClkrstSession* session_out, PcvModuleId module_id, u32 unk) {
+    const struct {
+        u32 module_id;
+        u32 unk;
+    } in = { module_id, unk };
+    return serviceDispatchIn(&g_clkrstSrv, 0, in,
+        .out_num_objects = 1,
+        .out_objects = &session_out->s,
+    );
+}
+```
+
+In this case, you can create an "uninitialized" `Switch.Service` instance (by
+omitting the `name` from the constructor), and then pass the instance to the
+`outObjects` option in the dispatch function:
+
+```typescript title="src/main.ts"
+const clkrstSrv = new Switch.Service('clkrst');
+
+function openSession(moduleId: number) {
+    const sessionSrv = new Switch.Service();
+    const inArr = new Uint32Array([moduleId, 3]);
+    clkrstSrv.dispatchIn(0, inArr.buffer, {
+        outObjects: [sessionSrv],
+    });
+    return sessionSrv;
+}
+
+const moduleId = 0x40000001; // PcvModuleId_CpuBus
+const session = openSession(moduleId);
+// Dispatch additional commands to the session service instance
+```
