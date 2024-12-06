@@ -492,6 +492,22 @@ importers:
         specifier: ^5.6.3
         version: 5.6.3
 
+  packages/clkrst:
+    dependencies:
+      '@nx.js/constants':
+        specifier: workspace:*
+        version: link:../constants
+    devDependencies:
+      '@nx.js/runtime':
+        specifier: workspace:*
+        version: link:../runtime
+      vite:
+        specifier: ^5.4.2
+        version: 5.4.2
+      vitest:
+        specifier: ^2.0.5
+        version: 2.0.5
+
   packages/constants:
     devDependencies:
       '@nx.js/runtime':
