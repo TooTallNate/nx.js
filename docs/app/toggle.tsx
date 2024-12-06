@@ -1,4 +1,5 @@
 import {
+	TbClockBolt,
 	TbGlobe,
 	TbBrowser,
 	TbBraces,
@@ -16,6 +17,12 @@ export function Toggle() {
 					description: 'Global APIs',
 					url: '/runtime',
 					icon: <TbGlobe size={24} />,
+				},
+				{
+					title: '@nx.js/clkrst',
+					description: 'Overclocking API',
+					url: '/clkrst',
+					icon: <TbClockBolt size={24} />,
 				},
 				{
 					title: '@nx.js/constants',

@@ -1,0 +1,41 @@
+{
+  "name": "@nx.js/clkrst",
+  "version": "0.0.0",
+  "description": "`clkrst` service IPC wrapper for nx.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TooTallNate/nx.js.git",
+    "directory": "packages/clkrst"
+  },
+  "homepage": "https://nxjs.n8.io/clkrst",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest",
+    "docs": "typedoc && ../../type-aliases-meta.sh"
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@nx.js/constants": "^0.2.0"
+  },
+  "devDependencies": {
+    "@nx.js/runtime": "workspace:*",
+    "vite": "^5.4.2",
+    "vitest": "^2.0.5"
+  },
+  "keywords": [
+    "nx.js",
+    "switch",
+    "clkrst",
+    "overclock",
+    "cpu",
+    "gpu"
+  ],
+  "author": "Nathan Rajlich <n@n8.io>",
+  "license": "MIT"
+}

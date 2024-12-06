@@ -455,6 +455,9 @@ importers:
         specifier: ^5.2.1
         version: 5.2.1(react@18.3.1)
     devDependencies:
+      '@nx.js/clkrst':
+        specifier: workspace:*
+        version: link:../packages/clkrst
       '@nx.js/constants':
         specifier: workspace:*
         version: link:../packages/constants
@@ -491,6 +494,22 @@ importers:
       typescript:
         specifier: ^5.6.3
         version: 5.6.3
+
+  packages/clkrst:
+    dependencies:
+      '@nx.js/constants':
+        specifier: ^0.2.0
+        version: link:../constants
+    devDependencies:
+      '@nx.js/runtime':
+        specifier: workspace:*
+        version: link:../runtime
+      vite:
+        specifier: ^5.4.2
+        version: 5.4.2
+      vitest:
+        specifier: ^2.0.5
+        version: 2.0.5
 
   packages/constants:
     devDependencies:
