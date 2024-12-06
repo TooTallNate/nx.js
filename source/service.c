@@ -22,16 +22,19 @@ static JSValue nx_service_new(JSContext *ctx, JSValueConst this_val, int argc,
 		return JS_EXCEPTION;
 	}
 
-	const char *name = JS_ToCString(ctx, argv[0]);
-	if (!name) {
-		return JS_EXCEPTION;
-	}
+	// If a string is passed in, then it is the name of the service module
+	if (JS_IsString(argv[0])) {
+		const char *name = JS_ToCString(ctx, argv[0]);
+		if (!name) {
+			return JS_EXCEPTION;
+		}
 
-	Result rc = smGetService(&data->service, name);
-	JS_FreeCString(ctx, name);
+		Result rc = smGetService(&data->service, name);
+		JS_FreeCString(ctx, name);
 
-	if (R_FAILED(rc)) {
-		return nx_throw_libnx_error(ctx, rc, "smGetService()");
+		if (R_FAILED(rc)) {
+			return nx_throw_libnx_error(ctx, rc, "smGetService()");
+		}
 	}
 
 	JSValue obj = JS_NewObjectClass(ctx, nx_service_class_id);
@@ -47,6 +50,15 @@ static JSValue nx_service_is_active(JSContext *ctx, JSValueConst this_val,
 		return JS_EXCEPTION;
 
 	return JS_NewBool(ctx, serviceIsActive(&data->service));
+}
+
+static JSValue nx_service_is_domain(JSContext *ctx, JSValueConst this_val,
+									int argc, JSValueConst *argv) {
+	nx_service_t *data = JS_GetOpaque2(ctx, this_val, nx_service_class_id);
+	if (!data)
+		return JS_EXCEPTION;
+
+	return JS_NewBool(ctx, serviceIsDomain(&data->service));
 }
 
 static JSValue nx_service_is_override(JSContext *ctx, JSValueConst this_val,
@@ -83,6 +95,28 @@ static JSValue nx_service_dispatch_in_out(JSContext *ctx, JSValueConst this_val,
 
 	SfDispatchParams disp = {0};
 	if (JS_IsObject(argv[3])) {
+		// disp.target_session
+		JSValue target_session_val =
+			JS_GetPropertyStr(ctx, argv[3], "targetSession");
+		if (JS_IsNumber(target_session_val)) {
+			if (JS_ToUint32(ctx, &disp.target_session, target_session_val)) {
+				JS_FreeValue(ctx, target_session_val);
+				return JS_EXCEPTION;
+			}
+		}
+		JS_FreeValue(ctx, target_session_val);
+
+		// disp.context
+		JSValue context_val = JS_GetPropertyStr(ctx, argv[3], "context");
+		if (JS_IsNumber(context_val)) {
+			if (JS_ToUint32(ctx, &disp.context, context_val)) {
+				JS_FreeValue(ctx, context_val);
+				return JS_EXCEPTION;
+			}
+		}
+		JS_FreeValue(ctx, context_val);
+
+		// disp.buffer_attrs
 		JSValue buffer_attrs_val =
 			JS_GetPropertyStr(ctx, argv[3], "bufferAttrs");
 		if (JS_IsArray(ctx, buffer_attrs_val)) {
@@ -94,24 +128,38 @@ static JSValue nx_service_dispatch_in_out(JSContext *ctx, JSValueConst this_val,
 				JS_FreeValue(ctx, length_val);
 				return JS_EXCEPTION;
 			}
-			for (u32 i = 0; i < length; i++) {
-				JSValue v = JS_GetPropertyUint32(ctx, buffer_attrs_val, i);
-				if (JS_IsNumber(v)) {
-					u32 attr;
-					if (JS_ToUint32(ctx, &attr, v)) {
-						JS_FreeValue(ctx, buffer_attrs_val);
-						JS_FreeValue(ctx, length_val);
-						return JS_EXCEPTION;
-					}
-					// TODO: all `attr` props
-					disp.buffer_attrs.attr0 = attr;
-				}
-				JS_FreeValue(ctx, v);
-			}
+			u32 attr;
+			JSValue buffer_attr_val;
+
+#define GET_BUFFER_ATTR(INDEX)                                                 \
+	buffer_attr_val = JS_GetPropertyStr(ctx, buffer_attrs_val, #INDEX);        \
+	if (JS_IsNumber(buffer_attr_val)) {                                        \
+		if (JS_ToUint32(ctx, &attr, buffer_attr_val)) {                        \
+			JS_FreeValue(ctx, buffer_attr_val);                                \
+			JS_FreeValue(ctx, buffer_attrs_val);                               \
+			JS_FreeValue(ctx, length_val);                                     \
+			return JS_EXCEPTION;                                               \
+		}                                                                      \
+		disp.buffer_attrs.attr##INDEX = attr;                                  \
+	}                                                                          \
+	JS_FreeValue(ctx, buffer_attr_val);
+
+			GET_BUFFER_ATTR(0);
+			GET_BUFFER_ATTR(1);
+			GET_BUFFER_ATTR(2);
+			GET_BUFFER_ATTR(3);
+			GET_BUFFER_ATTR(4);
+			GET_BUFFER_ATTR(5);
+			GET_BUFFER_ATTR(6);
+			GET_BUFFER_ATTR(7);
+
+#undef GET_BUFFER_ATTR
+
 			JS_FreeValue(ctx, length_val);
 		}
 		JS_FreeValue(ctx, buffer_attrs_val);
 
+		// disp.buffers
 		JSValue buffers_val = JS_GetPropertyStr(ctx, argv[3], "buffers");
 		if (JS_IsArray(ctx, buffers_val)) {
 			JSValue length_val = JS_GetPropertyStr(ctx, buffers_val, "length");
@@ -131,6 +179,75 @@ static JSValue nx_service_dispatch_in_out(JSContext *ctx, JSValueConst this_val,
 			}
 		}
 		JS_FreeValue(ctx, buffers_val);
+
+		// disp.in_send_pid
+		JSValue in_send_pid_val = JS_GetPropertyStr(ctx, argv[3], "inSendPid");
+		if (JS_IsBool(in_send_pid_val)) {
+			disp.in_send_pid = JS_ToBool(ctx, in_send_pid_val);
+		}
+		JS_FreeValue(ctx, in_send_pid_val);
+
+		// disp.in_num_objects
+		// disp.in_objects
+		JSValue in_objects_val = JS_GetPropertyStr(ctx, argv[3], "inObjects");
+		if (JS_IsArray(ctx, in_objects_val)) {
+			JSValue length_val =
+				JS_GetPropertyStr(ctx, in_objects_val, "length");
+			if (JS_ToUint32(ctx, &disp.in_num_objects, length_val)) {
+				JS_FreeValue(ctx, in_objects_val);
+				JS_FreeValue(ctx, length_val);
+				return JS_EXCEPTION;
+			}
+
+			for (u32 i = 0; i < disp.in_num_objects; i++) {
+				JSValue v = JS_GetPropertyUint32(ctx, in_objects_val, i);
+				nx_service_t *v_data =
+					JS_GetOpaque2(ctx, v, nx_service_class_id);
+				if (!v_data) {
+					JS_FreeValue(ctx, v);
+					JS_FreeValue(ctx, in_objects_val);
+					JS_FreeValue(ctx, length_val);
+					return JS_EXCEPTION;
+				}
+				disp.in_objects[i] = &v_data->service;
+				JS_FreeValue(ctx, v);
+			}
+
+			JS_FreeValue(ctx, length_val);
+		}
+		JS_FreeValue(ctx, in_objects_val);
+
+		// disp.out_num_objects
+		// disp.out_objects
+		JSValue out_objects_val = JS_GetPropertyStr(ctx, argv[3], "outObjects");
+		if (JS_IsArray(ctx, out_objects_val)) {
+			JSValue length_val =
+				JS_GetPropertyStr(ctx, out_objects_val, "length");
+			if (JS_ToUint32(ctx, &disp.out_num_objects, length_val)) {
+				JS_FreeValue(ctx, out_objects_val);
+				JS_FreeValue(ctx, length_val);
+				return JS_EXCEPTION;
+			}
+
+			for (u32 i = 0; i < disp.out_num_objects; i++) {
+				JSValue v = JS_GetPropertyUint32(ctx, out_objects_val, i);
+				nx_service_t *v_data =
+					JS_GetOpaque2(ctx, v, nx_service_class_id);
+				if (!v_data) {
+					JS_FreeValue(ctx, v);
+					JS_FreeValue(ctx, out_objects_val);
+					JS_FreeValue(ctx, length_val);
+					return JS_EXCEPTION;
+				}
+				// XXX: This seems to always be 1 in libnx (hence why its not an
+				// array?)
+				disp.out_objects = &v_data->service;
+				JS_FreeValue(ctx, v);
+			}
+
+			JS_FreeValue(ctx, length_val);
+		}
+		JS_FreeValue(ctx, out_objects_val);
 	}
 
 	Result rc = serviceDispatchImpl(&data->service, rid, in_data, in_data_size,
@@ -147,6 +264,7 @@ static JSValue nx_service_init(JSContext *ctx, JSValueConst this_val, int argc,
 							   JSValueConst *argv) {
 	JSValue proto = JS_GetPropertyStr(ctx, argv[0], "prototype");
 	NX_DEF_FUNC(proto, "isActive", nx_service_is_active, 0);
+	NX_DEF_FUNC(proto, "isDomain", nx_service_is_domain, 0);
 	NX_DEF_FUNC(proto, "isOverride", nx_service_is_override, 0);
 	NX_DEF_FUNC(proto, "dispatchInOut", nx_service_dispatch_in_out, 3);
 	JS_FreeValue(ctx, proto);

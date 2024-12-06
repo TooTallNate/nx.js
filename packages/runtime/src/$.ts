@@ -226,7 +226,7 @@ export interface Init {
 
 	// service.c
 	serviceInit(c: ClassOf<Service>): () => void;
-	serviceNew(name: string): Service;
+	serviceNew(name?: string): Service;
 
 	// software-keyboard.c
 	swkbdCreate(fns: {
