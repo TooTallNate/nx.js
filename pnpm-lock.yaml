@@ -455,6 +455,9 @@ importers:
         specifier: ^5.2.1
         version: 5.2.1(react@18.3.1)
     devDependencies:
+      '@nx.js/clkrst':
+        specifier: workspace:*
+        version: link:../packages/clkrst
       '@nx.js/constants':
         specifier: workspace:*
         version: link:../packages/constants
