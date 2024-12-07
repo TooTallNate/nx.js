@@ -4,9 +4,10 @@ import degit from 'degit';
 import which from 'which';
 import { once } from 'events';
 import { promises as fs } from 'fs';
-import { SpawnOptions, spawn } from 'child_process';
-import terminalLink from 'terminal-link';
 import { fileURLToPath, pathToFileURL } from 'url';
+import { SpawnOptions, spawn } from 'child_process';
+import slugify from '@sindresorhus/slugify';
+import terminalLink from 'terminal-link';
 import * as clack from '@clack/prompts';
 import type { PackageJson } from 'types-package-json';
 
@@ -104,8 +105,13 @@ try {
 		throw appName;
 	}
 
+	const slugifiedName = slugify(appName);
+
 	// Begin cloning example to project directory
-	const appDir = new URL(`${appName}/`, pathToFileURL(process.cwd() + '/'));
+	const appDir = new URL(
+		`${slugifiedName}/`,
+		pathToFileURL(process.cwd() + '/'),
+	);
 	await fs.mkdir(appDir, { recursive: true });
 	const emitter = degit(`TooTallNate/nx.js/apps/${template}#v${version}`);
 	emitter.on('info', (info) => {
@@ -139,14 +145,18 @@ try {
 
 	// Wait for cloning to complete
 	const spinner = clack.spinner();
-	spinner.start(`Cloning \`${template}\` template into "${appName}" directory`);
+	spinner.start(
+		`Cloning \`${template}\` template into "${slugifiedName}" directory`,
+	);
 	const cloneError = await clonePromise;
 	if (cloneError) {
 		console.error(`There was an error during the cloning process:`);
 		console.error(cloneError);
 		process.exit(1);
 	}
-	spinner.stop(`Cloned \`${template}\` template into "${appName}" directory`);
+	spinner.stop(
+		`Cloned \`${template}\` template into "${slugifiedName}" directory`,
+	);
 
 	// Patch the `package.json` file with the app name, and update any
 	// dependencies that use "workspace:" in the version to the actual version
@@ -154,7 +164,7 @@ try {
 	const [packageJson, gitName, gitEmail] = await Promise.all([
 		fs
 			.readFile(packageJsonUrl, 'utf8')
-			.then((p) => JSON.parse(p) as PackageJson & { titleId?: string }),
+			.then((p) => JSON.parse(p) as PackageJson),
 		exec('git', ['config', '--global', 'user.name'], {
 			stdio: 'pipe',
 		})
@@ -166,7 +176,7 @@ try {
 			.then((v) => v.trim())
 			.catch(() => undefined),
 	]);
-	packageJson.name = appName;
+	packageJson.name = slugifiedName;
 	packageJson.description = '';
 
 	// Add "author" field based on git config data
@@ -188,6 +198,7 @@ try {
 		`${JSON.stringify(
 			{
 				titleId,
+				productName: appName !== slugifiedName ? appName : undefined,
 				...packageJson,
 			},
 			null,
@@ -221,14 +232,14 @@ try {
 	console.log();
 	const cmd = chalk.yellow;
 	if (packageManager === 'skip') {
-		console.log(` • Run the following command: ${cmd(`cd ${appName}`)}`);
+		console.log(` • Run the following command: ${cmd(`cd ${slugifiedName}`)}`);
 		console.log(` • Install dependencies using your preferred package manager`);
 		console.log(` • Invoke the ${cmd('build')} script to bundle your app`);
 		console.log(` • Invoke the ${cmd('nro')} script to generate a NRO file`);
 	} else {
 		console.log(` • Run the following commands:`);
 		console.log();
-		console.log(`     ${cmd(`cd ${appName}`)}`);
+		console.log(`     ${cmd(`cd ${slugifiedName}`)}`);
 		console.log(`     ${cmd(`${packageManager} run build`)}`);
 		console.log(`     ${cmd(`${packageManager} run nro`)}`);
 	}
