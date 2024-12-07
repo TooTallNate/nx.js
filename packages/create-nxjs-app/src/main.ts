@@ -187,18 +187,20 @@ try {
 		};
 	}
 
-	// Generate a random Title ID, which is used for
-	// save data purposes (i.e. `localStorage`)
-	const titleId = generateRandomID();
-
 	removeWorkspace(packageJson.dependencies, data.packages);
 	removeWorkspace(packageJson.devDependencies, data.packages);
 	await fs.writeFile(
 		packageJsonUrl,
 		`${JSON.stringify(
 			{
-				titleId,
+				// Generate a random Title ID, which is used for
+				// save data purposes (i.e. `localStorage`)
+				titleId: generateRandomID(),
+
+				// Set the `productName` to the app name if it's different
+				// from the slugified name, for usage in NRO/NSP app metadata
 				productName: appName !== slugifiedName ? appName : undefined,
+
 				...packageJson,
 			},
 			null,
