@@ -1,6 +1,13 @@
 ---
-title: Installation
+title: Usage
 ---
+
+The `@nx.js/repl` package provides a REPL (read-eval-print loop) implementation.
+
+It is specifically designed for use with nx.js applications, but is generic enough
+that it can be used with arbitrary JavaScript runtimes.
+
+## Installation
 
 <InstallTabs items={['npm', 'pnpm', 'yarn', 'bun']}>
     <Tab value='npm'>
@@ -33,3 +40,12 @@ bun add @nx.js/repl
     </Tab>
 
 </InstallTabs>
+
+## Examples
+
+See the implementations below for examples of usage in nx.js applications.
+
+<Cards>
+  <Card title="'repl' example app" href="https://github.com/TooTallNate/nx.js/blob/main/apps/repl/src/main.ts" />
+  <Card title="'repl-server' example app" href="https://github.com/TooTallNate/nx.js/blob/main/apps/repl-server/src/main.ts" />
+</Cards>

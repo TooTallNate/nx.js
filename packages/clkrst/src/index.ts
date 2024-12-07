@@ -5,6 +5,12 @@ export * from './types';
 
 const clkrst = new Switch.Service('clkrst');
 
+/**
+ * Opens a session for the specified PCV module.
+ *
+ * @param moduleId The PCV module ID to open a session for.
+ * @param unk Unknown value, defaults to `3` as seen in the wild.
+ */
 export function openSession(moduleId: PcvModuleId, unk = 3) {
 	//Result clkrstOpenSession(ClkrstSession* session_out, PcvModuleId module_id, u32 unk) {
 	//    const struct {
@@ -24,13 +30,26 @@ export function openSession(moduleId: PcvModuleId, unk = 3) {
 	return new ClkrstSession(sessionSrv);
 }
 
+/**
+ * Represents a session for a PCV module.
+ *
+ * Use the {@link openSession | `openSession()`} function to create a session.
+ */
 export class ClkrstSession {
 	#srv: Switch.Service;
 
+	/**
+	 * @private
+	 */
 	constructor(srv: Switch.Service) {
 		this.#srv = srv;
 	}
 
+	/**
+	 * Retrieves the current clock rate of the PCV module.
+	 *
+	 * @returns The current clock rate of the PCV module in Hz.
+	 */
 	getClockRate() {
 		//Result clkrstGetClockRate(ClkrstSession* session, u32 *out_hz) {
 		//    return serviceDispatchOut(&session->s, 8, *out_hz);
@@ -40,6 +59,12 @@ export class ClkrstSession {
 		return outHz[0];
 	}
 
+	/**
+	 * Returns a list of possible clock rates for the PCV module.
+	 *
+	 * @param maxCount Determines the size of the `rates` array. Defaults to `20`.
+	 * @returns An object containing the list of possible clock rates and their type.
+	 */
 	getPossibleClockRates(maxCount = 20): {
 		type: PcvClockRatesListType;
 		rates: Uint32Array;
@@ -68,6 +93,11 @@ export class ClkrstSession {
 		};
 	}
 
+	/**
+	 * Sets the clock rate of the PCV module to the specified Hz value.
+	 *
+	 * @param hz The new clock rate to set.
+	 */
 	setClockRate(hz: number) {
 		//Result clkrstSetClockRate(ClkrstSession* session, u32 hz) {
 		//    return serviceDispatchIn(&session->s, 7, hz);

@@ -1,6 +1,14 @@
 ---
-title: Installation
+title: Usage
+description: "`clkrst` service IPC wrapper for nx.js applications"
 ---
+
+The `@nx.js/clkrst` package provides a wrapper for the `clkrst` service IPC, which allows
+for adjusting the clock rate of the Switch's CPU, GPU, and memory.
+
+In short, use this package for overclocking your Switch.
+
+## Installation
 
 <InstallTabs items={['npm', 'pnpm', 'yarn', 'bun']}>
     <Tab value='npm'>
@@ -33,3 +41,21 @@ bun add @nx.js/clkrst
     </Tab>
 
 </InstallTabs>
+
+## Example
+
+```typescript title="src/main.ts"
+import { openSession, PcvModuleId } from '@nx.js/clkrst';
+
+// Create a session for the CPU
+const session = openSession(PcvModuleId.CpuBus);
+
+// Get the current clock rate
+console.log(session.getClockRate());
+
+// Get list of possible CPU clock rates
+const { rates } = session.getPossibleClockRates();
+
+// Overclock CPU **TO THE MAX**
+session.setClockRate(rates[rates.length - 1]);
+```

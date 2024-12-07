@@ -1,6 +1,13 @@
 ---
-title: Installation
+title: Usage
 ---
+
+The `@nx.js/inspect` package implements a generic utility for inspecting JavaScript objects.
+
+It is used internally by the nx.js runtime (i.e. for `console`-related functions).
+It is extracted into a separate package for use with arbitrary JavaScript runtimes and for testing purposes.
+
+## Installation
 
 <InstallTabs items={['npm', 'pnpm', 'yarn', 'bun']}>
     <Tab value='npm'>
@@ -33,3 +40,16 @@ bun add @nx.js/inspect
     </Tab>
 
 </InstallTabs>
+
+## Example
+
+```typescript title="src/main.ts"
+import { createInspect } from '@nx.js/inspect';
+
+const inspect = createInspect();
+
+console.log(inspect(Promise.resolve(42)));
+console.log(inspect(/test/g));
+console.log(inspect({ a: 1, b: 2, 'c d': 3 }));
+console.log(inspect(async () => 42));
+```
