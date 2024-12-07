@@ -97,9 +97,8 @@ try {
 	// Ask name of user's application
 	const appName = await clack.text({
 		message: 'Enter the name of your application:',
-		// TODO: figure out why `template` is not inferred as "string"
-		defaultValue: template as string,
-		placeholder: template as string,
+		defaultValue: template,
+		placeholder: template,
 	});
 	if (clack.isCancel(appName)) {
 		throw appName;
