@@ -1,4 +1,10 @@
 {
   "root": true,
-  "pages": ["--- Usage ---", "index", "examples", "--- API Reference ---", "...api"]
+  "pages": [
+    "--- Documentation ---",
+    "index",
+    "...",
+    "--- API Reference ---",
+    "...api"
+  ]
 }
