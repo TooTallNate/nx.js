@@ -589,7 +589,7 @@ importers:
         specifier: ^0.1.0
         version: 0.1.0
       '@tootallnate/nro':
-        specifier: ^0.1.0
+        specifier: ^0.1.1
         version: 0.1.1
       '@tootallnate/romfs':
         specifier: ^0.1.0
