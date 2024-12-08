@@ -31,7 +31,7 @@
   "license": "MIT",
   "dependencies": {
     "@nx.js/patch-nacp": "0.1.0",
-    "@tootallnate/nacp": "^0.0.1",
+    "@tootallnate/nacp": "^0.1.0",
     "bytes": "^3.1.2",
     "chalk": "^5.3.0",
     "jimp": "^1.6.0",

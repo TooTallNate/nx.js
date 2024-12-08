@@ -25,7 +25,7 @@
   "license": "MIT",
   "dependencies": {
     "@nx.js/patch-nacp": "0.1.0",
-    "@tootallnate/nacp": "^0.0.1",
+    "@tootallnate/nacp": "^0.1.0",
     "@tootallnate/nro": "^0.1.0",
     "@tootallnate/romfs": "^0.1.0",
     "bytes": "^3.1.2",

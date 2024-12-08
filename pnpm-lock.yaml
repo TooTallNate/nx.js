@@ -586,11 +586,11 @@ importers:
         specifier: 0.1.0
         version: link:../patch-nacp
       '@tootallnate/nacp':
-        specifier: ^0.0.1
-        version: 0.0.1
-      '@tootallnate/nro':
         specifier: ^0.1.0
         version: 0.1.0
+      '@tootallnate/nro':
+        specifier: ^0.1.0
+        version: 0.1.1
       '@tootallnate/romfs':
         specifier: ^0.1.0
         version: 0.1.0
@@ -617,8 +617,8 @@ importers:
         specifier: 0.1.0
         version: link:../patch-nacp
       '@tootallnate/nacp':
-        specifier: ^0.0.1
-        version: 0.0.1
+        specifier: ^0.1.0
+        version: 0.1.0
       bytes:
         specifier: ^3.1.2
         version: 3.1.2
@@ -652,8 +652,8 @@ importers:
         version: 2.0.39
     devDependencies:
       '@tootallnate/nacp':
-        specifier: ^0.0.1
-        version: 0.0.1
+        specifier: ^0.1.0
+        version: 0.1.0
       '@types/node':
         specifier: ^20.10.3
         version: 20.10.3
@@ -3787,13 +3787,13 @@ packages:
     resolution: {integrity: sha512-OvjF+z51L3ov0OyAU0duzsYuvO01PH7x4t6DJx+guahgTnBHkhJdG7soQeTSFLWN3efnHyibZ4Z8l2EuWwJN3A==}
     dev: false
 
-  /@tootallnate/nacp@0.0.1:
-    resolution: {integrity: sha512-SodmIB6YIEj6oVSSRzi5Ll2Mz8EhlEkYFJN4UOLrEcQMkwUo7Fv3ZXcY2AnlhcQtlUABusZgwZkYHzbtpg/Ctg==}
+  /@tootallnate/nacp@0.1.0:
+    resolution: {integrity: sha512-rSiU1x7bDV0/fmApNfD6igmHM/Q3UdfwzxEQYcTiOY4ibpU86mJEWhkdsz4RXZMtZPRo6OlvBkBkLc2bEL8WpQ==}
 
-  /@tootallnate/nro@0.1.0:
-    resolution: {integrity: sha512-4BtKlCxgj6TyJCwekkRTzaIJfEnVn97HbOLmJUwNT4ol/mZJ4smMohfU8zaYKnQiPjVdLhZ08qKH8kQI2xszjQ==}
+  /@tootallnate/nro@0.1.1:
+    resolution: {integrity: sha512-I1oQL9lK34EPectbuPFb7b7YTB8GYgFC7x9iBmRoTP5izJeJxuz8lZZZ2ssVtM3fXBNHHVhUpHLTJv7boQlq/Q==}
     dependencies:
-      '@tootallnate/nacp': 0.0.1
+      '@tootallnate/nacp': 0.1.0
     dev: false
 
   /@tootallnate/romfs@0.1.0:
