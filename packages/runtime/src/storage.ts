@@ -2,7 +2,7 @@ import { $ } from './$';
 import { readFileSync, removeSync, writeFileSync } from './fs';
 import { URL } from './polyfills/url';
 import { Profile } from './switch/profile';
-import { Application } from './switch/ns';
+import { Application, getSaveDataOwnerId } from './switch/ns';
 import { INTERNAL_SYMBOL } from './internal';
 import {
 	def,
@@ -113,13 +113,24 @@ def(Storage);
  *
  * @see https://developer.mozilla.org/docs/Web/API/Window/localStorage
  */
-export declare var localStorage: Storage;
+export declare var localStorage: Storage | undefined;
 
 Object.defineProperty(globalThis, 'localStorage', {
 	enumerable: true,
 	configurable: true,
 	get() {
 		const { self } = Application;
+
+		// If the app's NACP dpes not contain a save data owner ID,
+		// then `localStorage` returns `undefined`. This can be useful
+		// to prevent the profile selector from being shown when 3rd
+		// party modules unwantingly attempt to access `localStorage`.
+		const saveDataOwnerId = getSaveDataOwnerId(self);
+		if (!saveDataOwnerId) {
+			Object.defineProperty(globalThis, 'localStorage', { value: undefined });
+			return;
+		}
+
 		let profile = Profile.current;
 		while (!profile) {
 			profile = Profile.current = Profile.select();

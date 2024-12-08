@@ -8,6 +8,7 @@ Switch.Profile.current = firstProfile;
 
 const test = suite('Storage');
 const storage = localStorage;
+assert.ok(storage);
 
 test('localStorage builtins', () => {
 	storage.clear();
@@ -173,6 +174,7 @@ test('localStorage.key()', () => {
 
 	var keys = ['name', 'age', 'a', 'b'];
 	function doTest(index: number) {
+		assert.ok(storage);
 		var key = storage.key(index);
 		assert.not.equal(key, null);
 		assert.ok(keys.indexOf(key!) >= 0, 'Unexpected key ' + key + ' found.');
