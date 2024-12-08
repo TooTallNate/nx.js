@@ -16,7 +16,7 @@ import { once } from 'node:events';
 import { spawn } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { pathToFileURL, fileURLToPath } from 'node:url';
-import Jimp from 'jimp';
+import { Jimp } from 'jimp';
 import { NACP } from '@tootallnate/nacp';
 import { patchNACP } from '@nx.js/patch-nacp';
 import terminalImage from 'terminal-image';
@@ -73,10 +73,10 @@ try {
 	}
 	const iconDest = new URL('icon_AmericanEnglish.dat', controlDir);
 	const logo = await Jimp.read(fileURLToPath(iconPath));
-	if (logo.getWidth() !== 256 || logo.getHeight() !== 256) {
-		logo.resize(256, 256);
+	if (logo.width !== 256 || logo.height !== 256) {
+		logo.resize({ w: 256, h: 256 });
 	}
-	const logoBuf = await logo.getBufferAsync(Jimp.MIME_JPEG);
+	const logoBuf = await logo.getBuffer('image/jpeg');
 	console.log(`  JPEG size: ${bytes(logoBuf.length).toLowerCase()}`);
 	writeFileSync(iconDest, logoBuf);
 	console.log(await terminalImage.buffer(logoBuf, { height: 18 }));
