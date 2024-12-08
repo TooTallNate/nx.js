@@ -1,5 +1,11 @@
 # @nx.js/patch-nacp
 
+## 0.1.1
+
+### Patch Changes
+
+- Update "@tootallnate/nacp" to v0.1.0 ([`c6651d272c40ff2b6df1164b657c17fd536ac0bd`](https://github.com/TooTallNate/nx.js/commit/c6651d272c40ff2b6df1164b657c17fd536ac0bd))
+
 ## 0.1.0
 
 ### Minor Changes

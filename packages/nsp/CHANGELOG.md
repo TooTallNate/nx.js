@@ -1,5 +1,18 @@
 # @nx.js/nsp
 
+## 0.0.58
+
+### Patch Changes
+
+- Update "@tootallnate/nacp" to v0.1.0 ([`c6651d272c40ff2b6df1164b657c17fd536ac0bd`](https://github.com/TooTallNate/nx.js/commit/c6651d272c40ff2b6df1164b657c17fd536ac0bd))
+
+- Update "terminal-image" to v3.0.0 ([`1a68790a39428ac48599073cf68f13feb783211b`](https://github.com/TooTallNate/nx.js/commit/1a68790a39428ac48599073cf68f13feb783211b))
+
+- Update "jimp" to v1.6.0 ([`f0bb46f0c9acac94b208b11f716973fd280c0f03`](https://github.com/TooTallNate/nx.js/commit/f0bb46f0c9acac94b208b11f716973fd280c0f03))
+
+- Updated dependencies [[`c6651d272c40ff2b6df1164b657c17fd536ac0bd`](https://github.com/TooTallNate/nx.js/commit/c6651d272c40ff2b6df1164b657c17fd536ac0bd)]:
+  - @nx.js/patch-nacp@0.1.1
+
 ## 0.0.57
 
 ## 0.0.56
