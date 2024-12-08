@@ -519,7 +519,7 @@ static SocketInitConfig const s_socketInitConfig = {
 	.sb_efficiency = 8,
 
 	.num_bsd_sessions = 3,
-	.bsd_service_type = BsdServiceType_User,
+	.bsd_service_type = BsdServiceType_Auto,
 };
 
 // Main program entrypoint

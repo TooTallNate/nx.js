@@ -11,9 +11,9 @@ const SB = 250; // Subnegotiation Begin
 const SE = 240; // Subnegotiation End
 
 /**
- * Create a TCP REPL server bound to "0.0.0.0:2323".
+ * Create a TCP REPL server bound to port 23.
  */
-const port = 2323;
+const port = 23;
 
 async function* telnetParser(reader: ReadableStreamDefaultReader<Uint8Array>) {
 	let buffer = new Uint8Array(0);

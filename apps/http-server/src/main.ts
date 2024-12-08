@@ -1,10 +1,12 @@
 import * as http from '@nx.js/http';
 
 /**
- * Create a HTTP server bound to "0.0.0.0:8080".
+ * Create an HTTP server bound to port 80.
  */
+const port = 80;
+
 http.listen({
-	port: 8080,
+	port,
 
 	fetch(req) {
 		console.log(`Got HTTP "${req.method}" request: ${req.url}`);
@@ -13,4 +15,4 @@ http.listen({
 });
 
 const { ip } = Switch.networkInfo();
-console.log('HTTP server listening on "%s:%d"', ip, 8080);
+console.log('HTTP server listening on "%s:%d"', ip, port);
