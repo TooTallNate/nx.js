@@ -1,5 +1,15 @@
 # @nx.js/runtime
 
+## 0.0.58
+
+### Patch Changes
+
+- Make `localStorage` be `undefined` if the "save_data_owner_id" property in the app's NACP is not set ([`aeb147d192ea41e7d1fdcb7c2c65e6856f64dc5f`](https://github.com/TooTallNate/nx.js/commit/aeb147d192ea41e7d1fdcb7c2c65e6856f64dc5f))
+
+- Enable `localStorage` based on "userAccountSaveDataSize" ([`fdbd1509f7a4092547afd92d7dcbf239ab292643`](https://github.com/TooTallNate/nx.js/commit/fdbd1509f7a4092547afd92d7dcbf239ab292643))
+
+- Allow TCP servers to bind to privileged ports (below 1024) ([`254dca1730deb9e5c961d4b4a1a7256e49ea5280`](https://github.com/TooTallNate/nx.js/commit/254dca1730deb9e5c961d4b4a1a7256e49ea5280))
+
 ## 0.0.57
 
 ### Patch Changes

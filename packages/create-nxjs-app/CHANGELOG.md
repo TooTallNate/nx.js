@@ -1,5 +1,13 @@
 # create-nxjs-app
 
+## 0.0.58
+
+### Patch Changes
+
+- Update `@clack/prompts` to v0.8.2 ([`008f6032be1b04bf34fa2fed42b090d5e3a9079d`](https://github.com/TooTallNate/nx.js/commit/008f6032be1b04bf34fa2fed42b090d5e3a9079d))
+
+- Set "productName" property in `package.json` when app name contains non-slug characters ([`f73b4737741cd65a8ecefc01d443a67dbc5676ed`](https://github.com/TooTallNate/nx.js/commit/f73b4737741cd65a8ecefc01d443a67dbc5676ed))
+
 ## 0.0.57
 
 ## 0.0.56

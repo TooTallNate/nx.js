@@ -1,6 +1,6 @@
 {
   "name": "@nx.js/nsp",
-  "version": "0.0.57",
+  "version": "0.0.58",
   "description": "Package nx.js applications into a `.nsp` file",
   "repository": {
     "type": "git",
@@ -30,7 +30,7 @@
   "author": "Nathan Rajlich <n@n8.io>",
   "license": "MIT",
   "dependencies": {
-    "@nx.js/patch-nacp": "0.1.0",
+    "@nx.js/patch-nacp": "1.0.0",
     "@tootallnate/nacp": "^0.2.0",
     "bytes": "^3.1.2",
     "chalk": "^5.3.0",
