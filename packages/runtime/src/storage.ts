@@ -111,6 +111,9 @@ def(Storage);
  * to determine the profile which the data will be stored for. If no user profile is currently selected,
  * then the profile selection interface is shown.
  *
+ * To disable `localStorage` entirely, set the `userAccountSaveDataSize` property of the application's
+ * NACP to `0`.
+ *
  * @see https://developer.mozilla.org/docs/Web/API/Window/localStorage
  */
 export declare var localStorage: Storage | undefined;
