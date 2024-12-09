@@ -17,7 +17,7 @@ export * from '../fs';
 export * from './inspect';
 export * from './savedata';
 export * from './nifm';
-export { Application } from './ns';
+export * from './ns';
 export * from './irsensor';
 export * from './profile';
 export * from './album';

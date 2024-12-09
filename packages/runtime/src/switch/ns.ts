@@ -19,9 +19,6 @@ function _init() {
 	init = true;
 }
 
-export const getSaveDataOwnerId = (app: Application) =>
-	new DataView(app.nacp).getBigUint64(0x3078, true);
-
 /**
  * Represents an installed application (game) on the console,
  * or a homebrew application (`.nro` file).
@@ -172,7 +169,7 @@ export class Application {
 	}
 
 	filterSaveData(fn?: (saveData: SaveData) => boolean) {
-		const id = getSaveDataOwnerId(this);
+		const id = new DataView(this.nacp).getBigUint64(0x3078, true);
 		return Iterator.from(SaveData).filter((s) => {
 			if (s.applicationId !== id) return false;
 			return fn ? fn(s) : true;

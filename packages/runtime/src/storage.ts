@@ -2,7 +2,7 @@ import { $ } from './$';
 import { readFileSync, removeSync, writeFileSync } from './fs';
 import { URL } from './polyfills/url';
 import { Profile } from './switch/profile';
-import { Application, getSaveDataOwnerId } from './switch/ns';
+import { Application } from './switch/ns';
 import { INTERNAL_SYMBOL } from './internal';
 import {
 	def,
@@ -121,12 +121,15 @@ Object.defineProperty(globalThis, 'localStorage', {
 	get() {
 		const { self } = Application;
 
-		// If the app's NACP dpes not contain a save data owner ID,
+		// If the app's NACP does not define a `userAccountSaveDataSize`,
 		// then `localStorage` returns `undefined`. This can be useful
 		// to prevent the profile selector from being shown when 3rd
 		// party modules unwantingly attempt to access `localStorage`.
-		const saveDataOwnerId = getSaveDataOwnerId(self);
-		if (!saveDataOwnerId) {
+		const userAccountSaveDataSize = new DataView(self.nacp).getBigUint64(
+			0x3080,
+			true,
+		);
+		if (!userAccountSaveDataSize) {
 			Object.defineProperty(globalThis, 'localStorage', { value: undefined });
 			return;
 		}
