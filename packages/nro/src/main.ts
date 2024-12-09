@@ -52,21 +52,27 @@ console.log(`  JPEG size: ${bytes(logoBuf.length).toLowerCase()}`);
 console.log(await terminalImage.buffer(logoBuf, { height: 18 }));
 
 // NACP
-const nacp = new NACP(await nxjsNro.nacp!.arrayBuffer());
-const packageJson = patchNACP(nacp, new URL('package.json', appRoot));
+const originalNacp = new NACP(await nxjsNro.nacp!.arrayBuffer());
+const nacp = new NACP(originalNacp.buffer.slice(0));
+const { packageJson, updated, warnings } = patchNACP(
+	nacp,
+	new URL('package.json', appRoot),
+);
 console.log();
-console.log(chalk.bold('Setting metadata:'));
-console.log(`  ID: ${chalk.green(nacp.id.toString(16).padStart(16, '0'))}`);
-console.log(`  Title: ${chalk.green(nacp.title)}`);
-console.log(`  Version: ${chalk.green(nacp.version)}`);
-console.log(`  Author: ${chalk.green(nacp.author)}`);
+console.log(chalk.bold('NACP Metadata:'));
+for (const warning of warnings) {
+	console.log(chalk.yellow(`⚠️  ${warning}`));
+}
+for (const [k, v] of updated) {
+	console.log(`  ${chalk.green(k)}: ${v}`);
+}
 
 // RomFS
 const romfsDir = new URL('romfs/', appRoot);
 const romfsDirPath = fileURLToPath(romfsDir);
 const romfs = await RomFS.decode(nxjsNro.romfs!);
 console.log();
-console.log(chalk.bold('Adding RomFS files:'));
+console.log(chalk.bold('RomFS Files:'));
 
 function walk(dir: URL, dirEntry: RomFS.RomFsEntry) {
 	for (const name of readdirSync(dir)) {

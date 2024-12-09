@@ -100,15 +100,20 @@ try {
 		throw err;
 	}
 
-	const packageJson = patchNACP(nacp, new URL('package.json', appRoot));
+	const { packageJson, updated, warnings } = patchNACP(
+		nacp,
+		new URL('package.json', appRoot),
+	);
 	writeFileSync(new URL('control.nacp', controlDir), Buffer.from(nacp.buffer));
 	const titleid = nacp.id.toString(16).padStart(16, '0');
 	console.log();
-	console.log(chalk.bold('Setting metadata:'));
-	console.log(`  ID: ${chalk.green(titleid)}`);
-	console.log(`  Title: ${chalk.green(nacp.title)}`);
-	console.log(`  Version: ${chalk.green(nacp.version)}`);
-	console.log(`  Author: ${chalk.green(nacp.author)}`);
+	console.log(chalk.bold('NACP Metadata:'));
+	for (const warning of warnings) {
+		console.log(chalk.yellow(`⚠️  ${warning}`));
+	}
+	for (const [k, v] of updated) {
+		console.log(`  ${chalk.green(k)}: ${v}`);
+	}
 
 	// RomFS
 	for (const file of readdirSync(baseRomfsDir)) {
