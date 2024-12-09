@@ -25,6 +25,23 @@ console.log(`App last opened: ${lastOpenedString}`);
 localStorage.lastOpened = Date.now();
 ```
 
+### Disabling localStorage
+
+If your application does not need to persist save data, then you can disable the `localStorage`
+API by setting the `nacp.userAccountSaveDataSize` property in `package.json` to `0`:
+
+```json title="package.json"
+{
+  "nacp": {
+    "userAccountSaveDataSize": "0"
+  }
+}
+```
+
+When this value is set, accessing `localStorage` will return `undefined`.
+This prevents the profile selector from being shown, if any 3rd party modules
+attempt to access `localStorage`.
+
 ## Accessing save data for other applications
 
 The low-level save data interface allows mounting the save data filesystem for any installed application and for the various types of save data filesystems (account, cache, bcat, etc.).
