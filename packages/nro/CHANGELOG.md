@@ -1,5 +1,20 @@
 # @nx.js/nro
 
+## 0.0.58
+
+### Patch Changes
+
+- Update "@tootallnate/nacp" to v0.1.0 ([`c6651d272c40ff2b6df1164b657c17fd536ac0bd`](https://github.com/TooTallNate/nx.js/commit/c6651d272c40ff2b6df1164b657c17fd536ac0bd))
+
+- Update "@tootallnate/nro" to v0.1.1 ([`1316c7866ba90bc44316a9ab0fd57c5ac76a868c`](https://github.com/TooTallNate/nx.js/commit/1316c7866ba90bc44316a9ab0fd57c5ac76a868c))
+
+- Update "terminal-image" to v3.0.0 ([`1a68790a39428ac48599073cf68f13feb783211b`](https://github.com/TooTallNate/nx.js/commit/1a68790a39428ac48599073cf68f13feb783211b))
+
+- Support setting NACP metadata properties via the "nacp" object in `package.json` ([`e35eb23ef5b84542b9c4ce1ac9bceb64ee56ee84`](https://github.com/TooTallNate/nx.js/commit/e35eb23ef5b84542b9c4ce1ac9bceb64ee56ee84))
+
+- Updated dependencies [[`c6651d272c40ff2b6df1164b657c17fd536ac0bd`](https://github.com/TooTallNate/nx.js/commit/c6651d272c40ff2b6df1164b657c17fd536ac0bd), [`e35eb23ef5b84542b9c4ce1ac9bceb64ee56ee84`](https://github.com/TooTallNate/nx.js/commit/e35eb23ef5b84542b9c4ce1ac9bceb64ee56ee84)]:
+  - @nx.js/patch-nacp@1.0.0
+
 ## 0.0.57
 
 ## 0.0.56
