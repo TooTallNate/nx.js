@@ -1,5 +1,11 @@
 # @nx.js/patch-nacp
 
+## 1.0.1
+
+### Patch Changes
+
+- Print message when `localStorage` is disabled ([`7f6e4d72bd1cfe0fc304f60766099aa442fb4ae4`](https://github.com/TooTallNate/nx.js/commit/7f6e4d72bd1cfe0fc304f60766099aa442fb4ae4))
+
 ## 1.0.0
 
 ### Major Changes

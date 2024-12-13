@@ -1,6 +1,6 @@
 {
   "name": "@nx.js/nro",
-  "version": "0.0.58",
+  "version": "0.0.59",
   "description": "Package nx.js app into a `.nro` file",
   "repository": {
     "type": "git",
@@ -24,7 +24,7 @@
   "author": "Nathan Rajlich <n@n8.io>",
   "license": "MIT",
   "dependencies": {
-    "@nx.js/patch-nacp": "1.0.0",
+    "@nx.js/patch-nacp": "1.0.1",
     "@tootallnate/nacp": "^0.2.0",
     "@tootallnate/nro": "^0.1.2",
     "@tootallnate/romfs": "^0.1.0",
