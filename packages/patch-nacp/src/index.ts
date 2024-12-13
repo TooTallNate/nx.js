@@ -75,7 +75,11 @@ export function patchNACP(nacp: NACP, packageJsonUrl: URL) {
 		if (newValue !== oldValue) {
 			const titleCased =
 				k === 'id' ? 'ID' : titleCase(k.replace(/([A-Z])/g, ' $1'));
-			updated.set(titleCased, newValue);
+			let label = newValue;
+			if (k === 'userAccountSaveDataSize' && newValue === 0n) {
+				label = `${newValue} (\`localStorage\` disabled)`;
+			}
+			updated.set(titleCased, label);
 		}
 	}
 
