@@ -12,6 +12,9 @@ nx_app_t *nx_get_app(JSContext *ctx, JSValueConst obj) {
 static void finalizer_app(JSRuntime *rt, JSValue val) {
 	nx_app_t *app = JS_GetOpaque(val, nx_app_class_id);
 	if (app) {
+		if (app->icon) {
+			js_free_rt(rt, app->icon);
+		}
 		js_free_rt(rt, app);
 	}
 }
@@ -84,11 +87,16 @@ static JSValue nx_ns_app_new(JSContext *ctx, JSValueConst this_val, int argc,
 
 		// Seek to the icon section offset and read the icon data
 		fseek(file, asset_header_offset + icon_section_offset, SEEK_SET);
-		fread(&data->data.icon, icon_section_size, 1, file);
+		data->icon = js_malloc(ctx, icon_section_size);
+		if (!data->icon) {
+			fclose(file);
+			return JS_EXCEPTION;
+		}
+		fread(data->icon, icon_section_size, 1, file);
 
 		// Seek to the nacp section offset and read the nacp data
 		fseek(file, asset_header_offset + nacp_section_offset, SEEK_SET);
-		fread(&data->data.nacp, nacp_section_size, 1, file);
+		fread(&data->nacp, nacp_section_size, 1, file);
 
 		free(asset_header);
 		fclose(file);
@@ -106,9 +114,13 @@ static JSValue nx_ns_app_new(JSContext *ctx, JSValueConst this_val, int argc,
 		u32 icon_section_size = *(u32 *)(asset_header + 0x10);
 		u32 nacp_section_offset = *(u32 *)(asset_header + 0x18);
 		u32 nacp_section_size = *(u32 *)(asset_header + 0x20);
-		memcpy(&data->data.icon, asset_header + icon_section_offset,
+		data->icon = js_mallocz(ctx, icon_section_size);
+		if (!data->icon) {
+			return JS_EXCEPTION;
+		}
+		memcpy(data->icon, asset_header + icon_section_offset,
 			   icon_section_size);
-		memcpy(&data->data.nacp, asset_header + nacp_section_offset,
+		memcpy(&data->nacp, asset_header + nacp_section_offset,
 			   nacp_section_size);
 		data->icon_size = icon_section_size;
 		loaded = true;
@@ -116,14 +128,21 @@ static JSValue nx_ns_app_new(JSContext *ctx, JSValueConst this_val, int argc,
 
 	if (!loaded) {
 		size_t outSize;
+		NsApplicationControlData buf;
 		Result rc = nsGetApplicationControlData(
-			NsApplicationControlSource_Storage, application_id, &data->data,
-			sizeof(data->data), &outSize);
+			NsApplicationControlSource_Storage, application_id, &buf,
+			sizeof(NsApplicationControlData), &outSize);
 		if (R_FAILED(rc)) {
 			return nx_throw_libnx_error(ctx, rc,
 										"nsGetApplicationControlData()");
 		}
-		data->icon_size = outSize > 0 ? outSize - sizeof(data->data.nacp) : 0;
+		data->icon_size = outSize > 0 ? outSize - sizeof(buf.nacp) : 0;
+		data->icon = js_malloc(ctx, data->icon_size);
+		if (!data->icon) {
+			return JS_EXCEPTION;
+		}
+		memcpy(data->icon, &buf.icon, data->icon_size);
+		memcpy(&data->nacp, &buf.nacp, sizeof(NacpStruct));
 	}
 
 	JSValue app = JS_NewObjectClass(ctx, nx_app_class_id);
@@ -137,7 +156,7 @@ static JSValue nx_ns_app_id(JSContext *ctx, JSValueConst this_val, int argc,
 	if (!app) {
 		return JS_EXCEPTION;
 	}
-	return JS_NewBigUint64(ctx, app->data.nacp.presence_group_id);
+	return JS_NewBigUint64(ctx, app->nacp.presence_group_id);
 }
 
 static JSValue nx_ns_app_nacp(JSContext *ctx, JSValueConst this_val, int argc,
@@ -146,8 +165,7 @@ static JSValue nx_ns_app_nacp(JSContext *ctx, JSValueConst this_val, int argc,
 	if (!app) {
 		return JS_EXCEPTION;
 	}
-	return JS_NewArrayBufferCopy(ctx, (uint8_t *)&app->data.nacp,
-								 sizeof(app->data.nacp));
+	return JS_NewArrayBufferCopy(ctx, (uint8_t *)&app->nacp, sizeof(app->nacp));
 }
 
 static JSValue nx_ns_app_icon(JSContext *ctx, JSValueConst this_val, int argc,
@@ -159,8 +177,7 @@ static JSValue nx_ns_app_icon(JSContext *ctx, JSValueConst this_val, int argc,
 	if (app->icon_size <= 0) {
 		return JS_UNDEFINED;
 	}
-	return JS_NewArrayBufferCopy(ctx, (uint8_t *)&app->data.icon,
-								 app->icon_size);
+	return JS_NewArrayBufferCopy(ctx, (uint8_t *)app->icon, app->icon_size);
 }
 
 static JSValue nx_ns_app_name(JSContext *ctx, JSValueConst this_val, int argc,
@@ -170,7 +187,7 @@ static JSValue nx_ns_app_name(JSContext *ctx, JSValueConst this_val, int argc,
 		return JS_EXCEPTION;
 	}
 	NacpLanguageEntry *langEntry;
-	Result rc = nacpGetLanguageEntry(&app->data.nacp, &langEntry);
+	Result rc = nacpGetLanguageEntry(&app->nacp, &langEntry);
 	if (R_FAILED(rc)) {
 		return nx_throw_libnx_error(ctx, rc, "nacpGetLanguageEntry()");
 	}
@@ -188,7 +205,7 @@ static JSValue nx_ns_app_author(JSContext *ctx, JSValueConst this_val, int argc,
 		return JS_EXCEPTION;
 	}
 	NacpLanguageEntry *langEntry;
-	Result rc = nacpGetLanguageEntry(&app->data.nacp, &langEntry);
+	Result rc = nacpGetLanguageEntry(&app->nacp, &langEntry);
 	if (R_FAILED(rc)) {
 		return nx_throw_libnx_error(ctx, rc, "nacpGetLanguageEntry()");
 	}
@@ -227,7 +244,7 @@ static JSValue nx_ns_app_version(JSContext *ctx, JSValueConst this_val,
 	if (!app) {
 		return JS_EXCEPTION;
 	}
-	return JS_NewString(ctx, app->data.nacp.display_version);
+	return JS_NewString(ctx, app->nacp.display_version);
 }
 
 static JSValue nx_ns_app_init(JSContext *ctx, JSValueConst this_val, int argc,

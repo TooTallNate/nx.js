@@ -2,8 +2,9 @@
 #include "types.h"
 
 typedef struct {
+	void *icon;
 	size_t icon_size;
-	NsApplicationControlData data;
+	NacpStruct nacp;
 } nx_app_t;
 
 nx_app_t *nx_get_app(JSContext *ctx, JSValueConst obj);
