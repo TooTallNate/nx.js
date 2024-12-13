@@ -1,5 +1,11 @@
 # @nx.js/runtime
 
+## 0.0.59
+
+### Patch Changes
+
+- Allow `Switch.Application` "icon" to be larger than 131072 (0x20000) bytes ([`66ceb150c8e511f876501bb8320e04e127a57f75`](https://github.com/TooTallNate/nx.js/commit/66ceb150c8e511f876501bb8320e04e127a57f75))
+
 ## 0.0.58
 
 ### Patch Changes
