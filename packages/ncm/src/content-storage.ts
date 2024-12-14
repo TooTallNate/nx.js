@@ -172,8 +172,8 @@ export class NcmContentStorage {
 			],
 			buffers: [out],
 		});
-		// TODO: null terminator
-		return new TextDecoder().decode(new Uint8Array(out));
+		const nul = new Uint8Array(out).indexOf(0);
+		return new TextDecoder().decode(out.slice(0, nul));
 	}
 
 	getPlaceHolderPath(placeholderId: NcmPlaceHolderId): string {
@@ -196,8 +196,8 @@ export class NcmContentStorage {
 			],
 			buffers: [out],
 		});
-		// TODO: null terminator
-		return new TextDecoder().decode(new Uint8Array(out));
+		const nul = new Uint8Array(out).indexOf(0);
+		return new TextDecoder().decode(out.slice(0, nul));
 	}
 
 	cleanupAllPlaceHolder() {
@@ -237,7 +237,10 @@ export class NcmContentStorage {
 		return out[0];
 	}
 
-	listContentId(startOffset = 0, maxCount = 20): NcmContentId[] {
+	listContentId(
+		startOffset = 0,
+		maxCount = this.getContentCount(),
+	): NcmContentId[] {
 		//Result ncmContentStorageListContentId(NcmContentStorage* cs, NcmContentId* out_ids, s32 count, s32* out_count, s32 start_offset) {
 		//	return serviceDispatchInOut(&cs->s, 13, start_offset, *out_count,
 		//		.buffer_attrs = { SfBufferAttr_HipcMapAlias | SfBufferAttr_Out },
