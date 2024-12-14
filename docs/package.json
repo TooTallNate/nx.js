@@ -22,6 +22,7 @@
     "@nx.js/constants": "workspace:*",
     "@nx.js/clkrst": "workspace:*",
     "@nx.js/http": "workspace:*",
+    "@nx.js/ncm": "workspace:*",
     "@nx.js/repl": "workspace:*",
     "@types/mdx": "^2.0.13",
     "@types/node": "20",

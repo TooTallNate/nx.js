@@ -1,5 +1,6 @@
 import {
 	TbClockBolt,
+	TbDatabaseEdit,
 	TbGlobe,
 	TbBrowser,
 	TbBraces,
@@ -41,6 +42,12 @@ export function Toggle() {
 					description: 'Inspection utility for nx.js',
 					url: '/inspect',
 					icon: <TbZoomQuestion size={24} />,
+				},
+				{
+					title: '@nx.js/ncm',
+					description: 'Content manager API',
+					url: '/ncm',
+					icon: <TbDatabaseEdit size={24} />,
 				},
 				{
 					title: '@nx.js/repl',
