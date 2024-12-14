@@ -580,6 +580,22 @@ importers:
         specifier: ^2.0.5
         version: 2.0.5
 
+  packages/ncm:
+    dependencies:
+      '@nx.js/constants':
+        specifier: ^0.3.0
+        version: link:../constants
+    devDependencies:
+      '@nx.js/runtime':
+        specifier: workspace:*
+        version: link:../runtime
+      vite:
+        specifier: ^5.4.2
+        version: 5.4.2
+      vitest:
+        specifier: ^2.0.5
+        version: 2.0.5
+
   packages/nro:
     dependencies:
       '@nx.js/patch-nacp':
