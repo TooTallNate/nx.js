@@ -152,6 +152,9 @@ export type * from './canvas/offscreen-canvas-rendering-context-2d';
 import './ambientlightsensor';
 export type * from './ambientlightsensor';
 
+import './dom-exception';
+export type * from './dom-exception';
+
 import { dispatchTouchEvents } from './touchscreen';
 import { dispatchKeyboardEvents } from './keyboard';
 
