@@ -60,13 +60,19 @@ export enum NcmContentMetaPlatform {
 //typedef struct {
 //    u8 c[0x10]; ///< Id
 //} NcmContentId;
-export type NcmContentId = ArrayBuffer;
+declare const contentIdSymbol: unique symbol;
+export type NcmContentId = ArrayBuffer & {
+	[contentIdSymbol]: void;
+};
 
 /// PlaceHolderId
 //typedef struct {
 //    Uuid uuid;  ///< UUID
 //} NcmPlaceHolderId;
-export type NcmPlaceHolderId = ArrayBuffer;
+declare const placeHolderIdSymbol: unique symbol;
+export type NcmPlaceHolderId = ArrayBuffer & {
+	[placeHolderIdSymbol]: void;
+};
 
 /// ContentMetaKey
 //typedef struct {

@@ -85,7 +85,7 @@ export class NcmContentMetaDatabase {
 		inArr.set(new Uint8Array(key), 0x8);
 		const out = new ArrayBuffer(0x10);
 		this.#srv.dispatchInOut(3, inData, out);
-		return out;
+		return out as NcmContentId;
 	}
 
 	has(key: NcmContentMetaKey): boolean {

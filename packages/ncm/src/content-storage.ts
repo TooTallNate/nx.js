@@ -33,7 +33,7 @@ export class NcmContentStorage {
 		//}
 		const uuid = new ArrayBuffer(0x10);
 		this.#srv.dispatchOut(0, uuid);
-		return uuid;
+		return uuid as NcmPlaceHolderId;
 	}
 
 	createPlaceHolder(
@@ -223,7 +223,7 @@ export class NcmContentStorage {
 		const outCount = out[0];
 		const rtn: NcmPlaceHolderId[] = new Array(outCount);
 		for (let i = 0; i < outCount; i++) {
-			rtn[i] = outIds.slice(i * 0x10, i * 0x10 + 0x10);
+			rtn[i] = outIds.slice(i * 0x10, i * 0x10 + 0x10) as NcmPlaceHolderId;
 		}
 		return rtn;
 	}
@@ -257,7 +257,7 @@ export class NcmContentStorage {
 		const outCount = out[0];
 		const rtn: NcmContentId[] = new Array(outCount);
 		for (let i = 0; i < outCount; i++) {
-			rtn[i] = outIds.slice(i * 0x10, i * 0x10 + 0x10);
+			rtn[i] = outIds.slice(i * 0x10, i * 0x10 + 0x10) as NcmContentId;
 		}
 		return rtn;
 	}
