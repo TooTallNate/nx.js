@@ -11,7 +11,6 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
-    "test": "vitest",
     "docs": "typedoc && ../../type-aliases-meta.sh"
   },
   "files": [
@@ -24,9 +23,7 @@
     "@nx.js/constants": "^0.3.0"
   },
   "devDependencies": {
-    "@nx.js/runtime": "workspace:*",
-    "vite": "^5.4.2",
-    "vitest": "^2.0.5"
+    "@nx.js/runtime": "workspace:*"
   },
   "keywords": [
     "nx.js",

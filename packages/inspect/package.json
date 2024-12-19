@@ -12,7 +12,6 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
-    "test": "vitest",
     "docs": "typedoc && ../../type-aliases-meta.sh"
   },
   "files": [
@@ -23,10 +22,6 @@
   },
   "dependencies": {
     "kleur": "github:TooTallNate/kleur#rgb"
-  },
-  "devDependencies": {
-    "vite": "^5.4.2",
-    "vitest": "^2.0.5"
   },
   "keywords": [
     "nx.js",
