@@ -12,17 +12,19 @@ For distribution, you will likely want to customize the metadata for your applic
 
 <Screenshot src={HbmenuScreenshot} />
 
-## Title ID
+## ID
 
 The title ID of your application is used to uniquely identify your application. This is
 primarily relevant when utilizing the [Save Data API](/runtime/concepts/save-data) via `localStorage`.
 
-To set the title ID of your application, add a `titleId` property to your `package.json` file.
+To set the title ID of your application, add the `nacp.id` property to your `package.json` file.
 It should contain a 16-character hexadecimal string which starts with `01` and ends with `0000`:
 
 ```json title="package.json"
 {
-  "titleId": "0123456789ab0000"
+  "nacp": {
+    "id": "0123456789ab0000"
+  }
 }
 ```
 
@@ -30,24 +32,23 @@ It should contain a 16-character hexadecimal string which starts with `01` and e
 > The `create-nxjs-app` tool automatically generates a random title ID for you,
 > so normally you will not need to create this property manually.
 
-## Name
+## Title
 
-To set the title of your application (as shown in the homebrew menu), add either a
-[`productName`](https://www.electron.build/configuration.html#productname) (as made popular by Electron)
-or [`name`](https://docs.npmjs.com/cli/v10/configuring-npm/package-json#name) property
-to your `package.json` file:
+To set the title of your application (as will be shown in the homebrew menu),
+add the `nacp.title` property in your `package.json` file:
 
 ```json title="package.json"
 {
-  "productName": "My Application",
-  "name": "my-application"
+  "name": "my-application",
+  "nacp": {
+    "title": "My Application"
+  }
 }
 ```
 
 > [!TIP]
-> `productName` takes precedence over `name`, and allows for a "pretty" name to be
-> displayed for your app. But it's recommended to specify both properties, since
-> package managers will complain if `name` is missing.
+> Setting `nacp.title` is preferred since it allows for spaces, uppercase characters, etc.
+> If not defined, then the root-level `name` property will be used.
 
 ## Version
 
