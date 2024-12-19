@@ -673,6 +673,9 @@ importers:
         specifier: ^1.0.5
         version: 1.0.5
     devDependencies:
+      '@nx.js/inspect':
+        specifier: workspace:*
+        version: link:../inspect
       '@nx.js/runtime':
         specifier: workspace:*
         version: link:../runtime

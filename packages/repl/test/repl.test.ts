@@ -1,13 +1,11 @@
-import util from 'node:util';
+import { createInspect } from '@nx.js/inspect';
 import { describe, expect, test } from 'vitest';
 import { REPL, type REPLOptions } from '../src/index';
 
 const encoder = new TextEncoder();
 
 const opts: REPLOptions = {
-	inspect(v: unknown): string {
-		return util.inspect(v);
-	},
+	inspect: createInspect(),
 };
 
 describe('REPL', () => {
@@ -61,10 +59,10 @@ describe('REPL', () => {
 
 			chunk = await reader.read();
 			expect(chunk.value).toMatchInlineSnapshot(`
-        "2
+				"[1m[33m2[39m[22m
 
-        "
-      `);
+				"
+			`);
 
 			expect(globalThis._).toBe(2);
 		});
