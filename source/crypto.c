@@ -1,6 +1,7 @@
 #include "crypto.h"
 #include "async.h"
 #include "errno.h"
+#include <mbedtls/sha512.h>
 #include <string.h>
 #include <switch.h>
 
@@ -47,6 +48,8 @@ typedef struct {
 enum nx_crypto_algorithm {
 	NX_CRYPTO_SHA1,
 	NX_CRYPTO_SHA256,
+	NX_CRYPTO_SHA384,
+	NX_CRYPTO_SHA512,
 };
 
 // Function to pad the input buffer to a multiple of `block_size`
@@ -98,6 +101,12 @@ void nx_crypto_digest_do(nx_work_t *req) {
 	} else if (strcasecmp(data->algorithm, "SHA-256") == 0) {
 		alg = NX_CRYPTO_SHA256;
 		data->result_size = SHA256_HASH_SIZE;
+	} else if (strcasecmp(data->algorithm, "SHA-384") == 0) {
+		alg = NX_CRYPTO_SHA384;
+		data->result_size = 0x30;
+	} else if (strcasecmp(data->algorithm, "SHA-512") == 0) {
+		alg = NX_CRYPTO_SHA512;
+		data->result_size = 0x40;
 	}
 	if (alg == -1) {
 		data->err = ENOTSUP;
@@ -114,6 +123,16 @@ void nx_crypto_digest_do(nx_work_t *req) {
 		break;
 	case NX_CRYPTO_SHA256:
 		sha256CalculateHash(data->result, data->data, data->size);
+		break;
+	case NX_CRYPTO_SHA384:
+	case NX_CRYPTO_SHA512:
+		mbedtls_sha512_context ctx;
+		mbedtls_sha512_init(&ctx);
+		mbedtls_sha512_starts(
+			&ctx, alg == NX_CRYPTO_SHA384); // 0 for SHA-512, 1 for SHA-384
+		mbedtls_sha512_update(&ctx, data->data, data->size);
+		mbedtls_sha512_finish(&ctx, data->result);
+		mbedtls_sha512_free(&ctx);
 		break;
 	}
 }
