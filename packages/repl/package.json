@@ -22,7 +22,7 @@
     "access": "public"
   },
   "dependencies": {
-    "kleur": "^4.1.5",
+    "kleur": "github:TooTallNate/kleur#rgb",
     "sisteransi": "^1.0.5"
   },
   "devDependencies": {
