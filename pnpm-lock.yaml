@@ -464,6 +464,9 @@ importers:
       '@nx.js/http':
         specifier: workspace:*
         version: link:../packages/http
+      '@nx.js/ncm':
+        specifier: workspace:*
+        version: link:../packages/ncm
       '@nx.js/repl':
         specifier: workspace:*
         version: link:../packages/repl
@@ -573,6 +576,22 @@ importers:
         specifier: github:TooTallNate/kleur#rgb
         version: github.com/TooTallNate/kleur/aa22b05da68d29ff6d2ce5eba5895ac654b7f25a
     devDependencies:
+      vite:
+        specifier: ^5.4.2
+        version: 5.4.2
+      vitest:
+        specifier: ^2.0.5
+        version: 2.0.5
+
+  packages/ncm:
+    dependencies:
+      '@nx.js/constants':
+        specifier: ^0.3.0
+        version: link:../constants
+    devDependencies:
+      '@nx.js/runtime':
+        specifier: workspace:*
+        version: link:../runtime
       vite:
         specifier: ^5.4.2
         version: 5.4.2
