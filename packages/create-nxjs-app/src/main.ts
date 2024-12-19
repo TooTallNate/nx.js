@@ -193,15 +193,16 @@ try {
 		packageJsonUrl,
 		`${JSON.stringify(
 			{
-				// Generate a random Title ID, which is used for
-				// save data purposes (i.e. `localStorage`)
-				titleId: generateRandomID(),
-
-				// Set the `productName` to the app name if it's different
-				// from the slugified name, for usage in NRO/NSP app metadata
-				productName: appName !== slugifiedName ? appName : undefined,
-
 				...packageJson,
+				nacp: {
+					// Generate a random Title ID, which is used for
+					// save data purposes (i.e. `localStorage`)
+					id: generateRandomID(),
+
+					// Set the `nacp.title` to the app name if it's different
+					// from the slugified name, for usage in NRO/NSP app metadata
+					title: appName !== slugifiedName ? appName : undefined,
+				},
 			},
 			null,
 			2,
