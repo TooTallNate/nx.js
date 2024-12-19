@@ -41,6 +41,10 @@
         "*.nro"
       ]
     },
-    "test": {}
+    "test": {
+      "dependsOn": [
+        "^build"
+      ]
+    }
   }
 }
