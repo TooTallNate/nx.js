@@ -667,8 +667,8 @@ importers:
   packages/repl:
     dependencies:
       kleur:
-        specifier: ^4.1.5
-        version: 4.1.5
+        specifier: github:TooTallNate/kleur#rgb
+        version: github.com/TooTallNate/kleur/aa22b05da68d29ff6d2ce5eba5895ac654b7f25a
       sisteransi:
         specifier: ^1.0.5
         version: 1.0.5

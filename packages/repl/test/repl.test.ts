@@ -1,3 +1,6 @@
+import { $ } from 'kleur/colors';
+$.enabled = true;
+
 import { createInspect } from '@nx.js/inspect';
 import { describe, expect, test } from 'vitest';
 import { REPL, type REPLOptions } from '../src/index';
