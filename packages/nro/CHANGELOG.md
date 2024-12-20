@@ -1,5 +1,12 @@
 # @nx.js/nro
 
+## 0.0.60
+
+### Patch Changes
+
+- Updated dependencies [[`e10c419ae8f205cf0ce00c2ea21546505eff5d1d`](https://github.com/TooTallNate/nx.js/commit/e10c419ae8f205cf0ce00c2ea21546505eff5d1d)]:
+  - @nx.js/patch-nacp@2.0.0
+
 ## 0.0.59
 
 ### Patch Changes

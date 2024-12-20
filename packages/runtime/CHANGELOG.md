@@ -1,5 +1,13 @@
 # @nx.js/runtime
 
+## 0.0.60
+
+### Patch Changes
+
+- Add `DOMException` ([`568202cf443ff219fe11bc17e9429554010d6397`](https://github.com/TooTallNate/nx.js/commit/568202cf443ff219fe11bc17e9429554010d6397))
+
+- Make `Switch.FsFile#slice()` work as expected ([`da5fa185ea135915d107ad46110dd5c9d68a8a3d`](https://github.com/TooTallNate/nx.js/commit/da5fa185ea135915d107ad46110dd5c9d68a8a3d))
+
 ## 0.0.59
 
 ### Patch Changes
