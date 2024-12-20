@@ -5,6 +5,7 @@ import {
 	bufferSourceToArrayBuffer,
 	createInternal,
 	def,
+	stub,
 } from './utils';
 import { CryptoKey } from './crypto/crypto-key';
 import type {
@@ -140,6 +141,14 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 		assertInternalConstructor(arguments);
 	}
 
+	/**
+	 * Decrypts some encrypted data.
+	 *
+	 * It takes as arguments a key to decrypt with, some optional extra parameters, and the data to decrypt (also known as "ciphertext").
+	 *
+	 * @returns A Promise which will be fulfilled with the decrypted data (also known as "plaintext") as an `ArrayBuffer`.
+	 * @see https://developer.mozilla.org/docs/Web/API/SubtleCrypto/decrypt
+	 */
 	decrypt(
 		algorithm:
 			| AlgorithmIdentifier
@@ -150,7 +159,7 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 		key: CryptoKey,
 		data: BufferSource,
 	): Promise<ArrayBuffer> {
-		throw new Error('Method not implemented.');
+		stub();
 	}
 
 	deriveBits(
@@ -278,6 +287,12 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 		throw new Error('Method not implemented.');
 	}
 
+	/**
+	 * Takes as input a key in an external, portable format and gives you a
+	 * {@link CryptoKey} object that you can use in the Web Crypto API.
+	 *
+	 * @see https://developer.mozilla.org/docs/Web/API/SubtleCrypto/importKey
+	 */
 	importKey(
 		format: 'jwk',
 		keyData: JsonWebKey,
@@ -381,6 +396,7 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 		throw new Error('Method not implemented.');
 	}
 }
+$.cryptoSubtleInit(SubtleCrypto);
 def(SubtleCrypto);
 
 function normalizeAlgorithm(algorithm: AlgorithmIdentifier): Algorithm {

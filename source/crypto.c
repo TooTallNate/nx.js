@@ -92,6 +92,22 @@ static void free_array_buffer(JSRuntime *rt, void *opaque, void *ptr) {
 	free(ptr);
 }
 
+u8 *NX_GetBufferSource(JSContext *ctx, size_t *size, JSValueConst obj) {
+	if (JS_IsArrayBuffer(obj)) {
+		return JS_GetArrayBuffer(ctx, size, obj);
+	}
+	// Assume it's a typed array
+	size_t bpe = 0;
+	size_t offset = 0;
+	size_t ab_size = 0;
+	JSValue ab = JS_GetTypedArrayBuffer(ctx, obj, &offset, size, &bpe);
+	u8 *ptr = JS_GetArrayBuffer(ctx, &ab_size, ab);
+	if (!ptr) {
+		return ptr;
+	}
+	return ptr + offset;
+}
+
 void nx_crypto_digest_do(nx_work_t *req) {
 	nx_crypto_digest_async_t *data = (nx_crypto_digest_async_t *)req->data;
 	enum nx_crypto_algorithm alg = -1;
@@ -213,17 +229,19 @@ void nx_crypto_encrypt_do(nx_work_t *req) {
 								 xts_params->sector_size);
 
 				dst = (u8 *)dst + xts_params->sector_size;
-				src = (const u8 *)src + xts_params->sector_size;
+				src = (u8 *)src + xts_params->sector_size;
 			}
 		} else if (aes->key_length == 24) {
 			aes192XtsContextResetTweak(&aes->encrypt.xts_192,
 									   xts_params->tweak);
-			// aes192XtsEncrypt(&aes->encrypt.xts_192, data->result, data->data,
+			// aes192XtsEncrypt(&aes->encrypt.xts_192, data->result,
+			// data->data,
 			//				 data->data_size);
 		} else if (aes->key_length == 32) {
 			aes256XtsContextResetTweak(&aes->encrypt.xts_256,
 									   xts_params->tweak);
-			// aes256XtsEncrypt(&aes->encrypt.xts_256, data->result, data->data,
+			// aes256XtsEncrypt(&aes->encrypt.xts_256, data->result,
+			// data->data,
 			//				 data->data_size);
 		}
 	}
@@ -283,7 +301,6 @@ static JSValue nx_crypto_encrypt(JSContext *ctx, JSValueConst this_val,
 			js_free(ctx, cbc_params);
 			return JS_EXCEPTION;
 		}
-		printf("size: %lu\n", size);
 		data->algorithm_params = cbc_params;
 	} else if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_AES_XTS) {
 		nx_crypto_aes_xts_params_t *xts_params =
@@ -683,9 +700,199 @@ static JSValue nx_crypto_key_init(JSContext *ctx, JSValueConst this_val,
 	return JS_UNDEFINED;
 }
 
+void nx_crypto_decrypt_do(nx_work_t *req) {
+	nx_crypto_encrypt_async_t *data = (nx_crypto_encrypt_async_t *)req->data;
+
+	if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_AES_CBC) {
+		nx_crypto_key_aes_t *aes = (nx_crypto_key_aes_t *)data->key->handle;
+		nx_crypto_aes_cbc_params_t *cbc_params =
+			(nx_crypto_aes_cbc_params_t *)data->algorithm_params;
+
+		data->result = calloc(data->data_size, 1);
+		if (!data->result) {
+			data->err = ENOMEM;
+			return;
+		}
+
+		if (aes->key_length == 16) {
+			aes128CbcContextResetIv(&aes->decrypt.cbc_128, cbc_params->iv);
+			aes128CbcDecrypt(&aes->decrypt.cbc_128, data->result, data->data,
+							 data->data_size);
+		} else if (aes->key_length == 24) {
+			aes192CbcContextResetIv(&aes->decrypt.cbc_192, cbc_params->iv);
+			aes192CbcDecrypt(&aes->decrypt.cbc_192, data->result, data->data,
+							 data->data_size);
+		} else if (aes->key_length == 32) {
+			aes256CbcContextResetIv(&aes->decrypt.cbc_256, cbc_params->iv);
+			aes256CbcDecrypt(&aes->decrypt.cbc_256, data->result, data->data,
+							 data->data_size);
+		}
+
+		data->result_size =
+			unpad_pkcs7(aes->key_length, data->result, data->data_size);
+	} else if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_AES_XTS) {
+		nx_crypto_key_aes_t *aes = (nx_crypto_key_aes_t *)data->key->handle;
+		nx_crypto_aes_xts_params_t *xts_params =
+			(nx_crypto_aes_xts_params_t *)data->algorithm_params;
+		if (aes->key_length == 16) {
+			aes128XtsContextResetTweak(&aes->encrypt.xts_128,
+									   xts_params->tweak);
+
+			void *dst = data->result;
+			void *src = data->data;
+			uint64_t sector = xts_params->sector;
+			for (size_t i = 0; i < data->data_size;
+				 i += xts_params->sector_size) {
+				aes128XtsContextResetSector(&aes->encrypt.xts_128, sector++,
+											xts_params->is_nintendo);
+				aes128XtsEncrypt(&aes->encrypt.xts_128, dst, src,
+								 xts_params->sector_size);
+
+				dst = (u8 *)dst + xts_params->sector_size;
+				src = (u8 *)src + xts_params->sector_size;
+			}
+		} else if (aes->key_length == 24) {
+			aes192XtsContextResetTweak(&aes->encrypt.xts_192,
+									   xts_params->tweak);
+			// aes192XtsEncrypt(&aes->encrypt.xts_192, data->result,
+			// data->data,
+			//				 data->data_size);
+		} else if (aes->key_length == 32) {
+			aes256XtsContextResetTweak(&aes->encrypt.xts_256,
+									   xts_params->tweak);
+			// aes256XtsEncrypt(&aes->encrypt.xts_256, data->result,
+			// data->data,
+			//				 data->data_size);
+		}
+	}
+}
+
+JSValue nx_crypto_decrypt_cb(JSContext *ctx, nx_work_t *req) {
+	nx_crypto_encrypt_async_t *data = (nx_crypto_encrypt_async_t *)req->data;
+	if (data->algorithm_params) {
+		js_free(ctx, data->algorithm_params);
+	}
+	JS_FreeValue(ctx, data->algorithm_val);
+	JS_FreeValue(ctx, data->key_val);
+	JS_FreeValue(ctx, data->data_val);
+
+	if (data->err) {
+		JSValue err = JS_NewError(ctx);
+		JS_DefinePropertyValueStr(ctx, err, "message",
+								  JS_NewString(ctx, strerror(data->err)),
+								  JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+		return JS_Throw(ctx, err);
+	}
+
+	return JS_NewArrayBuffer(ctx, data->result, data->result_size,
+							 free_array_buffer, NULL, false);
+}
+
+static JSValue nx_crypto_subtle_decrypt(JSContext *ctx, JSValueConst this_val,
+										int argc, JSValueConst *argv) {
+	NX_INIT_WORK_T(nx_crypto_encrypt_async_t);
+
+	data->key = JS_GetOpaque2(ctx, argv[1], nx_crypto_key_class_id);
+	if (!data->key) {
+		js_free(ctx, data);
+		return JS_EXCEPTION;
+	}
+
+	if (!(data->key->usages & NX_CRYPTO_KEY_USAGE_DECRYPT)) {
+		js_free(ctx, data);
+		return JS_ThrowTypeError(ctx, "Unsupported key usage");
+	}
+
+	data->data = NX_GetBufferSource(ctx, &data->data_size, argv[2]);
+	if (!data->data) {
+		js_free(ctx, data);
+		return JS_EXCEPTION;
+	}
+
+	if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_AES_CBC) {
+		nx_crypto_aes_cbc_params_t *cbc_params =
+			js_mallocz(ctx, sizeof(nx_crypto_aes_cbc_params_t));
+		if (!cbc_params) {
+			js_free(ctx, data);
+			return JS_EXCEPTION;
+		}
+		size_t iv_size; // Not used - iv is a known size based on key length
+		cbc_params->iv = NX_GetBufferSource(
+			ctx, &iv_size, JS_GetPropertyStr(ctx, argv[0], "iv"));
+
+		if (!cbc_params->iv) {
+			js_free(ctx, data);
+			js_free(ctx, cbc_params);
+			return JS_EXCEPTION;
+		}
+
+		// Validate IV size
+		nx_crypto_key_aes_t *aes = (nx_crypto_key_aes_t *)data->key->handle;
+		if (iv_size != aes->key_length) {
+			js_free(ctx, data);
+			js_free(ctx, cbc_params);
+			return JS_ThrowTypeError(
+				ctx, "Invalid 'iv' size (expected %u, received %lu)",
+				aes->key_length, iv_size);
+		}
+
+		data->algorithm_params = cbc_params;
+	} else if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_AES_XTS) {
+		nx_crypto_aes_xts_params_t *xts_params =
+			js_mallocz(ctx, sizeof(nx_crypto_aes_xts_params_t));
+		if (!xts_params) {
+			js_free(ctx, data);
+			return JS_EXCEPTION;
+		}
+		size_t size; // Not used - tweak is a known size based on key length
+		xts_params->tweak = NX_GetBufferSource(
+			ctx, &size, JS_GetPropertyStr(ctx, argv[0], "tweak"));
+		if (!xts_params->tweak) {
+			js_free(ctx, data);
+			js_free(ctx, xts_params);
+			return JS_EXCEPTION;
+		}
+
+		if (JS_ToBigUint64(ctx, &xts_params->sector,
+						   JS_GetPropertyStr(ctx, argv[0], "sector")) ||
+			JS_ToBigUint64(ctx, &xts_params->sector_size,
+						   JS_GetPropertyStr(ctx, argv[0], "sectorSize"))) {
+			js_free(ctx, data);
+			js_free(ctx, xts_params);
+			return JS_EXCEPTION;
+		}
+
+		int is_nintendo =
+			JS_ToBool(ctx, JS_GetPropertyStr(ctx, argv[0], "isNintendo"));
+		if (is_nintendo == -1) {
+			js_free(ctx, data);
+			js_free(ctx, xts_params);
+			return JS_EXCEPTION;
+		}
+		xts_params->is_nintendo = is_nintendo;
+
+		data->algorithm_params = xts_params;
+	}
+
+	data->algorithm_val = JS_DupValue(ctx, argv[0]);
+	data->key_val = JS_DupValue(ctx, argv[1]);
+	data->data_val = JS_DupValue(ctx, argv[2]);
+	return nx_queue_async(ctx, req, nx_crypto_decrypt_do, nx_crypto_decrypt_cb);
+}
+
+static JSValue nx_crypto_subtle_init(JSContext *ctx, JSValueConst this_val,
+									 int argc, JSValueConst *argv) {
+	JSAtom atom;
+	JSValue proto = JS_GetPropertyStr(ctx, argv[0], "prototype");
+	NX_DEF_FUNC(proto, "decrypt", nx_crypto_subtle_decrypt, 3);
+	JS_FreeValue(ctx, proto);
+	return JS_UNDEFINED;
+}
+
 static const JSCFunctionListEntry function_list[] = {
 	JS_CFUNC_DEF("cryptoKeyNew", 1, nx_crypto_key_new),
 	JS_CFUNC_DEF("cryptoKeyInit", 1, nx_crypto_key_init),
+	JS_CFUNC_DEF("cryptoSubtleInit", 1, nx_crypto_subtle_init),
 	JS_CFUNC_DEF("cryptoDigest", 0, nx_crypto_digest),
 	JS_CFUNC_DEF("cryptoEncrypt", 0, nx_crypto_encrypt),
 	JS_CFUNC_DEF("cryptoRandomBytes", 0, nx_crypto_random_bytes),

@@ -39,7 +39,7 @@ import type { URL, URLSearchParams } from './polyfills/url';
 import type { DOMPoint, DOMPointInit } from './dompoint';
 import type { DOMMatrix, DOMMatrixReadOnly, DOMMatrixInit } from './dommatrix';
 import type { Gamepad, GamepadButton } from './navigator/gamepad';
-import type { CryptoKey } from './crypto';
+import type { CryptoKey, SubtleCrypto } from './crypto';
 import type { Algorithm } from './types';
 import type { PromiseState } from '@nx.js/inspect';
 
@@ -127,6 +127,7 @@ export interface Init {
 		keyUsages: KeyUsage[],
 	): CryptoKey;
 	cryptoKeyInit(c: ClassOf<CryptoKey>): void;
+	cryptoSubtleInit(c: ClassOf<SubtleCrypto>): void;
 	cryptoEncrypt(
 		algorithm: Algorithm,
 		key: CryptoKey,

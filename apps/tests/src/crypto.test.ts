@@ -9,6 +9,14 @@ function toHex(arr: ArrayBuffer) {
 		.join('');
 }
 
+function fromHex(hex: string): ArrayBuffer {
+	const arr = new Uint8Array(hex.length / 2);
+	for (let i = 0; i < hex.length; i += 2) {
+		arr[i / 2] = parseInt(hex.substr(i, 2), 16);
+	}
+	return arr.buffer;
+}
+
 test('`crypto.getRandomValues()`', () => {
 	const arr = new Uint8Array(5);
 	assert.equal(toHex(arr.buffer), '0000000000');
@@ -47,6 +55,73 @@ test("`crypto.subtle.digest('sha-512')`", async () => {
 		toHex(digest),
 		'9b71d224bd62f3785d96d46ad3ea3d73319bfbc2890caadae2dff72519673ca72323c3d99ba5c11d7c7acc6e14b8c5da0c4663475c2e5c3adef46f73bcdec043',
 	);
+});
+
+test("`crypto.subtle.importKey()` with 'raw' format and 'AES-CBC' algorithm`", async () => {
+	const keyData = new Uint8Array([
+		188, 136, 184, 200, 227, 200, 149, 203, 33, 186, 60, 145, 54, 19, 92, 88,
+	]);
+
+	const key = await crypto.subtle.importKey(
+		'raw',
+		keyData,
+		{ name: 'AES-CBC' },
+		false,
+		['encrypt', 'decrypt'],
+	);
+
+	assert.instance(key, CryptoKey);
+	assert.equal(key.algorithm.name, 'AES-CBC');
+	// @ts-expect-error `length` is not defined on `KeyAlgorithm`
+	assert.equal(key.algorithm.length, 128);
+});
+
+test("`crypto.subtle.encrypt()` with 'AES-CBC' algorithm`", async () => {
+	const keyData = new Uint8Array([
+		188, 136, 184, 200, 227, 200, 149, 203, 33, 186, 60, 145, 54, 19, 92, 88,
+	]);
+	const iv = new Uint8Array([
+		38, 89, 172, 231, 98, 165, 172, 212, 137, 184, 41, 162, 105, 26, 119, 158,
+	]);
+
+	const key = await crypto.subtle.importKey(
+		'raw',
+		keyData,
+		{ name: 'AES-CBC' },
+		false,
+		['encrypt'],
+	);
+
+	const ciphertext = await crypto.subtle.encrypt(
+		{ name: 'AES-CBC', iv: iv.buffer },
+		key,
+		new TextEncoder().encode('hello'),
+	);
+
+	assert.instance(ciphertext, ArrayBuffer);
+	assert.equal(toHex(ciphertext), '4b4fddd4b88f2e6a36500f89aa177d0d');
+});
+
+test("`crypto.subtle.decrypt()` with 'AES-CBC' algorithm`", async () => {
+	const keyData = new Uint8Array([
+		188, 136, 184, 200, 227, 200, 149, 203, 33, 186, 60, 145, 54, 19, 92, 88,
+	]);
+	const iv = new Uint8Array([
+		38, 89, 172, 231, 98, 165, 172, 212, 137, 184, 41, 162, 105, 26, 119, 158,
+	]);
+
+	const key = await crypto.subtle.importKey('raw', keyData, 'AES-CBC', false, [
+		'decrypt',
+	]);
+
+	const plaintext = await crypto.subtle.decrypt(
+		{ name: 'AES-CBC', iv },
+		key,
+		fromHex('4b4fddd4b88f2e6a36500f89aa177d0d'),
+	);
+
+	assert.instance(plaintext, ArrayBuffer);
+	assert.equal(new TextDecoder().decode(new Uint8Array(plaintext)), 'hello');
 });
 
 test.run();
