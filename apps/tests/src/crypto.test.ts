@@ -258,13 +258,12 @@ if (isNXJS) {
 		assert.equal(plaintext.byteLength, 48);
 
 		const ciphertext = await crypto.subtle.encrypt(
-			{ name: 'AES-XTS', sector: 0n, sectorSize: 16n },
+			{ name: 'AES-XTS', sectorSize: 16 },
 			key,
 			plaintext,
 		);
 
 		assert.instance(ciphertext, ArrayBuffer);
-		console.debug(toHex(ciphertext));
 		assert.equal(
 			toHex(ciphertext),
 			'b55622812044704bf3f0565ec78d3adfa5fee13aaf030467c2d5c084184989267583c148a883a0ea73d9da63fcf3f4bf',
@@ -284,7 +283,7 @@ if (isNXJS) {
 		);
 
 		const plaintext = await crypto.subtle.decrypt(
-			{ name: 'AES-XTS', sector: 0n, sectorSize: 16n },
+			{ name: 'AES-XTS', sectorSize: 16 },
 			key,
 			fromHex(
 				'b55622812044704bf3f0565ec78d3adfa5fee13aaf030467c2d5c084184989267583c148a883a0ea73d9da63fcf3f4bf',
