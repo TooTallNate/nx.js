@@ -4,7 +4,23 @@ import { File } from './polyfills/file';
 import { decoder } from './polyfills/text-decoder';
 import { encoder } from './polyfills/text-encoder';
 import type { PathLike } from './switch';
-import { BufferSource } from './types';
+import type { BufferSource } from './types';
+
+export interface ReadFileOptions {
+	/**
+	 * Byte offset to start reading the file from.
+	 *
+	 * @default 0
+	 */
+	start?: number;
+
+	/**
+	 * Byte offset to stop reading the file at (inclusive).
+	 *
+	 * @default Infinity
+	 */
+	end?: number;
+}
 
 /**
  * Creates the directory at the provided `path`, as well as any necessary parent directories.
@@ -36,8 +52,8 @@ export function mkdirSync(path: PathLike, mode = 0o777) {
  * const gameState = JSON.parse(new TextDecoder().decode(buffer));
  * ```
  */
-export function readFile(path: PathLike) {
-	return $.readFile(pathToString(path));
+export function readFile(path: PathLike, opts?: ReadFileOptions) {
+	return $.readFile(pathToString(path), opts);
 }
 
 /**
@@ -66,8 +82,8 @@ export function readDirSync(path: PathLike) {
  * const appState = JSON.parse(new TextDecoder().decode(buffer));
  * ```
  */
-export function readFileSync(path: PathLike) {
-	return $.readFileSync(pathToString(path));
+export function readFileSync(path: PathLike, opts?: ReadFileOptions) {
+	return $.readFileSync(pathToString(path), opts);
 }
 
 /**
@@ -146,7 +162,7 @@ export function stat(path: PathLike) {
 /**
  * Options object for the {@link file | `Switch.file()`} function.
  */
-export interface FsFileOptions {
+export interface FsFileOptions extends ReadFileOptions {
 	type?: string;
 
 	/**
@@ -167,7 +183,7 @@ export interface FsFileStreamOptions {
 	 *
 	 * @default 65536
 	 */
-	chunkSize: number;
+	chunkSize?: number;
 }
 
 /**
@@ -188,12 +204,17 @@ export function file(path: PathLike, opts?: FsFileOptions) {
  * also for writing files.
  */
 export class FsFile extends File {
+	start?: number;
+	end?: number;
+
 	constructor(path: PathLike, opts?: FsFileOptions) {
-		const { bigFile, ...rest } = opts ?? {};
+		const { bigFile, start, end, ...rest } = opts ?? {};
 		super([], pathToString(path), {
 			type: 'text/plain;charset=utf-8',
 			...rest,
 		});
+		this.start = start;
+		this.end = end;
 		Object.defineProperty(this, 'lastModified', {
 			get(): number {
 				return (statSync(this.name)?.mtime ?? 0) * 1000;
@@ -205,15 +226,32 @@ export class FsFile extends File {
 	}
 
 	get size() {
-		return statSync(this.name)?.size ?? 0;
+		const stat = statSync(this.name);
+		if (!stat) return 0;
+		const start = this.start ?? 0;
+		const end = Math.min(this.end ?? Infinity, stat.size);
+		return end - start;
 	}
 
 	stat() {
 		return stat(this.name);
 	}
 
+	slice(start?: number, end?: number, type?: string): FsFile {
+		const thisStart = this.start ?? 0;
+		const thisEnd = this.end ?? Infinity;
+		const s = (start ?? 0) + thisStart;
+		const newEnd = thisStart + (end ?? Infinity);
+		const e = Math.min(thisEnd, newEnd);
+		return new FsFile(this.name, {
+			type: type ?? this.type,
+			start: s,
+			end: e,
+		});
+	}
+
 	async arrayBuffer(): Promise<ArrayBuffer> {
-		const b = await readFile(this.name);
+		const b = await readFile(this.name, this);
 		if (!b) {
 			throw new Error(`File does not exist: "${this.name}"`);
 		}

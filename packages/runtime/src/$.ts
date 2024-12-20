@@ -12,6 +12,7 @@ import type {
 	Service,
 	Stats,
 	Versions,
+	ReadFileOptions,
 } from './switch';
 import type {
 	Callback,
@@ -150,8 +151,8 @@ export interface Init {
 	fsCreateBigFile(path: string): void;
 	mkdirSync(path: string, mode: number): number;
 	readDirSync(path: string): string[] | null;
-	readFile(path: string): Promise<ArrayBuffer | null>;
-	readFileSync(path: string): ArrayBuffer | null;
+	readFile(path: string, opts?: ReadFileOptions): Promise<ArrayBuffer | null>;
+	readFileSync(path: string, opts?: ReadFileOptions): ArrayBuffer | null;
 	remove(path: string): Promise<void>;
 	removeSync(path: string): void;
 	rename(path: string, dest: string): Promise<void>;

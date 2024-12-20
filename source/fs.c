@@ -50,6 +50,8 @@ typedef struct {
 typedef struct {
 	int err;
 	const char *filename;
+	u32 start;
+	u32 end;
 	uint8_t *result;
 	size_t size;
 } nx_fs_read_file_async_t;
@@ -375,8 +377,24 @@ void nx_read_file_do(nx_work_t *req) {
 	}
 
 	fseek(file, 0, SEEK_END);
-	data->size = ftell(file);
-	rewind(file);
+	long total_size = ftell(file);
+
+	// Validate and adjust start/end offsets
+	if (data->start >= total_size) {
+		data->size = 0;
+		data->result = NULL;
+		fclose(file);
+		return;
+	}
+
+	if (data->end > total_size) {
+		data->end = total_size;
+	}
+
+	data->size = data->end - data->start;
+
+	// Seek to start offset
+	fseek(file, data->start, SEEK_SET);
 
 	data->result = malloc(data->size);
 	if (data->result == NULL) {
@@ -413,17 +431,56 @@ JSValue nx_read_file_cb(JSContext *ctx, nx_work_t *req) {
 JSValue nx_read_file(JSContext *ctx, JSValueConst this_val, int argc,
 					 JSValueConst *argv) {
 	NX_INIT_WORK_T(nx_fs_read_file_async_t);
+
+	data->start = 0;
+	data->end = UINT32_MAX;
+
+	if (argc > 1 && JS_IsObject(argv[1])) {
+		JSValue start_val = JS_GetPropertyStr(ctx, argv[1], "start");
+		JSValue end_val = JS_GetPropertyStr(ctx, argv[1], "end");
+		if (JS_IsNumber(start_val) &&
+			JS_ToUint32(ctx, &data->start, start_val)) {
+			return JS_EXCEPTION;
+		}
+		if (JS_IsNumber(end_val) && JS_ToUint32(ctx, &data->end, end_val)) {
+			return JS_EXCEPTION;
+		}
+		if (!data->end) {
+			data->end = UINT32_MAX;
+		}
+	}
+
 	data->filename = JS_ToCString(ctx, argv[0]);
 	if (!data->filename) {
 		return JS_EXCEPTION;
 	}
+
 	return nx_queue_async(ctx, req, nx_read_file_do, nx_read_file_cb);
 }
 
 JSValue nx_read_file_sync(JSContext *ctx, JSValueConst this_val, int argc,
 						  JSValueConst *argv) {
 	errno = 0;
+
+	u32 start = 0;
+	u32 end = UINT32_MAX;
+
+	if (argc > 1 && JS_IsObject(argv[1])) {
+		JSValue start_val = JS_GetPropertyStr(ctx, argv[1], "start");
+		JSValue end_val = JS_GetPropertyStr(ctx, argv[1], "end");
+		if (JS_IsNumber(start_val) && JS_ToUint32(ctx, &start, start_val)) {
+			return JS_EXCEPTION;
+		}
+		if (JS_IsNumber(end_val) && JS_ToUint32(ctx, &end, end_val)) {
+			return JS_EXCEPTION;
+		}
+	}
+
 	const char *filename = JS_ToCString(ctx, argv[0]);
+	if (!filename) {
+		return JS_EXCEPTION;
+	}
+
 	FILE *file = fopen(filename, "rb");
 	if (file == NULL) {
 		if (errno == ENOENT) {
@@ -437,8 +494,23 @@ JSValue nx_read_file_sync(JSContext *ctx, JSValueConst this_val, int argc,
 	JS_FreeCString(ctx, filename);
 
 	fseek(file, 0, SEEK_END);
-	size_t size = ftell(file);
-	rewind(file);
+	size_t total_size = ftell(file);
+
+	// Clamp end to file size if needed
+	if (end > total_size) {
+		end = total_size;
+	}
+
+	// Validate start/end
+	if (start > end || start > total_size) {
+		fclose(file);
+		return JS_ThrowRangeError(ctx, "Invalid range");
+	}
+
+	size_t size = end - start;
+
+	// Seek to start position
+	fseek(file, start, SEEK_SET);
 
 	uint8_t *buffer = js_malloc(ctx, size);
 	if (buffer == NULL) {
@@ -451,9 +523,10 @@ JSValue nx_read_file_sync(JSContext *ctx, JSValueConst this_val, int argc,
 
 	if (result != size) {
 		js_free(ctx, buffer);
-		JS_ThrowTypeError(ctx,
-						  "Failed to read entire file. Got %lu, expected %lu",
-						  result, size);
+		JS_ThrowTypeError(
+			ctx,
+			"Failed to read expected amount of data (got %lu, expected %lu)",
+			result, size);
 		return JS_EXCEPTION;
 	}
 

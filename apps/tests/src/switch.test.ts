@@ -82,13 +82,15 @@ test('`Switch.resolveDns()` rejects with invalid hostname', async () => {
 
 test('`Switch.readFile()` works with string path', async () => {
 	const data = await Switch.readFile('romfs:/runtime.js.map');
-	assert.ok(data instanceof ArrayBuffer);
+	assert.ok(data);
+	assert.instance(data, ArrayBuffer);
 	assert.ok(data.byteLength > 0);
 });
 
 test('`Switch.readFile()` works with URL path', async () => {
 	const data = await Switch.readFile(new URL(Switch.entrypoint));
-	assert.ok(data instanceof ArrayBuffer);
+	assert.ok(data);
+	assert.instance(data, ArrayBuffer);
 	assert.ok(data.byteLength > 0);
 });
 
@@ -100,6 +102,28 @@ test('`Switch.readFile()` returns null when file does not exist', async () => {
 test('`Switch.readFile()` returns null when attempting to read a directory', async () => {
 	const data = await Switch.readFile('.');
 	assert.equal(data, null);
+});
+
+test('`Switch.readFile()` works with `start` and `end` options', async () => {
+	const data = await Switch.readFile('romfs:/runtime.js.map', {
+		start: 10,
+		end: 20,
+	});
+	assert.ok(data);
+	assert.instance(data, ArrayBuffer);
+	assert.equal(data.byteLength, 10);
+	assert.equal(new TextDecoder().decode(data), 'on": 3,\n  ');
+});
+
+test('`Switch.readFileSync()` works with `start` and `end` options', async () => {
+	const data = Switch.readFileSync('romfs:/runtime.js.map', {
+		start: 10,
+		end: 20,
+	});
+	assert.ok(data);
+	assert.instance(data, ArrayBuffer);
+	assert.equal(data.byteLength, 10);
+	assert.equal(new TextDecoder().decode(data), 'on": 3,\n  ');
 });
 
 test('`Switch.stat()` returns file information', async () => {
@@ -154,8 +178,81 @@ test('`Switch.removeSync()` removes nested directory', async () => {
 
 test('`Switch.file()` read text', async () => {
 	const file = Switch.file('romfs:/file.txt');
+	const expected = 'this is a text file\n';
 	const data = await file.text();
-	assert.equal(data, 'this is a text file\n');
+	assert.equal(data.length, expected.length);
+	assert.equal(data, expected);
+});
+
+test('`Switch.slice()` recursively slices a file', async () => {
+	const file = Switch.file('romfs:/file.txt');
+	assert.instance(file, Switch.FsFile);
+	assert.equal(file.size, 20);
+
+	{
+		// Slice with start and end
+		const slice = file.slice(1, 10);
+		assert.instance(slice, Switch.FsFile);
+		assert.equal(slice.start, 1);
+		assert.equal(slice.end, 10);
+		assert.equal(slice.size, 9);
+
+		const data = await slice.text();
+		assert.equal(data.length, 9);
+		assert.equal(data, 'his is a ');
+	}
+
+	{
+		// Slice with no end
+		const slice = file.slice(5);
+		assert.instance(slice, Switch.FsFile);
+		assert.equal(slice.start, 5);
+		assert.equal(slice.end, Infinity);
+		assert.equal(slice.size, 15);
+
+		const data = await slice.text();
+		assert.equal(data.length, 15);
+		assert.equal(data, 'is a text file\n');
+	}
+
+	{
+		// Inner slice with start and end
+		const slice = file.slice(1, 10).slice(2, 5);
+		assert.instance(slice, Switch.FsFile);
+		assert.equal(slice.start, 3);
+		assert.equal(slice.end, 6);
+		assert.equal(slice.size, 3);
+
+		const data = await slice.text();
+		assert.equal(data.length, 3);
+		assert.equal(data, 's i');
+	}
+
+	{
+		// Inner slice with no end
+		const slice = file.slice(1, 10).slice(2);
+		assert.instance(slice, Switch.FsFile);
+		assert.equal(slice.start, 3);
+		assert.equal(slice.end, 10);
+		assert.equal(slice.size, 7);
+
+		const data = await slice.text();
+		assert.equal(data.length, 7);
+		assert.equal(data, 's is a ');
+	}
+
+	{
+		// Inner slice with no end on both
+		const slice = file.slice(5).slice(2);
+		assert.instance(slice, Switch.FsFile);
+		assert.equal(slice.start, 7);
+		assert.equal(slice.end, Infinity);
+		assert.equal(slice.size, 13);
+
+		const data = await slice.text();
+		assert.equal(data.length, 13);
+		assert.equal(data, ' a text file\n');
+	}
 });
 
 test('`Switch.file()` read json', async () => {
