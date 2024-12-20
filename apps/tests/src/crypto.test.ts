@@ -3,6 +3,8 @@ import * as assert from 'uvu/assert';
 
 const test = suite('crypto');
 
+const isNXJS = typeof Switch !== 'undefined';
+
 function toHex(arr: ArrayBuffer) {
 	return Array.from(new Uint8Array(arr))
 		.map((v) => v.toString(16).padStart(2, '0'))
@@ -15,6 +17,17 @@ function fromHex(hex: string): ArrayBuffer {
 		arr[i / 2] = parseInt(hex.substr(i, 2), 16);
 	}
 	return arr.buffer;
+}
+
+function concat(...buffers: ArrayBuffer[]): ArrayBuffer {
+	const size = buffers.reduce((acc, buf) => acc + buf.byteLength, 0);
+	let offset = 0;
+	const result = new Uint8Array(size);
+	for (const buf of buffers) {
+		result.set(new Uint8Array(buf), offset);
+		offset += buf.byteLength;
+	}
+	return result.buffer;
 }
 
 test('`crypto.getRandomValues()`', () => {
@@ -90,11 +103,12 @@ test("`crypto.subtle.importKey()` with 'raw' format and 'AES-CBC' algorithm, 256
 	]);
 
 	const key = await crypto.subtle.importKey('raw', keyData, 'AES-CBC', false, [
-		'encrypt',
 		'decrypt',
 	]);
 
 	assert.instance(key, CryptoKey);
+	assert.equal(key.usages.length, 1);
+	assert.equal(key.usages[0], 'decrypt');
 	assert.equal(key.algorithm.name, 'AES-CBC');
 	// @ts-expect-error `length` is not defined on `KeyAlgorithm`
 	assert.equal(key.algorithm.length, 256);
@@ -203,5 +217,84 @@ test("`crypto.subtle.decrypt()` with 'AES-CBC' algorithm, 256-bit key", async ()
 	assert.instance(plaintext, ArrayBuffer);
 	assert.equal(new TextDecoder().decode(new Uint8Array(plaintext)), 'hello');
 });
+
+// Non-standard APIs that are only going to work on nx.js
+if (isNXJS) {
+	test("`crypto.subtle.importKey()` with 'raw' format and 'AES-XTS' algorithm, two 128-bit keys", async () => {
+		const key0 = fromHex('0a316b344a7bc7b4db239c61017b86f7');
+		const key1 = fromHex('cc4f4df7cb2becb9a307bb17e8eb01f3');
+
+		const key = await crypto.subtle.importKey(
+			'raw',
+			concat(key0, key1),
+			{ name: 'AES-XTS' },
+			true,
+			['encrypt'],
+		);
+
+		assert.instance(key, CryptoKey);
+		assert.equal(key.extractable, true);
+		assert.equal(key.usages.length, 1);
+		assert.equal(key.usages[0], 'encrypt');
+		assert.equal(key.algorithm.name, 'AES-XTS');
+		// @ts-expect-error `length` is not defined on `KeyAlgorithm`
+		assert.equal(key.algorithm.length, 256);
+	});
+
+	test("`crypto.subtle.encrypt()` with 'AES-XTS' algorithm, two 128-bit keys (aligned with AES block size)", async () => {
+		const key0 = fromHex('0a316b344a7bc7b4db239c61017b86f7');
+		const key1 = fromHex('cc4f4df7cb2becb9a307bb17e8eb01f3');
+
+		const key = await crypto.subtle.importKey(
+			'raw',
+			new BigUint64Array(concat(key0, key1)),
+			'AES-XTS',
+			true,
+			['encrypt'],
+		);
+
+		const text = 'This is some text that aligns with 48 bytes!!!!!';
+		const plaintext = new TextEncoder().encode(text);
+		assert.equal(plaintext.byteLength, 48);
+
+		const ciphertext = await crypto.subtle.encrypt(
+			{ name: 'AES-XTS', sector: 0n, sectorSize: 16n },
+			key,
+			plaintext,
+		);
+
+		assert.instance(ciphertext, ArrayBuffer);
+		console.debug(toHex(ciphertext));
+		assert.equal(
+			toHex(ciphertext),
+			'b55622812044704bf3f0565ec78d3adfa5fee13aaf030467c2d5c084184989267583c148a883a0ea73d9da63fcf3f4bf',
+		);
+	});
+
+	test("`crypto.subtle.decrypt()` with 'AES-XTS' algorithm, two 128-bit keys (aligned with AES block size)", async () => {
+		const key0 = fromHex('0a316b344a7bc7b4db239c61017b86f7');
+		const key1 = fromHex('cc4f4df7cb2becb9a307bb17e8eb01f3');
+
+		const key = await crypto.subtle.importKey(
+			'raw',
+			concat(key0, key1),
+			'AES-XTS',
+			true,
+			['decrypt'],
+		);
+
+		const plaintext = await crypto.subtle.decrypt(
+			{ name: 'AES-XTS', sector: 0n, sectorSize: 16n },
+			key,
+			fromHex(
+				'b55622812044704bf3f0565ec78d3adfa5fee13aaf030467c2d5c084184989267583c148a883a0ea73d9da63fcf3f4bf',
+			),
+		);
+
+		assert.instance(plaintext, ArrayBuffer);
+		const text = 'This is some text that aligns with 48 bytes!!!!!';
+		assert.equal(new TextDecoder().decode(new Uint8Array(plaintext)), text);
+	});
+}
 
 test.run();

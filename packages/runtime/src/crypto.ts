@@ -144,12 +144,7 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 	 * @see https://developer.mozilla.org/docs/Web/API/SubtleCrypto/decrypt
 	 */
 	decrypt(
-		algorithm:
-			| AlgorithmIdentifier
-			| RsaOaepParams
-			| AesCtrParams
-			| AesCbcParams
-			| AesGcmParams,
+		algorithm: AesCbcParams | AesXtsParams,
 		key: CryptoKey,
 		data: BufferSource,
 	): Promise<ArrayBuffer> {

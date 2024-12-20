@@ -35,12 +35,11 @@ typedef struct {
 } nx_crypto_encrypt_async_t;
 
 typedef struct {
-	uint8_t *iv;
+	u8 *iv;
 } nx_crypto_aes_cbc_params_t;
 
 typedef struct {
-	uint8_t *tweak;
-	uint64_t sector;
+	u64 sector;
 	size_t sector_size;
 	bool is_nintendo;
 } nx_crypto_aes_xts_params_t;
@@ -220,34 +219,41 @@ void nx_crypto_encrypt_do(nx_work_t *req) {
 		nx_crypto_key_aes_t *aes = (nx_crypto_key_aes_t *)data->key->handle;
 		nx_crypto_aes_xts_params_t *xts_params =
 			(nx_crypto_aes_xts_params_t *)data->algorithm_params;
-		if (aes->key_length == 16) {
-			aes128XtsContextResetTweak(&aes->encrypt.xts_128,
-									   xts_params->tweak);
 
+		// In XTS the encrypted size is exactly the plaintext size
+		data->result = malloc(data->data_size);
+		if (!data->result) {
+			data->err = ENOMEM;
+			return;
+		}
+
+		if (aes->key_length == 32) {
 			void *dst = data->result;
 			void *src = data->data;
-			uint64_t sector = xts_params->sector;
+			u64 sector = xts_params->sector;
 			for (size_t i = 0; i < data->data_size;
 				 i += xts_params->sector_size) {
 				aes128XtsContextResetSector(&aes->encrypt.xts_128, sector++,
 											xts_params->is_nintendo);
-				aes128XtsEncrypt(&aes->encrypt.xts_128, dst, src,
-								 xts_params->sector_size);
+				data->result_size += aes128XtsEncrypt(
+					&aes->encrypt.xts_128, dst, src, xts_params->sector_size);
 
 				dst = (u8 *)dst + xts_params->sector_size;
 				src = (u8 *)src + xts_params->sector_size;
 			}
-		} else if (aes->key_length == 24) {
-			aes192XtsContextResetTweak(&aes->encrypt.xts_192,
-									   xts_params->tweak);
-			// aes192XtsEncrypt(&aes->encrypt.xts_192, data->result,
-			// data->data,
+		} else if (aes->key_length == 48) {
+			data->err = ENOTSUP;
+			// aes192XtsContextResetTweak(&aes->encrypt.xts_192,
+			//						   xts_params->tweak);
+			//  aes192XtsEncrypt(&aes->encrypt.xts_192, data->result,
+			//  data->data,
 			//				 data->data_size);
-		} else if (aes->key_length == 32) {
-			aes256XtsContextResetTweak(&aes->encrypt.xts_256,
-									   xts_params->tweak);
-			// aes256XtsEncrypt(&aes->encrypt.xts_256, data->result,
-			// data->data,
+		} else if (aes->key_length == 64) {
+			data->err = ENOTSUP;
+			// aes256XtsContextResetTweak(&aes->encrypt.xts_256,
+			//						   xts_params->tweak);
+			//  aes256XtsEncrypt(&aes->encrypt.xts_256, data->result,
+			//  data->data,
 			//				 data->data_size);
 		}
 	}
@@ -330,27 +336,15 @@ static JSValue nx_crypto_encrypt(JSContext *ctx, JSValueConst this_val,
 			js_free(ctx, data);
 			return JS_EXCEPTION;
 		}
-		size_t size; // Not used - tweak is a known size based on key length
-		xts_params->tweak = JS_GetArrayBuffer(
-			ctx, &size, JS_GetPropertyStr(ctx, argv[0], "tweak"));
-		if (!xts_params->tweak) {
-			js_free(ctx, data);
-			js_free(ctx, xts_params);
-			return JS_EXCEPTION;
-		}
-
-		if (JS_ToBigUint64(ctx, &xts_params->sector,
-						   JS_GetPropertyStr(ctx, argv[0], "sector")) ||
-			JS_ToBigUint64(ctx, &xts_params->sector_size,
-						   JS_GetPropertyStr(ctx, argv[0], "sectorSize"))) {
-			js_free(ctx, data);
-			js_free(ctx, xts_params);
-			return JS_EXCEPTION;
-		}
 
 		int is_nintendo =
 			JS_ToBool(ctx, JS_GetPropertyStr(ctx, argv[0], "isNintendo"));
-		if (is_nintendo == -1) {
+
+		if (is_nintendo == -1 ||
+			JS_ToBigUint64(ctx, &xts_params->sector,
+						   JS_GetPropertyStr(ctx, argv[0], "sector")) ||
+			JS_ToBigUint64(ctx, &xts_params->sector_size,
+						   JS_GetPropertyStr(ctx, argv[0], "sectorSize"))) {
 			js_free(ctx, data);
 			js_free(ctx, xts_params);
 			return JS_EXCEPTION;
@@ -649,7 +643,7 @@ static JSValue nx_crypto_key_new(JSContext *ctx, JSValueConst this_val,
 			}
 		}
 	} else if (strcmp(algo, "AES-XTS") == 0) {
-		if (key_size != 16 && key_size != 24 && key_size != 32) {
+		if (key_size != 32 && key_size != 48 && key_size != 64) {
 			js_free(ctx, context);
 			JS_FreeCString(ctx, algo);
 			JS_ThrowTypeError(ctx, "Invalid key size for AES-XTS");
@@ -667,40 +661,48 @@ static JSValue nx_crypto_key_new(JSContext *ctx, JSValueConst this_val,
 		context->handle = aes;
 		aes->key_length = key_size;
 
-		if (key_size == 16) {
+		if (key_size == 32) {
 			if (context->usages & NX_CRYPTO_KEY_USAGE_ENCRYPT) {
 				aes128XtsContextCreate(&aes->encrypt.xts_128, key_data,
-									   key_data, true);
+									   key_data + 0x10, true);
 			}
 			if (context->usages & NX_CRYPTO_KEY_USAGE_DECRYPT) {
 				aes128XtsContextCreate(&aes->decrypt.xts_128, key_data,
-									   key_data, false);
+									   key_data + 0x10, false);
 			}
-		} else if (key_size == 24) {
+		} else if (key_size == 48) {
 			if (context->usages & NX_CRYPTO_KEY_USAGE_ENCRYPT) {
 				aes192XtsContextCreate(&aes->encrypt.xts_192, key_data,
-									   key_data, true);
+									   key_data + 0x18, true);
 			}
 			if (context->usages & NX_CRYPTO_KEY_USAGE_DECRYPT) {
 				aes192XtsContextCreate(&aes->decrypt.xts_192, key_data,
-									   key_data, false);
+									   key_data + 0x18, false);
 			}
 		} else {
 			if (context->usages & NX_CRYPTO_KEY_USAGE_ENCRYPT) {
 				aes256XtsContextCreate(&aes->encrypt.xts_256, key_data,
-									   key_data, true);
+									   key_data + 0x20, true);
 			}
 			if (context->usages & NX_CRYPTO_KEY_USAGE_DECRYPT) {
 				aes256XtsContextCreate(&aes->decrypt.xts_256, key_data,
-									   key_data, false);
+									   key_data + 0x20, false);
 			}
 		}
+	} else {
+		JS_ThrowTypeError(ctx, "Unrecognized algorithm name: \"%s\"", algo);
+		js_free(ctx, context);
+		JS_FreeCString(ctx, algo);
+		return JS_EXCEPTION;
 	}
 
 	JS_FreeCString(ctx, algo);
 
 	JSValue obj = JS_NewObjectClass(ctx, nx_crypto_key_class_id);
 	if (JS_IsException(obj)) {
+		if (context->handle) {
+			js_free(ctx, context->handle);
+		}
 		js_free(ctx, context);
 		return obj;
 	}
@@ -755,35 +757,32 @@ void nx_crypto_decrypt_do(nx_work_t *req) {
 		nx_crypto_key_aes_t *aes = (nx_crypto_key_aes_t *)data->key->handle;
 		nx_crypto_aes_xts_params_t *xts_params =
 			(nx_crypto_aes_xts_params_t *)data->algorithm_params;
-		if (aes->key_length == 16) {
-			aes128XtsContextResetTweak(&aes->encrypt.xts_128,
-									   xts_params->tweak);
 
+		// In XTS the decrypted size is exactly the ciphertext size
+		data->result = malloc(data->data_size);
+		if (!data->result) {
+			data->err = ENOMEM;
+			return;
+		}
+
+		if (aes->key_length == 32) {
 			void *dst = data->result;
 			void *src = data->data;
 			uint64_t sector = xts_params->sector;
 			for (size_t i = 0; i < data->data_size;
 				 i += xts_params->sector_size) {
-				aes128XtsContextResetSector(&aes->encrypt.xts_128, sector++,
+				aes128XtsContextResetSector(&aes->decrypt.xts_128, sector++,
 											xts_params->is_nintendo);
-				aes128XtsEncrypt(&aes->encrypt.xts_128, dst, src,
-								 xts_params->sector_size);
+				data->result_size += aes128XtsDecrypt(
+					&aes->decrypt.xts_128, dst, src, xts_params->sector_size);
 
 				dst = (u8 *)dst + xts_params->sector_size;
 				src = (u8 *)src + xts_params->sector_size;
 			}
-		} else if (aes->key_length == 24) {
-			aes192XtsContextResetTweak(&aes->encrypt.xts_192,
-									   xts_params->tweak);
-			// aes192XtsEncrypt(&aes->encrypt.xts_192, data->result,
-			// data->data,
-			//				 data->data_size);
-		} else if (aes->key_length == 32) {
-			aes256XtsContextResetTweak(&aes->encrypt.xts_256,
-									   xts_params->tweak);
-			// aes256XtsEncrypt(&aes->encrypt.xts_256, data->result,
-			// data->data,
-			//				 data->data_size);
+		} else if (aes->key_length == 48) {
+			data->err = ENOTSUP;
+		} else if (aes->key_length == 64) {
+			data->err = ENOTSUP;
 		}
 	}
 }
@@ -865,27 +864,15 @@ static JSValue nx_crypto_subtle_decrypt(JSContext *ctx, JSValueConst this_val,
 			js_free(ctx, data);
 			return JS_EXCEPTION;
 		}
-		size_t size; // Not used - tweak is a known size based on key length
-		xts_params->tweak = NX_GetBufferSource(
-			ctx, &size, JS_GetPropertyStr(ctx, argv[0], "tweak"));
-		if (!xts_params->tweak) {
-			js_free(ctx, data);
-			js_free(ctx, xts_params);
-			return JS_EXCEPTION;
-		}
-
-		if (JS_ToBigUint64(ctx, &xts_params->sector,
-						   JS_GetPropertyStr(ctx, argv[0], "sector")) ||
-			JS_ToBigUint64(ctx, &xts_params->sector_size,
-						   JS_GetPropertyStr(ctx, argv[0], "sectorSize"))) {
-			js_free(ctx, data);
-			js_free(ctx, xts_params);
-			return JS_EXCEPTION;
-		}
 
 		int is_nintendo =
 			JS_ToBool(ctx, JS_GetPropertyStr(ctx, argv[0], "isNintendo"));
-		if (is_nintendo == -1) {
+
+		if (is_nintendo == -1 ||
+			JS_ToBigUint64(ctx, &xts_params->sector,
+						   JS_GetPropertyStr(ctx, argv[0], "sector")) ||
+			JS_ToBigUint64(ctx, &xts_params->sector_size,
+						   JS_GetPropertyStr(ctx, argv[0], "sectorSize"))) {
 			js_free(ctx, data);
 			js_free(ctx, xts_params);
 			return JS_EXCEPTION;
