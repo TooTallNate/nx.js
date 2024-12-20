@@ -1,5 +1,11 @@
 # @nx.js/patch-nacp
 
+## 2.0.0
+
+### Major Changes
+
+- Support parsers and formatters ([`e10c419ae8f205cf0ce00c2ea21546505eff5d1d`](https://github.com/TooTallNate/nx.js/commit/e10c419ae8f205cf0ce00c2ea21546505eff5d1d))
+
 ## 1.0.1
 
 ### Patch Changes
