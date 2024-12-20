@@ -40,6 +40,8 @@ import type { URL, URLSearchParams } from './polyfills/url';
 import type { DOMPoint, DOMPointInit } from './dompoint';
 import type { DOMMatrix, DOMMatrixReadOnly, DOMMatrixInit } from './dommatrix';
 import type { Gamepad, GamepadButton } from './navigator/gamepad';
+import type { CryptoKey, SubtleCrypto } from './crypto';
+import type { Algorithm } from './types';
 import type { PromiseState } from '@nx.js/inspect';
 
 type ClassOf<T> = {
@@ -119,7 +121,20 @@ export interface Init {
 	): number[];
 
 	// crypto.c
-	cryptoDigest(algorithm: string, buf: ArrayBuffer): Promise<ArrayBuffer>;
+	cryptoKeyNew(
+		algorithm: Algorithm,
+		key: ArrayBuffer,
+		extractable: boolean,
+		keyUsages: KeyUsage[],
+	): CryptoKey;
+	cryptoKeyInit(c: ClassOf<CryptoKey>): void;
+	cryptoSubtleInit(c: ClassOf<SubtleCrypto>): void;
+	cryptoEncrypt(
+		algorithm: Algorithm,
+		key: CryptoKey,
+		data: BufferSource,
+	): Promise<ArrayBuffer>;
+	cryptoDigest(algorithm: string, buf: BufferSource): Promise<ArrayBuffer>;
 	cryptoRandomBytes(buf: ArrayBuffer, offset: number, length: number): void;
 	sha256Hex(str: string): string;
 
