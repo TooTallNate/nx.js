@@ -340,16 +340,20 @@ static JSValue nx_crypto_encrypt(JSContext *ctx, JSValueConst this_val,
 		int is_nintendo =
 			JS_ToBool(ctx, JS_GetPropertyStr(ctx, argv[0], "isNintendo"));
 
+		u32 sector;
+		u32 sector_size;
 		if (is_nintendo == -1 ||
-			JS_ToBigUint64(ctx, &xts_params->sector,
-						   JS_GetPropertyStr(ctx, argv[0], "sector")) ||
-			JS_ToBigUint64(ctx, &xts_params->sector_size,
-						   JS_GetPropertyStr(ctx, argv[0], "sectorSize"))) {
+			JS_ToUint32(ctx, &sector,
+						JS_GetPropertyStr(ctx, argv[0], "sector")) ||
+			JS_ToUint32(ctx, &sector_size,
+						JS_GetPropertyStr(ctx, argv[0], "sectorSize"))) {
 			js_free(ctx, data);
 			js_free(ctx, xts_params);
 			return JS_EXCEPTION;
 		}
 		xts_params->is_nintendo = is_nintendo;
+		xts_params->sector = sector;
+		xts_params->sector_size = sector_size;
 
 		data->algorithm_params = xts_params;
 	}
@@ -868,16 +872,20 @@ static JSValue nx_crypto_subtle_decrypt(JSContext *ctx, JSValueConst this_val,
 		int is_nintendo =
 			JS_ToBool(ctx, JS_GetPropertyStr(ctx, argv[0], "isNintendo"));
 
+		u32 sector;
+		u32 sector_size;
 		if (is_nintendo == -1 ||
-			JS_ToBigUint64(ctx, &xts_params->sector,
-						   JS_GetPropertyStr(ctx, argv[0], "sector")) ||
-			JS_ToBigUint64(ctx, &xts_params->sector_size,
-						   JS_GetPropertyStr(ctx, argv[0], "sectorSize"))) {
+			JS_ToUint32(ctx, &sector,
+						JS_GetPropertyStr(ctx, argv[0], "sector")) ||
+			JS_ToUint32(ctx, &sector_size,
+						JS_GetPropertyStr(ctx, argv[0], "sectorSize"))) {
 			js_free(ctx, data);
 			js_free(ctx, xts_params);
 			return JS_EXCEPTION;
 		}
 		xts_params->is_nintendo = is_nintendo;
+		xts_params->sector = sector;
+		xts_params->sector_size = sector_size;
 
 		data->algorithm_params = xts_params;
 	}
@@ -885,6 +893,7 @@ static JSValue nx_crypto_subtle_decrypt(JSContext *ctx, JSValueConst this_val,
 	data->algorithm_val = JS_DupValue(ctx, argv[0]);
 	data->key_val = JS_DupValue(ctx, argv[1]);
 	data->data_val = JS_DupValue(ctx, argv[2]);
+
 	return nx_queue_async(ctx, req, nx_crypto_decrypt_do, nx_crypto_decrypt_cb);
 }
 

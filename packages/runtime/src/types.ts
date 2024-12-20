@@ -130,8 +130,8 @@ export interface AesCtrParams extends Algorithm {
 }
 export interface AesXtsParams {
 	name: 'AES-XTS';
-	sector?: bigint;
-	sectorSize: bigint;
+	sectorSize: number;
+	sector?: number;
 	isNintendo?: boolean;
 }
 export interface AesDerivedKeyParams extends Algorithm {
