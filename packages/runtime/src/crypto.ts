@@ -337,8 +337,8 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 		}
 		const algo =
 			typeof algorithm === 'string' ? { name: algorithm } : algorithm;
-		// @ts-expect-error Internal constructor
 		return new CryptoKey(
+			// @ts-expect-error Internal constructor
 			INTERNAL_SYMBOL,
 			algo,
 			keyData,
