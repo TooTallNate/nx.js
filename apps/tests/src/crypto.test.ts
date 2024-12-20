@@ -57,7 +57,7 @@ test("`crypto.subtle.digest('sha-512')`", async () => {
 	);
 });
 
-test("`crypto.subtle.importKey()` with 'raw' format and 'AES-CBC' algorithm`", async () => {
+test("`crypto.subtle.importKey()` with 'raw' format and 'AES-CBC' algorithm, 128-bit key", async () => {
 	const keyData = new Uint8Array([
 		188, 136, 184, 200, 227, 200, 149, 203, 33, 186, 60, 145, 54, 19, 92, 88,
 	]);
@@ -71,12 +71,36 @@ test("`crypto.subtle.importKey()` with 'raw' format and 'AES-CBC' algorithm`", a
 	);
 
 	assert.instance(key, CryptoKey);
+	assert.equal(key.extractable, false);
 	assert.equal(key.algorithm.name, 'AES-CBC');
 	// @ts-expect-error `length` is not defined on `KeyAlgorithm`
 	assert.equal(key.algorithm.length, 128);
+
+	// Sorted because bun / deno disagree on the order
+	const usages = key.usages.slice().sort();
+	assert.equal(usages.length, 2);
+	assert.equal(usages[0], 'decrypt');
+	assert.equal(usages[1], 'encrypt');
 });
 
-test("`crypto.subtle.encrypt()` with 'AES-CBC' algorithm`", async () => {
+test("`crypto.subtle.importKey()` with 'raw' format and 'AES-CBC' algorithm, 256-bit key", async () => {
+	const keyData = new Uint8Array([
+		194, 180, 97, 245, 222, 0, 208, 29, 177, 74, 94, 95, 124, 172, 123, 89, 168,
+		89, 145, 158, 128, 61, 7, 182, 192, 90, 250, 33, 24, 44, 24, 108,
+	]);
+
+	const key = await crypto.subtle.importKey('raw', keyData, 'AES-CBC', false, [
+		'encrypt',
+		'decrypt',
+	]);
+
+	assert.instance(key, CryptoKey);
+	assert.equal(key.algorithm.name, 'AES-CBC');
+	// @ts-expect-error `length` is not defined on `KeyAlgorithm`
+	assert.equal(key.algorithm.length, 256);
+});
+
+test("`crypto.subtle.encrypt()` with 'AES-CBC' algorithm, 128-bit key", async () => {
 	const keyData = new Uint8Array([
 		188, 136, 184, 200, 227, 200, 149, 203, 33, 186, 60, 145, 54, 19, 92, 88,
 	]);
@@ -102,7 +126,35 @@ test("`crypto.subtle.encrypt()` with 'AES-CBC' algorithm`", async () => {
 	assert.equal(toHex(ciphertext), '4b4fddd4b88f2e6a36500f89aa177d0d');
 });
 
-test("`crypto.subtle.decrypt()` with 'AES-CBC' algorithm`", async () => {
+test("`crypto.subtle.encrypt()` with 'AES-CBC' algorithm, 256-bit key", async () => {
+	const keyData = new Uint8Array([
+		194, 180, 97, 245, 222, 0, 208, 29, 177, 74, 94, 95, 124, 172, 123, 89, 168,
+		89, 145, 158, 128, 61, 7, 182, 192, 90, 250, 33, 24, 44, 24, 108,
+	]);
+	const iv = new Uint8Array([
+		199, 76, 237, 213, 127, 137, 216, 106, 243, 237, 191, 146, 158, 226, 56,
+		143,
+	]);
+
+	const key = await crypto.subtle.importKey(
+		'raw',
+		keyData,
+		{ name: 'AES-CBC' },
+		false,
+		['encrypt'],
+	);
+
+	const ciphertext = await crypto.subtle.encrypt(
+		{ name: 'AES-CBC', iv: iv.buffer },
+		key,
+		new TextEncoder().encode('hello'),
+	);
+
+	assert.instance(ciphertext, ArrayBuffer);
+	assert.equal(toHex(ciphertext), 'da7299d52ef669a5e513b801fb65ef06');
+});
+
+test("`crypto.subtle.decrypt()` with 'AES-CBC' algorithm, 128-bit key", async () => {
 	const keyData = new Uint8Array([
 		188, 136, 184, 200, 227, 200, 149, 203, 33, 186, 60, 145, 54, 19, 92, 88,
 	]);
@@ -118,6 +170,34 @@ test("`crypto.subtle.decrypt()` with 'AES-CBC' algorithm`", async () => {
 		{ name: 'AES-CBC', iv },
 		key,
 		fromHex('4b4fddd4b88f2e6a36500f89aa177d0d'),
+	);
+
+	assert.instance(plaintext, ArrayBuffer);
+	assert.equal(new TextDecoder().decode(new Uint8Array(plaintext)), 'hello');
+});
+
+test("`crypto.subtle.decrypt()` with 'AES-CBC' algorithm, 256-bit key", async () => {
+	const keyData = new Uint8Array([
+		194, 180, 97, 245, 222, 0, 208, 29, 177, 74, 94, 95, 124, 172, 123, 89, 168,
+		89, 145, 158, 128, 61, 7, 182, 192, 90, 250, 33, 24, 44, 24, 108,
+	]);
+	const iv = new Uint8Array([
+		199, 76, 237, 213, 127, 137, 216, 106, 243, 237, 191, 146, 158, 226, 56,
+		143,
+	]);
+
+	const key = await crypto.subtle.importKey(
+		'raw',
+		keyData,
+		{ name: 'AES-CBC' },
+		false,
+		['decrypt'],
+	);
+
+	const plaintext = await crypto.subtle.decrypt(
+		{ name: 'AES-CBC', iv },
+		key,
+		fromHex('da7299d52ef669a5e513b801fb65ef06'),
 	);
 
 	assert.instance(plaintext, ArrayBuffer);

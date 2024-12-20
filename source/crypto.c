@@ -190,7 +190,7 @@ void nx_crypto_encrypt_do(nx_work_t *req) {
 		nx_crypto_aes_cbc_params_t *cbc_params =
 			(nx_crypto_aes_cbc_params_t *)data->algorithm_params;
 
-		data->result = pad_pkcs7(aes->key_length, data->data, data->data_size,
+		data->result = pad_pkcs7(AES_BLOCK_SIZE, data->data, data->data_size,
 								 &data->result_size);
 		if (!data->result) {
 			data->err = ENOMEM;
@@ -278,7 +278,12 @@ static JSValue nx_crypto_encrypt(JSContext *ctx, JSValueConst this_val,
 		return JS_EXCEPTION;
 	}
 
-	// TODO: ensure "encrypt" usage is supported by the key
+	// Validate that the key may be used for encryption
+	if (!(data->key->usages & NX_CRYPTO_KEY_USAGE_ENCRYPT)) {
+		js_free(ctx, data);
+		return JS_ThrowTypeError(
+			ctx, "Key does not support the 'encrypt' operation");
+	}
 
 	data->data = JS_GetArrayBuffer(ctx, &data->data_size, argv[2]);
 	if (!data->data) {
@@ -293,14 +298,24 @@ static JSValue nx_crypto_encrypt(JSContext *ctx, JSValueConst this_val,
 			js_free(ctx, data);
 			return JS_EXCEPTION;
 		}
-		size_t size; // Not used - iv is a known size based on key length
+
+		size_t iv_size;
 		cbc_params->iv = JS_GetArrayBuffer(
-			ctx, &size, JS_GetPropertyStr(ctx, argv[0], "iv"));
+			ctx, &iv_size, JS_GetPropertyStr(ctx, argv[0], "iv"));
 		if (!cbc_params->iv) {
 			js_free(ctx, data);
 			js_free(ctx, cbc_params);
 			return JS_EXCEPTION;
 		}
+
+		// Validate IV size
+		if (iv_size != 16) {
+			js_free(ctx, data);
+			js_free(ctx, cbc_params);
+			return JS_ThrowTypeError(ctx,
+									 "Initialization vector must be 16 bytes");
+		}
+
 		data->algorithm_params = cbc_params;
 	} else if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_AES_XTS) {
 		nx_crypto_aes_xts_params_t *xts_params =
@@ -447,10 +462,10 @@ static JSValue nx_crypto_key_get_algorithm(JSContext *ctx,
 			JS_SetPropertyStr(ctx, obj, "length",
 							  JS_NewUint32(ctx, aes->key_length * 8));
 		}
-		context->algorithm_cached = JS_DupValue(ctx, obj);
+		context->algorithm_cached = obj;
 	}
 
-	return context->algorithm_cached;
+	return JS_DupValue(ctx, context->algorithm_cached);
 }
 
 static JSValue nx_crypto_key_get_usages(JSContext *ctx, JSValueConst this_val,
@@ -496,10 +511,10 @@ static JSValue nx_crypto_key_get_usages(JSContext *ctx, JSValueConst this_val,
 								 JS_NewString(ctx, "wrapKey"));
 		}
 
-		context->usages_cached = JS_DupValue(ctx, arr);
+		context->usages_cached = arr;
 	}
 
-	return context->usages_cached;
+	return JS_DupValue(ctx, context->usages_cached);
 }
 
 static JSValue nx_crypto_key_new(JSContext *ctx, JSValueConst this_val,
@@ -512,7 +527,7 @@ static JSValue nx_crypto_key_new(JSContext *ctx, JSValueConst this_val,
 	context->usages_cached = JS_UNDEFINED;
 
 	size_t key_size;
-	const void *key_data = JS_GetArrayBuffer(ctx, &key_size, argv[1]);
+	const void *key_data = NX_GetBufferSource(ctx, &key_size, argv[1]);
 	if (!key_data) {
 		js_free(ctx, context);
 		return JS_EXCEPTION;
@@ -729,7 +744,7 @@ void nx_crypto_decrypt_do(nx_work_t *req) {
 		}
 
 		data->result_size =
-			unpad_pkcs7(aes->key_length, data->result, data->data_size);
+			unpad_pkcs7(AES_BLOCK_SIZE, data->result, data->data_size);
 	} else if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_AES_XTS) {
 		nx_crypto_key_aes_t *aes = (nx_crypto_key_aes_t *)data->key->handle;
 		nx_crypto_aes_xts_params_t *xts_params =
@@ -798,9 +813,11 @@ static JSValue nx_crypto_subtle_decrypt(JSContext *ctx, JSValueConst this_val,
 		return JS_EXCEPTION;
 	}
 
+	// Validate that the key may be used for decryption
 	if (!(data->key->usages & NX_CRYPTO_KEY_USAGE_DECRYPT)) {
 		js_free(ctx, data);
-		return JS_ThrowTypeError(ctx, "Unsupported key usage");
+		return JS_ThrowTypeError(
+			ctx, "Key does not support the 'decrypt' operation");
 	}
 
 	data->data = NX_GetBufferSource(ctx, &data->data_size, argv[2]);
@@ -816,10 +833,10 @@ static JSValue nx_crypto_subtle_decrypt(JSContext *ctx, JSValueConst this_val,
 			js_free(ctx, data);
 			return JS_EXCEPTION;
 		}
-		size_t iv_size; // Not used - iv is a known size based on key length
+
+		size_t iv_size;
 		cbc_params->iv = NX_GetBufferSource(
 			ctx, &iv_size, JS_GetPropertyStr(ctx, argv[0], "iv"));
-
 		if (!cbc_params->iv) {
 			js_free(ctx, data);
 			js_free(ctx, cbc_params);
@@ -827,13 +844,11 @@ static JSValue nx_crypto_subtle_decrypt(JSContext *ctx, JSValueConst this_val,
 		}
 
 		// Validate IV size
-		nx_crypto_key_aes_t *aes = (nx_crypto_key_aes_t *)data->key->handle;
-		if (iv_size != aes->key_length) {
+		if (iv_size != 16) {
 			js_free(ctx, data);
 			js_free(ctx, cbc_params);
-			return JS_ThrowTypeError(
-				ctx, "Invalid 'iv' size (expected %u, received %lu)",
-				aes->key_length, iv_size);
+			return JS_ThrowTypeError(ctx,
+									 "Initialization vector must be 16 bytes");
 		}
 
 		data->algorithm_params = cbc_params;
@@ -904,7 +919,7 @@ void nx_init_crypto(JSContext *ctx, JSValueConst init_obj) {
 
 	JS_NewClassID(rt, &nx_crypto_key_class_id);
 	JSClassDef crypto_key_class = {
-		"FontFace",
+		"CryptoKey",
 		.finalizer = finalizer_crypto_key,
 	};
 	JS_NewClass(rt, nx_crypto_key_class_id, &crypto_key_class);

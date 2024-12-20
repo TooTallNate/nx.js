@@ -335,12 +335,16 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 				`Failed to execute 'importKey' on 'SubtleCrypto': 1st argument value '${format}' is not a valid enum value of type KeyFormat.`,
 			);
 		}
-		// @ts-expect-error Not handling `JsonWebKey` yet
-		const data = bufferSourceToArrayBuffer(keyData);
 		const algo =
 			typeof algorithm === 'string' ? { name: algorithm } : algorithm;
 		// @ts-expect-error Internal constructor
-		return new CryptoKey(INTERNAL_SYMBOL, algo, data, extractable, keyUsages);
+		return new CryptoKey(
+			INTERNAL_SYMBOL,
+			algo,
+			keyData,
+			extractable,
+			keyUsages,
+		);
 	}
 
 	sign(
