@@ -175,10 +175,16 @@ static JSValue nx_crypto_digest(JSContext *ctx, JSValueConst this_val, int argc,
 	NX_INIT_WORK_T(nx_crypto_digest_async_t);
 	data->algorithm = JS_ToCString(ctx, argv[0]);
 	if (!data->algorithm) {
+		js_free(ctx, data);
+		return JS_EXCEPTION;
+	}
+	data->data = NX_GetBufferSource(ctx, &data->size, argv[1]);
+	if (!data->data) {
+		JS_FreeCString(ctx, data->algorithm);
+		js_free(ctx, data);
 		return JS_EXCEPTION;
 	}
 	data->data_val = JS_DupValue(ctx, argv[1]);
-	data->data = JS_GetArrayBuffer(ctx, &data->size, data->data_val);
 	return nx_queue_async(ctx, req, nx_crypto_digest_do, nx_crypto_digest_cb);
 }
 
@@ -285,7 +291,7 @@ static JSValue nx_crypto_encrypt(JSContext *ctx, JSValueConst this_val,
 			ctx, "Key does not support the 'encrypt' operation");
 	}
 
-	data->data = JS_GetArrayBuffer(ctx, &data->data_size, argv[2]);
+	data->data = NX_GetBufferSource(ctx, &data->data_size, argv[2]);
 	if (!data->data) {
 		js_free(ctx, data);
 		return JS_EXCEPTION;
@@ -300,7 +306,7 @@ static JSValue nx_crypto_encrypt(JSContext *ctx, JSValueConst this_val,
 		}
 
 		size_t iv_size;
-		cbc_params->iv = JS_GetArrayBuffer(
+		cbc_params->iv = NX_GetBufferSource(
 			ctx, &iv_size, JS_GetPropertyStr(ctx, argv[0], "iv"));
 		if (!cbc_params->iv) {
 			js_free(ctx, data);
@@ -897,7 +903,6 @@ static JSValue nx_crypto_subtle_decrypt(JSContext *ctx, JSValueConst this_val,
 
 static JSValue nx_crypto_subtle_init(JSContext *ctx, JSValueConst this_val,
 									 int argc, JSValueConst *argv) {
-	JSAtom atom;
 	JSValue proto = JS_GetPropertyStr(ctx, argv[0], "prototype");
 	NX_DEF_FUNC(proto, "decrypt", nx_crypto_subtle_decrypt, 3);
 	JS_FreeValue(ctx, proto);

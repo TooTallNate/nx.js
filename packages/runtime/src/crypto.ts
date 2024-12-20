@@ -1,12 +1,6 @@
 import { $ } from './$';
 import { INTERNAL_SYMBOL } from './internal';
-import {
-	assertInternalConstructor,
-	bufferSourceToArrayBuffer,
-	createInternal,
-	def,
-	stub,
-} from './utils';
+import { assertInternalConstructor, createInternal, def, stub } from './utils';
 import { CryptoKey } from './crypto/crypto-key';
 import type {
 	AesCbcParams,
@@ -221,7 +215,7 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 	): Promise<ArrayBuffer> {
 		return $.cryptoDigest(
 			typeof algorithm === 'string' ? algorithm : algorithm.name,
-			bufferSourceToArrayBuffer(data),
+			data,
 		);
 	}
 
@@ -230,11 +224,7 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 		key: CryptoKey,
 		data: BufferSource,
 	): Promise<ArrayBuffer> {
-		return $.cryptoEncrypt(
-			normalizeAlgorithm(algorithm),
-			key,
-			bufferSourceToArrayBuffer(data),
-		);
+		return $.cryptoEncrypt(normalizeAlgorithm(algorithm), key, data);
 	}
 
 	exportKey(format: 'jwk', key: CryptoKey): Promise<JsonWebKey>;

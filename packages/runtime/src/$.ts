@@ -131,9 +131,9 @@ export interface Init {
 	cryptoEncrypt(
 		algorithm: Algorithm,
 		key: CryptoKey,
-		data: ArrayBuffer,
+		data: BufferSource,
 	): Promise<ArrayBuffer>;
-	cryptoDigest(algorithm: string, buf: ArrayBuffer): Promise<ArrayBuffer>;
+	cryptoDigest(algorithm: string, buf: BufferSource): Promise<ArrayBuffer>;
 	cryptoRandomBytes(buf: ArrayBuffer, offset: number, length: number): void;
 	sha256Hex(str: string): string;
 

@@ -145,9 +145,9 @@ test("`crypto.subtle.encrypt()` with 'AES-CBC' algorithm, 256-bit key", async ()
 	);
 
 	const ciphertext = await crypto.subtle.encrypt(
-		{ name: 'AES-CBC', iv: iv.buffer },
+		{ name: 'AES-CBC', iv },
 		key,
-		new TextEncoder().encode('hello'),
+		new TextEncoder().encode('hello').buffer,
 	);
 
 	assert.instance(ciphertext, ArrayBuffer);
