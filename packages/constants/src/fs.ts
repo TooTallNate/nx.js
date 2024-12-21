@@ -41,3 +41,13 @@ export enum BisPartitionId {
 	DeviceTreeBlob = 35,
 	System0 = 36,
 }
+
+export enum FsFileSystemType {
+	Logo = 2, ///< Logo
+	ContentControl = 3, ///< ContentControl
+	ContentManual = 4, ///< ContentManual
+	ContentMeta = 5, ///< ContentMeta
+	ContentData = 6, ///< ContentData
+	ApplicationPackage = 7, ///< ApplicationPackage
+	RegisteredUpdate = 8, ///< [4.0.0+] RegisteredUpdate
+}
