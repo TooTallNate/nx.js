@@ -60,8 +60,8 @@ export class NcmContentStorage {
 		//}
 		const inData = new ArrayBuffer(0x28);
 		const inDataView = new Uint8Array(inData);
-		inDataView.set(new Uint8Array(contentId), 0);
-		inDataView.set(new Uint8Array(placeholderId), 0x10);
+		inDataView.set(new Uint8Array(placeholderId), 0);
+		inDataView.set(new Uint8Array(contentId), 0x10);
 		new BigInt64Array(inData, 0x20, 1)[0] = size;
 		this.#srv.dispatchIn(1, inData);
 	}
