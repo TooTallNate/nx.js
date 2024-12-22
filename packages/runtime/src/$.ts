@@ -181,6 +181,12 @@ export interface Init {
 	fsMount(fs: FileSystem, name: string): void;
 	fsOpenBis(id: number): FileSystem;
 	fsOpenSdmc(): FileSystem;
+	fsOpenWithId(
+		titleId: bigint,
+		type: number,
+		path: string,
+		attributes: number,
+	): FileSystem;
 	saveDataInit(c: ClassOf<SaveData>): void;
 	saveDataCreateSync(info: SaveDataCreationInfo, nacp?: ArrayBuffer): void;
 	saveDataMount(saveData: SaveData, name: string): void;

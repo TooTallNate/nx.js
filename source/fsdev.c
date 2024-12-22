@@ -116,6 +116,35 @@ static JSValue nx_fs_open_sdmc(JSContext *ctx, JSValueConst this_val, int argc,
 	return obj;
 }
 
+static JSValue nx_fs_open_with_id(JSContext *ctx, JSValueConst this_val,
+								  int argc, JSValueConst *argv) {
+	u64 title_id;
+	FsFileSystemType type;
+	FsContentAttributes attributes;
+	if (JS_ToBigUint64(ctx, &title_id, argv[0]) ||
+		JS_ToUint32(ctx, &type, argv[1]) ||
+		JS_ToUint32(ctx, &attributes, argv[3])) {
+		return JS_EXCEPTION;
+	}
+	const char *path = JS_ToCString(ctx, argv[2]);
+	if (!path) {
+		return JS_EXCEPTION;
+	}
+	nx_file_system_t *file_system = js_mallocz(ctx, sizeof(nx_file_system_t));
+	if (!file_system) {
+		JS_FreeCString(ctx, path);
+		return JS_EXCEPTION;
+	}
+	Result rc = fsOpenFileSystemWithId(&file_system->fs, title_id, type, path,
+									   attributes);
+	if (R_FAILED(rc)) {
+		return nx_throw_libnx_error(ctx, rc, "fsOpenFileSystemWithId()");
+	}
+	JSValue obj = JS_NewObjectClass(ctx, nx_file_system_class_id);
+	JS_SetOpaque(obj, file_system);
+	return obj;
+}
+
 static JSValue nx_fs_free_space(JSContext *ctx, JSValueConst this_val, int argc,
 								JSValueConst *argv) {
 	nx_file_system_t *file_system =
@@ -675,6 +704,7 @@ static const JSCFunctionListEntry function_list[] = {
 	JS_CFUNC_DEF("fsMount", 1, nx_fs_mount),
 	JS_CFUNC_DEF("fsOpenBis", 1, nx_fs_open_bis),
 	JS_CFUNC_DEF("fsOpenSdmc", 1, nx_fs_open_sdmc),
+	JS_CFUNC_DEF("fsOpenWithId", 1, nx_fs_open_with_id),
 
 	JS_CFUNC_DEF("saveDataInit", 1, nx_save_data_init),
 	JS_CFUNC_DEF("saveDataMount", 1, nx_save_data_mount),

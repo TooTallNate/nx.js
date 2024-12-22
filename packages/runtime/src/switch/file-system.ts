@@ -92,5 +92,33 @@ export class FileSystem {
 	static openSdmc(): FileSystem {
 		return proto($.fsOpenSdmc(), FileSystem);
 	}
+
+	/**
+	 * Opens a file system partition for the application with the specified title ID.
+	 * The file system type is specified by the `FsFileSystemType` parameter.
+	 *
+	 * @example
+	 *
+	 * ```typescript
+	 * import { FsFileSystemType } from '@nx.js/constants';
+	 *
+	 * // Open and mount the "User" partition
+	 * const fs = Switch.FileSystem.openWithId(
+	 *   0x0100000000001000n,
+	 *   FsFileSystemType.ContentMeta,
+	 * );
+	 * const url = fs.mount();
+	 *
+	 * // Read the file entries at the root of the file system
+	 * console.log(Switch.readDirSync(url));
+	 * ```
+	 *
+	 * @param titleId The title ID of the file system to open.
+	 * @param type The `FsFileSystemType` of the file system to open.
+	 * @param path The base path of the file system to open. Defaults to `/`.
+	 */
+	static openWithId(titleId: bigint, type: number, path?: string): FileSystem {
+		return proto($.fsOpenWithId(titleId, type, path ?? '/', 0), FileSystem);
+	}
 }
 $.fsInit(FileSystem);
