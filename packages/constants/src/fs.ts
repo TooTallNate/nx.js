@@ -51,3 +51,8 @@ export enum FsFileSystemType {
 	ApplicationPackage = 7, ///< ApplicationPackage
 	RegisteredUpdate = 8, ///< [4.0.0+] RegisteredUpdate
 }
+
+export enum FsContentAttributes {
+	None = 0x0,
+	All = 0xf,
+}
