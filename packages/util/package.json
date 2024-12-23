@@ -1,6 +1,6 @@
 {
   "name": "@nx.js/util",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Common helper utilities for nx.js",
   "repository": {
     "type": "git",

@@ -1,5 +1,11 @@
 # create-nxjs-app
 
+## 0.0.60
+
+### Patch Changes
+
+- Set `nacp.id` and `nacp.title` fields instead of deprecated `titleId` and `productName` ([`e3b984347b98af071be762e715bf667f73017d43`](https://github.com/TooTallNate/nx.js/commit/e3b984347b98af071be762e715bf667f73017d43))
+
 ## 0.0.59
 
 ## 0.0.58

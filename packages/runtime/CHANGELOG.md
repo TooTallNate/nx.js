@@ -1,5 +1,25 @@
 # @nx.js/runtime
 
+## 0.0.60
+
+### Patch Changes
+
+- Add `DOMException` ([`568202cf443ff219fe11bc17e9429554010d6397`](https://github.com/TooTallNate/nx.js/commit/568202cf443ff219fe11bc17e9429554010d6397))
+
+- Add `NX_GetArrayBufferView()` util function ([`e4be3e66e612c4f883231faea44958ac88b18a97`](https://github.com/TooTallNate/nx.js/commit/e4be3e66e612c4f883231faea44958ac88b18a97))
+
+- Allow `ArrayBufferView` in `Switch.Service` dispatch functions ([`61278b49a1fe7e5f6e6e427929d03bca1b83b4fe`](https://github.com/TooTallNate/nx.js/commit/61278b49a1fe7e5f6e6e427929d03bca1b83b4fe))
+
+- Make `Switch.FsFile#slice()` work as expected ([`da5fa185ea135915d107ad46110dd5c9d68a8a3d`](https://github.com/TooTallNate/nx.js/commit/da5fa185ea135915d107ad46110dd5c9d68a8a3d))
+
+- Add `Switch.FileSystem.openWithId()` ([`3ddb523198def124bdd5f3170cf9f70ecd3f6d45`](https://github.com/TooTallNate/nx.js/commit/3ddb523198def124bdd5f3170cf9f70ecd3f6d45))
+
+- Add support for "SHA-384" and "SHA-512" in `crypto.subtle.digest()` ([#168](https://github.com/TooTallNate/nx.js/pull/168))
+
+- Implement `importKey()`, `encrypt()`, and `decrypt()` functions for `crypto.subtle` (AES-CBC and AES-XTS modes) ([#168](https://github.com/TooTallNate/nx.js/pull/168))
+
+- Make `stream()` work as expected with `Switch.FsFile` slices ([`8baa8ce07aea97a5e67f2a9f8a8b0cffe4b63e4c`](https://github.com/TooTallNate/nx.js/commit/8baa8ce07aea97a5e67f2a9f8a8b0cffe4b63e4c))
+
 ## 0.0.59
 
 ### Patch Changes

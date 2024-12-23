@@ -1,6 +1,6 @@
 {
   "name": "@nx.js/ncm",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "Content Manager (ncm) service IPC wrapper for nx.js",
   "repository": {
     "type": "git",
@@ -20,8 +20,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@nx.js/constants": "^0.3.0",
-    "@nx.js/util": "^0.0.0"
+    "@nx.js/constants": "^0.4.0",
+    "@nx.js/util": "^0.0.1"
   },
   "devDependencies": {
     "@nx.js/runtime": "workspace:*"
