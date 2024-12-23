@@ -160,7 +160,7 @@ export interface Init {
 
 	// fs.c
 	fclose(f: FileHandle): Promise<void>;
-	fopen(path: string, mode: string): Promise<FileHandle>;
+	fopen(path: string, mode: string, startOffset?: number): Promise<FileHandle>;
 	fread(f: FileHandle, buf: ArrayBuffer): Promise<number | null>;
 	fwrite(f: FileHandle, data: ArrayBuffer): Promise<void>;
 	fsCreateBigFile(path: string): void;

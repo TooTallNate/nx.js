@@ -35,6 +35,7 @@ typedef struct {
 	const char *path;
 	const char *mode;
 	FILE *file;
+	long start_offset;
 } nx_fs_fopen_async_t;
 
 typedef struct {
@@ -186,6 +187,11 @@ void nx_fopen_do(nx_work_t *req) {
 	data->file = fopen(data->path, data->mode);
 	if (!data->file) {
 		data->err = errno;
+		return;
+	}
+
+	if (data->start_offset > 0) {
+		fseek(data->file, data->start_offset, SEEK_SET);
 	}
 }
 
@@ -214,6 +220,13 @@ JSValue nx_fopen(JSContext *ctx, JSValueConst this_val, int argc,
 	data->mode = JS_ToCString(ctx, argv[1]);
 	if (!data->path || !data->mode) {
 		return JS_EXCEPTION;
+	}
+	if (argc > 2 && JS_IsNumber(argv[2])) {
+		u32 start_offset;
+		if (JS_ToUint32(ctx, &start_offset, argv[2])) {
+			return JS_EXCEPTION;
+		}
+		data->start_offset = start_offset;
 	}
 	return nx_queue_async(ctx, req, nx_fopen_do, nx_fopen_cb);
 }

@@ -267,20 +267,29 @@ export class FsFile extends File {
 	}
 
 	stream(opts?: FsFileStreamOptions): ReadableStream<Uint8Array> {
-		const { name } = this;
+		const { name, start, end } = this;
+		let offset = start ?? 0;
 		const chunkSize = opts?.chunkSize || 65536;
 		let h: Awaited<ReturnType<typeof $.fopen>> | undefined | null;
 		return new ReadableStream({
 			type: 'bytes',
 			async pull(controller) {
-				if (!h) h = await $.fopen(name, 'rb');
-				const b = new Uint8Array(chunkSize);
+				if (!h) h = await $.fopen(name, 'rb', start);
+				const remaining = end ? end - offset : Infinity;
+				if (remaining <= 0) {
+					controller.close();
+					await $.fclose(h);
+					h = null;
+					return;
+				}
+				const b = new Uint8Array(Math.min(chunkSize, remaining));
 				const n = await $.fread(h, b.buffer);
 				if (n === null) {
 					controller.close();
 					await $.fclose(h);
 					h = null;
 				} else if (n > 0) {
+					offset += n;
 					controller.enqueue(n < b.length ? b.subarray(0, n) : b);
 				}
 			},
