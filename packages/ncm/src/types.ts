@@ -1,4 +1,4 @@
-import { ArrayBufferStruct, singleton, view } from '@nx.js/util';
+import { ArrayBufferStruct, singleton, u8, view } from '@nx.js/util';
 
 const contentIds = new WeakMap<ArrayBufferView, NcmContentId>();
 const contentMetaKeys = new WeakMap<ArrayBufferView, NcmContentMetaKey>();
@@ -81,8 +81,15 @@ export class NcmContentStorageRecord extends ArrayBufferStruct {
 	get key() {
 		return singleton(contentMetaKeys, this, () => new NcmContentMetaKey(this));
 	}
+	set key(v: NcmContentMetaKey) {
+		u8(this).set(u8(v), 0);
+	}
+
 	get storageId(): NcmStorageId {
 		return view(this).getUint8(0x10);
+	}
+	set storageId(v: NcmStorageId) {
+		view(this).setUint8(0x10, v);
 	}
 }
 
@@ -98,14 +105,29 @@ export class NcmContentMetaKey extends ArrayBufferStruct {
 	get id() {
 		return view(this).getBigUint64(0x0, true);
 	}
+	set id(v: bigint) {
+		view(this).setBigUint64(0x0, v, true);
+	}
+
 	get version() {
 		return view(this).getUint32(0x8, true);
 	}
+	set version(v: number) {
+		view(this).setUint32(0x8, v, true);
+	}
+
 	get type(): NcmContentMetaType {
 		return view(this).getUint8(0xc);
 	}
+	set type(v: NcmContentMetaType) {
+		view(this).setUint8(0xc, v);
+	}
+
 	get installType(): NcmContentInstallType {
 		return view(this).getUint8(0xd);
+	}
+	set installType(v: NcmContentInstallType) {
+		view(this).setUint8(0xd, v);
 	}
 }
 
@@ -121,6 +143,10 @@ export class NcmContentInfo extends ArrayBufferStruct {
 	get contentId() {
 		return singleton(contentIds, this, () => new NcmContentId(this));
 	}
+	set contentId(v: NcmContentId) {
+		u8(this).set(u8(v), 0);
+	}
+
 	get sizeLow() {
 		return view(this).getUint32(0x10, true);
 	}
@@ -130,14 +156,31 @@ export class NcmContentInfo extends ArrayBufferStruct {
 	get size(): bigint {
 		return (BigInt(this.sizeHigh) << 32n) | BigInt(this.sizeLow);
 	}
+	set size(v: bigint) {
+		const dv = view(this);
+		dv.setUint32(0x10, Number(v & 0xffffffffn), true);
+		dv.setUint8(0x14, Number(v >> 32n));
+	}
+
 	get attr() {
 		return view(this).getUint8(0x15);
 	}
+	set attr(v: number) {
+		view(this).setUint8(0x15, v);
+	}
+
 	get contentType(): NcmContentType {
 		return view(this).getUint8(0x16);
 	}
+	set contentType(v: NcmContentType) {
+		view(this).setUint8(0x16, v);
+	}
+
 	get idOffset() {
 		return view(this).getUint8(0x17);
+	}
+	set idOffset(v: number) {
+		view(this).setUint8(0x17, v);
 	}
 }
 
@@ -152,17 +195,36 @@ export class NcmContentMetaHeader extends ArrayBufferStruct {
 	get extendedHeaderSize() {
 		return view(this).getUint16(0x0, true);
 	}
+	set extendedHeaderSize(v: number) {
+		view(this).setUint16(0x0, v, true);
+	}
+
 	get contentCount() {
 		return view(this).getUint16(0x2, true);
 	}
+	set contentCount(v: number) {
+		view(this).setUint16(0x2, v, true);
+	}
+
 	get contentMetaCount() {
 		return view(this).getUint16(0x4, true);
 	}
+	set contentMetaCount(v: number) {
+		view(this).setUint16(0x4, v, true);
+	}
+
 	get attributes() {
 		return view(this).getUint8(0x6);
 	}
+	set attributes(v: number) {
+		view(this).setUint8(0x6, v);
+	}
+
 	get storageId() {
 		return view(this).getUint8(0x7);
+	}
+	set storageId(v: number) {
+		view(this).setUint8(0x7, v);
 	}
 }
 
@@ -175,10 +237,21 @@ export class NcmApplicationMetaExtendedHeader extends ArrayBufferStruct {
 	get patchId() {
 		return view(this).getBigUint64(0x0, true);
 	}
+	set patchId(v: bigint) {
+		view(this).setBigUint64(0x0, v, true);
+	}
+
 	get requiredSystemVersion() {
 		return view(this).getUint32(0x8, true);
 	}
+	set requiredSystemVersion(v: number) {
+		view(this).setUint32(0x8, v, true);
+	}
+
 	get requiredApplicationVersion() {
 		return view(this).getUint32(0xc, true);
+	}
+	set requiredApplicationVersion(v: number) {
+		view(this).setUint32(0xc, v, true);
 	}
 }
