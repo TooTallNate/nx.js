@@ -11,7 +11,7 @@ export interface ServiceDispatchParams {
 	//SfBufferAttrs buffer_attrs;
 	//SfBuffer buffers[8];
 	bufferAttrs?: number[];
-	buffers?: ArrayBuffer[];
+	buffers?: (ArrayBuffer | ArrayBufferView)[];
 
 	//bool in_send_pid;
 	inSendPid?: boolean;
@@ -56,13 +56,17 @@ export class Service {
 		this.dispatchInOut(rid, undefined, undefined, params);
 	}
 
-	dispatchIn(rid: number, inData: ArrayBuffer, parmas?: ServiceDispatchParams) {
+	dispatchIn(
+		rid: number,
+		inData: ArrayBuffer | ArrayBufferView,
+		parmas?: ServiceDispatchParams,
+	) {
 		this.dispatchInOut(rid, inData, undefined, parmas);
 	}
 
 	dispatchOut(
 		rid: number,
-		outData: ArrayBuffer,
+		outData: ArrayBuffer | ArrayBufferView,
 		params?: ServiceDispatchParams,
 	) {
 		this.dispatchInOut(rid, undefined, outData, params);
@@ -70,8 +74,8 @@ export class Service {
 
 	dispatchInOut(
 		rid: number,
-		inData?: ArrayBuffer,
-		outData?: ArrayBuffer,
+		inData?: ArrayBuffer | ArrayBufferView,
+		outData?: ArrayBuffer | ArrayBufferView,
 		params?: ServiceDispatchParams,
 	) {
 		stub();

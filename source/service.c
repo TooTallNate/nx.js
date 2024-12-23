@@ -1,5 +1,6 @@
 #include "service.h"
 #include "error.h"
+#include "util.h"
 
 static JSClassID nx_service_class_id;
 
@@ -82,16 +83,10 @@ static JSValue nx_service_dispatch_in_out(JSContext *ctx, JSValueConst this_val,
 	}
 
 	size_t in_data_size = 0;
-	void *in_data = NULL;
-	if (JS_IsArrayBuffer(argv[1])) {
-		in_data = JS_GetArrayBuffer(ctx, &in_data_size, argv[1]);
-	}
+	void *in_data = NX_GetArrayBufferView(ctx, &in_data_size, argv[1]);
 
 	size_t out_data_size = 0;
-	void *out_data = NULL;
-	if (JS_IsArrayBuffer(argv[2])) {
-		out_data = JS_GetArrayBuffer(ctx, &out_data_size, argv[2]);
-	}
+	void *out_data = NX_GetArrayBufferView(ctx, &out_data_size, argv[2]);
 
 	SfDispatchParams disp = {0};
 	if (JS_IsObject(argv[3])) {
@@ -171,10 +166,8 @@ static JSValue nx_service_dispatch_in_out(JSContext *ctx, JSValueConst this_val,
 			}
 			for (u32 i = 0; i < length; i++) {
 				JSValue v = JS_GetPropertyUint32(ctx, buffers_val, i);
-				if (JS_IsArrayBuffer(v)) {
-					disp.buffers[i].ptr =
-						JS_GetArrayBuffer(ctx, &disp.buffers[i].size, v);
-				}
+				disp.buffers[i].ptr =
+					NX_GetArrayBufferView(ctx, &disp.buffers[i].size, v);
 				JS_FreeValue(ctx, v);
 			}
 		}
