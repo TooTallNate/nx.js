@@ -1,11 +1,12 @@
 import { SfBufferAttr } from '@nx.js/constants';
 import { ncm } from './service';
-import type {
+import {
 	NcmContentId,
 	NcmContentMetaKey,
 	NcmContentType,
 	NcmStorageId,
 } from './types';
+import { u8, view } from '@nx.js/util';
 
 export class NcmContentMetaDatabase {
 	static open(storageId: NcmStorageId) {
@@ -17,7 +18,7 @@ export class NcmContentMetaDatabase {
 		//}
 		const out = new Switch.Service();
 		const inArr = new Uint8Array([storageId]);
-		ncm.dispatchIn(5, inArr.buffer, {
+		ncm.dispatchIn(5, inArr, {
 			outObjects: [out],
 		});
 		return new NcmContentMetaDatabase(out);
@@ -32,7 +33,7 @@ export class NcmContentMetaDatabase {
 		this.#srv = srv;
 	}
 
-	set(key: NcmContentMetaKey, data: ArrayBuffer) {
+	set(key: NcmContentMetaKey, data: ArrayBuffer | ArrayBufferView) {
 		//Result ncmContentMetaDatabaseSet(NcmContentMetaDatabase* db, const NcmContentMetaKey* key, const void* data, u64 data_size) {
 		//    return serviceDispatchIn(&db->s, 0, *key,
 		//        .buffer_attrs = { SfBufferAttr_HipcMapAlias | SfBufferAttr_In },
@@ -45,7 +46,7 @@ export class NcmContentMetaDatabase {
 		});
 	}
 
-	get(key: NcmContentMetaKey, data: ArrayBuffer): bigint {
+	getInto(key: NcmContentMetaKey, data: ArrayBufferView): bigint {
 		//Result ncmContentMetaDatabaseGet(NcmContentMetaDatabase* db, const NcmContentMetaKey* key, u64* out_size, void* out_data, u64 out_data_size) {
 		//    return serviceDispatchInOut(&db->s, 1, *key, *out_size,
 		//        .buffer_attrs = { SfBufferAttr_HipcMapAlias | SfBufferAttr_Out },
@@ -58,6 +59,16 @@ export class NcmContentMetaDatabase {
 			buffers: [data],
 		});
 		return out[0];
+	}
+
+	get(key: NcmContentMetaKey): ArrayBufferView {
+		const expectedSize = this.getSize(key);
+		const data = new Uint8Array(Number(expectedSize));
+		const size = this.getInto(key, data);
+		if (size !== expectedSize) {
+			throw new Error(`Unexpected size: ${size} (expected: ${expectedSize})`);
+		}
+		return data;
 	}
 
 	delete(key: NcmContentMetaKey) {
@@ -79,13 +90,41 @@ export class NcmContentMetaDatabase {
 		//    } in = { type, {0}, *key };
 		//    return serviceDispatchInOut(&db->s, 3, in, *out_content_id);
 		//}
-		const inData = new ArrayBuffer(0x18);
-		const inArr = new Uint8Array(inData);
-		inArr[0] = type;
-		inArr.set(new Uint8Array(key), 0x8);
-		const out = new ArrayBuffer(0x10);
+		const inData = new Uint8Array(0x18);
+		inData[0] = type;
+		inData.set(u8(key), 0x8);
+		const out = new NcmContentId();
 		this.#srv.dispatchInOut(3, inData, out);
-		return out as NcmContentId;
+		return out;
+	}
+
+	listContentInfo(
+		key: NcmContentMetaKey,
+		startIndex: number,
+		outInfo: ArrayBuffer,
+	) {
+		//Result ncmContentMetaDatabaseListContentInfo(NcmContentMetaDatabase* db, s32* out_entries_written, NcmContentInfo* out_info, s32 count, const NcmContentMetaKey* key, s32 start_index) {
+		//	const struct {
+		//		s32 start_index;
+		//		u32 pad;
+		//		NcmContentMetaKey key;
+		//	} in = { start_index, 0, *key };
+		//	return serviceDispatchInOut(&db->s, 4, in, *out_entries_written,
+		//		.buffer_attrs = { SfBufferAttr_HipcMapAlias | SfBufferAttr_Out },
+		//		.buffers = { { out_info, count*sizeof(NcmContentInfo) } },
+		//	);
+		//}
+		const inData = new Uint8Array(0x18);
+		const inView = view(inData);
+		inView.setInt32(0, startIndex ?? 0, true);
+		inView.setUint32(4, 0, true);
+		inData.set(u8(key), 0x8);
+		const out = new Int32Array(1);
+		this.#srv.dispatchInOut(4, inData, out, {
+			bufferAttrs: [SfBufferAttr.HipcMapAlias | SfBufferAttr.Out],
+			buffers: [outInfo],
+		});
+		return out[0];
 	}
 
 	has(key: NcmContentMetaKey): boolean {
@@ -96,7 +135,7 @@ export class NcmContentMetaDatabase {
 		//    return rc;
 		//}
 		const out = new Uint8Array(1);
-		this.#srv.dispatchInOut(8, key, out.buffer);
+		this.#srv.dispatchInOut(8, key, out);
 		return Boolean(out[0] & 1);
 	}
 
@@ -110,13 +149,12 @@ export class NcmContentMetaDatabase {
 		//    if (R_SUCCEEDED(rc) && out) *out = tmp & 1;
 		//    return rc;
 		//}
-		const inData = new ArrayBuffer(keys.length * 0x10);
-		const inArr = new Uint8Array(inData);
+		const inData = new Uint8Array(keys.length * NcmContentMetaKey.sizeof);
 		for (let i = 0; i < keys.length; i++) {
-			inArr.set(new Uint8Array(keys[i]), i * 0x10);
+			inData.set(u8(keys[i]), i * 0x10);
 		}
 		const out = new Uint8Array(1);
-		this.#srv.dispatchOut(9, out.buffer, {
+		this.#srv.dispatchOut(9, out, {
 			bufferAttrs: [SfBufferAttr.HipcMapAlias | SfBufferAttr.In],
 			buffers: [inData],
 		});
@@ -128,7 +166,7 @@ export class NcmContentMetaDatabase {
 		//    return serviceDispatchInOut(&db->s, 10, *key, *out_size);
 		//}
 		const out = new BigUint64Array(1);
-		this.#srv.dispatchInOut(10, key, out.buffer);
+		this.#srv.dispatchInOut(10, key, out);
 		return out[0];
 	}
 

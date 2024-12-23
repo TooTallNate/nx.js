@@ -575,6 +575,9 @@ importers:
       '@nx.js/constants':
         specifier: ^0.3.0
         version: link:../constants
+      '@nx.js/util':
+        specifier: ^0.0.0
+        version: link:../util
     devDependencies:
       '@nx.js/runtime':
         specifier: workspace:*

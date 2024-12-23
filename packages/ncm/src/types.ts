@@ -1,3 +1,8 @@
+import { ArrayBufferStruct, singleton, view } from '@nx.js/util';
+
+const contentIds = new WeakMap<ArrayBufferView, NcmContentId>();
+const contentMetaKeys = new WeakMap<ArrayBufferView, NcmContentMetaKey>();
+
 /// StorageId
 export enum NcmStorageId {
 	None = 0, ///< None
@@ -34,7 +39,6 @@ export enum NcmContentMetaType {
 	Delta = 0x83, ///< Delta
 	DataPatch = 0x84, ///< DataPatch
 }
-NcmContentMetaType;
 
 /// ContentMetaAttribute
 export enum NcmContentMetaAttribute {
@@ -57,29 +61,124 @@ export enum NcmContentMetaPlatform {
 }
 
 /// ContentId
-//typedef struct {
-//    u8 c[0x10]; ///< Id
-//} NcmContentId;
-declare const contentIdSymbol: unique symbol;
-export type NcmContentId = ArrayBuffer & {
-	[contentIdSymbol]: void;
-};
+export class NcmContentId extends ArrayBufferStruct {
+	//u8 c[0x10]; ///< Id
+	static sizeof = 0x10 as const;
+}
 
 /// PlaceHolderId
-//typedef struct {
-//    Uuid uuid;  ///< UUID
-//} NcmPlaceHolderId;
-declare const placeHolderIdSymbol: unique symbol;
-export type NcmPlaceHolderId = ArrayBuffer & {
-	[placeHolderIdSymbol]: void;
-};
+export class NcmPlaceHolderId extends ArrayBufferStruct {
+	//Uuid uuid;  ///< UUID
+	static sizeof = 0x10 as const;
+}
+
+export class NcmContentStorageRecord extends ArrayBufferStruct {
+	//NcmContentMetaKey key;
+	//u8 storage_id;
+	//u8 padding[0x7];
+	static sizeof = 0x18 as const;
+
+	get key() {
+		return singleton(contentMetaKeys, this, () => new NcmContentMetaKey(this));
+	}
+	get storageId(): NcmStorageId {
+		return view(this).getUint8(0x10);
+	}
+}
 
 /// ContentMetaKey
-//typedef struct {
-//    u64 id;                             ///< Id.
-//    u32 version;                        ///< Version.
-//    u8 type;                            ///< \ref NcmContentMetaType
-//    u8 install_type;                    ///< \ref NcmContentInstallType
-//    u8 padding[2];                      ///< Padding.
-//} NcmContentMetaKey;
-export type NcmContentMetaKey = ArrayBuffer;
+export class NcmContentMetaKey extends ArrayBufferStruct {
+	//u64 id;                             ///< Id.
+	//u32 version;                        ///< Version.
+	//u8 type;                            ///< \ref NcmContentMetaType
+	//u8 install_type;                    ///< \ref NcmContentInstallType
+	//u8 padding[2];                      ///< Padding.
+	static sizeof = 0x10 as const;
+
+	get id() {
+		return view(this).getBigUint64(0x0, true);
+	}
+	get version() {
+		return view(this).getUint32(0x8, true);
+	}
+	get type(): NcmContentMetaType {
+		return view(this).getUint8(0xc);
+	}
+	get installType(): NcmContentInstallType {
+		return view(this).getUint8(0xd);
+	}
+}
+
+export class NcmContentInfo extends ArrayBufferStruct {
+	//NcmContentId content_id;     ///< \ref NcmContentId
+	//u32 size_low;                ///< Content size (low).
+	//u8 size_high;                ///< Content size (high).
+	//u8 attr;                     ///< Content attributes.
+	//u8 content_type;             ///< \ref NcmContentType.
+	//u8 id_offset;                ///< Offset of this content. Unused by most applications.
+	static sizeof = 0x18 as const;
+
+	get contentId() {
+		return singleton(contentIds, this, () => new NcmContentId(this));
+	}
+	get sizeLow() {
+		return view(this).getUint32(0x10, true);
+	}
+	get sizeHigh() {
+		return view(this).getUint8(0x14);
+	}
+	get size(): bigint {
+		return (BigInt(this.sizeHigh) << 32n) | BigInt(this.sizeLow);
+	}
+	get attr() {
+		return view(this).getUint8(0x15);
+	}
+	get contentType(): NcmContentType {
+		return view(this).getUint8(0x16);
+	}
+	get idOffset() {
+		return view(this).getUint8(0x17);
+	}
+}
+
+export class NcmContentMetaHeader extends ArrayBufferStruct {
+	// u16 extended_header_size;           ///< Size of optional struct that comes after this one.
+	// u16 content_count;                  ///< Number of NcmContentInfos after the extra bytes.
+	// u16 content_meta_count;             ///< Number of NcmContentMetaInfos that come after the NcmContentInfos.
+	// u8 attributes;                      ///< Usually None (0).
+	// u8 storage_id;                      ///< Usually None (0).
+	static sizeof = 0x8 as const;
+
+	get extendedHeaderSize() {
+		return view(this).getUint16(0x0, true);
+	}
+	get contentCount() {
+		return view(this).getUint16(0x2, true);
+	}
+	get contentMetaCount() {
+		return view(this).getUint16(0x4, true);
+	}
+	get attributes() {
+		return view(this).getUint8(0x6);
+	}
+	get storageId() {
+		return view(this).getUint8(0x7);
+	}
+}
+
+export class NcmApplicationMetaExtendedHeader extends ArrayBufferStruct {
+	// u64 patch_id;                     ///< PatchId of this application's patch.
+	// u32 required_system_version;      ///< Firmware version required by this application.
+	// u32 required_application_version; ///< [9.0.0+] Owner application version required by this application. Previously padding.
+	static sizeof = 0x10 as const;
+
+	get patchId() {
+		return view(this).getBigUint64(0x0, true);
+	}
+	get requiredSystemVersion() {
+		return view(this).getUint32(0x8, true);
+	}
+	get requiredApplicationVersion() {
+		return view(this).getUint32(0xc, true);
+	}
+}

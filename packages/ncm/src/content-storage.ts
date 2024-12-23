@@ -1,6 +1,7 @@
 import { SfBufferAttr } from '@nx.js/constants';
 import { ncm } from './service';
-import type { NcmContentId, NcmPlaceHolderId, NcmStorageId } from './types';
+import { NcmContentId, NcmPlaceHolderId, NcmStorageId } from './types';
+import { decodeCString, u8, view } from '@nx.js/util';
 
 export class NcmContentStorage {
 	static open(storageId: NcmStorageId) {
@@ -12,7 +13,7 @@ export class NcmContentStorage {
 		//}
 		const out = new Switch.Service();
 		const inArr = new Uint8Array([storageId]);
-		ncm.dispatchIn(4, inArr.buffer, {
+		ncm.dispatchIn(4, inArr, {
 			outObjects: [out],
 		});
 		return new NcmContentStorage(out);
@@ -31,9 +32,9 @@ export class NcmContentStorage {
 		//Result ncmContentStorageGeneratePlaceHolderId(NcmContentStorage* cs, NcmPlaceHolderId* out_id) {
 		//  return serviceDispatchOut(&cs->s, 0, *out_id);
 		//}
-		const uuid = new ArrayBuffer(0x10);
+		const uuid = new NcmPlaceHolderId();
 		this.#srv.dispatchOut(0, uuid);
-		return uuid as NcmPlaceHolderId;
+		return uuid;
 	}
 
 	createPlaceHolder(
@@ -58,11 +59,10 @@ export class NcmContentStorage {
 		//		return serviceDispatchIn(&cs->s, 1, in);
 		//	}
 		//}
-		const inData = new ArrayBuffer(0x28);
-		const inDataView = new Uint8Array(inData);
-		inDataView.set(new Uint8Array(placeholderId), 0);
-		inDataView.set(new Uint8Array(contentId), 0x10);
-		new BigInt64Array(inData, 0x20, 1)[0] = size;
+		const inData = new Uint8Array(0x28);
+		inData.set(u8(placeholderId), 0);
+		inData.set(u8(contentId), NcmPlaceHolderId.sizeof);
+		view(inData).setBigInt64(0x20, size, true);
 		this.#srv.dispatchIn(1, inData);
 	}
 
@@ -81,7 +81,7 @@ export class NcmContentStorage {
 		//	return rc;
 		//}
 		const out = new Uint8Array(1);
-		this.#srv.dispatchInOut(3, placeholderId, out.buffer);
+		this.#srv.dispatchInOut(3, placeholderId, out);
 		return Boolean(out[0] & 1);
 	}
 
@@ -100,10 +100,9 @@ export class NcmContentStorage {
 		//		.buffers = { { data, data_size } },
 		//	);
 		//}
-		const inData = new ArrayBuffer(0x18);
-		const inDataView = new Uint8Array(inData);
-		inDataView.set(new Uint8Array(placeholderId), 0);
-		new BigUint64Array(inData, 0x10, 1)[0] = offset;
+		const inData = new Uint8Array(0x18);
+		inData.set(u8(placeholderId), 0);
+		view(inData).setBigUint64(NcmPlaceHolderId.sizeof, offset, true);
 		this.#srv.dispatchIn(4, inData, {
 			bufferAttrs: [SfBufferAttr.HipcMapAlias | SfBufferAttr.In],
 			buffers: [data],
@@ -126,10 +125,9 @@ export class NcmContentStorage {
 		//		return serviceDispatchIn(&cs->s, 5, in);
 		//	}
 		//}
-		const inData = new ArrayBuffer(0x20);
-		const inDataView = new Uint8Array(inData);
-		inDataView.set(new Uint8Array(placeholderId), 0);
-		inDataView.set(new Uint8Array(contentId), 0x10);
+		const inData = new Uint8Array(0x20);
+		inData.set(u8(placeholderId), 0);
+		inData.set(u8(contentId), NcmPlaceHolderId.sizeof);
 		this.#srv.dispatchIn(5, inData);
 	}
 
@@ -148,7 +146,7 @@ export class NcmContentStorage {
 		//	return rc;
 		//}
 		const out = new Uint8Array(1);
-		this.#srv.dispatchInOut(7, contentId, out.buffer);
+		this.#srv.dispatchInOut(7, contentId, out);
 		return Boolean(out[0] & 1);
 	}
 
@@ -165,15 +163,14 @@ export class NcmContentStorage {
 		//	}
 		//	return rc;
 		//}
-		const out = new ArrayBuffer(0x300);
+		const out = new Uint8Array(0x300);
 		this.#srv.dispatchIn(8, contentId, {
 			bufferAttrs: [
 				SfBufferAttr.FixedSize | SfBufferAttr.HipcPointer | SfBufferAttr.Out,
 			],
 			buffers: [out],
 		});
-		const nul = new Uint8Array(out).indexOf(0);
-		return new TextDecoder().decode(out.slice(0, nul));
+		return decodeCString(out);
 	}
 
 	getPlaceHolderPath(placeholderId: NcmPlaceHolderId): string {
@@ -189,15 +186,14 @@ export class NcmContentStorage {
 		//	}
 		//	return rc;
 		//}
-		const out = new ArrayBuffer(0x300);
+		const out = new Uint8Array(0x300);
 		this.#srv.dispatchIn(9, placeholderId, {
 			bufferAttrs: [
 				SfBufferAttr.FixedSize | SfBufferAttr.HipcPointer | SfBufferAttr.Out,
 			],
 			buffers: [out],
 		});
-		const nul = new Uint8Array(out).indexOf(0);
-		return new TextDecoder().decode(out.slice(0, nul));
+		return decodeCString(out);
 	}
 
 	cleanupAllPlaceHolder() {
@@ -214,16 +210,16 @@ export class NcmContentStorage {
 		//		.buffers = { { out_ids, count*sizeof(NcmPlaceHolderId) } },
 		//	);
 		//}
-		const outIds = new ArrayBuffer(maxCount * 0x10);
+		const outIds = new ArrayBuffer(maxCount * NcmPlaceHolderId.sizeof);
 		const out = new Int32Array(1);
-		this.#srv.dispatchOut(11, out.buffer, {
+		this.#srv.dispatchOut(11, out, {
 			bufferAttrs: [SfBufferAttr.HipcMapAlias | SfBufferAttr.Out],
 			buffers: [outIds],
 		});
 		const outCount = out[0];
 		const rtn: NcmPlaceHolderId[] = new Array(outCount);
 		for (let i = 0; i < outCount; i++) {
-			rtn[i] = outIds.slice(i * 0x10, i * 0x10 + 0x10) as NcmPlaceHolderId;
+			rtn[i] = new NcmPlaceHolderId(outIds, i * NcmPlaceHolderId.sizeof);
 		}
 		return rtn;
 	}
@@ -233,7 +229,7 @@ export class NcmContentStorage {
 		//	return serviceDispatchOut(&cs->s, 12, *out_count);
 		//}
 		const out = new Int32Array(1);
-		this.#srv.dispatchOut(12, out.buffer);
+		this.#srv.dispatchOut(12, out);
 		return out[0];
 	}
 
@@ -250,14 +246,14 @@ export class NcmContentStorage {
 		const inData = new Int32Array([startOffset]);
 		const outIds = new ArrayBuffer(maxCount * 0x10);
 		const out = new Int32Array(1);
-		this.#srv.dispatchInOut(13, inData.buffer, out.buffer, {
+		this.#srv.dispatchInOut(13, inData, out, {
 			bufferAttrs: [SfBufferAttr.HipcMapAlias | SfBufferAttr.Out],
 			buffers: [outIds],
 		});
 		const outCount = out[0];
 		const rtn: NcmContentId[] = new Array(outCount);
 		for (let i = 0; i < outCount; i++) {
-			rtn[i] = outIds.slice(i * 0x10, i * 0x10 + 0x10) as NcmContentId;
+			rtn[i] = new NcmContentId(outIds, i * 0x10);
 		}
 		return rtn;
 	}
@@ -267,7 +263,7 @@ export class NcmContentStorage {
 		//	return _ncmCmdInContentIdOutU64(&cs->s, content_id, (u64*)out_size, 14);
 		//}
 		const out = new BigInt64Array(1);
-		this.#srv.dispatchInOut(14, contentId, out.buffer);
+		this.#srv.dispatchInOut(14, contentId, out);
 		return out[0];
 	}
 
@@ -284,7 +280,7 @@ export class NcmContentStorage {
 		//	return _ncmCmdNoInOutU64(&cs->s, (u64*)out_size, 22);
 		//}
 		const out = new BigInt64Array(1);
-		this.#srv.dispatchOut(22, out.buffer);
+		this.#srv.dispatchOut(22, out);
 		return out[0];
 	}
 
@@ -294,7 +290,7 @@ export class NcmContentStorage {
 		//	return _ncmCmdNoInOutU64(&cs->s, (u64*)out_size, 23);
 		//}
 		const out = new BigInt64Array(1);
-		this.#srv.dispatchOut(23, out.buffer);
+		this.#srv.dispatchOut(23, out);
 		return out[0];
 	}
 
@@ -312,7 +308,7 @@ export class NcmContentStorage {
 		//	return _ncmCmdInPlaceHolderIdOutU64(&cs->s, placeholder_id, (u64*)out_size, 25);
 		//}
 		const out = new BigInt64Array(1);
-		this.#srv.dispatchInOut(25, placeholderId, out.buffer);
+		this.#srv.dispatchInOut(25, placeholderId, out);
 		return out[0];
 	}
 

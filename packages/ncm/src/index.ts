@@ -10,7 +10,7 @@ export function createContentStorage(storageId: NcmStorageId) {
 	//    return _ncmCmdInU8(&g_ncmSrv, storage_id, 0);
 	//}
 	const inData = new Uint8Array([storageId]);
-	ncm.dispatchIn(0, inData.buffer);
+	ncm.dispatchIn(0, inData);
 }
 
 export function createContentMetaDatabase(storageId: NcmStorageId) {
@@ -18,7 +18,7 @@ export function createContentMetaDatabase(storageId: NcmStorageId) {
 	//    return _ncmCmdInU8(&g_ncmSrv, storage_id, 1);
 	//}
 	const inData = new Uint8Array([storageId]);
-	ncm.dispatchIn(1, inData.buffer);
+	ncm.dispatchIn(1, inData);
 }
 
 export function verifyContentStorage(storageId: NcmStorageId) {
@@ -26,7 +26,7 @@ export function verifyContentStorage(storageId: NcmStorageId) {
 	//    return _ncmCmdInU8(&g_ncmSrv, storage_id, 2);
 	//}
 	const inData = new Uint8Array([storageId]);
-	ncm.dispatchIn(2, inData.buffer);
+	ncm.dispatchIn(2, inData);
 }
 
 export function verifyContentMetaDatabase(storageId: NcmStorageId) {
@@ -34,5 +34,5 @@ export function verifyContentMetaDatabase(storageId: NcmStorageId) {
 	//    return _ncmCmdInU8(&g_ncmSrv, storage_id, 3);
 	//}
 	const inData = new Uint8Array([storageId]);
-	ncm.dispatchIn(3, inData.buffer);
+	ncm.dispatchIn(3, inData);
 }
