@@ -1,6 +1,7 @@
 #include "crypto.h"
 #include "async.h"
 #include "errno.h"
+#include "util.h"
 #include <mbedtls/sha512.h>
 #include <string.h>
 #include <switch.h>
@@ -91,22 +92,6 @@ static void free_array_buffer(JSRuntime *rt, void *opaque, void *ptr) {
 	free(ptr);
 }
 
-u8 *NX_GetBufferSource(JSContext *ctx, size_t *size, JSValueConst obj) {
-	if (JS_IsArrayBuffer(obj)) {
-		return JS_GetArrayBuffer(ctx, size, obj);
-	}
-	// Assume it's a typed array
-	size_t bpe = 0;
-	size_t offset = 0;
-	size_t ab_size = 0;
-	JSValue ab = JS_GetTypedArrayBuffer(ctx, obj, &offset, size, &bpe);
-	u8 *ptr = JS_GetArrayBuffer(ctx, &ab_size, ab);
-	if (!ptr) {
-		return ptr;
-	}
-	return ptr + offset;
-}
-
 void nx_crypto_digest_do(nx_work_t *req) {
 	nx_crypto_digest_async_t *data = (nx_crypto_digest_async_t *)req->data;
 	enum nx_crypto_algorithm alg = -1;
@@ -177,7 +162,7 @@ static JSValue nx_crypto_digest(JSContext *ctx, JSValueConst this_val, int argc,
 		js_free(ctx, data);
 		return JS_EXCEPTION;
 	}
-	data->data = NX_GetBufferSource(ctx, &data->size, argv[1]);
+	data->data = NX_GetArrayBufferView(ctx, &data->size, argv[1]);
 	if (!data->data) {
 		JS_FreeCString(ctx, data->algorithm);
 		js_free(ctx, data);
@@ -297,7 +282,7 @@ static JSValue nx_crypto_encrypt(JSContext *ctx, JSValueConst this_val,
 			ctx, "Key does not support the 'encrypt' operation");
 	}
 
-	data->data = NX_GetBufferSource(ctx, &data->data_size, argv[2]);
+	data->data = NX_GetArrayBufferView(ctx, &data->data_size, argv[2]);
 	if (!data->data) {
 		js_free(ctx, data);
 		return JS_EXCEPTION;
@@ -312,7 +297,7 @@ static JSValue nx_crypto_encrypt(JSContext *ctx, JSValueConst this_val,
 		}
 
 		size_t iv_size;
-		cbc_params->iv = NX_GetBufferSource(
+		cbc_params->iv = NX_GetArrayBufferView(
 			ctx, &iv_size, JS_GetPropertyStr(ctx, argv[0], "iv"));
 		if (!cbc_params->iv) {
 			js_free(ctx, data);
@@ -324,8 +309,9 @@ static JSValue nx_crypto_encrypt(JSContext *ctx, JSValueConst this_val,
 		if (iv_size != 16) {
 			js_free(ctx, data);
 			js_free(ctx, cbc_params);
-			return JS_ThrowTypeError(ctx,
-									 "Initialization vector must be 16 bytes");
+			return JS_ThrowTypeError(
+				ctx, "Initialization vector must be 16 bytes (got %lu)",
+				iv_size);
 		}
 
 		data->algorithm_params = cbc_params;
@@ -365,20 +351,22 @@ static JSValue nx_crypto_encrypt(JSContext *ctx, JSValueConst this_val,
 	return nx_queue_async(ctx, req, nx_crypto_encrypt_do, nx_crypto_encrypt_cb);
 }
 
-static JSValue nx_crypto_random_bytes(JSContext *ctx, JSValueConst this_val,
-									  int argc, JSValueConst *argv) {
-	size_t size;
-	void *buf = JS_GetArrayBuffer(ctx, &size, argv[0]);
-
-	int offset;
-	int length;
-	if (JS_ToInt32(ctx, &offset, argv[1]) ||
-		JS_ToInt32(ctx, &length, argv[2]) || offset + length > size) {
-		JS_ThrowTypeError(ctx, "invalid input");
-		return JS_EXCEPTION;
+static JSValue nx_crypto_get_random_values(JSContext *ctx,
+										   JSValueConst this_val, int argc,
+										   JSValueConst *argv) {
+	if (argc < 1) {
+		return JS_ThrowTypeError(
+			ctx,
+			"Failed to execute 'getRandomValues' on 'Crypto': "
+			"1 argument required, but only %d present",
+			argc);
 	}
-	randomGet(buf + offset, length);
-	return JS_UNDEFINED;
+	size_t size;
+	void *buf = NX_GetArrayBufferView(ctx, &size, argv[0]);
+	if (buf) {
+		randomGet(buf, size);
+	}
+	return JS_DupValue(ctx, argv[0]);
 }
 
 static JSValue nx_crypto_sha256_hex(JSContext *ctx, JSValueConst this_val,
@@ -531,7 +519,7 @@ static JSValue nx_crypto_key_new(JSContext *ctx, JSValueConst this_val,
 	context->usages_cached = JS_UNDEFINED;
 
 	size_t key_size;
-	const void *key_data = NX_GetBufferSource(ctx, &key_size, argv[1]);
+	const void *key_data = NX_GetArrayBufferView(ctx, &key_size, argv[1]);
 	if (!key_data) {
 		js_free(ctx, context);
 		return JS_EXCEPTION;
@@ -829,7 +817,7 @@ static JSValue nx_crypto_subtle_decrypt(JSContext *ctx, JSValueConst this_val,
 			ctx, "Key does not support the 'decrypt' operation");
 	}
 
-	data->data = NX_GetBufferSource(ctx, &data->data_size, argv[2]);
+	data->data = NX_GetArrayBufferView(ctx, &data->data_size, argv[2]);
 	if (!data->data) {
 		js_free(ctx, data);
 		return JS_EXCEPTION;
@@ -844,7 +832,7 @@ static JSValue nx_crypto_subtle_decrypt(JSContext *ctx, JSValueConst this_val,
 		}
 
 		size_t iv_size;
-		cbc_params->iv = NX_GetBufferSource(
+		cbc_params->iv = NX_GetArrayBufferView(
 			ctx, &iv_size, JS_GetPropertyStr(ctx, argv[0], "iv"));
 		if (!cbc_params->iv) {
 			js_free(ctx, data);
@@ -897,6 +885,14 @@ static JSValue nx_crypto_subtle_decrypt(JSContext *ctx, JSValueConst this_val,
 	return nx_queue_async(ctx, req, nx_crypto_decrypt_do, nx_crypto_decrypt_cb);
 }
 
+static JSValue nx_crypto_init(JSContext *ctx, JSValueConst this_val, int argc,
+							  JSValueConst *argv) {
+	JSValue proto = JS_GetPropertyStr(ctx, argv[0], "prototype");
+	NX_DEF_FUNC(proto, "getRandomValues", nx_crypto_get_random_values, 1);
+	JS_FreeValue(ctx, proto);
+	return JS_UNDEFINED;
+}
+
 static JSValue nx_crypto_subtle_init(JSContext *ctx, JSValueConst this_val,
 									 int argc, JSValueConst *argv) {
 	JSValue proto = JS_GetPropertyStr(ctx, argv[0], "prototype");
@@ -906,12 +902,12 @@ static JSValue nx_crypto_subtle_init(JSContext *ctx, JSValueConst this_val,
 }
 
 static const JSCFunctionListEntry function_list[] = {
+	JS_CFUNC_DEF("cryptoInit", 1, nx_crypto_init),
 	JS_CFUNC_DEF("cryptoKeyNew", 1, nx_crypto_key_new),
 	JS_CFUNC_DEF("cryptoKeyInit", 1, nx_crypto_key_init),
 	JS_CFUNC_DEF("cryptoSubtleInit", 1, nx_crypto_subtle_init),
 	JS_CFUNC_DEF("cryptoDigest", 0, nx_crypto_digest),
 	JS_CFUNC_DEF("cryptoEncrypt", 0, nx_crypto_encrypt),
-	JS_CFUNC_DEF("cryptoRandomBytes", 0, nx_crypto_random_bytes),
 	JS_CFUNC_DEF("sha256Hex", 0, nx_crypto_sha256_hex),
 };
 

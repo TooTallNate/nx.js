@@ -40,7 +40,7 @@ import type { URL, URLSearchParams } from './polyfills/url';
 import type { DOMPoint, DOMPointInit } from './dompoint';
 import type { DOMMatrix, DOMMatrixReadOnly, DOMMatrixInit } from './dommatrix';
 import type { Gamepad, GamepadButton } from './navigator/gamepad';
-import type { CryptoKey, SubtleCrypto } from './crypto';
+import type { Crypto, CryptoKey, SubtleCrypto } from './crypto';
 import type { Algorithm } from './types';
 import type { PromiseState } from '@nx.js/inspect';
 
@@ -127,6 +127,7 @@ export interface Init {
 		extractable: boolean,
 		keyUsages: KeyUsage[],
 	): CryptoKey;
+	cryptoInit(c: ClassOf<Crypto>): void;
 	cryptoKeyInit(c: ClassOf<CryptoKey>): void;
 	cryptoSubtleInit(c: ClassOf<SubtleCrypto>): void;
 	cryptoEncrypt(
@@ -135,7 +136,6 @@ export interface Init {
 		data: BufferSource,
 	): Promise<ArrayBuffer>;
 	cryptoDigest(algorithm: string, buf: BufferSource): Promise<ArrayBuffer>;
-	cryptoRandomBytes(buf: ArrayBuffer, offset: number, length: number): void;
 	sha256Hex(str: string): string;
 
 	// dommatrix.c

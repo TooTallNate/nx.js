@@ -37,6 +37,21 @@ test('`crypto.getRandomValues()`', () => {
 	assert.not.equal(toHex(arr.buffer), '0000000000');
 });
 
+test('`crypto.getRandomValues()` with 0 arguments', () => {
+	let err: Error | undefined;
+	try {
+		// @ts-expect-error Intentionally passing 0 arguments
+		crypto.getRandomValues();
+	} catch (e: any) {
+		err = e;
+	}
+	assert.ok(err);
+	assert.equal(
+		err.message,
+		"Failed to execute 'getRandomValues' on 'Crypto': 1 argument required, but only 0 present",
+	);
+});
+
 test("`crypto.subtle.digest('sha-1')`", async () => {
 	const data = new TextEncoder().encode('hello');
 	const digest = await crypto.subtle.digest('sha-1', data);

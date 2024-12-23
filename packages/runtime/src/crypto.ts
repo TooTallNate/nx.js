@@ -85,10 +85,7 @@ export class Crypto implements globalThis.Crypto {
 	 * @see https://developer.mozilla.org/docs/Web/API/Crypto/getRandomValues
 	 */
 	getRandomValues<T extends ArrayBufferView | null>(array: T): T {
-		if (array) {
-			$.cryptoRandomBytes(array.buffer, array.byteOffset, array.byteLength);
-		}
-		return array;
+		stub();
 	}
 
 	/**
@@ -115,6 +112,7 @@ export class Crypto implements globalThis.Crypto {
 		}) as `${string}-${string}-${string}-${string}-${string}`;
 	}
 }
+$.cryptoInit(Crypto);
 def(Crypto);
 
 /**
