@@ -8,9 +8,7 @@
     "forceConsistentCasingInFileNames": true,
     "strict": true,
     "skipLibCheck": true,
-    "types": [
-      "@nx.js/runtime"
-    ]
+    "types": []
   },
   "include": [
     "src/**/*.ts"
