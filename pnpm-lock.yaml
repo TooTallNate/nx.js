@@ -501,7 +501,7 @@ importers:
   packages/clkrst:
     dependencies:
       '@nx.js/constants':
-        specifier: ^0.3.0
+        specifier: ^0.4.0
         version: link:../constants
     devDependencies:
       '@nx.js/runtime':
@@ -573,10 +573,10 @@ importers:
   packages/ncm:
     dependencies:
       '@nx.js/constants':
-        specifier: ^0.3.0
+        specifier: ^0.4.0
         version: link:../constants
       '@nx.js/util':
-        specifier: ^0.0.0
+        specifier: ^0.0.1
         version: link:../util
     devDependencies:
       '@nx.js/runtime':
@@ -586,7 +586,7 @@ importers:
   packages/nro:
     dependencies:
       '@nx.js/patch-nacp':
-        specifier: 1.0.1
+        specifier: 2.0.0
         version: link:../patch-nacp
       '@tootallnate/nacp':
         specifier: ^0.2.0
@@ -617,7 +617,7 @@ importers:
   packages/nsp:
     dependencies:
       '@nx.js/patch-nacp':
-        specifier: 1.0.1
+        specifier: 2.0.0
         version: link:../patch-nacp
       '@tootallnate/nacp':
         specifier: ^0.2.0
