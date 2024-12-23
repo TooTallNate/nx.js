@@ -725,6 +725,15 @@ importers:
         specifier: ^4.0.0
         version: 4.0.0
 
+  packages/util:
+    devDependencies:
+      vite:
+        specifier: ^5.4.2
+        version: 5.4.2
+      vitest:
+        specifier: ^2.0.5
+        version: 2.0.5
+
 packages:
 
   /@alloc/quick-lru@5.2.0:
