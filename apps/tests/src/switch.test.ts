@@ -263,13 +263,23 @@ test('`Switch.file()` read json', async () => {
 
 test('`Switch.file()` read stream', async () => {
 	const file = Switch.file('romfs:/file.txt');
-	const stream = file.stream({ chunkSize: 3 });
 	const chunks: string[] = [];
 	const decoder = new TextDecoder();
-	for await (const chunk of stream) {
+	for await (const chunk of file.stream({ chunkSize: 3 })) {
 		chunks.push(decoder.decode(chunk));
 	}
 	assert.equal(chunks, ['thi', 's i', 's a', ' te', 'xt ', 'fil', 'e\n']);
+});
+
+test('`Switch.file()` read stream with slice', async () => {
+	const file = Switch.file('romfs:/file.txt').slice(1, 11);
+	const chunks: string[] = [];
+	const decoder = new TextDecoder();
+	for await (const chunk of file.stream({ chunkSize: 3 })) {
+		chunks.push(decoder.decode(chunk));
+	}
+	assert.equal(chunks, ['his', ' is', ' a ', 't']);
+	assert.equal(chunks.join('').length, 10);
 });
 
 test('`Switch.file()` read stream throws on ENOENT', async () => {
