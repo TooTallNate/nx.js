@@ -131,6 +131,7 @@ export class NcmContentMetaKey extends ArrayBufferStruct {
 	}
 }
 
+/// ContentInfo
 export class NcmContentInfo extends ArrayBufferStruct {
 	//NcmContentId content_id;     ///< \ref NcmContentId
 	//u32 size_low;                ///< Content size (low).
@@ -184,6 +185,7 @@ export class NcmContentInfo extends ArrayBufferStruct {
 	}
 }
 
+/// ContentMetaHeader
 export class NcmContentMetaHeader extends ArrayBufferStruct {
 	// u16 extended_header_size;           ///< Size of optional struct that comes after this one.
 	// u16 content_count;                  ///< Number of NcmContentInfos after the extra bytes.
@@ -228,6 +230,7 @@ export class NcmContentMetaHeader extends ArrayBufferStruct {
 	}
 }
 
+/// ApplicationMetaExtendedHeader
 export class NcmApplicationMetaExtendedHeader extends ArrayBufferStruct {
 	// u64 patch_id;                     ///< PatchId of this application's patch.
 	// u32 required_system_version;      ///< Firmware version required by this application.
@@ -252,6 +255,36 @@ export class NcmApplicationMetaExtendedHeader extends ArrayBufferStruct {
 		return view(this).getUint32(0xc, true);
 	}
 	set requiredApplicationVersion(v: number) {
+		view(this).setUint32(0xc, v, true);
+	}
+}
+
+/// PatchMetaExtendedHeader
+export class NcmPatchMetaExtendedHeader extends ArrayBufferStruct {
+	// u64 application_id;          ///< ApplicationId of this patch's corresponding application.
+	// u32 required_system_version; ///< Firmware version required by this patch.
+	// u32 extended_data_size;      ///< Size of the extended data following the NcmContentInfos.
+	// u8 reserved[0x8];            ///< Unused.
+	static sizeof = 0x18 as const;
+
+	get applicationId() {
+		return view(this).getBigUint64(0x0, true);
+	}
+	set applicationId(v: bigint) {
+		view(this).setBigUint64(0x0, v, true);
+	}
+
+	get requiredSystemVersion() {
+		return view(this).getUint32(0x8, true);
+	}
+	set requiredSystemVersion(v: number) {
+		view(this).setUint32(0x8, v, true);
+	}
+
+	get extendedDataSize() {
+		return view(this).getUint32(0xc, true);
+	}
+	set extendedDataSize(v: number) {
 		view(this).setUint32(0xc, v, true);
 	}
 }
