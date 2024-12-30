@@ -64,6 +64,27 @@ export enum NcmContentMetaPlatform {
 export class NcmContentId extends ArrayBufferStruct {
 	//u8 c[0x10]; ///< Id
 	static sizeof = 0x10 as const;
+
+	toString() {
+		if (this.byteLength !== 0x10) {
+			throw new Error('Content ID must be 16 bytes');
+		}
+		const v = view(this);
+		return `${v.getBigUint64(0).toString(16).padStart(16, '0')}${v
+			.getBigUint64(8)
+			.toString(16)
+			.padStart(16, '0')}`;
+	}
+
+	static from(s: string) {
+		const lower = BigInt(`0x${s.slice(0, 16)}`);
+		const upper = BigInt(`0x${s.slice(16, 32)}`);
+		const id = new NcmContentId();
+		const v = view(id);
+		v.setBigUint64(0, lower);
+		v.setBigUint64(8, upper);
+		return id;
+	}
 }
 
 /// PlaceHolderId
