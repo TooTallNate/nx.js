@@ -1,6 +1,6 @@
 #include "util.h"
 
-u8 *NX_GetArrayBufferView(JSContext *ctx, size_t *size, JSValueConst obj) {
+u8 *NX_GetBufferSource(JSContext *ctx, size_t *size, JSValueConst obj) {
 	if (!JS_IsObject(obj)) {
 		return NULL;
 	}

@@ -162,7 +162,7 @@ static JSValue nx_crypto_digest(JSContext *ctx, JSValueConst this_val, int argc,
 		js_free(ctx, data);
 		return JS_EXCEPTION;
 	}
-	data->data = NX_GetArrayBufferView(ctx, &data->size, argv[1]);
+	data->data = NX_GetBufferSource(ctx, &data->size, argv[1]);
 	if (!data->data) {
 		JS_FreeCString(ctx, data->algorithm);
 		js_free(ctx, data);
@@ -282,7 +282,7 @@ static JSValue nx_crypto_encrypt(JSContext *ctx, JSValueConst this_val,
 			ctx, "Key does not support the 'encrypt' operation");
 	}
 
-	data->data = NX_GetArrayBufferView(ctx, &data->data_size, argv[2]);
+	data->data = NX_GetBufferSource(ctx, &data->data_size, argv[2]);
 	if (!data->data) {
 		js_free(ctx, data);
 		return JS_EXCEPTION;
@@ -297,7 +297,7 @@ static JSValue nx_crypto_encrypt(JSContext *ctx, JSValueConst this_val,
 		}
 
 		size_t iv_size;
-		cbc_params->iv = NX_GetArrayBufferView(
+		cbc_params->iv = NX_GetBufferSource(
 			ctx, &iv_size, JS_GetPropertyStr(ctx, argv[0], "iv"));
 		if (!cbc_params->iv) {
 			js_free(ctx, data);
@@ -362,7 +362,7 @@ static JSValue nx_crypto_get_random_values(JSContext *ctx,
 			argc);
 	}
 	size_t size;
-	void *buf = NX_GetArrayBufferView(ctx, &size, argv[0]);
+	void *buf = NX_GetBufferSource(ctx, &size, argv[0]);
 	if (buf) {
 		randomGet(buf, size);
 	}
@@ -519,7 +519,7 @@ static JSValue nx_crypto_key_new(JSContext *ctx, JSValueConst this_val,
 	context->usages_cached = JS_UNDEFINED;
 
 	size_t key_size;
-	const void *key_data = NX_GetArrayBufferView(ctx, &key_size, argv[1]);
+	const void *key_data = NX_GetBufferSource(ctx, &key_size, argv[1]);
 	if (!key_data) {
 		js_free(ctx, context);
 		return JS_EXCEPTION;
@@ -817,7 +817,7 @@ static JSValue nx_crypto_subtle_decrypt(JSContext *ctx, JSValueConst this_val,
 			ctx, "Key does not support the 'decrypt' operation");
 	}
 
-	data->data = NX_GetArrayBufferView(ctx, &data->data_size, argv[2]);
+	data->data = NX_GetBufferSource(ctx, &data->data_size, argv[2]);
 	if (!data->data) {
 		js_free(ctx, data);
 		return JS_EXCEPTION;
@@ -832,7 +832,7 @@ static JSValue nx_crypto_subtle_decrypt(JSContext *ctx, JSValueConst this_val,
 		}
 
 		size_t iv_size;
-		cbc_params->iv = NX_GetArrayBufferView(
+		cbc_params->iv = NX_GetBufferSource(
 			ctx, &iv_size, JS_GetPropertyStr(ctx, argv[0], "iv"));
 		if (!cbc_params->iv) {
 			js_free(ctx, data);
