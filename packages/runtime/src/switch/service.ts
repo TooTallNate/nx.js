@@ -1,5 +1,6 @@
 import { $ } from '../$';
 import { proto, stub } from '../utils';
+import type { BufferSource } from '../types';
 
 export interface ServiceDispatchParams {
 	//Handle target_session;
@@ -11,7 +12,7 @@ export interface ServiceDispatchParams {
 	//SfBufferAttrs buffer_attrs;
 	//SfBuffer buffers[8];
 	bufferAttrs?: number[];
-	buffers?: (ArrayBuffer | ArrayBufferView)[];
+	buffers?: BufferSource[];
 
 	//bool in_send_pid;
 	inSendPid?: boolean;
@@ -58,7 +59,7 @@ export class Service {
 
 	dispatchIn(
 		rid: number,
-		inData: ArrayBuffer | ArrayBufferView,
+		inData: BufferSource,
 		parmas?: ServiceDispatchParams,
 	) {
 		this.dispatchInOut(rid, inData, undefined, parmas);
@@ -66,7 +67,7 @@ export class Service {
 
 	dispatchOut(
 		rid: number,
-		outData: ArrayBuffer | ArrayBufferView,
+		outData: BufferSource,
 		params?: ServiceDispatchParams,
 	) {
 		this.dispatchInOut(rid, undefined, outData, params);
@@ -74,8 +75,8 @@ export class Service {
 
 	dispatchInOut(
 		rid: number,
-		inData?: ArrayBuffer | ArrayBufferView,
-		outData?: ArrayBuffer | ArrayBufferView,
+		inData?: BufferSource,
+		outData?: BufferSource,
 		params?: ServiceDispatchParams,
 	) {
 		stub();

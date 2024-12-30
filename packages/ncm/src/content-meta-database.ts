@@ -33,7 +33,7 @@ export class NcmContentMetaDatabase {
 		this.#srv = srv;
 	}
 
-	set(key: NcmContentMetaKey, data: ArrayBuffer | ArrayBufferView) {
+	set(key: NcmContentMetaKey, data: BufferSource) {
 		//Result ncmContentMetaDatabaseSet(NcmContentMetaDatabase* db, const NcmContentMetaKey* key, const void* data, u64 data_size) {
 		//    return serviceDispatchIn(&db->s, 0, *key,
 		//        .buffer_attrs = { SfBufferAttr_HipcMapAlias | SfBufferAttr_In },
