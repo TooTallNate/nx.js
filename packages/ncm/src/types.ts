@@ -1,7 +1,11 @@
-import { ArrayBufferStruct, singleton, u8, view } from '@nx.js/util';
+import { ArrayBufferStruct, createSingleton, u8, view } from '@nx.js/util';
 
-const contentIds = new WeakMap<ArrayBufferView, NcmContentId>();
-const contentMetaKeys = new WeakMap<ArrayBufferView, NcmContentMetaKey>();
+const contentIdCache = createSingleton(
+	(self: NcmContentInfo) => new NcmContentId(self, 0x0),
+);
+const contentMetaKeyCache = createSingleton(
+	(self: NcmContentStorageRecord) => new NcmContentMetaKey(self, 0x0),
+);
 
 /// StorageId
 export enum NcmStorageId {
@@ -93,6 +97,7 @@ export class NcmPlaceHolderId extends ArrayBufferStruct {
 	static sizeof = 0x10 as const;
 }
 
+/// ContentStorageRecord
 export class NcmContentStorageRecord extends ArrayBufferStruct {
 	//NcmContentMetaKey key;
 	//u8 storage_id;
@@ -100,7 +105,7 @@ export class NcmContentStorageRecord extends ArrayBufferStruct {
 	static sizeof = 0x18 as const;
 
 	get key() {
-		return singleton(contentMetaKeys, this, () => new NcmContentMetaKey(this));
+		return contentMetaKeyCache(this);
 	}
 	set key(v: NcmContentMetaKey) {
 		u8(this).set(u8(v), 0);
@@ -163,7 +168,7 @@ export class NcmContentInfo extends ArrayBufferStruct {
 	static sizeof = 0x18 as const;
 
 	get contentId() {
-		return singleton(contentIds, this, () => new NcmContentId(this));
+		return contentIdCache(this);
 	}
 	set contentId(v: NcmContentId) {
 		u8(this).set(u8(v), 0);

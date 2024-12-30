@@ -1,33 +1,24 @@
-export function singleton<K extends object, V>(
-	map: WeakMap<K, V>,
-	key: K,
-	init: () => V,
-) {
-	let value = map.get(key);
-	if (!value) {
-		value = init();
-		map.set(key, value);
-	}
-	return value;
+export function createSingleton<K extends object, V>(init: (k: K) => V) {
+	const map = new WeakMap<K, V>();
+	return (k: K) => {
+		if (!map.has(k)) {
+			const v = init(k);
+			map.set(k, v);
+			return v;
+		}
+		return map.get(k)!;
+	};
 }
 
-const views = new WeakMap<ArrayBufferView, DataView>();
-export function view(view: ArrayBufferView): DataView {
-	return singleton(
-		views,
-		view,
-		() => new DataView(view.buffer, view.byteOffset, view.byteLength),
-	);
-}
+export const view = createSingleton(
+	(view: ArrayBufferView) =>
+		new DataView(view.buffer, view.byteOffset, view.byteLength),
+);
 
-const u8s = new WeakMap<ArrayBufferView, Uint8Array>();
-export function u8(view: ArrayBufferView): Uint8Array {
-	return singleton(
-		u8s,
-		view,
-		() => new Uint8Array(view.buffer, view.byteOffset, view.byteLength),
-	);
-}
+export const u8 = createSingleton(
+	(view: ArrayBufferView) =>
+		new Uint8Array(view.buffer, view.byteOffset, view.byteLength),
+);
 
 export function decodeCString(view: ArrayBufferView): string {
 	const arr = u8(view);
