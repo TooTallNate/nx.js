@@ -1,0 +1,39 @@
+{
+  "name": "@nx.js/install-title",
+  "version": "0.0.0",
+  "description": "Install a title from an NSP file",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TooTallNate/nx.js.git",
+    "directory": "packages/install-title"
+  },
+  "homepage": "https://nxjs.n8.io/install-title",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "docs": "typedoc && ../../type-aliases-meta.sh"
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@nx.js/constants": "^0.4.0",
+    "@nx.js/ncm": "^1.0.0",
+    "@nx.js/util": "^0.0.1",
+    "@tootallnate/nsp": "^0.0.2"
+  },
+  "devDependencies": {
+    "@nx.js/runtime": "workspace:*"
+  },
+  "keywords": [
+    "nx.js",
+    "switch",
+    "install",
+    "nsp"
+  ],
+  "author": "Nathan Rajlich <n@n8.io>",
+  "license": "MIT"
+}

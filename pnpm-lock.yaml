@@ -570,6 +570,25 @@ importers:
         specifier: github:TooTallNate/kleur#rgb
         version: github.com/TooTallNate/kleur/aa22b05da68d29ff6d2ce5eba5895ac654b7f25a
 
+  packages/install-title:
+    dependencies:
+      '@nx.js/constants':
+        specifier: ^0.4.0
+        version: link:../constants
+      '@nx.js/ncm':
+        specifier: ^1.0.0
+        version: link:../ncm
+      '@nx.js/util':
+        specifier: ^0.0.1
+        version: link:../util
+      '@tootallnate/nsp':
+        specifier: ^0.0.2
+        version: 0.0.2
+    devDependencies:
+      '@nx.js/runtime':
+        specifier: workspace:*
+        version: link:../runtime
+
   packages/ncm:
     dependencies:
       '@nx.js/constants':
@@ -3813,6 +3832,10 @@ packages:
     resolution: {integrity: sha512-ftaCXHpuScjtoTgA3C7Ne8ChfQo7TvSMcQaXA+y10Zh9qC8Abw6JKk7RCPC2YeVLg1n+1b4H887SB52EaZ4LvQ==}
     dependencies:
       '@tootallnate/nacp': 0.2.0
+    dev: false
+
+  /@tootallnate/nsp@0.0.2:
+    resolution: {integrity: sha512-z5rPb6sMFwidTpLw05VHX/Hu1yUGvKXhQd+990nbcAPwGOzMkdSToETQ/4jSzyDoke1FsPyLdpSYlUuXWIEuDg==}
     dev: false
 
   /@tootallnate/romfs@0.1.0:
