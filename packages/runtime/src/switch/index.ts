@@ -50,6 +50,7 @@ export interface Versions {
 	readonly turbojpeg: string;
 	readonly wasm3: string;
 	readonly webp: string;
+	readonly zlib: string;
 }
 
 export interface Vibration {
