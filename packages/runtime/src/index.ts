@@ -155,6 +155,9 @@ export type * from './ambientlightsensor';
 import './dom-exception';
 export type * from './dom-exception';
 
+import './compression-streams';
+export type * from './compression-streams';
+
 import { dispatchTouchEvents } from './touchscreen';
 import { dispatchKeyboardEvents } from './keyboard';
 

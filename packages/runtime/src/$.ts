@@ -41,7 +41,7 @@ import type { DOMPoint, DOMPointInit } from './dompoint';
 import type { DOMMatrix, DOMMatrixReadOnly, DOMMatrixInit } from './dommatrix';
 import type { Gamepad, GamepadButton } from './navigator/gamepad';
 import type { Crypto, CryptoKey, SubtleCrypto } from './crypto';
-import type { Algorithm } from './types';
+import type { Algorithm, BufferSource } from './types';
 import type { PromiseState } from '@nx.js/inspect';
 
 type ClassOf<T> = {
@@ -49,6 +49,8 @@ type ClassOf<T> = {
 };
 
 type FileHandle = Opaque<'FileHandle'>;
+type CompressHandle = Opaque<'CompressHandle'>;
+type DecompressHandle = Opaque<'DecompressHandle'>;
 type SaveDataIterator = Opaque<'SaveDataIterator'>;
 type URLSearchParamsIterator = Opaque<'URLSearchParamsIterator'>;
 
@@ -119,6 +121,20 @@ export interface Init {
 		ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
 		...rgba: RGBA
 	): number[];
+
+	// compression.c
+	compressNew(format: string): CompressHandle;
+	compressWrite(
+		handle: CompressHandle,
+		buf: BufferSource,
+	): Promise<ArrayBuffer>;
+	compressFlush(handle: CompressHandle): Promise<ArrayBuffer | null>;
+	decompressNew(format: string): DecompressHandle;
+	decompressWrite(
+		handle: DecompressHandle,
+		buf: BufferSource,
+	): Promise<ArrayBuffer>;
+	decompressFlush(handle: DecompressHandle): Promise<ArrayBuffer | null>;
 
 	// crypto.c
 	cryptoKeyNew(

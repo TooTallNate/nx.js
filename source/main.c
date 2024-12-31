@@ -13,6 +13,7 @@
 #include "async.h"
 #include "battery.h"
 #include "canvas.h"
+#include "compression.h"
 #include "crypto.h"
 #include "dns.h"
 #include "dommatrix.h"
@@ -618,6 +619,7 @@ int main(int argc, char *argv[]) {
 	nx_init_applet(ctx, nx_ctx->init_obj);
 	nx_init_battery(ctx, nx_ctx->init_obj);
 	nx_init_canvas(ctx, nx_ctx->init_obj);
+	nx_init_compression(ctx, nx_ctx->init_obj);
 	nx_init_crypto(ctx, nx_ctx->init_obj);
 	nx_init_dns(ctx, nx_ctx->init_obj);
 	nx_init_dommatrix(ctx, nx_ctx->init_obj);
