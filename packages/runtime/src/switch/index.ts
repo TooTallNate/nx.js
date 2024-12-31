@@ -51,6 +51,7 @@ export interface Versions {
 	readonly wasm3: string;
 	readonly webp: string;
 	readonly zlib: string;
+	readonly zstd: string;
 }
 
 export interface Vibration {

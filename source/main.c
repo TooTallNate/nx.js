@@ -707,6 +707,8 @@ int main(int argc, char *argv[]) {
 	JS_SetPropertyStr(ctx, version_obj, "webp", JS_NewString(ctx, version_str));
 	JS_SetPropertyStr(ctx, version_obj, "zlib",
 					  JS_NewString(ctx, zlibVersion()));
+	JS_SetPropertyStr(ctx, version_obj, "zstd",
+					  JS_NewString(ctx, ZSTD_versionString()));
 	JS_SetPropertyStr(ctx, nx_ctx->init_obj, "version", version_obj);
 
 	// `Switch.entrypoint`
