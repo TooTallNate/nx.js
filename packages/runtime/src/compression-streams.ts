@@ -7,7 +7,7 @@ import { def } from './utils';
 export type CompressionFormat = 'deflate' | 'deflate-raw' | 'gzip' | 'zstd';
 
 /**
- * @see https://developer.mozilla.org/en-US/docs/Web/API/CompressionStream
+ * @see https://developer.mozilla.org/docs/Web/API/CompressionStream
  */
 export class CompressionStream
 	extends TransformStream<Uint8Array, Uint8Array>
@@ -32,7 +32,7 @@ export class CompressionStream
 def(CompressionStream);
 
 /**
- * @see https://developer.mozilla.org/en-US/docs/Web/API/DecompressionStream
+ * @see https://developer.mozilla.org/docs/Web/API/DecompressionStream
  */
 export class DecompressionStream
 	extends TransformStream<Uint8Array, Uint8Array>
