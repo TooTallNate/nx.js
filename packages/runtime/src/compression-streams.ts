@@ -1,6 +1,9 @@
 import { $ } from './$';
 import { def } from './utils';
 
+/**
+ * Compression formats supported by {@link CompressionStream | `CompressionStream`} and {@link DecompressionStream | `DecompressionStream`}.
+ */
 export type CompressionFormat = 'deflate' | 'deflate-raw' | 'gzip' | 'zstd';
 
 /**
