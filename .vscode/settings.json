@@ -14,8 +14,14 @@
         "font.h": "c",
         "image.h": "c",
         "wasm3.h": "c",
-        "poll.h": "c"
+        "poll.h": "c",
+        "errno.h": "c",
+        "sha512.h": "c",
+        "string.h": "c",
+        "util.h": "c",
+        "crypto.h": "c"
     },
     "C_Cpp.default.compilerPath": "/opt/devkitpro/devkitA64/bin/aarch64-none-elf-gcc",
+    "C_Cpp.default.browse.databaseFilename": "${workspaceFolder}/.vscode/cache.db",
     "typescript.tsdk": "node_modules/typescript/lib"
 }

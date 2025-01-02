@@ -3,10 +3,11 @@
         {
             "name": "devkitA64",
             "includePath": [
-                "${workspaceFolder}/**",
-                "/opt/devkitpro/libnx/include/**",
-                "/opt/devkitpro/portlibs/switch/include/**",
-                "/opt/devkitpro/portlibs/switch/include/cairo/**"
+                "${workspaceFolder}/source/",
+                "/opt/devkitpro/libnx/include/",
+                "/opt/devkitpro/portlibs/switch/include/",
+                "/opt/devkitpro/portlibs/switch/include/cairo/",
+                "/opt/devkitpro/portlibs/switch/include/freetype2/"
             ],
             "defines": [],
             "compilerPath": "/opt/devkitpro/devkitA64/bin/aarch64-none-elf-gcc",
