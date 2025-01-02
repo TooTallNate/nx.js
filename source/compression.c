@@ -259,7 +259,6 @@ void nx_compress_write_do(nx_work_t *req) {
 
 			size_t ret =
 				ZSTD_compressStream(data->context->cctx, &output, &input);
-			fprintf(stderr, "zstd: %lu\n", ret);
 
 			if (ZSTD_isError(ret)) {
 				if (data->result) {
@@ -272,11 +271,6 @@ void nx_compress_write_do(nx_work_t *req) {
 			}
 
 			data->result_size += output.pos;
-
-			fprintf(stderr, "input.pos: %lu\n", input.pos);
-			fprintf(stderr, "input.size: %lu\n", input.size);
-			fprintf(stderr, "output.pos: %lu\n", output.pos);
-			fprintf(stderr, "output.size: %lu\n", output.size);
 		}
 
 		// Shrink buffer to actual size
@@ -729,42 +723,40 @@ void nx_decompress_flush_do(nx_work_t *req) {
 		// Create empty input buffer since we're just flushing
 		ZSTD_inBuffer input = {.src = NULL, .size = 0, .pos = 0};
 
-		// Keep flushing until no more output is produced
-		size_t remaining;
-		do {
-			// Allocate or expand result buffer
-			size_t size = ZSTD_DStreamOutSize();
-			void *new_result = realloc(data->result, data->result_size + size);
-			if (!new_result) {
-				if (data->result) {
-					free(data->result);
-				}
-				ZSTD_freeDCtx(data->context->dctx);
-				data->context->dctx = NULL;
-				data->err = ENOMEM;
-				return;
-			}
-			data->result = new_result;
-
-			// Set up output buffer for this chunk
-			ZSTD_outBuffer output = {.dst = (char *)data->result +
-											data->result_size,
-									 .size = size,
-									 .pos = 0};
-
-			// Flush the decompressor
-			remaining =
-				ZSTD_decompressStream(data->context->dctx, &output, &input);
-			if (ZSTD_isError(remaining)) {
+		// Since we're just flushing with no input data, we only need one pass
+		// Allocate result buffer
+		size_t size = ZSTD_DStreamOutSize();
+		void *new_result = realloc(data->result, data->result_size + size);
+		if (!new_result) {
+			if (data->result) {
 				free(data->result);
-				ZSTD_freeDCtx(data->context->dctx);
-				data->context->dctx = NULL;
-				data->err = EINVAL;
-				return;
 			}
+			ZSTD_freeDCtx(data->context->dctx);
+			data->context->dctx = NULL;
+			data->err = ENOMEM;
+			return;
+		}
+		data->result = new_result;
 
-			data->result_size += output.pos;
-		} while (remaining > 0);
+		// Set up output buffer
+		ZSTD_outBuffer output = {.dst =
+									 (char *)data->result + data->result_size,
+								 .size = size,
+								 .pos = 0};
+
+		// Final flush of the decompressor
+		size_t ret =
+			ZSTD_decompressStream(data->context->dctx, &output, &input);
+
+		if (ZSTD_isError(ret)) {
+			free(data->result);
+			ZSTD_freeDCtx(data->context->dctx);
+			data->context->dctx = NULL;
+			data->err = EINVAL;
+			return;
+		}
+
+		data->result_size += output.pos;
 	}
 }
 
