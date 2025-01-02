@@ -1,0 +1,38 @@
+---
+title: Cryptography
+description: Algorithms exposed by the Web Crypto API
+---
+
+nx.js implements the [Web Crypto API](https://developer.mozilla.org/docs/Web/API/Web_Crypto_API),
+which allows your application to perform cryptographic operations such as encryption and decryption.
+
+## Cryptography functions
+
+Below is a checklist of the currently implemented standardized algorithms provided by the `SubtleCrypto` API in nx.js:
+
+  - [`digest()`](/runtime/api/classes/SubtleCrypto#digest): create a fixed-length, collision-resistant digest of some data.
+    - ✅ `"SHA-1"` (but don't use this in cryptographic applications)
+    - ✅ `"SHA-256"`
+    - ✅ `"SHA-384"`
+    - ✅ `"SHA-512"`
+  - [`encrypt()`](/runtime/api/classes/SubtleCrypto#encrypt) and [`decrypt()`](/runtime/api/classes/SubtleCrypto#decrypt): encrypt and decrypt data.
+    - ✅ `"AES-CBC"`
+    - ❌ `"AES-CTR"`
+    - ❌ `"AES-GCM"`
+    - ❌ `"RSA-OAEP"`
+  - [`sign()`](/runtime/api/classes/SubtleCrypto#sign) and [`verify()`](/runtime/api/classes/SubtleCrypto#verify): sign and verify data.
+    - ❌ None - not currently implemented
+
+### Non-Standard Algorithms
+
+The following _non-standard / extension_ algorithms are also supported:
+
+  - [`encrypt()`](/runtime/api/classes/SubtleCrypto#encrypt) and [`decrypt()`](/runtime/api/classes/SubtleCrypto#decrypt): encrypt and decrypt data.
+    - ✅ `"AES-XTS"`
+
+## AES-XTS
+
+The `AES-XTS` algorithm is supported in nx.js for encryption and decryption, which is commonly used for disk encryption.
+It is included in nx.js primarily to decrypt the header of `.nca` files.
+
+The implementation of this algorithm in nx.js also includes support for Nintendo's non-standard "tweak" mode (endianness is reversed, see [here](https://gist.github.com/SciresM/fe8a631d13c069bd66e9c656ab5b3f7f)), which is used by the Switch to encrypt data.

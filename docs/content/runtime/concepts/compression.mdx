@@ -13,15 +13,17 @@ The supported standardized compression modes are listed in the table below:
 
 | Mode            | Description                                                                                                   |
 | --------------- | ------------------------------------------------------------------------------------------------------------- |
-| `"deflate"`     | Uses the [DEFLATE](https://www.rfc-editor.org/rfc/rfc1950) algorithm in ZLIB Compressed Data Format.          |
-| `"deflate-raw"` | Uses the [DEFLATE](https://www.rfc-editor.org/rfc/rfc1951) algorithm, without a header and trailing checksum. |
-| `"gzip"`        | Uses the [GZIP](https://www.rfc-editor.org/rfc/rfc1952) format.                                               |
+| `"deflate"`     | Uses the [DEFLATE](https://www.rfc-editor.org/rfc/rfc1950) algorithm in ZLIB Compressed Data Format           |
+| `"deflate-raw"` | Uses the [DEFLATE](https://www.rfc-editor.org/rfc/rfc1951) algorithm, without a header and trailing checksum  |
+| `"gzip"`        | Uses the [GZIP](https://www.rfc-editor.org/rfc/rfc1952) format                                                |
+
+### Non-Standard Algorithms
 
 The following _non-standard / extension_ compression modes are also supported:
 
 | Mode     | Description                                                                                                             |
 | -------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `"zstd"` | Uses the [Zstandard](https://facebook.github.io/zstd/) format, which is useful for decompressing `.ncz` / `.xcz` files. |
+| `"zstd"` | Uses the [Zstandard](https://facebook.github.io/zstd/) format (useful for decompressing `.ncz` / `.xcz` files)          |
 
 ## Examples
 
