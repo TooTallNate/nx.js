@@ -20,3 +20,4 @@ node_modules
 /?
 /?.*
 .vercel
+/.vscode/cache.db*
