@@ -18,6 +18,7 @@
     "esbuild": "^0.17.19"
   },
   "dependencies": {
+    "fastest-levenshtein": "^1.0.16",
     "uvu": "github:TooTallNate/uvu#master"
   }
 }

@@ -335,6 +335,9 @@ importers:
 
   apps/tests:
     dependencies:
+      fastest-levenshtein:
+        specifier: ^1.0.16
+        version: 1.0.16
       uvu:
         specifier: github:TooTallNate/uvu#master
         version: github.com/TooTallNate/uvu/a19ad72ffe3e5b91b256ddc58b77aac04d056316
@@ -5099,6 +5102,11 @@ packages:
       glob-parent: 5.1.2
       merge2: 1.4.1
       micromatch: 4.0.7
+
+  /fastest-levenshtein@1.0.16:
+    resolution: {integrity: sha512-eRnCtTTtGZFpQCwhJiUOuxPQWRXVKYDn0b2PeHfXL6/Zi53SLAzAHfVhVWK2AryC/WH05kGfxhFIPvTF0SXQzg==}
+    engines: {node: '>= 4.9.1'}
+    dev: false
 
   /fastq@1.15.0:
     resolution: {integrity: sha512-wBrocU2LCXXa+lWBt8RoIRD89Fi8OdABODa/kEnyeyjS5aZO5/GNvI5sEINADqP/h8M29UHTHUb53sUu5Ihqdw==}
