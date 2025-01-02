@@ -1,0 +1,49 @@
+---
+title: Compression
+description: Compressing and decompressing data streams
+---
+
+nx.js implements the
+[Web Compression Streams API](https://developer.mozilla.org/en-US/docs/Web/API/Compression_Streams_API),
+which allows your application to compress and/or decompress streams of data.
+
+## Compression Modes
+
+The supported standardized compression modes are listed in the table below:
+
+| Mode            | Description                                                                                                   |
+| --------------- | ------------------------------------------------------------------------------------------------------------- |
+| `"deflate"`     | Uses the [DEFLATE](https://www.rfc-editor.org/rfc/rfc1950) algorithm in ZLIB Compressed Data Format.          |
+| `"deflate-raw"` | Uses the [DEFLATE](https://www.rfc-editor.org/rfc/rfc1951) algorithm, without a header and trailing checksum. |
+| `"gzip"`        | Uses the [GZIP](https://www.rfc-editor.org/rfc/rfc1952) format.                                               |
+
+The following _non-standard / extension_ compression modes are also supported:
+
+| Mode     | Description                                                                                                             |
+| -------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `"zstd"` | Uses the [Zstandard](https://facebook.github.io/zstd/) format, which is useful for decompressing `.ncz` / `.xcz` files. |
+
+## Examples
+
+### Compress data
+
+```typescript
+await Switch.file("sdmc:/file.txt")
+    .pipeThrough(new CompressionStream("gzip"))
+    .pipeTo(Switch.file("sdmc:/file.txt.gz"));
+```
+
+### Decompress data
+
+```typescript
+await Switch.file("sdmc:/file.txt.gz")
+    .pipeThrough(new DecompressionStream("gzip"))
+    .pipeTo(Switch.file("sdmc:/file.txt"));
+```
+
+## Learn more
+
+<Cards>
+  <Card title="`CompressionStream` class API reference" href="/runtime/api/classes/CompressionStream" />
+  <Card title="`DecompressionStream` class API reference" href="/runtime/api/classes/DecompressionStream" />
+</Cards>
