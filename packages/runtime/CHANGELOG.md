@@ -1,5 +1,19 @@
 # @nx.js/runtime
 
+## 0.0.61
+
+### Patch Changes
+
+- Add `Switch.version.zlib` ([`432d708d06c6c4628ab1569160b0b268a3b45dc3`](https://github.com/TooTallNate/nx.js/commit/432d708d06c6c4628ab1569160b0b268a3b45dc3))
+
+- Use `BufferSource` type instead of `ArrayBuffer | ArrayBufferView` ([`6f835e15273595e2ad7f45a4e0f11ed617c42724`](https://github.com/TooTallNate/nx.js/commit/6f835e15273595e2ad7f45a4e0f11ed617c42724))
+
+- Add `Switch.version.zstd` ([`7edd81feccf8c80988be56858d7a0684794ac648`](https://github.com/TooTallNate/nx.js/commit/7edd81feccf8c80988be56858d7a0684794ac648))
+
+- Set `Accept-Encoding` header in `fetch()` by default and decompress responses ([`2ce4a26a32da609516475c603419d898e6ecce55`](https://github.com/TooTallNate/nx.js/commit/2ce4a26a32da609516475c603419d898e6ecce55))
+
+- Add `CompressionStream` and `DecompressionStream` ([`606e9f4930ecc91ec93b61696fe9822872566fe3`](https://github.com/TooTallNate/nx.js/commit/606e9f4930ecc91ec93b61696fe9822872566fe3))
+
 ## 0.0.60
 
 ### Patch Changes
