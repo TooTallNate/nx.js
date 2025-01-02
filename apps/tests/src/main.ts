@@ -1,4 +1,5 @@
 import './canvas.test';
+import './compression.test';
 import './crypto.test';
 import './dommatrix.test';
 import './error.test';
