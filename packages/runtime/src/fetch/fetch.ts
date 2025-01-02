@@ -11,6 +11,10 @@ import { Headers } from './headers';
 import { navigator } from '../navigator';
 import { Socket, connect } from '../tcp';
 import { INTERNAL_SYMBOL } from '../internal';
+import {
+	DecompressionStream,
+	type CompressionFormat,
+} from '../compression-streams';
 
 function indexOfEol(arr: ArrayLike<number>, offset: number): number {
 	for (let i = offset; i < arr.length - 1; i++) {
@@ -116,6 +120,11 @@ function createChunkedParseStream() {
 	});
 }
 
+// List of supported content encodings.
+// These values must be accepted by the `DecompressionStream` class.
+const ACCEPT_ENCODINGS = new Set(['zstd', 'gzip', 'deflate']);
+const ACCEPT_ENCODING_HEADER = [...ACCEPT_ENCODINGS].join(', ');
+
 async function fetchHttp(req: Request, url: URL): Promise<Response> {
 	const isHttps = url.protocol === 'https:';
 	const { hostname } = url;
@@ -136,6 +145,13 @@ async function fetchHttp(req: Request, url: URL): Promise<Response> {
 	}
 	if (!req.headers.has('accept')) {
 		req.headers.set('accept', '*/*');
+	}
+
+	// Enable response compression by default.
+	// To opt-out, set `accept-encoding` to "identity".
+	// https://developer.mozilla.org/docs/Web/HTTP/Headers/Accept-Encoding
+	if (!req.headers.has('accept-encoding')) {
+		req.headers.set('accept-encoding', ACCEPT_ENCODING_HEADER);
 	}
 
 	if (!req.body || hasContentLength) {
@@ -237,9 +253,21 @@ async function fetchHttp(req: Request, url: URL): Promise<Response> {
 		w.releaseLock();
 		leftover = undefined;
 	}
-	socket.readable.pipeThrough(resStream);
+	let resBody = socket.readable.pipeThrough(resStream);
 
-	const res = new Response(resStream.readable, {
+	// Decompress the response if the "content-encoding"
+	// header is set to a supported decompression format
+	const contentEncoding = resHeaders.get('content-encoding');
+	if (
+		typeof contentEncoding === 'string' &&
+		ACCEPT_ENCODINGS.has(contentEncoding)
+	) {
+		resBody = resBody.pipeThrough(
+			new DecompressionStream(contentEncoding as CompressionFormat),
+		);
+	}
+
+	const res = new Response(resBody, {
 		status,
 		statusText,
 		headers: resHeaders,
