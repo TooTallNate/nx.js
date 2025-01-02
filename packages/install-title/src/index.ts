@@ -410,7 +410,7 @@ async function pushApplicationRecord(
 		);
 		console.debug(`Found ${entriesRead} existing content meta records`);
 	} catch (err: unknown) {
-		console.log('nsListApplicationRecordContentMeta', err);
+		//console.log('nsListApplicationRecordContentMeta', err);
 	}
 
 	// Add new content meta keys to the end of the array
