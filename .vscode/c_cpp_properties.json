@@ -13,7 +13,10 @@
             "compilerPath": "/opt/devkitpro/devkitA64/bin/aarch64-none-elf-gcc",
             "cStandard": "c17",
             "cppStandard": "c++14",
-            "intelliSenseMode": "linux-gcc-arm64"
+            "intelliSenseMode": "linux-gcc-arm64",
+            "browse": {
+                "databaseFilename": "${workspaceFolder}/.vscode/cache.db"
+            }
         }
     ],
     "version": 4
