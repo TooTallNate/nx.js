@@ -553,6 +553,13 @@ void nx_decompress_write_do(nx_work_t *req) {
 			stream->next_out = out;
 
 			ret = inflate(stream, Z_NO_FLUSH);
+
+			// Z_BUF_ERROR (-5) means we need more input data
+			// This is not a fatal error, just break the loop
+			if (ret == Z_BUF_ERROR) {
+				break;
+			}
+
 			if (ret != Z_OK && ret != Z_STREAM_END) {
 				if (data->result) {
 					free(data->result);
