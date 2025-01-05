@@ -211,6 +211,24 @@ export class NcmContentInfo extends ArrayBufferStruct {
 	}
 }
 
+/// PackagedContentInfo
+export class NcmPackagedContentInfo extends ArrayBufferStruct {
+	//u8 hash[SHA256_HASH_SIZE];
+	//NcmContentInfo info;
+	static sizeof = 0x38 as const;
+
+	get hash() {
+		return u8(this).subarray(0x0, 0x20);
+	}
+	set hash(v: Uint8Array) {
+		u8(this).set(v.subarray(0x0, 0x20), 0x0);
+	}
+
+	get contentInfo() {
+		return new NcmContentInfo(this, 0x20);
+	}
+}
+
 /// ContentMetaHeader
 export class NcmContentMetaHeader extends ArrayBufferStruct {
 	// u16 extended_header_size;           ///< Size of optional struct that comes after this one.
