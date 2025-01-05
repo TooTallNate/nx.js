@@ -13,6 +13,7 @@ import {
 	NcmContentStorageRecord,
 	NcmContentMetaType,
 	NcmPatchMetaExtendedHeader,
+	NcmPackagedContentInfo,
 	NcmApplicationMetaExtendedHeader,
 } from '@nx.js/ncm';
 import { parseNsp, type FileEntry } from '@tootallnate/nsp';
@@ -24,7 +25,7 @@ import {
 	nsPushApplicationRecord,
 } from './ipc/ns';
 import { esImportTicket } from './ipc/es';
-import { PackagedContentMetaHeader, PackagedContentInfo } from './types';
+import { PackagedContentMetaHeader } from './types';
 
 export interface StepStart {
 	type: 'start';
@@ -277,8 +278,8 @@ async function installContentMetaRecords(
 		const packagedContentInfoOffset =
 			PackagedContentMetaHeader.sizeof +
 			extendedHeaderSize +
-			i * PackagedContentInfo.sizeof;
-		const packagedContentInfo = new PackagedContentInfo(
+			i * NcmPackagedContentInfo.sizeof;
+		const packagedContentInfo = new NcmPackagedContentInfo(
 			cnmtData,
 			packagedContentInfoOffset,
 		);

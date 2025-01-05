@@ -1,5 +1,5 @@
-import { NcmContentInfo, NcmContentMetaType } from '@nx.js/ncm';
-import { ArrayBufferStruct, view, u8 } from '@nx.js/util';
+import { NcmContentMetaType } from '@nx.js/ncm';
+import { ArrayBufferStruct, view } from '@nx.js/util';
 
 export class PackagedContentMetaHeader extends ArrayBufferStruct {
 	//u64 title_id;
@@ -31,18 +31,5 @@ export class PackagedContentMetaHeader extends ArrayBufferStruct {
 	}
 	get contentCount() {
 		return view(this).getUint16(0x10, true);
-	}
-}
-
-export class PackagedContentInfo extends ArrayBufferStruct {
-	//u8 hash[0x20];
-	//NcmContentInfo content_info;
-	static sizeof = 0x38 as const;
-
-	get hash() {
-		return u8(this).subarray(0x0, 0x20);
-	}
-	get contentInfo() {
-		return new NcmContentInfo(this, 0x20);
 	}
 }
