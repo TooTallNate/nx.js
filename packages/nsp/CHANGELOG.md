@@ -1,5 +1,11 @@
 # @nx.js/nsp
 
+## 0.0.61
+
+### Patch Changes
+
+- Set debug flags properly for FW 19+ ([`ebcf4bc289c9befe03118f1ee444ad101fb1f6a5`](https://github.com/TooTallNate/nx.js/commit/ebcf4bc289c9befe03118f1ee444ad101fb1f6a5))
+
 ## 0.0.60
 
 ### Patch Changes
