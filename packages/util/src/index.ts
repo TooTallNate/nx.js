@@ -65,4 +65,14 @@ export class ArrayBufferStruct implements ArrayBufferView {
 			byteOffset: { value: bo, enumerable: false },
 		});
 	}
+
+	/**
+	 * Creates a copy of the struct buffer view as a new `ArrayBuffer` instance.
+	 */
+	toArrayBuffer(): ArrayBuffer {
+		return this.buffer.slice(
+			this.byteOffset,
+			this.byteOffset + this.byteLength,
+		);
+	}
 }
