@@ -27,9 +27,9 @@ export function decodeCString(view: ArrayBufferView): string {
 }
 
 export class ArrayBufferStruct implements ArrayBufferView {
-	readonly buffer: ArrayBufferLike;
-	readonly byteLength: number;
-	readonly byteOffset: number;
+	readonly buffer!: ArrayBufferLike;
+	readonly byteLength!: number;
+	readonly byteOffset!: number;
 
 	static sizeof = 0;
 
@@ -44,20 +44,25 @@ export class ArrayBufferStruct implements ArrayBufferView {
 		byteOffset?: number,
 		byteLength?: number,
 	) {
-		this.byteOffset = 0;
+		let buf: ArrayBufferLike | undefined;
+		let bo = 0;
 		if (buffer) {
 			if ('buffer' in buffer) {
-				this.buffer = buffer.buffer;
-				this.byteOffset = buffer.byteOffset;
+				buf = buffer.buffer;
+				bo = buffer.byteOffset;
 			} else {
-				this.buffer = buffer;
+				buf = buffer;
 			}
 		} else {
-			this.buffer = new ArrayBuffer(new.target.sizeof);
+			buf = new ArrayBuffer(new.target.sizeof);
 		}
 		if (typeof byteOffset === 'number') {
-			this.byteOffset += byteOffset;
+			bo += byteOffset;
 		}
-		this.byteLength = byteLength ?? new.target.sizeof;
+		Object.defineProperties(this, {
+			buffer: { value: buf, enumerable: false },
+			byteLength: { value: byteLength ?? new.target.sizeof, enumerable: false },
+			byteOffset: { value: bo, enumerable: false },
+		});
 	}
 }
