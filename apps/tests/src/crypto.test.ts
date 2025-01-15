@@ -4,6 +4,8 @@ import { toHex, fromHex, concat } from './util.ts';
 
 const test = suite('crypto');
 
+// #region crypto.getRandomValues()
+
 test('`crypto.getRandomValues()`', () => {
 	const arr = new Uint8Array(5);
 	assert.equal(toHex(arr.buffer), '0000000000');
@@ -25,6 +27,10 @@ test('`crypto.getRandomValues()` with 0 arguments', () => {
 		"Failed to execute 'getRandomValues' on 'Crypto': 1 argument required, but only 0 present",
 	);
 });
+
+// #endregion
+
+// #region crypto.subtle.digest()
 
 test("`crypto.subtle.digest('sha-1')`", async () => {
 	const data = new TextEncoder().encode('hello');
@@ -59,6 +65,10 @@ test("`crypto.subtle.digest('sha-512')`", async () => {
 	);
 });
 
+// #endregion
+
+// #region crypto.subtle.importKey()
+
 test("`crypto.subtle.importKey()` with 'raw' format and 'AES-CBC' algorithm, 128-bit key", async () => {
 	const keyData = new Uint8Array([
 		188, 136, 184, 200, 227, 200, 149, 203, 33, 186, 60, 145, 54, 19, 92, 88,
@@ -75,7 +85,6 @@ test("`crypto.subtle.importKey()` with 'raw' format and 'AES-CBC' algorithm, 128
 	assert.instance(key, CryptoKey);
 	assert.equal(key.extractable, false);
 	assert.equal(key.algorithm.name, 'AES-CBC');
-	// @ts-expect-error `length` is not defined on `KeyAlgorithm`
 	assert.equal(key.algorithm.length, 128);
 
 	// Sorted because bun / deno disagree on the order
@@ -91,17 +100,72 @@ test("`crypto.subtle.importKey()` with 'raw' format and 'AES-CBC' algorithm, 256
 		89, 145, 158, 128, 61, 7, 182, 192, 90, 250, 33, 24, 44, 24, 108,
 	]);
 
-	const key = await crypto.subtle.importKey('raw', keyData, 'AES-CBC', false, [
+	const key = await crypto.subtle.importKey('raw', keyData, 'AES-CBC', true, [
 		'decrypt',
 	]);
 
 	assert.instance(key, CryptoKey);
+	assert.equal(key.extractable, true);
 	assert.equal(key.usages.length, 1);
 	assert.equal(key.usages[0], 'decrypt');
 	assert.equal(key.algorithm.name, 'AES-CBC');
-	// @ts-expect-error `length` is not defined on `KeyAlgorithm`
 	assert.equal(key.algorithm.length, 256);
 });
+
+test("`crypto.subtle.importKey()` with 'raw' format and 'AES-CBC' algorithm, invalid key length", async () => {
+	let err: Error | undefined;
+	try {
+		await crypto.subtle.importKey('raw', new Uint8Array(), 'AES-CBC', true, []);
+	} catch (_err: any) {
+		err = _err;
+	}
+
+	assert.ok(err);
+	assert.instance(err, Error);
+	assert.equal(err.message, 'Invalid key length');
+});
+
+test("`crypto.subtle.importKey()` with 'raw' format and 'AES-CTR' algorithm, 128-bit key", async () => {
+	const keyData = new Uint8Array([
+		188, 136, 184, 200, 227, 200, 149, 203, 33, 186, 60, 145, 54, 19, 92, 88,
+	]);
+
+	const key = await crypto.subtle.importKey(
+		'raw',
+		keyData,
+		{ name: 'AES-CTR' },
+		false,
+		['encrypt', 'decrypt'],
+	);
+
+	assert.instance(key, CryptoKey);
+	assert.equal(key.extractable, false);
+	assert.equal(key.algorithm.name, 'AES-CTR');
+	assert.equal(key.algorithm.length, 128);
+
+	// Sorted because bun / deno disagree on the order
+	const usages = key.usages.slice().sort();
+	assert.equal(usages.length, 2);
+	assert.equal(usages[0], 'decrypt');
+	assert.equal(usages[1], 'encrypt');
+});
+
+test("`crypto.subtle.importKey()` with 'raw' format and 'AES-CTR' algorithm, invalid key length", async () => {
+	let err: Error | undefined;
+	try {
+		await crypto.subtle.importKey('raw', new Uint8Array(), 'AES-CTR', true, []);
+	} catch (_err: any) {
+		err = _err;
+	}
+
+	assert.ok(err);
+	assert.instance(err, Error);
+	assert.equal(err.message, 'Invalid key length');
+});
+
+// #endregion
+
+// #region crypto.subtle.encrypt()
 
 test("`crypto.subtle.encrypt()` with 'AES-CBC' algorithm, 128-bit key", async () => {
 	const keyData = new Uint8Array([
@@ -157,6 +221,32 @@ test("`crypto.subtle.encrypt()` with 'AES-CBC' algorithm, 256-bit key", async ()
 	assert.equal(toHex(ciphertext), 'da7299d52ef669a5e513b801fb65ef06');
 });
 
+test("`crypto.subtle.encrypt()` with 'AES-CTR' algorithm, 128-bit key", async () => {
+	const keyData = new Uint8Array([
+		188, 136, 184, 200, 227, 200, 149, 203, 33, 186, 60, 145, 54, 19, 92, 88,
+	]);
+	const counter = new Uint8Array([
+		38, 89, 172, 231, 98, 165, 172, 212, 137, 184, 41, 162, 105, 26, 119, 158,
+	]);
+
+	const key = await crypto.subtle.importKey('raw', keyData, 'AES-CTR', false, [
+		'encrypt',
+	]);
+
+	const ciphertext = await crypto.subtle.encrypt(
+		{ name: 'AES-CTR', counter, length: 64 },
+		key,
+		new TextEncoder().encode('hello'),
+	);
+
+	assert.instance(ciphertext, ArrayBuffer);
+	assert.equal(toHex(ciphertext), '3476c80fdb');
+});
+
+// #endregion
+
+// #region crypto.subtle.decrypt()
+
 test("`crypto.subtle.decrypt()` with 'AES-CBC' algorithm, 128-bit key", async () => {
 	const keyData = new Uint8Array([
 		188, 136, 184, 200, 227, 200, 149, 203, 33, 186, 60, 145, 54, 19, 92, 88,
@@ -207,6 +297,32 @@ test("`crypto.subtle.decrypt()` with 'AES-CBC' algorithm, 256-bit key", async ()
 	assert.equal(new TextDecoder().decode(new Uint8Array(plaintext)), 'hello');
 });
 
+test("`crypto.subtle.decrypt()` with 'AES-CTR' algorithm, 128-bit key", async () => {
+	const keyData = new Uint8Array([
+		188, 136, 184, 200, 227, 200, 149, 203, 33, 186, 60, 145, 54, 19, 92, 88,
+	]);
+	const counter = new Uint8Array([
+		38, 89, 172, 231, 98, 165, 172, 212, 137, 184, 41, 162, 105, 26, 119, 158,
+	]);
+
+	const key = await crypto.subtle.importKey('raw', keyData, 'AES-CTR', false, [
+		'decrypt',
+	]);
+
+	const plaintext = await crypto.subtle.decrypt(
+		{ name: 'AES-CTR', counter, length: 64 },
+		key,
+		fromHex('3476c80fdb'),
+	);
+
+	assert.instance(plaintext, ArrayBuffer);
+	assert.equal(new TextDecoder().decode(new Uint8Array(plaintext)), 'hello');
+});
+
+// #endregion
+
+// #region nx.js specific APIs
+
 // Non-standard APIs that are only going to work on nx.js
 if (process.env.NXJS === '1') {
 	test("`crypto.subtle.importKey()` with 'raw' format and 'AES-XTS' algorithm, two 128-bit keys", async () => {
@@ -226,8 +342,26 @@ if (process.env.NXJS === '1') {
 		assert.equal(key.usages.length, 1);
 		assert.equal(key.usages[0], 'encrypt');
 		assert.equal(key.algorithm.name, 'AES-XTS');
-		// @ts-expect-error `length` is not defined on `KeyAlgorithm`
 		assert.equal(key.algorithm.length, 256);
+	});
+
+	test("`crypto.subtle.importKey()` with 'raw' format and 'AES-XTS' algorithm, invalid key length", async () => {
+		let err: Error | undefined;
+		try {
+			await crypto.subtle.importKey(
+				'raw',
+				new Uint8Array(),
+				'AES-XTS',
+				true,
+				[],
+			);
+		} catch (_err: any) {
+			err = _err;
+		}
+
+		assert.ok(err);
+		assert.instance(err, Error);
+		assert.equal(err.message, 'Invalid key length');
 	});
 
 	test("`crypto.subtle.encrypt()` with 'AES-XTS' algorithm, two 128-bit keys (aligned with AES block size)", async () => {
@@ -284,5 +418,7 @@ if (process.env.NXJS === '1') {
 		assert.equal(new TextDecoder().decode(new Uint8Array(plaintext)), text);
 	});
 }
+
+// #endregion
 
 test.run();

@@ -40,6 +40,10 @@ typedef struct {
 } nx_crypto_aes_cbc_params_t;
 
 typedef struct {
+	u8 *ctr;
+} nx_crypto_aes_ctr_params_t;
+
+typedef struct {
 	u64 sector;
 	size_t sector_size;
 	bool is_nintendo;
@@ -200,6 +204,31 @@ void nx_crypto_encrypt_do(nx_work_t *req) {
 			aes256CbcEncrypt(&aes->encrypt.cbc_256, data->result, data->result,
 							 data->result_size);
 		}
+	} else if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_AES_CTR) {
+		nx_crypto_key_aes_t *aes = (nx_crypto_key_aes_t *)data->key->handle;
+		nx_crypto_aes_ctr_params_t *ctr_params =
+			(nx_crypto_aes_ctr_params_t *)data->algorithm_params;
+
+		data->result_size = data->data_size;
+		data->result = malloc(data->result_size);
+		if (!data->result) {
+			data->err = ENOMEM;
+			return;
+		}
+
+		if (aes->key_length == 16) {
+			aes128CtrContextResetCtr(&aes->decrypt.ctr_128, ctr_params->ctr);
+			aes128CtrCrypt(&aes->decrypt.ctr_128, data->result, data->data,
+						   data->result_size);
+		} else if (aes->key_length == 24) {
+			aes192CtrContextResetCtr(&aes->decrypt.ctr_192, ctr_params->ctr);
+			aes192CtrCrypt(&aes->decrypt.ctr_192, data->result, data->data,
+						   data->result_size);
+		} else if (aes->key_length == 32) {
+			aes256CtrContextResetCtr(&aes->decrypt.ctr_256, ctr_params->ctr);
+			aes256CtrCrypt(&aes->decrypt.ctr_256, data->result, data->data,
+						   data->result_size);
+		}
 	} else if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_AES_XTS) {
 		nx_crypto_key_aes_t *aes = (nx_crypto_key_aes_t *)data->key->handle;
 		nx_crypto_aes_xts_params_t *xts_params =
@@ -228,18 +257,8 @@ void nx_crypto_encrypt_do(nx_work_t *req) {
 			}
 		} else if (aes->key_length == 48) {
 			data->err = ENOTSUP;
-			// aes192XtsContextResetTweak(&aes->encrypt.xts_192,
-			//						   xts_params->tweak);
-			//  aes192XtsEncrypt(&aes->encrypt.xts_192, data->result,
-			//  data->data,
-			//				 data->data_size);
 		} else if (aes->key_length == 64) {
 			data->err = ENOTSUP;
-			// aes256XtsContextResetTweak(&aes->encrypt.xts_256,
-			//						   xts_params->tweak);
-			//  aes256XtsEncrypt(&aes->encrypt.xts_256, data->result,
-			//  data->data,
-			//				 data->data_size);
 		}
 	}
 }
@@ -315,6 +334,32 @@ static JSValue nx_crypto_encrypt(JSContext *ctx, JSValueConst this_val,
 		}
 
 		data->algorithm_params = cbc_params;
+	} else if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_AES_CTR) {
+		nx_crypto_aes_ctr_params_t *ctr_params =
+			js_mallocz(ctx, sizeof(nx_crypto_aes_ctr_params_t));
+		if (!ctr_params) {
+			js_free(ctx, data);
+			return JS_EXCEPTION;
+		}
+
+		size_t ctr_size;
+		ctr_params->ctr = NX_GetBufferSource(
+			ctx, &ctr_size, JS_GetPropertyStr(ctx, argv[0], "counter"));
+		if (!ctr_params->ctr) {
+			js_free(ctx, data);
+			js_free(ctx, ctr_params);
+			return JS_EXCEPTION;
+		}
+
+		// Validate counter size
+		if (ctr_size != 16) {
+			js_free(ctx, data);
+			js_free(ctx, ctr_params);
+			return JS_ThrowTypeError(ctx, "Counter must be 16 bytes (got %lu)",
+									 ctr_size);
+		}
+
+		data->algorithm_params = ctr_params;
 	} else if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_AES_XTS) {
 		nx_crypto_aes_xts_params_t *xts_params =
 			js_mallocz(ctx, sizeof(nx_crypto_aes_xts_params_t));
@@ -439,6 +484,9 @@ static JSValue nx_crypto_key_get_algorithm(JSContext *ctx,
 		case NX_CRYPTO_KEY_ALGORITHM_AES_CBC:
 			name_val = "AES-CBC";
 			break;
+		case NX_CRYPTO_KEY_ALGORITHM_AES_CTR:
+			name_val = "AES-CTR";
+			break;
 		case NX_CRYPTO_KEY_ALGORITHM_AES_XTS:
 			name_val = "AES-XTS";
 			break;
@@ -449,6 +497,7 @@ static JSValue nx_crypto_key_get_algorithm(JSContext *ctx,
 		JS_SetPropertyStr(ctx, obj, "name", JS_NewString(ctx, name_val));
 
 		if (context->algorithm == NX_CRYPTO_KEY_ALGORITHM_AES_CBC ||
+			context->algorithm == NX_CRYPTO_KEY_ALGORITHM_AES_CTR ||
 			context->algorithm == NX_CRYPTO_KEY_ALGORITHM_AES_XTS) {
 			nx_crypto_key_aes_t *aes = (nx_crypto_key_aes_t *)context->handle;
 			JS_SetPropertyStr(ctx, obj, "length",
@@ -591,7 +640,7 @@ static JSValue nx_crypto_key_new(JSContext *ctx, JSValueConst this_val,
 		if (key_size != 16 && key_size != 24 && key_size != 32) {
 			js_free(ctx, context);
 			JS_FreeCString(ctx, algo);
-			JS_ThrowTypeError(ctx, "Invalid key size for AES-CBC");
+			JS_ThrowPlainError(ctx, "Invalid key length");
 			return JS_EXCEPTION;
 		}
 		context->type = NX_CRYPTO_KEY_TYPE_SECRET;
@@ -634,11 +683,49 @@ static JSValue nx_crypto_key_new(JSContext *ctx, JSValueConst this_val,
 									   key_data, false);
 			}
 		}
+	} else if (strcmp(algo, "AES-CTR") == 0) {
+		if (key_size != 16 && key_size != 24 && key_size != 32) {
+			js_free(ctx, context);
+			JS_FreeCString(ctx, algo);
+			JS_ThrowPlainError(ctx, "Invalid key length");
+			return JS_EXCEPTION;
+		}
+		context->type = NX_CRYPTO_KEY_TYPE_SECRET;
+		context->algorithm = NX_CRYPTO_KEY_ALGORITHM_AES_CTR;
+
+		nx_crypto_key_aes_t *aes = js_mallocz(ctx, sizeof(nx_crypto_key_aes_t));
+		if (!aes) {
+			js_free(ctx, context);
+			JS_FreeCString(ctx, algo);
+			return JS_EXCEPTION;
+		}
+		context->handle = aes;
+		aes->key_length = key_size;
+
+		if (key_size == 16) {
+			if (context->usages & NX_CRYPTO_KEY_USAGE_ENCRYPT ||
+				context->usages & NX_CRYPTO_KEY_USAGE_DECRYPT) {
+				aes128CtrContextCreate(&aes->decrypt.ctr_128, key_data,
+									   key_data);
+			}
+		} else if (key_size == 24) {
+			if (context->usages & NX_CRYPTO_KEY_USAGE_ENCRYPT ||
+				context->usages & NX_CRYPTO_KEY_USAGE_DECRYPT) {
+				aes192CtrContextCreate(&aes->decrypt.ctr_192, key_data,
+									   key_data);
+			}
+		} else {
+			if (context->usages & NX_CRYPTO_KEY_USAGE_ENCRYPT ||
+				context->usages & NX_CRYPTO_KEY_USAGE_DECRYPT) {
+				aes256CtrContextCreate(&aes->decrypt.ctr_256, key_data,
+									   key_data);
+			}
+		}
 	} else if (strcmp(algo, "AES-XTS") == 0) {
 		if (key_size != 32 && key_size != 48 && key_size != 64) {
 			js_free(ctx, context);
 			JS_FreeCString(ctx, algo);
-			JS_ThrowTypeError(ctx, "Invalid key size for AES-XTS");
+			JS_ThrowPlainError(ctx, "Invalid key length");
 			return JS_EXCEPTION;
 		}
 		context->type = NX_CRYPTO_KEY_TYPE_SECRET;
@@ -745,6 +832,31 @@ void nx_crypto_decrypt_do(nx_work_t *req) {
 
 		data->result_size =
 			unpad_pkcs7(AES_BLOCK_SIZE, data->result, data->data_size);
+	} else if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_AES_CTR) {
+		nx_crypto_key_aes_t *aes = (nx_crypto_key_aes_t *)data->key->handle;
+		nx_crypto_aes_ctr_params_t *ctr_params =
+			(nx_crypto_aes_ctr_params_t *)data->algorithm_params;
+
+		data->result_size = data->data_size;
+		data->result = malloc(data->result_size);
+		if (!data->result) {
+			data->err = ENOMEM;
+			return;
+		}
+
+		if (aes->key_length == 16) {
+			aes128CtrContextResetCtr(&aes->decrypt.ctr_128, ctr_params->ctr);
+			aes128CtrCrypt(&aes->decrypt.ctr_128, data->result, data->data,
+						   data->result_size);
+		} else if (aes->key_length == 24) {
+			aes192CtrContextResetCtr(&aes->decrypt.ctr_192, ctr_params->ctr);
+			aes192CtrCrypt(&aes->decrypt.ctr_192, data->result, data->data,
+						   data->result_size);
+		} else if (aes->key_length == 32) {
+			aes256CtrContextResetCtr(&aes->decrypt.ctr_256, ctr_params->ctr);
+			aes256CtrCrypt(&aes->decrypt.ctr_256, data->result, data->data,
+						   data->result_size);
+		}
 	} else if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_AES_XTS) {
 		nx_crypto_key_aes_t *aes = (nx_crypto_key_aes_t *)data->key->handle;
 		nx_crypto_aes_xts_params_t *xts_params =
@@ -849,6 +961,32 @@ static JSValue nx_crypto_subtle_decrypt(JSContext *ctx, JSValueConst this_val,
 		}
 
 		data->algorithm_params = cbc_params;
+	} else if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_AES_CTR) {
+		nx_crypto_aes_ctr_params_t *ctr_params =
+			js_mallocz(ctx, sizeof(nx_crypto_aes_ctr_params_t));
+		if (!ctr_params) {
+			js_free(ctx, data);
+			return JS_EXCEPTION;
+		}
+
+		size_t ctr_size;
+		ctr_params->ctr = NX_GetBufferSource(
+			ctx, &ctr_size, JS_GetPropertyStr(ctx, argv[0], "counter"));
+		if (!ctr_params->ctr) {
+			js_free(ctx, data);
+			js_free(ctx, ctr_params);
+			return JS_EXCEPTION;
+		}
+
+		// Validate counter size
+		if (ctr_size != 16) {
+			js_free(ctx, data);
+			js_free(ctx, ctr_params);
+			return JS_ThrowTypeError(ctx, "Counter must be 16 bytes (got %lu)",
+									 ctr_size);
+		}
+
+		data->algorithm_params = ctr_params;
 	} else if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_AES_XTS) {
 		nx_crypto_aes_xts_params_t *xts_params =
 			js_mallocz(ctx, sizeof(nx_crypto_aes_xts_params_t));

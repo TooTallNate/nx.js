@@ -11,6 +11,7 @@ typedef enum {
 typedef enum {
 	NX_CRYPTO_KEY_ALGORITHM_UNKNOWN,
 	NX_CRYPTO_KEY_ALGORITHM_AES_CBC,
+	NX_CRYPTO_KEY_ALGORITHM_AES_CTR,
 	NX_CRYPTO_KEY_ALGORITHM_AES_XTS
 } nx_crypto_key_algorithm;
 
@@ -36,11 +37,15 @@ typedef struct {
 } nx_crypto_key_t;
 
 typedef struct {
-	u8 key_length; /* 16 (128-bit), 24 (192-bit), or 32 (256-bit) */
+	u8 key_length; /* 16 (128-bit), 24 (192-bit), 32 (256-bit), etc. */
 	union {
 		Aes128CbcContext cbc_128;
 		Aes192CbcContext cbc_192;
 		Aes256CbcContext cbc_256;
+
+		Aes128CtrContext ctr_128;
+		Aes192CtrContext ctr_192;
+		Aes256CtrContext ctr_256;
 
 		Aes128XtsContext xts_128;
 		Aes192XtsContext xts_192;
@@ -50,6 +55,9 @@ typedef struct {
 		Aes128CbcContext cbc_128;
 		Aes192CbcContext cbc_192;
 		Aes256CbcContext cbc_256;
+
+		// AES-CTR only needs one context for both encrypt and decrypt,
+		// so for encrypt, we use the same context as decrypt
 
 		Aes128XtsContext xts_128;
 		Aes192XtsContext xts_192;
