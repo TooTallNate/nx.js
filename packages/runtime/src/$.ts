@@ -142,13 +142,13 @@ export interface Init {
 		key: ArrayBuffer,
 		extractable: boolean,
 		keyUsages: KeyUsage[],
-	): CryptoKey;
+	): CryptoKey<any>;
 	cryptoInit(c: ClassOf<Crypto>): void;
-	cryptoKeyInit(c: ClassOf<CryptoKey>): void;
+	cryptoKeyInit(c: ClassOf<CryptoKey<any>>): void;
 	cryptoSubtleInit(c: ClassOf<SubtleCrypto>): void;
 	cryptoEncrypt(
 		algorithm: Algorithm,
-		key: CryptoKey,
+		key: CryptoKey<any>,
 		data: BufferSource,
 	): Promise<ArrayBuffer>;
 	cryptoDigest(algorithm: string, buf: BufferSource): Promise<ArrayBuffer>;

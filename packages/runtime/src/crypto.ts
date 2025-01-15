@@ -1,29 +1,26 @@
 import { $ } from './$';
 import { INTERNAL_SYMBOL } from './internal';
 import { assertInternalConstructor, createInternal, def, stub } from './utils';
-import { CryptoKey } from './crypto/crypto-key';
+import { CryptoKey, type CryptoKeyPair } from './crypto/crypto-key';
 import type {
 	AesCbcParams,
 	AesCtrParams,
 	AesDerivedKeyParams,
 	AesGcmParams,
-	AesKeyAlgorithm,
 	AesKeyGenParams,
-	AesXtsParams,
 	ArrayBufferView,
 	BufferSource,
+	EncryptionAlgorithm,
 	EcKeyGenParams,
 	EcKeyImportParams,
 	EcdhKeyDeriveParams,
 	EcdsaParams,
 	HmacImportParams,
-	HmacKeyGenParams,
 	JsonWebKey,
+	KeyAlgorithmIdentifier,
 	KeyFormat,
+	KeyImportParams,
 	KeyUsage,
-	RsaHashedImportParams,
-	RsaHashedKeyGenParams,
-	RsaOaepParams,
 } from './types';
 
 export * from './crypto/crypto-key';
@@ -141,9 +138,9 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 	 * @returns A Promise which will be fulfilled with the decrypted data (also known as "plaintext") as an `ArrayBuffer`.
 	 * @see https://developer.mozilla.org/docs/Web/API/SubtleCrypto/decrypt
 	 */
-	decrypt(
-		algorithm: AesCbcParams | AesXtsParams,
-		key: CryptoKey,
+	decrypt<Cipher extends KeyAlgorithmIdentifier>(
+		algorithm: EncryptionAlgorithm<Cipher>,
+		key: CryptoKey<Cipher>,
 		data: BufferSource,
 	): Promise<ArrayBuffer> {
 		stub();
@@ -155,7 +152,7 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 			| EcdhKeyDeriveParams
 			| HkdfParams
 			| Pbkdf2Params,
-		baseKey: CryptoKey,
+		baseKey: CryptoKey<never>,
 		length: number,
 	): Promise<ArrayBuffer> {
 		throw new Error('Method not implemented.');
@@ -167,7 +164,7 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 			| EcdhKeyDeriveParams
 			| HkdfParams
 			| Pbkdf2Params,
-		baseKey: CryptoKey,
+		baseKey: CryptoKey<never>,
 		derivedKeyType:
 			| AlgorithmIdentifier
 			| HkdfParams
@@ -176,7 +173,7 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 			| HmacImportParams,
 		extractable: boolean,
 		keyUsages: KeyUsage[],
-	): Promise<CryptoKey> {
+	): Promise<CryptoKey<never>> {
 		throw new Error('Method not implemented.');
 	}
 
@@ -212,22 +209,30 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 		);
 	}
 
-	async encrypt(
-		algorithm: AesCbcParams | AesXtsParams,
-		key: CryptoKey,
+	/**
+	 * Encrypts plaintext data.
+	 *
+	 * It takes as its arguments a key to encrypt with, some algorithm-specific parameters, and the data to encrypt (also known as "plaintext").
+	 *
+	 * @returns A Promise which will be fulfilled with the encrypted data (also known as "ciphertext") as an `ArrayBuffer`.
+	 * @see https://developer.mozilla.org/docs/Web/API/SubtleCrypto/encrypt
+	 */
+	async encrypt<Cipher extends KeyAlgorithmIdentifier>(
+		algorithm: EncryptionAlgorithm<Cipher>,
+		key: CryptoKey<Cipher>,
 		data: BufferSource,
 	): Promise<ArrayBuffer> {
 		return $.cryptoEncrypt(normalizeAlgorithm(algorithm), key, data);
 	}
 
-	exportKey(format: 'jwk', key: CryptoKey): Promise<JsonWebKey>;
+	exportKey(format: 'jwk', key: CryptoKey<never>): Promise<JsonWebKey>;
 	exportKey(
 		format: 'pkcs8' | 'raw' | 'spki',
-		key: CryptoKey,
+		key: CryptoKey<never>,
 	): Promise<ArrayBuffer>;
 	exportKey(
 		format: KeyFormat,
-		key: CryptoKey,
+		key: CryptoKey<never>,
 	): Promise<ArrayBuffer | JsonWebKey> {
 		throw new Error('Method not implemented.');
 	}
@@ -236,82 +241,52 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 		algorithm: 'Ed25519',
 		extractable: boolean,
 		keyUsages: readonly ('sign' | 'verify')[],
-	): Promise<CryptoKeyPair>;
+	): Promise<CryptoKeyPair<never>>;
 	generateKey(
 		algorithm: RsaHashedKeyGenParams | EcKeyGenParams,
 		extractable: boolean,
 		keyUsages: readonly KeyUsage[],
-	): Promise<CryptoKeyPair>;
+	): Promise<CryptoKeyPair<never>>;
 	generateKey(
-		algorithm: Pbkdf2Params | AesKeyGenParams | HmacKeyGenParams,
+		algorithm: AesKeyGenParams,
 		extractable: boolean,
 		keyUsages: readonly KeyUsage[],
-	): Promise<CryptoKey>;
-	generateKey(
-		algorithm: AlgorithmIdentifier,
-		extractable: boolean,
-		keyUsages: KeyUsage[],
-	): Promise<CryptoKey | CryptoKeyPair>;
-	generateKey(
-		algorithm: RsaHashedKeyGenParams | EcKeyGenParams,
-		extractable: boolean,
-		keyUsages: readonly KeyUsage[],
-	): Promise<CryptoKeyPair>;
-	generateKey(
-		algorithm: Pbkdf2Params | AesKeyGenParams | HmacKeyGenParams,
-		extractable: boolean,
-		keyUsages: readonly KeyUsage[],
-	): Promise<CryptoKey>;
+	): Promise<CryptoKey<never>>;
 	generateKey(
 		algorithm: unknown,
 		extractable: unknown,
 		keyUsages: unknown,
-	): Promise<CryptoKey | CryptoKeyPair> {
+	): Promise<CryptoKey<never> | CryptoKeyPair<never>> {
 		throw new Error('Method not implemented.');
 	}
 
 	/**
-	 * Takes as input a key in an external, portable format and gives you a
-	 * {@link CryptoKey} object that you can use in the Web Crypto API.
+	 * Takes as input a key in an external, portable format and returns a
+	 * {@link CryptoKey | `CryptoKey`} instance which can be used in the Web Crypto API.
 	 *
 	 * @see https://developer.mozilla.org/docs/Web/API/SubtleCrypto/importKey
 	 */
-	importKey(
+	importKey<Cipher extends KeyAlgorithmIdentifier>(
 		format: 'jwk',
 		keyData: JsonWebKey,
-		algorithm:
-			| AlgorithmIdentifier
-			| HmacImportParams
-			| RsaHashedImportParams
-			| EcKeyImportParams
-			| AesKeyAlgorithm,
+		algorithm: Cipher | KeyImportParams<Cipher>,
 		extractable: boolean,
 		keyUsages: KeyUsage[],
-	): Promise<CryptoKey>;
-	importKey(
+	): Promise<CryptoKey<Cipher>>;
+	importKey<Cipher extends KeyAlgorithmIdentifier>(
 		format: 'pkcs8' | 'raw' | 'spki',
 		keyData: BufferSource,
-		algorithm:
-			| AlgorithmIdentifier
-			| HmacImportParams
-			| RsaHashedImportParams
-			| EcKeyImportParams
-			| AesKeyAlgorithm,
+		algorithm: Cipher | KeyImportParams<Cipher>,
 		extractable: boolean,
 		keyUsages: KeyUsage[],
-	): Promise<CryptoKey>;
-	async importKey(
+	): Promise<CryptoKey<Cipher>>;
+	async importKey<Cipher extends KeyAlgorithmIdentifier>(
 		format: KeyFormat,
 		keyData: BufferSource | JsonWebKey,
-		algorithm:
-			| AlgorithmIdentifier
-			| HmacImportParams
-			| RsaHashedImportParams
-			| EcKeyImportParams
-			| AesKeyAlgorithm,
+		algorithm: Cipher | KeyImportParams<Cipher>,
 		extractable: boolean,
 		keyUsages: KeyUsage[],
-	): Promise<CryptoKey> {
+	): Promise<CryptoKey<Cipher>> {
 		if (format !== 'raw') {
 			// Only "raw" format is supported at this time
 			throw new TypeError(
@@ -320,7 +295,7 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 		}
 		const algo =
 			typeof algorithm === 'string' ? { name: algorithm } : algorithm;
-		return new CryptoKey(
+		const key = new CryptoKey<Cipher>(
 			// @ts-expect-error Internal constructor
 			INTERNAL_SYMBOL,
 			algo,
@@ -328,11 +303,12 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 			extractable,
 			keyUsages,
 		);
+		return key;
 	}
 
 	sign(
 		algorithm: AlgorithmIdentifier | RsaPssParams | EcdsaParams,
-		key: CryptoKey,
+		key: CryptoKey<never>,
 		data: BufferSource,
 	): Promise<ArrayBuffer> {
 		throw new Error('Method not implemented.');
@@ -341,7 +317,7 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 	unwrapKey(
 		format: KeyFormat,
 		wrappedKey: BufferSource,
-		unwrappingKey: CryptoKey,
+		unwrappingKey: CryptoKey<never>,
 		unwrapAlgorithm:
 			| AlgorithmIdentifier
 			| RsaOaepParams
@@ -352,17 +328,16 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 			| AlgorithmIdentifier
 			| HmacImportParams
 			| RsaHashedImportParams
-			| EcKeyImportParams
-			| AesKeyAlgorithm,
+			| EcKeyImportParams,
 		extractable: boolean,
 		keyUsages: KeyUsage[],
-	): Promise<CryptoKey> {
+	): Promise<CryptoKey<never>> {
 		throw new Error('Method not implemented.');
 	}
 
 	verify(
 		algorithm: AlgorithmIdentifier | RsaPssParams | EcdsaParams,
-		key: CryptoKey,
+		key: CryptoKey<never>,
 		signature: BufferSource,
 		data: BufferSource,
 	): Promise<boolean> {
@@ -371,8 +346,8 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 
 	wrapKey(
 		format: KeyFormat,
-		key: CryptoKey,
-		wrappingKey: CryptoKey,
+		key: CryptoKey<never>,
+		wrappingKey: CryptoKey<never>,
 		wrapAlgorithm:
 			| AlgorithmIdentifier
 			| RsaOaepParams

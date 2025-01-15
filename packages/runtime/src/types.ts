@@ -124,7 +124,8 @@ export interface AesCbcParams {
 	name: 'AES-CBC';
 	iv: BufferSource;
 }
-export interface AesCtrParams extends Algorithm {
+export interface AesCtrParams {
+	name: 'AES-CTR';
 	counter: BufferSource;
 	length: number;
 }
@@ -142,17 +143,11 @@ export interface AesGcmParams extends Algorithm {
 	iv: BufferSource;
 	tagLength?: number;
 }
-export interface AesKeyAlgorithm extends KeyAlgorithm {
-	length: number;
-}
 export interface AesKeyGenParams extends Algorithm {
 	length: number;
 }
 export interface Algorithm {
 	name: string;
-}
-export interface EcKeyAlgorithm extends KeyAlgorithm {
-	namedCurve: NamedCurve;
 }
 export interface EcKeyGenParams extends Algorithm {
 	namedCurve: NamedCurve;
@@ -174,10 +169,6 @@ export interface HkdfParams extends Algorithm {
 export interface HmacImportParams extends Algorithm {
 	hash: HashAlgorithmIdentifier;
 	length?: number;
-}
-export interface HmacKeyAlgorithm extends KeyAlgorithm {
-	hash: KeyAlgorithm;
-	length: number;
 }
 export interface HmacKeyGenParams extends Algorithm {
 	hash: HashAlgorithmIdentifier;
@@ -203,9 +194,9 @@ export interface JsonWebKey {
 	x?: string;
 	y?: string;
 }
-export interface KeyAlgorithm {
-	name: string;
-}
+//export interface KeyAlgorithm {
+//	name: string;
+//}
 export type NamedCurve = string;
 export type AlgorithmIdentifier = Algorithm | string;
 export type KeyFormat = 'jwk' | 'pkcs8' | 'raw' | 'spki';
@@ -219,31 +210,31 @@ export type KeyUsage =
 	| 'unwrapKey'
 	| 'verify'
 	| 'wrapKey';
-export interface RsaHashedImportParams extends Algorithm {
-	hash: HashAlgorithmIdentifier;
-}
-export interface RsaHashedKeyAlgorithm extends RsaKeyAlgorithm {
-	hash: KeyAlgorithm;
-}
-export interface RsaHashedKeyGenParams extends RsaKeyGenParams {
-	hash: HashAlgorithmIdentifier;
-}
-export interface RsaKeyAlgorithm extends KeyAlgorithm {
-	modulusLength: number;
-	publicExponent: BigInteger;
-}
-export interface RsaKeyGenParams extends Algorithm {
-	modulusLength: number;
-	publicExponent: BigInteger;
-}
-export interface RsaOaepParams extends Algorithm {
-	label?: BufferSource;
-}
-export interface RsaOtherPrimesInfo {
-	d?: string;
-	r?: string;
-	t?: string;
-}
-export interface RsaPssParams extends Algorithm {
-	saltLength: number;
-}
+
+export type KeyAlgorithmIdentifier = (
+	| AesCbcParams
+	| AesCtrParams
+	| AesXtsParams
+)['name'];
+
+export type EncryptionAlgorithm<Cipher extends KeyAlgorithmIdentifier> = {
+	'AES-CBC': AesCbcParams;
+	'AES-CTR': AesCtrParams;
+	'AES-XTS': AesXtsParams;
+}[Cipher];
+
+export type KeyImportParams<Cipher extends KeyAlgorithmIdentifier> = {
+	name: Cipher;
+} & {
+	'AES-CBC': {};
+	'AES-CTR': {};
+	'AES-XTS': {};
+}[Cipher];
+
+export type KeyGenParams<Cipher extends KeyAlgorithmIdentifier> = {
+	name: Cipher;
+} & {
+	'AES-CBC': AesKeyGenParams;
+	'AES-CTR': AesKeyGenParams;
+	'AES-XTS': AesKeyGenParams;
+}[Cipher];
