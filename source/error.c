@@ -90,6 +90,27 @@ void nx_promise_rejection_handler(JSContext *ctx, JSValueConst promise,
 								  void *opaque) {
 	nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
 
+	// QuickJS will call this handler twice (first with is_handled=false, then
+	// with is_handled=true) when an async function throws an exception
+	// immediately, even though there is a catch handler (or `await`) attached.
+	// To account for this, we store the unhandled rejection temporarily in
+	// anticipation of a future call to this handler with is_handled=true, in
+	// which case we should not trigger an unhandled rejection event.
+	// See: https://github.com/quickjs-ng/quickjs/issues/39
+	if (!is_handled) {
+		nx_ctx->unhandled_rejected_promise = JS_DupValue(ctx, promise);
+	} else {
+		if (!JS_IsUndefined(nx_ctx->unhandled_rejected_promise)) {
+			JS_FreeValue(ctx, nx_ctx->unhandled_rejected_promise);
+		}
+		nx_ctx->unhandled_rejected_promise = JS_UNDEFINED;
+	}
+}
+
+void nx_emit_unhandled_rejection_event(JSContext *ctx) {
+	nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
+	JSValue reason = JS_PromiseResult(ctx, nx_ctx->unhandled_rejected_promise);
+
 	// Print the error to stderr so that it ends up in the log file
 	const char *exception_str = JS_ToCString(ctx, reason);
 	fprintf(stderr, "Uncaught (in promise) %s\n", exception_str);
@@ -103,13 +124,15 @@ void nx_promise_rejection_handler(JSContext *ctx, JSValueConst promise,
 		JS_FreeValue(ctx, stack_val);
 	}
 
-	JSValueConst args[] = {promise, reason};
+	JSValueConst args[] = {nx_ctx->unhandled_rejected_promise, reason};
 	JSValue ret_val =
 		JS_Call(ctx, nx_ctx->unhandled_rejection_handler, JS_NULL, 2, args);
 	if (JS_IsException(ret_val))
 		print_js_error(ctx);
 	JS_ToInt32(ctx, &nx_ctx->had_error, ret_val);
 	JS_FreeValue(ctx, ret_val);
+	JS_FreeValue(ctx, nx_ctx->unhandled_rejected_promise);
+	nx_ctx->unhandled_rejected_promise = JS_UNDEFINED;
 }
 
 static const JSCFunctionListEntry function_list[] = {

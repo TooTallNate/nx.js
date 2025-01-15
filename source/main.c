@@ -489,8 +489,9 @@ int nx_module_set_import_meta(JSContext *ctx, JSValueConst func_val,
 	return 0;
 }
 
-void nx_process_pending_jobs(JSRuntime *rt) {
-	JSContext *ctx;
+void nx_process_pending_jobs(JSContext *ctx, nx_context_t *nx_ctx,
+							 JSRuntime *rt) {
+	JSContext *ctx1;
 	int err;
 	// Don't allow an infinite number of pending jobs
 	// to allow the UI to update periodically. The number
@@ -498,13 +499,17 @@ void nx_process_pending_jobs(JSRuntime *rt) {
 	// be optimized by using a timer instead of a fixed
 	// number of iterations.
 	for (u8 i = 0; i < 20; i++) {
-		err = JS_ExecutePendingJob(rt, &ctx);
+		err = JS_ExecutePendingJob(rt, &ctx1);
 		if (err <= 0) {
 			if (err < 0) {
-				nx_emit_error_event(ctx);
+				nx_emit_error_event(ctx1);
 			}
 			break;
 		}
+	}
+
+	if (!JS_IsUndefined(nx_ctx->unhandled_rejected_promise)) {
+		nx_emit_unhandled_rejection_event(ctx);
 	}
 }
 
@@ -557,6 +562,7 @@ int main(int argc, char *argv[]) {
 	nx_ctx->exit_handler = JS_UNDEFINED;
 	nx_ctx->error_handler = JS_UNDEFINED;
 	nx_ctx->unhandled_rejection_handler = JS_UNDEFINED;
+	nx_ctx->unhandled_rejected_promise = JS_UNDEFINED;
 	pthread_mutex_init(&(nx_ctx->async_done_mutex), NULL);
 	JS_SetContextOpaque(ctx, nx_ctx);
 	JS_SetRuntimeOpaque(rt, nx_ctx);
@@ -792,7 +798,7 @@ main_loop:
 
 		if (!nx_ctx->had_error) {
 			// Process any Promises that need to be fulfilled
-			nx_process_pending_jobs(rt);
+			nx_process_pending_jobs(ctx, nx_ctx, rt);
 		}
 
 		// Update controller pad states

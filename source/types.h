@@ -87,6 +87,7 @@ typedef struct nx_context_s {
 	JSValue exit_handler;
 	JSValue error_handler;
 	JSValue unhandled_rejection_handler;
+	JSValue unhandled_rejected_promise;
 	PadState pads[8];
 
 	// mbedtls structures shared by all TLS connections
