@@ -10,6 +10,7 @@ import type {
 	ErrorEvent,
 	PromiseRejectionEvent,
 } from './polyfills/event';
+import { $ } from './$';
 
 /**
  * The `Window` class represents the global scope within the application.
@@ -29,6 +30,7 @@ def(Window);
 
 export var window: Window & typeof globalThis = globalThis;
 def(proto(window, Window), 'window');
+$.windowInit(window);
 
 Object.defineProperty(window, Symbol.toStringTag, {
 	get() {
@@ -149,3 +151,18 @@ export declare function removeEventListener(
  * @see {@link https://developer.mozilla.org/docs/Web/API/EventTarget/dispatchEvent | MDN Reference}
  */
 export declare function dispatchEvent(event: Event): boolean;
+
+/**
+ * Decodes a string of data which has been encoded using Base64 encoding.
+ *
+ * @see https://developer.mozilla.org/docs/Web/API/Window/atob
+ */
+export declare function atob(s: string): string;
+
+/**
+ * Creates a Base64-encoded ASCII string from a binary string (i.e., a string in
+ * which each character in the string is treated as a byte of binary data).
+ *
+ * @see https://developer.mozilla.org/docs/Web/API/Window/btoa
+ */
+export declare function btoa(s: string): string;

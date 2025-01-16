@@ -41,6 +41,7 @@ import type { DOMPoint, DOMPointInit } from './dompoint';
 import type { DOMMatrix, DOMMatrixReadOnly, DOMMatrixInit } from './dommatrix';
 import type { Gamepad, GamepadButton } from './navigator/gamepad';
 import type { Crypto, CryptoKey, SubtleCrypto } from './crypto';
+import type { Window } from './window';
 import type { Algorithm, BufferSource } from './types';
 import type { PromiseState } from '@nx.js/inspect';
 
@@ -345,6 +346,9 @@ export interface Init {
 	wasmModuleImports(m: WasmModuleOpaque): any[];
 	wasmGlobalGet(g: WasmGlobalOpaque): any;
 	wasmGlobalSet(g: WasmGlobalOpaque, v: any): void;
+
+	// window.c
+	windowInit(c: Window): void;
 
 	applyPath: any;
 }
