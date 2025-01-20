@@ -1,5 +1,15 @@
 # @nx.js/util
 
+## 1.1.0
+
+### Minor Changes
+
+- Add `ArrayBufferStruct#toArrayBuffer()` function ([`f5bfcf978e1a2c62777aa48f7c1572f641959eaf`](https://github.com/TooTallNate/nx.js/commit/f5bfcf978e1a2c62777aa48f7c1572f641959eaf))
+
+### Patch Changes
+
+- Make `buffer`, `byteLength`, and `byteOffset` properties non-enumerable in `ArrayBufferStruct` ([`6dfd58335f3a06277ee25d16bb256c367f833de0`](https://github.com/TooTallNate/nx.js/commit/6dfd58335f3a06277ee25d16bb256c367f833de0))
+
 ## 1.0.0
 
 ### Major Changes

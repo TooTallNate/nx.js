@@ -579,10 +579,10 @@ importers:
         specifier: ^0.4.0
         version: link:../constants
       '@nx.js/ncm':
-        specifier: ^1.1.0
+        specifier: ^1.2.0
         version: link:../ncm
       '@nx.js/util':
-        specifier: ^1.0.0
+        specifier: ^1.1.0
         version: link:../util
       '@tootallnate/nsp':
         specifier: ^0.0.2
@@ -598,7 +598,7 @@ importers:
         specifier: ^0.4.0
         version: link:../constants
       '@nx.js/util':
-        specifier: ^1.0.0
+        specifier: ^1.1.0
         version: link:../util
     devDependencies:
       '@nx.js/runtime':

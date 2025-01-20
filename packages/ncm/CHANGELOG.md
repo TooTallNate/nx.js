@@ -1,5 +1,16 @@
 # @nx.js/ncm
 
+## 1.2.0
+
+### Minor Changes
+
+- Add `NcmPackagedContentInfo` struct ([`593e9ce03cc9fff67143a0493e77091d53fdaf79`](https://github.com/TooTallNate/nx.js/commit/593e9ce03cc9fff67143a0493e77091d53fdaf79))
+
+### Patch Changes
+
+- Updated dependencies [[`f5bfcf978e1a2c62777aa48f7c1572f641959eaf`](https://github.com/TooTallNate/nx.js/commit/f5bfcf978e1a2c62777aa48f7c1572f641959eaf), [`6dfd58335f3a06277ee25d16bb256c367f833de0`](https://github.com/TooTallNate/nx.js/commit/6dfd58335f3a06277ee25d16bb256c367f833de0)]:
+  - @nx.js/util@1.1.0
+
 ## 1.1.0
 
 ### Minor Changes

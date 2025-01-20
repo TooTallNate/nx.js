@@ -1,5 +1,15 @@
 # @nx.js/install-title
 
+## 0.0.2
+
+### Patch Changes
+
+- Use `NcmPackagedContentInfo` from "@nx.js/ncm" ([`225a2f769e16f8f99463c6d6ac2a73101d06a3fd`](https://github.com/TooTallNate/nx.js/commit/225a2f769e16f8f99463c6d6ac2a73101d06a3fd))
+
+- Updated dependencies [[`593e9ce03cc9fff67143a0493e77091d53fdaf79`](https://github.com/TooTallNate/nx.js/commit/593e9ce03cc9fff67143a0493e77091d53fdaf79), [`f5bfcf978e1a2c62777aa48f7c1572f641959eaf`](https://github.com/TooTallNate/nx.js/commit/f5bfcf978e1a2c62777aa48f7c1572f641959eaf), [`6dfd58335f3a06277ee25d16bb256c367f833de0`](https://github.com/TooTallNate/nx.js/commit/6dfd58335f3a06277ee25d16bb256c367f833de0)]:
+  - @nx.js/ncm@1.2.0
+  - @nx.js/util@1.1.0
+
 ## 0.0.1
 
 ### Patch Changes
