@@ -243,6 +243,34 @@ test("`crypto.subtle.encrypt()` with 'AES-CTR' algorithm, 128-bit key", async ()
 	assert.equal(toHex(ciphertext), '3476c80fdb');
 });
 
+test("`crypto.subtle.encrypt()` with 'AES-CTR' algorithm, 256-bit key", async () => {
+	const keyData = new Uint8Array([
+		194, 180, 97, 245, 222, 0, 208, 29, 177, 74, 94, 95, 124, 172, 123, 89, 168,
+		89, 145, 158, 128, 61, 7, 182, 192, 90, 250, 33, 24, 44, 24, 108,
+	]);
+	const counter = new Uint8Array([
+		38, 89, 172, 231, 98, 165, 172, 212, 137, 184, 41, 162, 105, 26, 119, 158,
+	]);
+
+	const key = await crypto.subtle.importKey('raw', keyData, 'AES-CTR', false, [
+		'encrypt',
+	]);
+
+	const ciphertext = await crypto.subtle.encrypt(
+		{ name: 'AES-CTR', counter, length: 32 },
+		key,
+		new TextEncoder().encode(
+			'this is some longer text that is larger than the block size',
+		),
+	);
+
+	assert.instance(ciphertext, ArrayBuffer);
+	assert.equal(
+		toHex(ciphertext),
+		'c3055adf88fb00a51a47fc84efa003c1ed668082a61326bed6744ab1fd1eed2e5ffd8854fbb383da093a7600d83e70bdbc05ac13348caf9efaf3cf',
+	);
+});
+
 // #endregion
 
 // #region crypto.subtle.decrypt()
