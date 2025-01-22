@@ -43,7 +43,7 @@ void decidedcancel_cb(void) {
 // String changed callback.
 void strchange_cb(const char *str, SwkbdChangedStringArg *arg) {
 	JSValue args[] = {
-		JS_NewStringLen(current_kbd->ctx, str, arg->stringLen),
+		JS_NewString(current_kbd->ctx, str),
 		JS_NewInt32(current_kbd->ctx, arg->cursorPos),
 		JS_NewInt32(current_kbd->ctx, arg->dicStartCursorPos),
 		JS_NewInt32(current_kbd->ctx, arg->dicEndCursorPos),
@@ -60,7 +60,7 @@ void strchange_cb(const char *str, SwkbdChangedStringArg *arg) {
 // Moved cursor callback.
 void movedcursor_cb(const char *str, SwkbdMovedCursorArg *arg) {
 	JSValue args[] = {
-		JS_NewStringLen(current_kbd->ctx, str, arg->stringLen),
+		JS_NewString(current_kbd->ctx, str),
 		JS_NewInt32(current_kbd->ctx, arg->cursorPos),
 	};
 	JSValue result = JS_Call(current_kbd->ctx, current_kbd->cursor_move_func,
@@ -75,7 +75,7 @@ void movedcursor_cb(const char *str, SwkbdMovedCursorArg *arg) {
 // Text submitted callback, this is used to get the output text from submit.
 void decidedenter_cb(const char *str, SwkbdDecidedEnterArg *arg) {
 	JSValue args[] = {
-		JS_NewStringLen(current_kbd->ctx, str, arg->stringLen),
+		JS_NewString(current_kbd->ctx, str),
 	};
 	JSValue result = JS_Call(current_kbd->ctx, current_kbd->submit_func,
 							 current_kbd->instance, countof(args), args);
