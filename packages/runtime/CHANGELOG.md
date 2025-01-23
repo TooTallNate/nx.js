@@ -1,5 +1,19 @@
 # @nx.js/runtime
 
+## 0.0.62
+
+### Patch Changes
+
+- Add initial strong typing for `SubtleCrypto` functions ([`75d5cc1a605f3ee7c456206931912c5bfb6a184d`](https://github.com/TooTallNate/nx.js/commit/75d5cc1a605f3ee7c456206931912c5bfb6a184d))
+
+- Fix issue where immediately rejected Promises could not be handled ([`2e6f63bd409b6364e93de3592e3d2f89be891648`](https://github.com/TooTallNate/nx.js/commit/2e6f63bd409b6364e93de3592e3d2f89be891648))
+
+- Fix entering unicode characters when using Virtual Keyboard ([`9e32e0026a294eef188b6ce31bc4b404a54432a3`](https://github.com/TooTallNate/nx.js/commit/9e32e0026a294eef188b6ce31bc4b404a54432a3))
+
+- Implement "AES-CTR" algorithm for `SubtleCrypto` ([`7ac658e122a25bd648861f098665d03c0bdf7c32`](https://github.com/TooTallNate/nx.js/commit/7ac658e122a25bd648861f098665d03c0bdf7c32))
+
+- Implement `atob()` and `btoa()` ([`d4324c6be50302b3642fd2f0e5f0cd87f44fa772`](https://github.com/TooTallNate/nx.js/commit/d4324c6be50302b3642fd2f0e5f0cd87f44fa772))
+
 ## 0.0.61
 
 ### Patch Changes

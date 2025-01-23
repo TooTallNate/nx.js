@@ -1,6 +1,6 @@
 {
   "name": "@nx.js/install-title",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Install a title from an NSP file",
   "repository": {
     "type": "git",
@@ -21,8 +21,8 @@
   },
   "dependencies": {
     "@nx.js/constants": "^0.4.0",
-    "@nx.js/ncm": "^1.1.0",
-    "@nx.js/util": "^1.0.0",
+    "@nx.js/ncm": "^1.2.0",
+    "@nx.js/util": "^1.1.0",
     "@tootallnate/nsp": "^0.0.2"
   },
   "devDependencies": {
