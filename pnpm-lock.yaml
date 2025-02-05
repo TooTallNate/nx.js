@@ -636,6 +636,16 @@ importers:
         specifier: ^20.10.3
         version: 20.10.3
 
+  packages/ns:
+    dependencies:
+      '@nx.js/constants':
+        specifier: ^0.4.0
+        version: link:../constants
+    devDependencies:
+      '@nx.js/runtime':
+        specifier: workspace:*
+        version: link:../runtime
+
   packages/nsp:
     dependencies:
       '@nx.js/patch-nacp':
