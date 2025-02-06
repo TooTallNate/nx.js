@@ -582,7 +582,7 @@ importers:
         specifier: ^1.2.0
         version: link:../ncm
       '@nx.js/ns':
-        specifier: ^0.0.0
+        specifier: ^1.0.0
         version: link:../ns
       '@nx.js/util':
         specifier: ^1.1.0

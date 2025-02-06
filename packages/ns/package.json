@@ -1,6 +1,6 @@
 {
   "name": "@nx.js/ns",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "`ns` service IPC wrapper for nx.js",
   "repository": {
     "type": "git",
