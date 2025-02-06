@@ -120,6 +120,21 @@ function createChunkedParseStream() {
 	});
 }
 
+function createContentLengthStream(contentLength: number) {
+	let bytesRead = 0;
+	return new TransformStream<Uint8Array, Uint8Array>({
+		transform(chunk, controller) {
+			if (bytesRead + chunk.byteLength < contentLength) {
+				controller.enqueue(chunk);
+				bytesRead += chunk.byteLength;
+			} else {
+				controller.enqueue(chunk.subarray(0, contentLength - bytesRead));
+				controller.terminate();
+			}
+		},
+	});
+}
+
 // List of supported content encodings.
 // These values must be accepted by the `DecompressionStream` class.
 const ACCEPT_ENCODINGS = new Set(['zstd', 'gzip', 'deflate']);
@@ -242,10 +257,13 @@ async function fetchHttp(req: Request, url: URL): Promise<Response> {
 		// For "manual", just continue with the regular logic
 	}
 
+	const resContentLength = resHeaders.get('content-length');
 	const resStream =
-		resHeaders.get('transfer-encoding') === 'chunked'
-			? createChunkedParseStream()
-			: new TransformStream();
+		typeof resContentLength === 'string'
+			? createContentLengthStream(Number(resContentLength))
+			: resHeaders.get('transfer-encoding') === 'chunked'
+			  ? createChunkedParseStream()
+			  : new TransformStream<Uint8Array, Uint8Array>();
 
 	if (leftover) {
 		const w = resStream.writable.getWriter();
