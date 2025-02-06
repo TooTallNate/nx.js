@@ -1,5 +1,14 @@
 # @nx.js/install-title
 
+## 0.0.3
+
+### Patch Changes
+
+- Use `@nx.js/ns` package ([#172](https://github.com/TooTallNate/nx.js/pull/172))
+
+- Updated dependencies [[`efa17fcc766dfed8165071a902f8bf5ee2624947`](https://github.com/TooTallNate/nx.js/commit/efa17fcc766dfed8165071a902f8bf5ee2624947)]:
+  - @nx.js/ns@1.0.0
+
 ## 0.0.2
 
 ### Patch Changes
