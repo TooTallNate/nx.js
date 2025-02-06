@@ -22,6 +22,7 @@
   "dependencies": {
     "@nx.js/constants": "^0.4.0",
     "@nx.js/ncm": "^1.2.0",
+    "@nx.js/ns": "^0.0.0",
     "@nx.js/util": "^1.1.0",
     "@tootallnate/nsp": "^0.0.2"
   },
