@@ -1,15 +1,8 @@
 // Ported from `tinwoo/nx/ipc/ns_ext.c`
 import { SfBufferAttr } from '@nx.js/constants';
-import { NcmStorageId } from '@nx.js/ncm';
+import { NsApplicationRecordType } from './types';
 
-export enum NsApplicationRecordType {
-	// installed
-	Installed = 0x3,
-	// application is gamecard, but gamecard isn't insterted
-	GamecardMissing = 0x5,
-	// archived
-	Archived = 0xb,
-}
+export * from './types';
 
 const nsAm2 = new Switch.Service('ns:am2');
 const nsAppManSrv = new Switch.Service();

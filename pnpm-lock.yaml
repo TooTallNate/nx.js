@@ -581,6 +581,9 @@ importers:
       '@nx.js/ncm':
         specifier: ^1.2.0
         version: link:../ncm
+      '@nx.js/ns':
+        specifier: ^0.0.0
+        version: link:../ns
       '@nx.js/util':
         specifier: ^1.1.0
         version: link:../util
@@ -635,6 +638,16 @@ importers:
       '@types/node':
         specifier: ^20.10.3
         version: 20.10.3
+
+  packages/ns:
+    dependencies:
+      '@nx.js/constants':
+        specifier: ^0.4.0
+        version: link:../constants
+    devDependencies:
+      '@nx.js/runtime':
+        specifier: workspace:*
+        version: link:../runtime
 
   packages/nsp:
     dependencies:
