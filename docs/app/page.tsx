@@ -3,6 +3,8 @@ import Logo from './logo';
 import Discord from './discord';
 import GitHub from './github';
 import GbaTemp from './gbatemp';
+import Bitcoin from './bitcoin';
+import Ethereum from './ethereum';
 
 export default function HomePage() {
 	return (
@@ -49,6 +51,18 @@ export default function HomePage() {
 						eyesClassName='fill-[#ff9600]'
 					/>
 				</a>
+			</div>
+
+			<div>
+				<h3 className='text-lg font-bold'>Donate</h3>
+				<div className='text-muted-foreground text-sm'>
+					<Bitcoin className='inline-block' />{' '}
+					1CeNHAi1XXsGL5dWSdR9tTMko9MtcvMvCy
+				</div>
+				<div className='text-muted-foreground text-sm'>
+					<Ethereum className='inline-block' />{' '}
+					0xc411D343B7Ba8a2CAaEC23facBd3bE49CCa7bb39
+				</div>
 			</div>
 		</main>
 	);
