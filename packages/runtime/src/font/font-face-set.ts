@@ -3,6 +3,7 @@ import { INTERNAL_SYMBOL } from '../internal';
 import { EventTarget } from '../polyfills/event-target';
 import { assertInternalConstructor, createInternal, def } from '../utils';
 import { FontFace } from './font-face';
+import type { screen } from '../screen';
 import type { IFont } from 'parse-css-font';
 import type { FontFaceSetLoadStatus } from '../types';
 
@@ -78,10 +79,16 @@ export class FontFaceSet extends EventTarget {
 def(FontFaceSet);
 
 /**
- * Contains the available fonts for use on the screen Canvas context.
- * By default, `"system-ui"` is the only font available, which is the system font provided by the Switch operating system.
+ * Contains the available fonts for use on the {@link screen | `screen`} Canvas context.
  *
- * @demo See the `fonts` application for an example of using custom fonts.
+ * There are two built-in fonts available:
+ *
+ *  - `"system-ui"` is the system font provided by the Switch operating system.
+ *  - `"system-icons"` contains the icons used by the Switch operating system.
+ *
+ * Custom fonts can be added to the set using the {@link FontFaceSet.add | `add()`} method.
+ *
+ * @see https://nxjs.n8.io/runtime/concepts/fonts
  */
 // @ts-expect-error Internal constructor
 export var fonts = new FontFaceSet(INTERNAL_SYMBOL);
