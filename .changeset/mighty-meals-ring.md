@@ -2,4 +2,4 @@
 "@nx.js/runtime": patch
 ---
 
-Update QuickJS to v0.8.0
+Update QuickJS to v0.10.1

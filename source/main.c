@@ -477,7 +477,7 @@ static JSValue nx_version_get_emummc(JSContext *ctx, JSValueConst this_val,
 }
 
 int nx_module_set_import_meta(JSContext *ctx, JSValueConst func_val,
-							  const char *url, JS_BOOL is_main) {
+							  const char *url, bool is_main) {
 	JSModuleDef *m = JS_VALUE_GET_PTR(func_val);
 	JSValue meta_obj = JS_GetImportMeta(ctx, m);
 	if (JS_IsException(meta_obj))

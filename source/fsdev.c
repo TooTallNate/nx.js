@@ -604,7 +604,7 @@ static JSValue nx_save_data_create_sync(JSContext *ctx, JSValueConst this_val,
 	JS_FreeValue(ctx, val);
 
 	val = JS_GetPropertyStr(ctx, argv[0], "uid");
-	if (JS_IsArray(ctx, val)) {
+	if (JS_IsArray(val)) {
 		if (JS_ToBigUint64(ctx, &attr.uid.uid[0],
 						   JS_GetPropertyUint32(ctx, val, 0)) ||
 			JS_ToBigUint64(ctx, &attr.uid.uid[1],

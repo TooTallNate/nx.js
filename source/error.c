@@ -86,7 +86,7 @@ static JSValue nx_set_unhandled_rejection_handler(JSContext *ctx,
 }
 
 void nx_promise_rejection_handler(JSContext *ctx, JSValueConst promise,
-								  JSValueConst reason, JS_BOOL is_handled,
+								  JSValueConst reason, bool is_handled,
 								  void *opaque) {
 	nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
 

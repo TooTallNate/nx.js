@@ -114,7 +114,7 @@ static JSValue nx_service_dispatch_in_out(JSContext *ctx, JSValueConst this_val,
 		// disp.buffer_attrs
 		JSValue buffer_attrs_val =
 			JS_GetPropertyStr(ctx, argv[3], "bufferAttrs");
-		if (JS_IsArray(ctx, buffer_attrs_val)) {
+		if (JS_IsArray(buffer_attrs_val)) {
 			JSValue length_val =
 				JS_GetPropertyStr(ctx, buffer_attrs_val, "length");
 			u32 length;
@@ -156,7 +156,7 @@ static JSValue nx_service_dispatch_in_out(JSContext *ctx, JSValueConst this_val,
 
 		// disp.buffers
 		JSValue buffers_val = JS_GetPropertyStr(ctx, argv[3], "buffers");
-		if (JS_IsArray(ctx, buffers_val)) {
+		if (JS_IsArray(buffers_val)) {
 			JSValue length_val = JS_GetPropertyStr(ctx, buffers_val, "length");
 			u32 length;
 			if (JS_ToUint32(ctx, &length, length_val)) {
@@ -183,7 +183,7 @@ static JSValue nx_service_dispatch_in_out(JSContext *ctx, JSValueConst this_val,
 		// disp.in_num_objects
 		// disp.in_objects
 		JSValue in_objects_val = JS_GetPropertyStr(ctx, argv[3], "inObjects");
-		if (JS_IsArray(ctx, in_objects_val)) {
+		if (JS_IsArray(in_objects_val)) {
 			JSValue length_val =
 				JS_GetPropertyStr(ctx, in_objects_val, "length");
 			if (JS_ToUint32(ctx, &disp.in_num_objects, length_val)) {
@@ -213,7 +213,7 @@ static JSValue nx_service_dispatch_in_out(JSContext *ctx, JSValueConst this_val,
 		// disp.out_num_objects
 		// disp.out_objects
 		JSValue out_objects_val = JS_GetPropertyStr(ctx, argv[3], "outObjects");
-		if (JS_IsArray(ctx, out_objects_val)) {
+		if (JS_IsArray(out_objects_val)) {
 			JSValue length_val =
 				JS_GetPropertyStr(ctx, out_objects_val, "length");
 			if (JS_ToUint32(ctx, &disp.out_num_objects, length_val)) {

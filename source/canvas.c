@@ -618,7 +618,7 @@ static JSValue nx_canvas_context_2d_round_rect(JSContext *ctx,
 	if (argc < 5 || JS_IsUndefined(argv[4])) {
 		for (size_t i = 0; i < 4; i++)
 			normalizedRadii[i].x = normalizedRadii[i].y = 0.;
-	} else if (JS_IsArray(ctx, argv[4])) {
+	} else if (JS_IsArray(argv[4])) {
 		JSValue length = JS_GetPropertyStr(ctx, argv[4], "length");
 		if (JS_ToUint32(ctx, &nRadii, length)) {
 			JS_FreeValue(ctx, length);

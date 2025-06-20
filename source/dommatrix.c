@@ -106,7 +106,7 @@ static JSValue nx_dommatrix_new(JSContext *ctx, JSValueConst this_val, int argc,
 	matrix->values.m11 = matrix->values.m22 = matrix->values.m33 =
 		matrix->values.m44 = 1.;
 
-	if (argc > 0 && JS_IsArray(ctx, argv[0])) {
+	if (argc > 0 && JS_IsArray(argv[0])) {
 		int length;
 		JSValue lengthVal = JS_GetPropertyStr(ctx, argv[0], "length");
 		if (JS_ToInt32(ctx, &length, lengthVal)) {
