@@ -140,7 +140,7 @@ class ContentStoragePlaceholderWriteStream extends WritableStream<Uint8Array> {
 		const placeholderId = contentStorage.generatePlaceHolderId();
 		try {
 			contentStorage.deletePlaceHolder(placeholderId);
-		} catch { }
+		} catch {}
 		contentStorage.createPlaceHolder(contentId, placeholderId, BigInt(size));
 
 		super({
@@ -153,7 +153,7 @@ class ContentStoragePlaceholderWriteStream extends WritableStream<Uint8Array> {
 				console.debug(`Finished writing ${this.#offset} bytes`);
 				try {
 					contentStorage.delete(contentId);
-				} catch { }
+				} catch {}
 				contentStorage.register(contentId, placeholderId);
 			},
 		});
@@ -304,9 +304,9 @@ async function installContentMetaRecords(
 
 	const contentMetaData = new Uint8Array(
 		NcmContentMetaHeader.sizeof +
-		extendedHeaderSize +
-		contentInfos.length * NcmContentInfo.sizeof +
-		extendedDataSize,
+			extendedHeaderSize +
+			contentInfos.length * NcmContentInfo.sizeof +
+			extendedDataSize,
 	);
 
 	// write header
@@ -357,13 +357,13 @@ async function installContentMetaRecords(
 			new Uint8Array(
 				cnmtData,
 				PackagedContentMetaHeader.sizeof +
-				extendedHeaderSize +
-				contentInfos.length * NcmContentInfo.sizeof,
+					extendedHeaderSize +
+					contentInfos.length * NcmContentInfo.sizeof,
 				extendedDataSize,
 			),
 			NcmContentMetaHeader.sizeof +
-			extendedHeaderSize +
-			contentInfos.length * NcmContentInfo.sizeof,
+				extendedHeaderSize +
+				contentInfos.length * NcmContentInfo.sizeof,
 		);
 	}
 
@@ -426,7 +426,7 @@ async function pushApplicationRecord(
 
 	try {
 		nsDeleteApplicationRecord(titleId);
-	} catch { }
+	} catch {}
 
 	nsPushApplicationRecord(
 		titleId,
