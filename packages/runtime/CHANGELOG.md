@@ -1,5 +1,11 @@
 # @nx.js/runtime
 
+## 0.0.64
+
+### Patch Changes
+
+- Update QuickJS to v0.10.1 ([`087b63a51df6fde8baa6b157c9ab1bc288de25f4`](https://github.com/TooTallNate/nx.js/commit/087b63a51df6fde8baa6b157c9ab1bc288de25f4))
+
 ## 0.0.63
 
 ### Patch Changes
