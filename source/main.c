@@ -33,6 +33,7 @@
 #include "tls.h"
 #include "types.h"
 #include "url.h"
+#include "util.h"
 #include "wasm.h"
 #include "window.h"
 
@@ -49,6 +50,13 @@ static PrintConsole *print_console = NULL;
 static NWindow *win = NULL;
 static Framebuffer *framebuffer = NULL;
 static uint8_t *js_framebuffer = NULL;
+
+void nx_console_init(nx_context_t *nx_ctx) {
+	nx_ctx->rendering_mode = NX_RENDERING_MODE_CONSOLE;
+	if (print_console == NULL) {
+		print_console = consoleInit(NULL);
+	}
+}
 
 void nx_console_exit() {
 	if (print_console != NULL) {
@@ -166,10 +174,7 @@ static JSValue js_print(JSContext *ctx, JSValueConst this_val, int argc,
 	nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
 	if (nx_ctx->rendering_mode != NX_RENDERING_MODE_CONSOLE) {
 		nx_framebuffer_exit();
-		if (print_console == NULL) {
-			print_console = consoleInit(NULL);
-		}
-		nx_ctx->rendering_mode = NX_RENDERING_MODE_CONSOLE;
+		nx_console_init(nx_ctx);
 	}
 	const char *str = JS_ToCString(ctx, argv[0]);
 	printf("%s", str);
@@ -514,6 +519,47 @@ void nx_process_pending_jobs(JSContext *ctx, nx_context_t *nx_ctx,
 	}
 }
 
+void nx_render_loading_image(nx_context_t *nx_ctx, const char *nro_path) {
+	// Check if there is a `loading.jpg` file on the RomFS
+	// and render that to the screen if present.
+	size_t loading_image_size;
+	const char *loading_image_path = "romfs:/loading.jpg";
+	uint8_t *loading_image = (uint8_t *)read_file(loading_image_path, &loading_image_size);
+	if (!loading_image && nro_path) {
+		// RomFS loading_image image not found.
+		// Try to load from SD card, relative to the path of the NRO.
+		char *temp_loading_image_path = strdup(nro_path);
+		if (temp_loading_image_path) {
+			replace_file_extension(temp_loading_image_path, ".jpg");
+			loading_image = (uint8_t *)read_file(temp_loading_image_path, &loading_image_size);
+			free(temp_loading_image_path);
+		}
+	}
+	if (loading_image != NULL) {
+		win = nwindowGetDefault();
+		int width = 1280;
+		int height = 720;
+		js_framebuffer = malloc(width * height * 4);
+		framebuffer = malloc(sizeof(Framebuffer));
+		framebufferCreate(framebuffer, win, width, height, PIXEL_FORMAT_BGRA_8888,
+						2);
+		framebufferMakeLinear(framebuffer);
+
+		decode_jpeg(loading_image, loading_image_size, &js_framebuffer, &width, &height);
+		// TODO: ensure decompression was successful
+		// TODO: ensure width and height are correct
+
+		u32 stride;
+		u8 *framebuf = (u8 *)framebufferBegin(framebuffer, &stride);
+		memcpy(framebuf, js_framebuffer, 1280 * 720 * 4);
+		framebufferEnd(framebuffer);
+
+		free(js_framebuffer);
+		free(loading_image);
+		js_framebuffer = NULL;
+	}
+}
+
 static SocketInitConfig const s_socketInitConfig = {
 	.tcp_tx_buf_size = 1 * 1024 * 1024,
 	.tcp_rx_buf_size = 1 * 1024 * 1024,
@@ -533,14 +579,17 @@ static SocketInitConfig const s_socketInitConfig = {
 int main(int argc, char *argv[]) {
 	Result rc;
 
-	print_console = consoleInit(NULL);
+	nx_context_t *nx_ctx = malloc(sizeof(nx_context_t));
+	memset(nx_ctx, 0, sizeof(nx_context_t));
 
-	rc = socketInitialize(&s_socketInitConfig);
+	rc = romfsInit();
 	if (R_FAILED(rc)) {
 		diagAbortWithResult(rc);
 	}
 
-	rc = romfsInit();
+	nx_render_loading_image(nx_ctx, argc > 0 ? argv[0] : NULL);
+
+	rc = socketInitialize(&s_socketInitConfig);
 	if (R_FAILED(rc)) {
 		diagAbortWithResult(rc);
 	}
@@ -555,9 +604,7 @@ int main(int argc, char *argv[]) {
 	JSRuntime *rt = JS_NewRuntime();
 	JSContext *ctx = JS_NewContext(rt);
 
-	nx_context_t *nx_ctx = malloc(sizeof(nx_context_t));
-	memset(nx_ctx, 0, sizeof(nx_context_t));
-	nx_ctx->rendering_mode = NX_RENDERING_MODE_CONSOLE;
+	nx_ctx->rendering_mode = NX_RENDERING_MODE_INIT;
 	nx_ctx->thpool = thpool_init(4);
 	nx_ctx->frame_handler = JS_UNDEFINED;
 	nx_ctx->exit_handler = JS_UNDEFINED;
@@ -595,20 +642,18 @@ int main(int argc, char *argv[]) {
 	}
 
 	if (user_code == NULL && errno == ENOENT && argc > 0) {
-		// If no `main.js`, then try the `.js file with the
-		// matching name as the `.nro` file on the SD card
+		// If no `main.js`, then try the `.js` file with the matching name
+		// as the `.nro` file on the SD card
 		user_path_needs_free = true;
 		user_code_path = strdup(argv[0]);
-		size_t js_path_len = strlen(user_code_path);
-		char *dot_nro = strstr(user_code_path, ".nro");
-		if (dot_nro != NULL && (dot_nro - user_code_path) == js_path_len - 4) {
-			strcpy(dot_nro, ".js");
+		if (user_code_path) {
+			replace_file_extension(user_code_path, ".js");
+			user_code = (char *)read_file(user_code_path, &user_code_size);
 		}
-
-		user_code = (char *)read_file(user_code_path, &user_code_size);
 	}
 
 	if (user_code == NULL) {
+		nx_console_init(nx_ctx);
 		printf("%s: %s\n", strerror(errno), user_code_path);
 		if (user_path_needs_free) {
 			free(user_code_path);
@@ -743,6 +788,7 @@ int main(int argc, char *argv[]) {
 	}
 	runtime_init_result = JS_EvalFunction(ctx, runtime_init_func);
 	if (JS_IsException(runtime_init_result)) {
+		nx_console_init(nx_ctx);
 		printf("Runtime initialization failed\n");
 		print_js_error(ctx);
 		nx_ctx->had_error = 1;

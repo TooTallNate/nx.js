@@ -18,4 +18,7 @@ typedef struct {
 
 nx_image_t *nx_get_image(JSContext *ctx, JSValueConst obj);
 
+int decode_jpeg(uint8_t *jpegBuf, size_t jpegSize, uint8_t **output, int *width,
+				int *height);
+
 void nx_init_image(JSContext *ctx, JSValueConst init_obj);

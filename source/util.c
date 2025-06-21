@@ -27,3 +27,27 @@ u8 *NX_GetBufferSource(JSContext *ctx, size_t *size, JSValueConst obj) {
 	*size = byte_length;
 	return ptr + byte_offset;
 }
+
+/**
+ * @brief Replaces the file extension of a given path string.
+ *
+ * The modification is done in-place. The caller must ensure that the buffer
+ * for `path` is large enough to hold the `new_extension`.
+ *
+ * This function will not add an extension if one does not already exist.
+ * It also correctly handles filenames starting with a dot (e.g. ".profile")
+ * and paths containing dots in directory names (e.g. "my.app/program").
+ *
+ * @param path The file path string to modify.
+ * @param new_extension The new extension, which should include the leading dot.
+ */
+void replace_file_extension(char *path, const char *new_extension) {
+	char *dot = strrchr(path, '.');
+	char *slash = strrchr(path, '/');
+
+	// We only replace the extension if a dot is found,
+	// and it appears after the last path separator.
+	if (dot != NULL && (slash == NULL || dot > slash)) {
+		strcpy(dot, new_extension);
+	}
+}

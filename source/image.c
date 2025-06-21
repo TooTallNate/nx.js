@@ -291,6 +291,8 @@ static JSValue nx_image_get_width(JSContext *ctx, JSValueConst this_val,
 static JSValue nx_image_get_height(JSContext *ctx, JSValueConst this_val,
 								   int argc, JSValueConst *argv) {
 	nx_image_t *image = nx_get_image(ctx, this_val);
+	if (!image)
+		return JS_EXCEPTION;
 	return JS_NewUint32(ctx, image->height);
 }
 

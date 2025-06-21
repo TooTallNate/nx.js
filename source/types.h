@@ -70,7 +70,7 @@ struct nx_work_s {
 	void *data;
 };
 
-enum nx_rendering_mode { NX_RENDERING_MODE_CONSOLE, NX_RENDERING_MODE_CANVAS };
+enum nx_rendering_mode { NX_RENDERING_MODE_INIT, NX_RENDERING_MODE_CONSOLE, NX_RENDERING_MODE_CANVAS };
 
 typedef struct nx_context_s {
 	int had_error;
