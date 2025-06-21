@@ -1,5 +1,13 @@
 # @nx.js/runtime
 
+## 0.0.64
+
+### Patch Changes
+
+- Update QuickJS to v0.10.1 ([`087b63a51df6fde8baa6b157c9ab1bc288de25f4`](https://github.com/TooTallNate/nx.js/commit/087b63a51df6fde8baa6b157c9ab1bc288de25f4))
+
+- Add support for "loading.jpg" splash screen image ([`385bb106e58677a1f1921efb29fde51e672be844`](https://github.com/TooTallNate/nx.js/commit/385bb106e58677a1f1921efb29fde51e672be844))
+
 ## 0.0.63
 
 ### Patch Changes
