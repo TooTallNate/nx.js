@@ -1,3 +1,4 @@
+#include "error.h"
 #include "applet.h"
 
 static JSValue nx_applet_illuminance(JSContext *ctx, JSValueConst this_val,
@@ -5,9 +6,7 @@ static JSValue nx_applet_illuminance(JSContext *ctx, JSValueConst this_val,
 	float illuminance = 0.0f;
 	Result rc = appletGetCurrentIlluminance(&illuminance);
 	if (R_FAILED(rc)) {
-		JS_ThrowInternalError(
-			ctx, "appletGetCurrentIlluminance() returned 0x%x", rc);
-		return JS_EXCEPTION;
+		return nx_throw_libnx_error(ctx, rc, "appletGetCurrentIlluminance()");
 	}
 	return JS_NewFloat64(ctx, illuminance);
 }
@@ -30,20 +29,8 @@ JSValue nx_appletSetMediaPlaybackState(JSContext *ctx, JSValueConst this_val,
 	}
 	Result rc = appletSetMediaPlaybackState(state);
 	if (R_FAILED(rc)) {
-		JS_ThrowInternalError(
-			ctx, "appletSetMediaPlaybackState() returned 0x%x", rc);
-		return JS_EXCEPTION;
+		return nx_throw_libnx_error(ctx, rc, "appletSetMediaPlaybackState()");
 	}
-	return JS_UNDEFINED;
-}
-
-JSValue nx_appletRequestLaunchApplication(JSContext *ctx, JSValueConst this_val,
-										  int argc, JSValueConst *argv) {
-	u64 app_id;
-	if (JS_ToBigUint64(ctx, &app_id, JS_GetPropertyStr(ctx, this_val, "id"))) {
-		return JS_EXCEPTION;
-	}
-	appletRequestLaunchApplication(app_id, NULL);
 	return JS_UNDEFINED;
 }
 

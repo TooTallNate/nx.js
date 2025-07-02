@@ -2,7 +2,9 @@
 #include "types.h"
 
 typedef struct {
+	bool is_nro;
 	void *icon;
+	char *nro_path;
 	size_t icon_size;
 	NacpStruct nacp;
 } nx_app_t;

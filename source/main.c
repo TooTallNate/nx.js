@@ -169,6 +169,11 @@ static JSValue js_exit(JSContext *ctx, JSValueConst this_val, int argc,
 	return JS_UNDEFINED;
 }
 
+// Function to cleanly exit the main event loop (for use by other modules)
+void nx_exit_event_loop(void) {
+	is_running = 0;
+}
+
 static JSValue js_print(JSContext *ctx, JSValueConst this_val, int argc,
 						JSValueConst *argv) {
 	nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);

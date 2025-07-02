@@ -116,11 +116,11 @@ export class Application {
 	}
 
 	/**
-	 * Launches the application.
+	 * Launches the installed title or homebrew application.
 	 *
-	 * @note This only works for installed applications (__not__ homebrew apps).
+	 * @param args The arguments to pass to the application (only for homebrew applications).
 	 */
-	launch(): never {
+	launch(...args: string[]): never {
 		stub();
 	}
 
@@ -187,11 +187,7 @@ export class Application {
 	static get self(): Application {
 		if (!self) {
 			_init();
-			let p: string | null = null;
-			if ($.argv.length) {
-				p = $.argv[0];
-			}
-			self = proto($.nsAppNew(p), Application);
+			self = proto($.nsAppNew($.argv[0] ?? null), Application);
 		}
 		return self;
 	}
