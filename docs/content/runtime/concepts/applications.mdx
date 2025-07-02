@@ -5,7 +5,7 @@ description: Interacting with installed applications
 
 The `Switch.Application` API is used to interact with installed applications (game titles) and/or homebrew apps (`.nro` files).
 
-Instances of `Switch.Application` can read the app's title, author information, and other metadata. It is also possible to retrieve a JPEG format image of the title's box art (256 x 256 format). 
+Instances of `Switch.Application` can read the app's title, author information, and other metadata. It is also possible to retrieve a JPEG format image of the title's box art (256 x 256 format).
 
 Additionally, working with [Save Data](./save-data) is preferred to be done by first retrieving the `Switch.Application` instance which your app is interested in working with.
 
@@ -63,7 +63,3 @@ const app = new Switch.Application(nro);
 console.log(app.title);
 // Logs "Homebrew Menu"
 ```
-
-> [!NOTE]
-> The [`app.launch()`](/runtime/api/namespaces/Switch/classes/Application#launch) function is currently not implemented for instances of `Switch.Application` which were created from a homebrew `.nro`
-> file. This may change in the future - see [#125](https://github.com/TooTallNate/nx.js/issues/125).
