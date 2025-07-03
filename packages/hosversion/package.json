@@ -1,0 +1,30 @@
+{
+  "name": "@nx.js/hosversion",
+  "version": "0.0.1",
+  "description": "HOS version detection utilities for nx.js, mirroring the switchbrew/libnx hosversion interface",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TooTallNate/nx.js.git",
+    "directory": "packages/hosversion"
+  },
+  "homepage": "https://nxjs.n8.io/hosversion",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "type": "module",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "docs": "typedoc && ../../type-aliases-meta.sh"
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "author": "Nathan Rajlich <n@n8.io>",
+  "license": "MIT",
+  "devDependencies": {
+    "@nx.js/runtime": "workspace:*"
+  }
+}
