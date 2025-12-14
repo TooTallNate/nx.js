@@ -68,7 +68,7 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
 			);
 		},
 		...components,
-	};
+	} as MDXComponents;
 }
 
 function mapStringChildren(

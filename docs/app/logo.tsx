@@ -1,4 +1,4 @@
-export default function Logo(props: React.SVGProps<SVGSVGElement>) {
+export default function Logo(props: Omit<React.SVGProps<SVGSVGElement>, 'ref'>) {
 	return (
 		<svg
 			viewBox='0 0 223 223'

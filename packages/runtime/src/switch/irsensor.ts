@@ -62,7 +62,7 @@ export class IRSensor extends Sensor {
 			addEventListener('unload', $.irsInit());
 		}
 		const color = colorRgba(opts.color || 'green');
-		if (!color) {
+		if (!color || color.length !== 4) {
 			throw new Error(`Invalid color specified: "${opts.color}"`);
 		}
 		// @ts-expect-error Internal constructor
