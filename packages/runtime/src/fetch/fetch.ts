@@ -262,8 +262,8 @@ async function fetchHttp(req: Request, url: URL): Promise<Response> {
 		typeof resContentLength === 'string'
 			? createContentLengthStream(Number(resContentLength))
 			: resHeaders.get('transfer-encoding') === 'chunked'
-			  ? createChunkedParseStream()
-			  : new TransformStream<Uint8Array, Uint8Array>();
+				? createChunkedParseStream()
+				: new TransformStream<Uint8Array, Uint8Array>();
 
 	if (leftover) {
 		const w = resStream.writable.getWriter();

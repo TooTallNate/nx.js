@@ -9,11 +9,7 @@
     "strict": true,
     "skipLibCheck": true,
     "allowImportingTsExtensions": true,
-    "types": [
-      "@nx.js/runtime"
-    ]
+    "types": ["@nx.js/runtime"]
   },
-  "include": [
-    "src/**/*.ts"
-  ]
+  "include": ["src/**/*.ts"]
 }

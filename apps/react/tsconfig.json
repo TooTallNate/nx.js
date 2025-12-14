@@ -10,12 +10,7 @@
     "strict": true,
     "skipLibCheck": true,
     "jsx": "react",
-    "types": [
-      "@nx.js/runtime"
-    ]
+    "types": ["@nx.js/runtime"]
   },
-  "include": [
-    "src/**/*.ts",
-    "src/**/*.tsx"
-  ]
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
 }

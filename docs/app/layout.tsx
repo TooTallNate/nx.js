@@ -18,7 +18,7 @@ export default async function Layout({
 }>) {
 	return (
 		<html
-			lang="en"
+			lang='en'
 			className={`${GeistSans.variable} ${GeistMono.variable} ${iconsFont.variable}`}
 			suppressHydrationWarning
 		>

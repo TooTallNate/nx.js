@@ -37,4 +37,3 @@ export default defineConfig({
 		// MDX options can be added here
 	},
 });
-

@@ -15,7 +15,14 @@ type CalloutProps = React.ComponentProps<typeof Callout>;
 export function useMDXComponents(components: MDXComponents): MDXComponents {
 	return {
 		...defaultComponents,
-		pre: ({ title, className, icon, allowCopy, ref: _ref, ...props }: CodeBlockProps) => (
+		pre: ({
+			title,
+			className,
+			icon,
+			allowCopy,
+			ref: _ref,
+			...props
+		}: CodeBlockProps) => (
 			<CodeBlock title={title} icon={icon} allowCopy={allowCopy}>
 				<Pre className={`max-h-[400px] ${className || ''}`} {...props} />
 			</CodeBlock>

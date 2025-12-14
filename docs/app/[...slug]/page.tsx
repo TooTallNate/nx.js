@@ -72,23 +72,23 @@ export default async function Page(props: {
 	return (
 		<DocsLayout
 			tree={loader.pageTree}
-			githubUrl="https://github.com/TooTallNate/nx.js"
+			githubUrl='https://github.com/TooTallNate/nx.js'
 			nav={{
 				transparentMode: 'top',
 				title: (
 					<>
-						<Logo className="w-5 md:w-6 drop-shadow" /> nx.js
+						<Logo className='w-5 md:w-6 drop-shadow' /> nx.js
 					</>
 				),
 			}}
 			links={[
 				{
-					icon: <Discord className="fill-current" />,
+					icon: <Discord className='fill-current' />,
 					text: 'Join the Discord server',
 					url: 'https://discord.gg/MMmn73nsGz',
 				},
 				{
-					icon: <GbaTemp className="fill-current" />,
+					icon: <GbaTemp className='fill-current' />,
 					text: 'GBATemp thread',
 					url: 'https://gbatemp.net/threads/nx-js-javascript-runtime-for-nintendo-switch-homebrew-applications.639171/',
 				},
@@ -101,7 +101,7 @@ export default async function Page(props: {
 			<DocsPage toc={page.data.toc.filter((t) => t.depth <= 3)}>
 				<DocsBody>
 					<h1>{page.data.title}</h1>
-					<p className="mb-8 text-lg text-fd-muted-foreground">
+					<p className='mb-8 text-lg text-fd-muted-foreground'>
 						{page.data.description}
 					</p>
 					<MDX components={components} />

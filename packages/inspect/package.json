@@ -14,20 +14,14 @@
     "build": "tsc",
     "docs": "typedoc && ../../type-aliases-meta.sh"
   },
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
     "kleur": "github:TooTallNate/kleur#rgb"
   },
-  "keywords": [
-    "nx.js",
-    "switch",
-    "inspect"
-  ],
+  "keywords": ["nx.js", "switch", "inspect"],
   "author": "Nathan Rajlich <n@n8.io>",
   "license": "MIT"
 }
