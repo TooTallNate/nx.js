@@ -7,13 +7,6 @@ import {
 	type CodeBlockProps,
 } from 'fumadocs-ui/components/codeblock';
 import { Children, cloneElement } from 'react';
-import {
-	TbInfoCircle,
-	TbBulb,
-	TbAlertTriangle,
-	TbHandStop,
-	TbAlertOctagon,
-} from 'react-icons/tb';
 import { Screenshot } from '@/app/screenshot';
 import type { MDXComponents } from 'mdx/types';
 
@@ -22,9 +15,9 @@ type CalloutProps = React.ComponentProps<typeof Callout>;
 export function useMDXComponents(components: MDXComponents): MDXComponents {
 	return {
 		...defaultComponents,
-		pre: ({ title, className, icon, allowCopy, ...props }: CodeBlockProps) => (
+		pre: ({ title, className, icon, allowCopy, ref: _ref, ...props }: CodeBlockProps) => (
 			<CodeBlock title={title} icon={icon} allowCopy={allowCopy}>
-				<Pre className={`'max-h-[400px] ${className || ''}`} {...props} />
+				<Pre className={`max-h-[400px] ${className || ''}`} {...props} />
 			</CodeBlock>
 		),
 		Tab,
@@ -44,52 +37,32 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
 			<span className='font-icons'>{children}</span>
 		),
 		blockquote: (props) => {
-			let icon: CalloutProps['icon'] = undefined;
-			let title: CalloutProps['title'] = undefined;
+			let type: CalloutProps['type'] = 'info';
+			let title: string | undefined = undefined;
 			const children = mapStringChildren(props.children, (str) => {
 				return str.replace(/^(?:\[!([A-Z]+)\]|([A-Z]+):)/, (_, t1, t2) => {
 					const t = t1 || t2;
 					if (t === 'NOTE') {
-						title = <span className='text-blue-500'>Note</span>;
-						icon = (
-							<div className='border-l-blue-500 border-l-2 text-blue-500 pl-1 text-lg'>
-								<TbInfoCircle />
-							</div>
-						);
+						type = 'info';
+						title = 'Note';
 					} else if (t === 'TIP') {
-						title = <span className='text-emerald-500'>Tip</span>;
-						icon = (
-							<div className='border-l-emerald-500 border-l-2 text-emerald-500 pl-2 text-lg'>
-								<TbBulb />
-							</div>
-						);
+						type = 'idea';
+						title = 'Tip';
 					} else if (t === 'IMPORTANT') {
-						title = <span className='text-purple-500'>Important</span>;
-						icon = (
-							<div className='border-l-purple-500 border-l-2 text-purple-500 pl-2 text-lg'>
-								<TbAlertOctagon />
-							</div>
-						);
+						type = 'warn';
+						title = 'Important';
 					} else if (t === 'WARNING') {
-						title = <span className='text-yellow-500'>Warning</span>;
-						icon = (
-							<div className='border-l-yellow-500 border-l-2 text-yellow-500 pl-2 text-lg'>
-								<TbAlertTriangle />
-							</div>
-						);
+						type = 'warn';
+						title = 'Warning';
 					} else if (t === 'CAUTION') {
-						title = <span className='text-rose-500'>Caution</span>;
-						icon = (
-							<div className='border-l-rose-500 border-l-2 text-rose-500 pl-2 text-lg'>
-								<TbHandStop />
-							</div>
-						);
+						type = 'error';
+						title = 'Caution';
 					}
 					return '';
 				});
 			});
 			return (
-				<Callout title={title} icon={icon}>
+				<Callout type={type} title={title}>
 					{children}
 				</Callout>
 			);

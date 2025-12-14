@@ -4,6 +4,7 @@
 # generated content
 .map.ts
 .contentlayer
+.source
 /content/*/api
 
 # test & build

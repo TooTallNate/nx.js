@@ -1,25 +1,70 @@
-import { join } from 'node:path';
-import { readdirSync } from 'node:fs';
-import { map } from '@/.map';
-import { createMDXSource } from 'fumadocs-mdx';
 import { loader } from 'fumadocs-core/source';
+import {
+	clkrstDocs,
+	constantsDocs,
+	httpDocs,
+	inspectDocs,
+	ncmDocs,
+	replDocs,
+	runtimeDocs,
+	utilDocs,
+} from '../.source/server';
 
-const dirnameParts = __dirname.split('/');
-const docsDir = dirnameParts
-	.slice(0, dirnameParts.indexOf('docs') + 1)
-	.join('/');
-const contentDir = join(docsDir, 'content');
-
-export const loaders: Map<
-	string,
-	ReturnType<typeof loader<{ source: ReturnType<typeof createMDXSource> }>>
-> = new Map(
-	readdirSync(contentDir).map((name) => [
-		name,
+export const loaders = new Map([
+	[
+		'clkrst',
 		loader({
-			baseUrl: `/${name}`,
-			rootDir: name,
-			source: createMDXSource(map),
+			baseUrl: '/clkrst',
+			source: clkrstDocs.toFumadocsSource(),
 		}),
-	]),
-);
+	],
+	[
+		'constants',
+		loader({
+			baseUrl: '/constants',
+			source: constantsDocs.toFumadocsSource(),
+		}),
+	],
+	[
+		'http',
+		loader({
+			baseUrl: '/http',
+			source: httpDocs.toFumadocsSource(),
+		}),
+	],
+	[
+		'inspect',
+		loader({
+			baseUrl: '/inspect',
+			source: inspectDocs.toFumadocsSource(),
+		}),
+	],
+	[
+		'ncm',
+		loader({
+			baseUrl: '/ncm',
+			source: ncmDocs.toFumadocsSource(),
+		}),
+	],
+	[
+		'repl',
+		loader({
+			baseUrl: '/repl',
+			source: replDocs.toFumadocsSource(),
+		}),
+	],
+	[
+		'runtime',
+		loader({
+			baseUrl: '/runtime',
+			source: runtimeDocs.toFumadocsSource(),
+		}),
+	],
+	[
+		'util',
+		loader({
+			baseUrl: '/util',
+			source: utilDocs.toFumadocsSource(),
+		}),
+	],
+]);
