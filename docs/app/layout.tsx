@@ -1,10 +1,9 @@
 import './global.css';
-import { RootProvider } from 'fumadocs-ui/provider';
+import { RootProvider } from 'fumadocs-ui/provider/next';
 import localFont from 'next/font/local';
 import { GeistSans } from 'geist/font/sans';
 import { GeistMono } from 'geist/font/mono';
 import { Analytics } from '@vercel/analytics/react';
-import type { ReactNode } from 'react';
 
 const iconsFont = localFont({
 	src: './icons.woff2',
@@ -12,11 +11,16 @@ const iconsFont = localFont({
 	variable: '--font-icons',
 });
 
-export default function Layout({ children }: { children: ReactNode }) {
+export default async function Layout({
+	children,
+}: Readonly<{
+	children: React.ReactNode;
+}>) {
 	return (
 		<html
 			lang='en'
 			className={`${GeistSans.variable} ${GeistMono.variable} ${iconsFont.variable}`}
+			suppressHydrationWarning
 		>
 			<body>
 				<RootProvider>{children}</RootProvider>

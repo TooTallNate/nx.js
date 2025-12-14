@@ -48,7 +48,7 @@ try {
 	);
 }
 const logoBuf = Buffer.from(await icon!.arrayBuffer());
-console.log(`  JPEG size: ${bytes(logoBuf.length).toLowerCase()}`);
+console.log(`  JPEG size: ${bytes(logoBuf.length)!.toLowerCase()}`);
 console.log(await terminalImage.buffer(logoBuf, { height: 18 }));
 
 // NACP
@@ -90,7 +90,7 @@ function walk(dir: URL, dirEntry: RomFS.RomFsEntry) {
 			console.log(
 				`  ${chalk.cyan(
 					relative(romfsDirPath, fileURLToPath(fileUrl)),
-				)} (${bytes(blob.size).toLowerCase()})`,
+				)} (${bytes(blob.size)!.toLowerCase()})`,
 			);
 			dirEntry[name] = blob;
 		} else {
@@ -143,5 +143,5 @@ writeFileSync(outputNroUrl, Buffer.from(await outputNro.arrayBuffer()));
 console.log(
 	`${chalk.green(
 		`\n🎉 Success! Generated NRO file ${chalk.bold(`"${outputNroName}"`)}`,
-	)} (${bytes(outputNro.size).toLowerCase()})`,
+	)} (${bytes(outputNro.size)!.toLowerCase()})`,
 );

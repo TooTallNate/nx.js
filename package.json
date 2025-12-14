@@ -19,9 +19,9 @@
     "turbo": "^2.0.4",
     "typedoc": "^0.26.10",
     "typedoc-plugin-frontmatter": "^1.0.0",
-    "typedoc-plugin-markdown": "^4.1.0",
+    "typedoc-plugin-markdown": "4.1.0",
     "typedoc-plugin-mdn-links": "^3.1.6",
-    "typescript": "^5.6.3",
+    "typescript": "5.6.3",
     "yauzl": "^2.10.0"
   }
 }

@@ -77,7 +77,7 @@ try {
 		logo.resize({ w: 256, h: 256 });
 	}
 	const logoBuf = await logo.getBuffer('image/jpeg');
-	console.log(`  JPEG size: ${bytes(logoBuf.length).toLowerCase()}`);
+	console.log(`  JPEG size: ${bytes(logoBuf.length)!.toLowerCase()}`);
 	writeFileSync(iconDest, logoBuf);
 	console.log(await terminalImage.buffer(logoBuf, { height: 18 }));
 
@@ -185,7 +185,7 @@ try {
 		console.log(
 			chalk.green(
 				`🎉 Success! Generated NSP file ${chalk.bold(`"${outputNspName}"`)}`,
-			) + ` (${bytes(statSync(nspDest).size).toLowerCase()})`,
+			) + ` (${bytes(statSync(nspDest).size)!.toLowerCase()})`,
 		);
 	}
 } catch (err: any) {

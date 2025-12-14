@@ -9,7 +9,5 @@
     "skipLibCheck": true,
     "noUnusedLocals": true
   },
-  "include": [
-    "src/**/*.ts"
-  ]
+  "include": ["src/**/*.ts"]
 }

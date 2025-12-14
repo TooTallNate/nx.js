@@ -13,9 +13,7 @@
     "build": "tsc",
     "docs": "typedoc && ../../type-aliases-meta.sh"
   },
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "publishConfig": {
     "access": "public"
   },
@@ -29,12 +27,7 @@
   "devDependencies": {
     "@nx.js/runtime": "workspace:*"
   },
-  "keywords": [
-    "nx.js",
-    "switch",
-    "install",
-    "nsp"
-  ],
+  "keywords": ["nx.js", "switch", "install", "nsp"],
   "author": "Nathan Rajlich <n@n8.io>",
   "license": "MIT"
 }

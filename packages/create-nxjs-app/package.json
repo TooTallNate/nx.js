@@ -10,9 +10,7 @@
   "homepage": "https://nxjs.n8.io/runtime",
   "type": "module",
   "bin": "./dist/main.js",
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "scripts": {
     "build": "node build-list.js && tsc"
   },

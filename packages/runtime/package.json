@@ -15,9 +15,7 @@
     "bundle-minify": "MINIFY=1 node bundle.mjs",
     "docs": "typedoc && ../../type-aliases-meta.sh"
   },
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "publishConfig": {
     "access": "public"
   },

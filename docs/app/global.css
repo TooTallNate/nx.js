@@ -1,3 +1,15 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@import "fumadocs-ui/css/neutral.css";
+@import "fumadocs-ui/css/preset.css";
+
+@source '../node_modules/fumadocs-ui/dist/**/*.js';
+@source '../components/**/*.{ts,tsx}';
+@source './**/*.{ts,tsx}';
+@source '../content/**/*.{md,mdx}';
+@source '../mdx-components.{ts,tsx}';
+
+@theme {
+	--font-sans: var(--font-geist-sans);
+	--font-mono: var(--font-geist-mono);
+	--font-icons: var(--font-icons);
+}

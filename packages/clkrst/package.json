@@ -13,9 +13,7 @@
     "build": "tsc",
     "docs": "typedoc && ../../type-aliases-meta.sh"
   },
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "publishConfig": {
     "access": "public"
   },
@@ -25,14 +23,7 @@
   "devDependencies": {
     "@nx.js/runtime": "workspace:*"
   },
-  "keywords": [
-    "nx.js",
-    "switch",
-    "clkrst",
-    "overclock",
-    "cpu",
-    "gpu"
-  ],
+  "keywords": ["nx.js", "switch", "clkrst", "overclock", "cpu", "gpu"],
   "author": "Nathan Rajlich <n@n8.io>",
   "license": "MIT"
 }

@@ -1,18 +1,55 @@
 import Logo from '@/app/logo';
 import { loaders } from '@/app/source';
-import { Toggle } from '@/app/toggle';
-import { DocsPage, DocsBody } from 'fumadocs-ui/page';
+import { DocsPage, DocsBody } from 'fumadocs-ui/layouts/docs/page';
 import { notFound } from 'next/navigation';
-import { DocsLayout } from 'fumadocs-ui/layout';
+import { DocsLayout } from 'fumadocs-ui/layouts/docs';
 import Discord from '../discord';
 import GbaTemp from '../gbatemp';
 import type { Metadata } from 'next';
+import { useMDXComponents } from '@/mdx-components';
 
-export default async function Page({
-	params,
-}: {
-	params: { slug?: string[] };
+const sidebarTabs = [
+	{
+		title: 'Runtime',
+		description: 'Global APIs',
+		url: '/runtime',
+	},
+	{
+		title: '@nx.js/clkrst',
+		description: 'Overclocking API',
+		url: '/clkrst',
+	},
+	{
+		title: '@nx.js/constants',
+		description: 'Constants and enums',
+		url: '/constants',
+	},
+	{
+		title: '@nx.js/http',
+		description: 'HTTP server for nx.js',
+		url: '/http',
+	},
+	{
+		title: '@nx.js/inspect',
+		description: 'Inspection utility for nx.js',
+		url: '/inspect',
+	},
+	{
+		title: '@nx.js/ncm',
+		description: 'Content manager API',
+		url: '/ncm',
+	},
+	{
+		title: '@nx.js/repl',
+		description: 'Read-Eval-Print Loop for nx.js',
+		url: '/repl',
+	},
+];
+
+export default async function Page(props: {
+	params: Promise<{ slug?: string[] }>;
 }) {
+	const params = await props.params;
 	if (!params.slug) {
 		notFound();
 	}
@@ -29,7 +66,8 @@ export default async function Page({
 		notFound();
 	}
 
-	const MDX = page.data.exports.default;
+	const MDX = page.data.body;
+	const components = useMDXComponents({});
 
 	return (
 		<DocsLayout
@@ -57,16 +95,16 @@ export default async function Page({
 			]}
 			sidebar={{
 				defaultOpenLevel: 0,
-				banner: <Toggle />,
+				tabs: sidebarTabs,
 			}}
 		>
-			<DocsPage toc={page.data.exports.toc.filter((t) => t.depth <= 3)}>
+			<DocsPage toc={page.data.toc.filter((t) => t.depth <= 3)}>
 				<DocsBody>
 					<h1>{page.data.title}</h1>
-					<p className='mb-8 text-lg text-muted-foreground'>
+					<p className='mb-8 text-lg text-fd-muted-foreground'>
 						{page.data.description}
 					</p>
-					<MDX />
+					<MDX components={components} />
 				</DocsBody>
 			</DocsPage>
 		</DocsLayout>
@@ -81,7 +119,10 @@ export async function generateStaticParams() {
 	);
 }
 
-export function generateMetadata({ params }: { params: { slug?: string[] } }) {
+export async function generateMetadata(props: {
+	params: Promise<{ slug?: string[] }>;
+}) {
+	const params = await props.params;
 	if (!params.slug) {
 		notFound();
 	}
