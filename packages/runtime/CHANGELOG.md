@@ -1,5 +1,13 @@
 # @nx.js/runtime
 
+## 0.0.65
+
+### Patch Changes
+
+- Fix build issues related to package version updates ([#180](https://github.com/TooTallNate/nx.js/pull/180))
+
+- `Switch.Application#launch()` can now launch homebrew `.nro` files ([`b06cfb8`](https://github.com/TooTallNate/nx.js/commit/b06cfb87e6dd8d3b86a4b527edc11d57fba33c2c))
+
 ## 0.0.64
 
 ### Patch Changes

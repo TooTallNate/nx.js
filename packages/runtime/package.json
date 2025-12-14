@@ -1,6 +1,6 @@
 {
   "name": "@nx.js/runtime",
-  "version": "0.0.64",
+  "version": "0.0.65",
   "description": "nx.js runtime",
   "repository": {
     "type": "git",
@@ -15,7 +15,9 @@
     "bundle-minify": "MINIFY=1 node bundle.mjs",
     "docs": "typedoc && ../../type-aliases-meta.sh"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "publishConfig": {
     "access": "public"
   },

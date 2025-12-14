@@ -1,6 +1,6 @@
 {
   "name": "create-nxjs-app",
-  "version": "0.0.64",
+  "version": "0.0.65",
   "description": "Initialize a `nx.js` homebrew application",
   "repository": {
     "type": "git",
@@ -10,7 +10,9 @@
   "homepage": "https://nxjs.n8.io/runtime",
   "type": "module",
   "bin": "./dist/main.js",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "node build-list.js && tsc"
   },

@@ -15,7 +15,9 @@
     "test": "vitest",
     "docs": "typedoc && ../../type-aliases-meta.sh"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "publishConfig": {
     "access": "public"
   },
@@ -29,7 +31,12 @@
     "vite": "^5.4.2",
     "vitest": "^2.0.5"
   },
-  "keywords": ["nx.js", "switch", "repl", "read-eval-print"],
+  "keywords": [
+    "nx.js",
+    "switch",
+    "repl",
+    "read-eval-print"
+  ],
   "author": "Nathan Rajlich <n@n8.io>",
   "license": "MIT"
 }
