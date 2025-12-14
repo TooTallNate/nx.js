@@ -16,7 +16,9 @@
     "build": "tsc",
     "docs": "typedoc && ../../type-aliases-meta.sh"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "publishConfig": {
     "access": "public"
   },

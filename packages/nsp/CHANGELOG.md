@@ -1,5 +1,11 @@
 # @nx.js/nsp
 
+## 0.0.65
+
+### Patch Changes
+
+- Fix build issues related to package version updates ([#180](https://github.com/TooTallNate/nx.js/pull/180))
+
 ## 0.0.64
 
 ## 0.0.63
