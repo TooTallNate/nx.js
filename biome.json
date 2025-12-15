@@ -1,17 +1,29 @@
 {
+  "$schema": "https://biomejs.dev/schemas/2.3.8/schema.json",
+  "files": {
+    "includes": [
+      "**",
+      "!**/romfs",
+      "!**/*/dist",
+      "!**/docs/.next/**",
+      "!**/docs/.source/**",
+      "!**/packages/**/*/docs.json",
+      "!**/packages/runtime/runtime.js",
+      "!**/packages/runtime/public",
+      "!**/packages/nsp/hacbrewpack.cjs"
+    ]
+  },
   "linter": {
     "enabled": false
   },
-  "formatter": {
-    "ignore": [
-      "romfs",
-      "**/*/dist",
-      "docs/.next/**",
-      "packages/*/docs.json",
-      "packages/runtime/runtime.js",
-      "packages/runtime/public",
-      "packages/nsp/hacbrewpack.cjs"
-    ]
+  "formatter": {},
+  "css": {
+    "parser": {
+      "cssModules": true
+    },
+    "formatter": {
+      "enabled": false
+    }
   },
   "javascript": {
     "formatter": {

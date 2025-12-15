@@ -12,7 +12,9 @@
   "scripts": {
     "build": "tsc"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "publishConfig": {
     "access": "public"
   },
@@ -20,7 +22,11 @@
     "vite": "^5.4.2",
     "vitest": "^2.0.5"
   },
-  "keywords": ["nx.js", "switch", "util"],
+  "keywords": [
+    "nx.js",
+    "switch",
+    "util"
+  ],
   "author": "Nathan Rajlich <n@n8.io>",
   "license": "MIT"
 }
