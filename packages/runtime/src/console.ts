@@ -60,7 +60,7 @@ export class Console {
 
 	/**
 	 * Prints string `s` to the console on the screen, without any formatting applied.
-	 * Newline is _not_ appending to the end of the string.
+	 * A newline is _not_ appended to the end of the string.
 	 *
 	 * @param s The text to print to the console.
 	 */
@@ -70,7 +70,7 @@ export class Console {
 
 	/**
 	 * Prints string `s` to the debug log file, without any formatting applied.
-	 * Newline is _not_ appending to the end of the string.
+	 * A newline is _not_ appended to the end of the string.
 	 *
 	 * > TIP: This function **does not** invoke _text rendering mode_, so it can safely be used when rendering with the Canvas API.
 	 *
