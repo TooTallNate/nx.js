@@ -1,5 +1,11 @@
 # @nx.js/runtime
 
+## 0.0.66
+
+### Patch Changes
+
+- Fix grammatical error in `console` docs ([`4fe4a8a`](https://github.com/TooTallNate/nx.js/commit/4fe4a8ad238778046cef35b0da19988114b42184))
+
 ## 0.0.65
 
 ### Patch Changes
