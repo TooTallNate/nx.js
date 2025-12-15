@@ -8,7 +8,7 @@ export function Screenshot(props: ImageProps) {
 				width={1280}
 				height={720}
 				{...props}
-				className='absolute top-[8.2%] left-[17.6%] m-0 w-[64.9%]'
+				className='absolute top-[7%] left-[17.6%] m-0 w-[64.9%]'
 			/>
 			<Image
 				src={SwitchImg}
