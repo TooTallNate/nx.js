@@ -113,7 +113,8 @@ void nx_poll(nx_poll_t *p) {
 	} else if (ready_fds > 0) {
 		/* One or more file descriptors are ready, handle them */
 		for (int i = 0; i < p->poll_fds_used; i++) {
-			SLIST_FOREACH(watcher, &p->watchers_head, next) {
+			nx_watcher_t *twatcher;
+			SLIST_FOREACH_SAFE(watcher, &p->watchers_head, next, twatcher) {
 				if (p->poll_fds[i].fd == watcher->fd &&
 					p->poll_fds[i].revents & watcher->events) {
 					watcher->watcher_callback(p, watcher,
@@ -319,6 +320,9 @@ int nx_tcp_server(nx_poll_t *p, nx_server_t *req, const char *ip, int port,
 		printf("socket() err: %s\n", strerror(errno));
 		return sockfd;
 	}
+
+	int optval = 1;
+	setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
 
 	if (set_nonblocking(sockfd) == -1) {
 		close(sockfd);
