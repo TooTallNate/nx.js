@@ -5,11 +5,19 @@ on:
     branches: [main]
     paths:
       - 'source/wasm.*'
+      - 'packages/runtime/src/wasm.ts'
+      - 'packages/runtime/src/$.ts'
+      - 'packages/runtime/src/utils.ts'
+      - 'packages/runtime/src/internal.ts'
       - 'test/wasm/**'
       - '.github/workflows/wasm-test.yml'
   pull_request:
     paths:
       - 'source/wasm.*'
+      - 'packages/runtime/src/wasm.ts'
+      - 'packages/runtime/src/$.ts'
+      - 'packages/runtime/src/utils.ts'
+      - 'packages/runtime/src/internal.ts'
       - 'test/wasm/**'
       - '.github/workflows/wasm-test.yml'
 
@@ -54,6 +62,10 @@ jobs:
       - name: Install Node.js dependencies
         working-directory: test/wasm
         run: pnpm install
+
+      - name: Build JS bridge from runtime source
+        working-directory: test/wasm
+        run: pnpm build:bridge
 
       - name: Install Playwright browsers
         working-directory: test/wasm

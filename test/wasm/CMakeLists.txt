@@ -57,9 +57,6 @@ set_source_files_properties(
   PROPERTIES COMPILE_FLAGS "-Wno-unused-parameter -Wno-sign-compare -Wno-missing-field-initializers"
 )
 
-# Copy the JS bridge to the build directory
-configure_file(
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/wasm_api.js
-  ${CMAKE_CURRENT_BINARY_DIR}/wasm_api.js
-  COPYONLY
-)
+# NOTE: The JS bridge (wasm_api.js) is now built by esbuild from the real
+# runtime wasm.ts — see build-bridge.mjs. Run `node build-bridge.mjs` after
+# cmake --build to produce build/wasm_api.js.
