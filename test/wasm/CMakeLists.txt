@@ -13,11 +13,12 @@ set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 set(QJS_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(quickjs)
 
-# Fetch wasm3
+# Fetch wasm3 — pinned to the same commit used in nx.js's pacman PKGBUILD:
+# https://github.com/TooTallNate/pacman-packages/blob/nxjs/switch/wasm3/PKGBUILD
 FetchContent_Declare(
   wasm3
   GIT_REPOSITORY https://github.com/wasm3/wasm3.git
-  GIT_TAG        v0.5.0
+  GIT_TAG        7ed176d98586bf22aaa6db3b2d379af4c3cb0655
 )
 set(BUILD_WASI "none" CACHE STRING "WASI implementation" FORCE)
 FetchContent_MakeAvailable(wasm3)
@@ -48,12 +49,12 @@ target_link_libraries(nxjs-wasm-test PRIVATE
   pthread
 )
 
-# Suppress warnings from nx.js source files and include wasm3 compat shim.
-# The compat shim redefines m3_Realloc to handle the 4-arg call in wasm.c
-# (nx.js was written against an older wasm3 API with a label parameter).
+# Suppress warnings from nx.js source files.
+# No compat shim needed — we pin the exact wasm3 commit that nx.js targets,
+# so struct layouts and API signatures (including 4-arg m3_Realloc) match.
 set_source_files_properties(
   ${NX_SOURCE_DIR}/wasm.c
-  PROPERTIES COMPILE_FLAGS "-Wno-unused-parameter -Wno-sign-compare -Wno-missing-field-initializers -include ${CMAKE_CURRENT_SOURCE_DIR}/src/compat/wasm_compat.h"
+  PROPERTIES COMPILE_FLAGS "-Wno-unused-parameter -Wno-sign-compare -Wno-missing-field-initializers"
 )
 
 # Copy the JS bridge to the build directory
