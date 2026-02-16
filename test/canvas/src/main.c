@@ -12,6 +12,7 @@
 #include "types.h"
 #include "canvas.h"
 #include "dommatrix.h"
+#include "error.h"
 #include "font.h"
 #include "image.h"
 #include <cairo.h>
