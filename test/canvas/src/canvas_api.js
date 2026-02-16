@@ -158,218 +158,46 @@ $.canvasContext2dInitClass(Context2DClass);
 // ---- CanvasRenderingContext2D Wrapper ----
 
 function createContext2D(canvasObj) {
-	// Create the native context via C
+	// Create the native context via C — this returns an opaque QuickJS class object.
+	// canvasContext2dInitClass() installed methods (fillRect, beginPath, etc.) on
+	// Context2DClass.prototype, but JS_NewObjectClass() in the C code doesn't
+	// automatically link to that prototype. We need to do it explicitly, just like
+	// the real nx.js runtime does with Object.setPrototypeOf().
 	var nativeCtx = $.canvasContext2dNew(canvasObj);
+	Object.setPrototypeOf(nativeCtx, Context2DClass.prototype);
 
-	// The nativeCtx is the opaque object that holds the C state.
-	// C functions expect it as the first argument (via argv[0] / CANVAS_CONTEXT_ARGV0)
-	// or as 'this' (via CANVAS_CONTEXT_THIS).
-	// Looking at the C code, canvasContext2dSetFillStyle expects (this_unused, argc=5, argv=[context, r, g, b, a])
-	// Actually, looking more carefully:
-	//   init_function_list entries are plain JS_CFUNC_DEF, so they're called as $.func(args...)
-	//   But canvasContext2dInitClass sets up methods on the prototype with NX_DEF_FUNC
-	//   which means fillRect etc are methods on nativeCtx itself.
+	// The native context now has all the C-backed methods (fillRect, beginPath,
+	// save, restore, etc.) via the prototype chain. We wrap it with a thin layer
+	// that adds fillStyle/strokeStyle color parsing (the C side expects r,g,b,a
+	// components via separate $.canvasContext2dSet*Style calls).
 
-	// The prototype methods (fillRect, etc.) are set directly on the Context2DClass prototype
-	// by canvasContext2dInitClass. So nativeCtx already has those methods.
-	// But fillStyle/strokeStyle are handled through the canvasContext2dSetFillStyle/
-	// canvasContext2dGetFillStyle global functions which take (this, context, r, g, b, a).
+	var _fillStyle = '#000000';
+	var _strokeStyle = '#000000';
 
-	// Actually, looking at the C code for canvasContext2dSetFillStyle:
-	//   CANVAS_CONTEXT_ARGV0 — gets context from argv[0]
-	//   then reads args from argv[1..4]
-	// So it's called as: $.canvasContext2dSetFillStyle(nativeCtx, r, g, b, a)
+	Object.defineProperties(nativeCtx, {
+		fillStyle: {
+			get: function() { return _fillStyle; },
+			set: function(v) {
+				var parsed = parseColor(v);
+				if (!parsed) return;
+				_fillStyle = v;
+				$.canvasContext2dSetFillStyle(nativeCtx, parsed[0], parsed[1], parsed[2], parsed[3]);
+			},
+			configurable: true,
+		},
+		strokeStyle: {
+			get: function() { return _strokeStyle; },
+			set: function(v) {
+				var parsed = parseColor(v);
+				if (!parsed) return;
+				_strokeStyle = v;
+				$.canvasContext2dSetStrokeStyle(nativeCtx, parsed[0], parsed[1], parsed[2], parsed[3]);
+			},
+			configurable: true,
+		},
+	});
 
-	// The prototype methods use CANVAS_CONTEXT_THIS — gets context from this_val
-	// So they're called as: nativeCtx.fillRect(x, y, w, h)
-
-	var wrapper = {
-		_native: nativeCtx,
-		_fillStyle: '#000000',
-		_strokeStyle: '#000000',
-
-		// ---- Style properties ----
-		get fillStyle() {
-			return this._fillStyle;
-		},
-		set fillStyle(v) {
-			var parsed = parseColor(v);
-			if (!parsed) return;
-			this._fillStyle = v;
-			$.canvasContext2dSetFillStyle(this._native, parsed[0], parsed[1], parsed[2], parsed[3]);
-		},
-
-		get strokeStyle() {
-			return this._strokeStyle;
-		},
-		set strokeStyle(v) {
-			var parsed = parseColor(v);
-			if (!parsed) return;
-			this._strokeStyle = v;
-			$.canvasContext2dSetStrokeStyle(this._native, parsed[0], parsed[1], parsed[2], parsed[3]);
-		},
-
-		// ---- Global alpha ----
-		get globalAlpha() {
-			return this._native.globalAlpha;
-		},
-		set globalAlpha(v) {
-			this._native.globalAlpha = v;
-		},
-
-		// ---- Global composite operation ----
-		get globalCompositeOperation() {
-			return this._native.globalCompositeOperation;
-		},
-		set globalCompositeOperation(v) {
-			this._native.globalCompositeOperation = v;
-		},
-
-		// ---- Line styles ----
-		get lineWidth() {
-			return this._native.lineWidth;
-		},
-		set lineWidth(v) {
-			this._native.lineWidth = v;
-		},
-
-		get lineCap() {
-			return this._native.lineCap;
-		},
-		set lineCap(v) {
-			this._native.lineCap = v;
-		},
-
-		get lineJoin() {
-			return this._native.lineJoin;
-		},
-		set lineJoin(v) {
-			this._native.lineJoin = v;
-		},
-
-		get miterLimit() {
-			return this._native.miterLimit;
-		},
-		set miterLimit(v) {
-			this._native.miterLimit = v;
-		},
-
-		get lineDashOffset() {
-			return this._native.lineDashOffset;
-		},
-		set lineDashOffset(v) {
-			this._native.lineDashOffset = v;
-		},
-
-		// ---- Image smoothing ----
-		get imageSmoothingEnabled() {
-			return this._native.imageSmoothingEnabled;
-		},
-		set imageSmoothingEnabled(v) {
-			this._native.imageSmoothingEnabled = v;
-		},
-
-		// ---- Drawing methods ----
-		fillRect: function(x, y, w, h) {
-			return this._native.fillRect(x, y, w, h);
-		},
-		strokeRect: function(x, y, w, h) {
-			return this._native.strokeRect(x, y, w, h);
-		},
-		clearRect: function(x, y, w, h) {
-			return this._native.clearRect(x, y, w, h);
-		},
-
-		// ---- Path methods ----
-		beginPath: function() {
-			return this._native.beginPath();
-		},
-		closePath: function() {
-			return this._native.closePath();
-		},
-		moveTo: function(x, y) {
-			return this._native.moveTo(x, y);
-		},
-		lineTo: function(x, y) {
-			return this._native.lineTo(x, y);
-		},
-		arc: function(x, y, r, startAngle, endAngle, ccw) {
-			return this._native.arc(x, y, r, startAngle, endAngle, ccw || false);
-		},
-		arcTo: function(x1, y1, x2, y2, r) {
-			return this._native.arcTo(x1, y1, x2, y2, r);
-		},
-		bezierCurveTo: function(cp1x, cp1y, cp2x, cp2y, x, y) {
-			return this._native.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, x, y);
-		},
-		quadraticCurveTo: function(cpx, cpy, x, y) {
-			return this._native.quadraticCurveTo(cpx, cpy, x, y);
-		},
-		rect: function(x, y, w, h) {
-			return this._native.rect(x, y, w, h);
-		},
-		roundRect: function(x, y, w, h, radii) {
-			if (typeof radii === 'number') {
-				return this._native.roundRect(x, y, w, h, radii);
-			} else if (Array.isArray(radii)) {
-				return this._native.roundRect(x, y, w, h, radii);
-			}
-			return this._native.roundRect(x, y, w, h, 0);
-		},
-		ellipse: function(x, y, rx, ry, rotation, startAngle, endAngle, ccw) {
-			return this._native.ellipse(x, y, rx, ry, rotation, startAngle, endAngle, ccw || false);
-		},
-		fill: function(fillRule) {
-			return this._native.fill(fillRule);
-		},
-		stroke: function() {
-			return this._native.stroke();
-		},
-		clip: function(fillRule) {
-			return this._native.clip(fillRule);
-		},
-
-		// ---- Transform methods ----
-		translate: function(x, y) {
-			return this._native.translate(x, y);
-		},
-		rotate: function(angle) {
-			return this._native.rotate(angle);
-		},
-		scale: function(x, y) {
-			return this._native.scale(x, y);
-		},
-		transform: function(a, b, c, d, e, f) {
-			return this._native.transform(a, b, c, d, e, f);
-		},
-		setTransform: function(a, b, c, d, e, f) {
-			if (arguments.length === 0) {
-				return this._native.resetTransform();
-			}
-			return this._native.setTransform(a, b, c, d, e, f);
-		},
-		resetTransform: function() {
-			return this._native.resetTransform();
-		},
-
-		// ---- Line dash ----
-		setLineDash: function(segments) {
-			return this._native.setLineDash(segments);
-		},
-		getLineDash: function() {
-			return this._native.getLineDash();
-		},
-
-		// ---- State ----
-		save: function() {
-			return this._native.save();
-		},
-		restore: function() {
-			return this._native.restore();
-		},
-	};
-
-	return wrapper;
+	return nativeCtx;
 }
 
 // ---- createCanvas ----
