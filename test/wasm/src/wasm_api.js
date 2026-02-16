@@ -139,6 +139,9 @@ WebAssembly.Instance = function Instance(module, importObject) {
 		if (exp.kind === 'function') {
 			this.exports[exp.name] = wrapExportedFunc(exp.val);
 		} else if (exp.kind === 'memory') {
+			// Set prototype so the native object inherits buffer getter / grow()
+			// (mirrors the real runtime's `proto(v.val, Memory)` in wrapExports)
+			Object.setPrototypeOf(exp.val, WebAssembly.Memory.prototype);
 			this.exports[exp.name] = exp.val;
 		} else if (exp.kind === 'global') {
 			// Wrap in a Global-like object with value getter/setter
