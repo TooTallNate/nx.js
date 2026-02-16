@@ -4,3 +4,4 @@ packages:
   - "packages/*"
   - "test/canvas"
   - "test/wasm"
+  - "test/compression"
