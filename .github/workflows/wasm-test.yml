@@ -1,0 +1,72 @@
+name: WebAssembly Tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'source/wasm.*'
+      - 'test/wasm/**'
+      - '.github/workflows/wasm-test.yml'
+  pull_request:
+    paths:
+      - 'source/wasm.*'
+      - 'test/wasm/**'
+      - '.github/workflows/wasm-test.yml'
+
+jobs:
+  wasm-test:
+    name: WebAssembly Conformance
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake build-essential wabt
+
+      - name: Verify .wasm modules match .wat sources
+        working-directory: test/wasm
+        run: |
+          mkdir -p /tmp/wasm-verify
+          for wat in wat/*.wat; do
+            name=$(basename "$wat" .wat)
+            wat2wasm "$wat" -o "/tmp/wasm-verify/${name}.wasm"
+            if ! cmp -s "/tmp/wasm-verify/${name}.wasm" "fixtures/modules/${name}.wasm"; then
+              echo "ERROR: fixtures/modules/${name}.wasm does not match wat/${name}.wat"
+              echo "Recompile with: wat2wasm wat/${name}.wat -o fixtures/modules/${name}.wasm"
+              exit 1
+            fi
+          done
+          echo "All .wasm modules match their .wat sources"
+
+      - name: Build wasm test binary
+        working-directory: test/wasm
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build -j$(nproc)
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install Node.js dependencies
+        working-directory: test/wasm
+        run: pnpm install
+
+      - name: Install Playwright browsers
+        working-directory: test/wasm
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run wasm conformance tests
+        working-directory: test/wasm
+        run: pnpm test:wasm
+
+      - name: Upload test output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wasm-test-output
+          path: test/wasm/output/
+          retention-days: 14
