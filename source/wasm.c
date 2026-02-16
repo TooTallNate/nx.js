@@ -984,17 +984,32 @@ static JSValue nx_wasm_memory_grow(JSContext *ctx, JSValueConst this_val,
 	JSValue prevSize = JS_NewUint32(ctx, memory->numPages);
 
 	if (numPagesToGrow > 0) {
-		IM3Runtime runtime = m3MemRuntime(mallocated);
-		if (!runtime) {
-			JS_ThrowTypeError(
-				ctx,
-				"WebAssembly.Memory.grow(): Memory not bound to an instance");
-			return JS_EXCEPTION;
-		}
 		u32 requiredPages = memory->numPages + numPagesToGrow;
-		M3Result r = ResizeMemory(runtime, requiredPages);
-		if (r)
-			return nx_throw_wasm_error(ctx, "RuntimeError", r);
+
+		if (requiredPages > memory->maxPages) {
+			return nx_throw_wasm_error(ctx, "RuntimeError",
+									   "Memory.grow would exceed maximum");
+		}
+
+		IM3Runtime runtime = m3MemRuntime(mallocated);
+		if (runtime) {
+			M3Result r = ResizeMemory(runtime, requiredPages);
+			if (r)
+				return nx_throw_wasm_error(ctx, "RuntimeError", r);
+		} else {
+			// Standalone Memory (not bound to an instance) — grow directly
+			size_t numPreviousBytes = mallocated->length;
+			size_t numBytes = d_m3MemPageSize * requiredPages;
+			void *newMem = m3_Realloc("Wasm Linear Memory", mallocated,
+									  numBytes, numPreviousBytes);
+			if (!newMem) {
+				JS_ThrowOutOfMemory(ctx);
+				return JS_EXCEPTION;
+			}
+			memory->mallocated = (M3MemoryHeader *)newMem;
+			memory->mallocated->length = numBytes;
+			memory->numPages = requiredPages;
+		}
 	}
 
 	return prevSize;
