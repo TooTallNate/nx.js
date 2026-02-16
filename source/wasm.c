@@ -81,6 +81,8 @@ typedef struct {
 	IM3Memory mem;
 	bool needs_free;
 	int is_shared;
+	JSValue cached_buffer;    // Cached ArrayBuffer for .buffer getter
+	size_t cached_buffer_len; // Length when cached (invalidate on grow)
 } nx_wasm_memory_t;
 
 static nx_wasm_memory_t *nx_wasm_memory_get(JSContext *ctx, JSValueConst obj) {
@@ -90,6 +92,9 @@ static nx_wasm_memory_t *nx_wasm_memory_get(JSContext *ctx, JSValueConst obj) {
 static void finalizer_wasm_memory(JSRuntime *rt, JSValue val) {
 	nx_wasm_memory_t *data = JS_GetOpaque(val, nx_wasm_memory_class_id);
 	if (data) {
+		if (!JS_IsUndefined(data->cached_buffer)) {
+			JS_FreeValueRT(rt, data->cached_buffer);
+		}
 		if (data->needs_free && data->mem) {
 			if (data->mem->mallocated) {
 				m3_Free(data->mem->mallocated);
@@ -107,6 +112,8 @@ static JSValue nx_wasm_memory_new_(JSContext *ctx) {
 		JS_ThrowOutOfMemory(ctx);
 		return JS_EXCEPTION;
 	}
+	data->cached_buffer = JS_UNDEFINED;
+	data->cached_buffer_len = 0;
 	JS_SetOpaque(obj, data);
 	return obj;
 }
@@ -919,14 +926,29 @@ static JSValue nx_wasm_memory_buffer_get(JSContext *ctx, JSValueConst this_val,
 	}
 
 	size_t size = mallocated->length;
-	uint8_t *memory = m3MemData(mallocated);
 
+	// Return cached buffer if size hasn't changed (invalidated by grow)
+	if (!JS_IsUndefined(data->cached_buffer) &&
+		data->cached_buffer_len == size) {
+		return JS_DupValue(ctx, data->cached_buffer);
+	}
+
+	// Invalidate old cache
+	if (!JS_IsUndefined(data->cached_buffer)) {
+		JS_FreeValue(ctx, data->cached_buffer);
+	}
+
+	uint8_t *memory = m3MemData(mallocated);
 	JSValue buf =
 		JS_NewArrayBuffer(ctx, memory, size, NULL, NULL, data->is_shared);
 	if (JS_IsException(buf)) {
+		data->cached_buffer = JS_UNDEFINED;
 		return JS_EXCEPTION;
 	}
-	// TODO: return same instance. invalidate when size changes
+
+	// Cache the buffer and its size
+	data->cached_buffer = JS_DupValue(ctx, buf);
+	data->cached_buffer_len = size;
 	return buf;
 }
 
@@ -1045,6 +1067,31 @@ static JSValue nx_wasm_init_table_class(JSContext *ctx, JSValueConst this_val,
 	return JS_UNDEFINED;
 }
 
+static JSValue nx_wasm_validate(JSContext *ctx, JSValueConst this_val,
+							   int argc, JSValueConst *argv) {
+	nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
+
+	if (nx_ctx->wasm_env == NULL) {
+		nx_ctx->wasm_env = m3_NewEnvironment();
+	}
+
+	size_t size;
+	uint8_t *buf = JS_GetArrayBuffer(ctx, &size, argv[0]);
+	if (!buf) {
+		return JS_FALSE;
+	}
+
+	IM3Module module = NULL;
+	M3Result r = m3_ParseModule(nx_ctx->wasm_env, &module, buf, size);
+	if (r) {
+		return JS_FALSE;
+	}
+
+	// Successfully parsed — free the module and return true
+	m3_FreeModule(module);
+	return JS_TRUE;
+}
+
 static const JSCFunctionListEntry init_function_list[] = {
 	JS_CFUNC_DEF("wasmCallFunc", 1, nx_wasm_call_func),
 	JS_CFUNC_DEF("wasmMemNew", 1, nx_wasm_memory_new),
@@ -1059,6 +1106,7 @@ static const JSCFunctionListEntry init_function_list[] = {
 	JS_CFUNC_DEF("wasmModuleImports", 1, nx_wasm_module_imports),
 	JS_CFUNC_DEF("wasmGlobalGet", 1, nx_wasm_global_value_get),
 	JS_CFUNC_DEF("wasmGlobalSet", 1, nx_wasm_global_value_set),
+	JS_CFUNC_DEF("wasmValidate", 1, nx_wasm_validate),
 };
 
 void nx_init_wasm(JSContext *ctx, JSValueConst init_obj) {
