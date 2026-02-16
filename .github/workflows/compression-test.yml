@@ -1,0 +1,63 @@
+name: Compression Tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'source/compression.*'
+      - 'source/util.*'
+      - 'packages/runtime/src/compression-streams.ts'
+      - 'test/compression/**'
+      - '.github/workflows/compression-test.yml'
+  pull_request:
+    paths:
+      - 'source/compression.*'
+      - 'source/util.*'
+      - 'packages/runtime/src/compression-streams.ts'
+      - 'test/compression/**'
+      - '.github/workflows/compression-test.yml'
+
+jobs:
+  compression-test:
+    name: Compression Conformance
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake build-essential pkg-config zlib1g-dev libzstd-dev
+
+      - name: Build compression test binary
+        working-directory: test/compression
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build -j$(nproc)
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install Node.js dependencies
+        working-directory: test/compression
+        run: pnpm install
+
+      - name: Install Playwright browsers
+        working-directory: test/compression
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run compression tests
+        working-directory: test/compression
+        run: pnpm test:compression
+
+      - name: Upload test output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compression-test-output
+          path: test/compression/output/
+          retention-days: 14
