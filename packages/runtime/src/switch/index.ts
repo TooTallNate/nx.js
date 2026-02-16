@@ -164,6 +164,17 @@ export interface SocketOptions {
 	 * This option is similar to that offered by the Node.js net module and allows interoperability with code which utilizes it.
 	 */
 	allowHalfOpen?: boolean;
+	/**
+	 * When `true` (default), the TLS handshake will verify the server's
+	 * certificate against the system CA certificate store. Set to `false`
+	 * to disable certificate verification (e.g. for development/testing
+	 * with self-signed certificates).
+	 *
+	 * Only applicable when `secureTransport` is `'on'` or `'starttls'`.
+	 *
+	 * @default true
+	 */
+	rejectUnauthorized?: boolean;
 }
 
 export interface SocketInfo {

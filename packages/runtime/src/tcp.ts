@@ -45,8 +45,8 @@ function write(fd: number, data: BufferSource) {
 	return toPromise($.write, fd, ab);
 }
 
-function tlsHandshake(fd: number, hostname: string) {
-	return toPromise($.tlsHandshake, fd, hostname);
+function tlsHandshake(fd: number, hostname: string, rejectUnauthorized: boolean) {
+	return toPromise($.tlsHandshake, fd, hostname, rejectUnauthorized);
 }
 
 function tlsRead(ctx: TlsContextOpaque, buffer: BufferSource) {
@@ -89,6 +89,7 @@ export class Socket {
 		const {
 			secureTransport = 'off',
 			allowHalfOpen = false,
+			rejectUnauthorized = true,
 			connect,
 		}: SocketOptionsInternal = arguments[2] || {};
 		assertInternalConstructor(arguments);
@@ -138,7 +139,7 @@ export class Socket {
 			.then((fd) => {
 				i.fd = fd;
 				if (secureTransport === 'on') {
-					return tlsHandshake(fd, address.hostname);
+					return tlsHandshake(fd, address.hostname, rejectUnauthorized);
 				}
 			})
 			.then((tls) => {

@@ -942,6 +942,14 @@ main_loop:
 		FT_Done_FreeType(nx_ctx->ft_library);
 	}
 
+	if (nx_ctx->mbedtls_initialized) {
+		mbedtls_ctr_drbg_free(&nx_ctx->ctr_drbg);
+		mbedtls_entropy_free(&nx_ctx->entropy);
+	}
+	if (nx_ctx->ca_certs_loaded) {
+		mbedtls_x509_crt_free(&nx_ctx->ca_chain);
+	}
+
 	if (nx_ctx->spl_initialized) {
 		splExit();
 	}

@@ -307,6 +307,7 @@ export interface Init {
 		cb: Callback<TlsContextOpaque>,
 		fd: number,
 		hostname: string,
+		rejectUnauthorized: boolean,
 	): void;
 	tlsWrite(
 		cb: Callback<number>,
