@@ -3,3 +3,4 @@ packages:
   - "docs"
   - "packages/*"
   - "test/canvas"
+  - "test/wasm"
