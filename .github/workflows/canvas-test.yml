@@ -57,7 +57,7 @@ jobs:
 
       - name: Run canvas conformance tests
         working-directory: test/canvas
-        run: pnpm test
+        run: pnpm test:canvas
 
       - name: Upload test output images
         if: always()

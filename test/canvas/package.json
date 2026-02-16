@@ -3,8 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build",
-    "test": "vitest run",
+    "build:native": "cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build",
+    "test:canvas": "vitest run",
     "test:watch": "vitest"
   },
   "devDependencies": {
