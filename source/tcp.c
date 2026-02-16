@@ -37,6 +37,7 @@ JSValue nx_js_tcp_connect(JSContext *ctx, JSValueConst this_val, int argc,
 	int port;
 	const char *ip = JS_ToCString(ctx, argv[1]);
 	if (!ip || JS_ToInt32(ctx, &port, argv[2])) {
+		if (ip) JS_FreeCString(ctx, ip);
 		JS_ThrowTypeError(ctx, "invalid input");
 		return JS_EXCEPTION;
 	}

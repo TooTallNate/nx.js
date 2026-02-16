@@ -90,6 +90,7 @@ JSValue nx_tls_handshake(JSContext *ctx, JSValueConst this_val, int argc,
 	int fd;
 	const char *hostname = JS_ToCString(ctx, argv[2]);
 	if (!hostname || JS_ToInt32(ctx, &fd, argv[1])) {
+		if (hostname) JS_FreeCString(ctx, hostname);
 		JS_ThrowTypeError(ctx, "invalid input");
 		return JS_EXCEPTION;
 	}

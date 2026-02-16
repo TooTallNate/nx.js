@@ -274,10 +274,15 @@ static JSValue js_hid_send_vibration_values(JSContext *ctx,
 	JSValue high_amp_value = JS_GetPropertyStr(ctx, argv[0], "highAmp");
 	JSValue high_freq_value = JS_GetPropertyStr(ctx, argv[0], "highFreq");
 	double low_amp, low_freq, high_amp, high_freq;
-	if (JS_ToFloat64(ctx, &low_amp, low_amp_value) ||
-		JS_ToFloat64(ctx, &low_freq, low_freq_value) ||
-		JS_ToFloat64(ctx, &high_amp, high_amp_value) ||
-		JS_ToFloat64(ctx, &high_freq, high_freq_value)) {
+	int err = JS_ToFloat64(ctx, &low_amp, low_amp_value) ||
+			  JS_ToFloat64(ctx, &low_freq, low_freq_value) ||
+			  JS_ToFloat64(ctx, &high_amp, high_amp_value) ||
+			  JS_ToFloat64(ctx, &high_freq, high_freq_value);
+	JS_FreeValue(ctx, low_amp_value);
+	JS_FreeValue(ctx, low_freq_value);
+	JS_FreeValue(ctx, high_amp_value);
+	JS_FreeValue(ctx, high_freq_value);
+	if (err) {
 		return JS_EXCEPTION;
 	}
 	VibrationValues[0].freq_low = low_freq;

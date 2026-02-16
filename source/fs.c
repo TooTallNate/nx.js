@@ -596,8 +596,8 @@ JSValue statToObject(JSContext *ctx, struct stat *st) {
 	JSValue obj = JS_NewObject(ctx);
 	JS_SetPropertyStr(ctx, obj, "size", JS_NewInt32(ctx, st->st_size));
 	JS_SetPropertyStr(ctx, obj, "mtime", JS_NewInt32(ctx, st->st_mtim.tv_sec));
-	JS_SetPropertyStr(ctx, obj, "atime", JS_NewInt32(ctx, st->st_atim.tv_nsec));
-	JS_SetPropertyStr(ctx, obj, "ctime", JS_NewInt32(ctx, st->st_ctim.tv_nsec));
+	JS_SetPropertyStr(ctx, obj, "atime", JS_NewInt32(ctx, st->st_atim.tv_sec));
+	JS_SetPropertyStr(ctx, obj, "ctime", JS_NewInt32(ctx, st->st_ctim.tv_sec));
 	JS_SetPropertyStr(ctx, obj, "mode", JS_NewInt32(ctx, st->st_mode));
 	JS_SetPropertyStr(ctx, obj, "uid", JS_NewInt32(ctx, st->st_uid));
 	JS_SetPropertyStr(ctx, obj, "gid", JS_NewInt32(ctx, st->st_gid));
