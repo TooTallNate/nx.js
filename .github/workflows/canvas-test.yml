@@ -1,0 +1,68 @@
+name: Canvas 2D Tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'source/canvas.*'
+      - 'source/dommatrix.*'
+      - 'source/font.*'
+      - 'source/image.*'
+      - 'test/canvas/**'
+      - '.github/workflows/canvas-test.yml'
+  pull_request:
+    paths:
+      - 'source/canvas.*'
+      - 'source/dommatrix.*'
+      - 'source/font.*'
+      - 'source/image.*'
+      - 'test/canvas/**'
+      - '.github/workflows/canvas-test.yml'
+
+jobs:
+  canvas-test:
+    name: Canvas 2D Conformance
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake build-essential pkg-config \
+            libcairo2-dev libfreetype-dev libharfbuzz-dev \
+            libpng-dev libturbojpeg0-dev libwebp-dev
+
+      - name: Build canvas test binary
+        working-directory: test/canvas
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build -j$(nproc)
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install Node.js dependencies
+        working-directory: test/canvas
+        run: pnpm install
+
+      - name: Install Playwright browsers
+        working-directory: test/canvas
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run canvas conformance tests
+        working-directory: test/canvas
+        run: pnpm test:canvas
+
+      - name: Upload test output images
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: canvas-test-output
+          path: test/canvas/output/
+          retention-days: 14

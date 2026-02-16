@@ -1,0 +1,17 @@
+{
+  "name": "@nxjs/canvas-test",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:native": "cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build",
+    "test:canvas": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "vitest": "^3.0.0",
+    "playwright": "^1.50.0",
+    "pixelmatch": "^6.0.0",
+    "pngjs": "^7.0.0",
+    "@types/node": "^22.0.0"
+  }
+}

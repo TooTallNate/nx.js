@@ -361,7 +361,7 @@ static JSValue nx_canvas_context_2d_arc(JSContext *ctx, JSValueConst this_val,
 		return JS_EXCEPTION;
 	}
 
-	int counterclockwise = JS_ToBool(ctx, argv[6]);
+	int counterclockwise = argc > 5 ? JS_ToBool(ctx, argv[5]) : 0;
 	if (counterclockwise == -1)
 		return JS_EXCEPTION;
 
@@ -1791,8 +1791,10 @@ static JSValue nx_canvas_context_2d_restore(JSContext *ctx,
 		js_free(ctx, prev);
 
 		nx_font_face_t *face = nx_get_font_face(ctx, context->state->font);
-		cairo_set_font_face(cr, face->cairo_font);
-		set_font_size(context, context->state->font_size);
+		if (face) {
+			cairo_set_font_face(cr, face->cairo_font);
+			set_font_size(context, context->state->font_size);
+		}
 	}
 	return JS_UNDEFINED;
 }
