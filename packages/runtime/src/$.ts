@@ -346,6 +346,7 @@ export interface Init {
 	wasmModuleImports(m: WasmModuleOpaque): any[];
 	wasmGlobalGet(g: WasmGlobalOpaque): any;
 	wasmGlobalSet(g: WasmGlobalOpaque, v: any): void;
+	wasmValidate(bytes: ArrayBuffer): boolean;
 
 	// window.c
 	windowInit(c: Window): void;
