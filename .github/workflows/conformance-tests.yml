@@ -114,10 +114,6 @@ jobs:
         working-directory: test/wasm
         run: pnpm install
 
-      - name: Build JS bridge from runtime source
-        working-directory: test/wasm
-        run: node build-bridge.mjs
-
       - name: Install Playwright
         working-directory: test/wasm
         run: pnpm exec playwright install --with-deps chromium

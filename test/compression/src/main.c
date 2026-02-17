@@ -4,13 +4,11 @@
  * Minimal QuickJS host for testing the nx.js CompressionStream /
  * DecompressionStream implementation on x86_64 without a Nintendo Switch.
  *
- * CRITICAL: Unlike the canvas/wasm test hosts, the compression functions are
- * async — even with the synchronous stubs in stubs.c, they return Promises.
- * After evaluating the fixture, we MUST run a microtask loop
- * (JS_ExecutePendingJob) so that promise callbacks (.then / async-await
- * continuations) execute and the fixture can call __output().
+ * Uses the real runtime.js instead of a custom JS bridge. A Proxy stub
+ * catches missing native functions (from modules we don't link) as no-ops,
+ * allowing the full runtime to initialize with only compression natives.
  *
- * Usage: nxjs-compression-test <bridge.js> <fixture.js> <output.json>
+ * Usage: nxjs-compression-test <runtime.js> <helpers.js> <fixture.js> <output.json>
  */
 
 #include "types.h"
@@ -91,17 +89,55 @@ static JSValue js_output(JSContext *ctx, JSValueConst this_val,
 	return JS_UNDEFINED;
 }
 
+/**
+ * Evaluate a JS file. Returns 0 on success, -1 on error.
+ */
+static int eval_file(JSContext *ctx, const char *path, const char *label) {
+	size_t len;
+	char *src = read_file_text(path, &len);
+	if (!src) {
+		fprintf(stderr, "Failed to read %s: %s\n", label, path);
+		return -1;
+	}
+
+	JSValue val = JS_Eval(ctx, src, len, path, JS_EVAL_TYPE_GLOBAL);
+	free(src);
+
+	if (JS_IsException(val)) {
+		fprintf(stderr, "%s evaluation failed:\n", label);
+		print_js_error(ctx);
+		JS_FreeValue(ctx, val);
+		return -1;
+	}
+	JS_FreeValue(ctx, val);
+	return 0;
+}
+
+/**
+ * Proxy stub: wraps $ so that any missing native function returns a no-op
+ * that returns an empty object (needed so runtime.js can initialize modules
+ * we don't link — e.g. canvas, wasm — without crashing).
+ */
+static const char *PROXY_STUB =
+    "globalThis.$ = new Proxy($, {\n"
+    "    get: function(target, prop) {\n"
+    "        if (prop in target) return target[prop];\n"
+    "        return function() { return {}; };\n"
+    "    }\n"
+    "});\n";
+
 int main(int argc, char *argv[]) {
-	if (argc < 4) {
+	if (argc < 5) {
 		fprintf(stderr,
-		        "Usage: %s <bridge.js> <fixture.js> <output.json>\n",
+		        "Usage: %s <runtime.js> <helpers.js> <fixture.js> <output.json>\n",
 		        argv[0]);
 		return 1;
 	}
 
-	const char *bridge_path = argv[1];
-	const char *fixture_path = argv[2];
-	g_output_path = argv[3];
+	const char *runtime_path = argv[1];
+	const char *helpers_path = argv[2];
+	const char *fixture_path = argv[3];
+	g_output_path = argv[4];
 
 	// Initialize nx_context
 	nx_context_t nx_ctx;
@@ -130,71 +166,66 @@ int main(int argc, char *argv[]) {
 	nx_ctx.unhandled_rejected_promise = JS_UNDEFINED;
 	JS_SetContextOpaque(ctx, &nx_ctx);
 
-	// Register native compression bindings
+	// Register native compression bindings on init_obj
 	nx_init_compression(ctx, nx_ctx.init_obj);
 
-	// Expose init_obj as global '$' so the JS bridge can access native functions
+	// Set version, entrypoint, argv on init_obj (runtime.js reads these)
+	JSValue version_obj = JS_NewObject(ctx);
+	JS_SetPropertyStr(ctx, version_obj, "nxjs",
+	                  JS_NewString(ctx, "0.0.0-test"));
+	JS_SetPropertyStr(ctx, version_obj, "hos", JS_NewString(ctx, "0.0.0"));
+	JS_SetPropertyStr(ctx, nx_ctx.init_obj, "version", version_obj);
+	JS_SetPropertyStr(ctx, nx_ctx.init_obj, "entrypoint",
+	                  JS_NewString(ctx, "file:///test.js"));
+	JS_SetPropertyStr(ctx, nx_ctx.init_obj, "argv", JS_NewArray(ctx));
+
+	// Expose init_obj as global '$'
 	JSValue global = JS_GetGlobalObject(ctx);
 	JS_SetPropertyStr(ctx, global, "$", JS_DupValue(ctx, nx_ctx.init_obj));
-
-	// Expose __output() for writing JSON results
-	JS_SetPropertyStr(ctx, global, "__output",
-	                  JS_NewCFunction(ctx, js_output, "__output", 1));
-
 	JS_FreeValue(ctx, global);
 
-	// Load and evaluate the JS bridge
-	size_t bridge_len;
-	char *bridge_src = read_file_text(bridge_path, &bridge_len);
-	if (!bridge_src) {
-		fprintf(stderr, "Failed to read bridge: %s\n", bridge_path);
-		JS_FreeContext(ctx);
-		JS_FreeRuntime(rt);
-		return 1;
-	}
-
-	JSValue bridge_val =
-	    JS_Eval(ctx, bridge_src, bridge_len, bridge_path, JS_EVAL_TYPE_GLOBAL);
-	free(bridge_src);
-
-	if (JS_IsException(bridge_val)) {
-		fprintf(stderr, "Bridge evaluation failed:\n");
+	// Evaluate the Proxy stub (catches missing native functions as no-ops)
+	JSValue proxy_val =
+	    JS_Eval(ctx, PROXY_STUB, strlen(PROXY_STUB), "<proxy>",
+	            JS_EVAL_TYPE_GLOBAL);
+	if (JS_IsException(proxy_val)) {
+		fprintf(stderr, "Proxy stub evaluation failed:\n");
 		print_js_error(ctx);
-		JS_FreeValue(ctx, bridge_val);
+		JS_FreeValue(ctx, proxy_val);
 		JS_FreeContext(ctx);
 		JS_FreeRuntime(rt);
 		return 1;
 	}
-	JS_FreeValue(ctx, bridge_val);
+	JS_FreeValue(ctx, proxy_val);
+
+	// Load and evaluate runtime.js
+	if (eval_file(ctx, runtime_path, "runtime") != 0) {
+		JS_FreeContext(ctx);
+		JS_FreeRuntime(rt);
+		return 1;
+	}
+
+	// Expose __output() AFTER runtime loads (so it doesn't get clobbered)
+	global = JS_GetGlobalObject(ctx);
+	JS_SetPropertyStr(ctx, global, "__output",
+	                  JS_NewCFunction(ctx, js_output, "__output", 1));
+	JS_FreeValue(ctx, global);
+
+	// Load and evaluate test helpers (textEncode, compress, etc.)
+	if (eval_file(ctx, helpers_path, "helpers") != 0) {
+		JS_FreeContext(ctx);
+		JS_FreeRuntime(rt);
+		return 1;
+	}
 
 	// Load and evaluate the test fixture
-	size_t fixture_len;
-	char *fixture_src = read_file_text(fixture_path, &fixture_len);
-	if (!fixture_src) {
-		fprintf(stderr, "Failed to read fixture: %s\n", fixture_path);
+	if (eval_file(ctx, fixture_path, "fixture") != 0) {
 		JS_FreeContext(ctx);
 		JS_FreeRuntime(rt);
 		return 1;
 	}
 
-	JSValue fixture_val = JS_Eval(ctx, fixture_src, fixture_len, fixture_path,
-	                              JS_EVAL_TYPE_GLOBAL);
-	free(fixture_src);
-
-	if (JS_IsException(fixture_val)) {
-		fprintf(stderr, "Fixture evaluation failed:\n");
-		print_js_error(ctx);
-		JS_FreeValue(ctx, fixture_val);
-		JS_FreeContext(ctx);
-		JS_FreeRuntime(rt);
-		return 1;
-	}
-	JS_FreeValue(ctx, fixture_val);
-
-	// CRITICAL: Process pending jobs (promise callbacks) until none remain.
-	// The compression functions are async — even with synchronous stubs they
-	// return Promises. Without this loop, async fixtures would never call
-	// __output() because their .then() / await continuations wouldn't run.
+	// Process pending jobs (promise callbacks) until none remain.
 	JSContext *ctx1;
 	int pending;
 	do {

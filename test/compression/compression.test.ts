@@ -29,7 +29,8 @@ const FIXTURES_DIR = join(ROOT, 'fixtures');
 const OUTPUT_DIR = join(ROOT, 'output');
 const BUILD_DIR = join(ROOT, 'build');
 const BINARY = join(BUILD_DIR, 'nxjs-compression-test');
-const BRIDGE = join(BUILD_DIR, 'compression_api.js');
+const RUNTIME = join(ROOT, '../../packages/runtime/runtime.js');
+const HELPERS = join(BUILD_DIR, 'test-helpers.js');
 
 // Fixtures that use zstd (not supported by Chrome)
 const NXJS_ONLY_FIXTURES = ['zstd-roundtrip'];
@@ -48,7 +49,7 @@ function ensureDir(dir: string) {
  */
 function runWithNxjs(fixturePath: string, outputPath: string): unknown {
 	execSync(
-		`"${BINARY}" "${BRIDGE}" "${fixturePath}" "${outputPath}"`,
+		`"${BINARY}" "${RUNTIME}" "${HELPERS}" "${fixturePath}" "${outputPath}"`,
 		{ timeout: 15000, stdio: ['pipe', 'pipe', 'pipe'] }
 	);
 	const raw = readFileSync(outputPath, 'utf-8');
@@ -319,7 +320,7 @@ function decompressWithNxjs(
 	writeFileSync(fixturePath, fixtureCode);
 
 	execSync(
-		`"${BINARY}" "${BRIDGE}" "${fixturePath}" "${outputPath}"`,
+		`"${BINARY}" "${RUNTIME}" "${HELPERS}" "${fixturePath}" "${outputPath}"`,
 		{ timeout: 15000, stdio: ['pipe', 'pipe', 'pipe'] }
 	);
 	const raw = readFileSync(outputPath, 'utf-8');
@@ -340,9 +341,14 @@ describe('Compression Streams conformance: nx.js vs Chrome', () => {
 				`Compression test binary not found at ${BINARY}. Run 'cmake -B build && cmake --build build' first.`
 			);
 		}
-		if (!existsSync(BRIDGE)) {
+		if (!existsSync(RUNTIME)) {
 			throw new Error(
-				`Compression API bridge not found at ${BRIDGE}. Run 'cmake -B build && cmake --build build' first.`
+				`Runtime not found at ${RUNTIME}. Run 'pnpm -w build:runtime' first.`
+			);
+		}
+		if (!existsSync(HELPERS)) {
+			throw new Error(
+				`Test helpers not found at ${HELPERS}. Run 'cmake -B build && cmake --build build' first.`
 			);
 		}
 
