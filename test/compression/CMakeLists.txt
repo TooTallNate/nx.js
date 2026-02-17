@@ -50,9 +50,9 @@ set_source_files_properties(
   PROPERTIES COMPILE_FLAGS "-Wno-unused-parameter -Wno-sign-compare"
 )
 
-# Copy the JS bridge into the build directory
+# Copy shared test helpers into the build directory
 configure_file(
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/compression_api.js
-  ${CMAKE_CURRENT_BINARY_DIR}/compression_api.js
+  ${CMAKE_SOURCE_DIR}/../shared/test-helpers.js
+  ${CMAKE_CURRENT_BINARY_DIR}/test-helpers.js
   COPYONLY
 )
