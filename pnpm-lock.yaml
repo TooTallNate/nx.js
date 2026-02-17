@@ -807,9 +807,6 @@ importers:
       '@types/node':
         specifier: ^22.0.0
         version: 22.19.11
-      esbuild:
-        specifier: ^0.17.19
-        version: 0.17.19
       playwright:
         specifier: ^1.50.0
         version: 1.58.2
