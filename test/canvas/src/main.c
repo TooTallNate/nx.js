@@ -194,6 +194,66 @@ int main(int argc, char *argv[]) {
 	}
 	JS_FreeValue(ctx, proxy_val);
 
+	// Override getSystemFont with a host-system fallback font.
+	// The real getSystemFont (from font.c / nx_init_font) calls
+	// plGetSharedFontByType() which requires the Switch font service.
+	// On the host we load a TTF from the filesystem instead.
+	{
+		const char *font_paths[] = {
+		    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+		    "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+		    "/usr/share/fonts/truetype/freefont/FreeSans.ttf",
+		    "/usr/share/fonts/truetype/ubuntu/Ubuntu-R.ttf",
+		    "/usr/share/fonts/TTF/DejaVuSans.ttf",
+		    NULL,
+		};
+
+		size_t font_len = 0;
+		char *font_data = NULL;
+		for (int i = 0; font_paths[i]; i++) {
+			FILE *f = fopen(font_paths[i], "rb");
+			if (!f)
+				continue;
+			fseek(f, 0, SEEK_END);
+			long len = ftell(f);
+			fseek(f, 0, SEEK_SET);
+			font_data = malloc(len);
+			if (font_data) {
+				font_len = fread(font_data, 1, len, f);
+			}
+			fclose(f);
+			if (font_data)
+				break;
+		}
+
+		if (font_data) {
+			JSValue font_ab =
+			    JS_NewArrayBufferCopy(ctx, (uint8_t *)font_data, font_len);
+			global = JS_GetGlobalObject(ctx);
+			JS_SetPropertyStr(ctx, global, "__hostFallbackFont__", font_ab);
+			JS_FreeValue(ctx, global);
+			free(font_data);
+
+			static const char *FONT_OVERRIDE =
+			    "$.getSystemFont = function() { return "
+			    "__hostFallbackFont__; };\n";
+			JSValue fo_val =
+			    JS_Eval(ctx, FONT_OVERRIDE, strlen(FONT_OVERRIDE),
+			            "<font-override>", JS_EVAL_TYPE_GLOBAL);
+			if (JS_IsException(fo_val)) {
+				fprintf(stderr,
+				        "Warning: font override failed, canvas font tests may "
+				        "fail\n");
+				print_js_error(ctx);
+			}
+			JS_FreeValue(ctx, fo_val);
+		} else {
+			fprintf(stderr,
+			        "Warning: no fallback font found on host — "
+			        "getSystemFont will fail at runtime\n");
+		}
+	}
+
 	// Load and evaluate runtime.js
 	if (eval_file(ctx, runtime_path, "runtime") != 0) {
 		JS_FreeContext(ctx);

@@ -48,7 +48,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y cmake build-essential pkg-config \
             libcairo2-dev libfreetype-dev libharfbuzz-dev \
-            libpng-dev libturbojpeg0-dev libwebp-dev
+            libpng-dev libturbojpeg0-dev libwebp-dev \
+            fonts-dejavu-core
 
       - name: Build canvas test binary
         working-directory: test/canvas
