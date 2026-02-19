@@ -140,6 +140,9 @@ export type * from './canvas/image-data';
 import './canvas/path2d';
 export type { Path2D } from './canvas/path2d';
 
+import './canvas/canvas-gradient';
+export type * from './canvas/canvas-gradient';
+
 import './canvas/canvas-rendering-context-2d';
 export type * from './canvas/canvas-rendering-context-2d';
 

@@ -50,6 +50,7 @@ type ClassOf<T> = {
 };
 
 type FileHandle = Opaque<'FileHandle'>;
+type CanvasGradientOpaque = Opaque<'CanvasGradientOpaque'>;
 type CompressHandle = Opaque<'CompressHandle'>;
 type DecompressHandle = Opaque<'DecompressHandle'>;
 type SaveDataIterator = Opaque<'SaveDataIterator'>;
@@ -122,6 +123,29 @@ export interface Init {
 		ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
 		...rgba: RGBA
 	): number[];
+	canvasContext2dSetFillStyleGradient(
+		ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
+		gradient: CanvasGradientOpaque,
+	): void;
+	canvasContext2dSetStrokeStyleGradient(
+		ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
+		gradient: CanvasGradientOpaque,
+	): void;
+	canvasGradientNewLinear(
+		x0: number,
+		y0: number,
+		x1: number,
+		y1: number,
+	): CanvasGradientOpaque;
+	canvasGradientNewRadial(
+		x0: number,
+		y0: number,
+		r0: number,
+		x1: number,
+		y1: number,
+		r1: number,
+	): CanvasGradientOpaque;
+	canvasGradientInitClass(c: any): void;
 
 	// compression.c
 	compressNew(format: string): CompressHandle;

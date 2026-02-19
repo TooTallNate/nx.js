@@ -45,6 +45,7 @@ typedef struct Point {
 
 static JSClassID nx_canvas_class_id;
 static JSClassID nx_canvas_context_class_id;
+static JSClassID nx_canvas_gradient_class_id;
 
 static inline int min(int a, int b) { return a < b ? a : b; }
 
@@ -105,11 +106,15 @@ static void restore_path(nx_canvas_context_2d_t *context) {
 }
 
 static void fill(nx_canvas_context_2d_t *context, bool preserve) {
-	// TODO: support fill pattern / fill gradient / shadow
-	cairo_set_source_rgba(context->ctx, context->state->fill.r,
-						  context->state->fill.g, context->state->fill.b,
-						  context->state->fill.a *
-							  context->state->global_alpha);
+	if (context->state->fill_source_type == SOURCE_GRADIENT &&
+		context->state->fill_gradient) {
+		cairo_set_source(context->ctx, context->state->fill_gradient);
+	} else {
+		cairo_set_source_rgba(context->ctx, context->state->fill.r,
+							  context->state->fill.g, context->state->fill.b,
+							  context->state->fill.a *
+								  context->state->global_alpha);
+	}
 	if (preserve) {
 		cairo_fill_preserve(context->ctx);
 	} else {
@@ -118,11 +123,15 @@ static void fill(nx_canvas_context_2d_t *context, bool preserve) {
 }
 
 static void stroke(nx_canvas_context_2d_t *context, bool preserve) {
-	// TODO: support stroke pattern / stroke gradient / shadow
-	cairo_set_source_rgba(context->ctx, context->state->stroke.r,
-						  context->state->stroke.g, context->state->stroke.b,
-						  context->state->stroke.a *
-							  context->state->global_alpha);
+	if (context->state->stroke_source_type == SOURCE_GRADIENT &&
+		context->state->stroke_gradient) {
+		cairo_set_source(context->ctx, context->state->stroke_gradient);
+	} else {
+		cairo_set_source_rgba(context->ctx, context->state->stroke.r,
+							  context->state->stroke.g, context->state->stroke.b,
+							  context->state->stroke.a *
+								  context->state->global_alpha);
+	}
 	if (preserve) {
 		cairo_stroke_preserve(context->ctx);
 	} else {
@@ -950,11 +959,15 @@ static JSValue nx_canvas_context_2d_fill_text(JSContext *ctx,
 		cairo_glyphs[i].y += args[1] + baseline_offset;
 	}
 
-	// TODO: support gradient / pattern
-	cairo_set_source_rgba(cr, context->state->fill.r, context->state->fill.g,
-						  context->state->fill.b,
-						  context->state->fill.a *
-							  context->state->global_alpha);
+	if (context->state->fill_source_type == SOURCE_GRADIENT &&
+		context->state->fill_gradient) {
+		cairo_set_source(cr, context->state->fill_gradient);
+	} else {
+		cairo_set_source_rgba(cr, context->state->fill.r, context->state->fill.g,
+							  context->state->fill.b,
+							  context->state->fill.a *
+								  context->state->global_alpha);
+	}
 
 	cairo_show_glyphs(cr, cairo_glyphs, glyph_count);
 
@@ -1516,6 +1529,12 @@ finalizer_canvas_context_2d_state(JSRuntime *rt,
 	if (state->font_string) {
 		free((void *)state->font_string);
 	}
+	if (state->fill_gradient) {
+		cairo_pattern_destroy(state->fill_gradient);
+	}
+	if (state->stroke_gradient) {
+		cairo_pattern_destroy(state->stroke_gradient);
+	}
 	js_free_rt(rt, state);
 }
 
@@ -1639,6 +1658,11 @@ static JSValue nx_canvas_context_2d_set_fill_style(JSContext *ctx,
 	context->state->fill.g = args[1] / 255.;
 	context->state->fill.b = args[2] / 255.;
 	context->state->fill.a = args[3];
+	context->state->fill_source_type = SOURCE_RGBA;
+	if (context->state->fill_gradient) {
+		cairo_pattern_destroy(context->state->fill_gradient);
+		context->state->fill_gradient = NULL;
+	}
 	return JS_UNDEFINED;
 }
 
@@ -1671,6 +1695,11 @@ static JSValue nx_canvas_context_2d_set_stroke_style(JSContext *ctx,
 	context->state->stroke.g = args[1] / 255.;
 	context->state->stroke.b = args[2] / 255.;
 	context->state->stroke.a = args[3];
+	context->state->stroke_source_type = SOURCE_RGBA;
+	if (context->state->stroke_gradient) {
+		cairo_pattern_destroy(context->state->stroke_gradient);
+		context->state->stroke_gradient = NULL;
+	}
 	return JS_UNDEFINED;
 }
 
@@ -1773,6 +1802,12 @@ static JSValue nx_canvas_context_2d_save(JSContext *ctx, JSValueConst this_val,
 	if (context->state->font_string) {
 		state->font_string = strdup(context->state->font_string);
 	}
+	if (state->fill_gradient) {
+		cairo_pattern_reference(state->fill_gradient);
+	}
+	if (state->stroke_gradient) {
+		cairo_pattern_reference(state->stroke_gradient);
+	}
 	context->state = state;
 	return JS_UNDEFINED;
 }
@@ -1787,6 +1822,12 @@ static JSValue nx_canvas_context_2d_restore(JSContext *ctx,
 		context->state = prev->next;
 		if (prev->font_string) {
 			free((void *)prev->font_string);
+		}
+		if (prev->fill_gradient) {
+			cairo_pattern_destroy(prev->fill_gradient);
+		}
+		if (prev->stroke_gradient) {
+			cairo_pattern_destroy(prev->stroke_gradient);
 		}
 		js_free(ctx, prev);
 
@@ -2566,6 +2607,108 @@ static JSValue nx_canvas_context_2d_translate(JSContext *ctx,
 	return JS_UNDEFINED;
 }
 
+/* CanvasGradient */
+
+static void finalizer_canvas_gradient(JSRuntime *rt, JSValue val) {
+	cairo_pattern_t *pattern =
+		JS_GetOpaque(val, nx_canvas_gradient_class_id);
+	if (pattern) {
+		cairo_pattern_destroy(pattern);
+	}
+}
+
+static JSValue nx_canvas_gradient_new_linear(JSContext *ctx,
+											 JSValueConst this_val, int argc,
+											 JSValueConst *argv) {
+	double args[4];
+	if (js_validate_doubles_args(ctx, argv, args, 4, 0))
+		return JS_EXCEPTION;
+	cairo_pattern_t *pattern =
+		cairo_pattern_create_linear(args[0], args[1], args[2], args[3]);
+	JSValue obj = JS_NewObjectClass(ctx, nx_canvas_gradient_class_id);
+	if (JS_IsException(obj)) {
+		cairo_pattern_destroy(pattern);
+		return obj;
+	}
+	JS_SetOpaque(obj, pattern);
+	return obj;
+}
+
+static JSValue nx_canvas_gradient_new_radial(JSContext *ctx,
+											 JSValueConst this_val, int argc,
+											 JSValueConst *argv) {
+	double args[6];
+	if (js_validate_doubles_args(ctx, argv, args, 6, 0))
+		return JS_EXCEPTION;
+	cairo_pattern_t *pattern = cairo_pattern_create_radial(
+		args[0], args[1], args[2], args[3], args[4], args[5]);
+	JSValue obj = JS_NewObjectClass(ctx, nx_canvas_gradient_class_id);
+	if (JS_IsException(obj)) {
+		cairo_pattern_destroy(pattern);
+		return obj;
+	}
+	JS_SetOpaque(obj, pattern);
+	return obj;
+}
+
+static JSValue nx_canvas_gradient_add_color_stop(JSContext *ctx,
+												 JSValueConst this_val,
+												 int argc,
+												 JSValueConst *argv) {
+	cairo_pattern_t *pattern =
+		JS_GetOpaque2(ctx, this_val, nx_canvas_gradient_class_id);
+	if (!pattern)
+		return JS_EXCEPTION;
+	double args[5];
+	if (js_validate_doubles_args(ctx, argv, args, 5, 0))
+		return JS_EXCEPTION;
+	cairo_pattern_add_color_stop_rgba(pattern, args[0], args[1] / 255.,
+									  args[2] / 255., args[3] / 255., args[4]);
+	return JS_UNDEFINED;
+}
+
+static JSValue nx_canvas_gradient_init_class(JSContext *ctx,
+											 JSValueConst this_val, int argc,
+											 JSValueConst *argv) {
+	JSAtom atom;
+	JSValue proto = JS_GetPropertyStr(ctx, argv[0], "prototype");
+	NX_DEF_FUNC(proto, "addColorStop", nx_canvas_gradient_add_color_stop, 5);
+	JS_FreeValue(ctx, proto);
+	return JS_UNDEFINED;
+}
+
+static JSValue nx_canvas_context_2d_set_fill_style_gradient(
+	JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv) {
+	CANVAS_CONTEXT_ARGV0;
+	cairo_pattern_t *pattern =
+		JS_GetOpaque2(ctx, argv[1], nx_canvas_gradient_class_id);
+	if (!pattern)
+		return JS_EXCEPTION;
+	if (context->state->fill_gradient) {
+		cairo_pattern_destroy(context->state->fill_gradient);
+	}
+	cairo_pattern_reference(pattern);
+	context->state->fill_gradient = pattern;
+	context->state->fill_source_type = SOURCE_GRADIENT;
+	return JS_UNDEFINED;
+}
+
+static JSValue nx_canvas_context_2d_set_stroke_style_gradient(
+	JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv) {
+	CANVAS_CONTEXT_ARGV0;
+	cairo_pattern_t *pattern =
+		JS_GetOpaque2(ctx, argv[1], nx_canvas_gradient_class_id);
+	if (!pattern)
+		return JS_EXCEPTION;
+	if (context->state->stroke_gradient) {
+		cairo_pattern_destroy(context->state->stroke_gradient);
+	}
+	cairo_pattern_reference(pattern);
+	context->state->stroke_gradient = pattern;
+	context->state->stroke_source_type = SOURCE_GRADIENT;
+	return JS_UNDEFINED;
+}
+
 static JSValue nx_canvas_context_2d_init_class(JSContext *ctx,
 											   JSValueConst this_val, int argc,
 											   JSValueConst *argv) {
@@ -2668,6 +2811,10 @@ static JSValue nx_canvas_context_2d_new(JSContext *ctx, JSValueConst this_val,
 	state->font_size = 10.;
 	state->fill.a = 1.;
 	state->stroke.a = 1.;
+	state->fill_source_type = SOURCE_RGBA;
+	state->stroke_source_type = SOURCE_RGBA;
+	state->fill_gradient = NULL;
+	state->stroke_gradient = NULL;
 	state->global_alpha = 1.;
 	state->image_smoothing_quality = CAIRO_FILTER_FAST;
 	state->image_smoothing_enabled = true;
@@ -2712,6 +2859,13 @@ static const JSCFunctionListEntry init_function_list[] = {
 				 nx_canvas_context_2d_get_stroke_style),
 	JS_CFUNC_DEF("canvasContext2dSetStrokeStyle", 0,
 				 nx_canvas_context_2d_set_stroke_style),
+	JS_CFUNC_DEF("canvasContext2dSetFillStyleGradient", 0,
+				 nx_canvas_context_2d_set_fill_style_gradient),
+	JS_CFUNC_DEF("canvasContext2dSetStrokeStyleGradient", 0,
+				 nx_canvas_context_2d_set_stroke_style_gradient),
+	JS_CFUNC_DEF("canvasGradientNewLinear", 0, nx_canvas_gradient_new_linear),
+	JS_CFUNC_DEF("canvasGradientNewRadial", 0, nx_canvas_gradient_new_radial),
+	JS_CFUNC_DEF("canvasGradientInitClass", 0, nx_canvas_gradient_init_class),
 };
 
 void nx_init_canvas(JSContext *ctx, JSValueConst init_obj) {
@@ -2730,6 +2884,13 @@ void nx_init_canvas(JSContext *ctx, JSValueConst init_obj) {
 		.finalizer = finalizer_canvas_context_2d,
 	};
 	JS_NewClass(rt, nx_canvas_context_class_id, &canvas_context_2d_class);
+
+	JS_NewClassID(rt, &nx_canvas_gradient_class_id);
+	JSClassDef canvas_gradient_class = {
+		"nx_canvas_gradient_t",
+		.finalizer = finalizer_canvas_gradient,
+	};
+	JS_NewClass(rt, nx_canvas_gradient_class_id, &canvas_gradient_class);
 
 	JS_SetPropertyFunctionList(ctx, init_obj, init_function_list,
 							   countof(init_function_list));
