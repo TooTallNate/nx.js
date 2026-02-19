@@ -1,6 +1,5 @@
 import colorRgba = require('color-rgba');
 import { $ } from '../$';
-import { INTERNAL_SYMBOL } from '../internal';
 import { createInternal, assertInternalConstructor, def } from '../utils';
 
 interface CanvasGradientInternal {
