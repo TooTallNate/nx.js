@@ -38,6 +38,8 @@ import type {
 
 interface OffscreenCanvasRenderingContext2DInternal {
 	canvas: OffscreenCanvas;
+	fillGradient: CanvasGradient | null;
+	strokeGradient: CanvasGradient | null;
 }
 
 const _ = createInternal<
@@ -56,14 +58,12 @@ export class OffscreenCanvasRenderingContext2D {
 			$.canvasContext2dNew(canvas),
 			OffscreenCanvasRenderingContext2D,
 		);
-		_.set(ctx, { canvas });
+		_.set(ctx, { canvas, fillGradient: null, strokeGradient: null });
 		ctx.font = '10px sans-serif';
 		return ctx;
 	}
 
 	// TODO: implement
-	#fillGradient: CanvasGradient | null = null;
-	#strokeGradient: CanvasGradient | null = null;
 
 	declare direction: string;
 	declare fontKerning: string;
@@ -159,20 +159,20 @@ export class OffscreenCanvasRenderingContext2D {
 	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/fillStyle
 	 */
 	get fillStyle(): string | CanvasGradient {
-		if (this.#fillGradient) return this.#fillGradient;
+		const fg = _(this).fillGradient; if (fg) return fg;
 		return rgbaToString($.canvasContext2dGetFillStyle(this));
 	}
 	set fillStyle(v: string | CanvasGradient) {
 		if (v instanceof CanvasGradient) {
 			$.canvasContext2dSetFillStyleGradient(this, v._opaque);
-			this.#fillGradient = v;
+			_(this).fillGradient = v;
 		} else if (typeof v === 'string') {
 			const parsed = colorRgba(v);
 			if (!parsed || parsed.length !== 4) {
 				return;
 			}
 			$.canvasContext2dSetFillStyle(this, ...parsed);
-			this.#fillGradient = null;
+			_(this).fillGradient = null;
 		}
 	}
 
@@ -183,20 +183,20 @@ export class OffscreenCanvasRenderingContext2D {
 	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/strokeStyle
 	 */
 	get strokeStyle(): string | CanvasGradient {
-		if (this.#strokeGradient) return this.#strokeGradient;
+		const sg = _(this).strokeGradient; if (sg) return sg;
 		return rgbaToString($.canvasContext2dGetStrokeStyle(this));
 	}
 	set strokeStyle(v: string | CanvasGradient) {
 		if (v instanceof CanvasGradient) {
 			$.canvasContext2dSetStrokeStyleGradient(this, v._opaque);
-			this.#strokeGradient = v;
+			_(this).strokeGradient = v;
 		} else if (typeof v === 'string') {
 			const parsed = colorRgba(v);
 			if (!parsed || parsed.length !== 4) {
 				return;
 			}
 			$.canvasContext2dSetStrokeStyle(this, ...parsed);
-			this.#strokeGradient = null;
+			_(this).strokeGradient = null;
 		}
 	}
 
