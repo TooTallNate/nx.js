@@ -32,6 +32,12 @@ typedef enum {
 } text_baseline_t;
 
 typedef enum {
+	SOURCE_RGBA,
+	SOURCE_GRADIENT,
+	SOURCE_PATTERN,
+} source_type_t;
+
+typedef enum {
 	TEXT_ALIGN_LEFT,
 	TEXT_ALIGN_CENTER,
 	TEXT_ALIGN_RIGHT,
@@ -49,14 +55,10 @@ typedef struct nx_canvas_context_2d_state_s {
 
 	nx_rgba_t fill;
 	nx_rgba_t stroke;
-	// nx_rgba_t shadow;
-	// double shadowOffsetX;
-	// double shadowOffsetY;
-	// cairo_pattern_t *fillPattern;
-	// cairo_pattern_t *strokePattern;
-	// cairo_pattern_t *fillGradient;
-	// cairo_pattern_t *strokeGradient;
-	// int shadowBlur;
+	source_type_t fill_source_type;
+	source_type_t stroke_source_type;
+	cairo_pattern_t *fill_gradient;
+	cairo_pattern_t *stroke_gradient;
 	cairo_filter_t image_smoothing_quality;
 	JSValue font;
 	double font_size;
