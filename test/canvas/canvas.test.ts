@@ -200,6 +200,11 @@ describe('Canvas 2D conformance: nx.js vs Chrome', () => {
 				chromeOutputPath
 			);
 
+			// Snapshot the nx.js output for visual regression tracking
+			expect(nxjsPng).toMatchImageSnapshot({
+				customSnapshotIdentifier: name,
+			});
+
 			// Compare
 			const { diffPercent, numDiffPixels, totalPixels } = compareImages(
 				nxjsPng,

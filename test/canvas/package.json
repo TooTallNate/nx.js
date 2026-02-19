@@ -12,6 +12,8 @@
     "playwright": "^1.50.0",
     "pixelmatch": "^6.0.0",
     "pngjs": "^7.0.0",
-    "@types/node": "^22.0.0"
+    "@types/node": "^22.0.0",
+    "jest-image-snapshot": "^6.4.0",
+    "@types/jest-image-snapshot": "^6.4.0"
   }
 }
