@@ -2667,13 +2667,27 @@ static JSValue nx_canvas_gradient_add_color_stop(JSContext *ctx,
 	return JS_UNDEFINED;
 }
 
+static JSValue nx_canvas_gradient_add_color_stop_standalone(
+	JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv) {
+	cairo_pattern_t *pattern =
+		JS_GetOpaque2(ctx, argv[0], nx_canvas_gradient_class_id);
+	if (!pattern)
+		return JS_EXCEPTION;
+	double args[5];
+	if (js_validate_doubles_args(ctx, argv, args, 5, 1))
+		return JS_EXCEPTION;
+	cairo_pattern_add_color_stop_rgba(pattern, args[0], args[1] / 255.,
+									  args[2] / 255., args[3] / 255., args[4]);
+	return JS_UNDEFINED;
+}
+
 static JSValue nx_canvas_gradient_init_class(JSContext *ctx,
 											 JSValueConst this_val, int argc,
 											 JSValueConst *argv) {
-	JSAtom atom;
-	JSValue proto = JS_GetPropertyStr(ctx, argv[0], "prototype");
-	NX_DEF_FUNC(proto, "addColorStop", nx_canvas_gradient_add_color_stop, 5);
-	JS_FreeValue(ctx, proto);
+	(void)ctx;
+	(void)this_val;
+	(void)argc;
+	(void)argv;
 	return JS_UNDEFINED;
 }
 
@@ -2866,6 +2880,8 @@ static const JSCFunctionListEntry init_function_list[] = {
 	JS_CFUNC_DEF("canvasGradientNewLinear", 0, nx_canvas_gradient_new_linear),
 	JS_CFUNC_DEF("canvasGradientNewRadial", 0, nx_canvas_gradient_new_radial),
 	JS_CFUNC_DEF("canvasGradientInitClass", 0, nx_canvas_gradient_init_class),
+	JS_CFUNC_DEF("canvasGradientAddColorStop", 0,
+				 nx_canvas_gradient_add_color_stop_standalone),
 };
 
 void nx_init_canvas(JSContext *ctx, JSValueConst init_obj) {

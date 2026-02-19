@@ -42,8 +42,7 @@ export class CanvasGradient {
 			);
 		}
 		const opaque = _(this).opaque;
-		// addColorStop is a method on the native opaque object
-		opaque.addColorStop(offset, parsed[0], parsed[1], parsed[2], parsed[3]);
+		$.canvasGradientAddColorStop(opaque, offset, parsed[0], parsed[1], parsed[2], parsed[3]);
 	}
 
 	/**
