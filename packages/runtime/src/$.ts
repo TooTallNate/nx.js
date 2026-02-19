@@ -146,6 +146,14 @@ export interface Init {
 		r1: number,
 	): CanvasGradientOpaque;
 	canvasGradientInitClass(c: any): void;
+	canvasGradientAddColorStop(
+		gradient: any,
+		offset: number,
+		r: number,
+		g: number,
+		b: number,
+		a: number,
+	): void;
 
 	// compression.c
 	compressNew(format: string): CompressHandle;
