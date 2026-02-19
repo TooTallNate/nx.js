@@ -263,7 +263,7 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 		algorithm: unknown,
 		extractable: unknown,
 		keyUsages: unknown,
-	): Promise<CryptoKey<never> | CryptoKeyPair<never>> {
+	): Promise<CryptoKey<any> | CryptoKeyPair<any>> {
 		const algo =
 			typeof algorithm === 'string'
 				? { name: algorithm }
