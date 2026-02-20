@@ -1,2 +1,3 @@
 #pragma once
-typedef struct { int _unused; } mbedtls_entropy_context;
+// Include the real mbedtls entropy header
+#include_next <mbedtls/entropy.h>

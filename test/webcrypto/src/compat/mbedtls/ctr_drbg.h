@@ -1,2 +1,3 @@
 #pragma once
-typedef struct { int _unused; } mbedtls_ctr_drbg_context;
+// Include the real mbedtls ctr_drbg header
+#include_next <mbedtls/ctr_drbg.h>
