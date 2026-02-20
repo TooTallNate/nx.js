@@ -196,8 +196,16 @@ export interface Init {
 		data: BufferSource,
 	): Promise<boolean>;
 	cryptoExportKey(format: string, key: CryptoKey<any>): ArrayBuffer;
+	cryptoGenerateKeyEc(namedCurve: string): [ArrayBuffer, ArrayBuffer];
+	cryptoKeyNewEcPrivate(
+		algorithm: any,
+		privateKey: ArrayBuffer,
+		publicKey: ArrayBuffer,
+		extractable: boolean,
+		usages: string[],
+	): any;
 	cryptoDeriveBits(
-		algorithm: Algorithm,
+		algorithm: any,
 		baseKey: CryptoKey<any>,
 		length: number,
 	): Promise<ArrayBuffer>;

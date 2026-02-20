@@ -2,6 +2,7 @@ import { $ } from './$';
 import { INTERNAL_SYMBOL } from './internal';
 import { assertInternalConstructor, createInternal, def, stub } from './utils';
 import { CryptoKey, type CryptoKeyPair } from './crypto/crypto-key';
+import { proto } from './utils';
 import type {
 	AesCbcParams,
 	AesCtrParams,
@@ -324,6 +325,50 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 				extractable as boolean,
 				keyUsages as KeyUsage[],
 			);
+		}
+
+		if (algo.name === 'ECDSA' || algo.name === 'ECDH') {
+			const ecAlgo = algo as EcKeyGenParams;
+			const [pubRaw, privRaw] = $.cryptoGenerateKeyEc(
+				ecAlgo.namedCurve,
+			) as [ArrayBuffer, ArrayBuffer];
+
+			// Import public key
+			const publicKey = await this.importKey(
+				'raw',
+				pubRaw,
+				{ name: algo.name, namedCurve: ecAlgo.namedCurve } as any,
+				extractable as boolean,
+				algo.name === 'ECDSA'
+					? (keyUsages as KeyUsage[]).filter(
+							(u) => u === 'verify',
+						)
+					: [],
+			);
+
+			// Create private key via native call
+			const privUsages =
+				algo.name === 'ECDSA'
+					? (keyUsages as KeyUsage[]).filter(
+							(u) => u === 'sign',
+						)
+					: (keyUsages as KeyUsage[]).filter(
+							(u) =>
+								u === 'deriveBits' || u === 'deriveKey',
+						);
+			const privKeyRaw = $.cryptoKeyNewEcPrivate(
+				{ name: algo.name, namedCurve: ecAlgo.namedCurve },
+				privRaw,
+				pubRaw,
+				extractable as boolean,
+				privUsages,
+			);
+			const privateKey = proto(privKeyRaw, CryptoKey);
+
+			return {
+				publicKey,
+				privateKey,
+			} as CryptoKeyPair<any>;
 		}
 
 		if (algo.name === 'HMAC') {
