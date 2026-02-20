@@ -219,7 +219,7 @@ jobs:
 
       - name: Run webcrypto conformance tests
         working-directory: test/webcrypto
-        run: pnpm test
+        run: pnpm test:webcrypto
 
       - name: Upload test output
         if: always()
