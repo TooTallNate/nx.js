@@ -147,7 +147,7 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 		stub();
 	}
 
-	deriveBits(
+	async deriveBits(
 		algorithm:
 			| AlgorithmIdentifier
 			| EcdhKeyDeriveParams
@@ -156,10 +156,18 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 		baseKey: CryptoKey<never>,
 		length: number,
 	): Promise<ArrayBuffer> {
-		throw new Error('Method not implemented.');
+		const algo = normalizeAlgorithm(algorithm);
+		// Normalize hash inside algorithm params
+		if ('hash' in algo) {
+			const algoWithHash = algo as Algorithm & {
+				hash: HashAlgorithmIdentifier;
+			};
+			algoWithHash.hash = normalizeHashAlgorithm(algoWithHash.hash);
+		}
+		return $.cryptoDeriveBits(algo, baseKey, length);
 	}
 
-	deriveKey(
+	async deriveKey(
 		algorithm:
 			| AlgorithmIdentifier
 			| EcdhKeyDeriveParams
@@ -175,7 +183,33 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 		extractable: boolean,
 		keyUsages: KeyUsage[],
 	): Promise<CryptoKey<never>> {
-		throw new Error('Method not implemented.');
+		const dkt =
+			typeof derivedKeyType === 'string'
+				? { name: derivedKeyType }
+				: derivedKeyType;
+
+		// Determine the key length in bits
+		let lengthBits: number;
+		if ('length' in dkt && typeof (dkt as { length?: unknown }).length === 'number') {
+			lengthBits = (dkt as AesDerivedKeyParams).length;
+		} else if (dkt.name === 'HMAC') {
+			const hmacDkt = dkt as HmacImportParams;
+			lengthBits = getHashLength(hmacDkt.hash);
+		} else {
+			throw new DOMException(
+				'Cannot determine key length for derived key type',
+				'OperationError',
+			);
+		}
+
+		const bits = await this.deriveBits(algorithm, baseKey, lengthBits);
+		return this.importKey(
+			'raw',
+			bits,
+			dkt,
+			extractable,
+			keyUsages,
+		);
 	}
 
 	/**
@@ -286,7 +320,7 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 			return this.importKey(
 				'raw',
 				keyData,
-				algo as any,
+				algo,
 				extractable as boolean,
 				keyUsages as KeyUsage[],
 			);
@@ -306,7 +340,7 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 			return this.importKey(
 				'raw',
 				keyData,
-				importAlgo as any,
+				importAlgo,
 				extractable as boolean,
 				keyUsages as KeyUsage[],
 			);
@@ -338,6 +372,13 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 		extractable: boolean,
 		keyUsages: KeyUsage[],
 	): Promise<CryptoKey<Cipher>>;
+	importKey(
+		format: KeyFormat,
+		keyData: BufferSource | JsonWebKey,
+		algorithm: Algorithm,
+		extractable: boolean,
+		keyUsages: KeyUsage[],
+	): Promise<CryptoKey<never>>;
 	async importKey<Cipher extends KeyAlgorithmIdentifier>(
 		format: KeyFormat,
 		keyData: BufferSource | JsonWebKey,
