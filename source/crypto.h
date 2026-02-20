@@ -1,6 +1,7 @@
 #pragma once
 #define MBEDTLS_ALLOW_PRIVATE_ACCESS
 #include "types.h"
+#include <mbedtls/version.h>
 #include <mbedtls/ecp.h>
 
 typedef enum {
