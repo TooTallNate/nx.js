@@ -180,3 +180,23 @@ jobs:
           name: compression-test-output
           path: test/compression/output/
           retention-days: 14
+
+  webcrypto:
+    name: WebCrypto
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        working-directory: test/webcrypto
+        run: pnpm install
+
+      - name: Run WebCrypto conformance tests
+        working-directory: test/webcrypto
+        run: pnpm test
