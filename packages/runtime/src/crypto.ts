@@ -159,9 +159,10 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 		const algo = normalizeAlgorithm(algorithm);
 		// Normalize hash inside algorithm params
 		if ('hash' in algo) {
-			(algo as any).hash = normalizeHashAlgorithm(
-				(algo as any).hash as HashAlgorithmIdentifier,
-			);
+			const algoWithHash = algo as Algorithm & {
+				hash: HashAlgorithmIdentifier;
+			};
+			algoWithHash.hash = normalizeHashAlgorithm(algoWithHash.hash);
 		}
 		return $.cryptoDeriveBits(algo, baseKey, length);
 	}
@@ -189,8 +190,8 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 
 		// Determine the key length in bits
 		let lengthBits: number;
-		if ('length' in dkt && typeof (dkt as any).length === 'number') {
-			lengthBits = (dkt as any).length;
+		if ('length' in dkt && typeof (dkt as { length?: unknown }).length === 'number') {
+			lengthBits = (dkt as AesDerivedKeyParams).length;
 		} else if (dkt.name === 'HMAC') {
 			const hmacDkt = dkt as HmacImportParams;
 			lengthBits = getHashLength(hmacDkt.hash);
@@ -205,10 +206,10 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 		return this.importKey(
 			'raw',
 			bits,
-			dkt as any,
+			dkt,
 			extractable,
 			keyUsages,
-		) as Promise<CryptoKey<never>>;
+		);
 	}
 
 	/**
@@ -319,7 +320,7 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 			return this.importKey(
 				'raw',
 				keyData,
-				algo as any,
+				algo,
 				extractable as boolean,
 				keyUsages as KeyUsage[],
 			);
@@ -339,7 +340,7 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 			return this.importKey(
 				'raw',
 				keyData,
-				importAlgo as any,
+				importAlgo,
 				extractable as boolean,
 				keyUsages as KeyUsage[],
 			);
@@ -371,6 +372,13 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 		extractable: boolean,
 		keyUsages: KeyUsage[],
 	): Promise<CryptoKey<Cipher>>;
+	importKey(
+		format: KeyFormat,
+		keyData: BufferSource | JsonWebKey,
+		algorithm: Algorithm,
+		extractable: boolean,
+		keyUsages: KeyUsage[],
+	): Promise<CryptoKey<never>>;
 	async importKey<Cipher extends KeyAlgorithmIdentifier>(
 		format: KeyFormat,
 		keyData: BufferSource | JsonWebKey,
