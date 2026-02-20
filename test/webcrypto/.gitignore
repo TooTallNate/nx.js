@@ -2,4 +2,3 @@ build/
 output/
 node_modules/
 dist/
-test/webcrypto/pnpm-lock.yaml

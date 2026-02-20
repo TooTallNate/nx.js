@@ -4,7 +4,7 @@
  * Minimal QuickJS host for testing the nx.js WebCrypto implementation
  * on x86_64 without a Nintendo Switch.
  *
- * Usage: nxjs-webcrypto-test <runtime.js> <helpers.js> <fixture.js> <output.json>
+ * Usage: nxjs-crypto-test <runtime.js> <helpers.js> <fixture.js> <output.json>
  */
 
 #include "types.h"
@@ -13,7 +13,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Forward declaration — implemented in stubs.c
 void print_js_error(JSContext *ctx);
 
 static char *read_file_text(const char *path, size_t *out_len) {
@@ -25,7 +24,6 @@ static char *read_file_text(const char *path, size_t *out_len) {
 	fseek(f, 0, SEEK_END);
 	long len = ftell(f);
 	fseek(f, 0, SEEK_SET);
-
 	char *buf = malloc(len + 1);
 	if (!buf) { fclose(f); return NULL; }
 	size_t rd = fread(buf, 1, len, f);
@@ -35,7 +33,6 @@ static char *read_file_text(const char *path, size_t *out_len) {
 	return buf;
 }
 
-// __output(value) — JSON.stringify then write to output file
 static const char *g_output_path = NULL;
 
 static JSValue js_output(JSContext *ctx, JSValueConst this_val,
@@ -60,7 +57,8 @@ static JSValue js_output(JSContext *ctx, JSValueConst this_val,
 
 	const char *str = JS_ToCString(ctx, result);
 	JS_FreeValue(ctx, result);
-	if (!str) return JS_EXCEPTION;
+	if (!str)
+		return JS_EXCEPTION;
 
 	if (g_output_path) {
 		FILE *f = fopen(g_output_path, "w");
@@ -86,10 +84,8 @@ static int eval_file(JSContext *ctx, const char *path, const char *label) {
 		fprintf(stderr, "Failed to read %s: %s\n", label, path);
 		return -1;
 	}
-
 	JSValue val = JS_Eval(ctx, src, len, path, JS_EVAL_TYPE_GLOBAL);
 	free(src);
-
 	if (JS_IsException(val)) {
 		fprintf(stderr, "%s evaluation failed:\n", label);
 		print_js_error(ctx);
@@ -121,7 +117,6 @@ int main(int argc, char *argv[]) {
 	const char *fixture_path = argv[3];
 	g_output_path = argv[4];
 
-	// Initialize nx_context
 	nx_context_t nx_ctx;
 	memset(&nx_ctx, 0, sizeof(nx_ctx));
 
@@ -129,9 +124,8 @@ int main(int argc, char *argv[]) {
 	if (!rt) { fprintf(stderr, "Failed to create JS runtime\n"); return 1; }
 
 	JSContext *ctx = JS_NewContext(rt);
-	if (!ctx) { fprintf(stderr, "Failed to create JS context\n"); JS_FreeRuntime(rt); return 1; }
+	if (!ctx) { JS_FreeRuntime(rt); return 1; }
 
-	// Set up context opaque
 	nx_ctx.init_obj = JS_NewObject(ctx);
 	nx_ctx.frame_handler = JS_UNDEFINED;
 	nx_ctx.exit_handler = JS_UNDEFINED;
@@ -140,7 +134,7 @@ int main(int argc, char *argv[]) {
 	nx_ctx.unhandled_rejected_promise = JS_UNDEFINED;
 	JS_SetContextOpaque(ctx, &nx_ctx);
 
-	// Register native crypto bindings on init_obj
+	// Register crypto natives
 	nx_init_crypto(ctx, nx_ctx.init_obj);
 
 	// Set version, entrypoint, argv
@@ -151,15 +145,13 @@ int main(int argc, char *argv[]) {
 	JS_SetPropertyStr(ctx, nx_ctx.init_obj, "entrypoint", JS_NewString(ctx, "file:///test.js"));
 	JS_SetPropertyStr(ctx, nx_ctx.init_obj, "argv", JS_NewArray(ctx));
 
-	// Expose init_obj as global '$'
 	JSValue global = JS_GetGlobalObject(ctx);
 	JS_SetPropertyStr(ctx, global, "$", JS_DupValue(ctx, nx_ctx.init_obj));
 	JS_FreeValue(ctx, global);
 
-	// Evaluate the Proxy stub
+	// Proxy stub
 	JSValue proxy_val = JS_Eval(ctx, PROXY_STUB, strlen(PROXY_STUB), "<proxy>", JS_EVAL_TYPE_GLOBAL);
 	if (JS_IsException(proxy_val)) {
-		fprintf(stderr, "Proxy stub evaluation failed:\n");
 		print_js_error(ctx);
 		JS_FreeValue(ctx, proxy_val);
 		JS_FreeContext(ctx);
@@ -170,10 +162,12 @@ int main(int argc, char *argv[]) {
 
 	// Load runtime.js
 	if (eval_file(ctx, runtime_path, "runtime") != 0) {
-		JS_FreeContext(ctx); JS_FreeRuntime(rt); return 1;
+		JS_FreeContext(ctx);
+		JS_FreeRuntime(rt);
+		return 1;
 	}
 
-	// Expose test globals AFTER runtime loads
+	// Expose test globals
 	global = JS_GetGlobalObject(ctx);
 	JS_SetPropertyStr(ctx, global, "__output",
 	                  JS_NewCFunction(ctx, js_output, "__output", 1));
@@ -181,15 +175,19 @@ int main(int argc, char *argv[]) {
 
 	// Load helpers
 	if (eval_file(ctx, helpers_path, "helpers") != 0) {
-		JS_FreeContext(ctx); JS_FreeRuntime(rt); return 1;
+		JS_FreeContext(ctx);
+		JS_FreeRuntime(rt);
+		return 1;
 	}
 
 	// Load fixture
 	if (eval_file(ctx, fixture_path, "fixture") != 0) {
-		JS_FreeContext(ctx); JS_FreeRuntime(rt); return 1;
+		JS_FreeContext(ctx);
+		JS_FreeRuntime(rt);
+		return 1;
 	}
 
-	// Process pending jobs (promise callbacks)
+	// Drain promises
 	JSContext *ctx1;
 	int pending;
 	do {
@@ -201,10 +199,8 @@ int main(int argc, char *argv[]) {
 		}
 	} while (pending > 0);
 
-	// Cleanup
 	JS_FreeValue(ctx, nx_ctx.init_obj);
 	JS_FreeContext(ctx);
 	JS_FreeRuntime(rt);
-
 	return 0;
 }

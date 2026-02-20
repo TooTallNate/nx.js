@@ -1,10 +1,12 @@
-// Test HMAC sign/verify with known key material
+// Test HMAC sign/verify with known keys
 
-function toHex(buf) {
+function bufToHex(buf) {
 	var bytes = new Uint8Array(buf);
 	var hex = '';
 	for (var i = 0; i < bytes.length; i++) {
-		hex += (bytes[i] < 16 ? '0' : '') + bytes[i].toString(16);
+		var b = bytes[i].toString(16);
+		if (b.length < 2) b = '0' + b;
+		hex += b;
 	}
 	return hex;
 }
@@ -12,48 +14,52 @@ function toHex(buf) {
 async function run() {
 	var results = {};
 
-	// Fixed key (32 bytes of zeros)
-	var keyData = new Uint8Array(32);
+	// Test with known zero key + "hello" for each hash algo
+	var algos = ['SHA-1', 'SHA-256', 'SHA-384', 'SHA-512'];
+	var keyData = new Uint8Array(32); // all zeros
+	var data = textEncode('hello');
 
-	var hashAlgos = ['SHA-1', 'SHA-256', 'SHA-384', 'SHA-512'];
-
-	for (var h = 0; h < hashAlgos.length; h++) {
-		var hashAlgo = hashAlgos[h];
+	for (var i = 0; i < algos.length; i++) {
+		var algo = algos[i];
 		var key = await crypto.subtle.importKey(
 			'raw', keyData,
-			{ name: 'HMAC', hash: { name: hashAlgo } },
+			{ name: 'HMAC', hash: { name: algo } },
 			false,
 			['sign', 'verify']
 		);
 
-		// Sign "hello"
-		var data = textEncode('hello');
-		var signature = await crypto.subtle.sign('HMAC', key, data);
-		results['sign:' + hashAlgo + ':hello'] = toHex(signature);
+		var sig = await crypto.subtle.sign('HMAC', key, data);
+		var valid = await crypto.subtle.verify('HMAC', key, sig, data);
+		var tampered = await crypto.subtle.verify(
+			'HMAC', key, sig, textEncode('world')
+		);
 
-		// Verify correct
-		var valid = await crypto.subtle.verify('HMAC', key, signature, data);
-		results['verify:' + hashAlgo + ':correct'] = valid;
-
-		// Verify with tampered data
-		var tampered = textEncode('world');
-		var invalid = await crypto.subtle.verify('HMAC', key, signature, tampered);
-		results['verify:' + hashAlgo + ':tampered'] = invalid;
+		results[algo] = {
+			signature: bufToHex(sig),
+			signatureLen: sig.byteLength,
+			valid: valid,
+			tampered: tampered,
+		};
 	}
 
-	// Test with non-zero key
-	var key2Data = new Uint8Array(32);
-	for (var i = 0; i < 32; i++) key2Data[i] = i;
-
-	var key2 = await crypto.subtle.importKey(
-		'raw', key2Data,
+	// Test key properties
+	var testKey = await crypto.subtle.importKey(
+		'raw', keyData,
 		{ name: 'HMAC', hash: { name: 'SHA-256' } },
-		false,
+		true,
 		['sign', 'verify']
 	);
+	results.keyProps = {
+		type: testKey.type,
+		extractable: testKey.extractable,
+		algorithmName: testKey.algorithm.name,
+		usages: Array.prototype.slice.call(testKey.usages).sort(),
+	};
 
-	var sig2 = await crypto.subtle.sign('HMAC', key2, textEncode('test message'));
-	results['sign:SHA-256:sequential-key'] = toHex(sig2);
+	// Test exportKey round-trip
+	var exported = await crypto.subtle.exportKey('raw', testKey);
+	results.exportLen = exported.byteLength;
+	results.exportMatch = bufToHex(exported) === bufToHex(keyData.buffer);
 
 	__output(results);
 }

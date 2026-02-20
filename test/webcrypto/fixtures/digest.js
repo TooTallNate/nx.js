@@ -1,36 +1,44 @@
-// Test crypto.subtle.digest() with all supported hash algorithms
+// Test crypto.subtle.digest() for SHA-1, SHA-256, SHA-384, SHA-512
 
-function toHex(buf) {
+var results = {};
+
+// Helper: ArrayBuffer to hex string
+function bufToHex(buf) {
 	var bytes = new Uint8Array(buf);
 	var hex = '';
 	for (var i = 0; i < bytes.length; i++) {
-		hex += (bytes[i] < 16 ? '0' : '') + bytes[i].toString(16);
+		var b = bytes[i].toString(16);
+		if (b.length < 2) b = '0' + b;
+		hex += b;
 	}
 	return hex;
 }
 
-var testCases = [
-	{ algo: 'SHA-1', input: '' },
-	{ algo: 'SHA-1', input: 'abc' },
-	{ algo: 'SHA-1', input: 'Hello, nx.js WebCrypto!' },
-	{ algo: 'SHA-256', input: '' },
-	{ algo: 'SHA-256', input: 'abc' },
-	{ algo: 'SHA-256', input: 'Hello, nx.js WebCrypto!' },
-	{ algo: 'SHA-384', input: '' },
-	{ algo: 'SHA-384', input: 'abc' },
-	{ algo: 'SHA-384', input: 'Hello, nx.js WebCrypto!' },
-	{ algo: 'SHA-512', input: '' },
-	{ algo: 'SHA-512', input: 'abc' },
-	{ algo: 'SHA-512', input: 'Hello, nx.js WebCrypto!' },
-];
+var algos = ['SHA-1', 'SHA-256', 'SHA-384', 'SHA-512'];
+
+// Test 1: empty input
+var emptyData = new Uint8Array(0);
+
+// Test 2: "abc"
+var abcData = textEncode('abc');
+
+// Test 3: longer string
+var helloData = textEncode('Hello, nx.js WebCrypto!');
 
 async function run() {
-	var results = {};
-	for (var i = 0; i < testCases.length; i++) {
-		var tc = testCases[i];
-		var data = textEncode(tc.input);
-		var digest = await crypto.subtle.digest(tc.algo, data);
-		results[tc.algo + ':' + tc.input] = toHex(digest);
+	for (var i = 0; i < algos.length; i++) {
+		var algo = algos[i];
+		var emptyHash = await crypto.subtle.digest(algo, emptyData);
+		var abcHash = await crypto.subtle.digest(algo, abcData);
+		var helloHash = await crypto.subtle.digest(algo, helloData);
+
+		results[algo] = {
+			empty: bufToHex(emptyHash),
+			abc: bufToHex(abcHash),
+			hello: bufToHex(helloHash),
+			emptyLen: emptyHash.byteLength,
+			abcLen: abcHash.byteLength,
+		};
 	}
 	__output(results);
 }

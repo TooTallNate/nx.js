@@ -1,10 +1,12 @@
 // Test AES-CTR encrypt/decrypt with known key and counter
 
-function toHex(buf) {
+function bufToHex(buf) {
 	var bytes = new Uint8Array(buf);
 	var hex = '';
 	for (var i = 0; i < bytes.length; i++) {
-		hex += (bytes[i] < 16 ? '0' : '') + bytes[i].toString(16);
+		var b = bytes[i].toString(16);
+		if (b.length < 2) b = '0' + b;
+		hex += b;
 	}
 	return hex;
 }
@@ -12,8 +14,12 @@ function toHex(buf) {
 async function run() {
 	var results = {};
 
-	// Fixed 128-bit key
+	// 128-bit key
 	var keyData = new Uint8Array(16);
+	var counter = new Uint8Array(16);
+	counter[15] = 1; // counter = 1
+	var plaintext = textEncode('Hello AES-CTR!');
+
 	var key = await crypto.subtle.importKey(
 		'raw', keyData,
 		{ name: 'AES-CTR' },
@@ -21,29 +27,28 @@ async function run() {
 		['encrypt', 'decrypt']
 	);
 
-	// Fixed counter (16 bytes of zeros)
-	var counter = new Uint8Array(16);
-
-	// Encrypt "Hello, World!"
-	var plaintext = textEncode('Hello, World!');
-	var ciphertext = await crypto.subtle.encrypt(
-		{ name: 'AES-CTR', counter: counter, length: 64 },
+	var encrypted = await crypto.subtle.encrypt(
+		{ name: 'AES-CTR', counter: counter, length: 128 },
 		key,
 		plaintext
 	);
-	results['encrypt:128:hello'] = toHex(ciphertext);
-
-	// Decrypt back
 	var decrypted = await crypto.subtle.decrypt(
-		{ name: 'AES-CTR', counter: counter, length: 64 },
+		{ name: 'AES-CTR', counter: counter, length: 128 },
 		key,
-		ciphertext
+		encrypted
 	);
-	results['decrypt:128:hello'] = textDecode(decrypted);
+
+	results['128'] = {
+		ciphertext: bufToHex(encrypted),
+		ciphertextLen: encrypted.byteLength,
+		plaintextLen: plaintext.byteLength,
+		decrypted: textDecode(decrypted),
+		roundTrip: textDecode(decrypted) === 'Hello AES-CTR!',
+		sameSize: encrypted.byteLength === plaintext.byteLength,
+	};
 
 	// 256-bit key
 	var keyData256 = new Uint8Array(32);
-	for (var i = 0; i < 32; i++) keyData256[i] = i;
 	var key256 = await crypto.subtle.importKey(
 		'raw', keyData256,
 		{ name: 'AES-CTR' },
@@ -51,19 +56,30 @@ async function run() {
 		['encrypt', 'decrypt']
 	);
 
-	var ciphertext256 = await crypto.subtle.encrypt(
-		{ name: 'AES-CTR', counter: counter, length: 64 },
+	var encrypted256 = await crypto.subtle.encrypt(
+		{ name: 'AES-CTR', counter: counter, length: 128 },
 		key256,
-		textEncode('AES-256 test')
+		plaintext
 	);
-	results['encrypt:256:test'] = toHex(ciphertext256);
-
 	var decrypted256 = await crypto.subtle.decrypt(
-		{ name: 'AES-CTR', counter: counter, length: 64 },
+		{ name: 'AES-CTR', counter: counter, length: 128 },
 		key256,
-		ciphertext256
+		encrypted256
 	);
-	results['decrypt:256:test'] = textDecode(decrypted256);
+
+	results['256'] = {
+		ciphertext: bufToHex(encrypted256),
+		ciphertextLen: encrypted256.byteLength,
+		decrypted: textDecode(decrypted256),
+		roundTrip: textDecode(decrypted256) === 'Hello AES-CTR!',
+	};
+
+	results.keyProps = {
+		type: key.type,
+		algorithmName: key.algorithm.name,
+		extractable: key.extractable,
+		usages: Array.prototype.slice.call(key.usages).sort(),
+	};
 
 	__output(results);
 }

@@ -17,7 +17,6 @@ void print_js_error(JSContext *ctx) {
 		fprintf(stderr, "%s\n", exception_str);
 		JS_FreeCString(ctx, exception_str);
 	}
-
 	JSValue stack_val = JS_GetPropertyStr(ctx, exception_val, "stack");
 	if (!JS_IsUndefined(stack_val)) {
 		const char *stack_str = JS_ToCString(ctx, stack_val);
@@ -63,7 +62,7 @@ void nx_init_error(JSContext *ctx, JSValueConst init_obj) {
 	(void)ctx; (void)init_obj;
 }
 
-// ---- async.c stubs ----
+// ---- async.c stubs (synchronous execution) ----
 
 void nx_process_async(JSContext *ctx, nx_context_t *nx_ctx) {
 	(void)ctx; (void)nx_ctx;
@@ -98,9 +97,9 @@ JSValue nx_queue_async(JSContext *ctx, nx_work_t *req, nx_work_cb work_cb,
 	return promise;
 }
 
-// ---- util.c ----
+// ---- util.c (NX_GetBufferSource) ----
 
-u8 *NX_GetBufferSource(JSContext *ctx, size_t *size, JSValue obj) {
+u8 *NX_GetBufferSource(JSContext *ctx, size_t *size, JSValueConst obj) {
 	if (!JS_IsObject(obj)) {
 		return NULL;
 	}
@@ -116,7 +115,7 @@ u8 *NX_GetBufferSource(JSContext *ctx, size_t *size, JSValue obj) {
 	JSValue byte_offset_val = JS_GetPropertyStr(ctx, obj, "byteOffset");
 	JSValue byte_length_val = JS_GetPropertyStr(ctx, obj, "byteLength");
 	if (JS_ToUint32(ctx, &byte_offset, byte_offset_val) ||
-		JS_ToUint32(ctx, &byte_length, byte_length_val)) {
+	    JS_ToUint32(ctx, &byte_length, byte_length_val)) {
 		return NULL;
 	}
 	size_t ab_size;

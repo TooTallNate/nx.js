@@ -195,9 +195,7 @@ jobs:
           path: packages/runtime
 
       - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y cmake build-essential libmbedtls-dev
+        run: sudo apt-get update && sudo apt-get install -y cmake build-essential
 
       - name: Build webcrypto test binary
         working-directory: test/webcrypto
@@ -219,9 +217,9 @@ jobs:
         working-directory: test/webcrypto
         run: pnpm exec playwright install --with-deps chromium
 
-      - name: Run webcrypto tests
+      - name: Run webcrypto conformance tests
         working-directory: test/webcrypto
-        run: pnpm test:webcrypto
+        run: pnpm test
 
       - name: Upload test output
         if: always()

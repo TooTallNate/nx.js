@@ -825,6 +825,9 @@ importers:
       '@types/node':
         specifier: ^22.0.0
         version: 22.19.11
+      playwright:
+        specifier: ^1.50.0
+        version: 1.58.2
       vitest:
         specifier: ^3.0.0
         version: 3.2.4(@types/node@22.19.11)
