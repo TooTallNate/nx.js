@@ -31,11 +31,8 @@ add_executable(nxjs-crypto-test
   ${NX_SOURCE_DIR}/crypto.c
 )
 
-# Compat headers must come BEFORE real mbedtls so our switch.h / poll.h
-# stubs are found, but real mbedtls/md.h etc. come from the fetched lib.
-# The compat/mbedtls/ dir only has ctr_drbg.h and entropy.h stubs (for types.h).
-# Real mbedtls headers (md.h, sha512.h, sha1.h, sha256.h, aes.h) come from
-# the fetched mbedtls library's include path.
+# Compat headers (switch.h, poll.h, etc.) must come BEFORE system includes
+# so our stubs are found. Real mbedtls headers come from the fetched library.
 target_include_directories(nxjs-crypto-test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/src/compat
   ${NX_SOURCE_DIR}
