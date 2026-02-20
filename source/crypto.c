@@ -1543,7 +1543,12 @@ void nx_crypto_sign_do(nx_work_t *req) {
 			return;
 		}
 
-#if MBEDTLS_VERSION_MAJOR >= 3
+#if MBEDTLS_VERSION_NUMBER >= 0x03060000
+		ret = mbedtls_ecdsa_write_signature(&ec->keypair,
+											hash, hash_len,
+											der_sig, &der_sig_len,
+											mbedtls_ctr_drbg_random, &ctr_drbg);
+#elif MBEDTLS_VERSION_MAJOR >= 3
 		ret = mbedtls_ecdsa_write_signature(&ec->keypair, md_type,
 											hash, hash_len,
 											der_sig, sizeof(der_sig), &der_sig_len,
@@ -1577,7 +1582,6 @@ void nx_crypto_sign_do(nx_work_t *req) {
 		mbedtls_mpi_init(&s);
 
 		uint8_t *p = der_sig;
-		uint8_t *end = der_sig + der_sig_len;
 		size_t len;
 
 		// Skip SEQUENCE tag and length
