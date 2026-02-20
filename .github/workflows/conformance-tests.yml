@@ -183,9 +183,27 @@ jobs:
 
   webcrypto:
     name: WebCrypto
+    needs: build-runtime
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Download runtime bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: runtime-bundle
+          path: packages/runtime
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake build-essential libmbedtls-dev
+
+      - name: Build webcrypto test binary
+        working-directory: test/webcrypto
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build -j$(nproc)
 
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
@@ -193,10 +211,22 @@ jobs:
           node-version: '22'
           cache: 'pnpm'
 
-      - name: Install dependencies
+      - name: Install Node.js dependencies
         working-directory: test/webcrypto
         run: pnpm install
 
-      - name: Run WebCrypto conformance tests
+      - name: Install Playwright
         working-directory: test/webcrypto
-        run: pnpm test
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run webcrypto tests
+        working-directory: test/webcrypto
+        run: pnpm test:webcrypto
+
+      - name: Upload test output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: webcrypto-test-output
+          path: test/webcrypto/output/
+          retention-days: 14
