@@ -15,3 +15,7 @@ Description of change
 ```
 
 Do **not** use `minor` or `major` bumps.
+
+## C runtime changes
+
+Changes to the `source/` directory (the C runtime) should include a changeset for `@nx.js/runtime`, since the runtime JavaScript bundle and the native C code are released together.
