@@ -3,6 +3,8 @@
 #include "util.h"
 #include <errno.h>
 #include <mbedtls/md.h>
+#include <mbedtls/pkcs5.h>
+#include <mbedtls/hkdf.h>
 #include <mbedtls/sha512.h>
 #include <string.h>
 #include <switch.h>
@@ -504,6 +506,12 @@ static JSValue nx_crypto_key_get_algorithm(JSContext *ctx,
 		case NX_CRYPTO_KEY_ALGORITHM_AES_XTS:
 			name_val = "AES-XTS";
 			break;
+		case NX_CRYPTO_KEY_ALGORITHM_PBKDF2:
+			name_val = "PBKDF2";
+			break;
+		case NX_CRYPTO_KEY_ALGORITHM_HKDF:
+			name_val = "HKDF";
+			break;
 		case NX_CRYPTO_KEY_ALGORITHM_HMAC: {
 			name_val = "HMAC";
 			nx_crypto_key_hmac_t *hmac = (nx_crypto_key_hmac_t *)context->handle;
@@ -816,6 +824,16 @@ static JSValue nx_crypto_key_new(JSContext *ctx, JSValueConst this_val,
 									   key_data + 0x20, false);
 			}
 		}
+	} else if (strcmp(algo, "PBKDF2") == 0) {
+		context->type = NX_CRYPTO_KEY_TYPE_SECRET;
+		context->algorithm = NX_CRYPTO_KEY_ALGORITHM_PBKDF2;
+		// PBKDF2 keys don't need a handle - raw key data is sufficient
+		context->handle = NULL;
+	} else if (strcmp(algo, "HKDF") == 0) {
+		context->type = NX_CRYPTO_KEY_TYPE_SECRET;
+		context->algorithm = NX_CRYPTO_KEY_ALGORITHM_HKDF;
+		// HKDF keys don't need a handle - raw key data is sufficient
+		context->handle = NULL;
 	} else if (strcmp(algo, "HMAC") == 0) {
 		context->type = NX_CRYPTO_KEY_TYPE_SECRET;
 		context->algorithm = NX_CRYPTO_KEY_ALGORITHM_HMAC;
@@ -1391,6 +1409,189 @@ static JSValue nx_crypto_export_key(JSContext *ctx, JSValueConst this_val,
 							 NULL, false);
 }
 
+// --- Derive Bits ---
+
+typedef struct {
+	int err;
+	JSValue algorithm_val;
+	JSValue key_val;
+	nx_crypto_key_t *key;
+
+	// Common
+	char hash_name[16];
+
+	// PBKDF2
+	uint8_t *salt;
+	size_t salt_size;
+	uint32_t iterations;
+
+	// HKDF
+	uint8_t *info;
+	size_t info_size;
+
+	size_t length; // output length in bytes
+
+	void *result;
+	size_t result_size;
+} nx_crypto_derive_bits_async_t;
+
+void nx_crypto_derive_bits_do(nx_work_t *req) {
+	nx_crypto_derive_bits_async_t *data =
+		(nx_crypto_derive_bits_async_t *)req->data;
+
+	mbedtls_md_type_t md_type = nx_crypto_get_md_type(data->hash_name);
+	if (md_type == MBEDTLS_MD_NONE) {
+		data->err = ENOTSUP;
+		return;
+	}
+
+	const mbedtls_md_info_t *md_info = mbedtls_md_info_from_type(md_type);
+	if (!md_info) {
+		data->err = ENOTSUP;
+		return;
+	}
+
+	data->result = calloc(1, data->length);
+	if (!data->result) {
+		data->err = ENOMEM;
+		return;
+	}
+	data->result_size = data->length;
+
+	int ret;
+	if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_PBKDF2) {
+		mbedtls_md_context_t md_ctx;
+		mbedtls_md_init(&md_ctx);
+		ret = mbedtls_md_setup(&md_ctx, md_info, 1);
+		if (ret != 0) {
+			mbedtls_md_free(&md_ctx);
+			free(data->result);
+			data->result = NULL;
+			data->err = ret;
+			return;
+		}
+		ret = mbedtls_pkcs5_pbkdf2_hmac(
+			&md_ctx, data->key->raw_key_data, data->key->raw_key_size,
+			data->salt, data->salt_size, data->iterations, data->length,
+			data->result);
+		mbedtls_md_free(&md_ctx);
+	} else if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_HKDF) {
+		ret = mbedtls_hkdf(md_info, data->salt, data->salt_size,
+						   data->key->raw_key_data, data->key->raw_key_size,
+						   data->info, data->info_size, data->result,
+						   data->length);
+	} else {
+		ret = ENOTSUP;
+	}
+
+	if (ret != 0) {
+		free(data->result);
+		data->result = NULL;
+		data->err = ret;
+	}
+}
+
+JSValue nx_crypto_derive_bits_cb(JSContext *ctx, nx_work_t *req) {
+	nx_crypto_derive_bits_async_t *data =
+		(nx_crypto_derive_bits_async_t *)req->data;
+	JS_FreeValue(ctx, data->algorithm_val);
+	JS_FreeValue(ctx, data->key_val);
+
+	if (data->err) {
+		JSValue err = JS_NewError(ctx);
+		JS_DefinePropertyValueStr(ctx, err, "message",
+								  JS_NewString(ctx, strerror(data->err)),
+								  JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+		return JS_Throw(ctx, err);
+	}
+
+	return JS_NewArrayBuffer(ctx, data->result, data->result_size,
+							 free_array_buffer, NULL, false);
+}
+
+static JSValue nx_crypto_derive_bits(JSContext *ctx, JSValueConst this_val,
+									 int argc, JSValueConst *argv) {
+	NX_INIT_WORK_T(nx_crypto_derive_bits_async_t);
+
+	data->key = JS_GetOpaque2(ctx, argv[1], nx_crypto_key_class_id);
+	if (!data->key) {
+		js_free(ctx, data);
+		return JS_EXCEPTION;
+	}
+
+	if (!(data->key->usages & NX_CRYPTO_KEY_USAGE_DERIVE_BITS)) {
+		js_free(ctx, data);
+		return JS_ThrowTypeError(
+			ctx, "Key does not support the 'deriveBits' operation");
+	}
+
+	uint32_t length_bits;
+	if (JS_ToUint32(ctx, &length_bits, argv[2])) {
+		js_free(ctx, data);
+		return JS_EXCEPTION;
+	}
+	data->length = length_bits / 8;
+
+	// Get hash from algorithm
+	JSValue hash_val = JS_GetPropertyStr(ctx, argv[0], "hash");
+	const char *hash_name;
+	JSValue hash_name_val = JS_UNDEFINED;
+	if (JS_IsString(hash_val)) {
+		hash_name = JS_ToCString(ctx, hash_val);
+	} else {
+		hash_name_val = JS_GetPropertyStr(ctx, hash_val, "name");
+		hash_name = JS_ToCString(ctx, hash_name_val);
+		JS_FreeValue(ctx, hash_name_val);
+	}
+	JS_FreeValue(ctx, hash_val);
+	if (!hash_name) {
+		js_free(ctx, data);
+		return JS_EXCEPTION;
+	}
+	strncpy(data->hash_name, hash_name, sizeof(data->hash_name) - 1);
+	JS_FreeCString(ctx, hash_name);
+
+	// Get salt
+	JSValue salt_val = JS_GetPropertyStr(ctx, argv[0], "salt");
+	data->salt = NX_GetBufferSource(ctx, &data->salt_size, salt_val);
+	JS_FreeValue(ctx, salt_val);
+
+	if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_PBKDF2) {
+		if (!data->salt) {
+			js_free(ctx, data);
+			return JS_EXCEPTION;
+		}
+		uint32_t iterations;
+		JSValue iter_val = JS_GetPropertyStr(ctx, argv[0], "iterations");
+		if (JS_ToUint32(ctx, &iterations, iter_val)) {
+			JS_FreeValue(ctx, iter_val);
+			js_free(ctx, data);
+			return JS_EXCEPTION;
+		}
+		JS_FreeValue(ctx, iter_val);
+		data->iterations = iterations;
+	} else if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_HKDF) {
+		// salt can be empty for HKDF
+		if (!data->salt) {
+			data->salt = (uint8_t *)"";
+			data->salt_size = 0;
+		}
+		JSValue info_val = JS_GetPropertyStr(ctx, argv[0], "info");
+		data->info = NX_GetBufferSource(ctx, &data->info_size, info_val);
+		JS_FreeValue(ctx, info_val);
+		if (!data->info) {
+			data->info = (uint8_t *)"";
+			data->info_size = 0;
+		}
+	}
+
+	data->algorithm_val = JS_DupValue(ctx, argv[0]);
+	data->key_val = JS_DupValue(ctx, argv[1]);
+
+	return nx_queue_async(ctx, req, nx_crypto_derive_bits_do,
+						  nx_crypto_derive_bits_cb);
+}
+
 static JSValue nx_crypto_init(JSContext *ctx, JSValueConst this_val, int argc,
 							  JSValueConst *argv) {
 	JSValue proto = JS_GetPropertyStr(ctx, argv[0], "prototype");
@@ -1417,6 +1618,7 @@ static const JSCFunctionListEntry function_list[] = {
 	JS_CFUNC_DEF("cryptoSign", 0, nx_crypto_sign),
 	JS_CFUNC_DEF("cryptoVerify", 0, nx_crypto_verify),
 	JS_CFUNC_DEF("cryptoExportKey", 0, nx_crypto_export_key),
+	JS_CFUNC_DEF("cryptoDeriveBits", 0, nx_crypto_derive_bits),
 	JS_CFUNC_DEF("sha256Hex", 0, nx_crypto_sha256_hex),
 };
 

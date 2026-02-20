@@ -196,6 +196,11 @@ export interface Init {
 		data: BufferSource,
 	): Promise<boolean>;
 	cryptoExportKey(format: string, key: CryptoKey<any>): ArrayBuffer;
+	cryptoDeriveBits(
+		algorithm: Algorithm,
+		baseKey: CryptoKey<any>,
+		length: number,
+	): Promise<ArrayBuffer>;
 	cryptoDigest(algorithm: string, buf: BufferSource): Promise<ArrayBuffer>;
 	sha256Hex(str: string): string;
 
