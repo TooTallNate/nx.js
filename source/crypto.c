@@ -4,6 +4,8 @@
 #include <errno.h>
 #include <mbedtls/gcm.h>
 #include <mbedtls/md.h>
+#include <mbedtls/pkcs5.h>
+#include <mbedtls/hkdf.h>
 #include <mbedtls/sha512.h>
 #include <mbedtls/ecdsa.h>
 #include <mbedtls/ecdh.h>
@@ -606,6 +608,12 @@ static JSValue nx_crypto_key_get_algorithm(JSContext *ctx,
 		case NX_CRYPTO_KEY_ALGORITHM_AES_XTS:
 			name_val = "AES-XTS";
 			break;
+		case NX_CRYPTO_KEY_ALGORITHM_PBKDF2:
+			name_val = "PBKDF2";
+			break;
+		case NX_CRYPTO_KEY_ALGORITHM_HKDF:
+			name_val = "HKDF";
+			break;
 		case NX_CRYPTO_KEY_ALGORITHM_AES_GCM:
 			name_val = "AES-GCM";
 			break;
@@ -938,6 +946,16 @@ static JSValue nx_crypto_key_new(JSContext *ctx, JSValueConst this_val,
 									   key_data + 0x20, false);
 			}
 		}
+	} else if (strcmp(algo, "PBKDF2") == 0) {
+		context->type = NX_CRYPTO_KEY_TYPE_SECRET;
+		context->algorithm = NX_CRYPTO_KEY_ALGORITHM_PBKDF2;
+		// PBKDF2 keys don't need a handle - raw key data is sufficient
+		context->handle = NULL;
+	} else if (strcmp(algo, "HKDF") == 0) {
+		context->type = NX_CRYPTO_KEY_TYPE_SECRET;
+		context->algorithm = NX_CRYPTO_KEY_ALGORITHM_HKDF;
+		// HKDF keys don't need a handle - raw key data is sufficient
+		context->handle = NULL;
 	} else if (strcmp(algo, "AES-GCM") == 0) {
 		if (key_size != 16 && key_size != 24 && key_size != 32) {
 			js_free(ctx, context->raw_key_data);
@@ -2092,85 +2110,161 @@ static JSValue nx_crypto_key_new_ec_private(JSContext *ctx, JSValueConst this_va
 	return obj;
 }
 
-// --- ECDH deriveBits ---
+// --- Derive Bits ---
 
 typedef struct {
 	int err;
-	JSValue base_key_val;
-	nx_crypto_key_t *base_key;
+	JSValue algorithm_val;
+	JSValue key_val;
+	nx_crypto_key_t *key;
+
+	// ECDH
 	JSValue public_key_val;
 	nx_crypto_key_t *public_key;
-	uint32_t length;  // bits
+
+	// Common
+	char hash_name[16];
+
+	// PBKDF2
+	uint8_t *salt;
+	size_t salt_size;
+	uint32_t iterations;
+
+	// HKDF
+	uint8_t *info;
+	size_t info_size;
+
+	size_t length; // output length in bytes
+
 	void *result;
 	size_t result_size;
 } nx_crypto_derive_bits_async_t;
 
 void nx_crypto_derive_bits_do(nx_work_t *req) {
-	nx_crypto_derive_bits_async_t *data = (nx_crypto_derive_bits_async_t *)req->data;
+	nx_crypto_derive_bits_async_t *data =
+		(nx_crypto_derive_bits_async_t *)req->data;
 
-	nx_crypto_key_ec_t *priv_ec = (nx_crypto_key_ec_t *)data->base_key->handle;
-	nx_crypto_key_ec_t *pub_ec = (nx_crypto_key_ec_t *)data->public_key->handle;
+	// ECDH deriveBits
+	if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_ECDH) {
+		nx_crypto_key_ec_t *priv_ec = (nx_crypto_key_ec_t *)data->key->handle;
+		nx_crypto_key_ec_t *pub_ec = (nx_crypto_key_ec_t *)data->public_key->handle;
 
-	mbedtls_mpi shared;
-	mbedtls_mpi_init(&shared);
+		mbedtls_mpi shared;
+		mbedtls_mpi_init(&shared);
 
-	mbedtls_entropy_context entropy;
-	mbedtls_ctr_drbg_context ctr_drbg;
-	mbedtls_entropy_init(&entropy);
-	mbedtls_ctr_drbg_init(&ctr_drbg);
-	int ret = mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy, NULL, 0);
-	if (ret != 0) {
+		mbedtls_entropy_context entropy;
+		mbedtls_ctr_drbg_context ctr_drbg;
+		mbedtls_entropy_init(&entropy);
+		mbedtls_ctr_drbg_init(&ctr_drbg);
+		int ret = mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy, NULL, 0);
+		if (ret != 0) {
+			mbedtls_ctr_drbg_free(&ctr_drbg);
+			mbedtls_entropy_free(&entropy);
+			mbedtls_mpi_free(&shared);
+			data->err = ret;
+			return;
+		}
+
+		ret = mbedtls_ecdh_compute_shared(&priv_ec->keypair.grp, &shared,
+										   &pub_ec->keypair.Q, &priv_ec->keypair.d,
+										   mbedtls_ctr_drbg_random, &ctr_drbg);
 		mbedtls_ctr_drbg_free(&ctr_drbg);
 		mbedtls_entropy_free(&entropy);
+
+		if (ret != 0) {
+			mbedtls_mpi_free(&shared);
+			data->err = ret;
+			return;
+		}
+
+		size_t coord_size = mbedtls_mpi_size(&priv_ec->keypair.grp.P);
+		size_t out_bytes = data->length;
+		if (out_bytes == 0) out_bytes = coord_size;
+
+		data->result = calloc(1, out_bytes);
+		if (!data->result) {
+			mbedtls_mpi_free(&shared);
+			data->err = ENOMEM;
+			return;
+		}
+
+		uint8_t *full = calloc(1, coord_size);
+		if (!full) {
+			free(data->result);
+			data->result = NULL;
+			mbedtls_mpi_free(&shared);
+			data->err = ENOMEM;
+			return;
+		}
+		mbedtls_mpi_write_binary(&shared, full, coord_size);
+		memcpy(data->result, full, out_bytes < coord_size ? out_bytes : coord_size);
+		free(full);
+		data->result_size = out_bytes;
 		mbedtls_mpi_free(&shared);
-		data->err = ret;
 		return;
 	}
 
-	ret = mbedtls_ecdh_compute_shared(&priv_ec->keypair.grp, &shared,
-									   &pub_ec->keypair.Q, &priv_ec->keypair.d,
-									   mbedtls_ctr_drbg_random, &ctr_drbg);
-	mbedtls_ctr_drbg_free(&ctr_drbg);
-	mbedtls_entropy_free(&entropy);
+	// PBKDF2 / HKDF deriveBits
+	mbedtls_md_type_t md_type = nx_crypto_get_md_type(data->hash_name);
+	if (md_type == MBEDTLS_MD_NONE) {
+		data->err = ENOTSUP;
+		return;
+	}
+
+	const mbedtls_md_info_t *md_info = mbedtls_md_info_from_type(md_type);
+	if (!md_info) {
+		data->err = ENOTSUP;
+		return;
+	}
+
+	data->result = calloc(1, data->length);
+	if (!data->result) {
+		data->err = ENOMEM;
+		return;
+	}
+	data->result_size = data->length;
+
+	int ret;
+	if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_PBKDF2) {
+		mbedtls_md_context_t md_ctx;
+		mbedtls_md_init(&md_ctx);
+		ret = mbedtls_md_setup(&md_ctx, md_info, 1);
+		if (ret != 0) {
+			mbedtls_md_free(&md_ctx);
+			free(data->result);
+			data->result = NULL;
+			data->err = ret;
+			return;
+		}
+		ret = mbedtls_pkcs5_pbkdf2_hmac(
+			&md_ctx, data->key->raw_key_data, data->key->raw_key_size,
+			data->salt, data->salt_size, data->iterations, data->length,
+			data->result);
+		mbedtls_md_free(&md_ctx);
+	} else if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_HKDF) {
+		ret = mbedtls_hkdf(md_info, data->salt, data->salt_size,
+						   data->key->raw_key_data, data->key->raw_key_size,
+						   data->info, data->info_size, data->result,
+						   data->length);
+	} else {
+		ret = ENOTSUP;
+	}
 
 	if (ret != 0) {
-		mbedtls_mpi_free(&shared);
-		data->err = ret;
-		return;
-	}
-
-	size_t coord_size = mbedtls_mpi_size(&priv_ec->keypair.grp.P);
-	size_t out_bytes = data->length / 8;
-	if (out_bytes == 0) out_bytes = coord_size;
-
-	data->result = calloc(1, out_bytes);
-	if (!data->result) {
-		mbedtls_mpi_free(&shared);
-		data->err = ENOMEM;
-		return;
-	}
-
-	// Write shared secret as big-endian, potentially truncated
-	size_t shared_size = mbedtls_mpi_size(&shared);
-	uint8_t *full = calloc(1, coord_size);
-	if (!full) {
 		free(data->result);
 		data->result = NULL;
-		mbedtls_mpi_free(&shared);
-		data->err = ENOMEM;
-		return;
+		data->err = ret;
 	}
-	mbedtls_mpi_write_binary(&shared, full, coord_size);
-	memcpy(data->result, full, out_bytes < coord_size ? out_bytes : coord_size);
-	free(full);
-	data->result_size = out_bytes;
-	mbedtls_mpi_free(&shared);
 }
 
 JSValue nx_crypto_derive_bits_cb(JSContext *ctx, nx_work_t *req) {
-	nx_crypto_derive_bits_async_t *data = (nx_crypto_derive_bits_async_t *)req->data;
-	JS_FreeValue(ctx, data->base_key_val);
-	JS_FreeValue(ctx, data->public_key_val);
+	nx_crypto_derive_bits_async_t *data =
+		(nx_crypto_derive_bits_async_t *)req->data;
+	JS_FreeValue(ctx, data->algorithm_val);
+	JS_FreeValue(ctx, data->key_val);
+	if (!JS_IsUndefined(data->public_key_val)) {
+		JS_FreeValue(ctx, data->public_key_val);
+	}
 
 	if (data->err) {
 		JSValue err = JS_NewError(ctx);
@@ -2185,40 +2279,99 @@ JSValue nx_crypto_derive_bits_cb(JSContext *ctx, nx_work_t *req) {
 }
 
 static JSValue nx_crypto_derive_bits(JSContext *ctx, JSValueConst this_val,
-									  int argc, JSValueConst *argv) {
-	// argv[0] = algorithm (has .public), argv[1] = baseKey, argv[2] = length
+									 int argc, JSValueConst *argv) {
 	NX_INIT_WORK_T(nx_crypto_derive_bits_async_t);
+	data->public_key_val = JS_UNDEFINED;
 
-	data->base_key = JS_GetOpaque2(ctx, argv[1], nx_crypto_key_class_id);
-	if (!data->base_key) {
+	data->key = JS_GetOpaque2(ctx, argv[1], nx_crypto_key_class_id);
+	if (!data->key) {
 		js_free(ctx, data);
-		free(req);
 		return JS_EXCEPTION;
 	}
 
-	if (!(data->base_key->usages & NX_CRYPTO_KEY_USAGE_DERIVE_BITS)) {
+	if (!(data->key->usages & NX_CRYPTO_KEY_USAGE_DERIVE_BITS)) {
 		js_free(ctx, data);
-		free(req);
-		return JS_ThrowTypeError(ctx, "Key does not support 'deriveBits'");
+		return JS_ThrowTypeError(
+			ctx, "Key does not support the 'deriveBits' operation");
 	}
 
-	JSValue pub_val = JS_GetPropertyStr(ctx, argv[0], "public");
-	data->public_key = JS_GetOpaque2(ctx, pub_val, nx_crypto_key_class_id);
-	JS_FreeValue(ctx, pub_val);
-	if (!data->public_key) {
+	uint32_t length_bits;
+	if (JS_ToUint32(ctx, &length_bits, argv[2])) {
 		js_free(ctx, data);
-		free(req);
-		return JS_ThrowTypeError(ctx, "Missing public key in algorithm");
+		return JS_EXCEPTION;
+	}
+	data->length = length_bits / 8;
+
+	if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_ECDH) {
+		// ECDH: get the public key from algorithm.public
+		JSValue pub_val = JS_GetPropertyStr(ctx, argv[0], "public");
+		data->public_key = JS_GetOpaque2(ctx, pub_val, nx_crypto_key_class_id);
+		if (!data->public_key) {
+			JS_FreeValue(ctx, pub_val);
+			js_free(ctx, data);
+			return JS_ThrowTypeError(ctx, "Missing public key in algorithm");
+		}
+		data->public_key_val = JS_DupValue(ctx, pub_val);
+		JS_FreeValue(ctx, pub_val);
+	} else {
+		// PBKDF2 / HKDF: get hash from algorithm
+		JSValue hash_val = JS_GetPropertyStr(ctx, argv[0], "hash");
+		const char *hash_name;
+		JSValue hash_name_val = JS_UNDEFINED;
+		if (JS_IsString(hash_val)) {
+			hash_name = JS_ToCString(ctx, hash_val);
+		} else {
+			hash_name_val = JS_GetPropertyStr(ctx, hash_val, "name");
+			hash_name = JS_ToCString(ctx, hash_name_val);
+			JS_FreeValue(ctx, hash_name_val);
+		}
+		JS_FreeValue(ctx, hash_val);
+		if (!hash_name) {
+			js_free(ctx, data);
+			return JS_EXCEPTION;
+		}
+		strncpy(data->hash_name, hash_name, sizeof(data->hash_name) - 1);
+		JS_FreeCString(ctx, hash_name);
+
+		// Get salt
+		JSValue salt_val = JS_GetPropertyStr(ctx, argv[0], "salt");
+		data->salt = NX_GetBufferSource(ctx, &data->salt_size, salt_val);
+		JS_FreeValue(ctx, salt_val);
+
+		if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_PBKDF2) {
+			if (!data->salt) {
+				js_free(ctx, data);
+				return JS_EXCEPTION;
+			}
+			uint32_t iterations;
+			JSValue iter_val = JS_GetPropertyStr(ctx, argv[0], "iterations");
+			if (JS_ToUint32(ctx, &iterations, iter_val)) {
+				JS_FreeValue(ctx, iter_val);
+				js_free(ctx, data);
+				return JS_EXCEPTION;
+			}
+			JS_FreeValue(ctx, iter_val);
+			data->iterations = iterations;
+		} else if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_HKDF) {
+			if (!data->salt) {
+				data->salt = (uint8_t *)"";
+				data->salt_size = 0;
+			}
+			JSValue info_val = JS_GetPropertyStr(ctx, argv[0], "info");
+			data->info = NX_GetBufferSource(ctx, &data->info_size, info_val);
+			JS_FreeValue(ctx, info_val);
+			if (!data->info) {
+				data->info = (uint8_t *)"";
+				data->info_size = 0;
+			}
+		}
 	}
 
-	uint32_t length;
-	JS_ToUint32(ctx, &length, argv[2]);
-	data->length = length;
+	data->algorithm_val = JS_DupValue(ctx, argv[0]);
+	data->key_val = JS_DupValue(ctx, argv[1]);
 
-	data->base_key_val = JS_DupValue(ctx, argv[1]);
-	data->public_key_val = JS_DupValue(ctx, JS_GetPropertyStr(ctx, argv[0], "public"));
-
-	return nx_queue_async(ctx, req, nx_crypto_derive_bits_do, nx_crypto_derive_bits_cb);
+	return nx_queue_async(ctx, req, nx_crypto_derive_bits_do,
+						  nx_crypto_derive_bits_cb);
 }
 
 static JSValue nx_crypto_init(JSContext *ctx, JSValueConst this_val, int argc,
