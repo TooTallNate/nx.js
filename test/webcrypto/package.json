@@ -1,0 +1,15 @@
+{
+  "name": "@nxjs/webcrypto-test",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j$(nproc)",
+    "test:webcrypto": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "vitest": "^3.0.0",
+    "playwright": "^1.50.0",
+    "@types/node": "^22.0.0"
+  }
+}

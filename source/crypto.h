@@ -12,7 +12,8 @@ typedef enum {
 	NX_CRYPTO_KEY_ALGORITHM_UNKNOWN,
 	NX_CRYPTO_KEY_ALGORITHM_AES_CBC,
 	NX_CRYPTO_KEY_ALGORITHM_AES_CTR,
-	NX_CRYPTO_KEY_ALGORITHM_AES_XTS
+	NX_CRYPTO_KEY_ALGORITHM_AES_XTS,
+	NX_CRYPTO_KEY_ALGORITHM_HMAC
 } nx_crypto_key_algorithm;
 
 typedef enum {
@@ -34,7 +35,15 @@ typedef struct {
 	nx_crypto_key_usage usages;
 	JSValue usages_cached;
 	void *handle;
+	uint8_t *raw_key_data;  // Raw key material (for exportKey)
+	size_t raw_key_size;     // Size of raw key data
 } nx_crypto_key_t;
+
+typedef struct {
+	uint8_t *key;
+	size_t key_length;
+	char hash_name[16];  // "SHA-256", etc.
+} nx_crypto_key_hmac_t;
 
 typedef struct {
 	u8 key_length; /* 16 (128-bit), 24 (192-bit), 32 (256-bit), etc. */

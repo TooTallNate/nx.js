@@ -2,6 +2,7 @@
 #include "async.h"
 #include "util.h"
 #include <errno.h>
+#include <mbedtls/md.h>
 #include <mbedtls/sha512.h>
 #include <string.h>
 #include <switch.h>
@@ -85,8 +86,17 @@ static void finalizer_crypto_key(JSRuntime *rt, JSValue val) {
 	if (context) {
 		JS_FreeValueRT(rt, context->algorithm_cached);
 		JS_FreeValueRT(rt, context->usages_cached);
+		if (context->algorithm == NX_CRYPTO_KEY_ALGORITHM_HMAC) {
+			nx_crypto_key_hmac_t *hmac = context->handle;
+			if (hmac && hmac->key) {
+				js_free_rt(rt, hmac->key);
+			}
+		}
 		if (context->handle) {
 			js_free_rt(rt, context->handle);
+		}
+		if (context->raw_key_data) {
+			js_free_rt(rt, context->raw_key_data);
 		}
 		js_free_rt(rt, context);
 	}
@@ -447,12 +457,16 @@ static JSValue nx_crypto_key_get_type(JSContext *ctx, JSValueConst this_val,
 	switch (context->type) {
 	case NX_CRYPTO_KEY_TYPE_UNKNOWN:
 		type = "unknown";
+		break;
 	case NX_CRYPTO_KEY_TYPE_PRIVATE:
 		type = "private";
+		break;
 	case NX_CRYPTO_KEY_TYPE_PUBLIC:
 		type = "public";
+		break;
 	case NX_CRYPTO_KEY_TYPE_SECRET:
 		type = "secret";
+		break;
 	}
 	return JS_NewString(ctx, type);
 }
@@ -490,6 +504,17 @@ static JSValue nx_crypto_key_get_algorithm(JSContext *ctx,
 		case NX_CRYPTO_KEY_ALGORITHM_AES_XTS:
 			name_val = "AES-XTS";
 			break;
+		case NX_CRYPTO_KEY_ALGORITHM_HMAC: {
+			name_val = "HMAC";
+			nx_crypto_key_hmac_t *hmac = (nx_crypto_key_hmac_t *)context->handle;
+			JSValue hash_obj = JS_NewObject(ctx);
+			JS_SetPropertyStr(ctx, hash_obj, "name",
+							  JS_NewString(ctx, hmac->hash_name));
+			JS_SetPropertyStr(ctx, obj, "hash", hash_obj);
+			JS_SetPropertyStr(ctx, obj, "length",
+							  JS_NewUint32(ctx, hmac->key_length * 8));
+			break;
+		}
 		default:
 			// TODO: throw error?
 			break;
@@ -636,10 +661,23 @@ static JSValue nx_crypto_key_new(JSContext *ctx, JSValueConst this_val,
 		return JS_EXCEPTION;
 	}
 
+	// Store raw key data for exportKey support
+	context->raw_key_data = js_malloc(ctx, key_size);
+	if (!context->raw_key_data) {
+		js_free(ctx, context);
+		JS_FreeValue(ctx, algo_val);
+		JS_FreeCString(ctx, algo);
+		return JS_EXCEPTION;
+	}
+	memcpy(context->raw_key_data, key_data, key_size);
+	context->raw_key_size = key_size;
+
 	if (strcmp(algo, "AES-CBC") == 0) {
 		if (key_size != 16 && key_size != 24 && key_size != 32) {
+			js_free(ctx, context->raw_key_data);
 			js_free(ctx, context);
 			JS_FreeCString(ctx, algo);
+			JS_FreeValue(ctx, algo_val);
 			JS_ThrowPlainError(ctx, "Invalid key length");
 			return JS_EXCEPTION;
 		}
@@ -648,8 +686,10 @@ static JSValue nx_crypto_key_new(JSContext *ctx, JSValueConst this_val,
 
 		nx_crypto_key_aes_t *aes = js_mallocz(ctx, sizeof(nx_crypto_key_aes_t));
 		if (!aes) {
+			js_free(ctx, context->raw_key_data);
 			js_free(ctx, context);
 			JS_FreeCString(ctx, algo);
+			JS_FreeValue(ctx, algo_val);
 			return JS_EXCEPTION;
 		}
 		context->handle = aes;
@@ -685,8 +725,10 @@ static JSValue nx_crypto_key_new(JSContext *ctx, JSValueConst this_val,
 		}
 	} else if (strcmp(algo, "AES-CTR") == 0) {
 		if (key_size != 16 && key_size != 24 && key_size != 32) {
+			js_free(ctx, context->raw_key_data);
 			js_free(ctx, context);
 			JS_FreeCString(ctx, algo);
+			JS_FreeValue(ctx, algo_val);
 			JS_ThrowPlainError(ctx, "Invalid key length");
 			return JS_EXCEPTION;
 		}
@@ -695,8 +737,10 @@ static JSValue nx_crypto_key_new(JSContext *ctx, JSValueConst this_val,
 
 		nx_crypto_key_aes_t *aes = js_mallocz(ctx, sizeof(nx_crypto_key_aes_t));
 		if (!aes) {
+			js_free(ctx, context->raw_key_data);
 			js_free(ctx, context);
 			JS_FreeCString(ctx, algo);
+			JS_FreeValue(ctx, algo_val);
 			return JS_EXCEPTION;
 		}
 		context->handle = aes;
@@ -723,8 +767,10 @@ static JSValue nx_crypto_key_new(JSContext *ctx, JSValueConst this_val,
 		}
 	} else if (strcmp(algo, "AES-XTS") == 0) {
 		if (key_size != 32 && key_size != 48 && key_size != 64) {
+			js_free(ctx, context->raw_key_data);
 			js_free(ctx, context);
 			JS_FreeCString(ctx, algo);
+			JS_FreeValue(ctx, algo_val);
 			JS_ThrowPlainError(ctx, "Invalid key length");
 			return JS_EXCEPTION;
 		}
@@ -733,8 +779,10 @@ static JSValue nx_crypto_key_new(JSContext *ctx, JSValueConst this_val,
 
 		nx_crypto_key_aes_t *aes = js_mallocz(ctx, sizeof(nx_crypto_key_aes_t));
 		if (!aes) {
+			js_free(ctx, context->raw_key_data);
 			js_free(ctx, context);
 			JS_FreeCString(ctx, algo);
+			JS_FreeValue(ctx, algo_val);
 			return JS_EXCEPTION;
 		}
 		context->handle = aes;
@@ -768,19 +816,81 @@ static JSValue nx_crypto_key_new(JSContext *ctx, JSValueConst this_val,
 									   key_data + 0x20, false);
 			}
 		}
+	} else if (strcmp(algo, "HMAC") == 0) {
+		context->type = NX_CRYPTO_KEY_TYPE_SECRET;
+		context->algorithm = NX_CRYPTO_KEY_ALGORITHM_HMAC;
+
+		// Get the hash algorithm from the algorithm object
+		JSValue hash_val = JS_GetPropertyStr(ctx, argv[0], "hash");
+		const char *hash_name;
+		JSValue hash_name_val = JS_UNDEFINED;
+		if (JS_IsString(hash_val)) {
+			hash_name = JS_ToCString(ctx, hash_val);
+		} else {
+			hash_name_val = JS_GetPropertyStr(ctx, hash_val, "name");
+			hash_name = JS_ToCString(ctx, hash_name_val);
+			JS_FreeValue(ctx, hash_name_val);
+		}
+		JS_FreeValue(ctx, hash_val);
+
+		if (!hash_name) {
+			js_free(ctx, context->raw_key_data);
+			js_free(ctx, context);
+			JS_FreeValue(ctx, algo_val);
+			JS_FreeCString(ctx, algo);
+			return JS_EXCEPTION;
+		}
+
+		nx_crypto_key_hmac_t *hmac = js_mallocz(ctx, sizeof(nx_crypto_key_hmac_t));
+		if (!hmac) {
+			JS_FreeCString(ctx, hash_name);
+			js_free(ctx, context->raw_key_data);
+			js_free(ctx, context);
+			JS_FreeValue(ctx, algo_val);
+			JS_FreeCString(ctx, algo);
+			return JS_EXCEPTION;
+		}
+		hmac->key = js_malloc(ctx, key_size);
+		if (!hmac->key) {
+			JS_FreeCString(ctx, hash_name);
+			js_free(ctx, hmac);
+			js_free(ctx, context->raw_key_data);
+			js_free(ctx, context);
+			JS_FreeValue(ctx, algo_val);
+			JS_FreeCString(ctx, algo);
+			return JS_EXCEPTION;
+		}
+		memcpy(hmac->key, key_data, key_size);
+		hmac->key_length = key_size;
+		strncpy(hmac->hash_name, hash_name, sizeof(hmac->hash_name) - 1);
+		JS_FreeCString(ctx, hash_name);
+
+		context->handle = hmac;
 	} else {
 		JS_ThrowTypeError(ctx, "Unrecognized algorithm name: \"%s\"", algo);
+		js_free(ctx, context->raw_key_data);
 		js_free(ctx, context);
+		JS_FreeValue(ctx, algo_val);
 		JS_FreeCString(ctx, algo);
 		return JS_EXCEPTION;
 	}
 
+	JS_FreeValue(ctx, algo_val);
 	JS_FreeCString(ctx, algo);
 
 	JSValue obj = JS_NewObjectClass(ctx, nx_crypto_key_class_id);
 	if (JS_IsException(obj)) {
+		if (context->algorithm == NX_CRYPTO_KEY_ALGORITHM_HMAC) {
+			nx_crypto_key_hmac_t *hmac = context->handle;
+			if (hmac && hmac->key) {
+				js_free(ctx, hmac->key);
+			}
+		}
 		if (context->handle) {
 			js_free(ctx, context->handle);
+		}
+		if (context->raw_key_data) {
+			js_free(ctx, context->raw_key_data);
 		}
 		js_free(ctx, context);
 		return obj;
@@ -1023,6 +1133,264 @@ static JSValue nx_crypto_subtle_decrypt(JSContext *ctx, JSValueConst this_val,
 	return nx_queue_async(ctx, req, nx_crypto_decrypt_do, nx_crypto_decrypt_cb);
 }
 
+// --- HMAC Sign ---
+
+typedef struct {
+	int err;
+	JSValue algorithm_val;
+	JSValue key_val;
+	nx_crypto_key_t *key;
+	JSValue data_val;
+	void *data;
+	size_t data_size;
+	void *result;
+	size_t result_size;
+} nx_crypto_sign_async_t;
+
+static mbedtls_md_type_t nx_crypto_get_md_type(const char *hash_name) {
+	if (strcasecmp(hash_name, "SHA-1") == 0)
+		return MBEDTLS_MD_SHA1;
+	else if (strcasecmp(hash_name, "SHA-256") == 0)
+		return MBEDTLS_MD_SHA256;
+	else if (strcasecmp(hash_name, "SHA-384") == 0)
+		return MBEDTLS_MD_SHA384;
+	else if (strcasecmp(hash_name, "SHA-512") == 0)
+		return MBEDTLS_MD_SHA512;
+	return MBEDTLS_MD_NONE;
+}
+
+void nx_crypto_sign_do(nx_work_t *req) {
+	nx_crypto_sign_async_t *data = (nx_crypto_sign_async_t *)req->data;
+
+	if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_HMAC) {
+		nx_crypto_key_hmac_t *hmac = (nx_crypto_key_hmac_t *)data->key->handle;
+
+		mbedtls_md_type_t md_type = nx_crypto_get_md_type(hmac->hash_name);
+		if (md_type == MBEDTLS_MD_NONE) {
+			data->err = ENOTSUP;
+			return;
+		}
+
+		const mbedtls_md_info_t *md_info = mbedtls_md_info_from_type(md_type);
+		data->result_size = mbedtls_md_get_size(md_info);
+		data->result = calloc(1, data->result_size);
+		if (!data->result) {
+			data->err = ENOMEM;
+			return;
+		}
+
+		int ret = mbedtls_md_hmac(md_info, hmac->key, hmac->key_length,
+								  data->data, data->data_size, data->result);
+		if (ret != 0) {
+			free(data->result);
+			data->result = NULL;
+			data->err = ret;
+		}
+	} else {
+		data->err = ENOTSUP;
+	}
+}
+
+JSValue nx_crypto_sign_cb(JSContext *ctx, nx_work_t *req) {
+	nx_crypto_sign_async_t *data = (nx_crypto_sign_async_t *)req->data;
+	JS_FreeValue(ctx, data->algorithm_val);
+	JS_FreeValue(ctx, data->key_val);
+	JS_FreeValue(ctx, data->data_val);
+
+	if (data->err) {
+		JSValue err = JS_NewError(ctx);
+		JS_DefinePropertyValueStr(ctx, err, "message",
+								  JS_NewString(ctx, strerror(data->err)),
+								  JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+		return JS_Throw(ctx, err);
+	}
+
+	return JS_NewArrayBuffer(ctx, data->result, data->result_size,
+							 free_array_buffer, NULL, false);
+}
+
+static JSValue nx_crypto_sign(JSContext *ctx, JSValueConst this_val, int argc,
+							  JSValueConst *argv) {
+	NX_INIT_WORK_T(nx_crypto_sign_async_t);
+
+	data->key = JS_GetOpaque2(ctx, argv[1], nx_crypto_key_class_id);
+	if (!data->key) {
+		js_free(ctx, data);
+		free(req);
+		return JS_EXCEPTION;
+	}
+
+	if (!(data->key->usages & NX_CRYPTO_KEY_USAGE_SIGN)) {
+		js_free(ctx, data);
+		free(req);
+		return JS_ThrowTypeError(ctx,
+								 "Key does not support the 'sign' operation");
+	}
+
+	data->data = NX_GetBufferSource(ctx, &data->data_size, argv[2]);
+	if (!data->data) {
+		js_free(ctx, data);
+		free(req);
+		return JS_EXCEPTION;
+	}
+
+	data->algorithm_val = JS_DupValue(ctx, argv[0]);
+	data->key_val = JS_DupValue(ctx, argv[1]);
+	data->data_val = JS_DupValue(ctx, argv[2]);
+
+	return nx_queue_async(ctx, req, nx_crypto_sign_do, nx_crypto_sign_cb);
+}
+
+// --- HMAC Verify ---
+
+typedef struct {
+	int err;
+	JSValue algorithm_val;
+	JSValue key_val;
+	nx_crypto_key_t *key;
+	JSValue signature_val;
+	void *signature;
+	size_t signature_size;
+	JSValue data_val;
+	void *data;
+	size_t data_size;
+	bool result;
+} nx_crypto_verify_async_t;
+
+void nx_crypto_verify_do(nx_work_t *req) {
+	nx_crypto_verify_async_t *data = (nx_crypto_verify_async_t *)req->data;
+
+	if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_HMAC) {
+		nx_crypto_key_hmac_t *hmac = (nx_crypto_key_hmac_t *)data->key->handle;
+
+		mbedtls_md_type_t md_type = nx_crypto_get_md_type(hmac->hash_name);
+		if (md_type == MBEDTLS_MD_NONE) {
+			data->err = ENOTSUP;
+			return;
+		}
+
+		const mbedtls_md_info_t *md_info = mbedtls_md_info_from_type(md_type);
+		size_t mac_size = mbedtls_md_get_size(md_info);
+		uint8_t *computed = calloc(1, mac_size);
+		if (!computed) {
+			data->err = ENOMEM;
+			return;
+		}
+
+		int ret = mbedtls_md_hmac(md_info, hmac->key, hmac->key_length,
+								  data->data, data->data_size, computed);
+		if (ret != 0) {
+			free(computed);
+			data->err = ret;
+			return;
+		}
+
+		data->result = (data->signature_size == mac_size &&
+						memcmp(computed, data->signature, mac_size) == 0);
+		free(computed);
+	} else {
+		data->err = ENOTSUP;
+	}
+}
+
+JSValue nx_crypto_verify_cb(JSContext *ctx, nx_work_t *req) {
+	nx_crypto_verify_async_t *data = (nx_crypto_verify_async_t *)req->data;
+	JS_FreeValue(ctx, data->algorithm_val);
+	JS_FreeValue(ctx, data->key_val);
+	JS_FreeValue(ctx, data->signature_val);
+	JS_FreeValue(ctx, data->data_val);
+
+	if (data->err) {
+		JSValue err = JS_NewError(ctx);
+		JS_DefinePropertyValueStr(ctx, err, "message",
+								  JS_NewString(ctx, strerror(data->err)),
+								  JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+		return JS_Throw(ctx, err);
+	}
+
+	return JS_NewBool(ctx, data->result);
+}
+
+static JSValue nx_crypto_verify(JSContext *ctx, JSValueConst this_val, int argc,
+								JSValueConst *argv) {
+	NX_INIT_WORK_T(nx_crypto_verify_async_t);
+
+	data->key = JS_GetOpaque2(ctx, argv[1], nx_crypto_key_class_id);
+	if (!data->key) {
+		js_free(ctx, data);
+		free(req);
+		return JS_EXCEPTION;
+	}
+
+	if (!(data->key->usages & NX_CRYPTO_KEY_USAGE_VERIFY)) {
+		js_free(ctx, data);
+		free(req);
+		return JS_ThrowTypeError(
+			ctx, "Key does not support the 'verify' operation");
+	}
+
+	data->signature = NX_GetBufferSource(ctx, &data->signature_size, argv[2]);
+	if (!data->signature) {
+		js_free(ctx, data);
+		free(req);
+		return JS_EXCEPTION;
+	}
+
+	data->data = NX_GetBufferSource(ctx, &data->data_size, argv[3]);
+	if (!data->data) {
+		js_free(ctx, data);
+		free(req);
+		return JS_EXCEPTION;
+	}
+
+	data->algorithm_val = JS_DupValue(ctx, argv[0]);
+	data->key_val = JS_DupValue(ctx, argv[1]);
+	data->signature_val = JS_DupValue(ctx, argv[2]);
+	data->data_val = JS_DupValue(ctx, argv[3]);
+
+	return nx_queue_async(ctx, req, nx_crypto_verify_do, nx_crypto_verify_cb);
+}
+
+// --- Export Key ---
+
+static JSValue nx_crypto_export_key(JSContext *ctx, JSValueConst this_val,
+									int argc, JSValueConst *argv) {
+	const char *format = JS_ToCString(ctx, argv[0]);
+	if (!format) {
+		return JS_EXCEPTION;
+	}
+
+	nx_crypto_key_t *key = JS_GetOpaque2(ctx, argv[1], nx_crypto_key_class_id);
+	if (!key) {
+		JS_FreeCString(ctx, format);
+		return JS_EXCEPTION;
+	}
+
+	if (strcmp(format, "raw") != 0) {
+		JS_FreeCString(ctx, format);
+		return JS_ThrowTypeError(ctx,
+								 "Only 'raw' export format is supported");
+	}
+	JS_FreeCString(ctx, format);
+
+	if (!key->extractable) {
+		return JS_ThrowTypeError(ctx, "Key is not extractable");
+	}
+
+	if (!key->raw_key_data || key->raw_key_size == 0) {
+		return JS_ThrowTypeError(ctx, "Key does not have raw material");
+	}
+
+	// Return a copy of the raw key data
+	uint8_t *copy = js_malloc(ctx, key->raw_key_size);
+	if (!copy) {
+		return JS_EXCEPTION;
+	}
+	memcpy(copy, key->raw_key_data, key->raw_key_size);
+	return JS_NewArrayBuffer(ctx, copy, key->raw_key_size, free_array_buffer,
+							 NULL, false);
+}
+
 static JSValue nx_crypto_init(JSContext *ctx, JSValueConst this_val, int argc,
 							  JSValueConst *argv) {
 	JSValue proto = JS_GetPropertyStr(ctx, argv[0], "prototype");
@@ -1046,6 +1414,9 @@ static const JSCFunctionListEntry function_list[] = {
 	JS_CFUNC_DEF("cryptoSubtleInit", 1, nx_crypto_subtle_init),
 	JS_CFUNC_DEF("cryptoDigest", 0, nx_crypto_digest),
 	JS_CFUNC_DEF("cryptoEncrypt", 0, nx_crypto_encrypt),
+	JS_CFUNC_DEF("cryptoSign", 0, nx_crypto_sign),
+	JS_CFUNC_DEF("cryptoVerify", 0, nx_crypto_verify),
+	JS_CFUNC_DEF("cryptoExportKey", 0, nx_crypto_export_key),
 	JS_CFUNC_DEF("sha256Hex", 0, nx_crypto_sha256_hex),
 };
 

@@ -184,6 +184,18 @@ export interface Init {
 		key: CryptoKey<any>,
 		data: BufferSource,
 	): Promise<ArrayBuffer>;
+	cryptoSign(
+		algorithm: Algorithm,
+		key: CryptoKey<any>,
+		data: BufferSource,
+	): Promise<ArrayBuffer>;
+	cryptoVerify(
+		algorithm: Algorithm,
+		key: CryptoKey<any>,
+		signature: BufferSource,
+		data: BufferSource,
+	): Promise<boolean>;
+	cryptoExportKey(format: string, key: CryptoKey<any>): ArrayBuffer;
 	cryptoDigest(algorithm: string, buf: BufferSource): Promise<ArrayBuffer>;
 	sha256Hex(str: string): string;
 

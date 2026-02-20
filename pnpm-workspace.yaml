@@ -5,3 +5,4 @@ packages:
   - "test/canvas"
   - "test/wasm"
   - "test/compression"
+  - "test/webcrypto"
