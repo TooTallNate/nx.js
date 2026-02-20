@@ -2,6 +2,7 @@
 #include "async.h"
 #include "util.h"
 #include <errno.h>
+#include <mbedtls/gcm.h>
 #include <mbedtls/md.h>
 #include <mbedtls/pkcs5.h>
 #include <mbedtls/hkdf.h>
@@ -51,6 +52,14 @@ typedef struct {
 	size_t sector_size;
 	bool is_nintendo;
 } nx_crypto_aes_xts_params_t;
+
+typedef struct {
+	u8 *iv;
+	size_t iv_size;
+	u8 *additional_data;
+	size_t additional_data_size;
+	size_t tag_length; // in bytes (default 16 = 128 bits)
+} nx_crypto_aes_gcm_params_t;
 
 enum nx_crypto_algorithm {
 	NX_CRYPTO_SHA1,
@@ -241,6 +250,45 @@ void nx_crypto_encrypt_do(nx_work_t *req) {
 			aes256CtrCrypt(&aes->decrypt.ctr_256, data->result, data->data,
 						   data->result_size);
 		}
+	} else if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_AES_GCM) {
+		nx_crypto_aes_gcm_params_t *gcm_params =
+			(nx_crypto_aes_gcm_params_t *)data->algorithm_params;
+
+		size_t tag_len = gcm_params->tag_length;
+		data->result_size = data->data_size + tag_len;
+		data->result = malloc(data->result_size);
+		if (!data->result) {
+			data->err = ENOMEM;
+			return;
+		}
+
+		mbedtls_gcm_context gcm;
+		mbedtls_gcm_init(&gcm);
+		int ret = mbedtls_gcm_setkey(&gcm, MBEDTLS_CIPHER_ID_AES,
+									 data->key->raw_key_data,
+									 data->key->raw_key_size * 8);
+		if (ret != 0) {
+			mbedtls_gcm_free(&gcm);
+			free(data->result);
+			data->result = NULL;
+			data->err = ENOTSUP;
+			return;
+		}
+
+		ret = mbedtls_gcm_crypt_and_tag(
+			&gcm, MBEDTLS_GCM_ENCRYPT, data->data_size,
+			gcm_params->iv, gcm_params->iv_size,
+			gcm_params->additional_data, gcm_params->additional_data_size,
+			data->data, data->result,
+			tag_len, (unsigned char *)data->result + data->data_size);
+		mbedtls_gcm_free(&gcm);
+
+		if (ret != 0) {
+			free(data->result);
+			data->result = NULL;
+			data->err = ENOTSUP;
+			return;
+		}
 	} else if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_AES_XTS) {
 		nx_crypto_key_aes_t *aes = (nx_crypto_key_aes_t *)data->key->handle;
 		nx_crypto_aes_xts_params_t *xts_params =
@@ -372,6 +420,47 @@ static JSValue nx_crypto_encrypt(JSContext *ctx, JSValueConst this_val,
 		}
 
 		data->algorithm_params = ctr_params;
+	} else if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_AES_GCM) {
+		nx_crypto_aes_gcm_params_t *gcm_params =
+			js_mallocz(ctx, sizeof(nx_crypto_aes_gcm_params_t));
+		if (!gcm_params) {
+			js_free(ctx, data);
+			return JS_EXCEPTION;
+		}
+
+		gcm_params->iv = NX_GetBufferSource(
+			ctx, &gcm_params->iv_size, JS_GetPropertyStr(ctx, argv[0], "iv"));
+		if (!gcm_params->iv) {
+			js_free(ctx, data);
+			js_free(ctx, gcm_params);
+			return JS_EXCEPTION;
+		}
+
+		// additionalData is optional
+		JSValue ad_val = JS_GetPropertyStr(ctx, argv[0], "additionalData");
+		if (!JS_IsUndefined(ad_val) && !JS_IsNull(ad_val)) {
+			gcm_params->additional_data = NX_GetBufferSource(
+				ctx, &gcm_params->additional_data_size, ad_val);
+		} else {
+			gcm_params->additional_data = NULL;
+			gcm_params->additional_data_size = 0;
+		}
+
+		// tagLength is optional, defaults to 128 bits
+		JSValue tag_val = JS_GetPropertyStr(ctx, argv[0], "tagLength");
+		if (!JS_IsUndefined(tag_val) && !JS_IsNull(tag_val)) {
+			u32 tag_bits;
+			if (JS_ToUint32(ctx, &tag_bits, tag_val)) {
+				js_free(ctx, data);
+				js_free(ctx, gcm_params);
+				return JS_EXCEPTION;
+			}
+			gcm_params->tag_length = tag_bits / 8;
+		} else {
+			gcm_params->tag_length = 16; // 128 bits default
+		}
+
+		data->algorithm_params = gcm_params;
 	} else if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_AES_XTS) {
 		nx_crypto_aes_xts_params_t *xts_params =
 			js_mallocz(ctx, sizeof(nx_crypto_aes_xts_params_t));
@@ -512,6 +601,9 @@ static JSValue nx_crypto_key_get_algorithm(JSContext *ctx,
 		case NX_CRYPTO_KEY_ALGORITHM_HKDF:
 			name_val = "HKDF";
 			break;
+		case NX_CRYPTO_KEY_ALGORITHM_AES_GCM:
+			name_val = "AES-GCM";
+			break;
 		case NX_CRYPTO_KEY_ALGORITHM_HMAC: {
 			name_val = "HMAC";
 			nx_crypto_key_hmac_t *hmac = (nx_crypto_key_hmac_t *)context->handle;
@@ -535,6 +627,9 @@ static JSValue nx_crypto_key_get_algorithm(JSContext *ctx,
 			nx_crypto_key_aes_t *aes = (nx_crypto_key_aes_t *)context->handle;
 			JS_SetPropertyStr(ctx, obj, "length",
 							  JS_NewUint32(ctx, aes->key_length * 8));
+		} else if (context->algorithm == NX_CRYPTO_KEY_ALGORITHM_AES_GCM) {
+			JS_SetPropertyStr(ctx, obj, "length",
+							  JS_NewUint32(ctx, context->raw_key_size * 8));
 		}
 		context->algorithm_cached = obj;
 	}
@@ -834,6 +929,19 @@ static JSValue nx_crypto_key_new(JSContext *ctx, JSValueConst this_val,
 		context->algorithm = NX_CRYPTO_KEY_ALGORITHM_HKDF;
 		// HKDF keys don't need a handle - raw key data is sufficient
 		context->handle = NULL;
+	} else if (strcmp(algo, "AES-GCM") == 0) {
+		if (key_size != 16 && key_size != 24 && key_size != 32) {
+			js_free(ctx, context->raw_key_data);
+			js_free(ctx, context);
+			JS_FreeCString(ctx, algo);
+			JS_FreeValue(ctx, algo_val);
+			JS_ThrowPlainError(ctx, "Invalid key length");
+			return JS_EXCEPTION;
+		}
+		context->type = NX_CRYPTO_KEY_TYPE_SECRET;
+		context->algorithm = NX_CRYPTO_KEY_ALGORITHM_AES_GCM;
+		// AES-GCM uses mbedtls directly, no libnx handle needed
+		// raw_key_data is already stored above
 	} else if (strcmp(algo, "HMAC") == 0) {
 		context->type = NX_CRYPTO_KEY_TYPE_SECRET;
 		context->algorithm = NX_CRYPTO_KEY_ALGORITHM_HMAC;
@@ -985,6 +1093,52 @@ void nx_crypto_decrypt_do(nx_work_t *req) {
 			aes256CtrCrypt(&aes->decrypt.ctr_256, data->result, data->data,
 						   data->result_size);
 		}
+	} else if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_AES_GCM) {
+		nx_crypto_aes_gcm_params_t *gcm_params =
+			(nx_crypto_aes_gcm_params_t *)data->algorithm_params;
+
+		size_t tag_len = gcm_params->tag_length;
+		if (data->data_size < tag_len) {
+			data->err = EINVAL;
+			return;
+		}
+
+		size_t ciphertext_size = data->data_size - tag_len;
+		data->result_size = ciphertext_size;
+		data->result = malloc(data->result_size);
+		if (!data->result) {
+			data->err = ENOMEM;
+			return;
+		}
+
+		mbedtls_gcm_context gcm;
+		mbedtls_gcm_init(&gcm);
+		int ret = mbedtls_gcm_setkey(&gcm, MBEDTLS_CIPHER_ID_AES,
+									 data->key->raw_key_data,
+									 data->key->raw_key_size * 8);
+		if (ret != 0) {
+			mbedtls_gcm_free(&gcm);
+			free(data->result);
+			data->result = NULL;
+			data->err = ENOTSUP;
+			return;
+		}
+
+		ret = mbedtls_gcm_auth_decrypt(
+			&gcm, ciphertext_size,
+			gcm_params->iv, gcm_params->iv_size,
+			gcm_params->additional_data, gcm_params->additional_data_size,
+			(const unsigned char *)data->data + ciphertext_size, tag_len,
+			data->data, data->result);
+		mbedtls_gcm_free(&gcm);
+
+		if (ret != 0) {
+			free(data->result);
+			data->result = NULL;
+			// Auth tag verification failed — OperationError
+			data->err = EACCES;
+			return;
+		}
 	} else if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_AES_XTS) {
 		nx_crypto_key_aes_t *aes = (nx_crypto_key_aes_t *)data->key->handle;
 		nx_crypto_aes_xts_params_t *xts_params =
@@ -1115,6 +1269,45 @@ static JSValue nx_crypto_subtle_decrypt(JSContext *ctx, JSValueConst this_val,
 		}
 
 		data->algorithm_params = ctr_params;
+	} else if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_AES_GCM) {
+		nx_crypto_aes_gcm_params_t *gcm_params =
+			js_mallocz(ctx, sizeof(nx_crypto_aes_gcm_params_t));
+		if (!gcm_params) {
+			js_free(ctx, data);
+			return JS_EXCEPTION;
+		}
+
+		gcm_params->iv = NX_GetBufferSource(
+			ctx, &gcm_params->iv_size, JS_GetPropertyStr(ctx, argv[0], "iv"));
+		if (!gcm_params->iv) {
+			js_free(ctx, data);
+			js_free(ctx, gcm_params);
+			return JS_EXCEPTION;
+		}
+
+		JSValue ad_val = JS_GetPropertyStr(ctx, argv[0], "additionalData");
+		if (!JS_IsUndefined(ad_val) && !JS_IsNull(ad_val)) {
+			gcm_params->additional_data = NX_GetBufferSource(
+				ctx, &gcm_params->additional_data_size, ad_val);
+		} else {
+			gcm_params->additional_data = NULL;
+			gcm_params->additional_data_size = 0;
+		}
+
+		JSValue tag_val = JS_GetPropertyStr(ctx, argv[0], "tagLength");
+		if (!JS_IsUndefined(tag_val) && !JS_IsNull(tag_val)) {
+			u32 tag_bits;
+			if (JS_ToUint32(ctx, &tag_bits, tag_val)) {
+				js_free(ctx, data);
+				js_free(ctx, gcm_params);
+				return JS_EXCEPTION;
+			}
+			gcm_params->tag_length = tag_bits / 8;
+		} else {
+			gcm_params->tag_length = 16;
+		}
+
+		data->algorithm_params = gcm_params;
 	} else if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_AES_XTS) {
 		nx_crypto_aes_xts_params_t *xts_params =
 			js_mallocz(ctx, sizeof(nx_crypto_aes_xts_params_t));
