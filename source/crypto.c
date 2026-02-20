@@ -2,6 +2,7 @@
 #include "async.h"
 #include "util.h"
 #include <errno.h>
+#include <mbedtls/version.h>
 #include <mbedtls/gcm.h>
 #include <mbedtls/md.h>
 #include <mbedtls/pkcs5.h>
@@ -1542,10 +1543,17 @@ void nx_crypto_sign_do(nx_work_t *req) {
 			return;
 		}
 
+#if MBEDTLS_VERSION_MAJOR >= 3
 		ret = mbedtls_ecdsa_write_signature(&ec->keypair, md_type,
 											hash, hash_len,
 											der_sig, sizeof(der_sig), &der_sig_len,
 											mbedtls_ctr_drbg_random, &ctr_drbg);
+#else
+		ret = mbedtls_ecdsa_write_signature(&ec->keypair, md_type,
+											hash, hash_len,
+											der_sig, &der_sig_len,
+											mbedtls_ctr_drbg_random, &ctr_drbg);
+#endif
 		mbedtls_ctr_drbg_free(&ctr_drbg);
 		mbedtls_entropy_free(&entropy);
 
