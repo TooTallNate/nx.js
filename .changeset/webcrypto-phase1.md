@@ -1,5 +1,5 @@
 ---
-"@nx.js/runtime": minor
+"@nx.js/runtime": patch
 ---
 
 Expand WebCrypto API with `generateKey()`, `exportKey('raw')`, HMAC `sign()`/`verify()`, and fix `CryptoKey.type` fall-through bug
