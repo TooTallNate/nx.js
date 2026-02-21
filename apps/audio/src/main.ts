@@ -1,5 +1,5 @@
 // Audio Demo - nx.js
-// Place .mp3, .wav, or .ogg files in romfs/ directory
+// Place .mp3, .wav, or .ogg files in the romfs/ directory
 
 const ctx = screen.getContext('2d');
 const WIDTH = screen.width;
@@ -9,8 +9,17 @@ const files = ['romfs:/music.mp3', 'romfs:/sound.wav', 'romfs:/track.ogg'];
 const labels = ['MP3', 'WAV', 'OGG'];
 let selectedIndex = 0;
 let audio: InstanceType<typeof Audio> | null = null;
-let statusText = 'Idle';
+let statusText = 'Place audio files in romfs/';
 let volumeLevel = 1.0;
+
+// Track button states for edge detection (trigger on press, not hold)
+let prevButtons: boolean[] = [];
+
+function buttonPressed(gp: Gamepad, index: number): boolean {
+	const curr = gp.buttons[index]?.pressed ?? false;
+	const prev = prevButtons[index] ?? false;
+	return curr && !prev;
+}
 
 function drawUI() {
 	// Background
@@ -82,31 +91,29 @@ function loadAndPlay(path: string) {
 	});
 
 	audio.addEventListener('error', () => {
-		statusText = 'Error loading audio';
+		statusText = 'Error loading file';
 	});
 }
 
-addEventListener('gamepad', (e) => {
+function handleInput() {
 	const gp = navigator.getGamepads()[0];
 	if (!gp) return;
 
 	// D-Pad navigation
-	if (gp.buttons[13]?.pressed) {
-		// Down
+	if (buttonPressed(gp, 13)) {
 		selectedIndex = Math.min(selectedIndex + 1, labels.length - 1);
 	}
-	if (gp.buttons[12]?.pressed) {
-		// Up
+	if (buttonPressed(gp, 12)) {
 		selectedIndex = Math.max(selectedIndex - 1, 0);
 	}
 
-	// A = play
-	if (gp.buttons[0]?.pressed) {
+	// A = play selected file
+	if (buttonPressed(gp, 0)) {
 		loadAndPlay(files[selectedIndex]);
 	}
 
 	// B = pause/resume
-	if (gp.buttons[1]?.pressed && audio) {
+	if (buttonPressed(gp, 1) && audio) {
 		if (audio.paused) {
 			audio.play().then(() => {
 				statusText = 'Playing';
@@ -118,25 +125,30 @@ addEventListener('gamepad', (e) => {
 	}
 
 	// X = stop
-	if (gp.buttons[2]?.pressed && audio) {
+	if (buttonPressed(gp, 2) && audio) {
 		audio.pause();
 		audio.currentTime = 0;
 		statusText = 'Stopped';
 	}
 
-	// L/R shoulder for volume
-	if (gp.buttons[4]?.pressed) {
-		volumeLevel = Math.max(0, volumeLevel - 0.1);
+	// L shoulder = volume down
+	if (buttonPressed(gp, 4)) {
+		volumeLevel = Math.max(0, +(volumeLevel - 0.1).toFixed(1));
 		if (audio) audio.volume = volumeLevel;
 	}
-	if (gp.buttons[5]?.pressed) {
-		volumeLevel = Math.min(1, volumeLevel + 0.1);
+	// R shoulder = volume up
+	if (buttonPressed(gp, 5)) {
+		volumeLevel = Math.min(1, +(volumeLevel + 0.1).toFixed(1));
 		if (audio) audio.volume = volumeLevel;
 	}
-});
+
+	// Save button states for next frame
+	prevButtons = gp.buttons.map((b) => b.pressed);
+}
 
 // Main loop
 function frame() {
+	handleInput();
 	drawUI();
 	requestAnimationFrame(frame);
 }

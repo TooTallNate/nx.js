@@ -122,6 +122,7 @@ static JSValue decode_audio_after_work(JSContext *ctx, nx_work_t *req) {
 	nx_decode_audio_async_t *data = (nx_decode_audio_async_t *)req->data;
 
 	JS_FreeValue(ctx, data->buffer_val);
+	JS_FreeCString(ctx, data->mime_type);
 
 	if (data->err_str) {
 		JSValue err = JS_NewError(ctx);
@@ -203,7 +204,7 @@ static JSValue nx_audio_init(JSContext *ctx, JSValueConst this_val, int argc,
 	audrvMemPoolAttach(&audio_driver, audio_mempool_id);
 
 	/* Add device sink */
-	int sink_channels[] = {0, 1};
+	static const u8 sink_channels[] = {0, 1};
 	audrvDeviceSinkAdd(&audio_driver, AUDREN_DEFAULT_DEVICE_NAME, 2,
 					   sink_channels);
 
