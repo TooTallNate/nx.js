@@ -71,11 +71,21 @@ export class WebApplet extends EventTarget {
 	}
 
 	/**
-	 * Whether the browser applet is currently running (session mode only).
+	 * Whether the browser applet is currently running.
 	 */
 	get running() {
 		if (!this.#started) return false;
 		return $.webAppletIsRunning(this.#native) as boolean;
+	}
+
+	/**
+	 * The current operating mode:
+	 * - `'web-session'` — HTTPS URL with WebSession (supports `window.nx` messaging)
+	 * - `'wifi-auth'` — HTTP URL via WifiWebAuthApplet (supports localhost/LAN, no messaging)
+	 * - `'none'` — not started
+	 */
+	get mode(): string {
+		return $.webAppletGetMode(this.#native) as string;
 	}
 
 	/**

@@ -4,16 +4,29 @@
 
 static JSClassID nx_web_applet_class_id;
 
+typedef enum {
+	WEB_MODE_NONE,
+	WEB_MODE_WEB_SESSION,   // WebApplet with WebSession (HTTPS, window.nx)
+	WEB_MODE_WIFI_AUTH,     // WifiWebAuthApplet (HTTP, localhost, no whitelist)
+} nx_web_mode_t;
+
 typedef struct {
+	// Shared state
+	bool started;
+	nx_web_mode_t mode;
+	char *url;
+	bool js_extension;
+	int boot_mode;
+	JSContext *ctx;
+
+	// WebSession mode (online HTTPS)
 	WebCommonConfig config;
 	WebSession session;
 	Event *exit_event;
-	bool started;
-	
-	bool js_extension;
-	int boot_mode;
-	char *url;
-	JSContext *ctx;
+
+	// WifiAuth mode (localhost HTTP)
+	WebWifiConfig wifi_config;
+	AppletHolder wifi_holder;
 } nx_web_applet_t;
 
 static nx_web_applet_t *nx_web_applet_get(JSContext *ctx, JSValueConst obj) {
@@ -23,10 +36,16 @@ static nx_web_applet_t *nx_web_applet_get(JSContext *ctx, JSValueConst obj) {
 static void finalizer_web_applet(JSRuntime *rt, JSValue val) {
 	nx_web_applet_t *data = JS_GetOpaque(val, nx_web_applet_class_id);
 	if (data) {
-		if (data->started ) {
-			WebCommonReply reply;
-			webSessionWaitForExit(&data->session, &reply);
-			webSessionClose(&data->session);
+		if (data->started) {
+			if (data->mode == WEB_MODE_WEB_SESSION) {
+				WebCommonReply reply;
+				webSessionWaitForExit(&data->session, &reply);
+				webSessionClose(&data->session);
+			} else if (data->mode == WEB_MODE_WIFI_AUTH) {
+				appletHolderRequestExit(&data->wifi_holder);
+				appletHolderJoin(&data->wifi_holder);
+				appletHolderClose(&data->wifi_holder);
+			}
 		}
 		if (data->url) {
 			js_free_rt(rt, data->url);
@@ -45,7 +64,7 @@ static JSValue nx_web_applet_new(JSContext *ctx, JSValueConst this_val,
 	JS_SetOpaque(obj, data);
 	data->ctx = ctx;
 	data->started = false;
-	
+	data->mode = WEB_MODE_NONE;
 	data->js_extension = false;
 	data->boot_mode = 0;
 	data->url = NULL;
@@ -86,13 +105,16 @@ static JSValue nx_web_applet_set_boot_mode(JSContext *ctx,
 	return JS_UNDEFINED;
 }
 
-static Result _web_applet_configure(nx_web_applet_t *data) {
+static bool _is_http_url(const char *url) {
+	return url && strncmp(url, "http://", 7) == 0;
+}
+
+static Result _configure_web_session(nx_web_applet_t *data) {
 	Result rc;
 
 	rc = webPageCreate(&data->config, data->url);
 	if (R_FAILED(rc)) return rc;
 
-	// Set whitelist to allow all URLs
 	rc = webConfigSetWhitelist(&data->config,
 							  "^http://.*$\n^https://.*$");
 	if (R_FAILED(rc)) return rc;
@@ -102,7 +124,6 @@ static Result _web_applet_configure(nx_web_applet_t *data) {
 		if (R_FAILED(rc)) return rc;
 	}
 
-	// Enable touch
 	webConfigSetTouchEnabledOnContents(&data->config, true);
 
 	if (data->boot_mode != 0) {
@@ -111,6 +132,56 @@ static Result _web_applet_configure(nx_web_applet_t *data) {
 		if (R_FAILED(rc)) return rc;
 	}
 
+	return 0;
+}
+
+static Result _start_web_session(nx_web_applet_t *data) {
+	Result rc = _configure_web_session(data);
+	if (R_FAILED(rc)) return rc;
+
+	webSessionCreate(&data->session, &data->config);
+	rc = webSessionStart(&data->session, &data->exit_event);
+	if (R_FAILED(rc)) {
+		webSessionClose(&data->session);
+		return rc;
+	}
+
+	data->mode = WEB_MODE_WEB_SESSION;
+	return 0;
+}
+
+static Result _start_wifi_auth(nx_web_applet_t *data) {
+	// WifiWebAuthApplet — no whitelist, supports localhost/LAN
+	// Pass NULL for conntest_url to skip connection testing
+	webWifiCreate(&data->wifi_config, NULL, data->url, (Uuid){0}, 0);
+
+	// Launch non-blocking using the low-level applet API
+	Result rc = appletCreateLibraryApplet(&data->wifi_holder,
+		AppletId_LibraryAppletWifiWebAuth, LibAppletMode_AllForeground);
+	if (R_FAILED(rc)) return rc;
+
+	LibAppletArgs commonargs;
+	libappletArgsCreate(&commonargs, 0);  // WifiWebAuth uses version 0
+	rc = libappletArgsPush(&commonargs, &data->wifi_holder);
+	if (R_FAILED(rc)) {
+		appletHolderClose(&data->wifi_holder);
+		return rc;
+	}
+
+	rc = libappletPushInData(&data->wifi_holder,
+		&data->wifi_config.arg, sizeof(data->wifi_config.arg));
+	if (R_FAILED(rc)) {
+		appletHolderClose(&data->wifi_holder);
+		return rc;
+	}
+
+	rc = appletHolderStart(&data->wifi_holder);
+	if (R_FAILED(rc)) {
+		appletHolderClose(&data->wifi_holder);
+		return rc;
+	}
+
+	data->mode = WEB_MODE_WIFI_AUTH;
 	return 0;
 }
 
@@ -124,7 +195,7 @@ static JSValue nx_web_applet_start(JSContext *ctx, JSValueConst this_val,
 	}
 
 	if (!data->url) {
-		return JS_ThrowTypeError(ctx, "WebApplet URL or document path not set");
+		return JS_ThrowTypeError(ctx, "WebApplet URL not set");
 	}
 
 	// Web applets can only be launched from Application mode
@@ -136,22 +207,22 @@ static JSValue nx_web_applet_start(JSContext *ctx, JSValueConst this_val,
 			"in Application mode.");
 	}
 
-	Result rc = _web_applet_configure(data);
-	if (R_FAILED(rc)) {
-		return nx_throw_libnx_error(ctx, rc, "WebApplet configure");
-	}
-
-	// Use WebSession for async mode
-	webSessionCreate(&data->session, &data->config);
-
-	rc = webSessionStart(&data->session, &data->exit_event);
-	if (R_FAILED(rc)) {
-		webSessionClose(&data->session);
-		return nx_throw_libnx_error(ctx, rc, "webSessionStart()");
+	Result rc;
+	if (_is_http_url(data->url)) {
+		// HTTP URLs use WifiWebAuthApplet (no whitelist, localhost works)
+		rc = _start_wifi_auth(data);
+		if (R_FAILED(rc)) {
+			return nx_throw_libnx_error(ctx, rc, "WifiWebAuth start");
+		}
+	} else {
+		// HTTPS URLs use WebApplet with WebSession (window.nx messaging)
+		rc = _start_web_session(data);
+		if (R_FAILED(rc)) {
+			return nx_throw_libnx_error(ctx, rc, "WebSession start");
+		}
 	}
 
 	data->started = true;
-	
 	return JS_UNDEFINED;
 }
 
@@ -159,8 +230,9 @@ static JSValue nx_web_applet_appear(JSContext *ctx, JSValueConst this_val,
 									int argc, JSValueConst *argv) {
 	nx_web_applet_t *data = nx_web_applet_get(ctx, argv[0]);
 	if (!data) return JS_EXCEPTION;
-	if (!data->started || false) {
-		return JS_ThrowTypeError(ctx, "WebApplet not started in session mode");
+	if (!data->started || data->mode != WEB_MODE_WEB_SESSION) {
+		return JS_ThrowTypeError(ctx,
+			"appear() only available in WebSession mode (HTTPS URLs)");
 	}
 	bool flag = false;
 	Result rc = webSessionAppear(&data->session, &flag);
@@ -175,8 +247,9 @@ static JSValue nx_web_applet_send_message(JSContext *ctx,
 										  JSValueConst *argv) {
 	nx_web_applet_t *data = nx_web_applet_get(ctx, argv[0]);
 	if (!data) return JS_EXCEPTION;
-	if (!data->started || false) {
-		return JS_ThrowTypeError(ctx, "WebApplet not started in session mode");
+	if (!data->started || data->mode != WEB_MODE_WEB_SESSION) {
+		return JS_ThrowTypeError(ctx,
+			"sendMessage() only available in WebSession mode (HTTPS URLs)");
 	}
 	size_t len;
 	const char *msg = JS_ToCStringLen(ctx, &len, argv[1]);
@@ -197,7 +270,7 @@ static JSValue nx_web_applet_poll_messages(JSContext *ctx,
 										   JSValueConst *argv) {
 	nx_web_applet_t *data = nx_web_applet_get(ctx, argv[0]);
 	if (!data) return JS_EXCEPTION;
-	if (!data->started || false) {
+	if (!data->started || data->mode != WEB_MODE_WEB_SESSION) {
 		return JS_NewArray(ctx);
 	}
 
@@ -226,12 +299,17 @@ static JSValue nx_web_applet_request_exit(JSContext *ctx,
 										  JSValueConst *argv) {
 	nx_web_applet_t *data = nx_web_applet_get(ctx, argv[0]);
 	if (!data) return JS_EXCEPTION;
-	if (!data->started || false) {
-		return JS_ThrowTypeError(ctx, "WebApplet not started in session mode");
+	if (!data->started) {
+		return JS_ThrowTypeError(ctx, "WebApplet not started");
 	}
-	Result rc = webSessionRequestExit(&data->session);
+	Result rc;
+	if (data->mode == WEB_MODE_WEB_SESSION) {
+		rc = webSessionRequestExit(&data->session);
+	} else {
+		rc = appletHolderRequestExit(&data->wifi_holder);
+	}
 	if (R_FAILED(rc)) {
-		return nx_throw_libnx_error(ctx, rc, "webSessionRequestExit()");
+		return nx_throw_libnx_error(ctx, rc, "requestExit()");
 	}
 	return JS_UNDEFINED;
 }
@@ -240,12 +318,17 @@ static JSValue nx_web_applet_close(JSContext *ctx, JSValueConst this_val,
 								   int argc, JSValueConst *argv) {
 	nx_web_applet_t *data = nx_web_applet_get(ctx, argv[0]);
 	if (!data) return JS_EXCEPTION;
-	if (data->started ) {
-		WebCommonReply reply;
-		webSessionWaitForExit(&data->session, &reply);
-		webSessionClose(&data->session);
+	if (data->started) {
+		if (data->mode == WEB_MODE_WEB_SESSION) {
+			WebCommonReply reply;
+			webSessionWaitForExit(&data->session, &reply);
+			webSessionClose(&data->session);
+		} else if (data->mode == WEB_MODE_WIFI_AUTH) {
+			appletHolderJoin(&data->wifi_holder);
+			appletHolderClose(&data->wifi_holder);
+		}
 		data->started = false;
-		
+		data->mode = WEB_MODE_NONE;
 	}
 	return JS_UNDEFINED;
 }
@@ -254,17 +337,34 @@ static JSValue nx_web_applet_is_running(JSContext *ctx, JSValueConst this_val,
 										int argc, JSValueConst *argv) {
 	nx_web_applet_t *data = nx_web_applet_get(ctx, argv[0]);
 	if (!data) return JS_EXCEPTION;
-	if (!data->started || false) {
+	if (!data->started) {
 		return JS_FALSE;
 	}
-	bool running = true;
-	if (data->exit_event) {
-		Result rc = eventWait(data->exit_event, 0);
-		if (R_SUCCEEDED(rc)) {
-			running = false;
+
+	if (data->mode == WEB_MODE_WEB_SESSION) {
+		if (data->exit_event) {
+			Result rc = eventWait(data->exit_event, 0);
+			if (R_SUCCEEDED(rc)) return JS_FALSE;
+		}
+	} else if (data->mode == WEB_MODE_WIFI_AUTH) {
+		if (appletHolderCheckFinished(&data->wifi_holder)) {
+			return JS_FALSE;
 		}
 	}
-	return JS_NewBool(ctx, running);
+
+	return JS_TRUE;
+}
+
+// Return the current mode as a string for JS inspection
+static JSValue nx_web_applet_get_mode(JSContext *ctx, JSValueConst this_val,
+									  int argc, JSValueConst *argv) {
+	nx_web_applet_t *data = nx_web_applet_get(ctx, argv[0]);
+	if (!data) return JS_EXCEPTION;
+	switch (data->mode) {
+		case WEB_MODE_WEB_SESSION: return JS_NewString(ctx, "web-session");
+		case WEB_MODE_WIFI_AUTH: return JS_NewString(ctx, "wifi-auth");
+		default: return JS_NewString(ctx, "none");
+	}
 }
 
 static const JSCFunctionListEntry function_list[] = {
@@ -280,6 +380,7 @@ static const JSCFunctionListEntry function_list[] = {
 	JS_CFUNC_DEF("webAppletRequestExit", 1, nx_web_applet_request_exit),
 	JS_CFUNC_DEF("webAppletClose", 1, nx_web_applet_close),
 	JS_CFUNC_DEF("webAppletIsRunning", 1, nx_web_applet_is_running),
+	JS_CFUNC_DEF("webAppletGetMode", 1, nx_web_applet_get_mode),
 };
 
 void nx_init_web(JSContext *ctx, JSValueConst init_obj) {
