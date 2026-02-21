@@ -65,13 +65,14 @@ async function run() {
 		reimportedPriv,
 		data
 	);
+	// Verify with the reimported public key (from same key pair)
 	var verified = await crypto.subtle.verify(
 		{ name: 'RSASSA-PKCS1-v1_5' },
 		reimportedPub,
 		signature,
 		data
 	);
-	results.crossKeyVerified = verified;
+	results.reimportRoundTripVerified = verified;
 
 	__output(results);
 }
