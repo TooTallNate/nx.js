@@ -96,6 +96,10 @@ importers:
         version: 0.17.19
 
   apps/audio:
+    dependencies:
+      '@nx.js/constants':
+        specifier: workspace:^
+        version: link:../../packages/constants
     devDependencies:
       '@nx.js/nro':
         specifier: workspace:^

@@ -1,6 +1,8 @@
 // Audio Demo - nx.js
 // Place .mp3, .wav, or .ogg files in the romfs/ directory
 
+import { Button } from '@nx.js/constants';
+
 const ctx = screen.getContext('2d');
 const WIDTH = screen.width;
 const HEIGHT = screen.height;
@@ -100,20 +102,20 @@ function handleInput() {
 	if (!gp) return;
 
 	// D-Pad navigation
-	if (buttonPressed(gp, 13)) {
+	if (buttonPressed(gp, Button.Down)) {
 		selectedIndex = Math.min(selectedIndex + 1, labels.length - 1);
 	}
-	if (buttonPressed(gp, 12)) {
+	if (buttonPressed(gp, Button.Up)) {
 		selectedIndex = Math.max(selectedIndex - 1, 0);
 	}
 
 	// A = play selected file
-	if (buttonPressed(gp, 0)) {
+	if (buttonPressed(gp, Button.A)) {
 		loadAndPlay(files[selectedIndex]);
 	}
 
 	// B = pause/resume
-	if (buttonPressed(gp, 1) && audio) {
+	if (buttonPressed(gp, Button.B) && audio) {
 		if (audio.paused) {
 			audio.play().then(() => {
 				statusText = 'Playing';
@@ -125,19 +127,19 @@ function handleInput() {
 	}
 
 	// X = stop
-	if (buttonPressed(gp, 2) && audio) {
+	if (buttonPressed(gp, Button.X) && audio) {
 		audio.pause();
 		audio.currentTime = 0;
 		statusText = 'Stopped';
 	}
 
 	// L shoulder = volume down
-	if (buttonPressed(gp, 4)) {
+	if (buttonPressed(gp, Button.L)) {
 		volumeLevel = Math.max(0, +(volumeLevel - 0.1).toFixed(1));
 		if (audio) audio.volume = volumeLevel;
 	}
 	// R shoulder = volume up
-	if (buttonPressed(gp, 5)) {
+	if (buttonPressed(gp, Button.R)) {
 		volumeLevel = Math.min(1, +(volumeLevel + 0.1).toFixed(1));
 		if (audio) audio.volume = volumeLevel;
 	}
