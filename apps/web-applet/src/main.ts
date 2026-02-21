@@ -138,6 +138,10 @@ navigate('sdmc:/');
 
 // ── Backend: HTTP server + WebApplet message handler ──
 
+// Use the Switch's LAN IP — the browser applet runs as a separate
+// process and can't reach the app via loopback (127.0.0.1/localhost)
+const { ip } = Switch.networkInfo();
+
 listen({
 	port: 8080,
 	fetch() {
@@ -147,7 +151,7 @@ listen({
 	},
 });
 
-const applet = new Switch.WebApplet('http://127.0.0.1:8080');
+const applet = new Switch.WebApplet(`http://${ip}:8080`);
 applet.jsExtension = true;
 
 // Handle RPC messages from the browser
