@@ -593,7 +593,7 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 	): Promise<CryptoKey<never>> {
 		const decrypted = await this.decrypt(
 			unwrapAlgorithm as any,
-			unwrappingKey,
+			unwrappingKey as any,
 			wrappedKey,
 		);
 		return this.importKey(
@@ -637,7 +637,7 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 			format === 'jwk'
 				? new TextEncoder().encode(JSON.stringify(exported))
 				: (exported as ArrayBuffer);
-		return this.encrypt(wrapAlgorithm as any, wrappingKey, data);
+		return this.encrypt(wrapAlgorithm as any, wrappingKey as any, data);
 	}
 }
 $.cryptoSubtleInit(SubtleCrypto);
@@ -718,9 +718,7 @@ function getJwkAlg(algoName: string, hashName: string, keyLength?: number): stri
 		if (hashName === 'SHA-512') return 'PS512';
 	}
 	if (algoName === 'AES-CBC' || algoName === 'AES-GCM' || algoName === 'AES-CTR') {
-		const prefix = algoName === 'AES-CBC' ? 'A' : algoName === 'AES-GCM' ? 'A' : 'A';
 		const suffix = algoName === 'AES-CBC' ? 'CBC' : algoName === 'AES-GCM' ? 'GCM' : 'CTR';
-		// Not all combos have standard alg names, but common ones:
 		if (keyLength) return `A${keyLength}${suffix}`;
 	}
 	if (algoName === 'HMAC') {
