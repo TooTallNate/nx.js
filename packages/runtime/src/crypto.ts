@@ -604,7 +604,7 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 			unwrappedKeyAlgorithm as any,
 			extractable,
 			keyUsages,
-		);
+		) as Promise<CryptoKey<never>>;
 	}
 
 	async verify(
