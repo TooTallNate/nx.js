@@ -1,5 +1,6 @@
 import { $ } from './$';
 import { def } from './utils';
+import { setInterval, clearInterval } from './timers';
 import { Event, ErrorEvent } from './polyfills/event';
 import { EventTarget } from './polyfills/event-target';
 import { URL } from './polyfills/url';
