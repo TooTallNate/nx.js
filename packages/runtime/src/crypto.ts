@@ -273,6 +273,15 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 		if (format === 'raw') {
 			return $.cryptoExportKey(format, key);
 		}
+		if (format === 'pkcs8') {
+			return $.cryptoExportKeyPkcs8(key);
+		}
+		if (format === 'spki') {
+			return $.cryptoExportKeySpki(key);
+		}
+		if (format === 'jwk') {
+			return exportKeyJwk(key);
+		}
 		throw new DOMException(
 			`Unsupported export format: ${format}`,
 			'NotSupportedError',
@@ -371,6 +380,79 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 			} as CryptoKeyPair<any>;
 		}
 
+		if (
+			algo.name === 'RSA-OAEP' ||
+			algo.name === 'RSASSA-PKCS1-v1_5' ||
+			algo.name === 'RSA-PSS'
+		) {
+			const rsaAlgo = algo as RsaHashedKeyGenParams;
+			const hashName =
+				typeof rsaAlgo.hash === 'string'
+					? rsaAlgo.hash
+					: rsaAlgo.hash.name;
+			const pe = rsaAlgo.publicExponent;
+			const peNum =
+				pe instanceof Uint8Array
+					? pe.reduce((acc, b) => acc * 256 + b, 0)
+					: 65537;
+
+			const components = (await $.cryptoGenerateKeyRsa(
+				rsaAlgo.modulusLength,
+				peNum,
+			)) as ArrayBuffer[];
+			const [n, e, d, p, q] = components;
+
+			const publicKey = proto(
+				$.cryptoKeyNewRsa(
+					algo.name,
+					hashName,
+					'public',
+					n,
+					e,
+					null,
+					null,
+					null,
+					extractable as boolean,
+					algo.name === 'RSA-OAEP'
+						? (keyUsages as KeyUsage[]).filter(
+								(u) => u === 'encrypt' || u === 'wrapKey',
+							)
+						: (keyUsages as KeyUsage[]).filter(
+								(u) => u === 'verify',
+							),
+				),
+				CryptoKey,
+			);
+
+			const privateKey = proto(
+				$.cryptoKeyNewRsa(
+					algo.name,
+					hashName,
+					'private',
+					n,
+					e,
+					d,
+					p,
+					q,
+					extractable as boolean,
+					algo.name === 'RSA-OAEP'
+						? (keyUsages as KeyUsage[]).filter(
+								(u) =>
+									u === 'decrypt' || u === 'unwrapKey',
+							)
+						: (keyUsages as KeyUsage[]).filter(
+								(u) => u === 'sign',
+							),
+				),
+				CryptoKey,
+			);
+
+			return {
+				publicKey,
+				privateKey,
+			} as CryptoKeyPair<any>;
+		}
+
 		if (algo.name === 'HMAC') {
 			const hmacAlgo = algo as HmacKeyGenParams;
 			const hashLength = getHashLength(hmacAlgo.hash);
@@ -431,14 +513,47 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 		extractable: boolean,
 		keyUsages: KeyUsage[],
 	): Promise<CryptoKey<Cipher>> {
+		const algo =
+			typeof algorithm === 'string' ? { name: algorithm } : algorithm;
+
+		if (format === 'jwk') {
+			return importKeyJwk(
+				keyData as JsonWebKey,
+				algo as Algorithm,
+				extractable,
+				keyUsages,
+			) as Promise<CryptoKey<Cipher>>;
+		}
+
+		if (format === 'pkcs8' || format === 'spki') {
+			const algoObj = algo as Algorithm;
+			let paramName: string;
+			if (
+				algoObj.name === 'RSA-OAEP' ||
+				algoObj.name === 'RSA-PSS' ||
+				algoObj.name === 'RSASSA-PKCS1-v1_5'
+			) {
+				const h = (algoObj as any).hash;
+				paramName = typeof h === 'string' ? h : h.name;
+			} else {
+				paramName = (algoObj as any).namedCurve || '';
+			}
+			const imported = $.cryptoImportKeyPkcs8Spki(
+				format,
+				keyData as BufferSource,
+				algoObj.name,
+				paramName,
+				extractable,
+				keyUsages,
+			);
+			return proto(imported, CryptoKey) as CryptoKey<Cipher>;
+		}
+
 		if (format !== 'raw') {
-			// Only "raw" format is supported at this time
 			throw new TypeError(
 				`Failed to execute 'importKey' on 'SubtleCrypto': 1st argument value '${format}' is not a valid enum value of type KeyFormat.`,
 			);
 		}
-		const algo =
-			typeof algorithm === 'string' ? { name: algorithm } : algorithm;
 		const key = new CryptoKey<Cipher>(
 			// @ts-expect-error Internal constructor
 			INTERNAL_SYMBOL,
@@ -458,7 +573,7 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 		return $.cryptoSign(normalizeAlgorithm(algorithm), key, data);
 	}
 
-	unwrapKey(
+	async unwrapKey(
 		format: KeyFormat,
 		wrappedKey: BufferSource,
 		unwrappingKey: CryptoKey<never>,
@@ -476,7 +591,20 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 		extractable: boolean,
 		keyUsages: KeyUsage[],
 	): Promise<CryptoKey<never>> {
-		throw new Error('Method not implemented.');
+		const decrypted = await this.decrypt(
+			unwrapAlgorithm as any,
+			unwrappingKey,
+			wrappedKey,
+		);
+		return this.importKey(
+			format as any,
+			format === 'jwk'
+				? JSON.parse(new TextDecoder().decode(decrypted))
+				: decrypted,
+			unwrappedKeyAlgorithm as any,
+			extractable,
+			keyUsages,
+		);
 	}
 
 	async verify(
@@ -493,7 +621,7 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 		);
 	}
 
-	wrapKey(
+	async wrapKey(
 		format: KeyFormat,
 		key: CryptoKey<never>,
 		wrappingKey: CryptoKey<never>,
@@ -504,7 +632,12 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 			| AesCbcParams
 			| AesGcmParams,
 	): Promise<ArrayBuffer> {
-		throw new Error('Method not implemented.');
+		const exported = await this.exportKey(format as any, key);
+		const data =
+			format === 'jwk'
+				? new TextEncoder().encode(JSON.stringify(exported))
+				: (exported as ArrayBuffer);
+		return this.encrypt(wrapAlgorithm as any, wrappingKey, data);
 	}
 }
 $.cryptoSubtleInit(SubtleCrypto);
@@ -540,3 +673,262 @@ function getHashLength(hash: HashAlgorithmIdentifier): number {
 }
 
 type HashAlgorithmIdentifier = AlgorithmIdentifier;
+
+// --- Base64url helpers ---
+
+function base64urlEncode(buf: ArrayBuffer): string {
+	const bytes = new Uint8Array(buf);
+	let binary = '';
+	for (let i = 0; i < bytes.length; i++) {
+		binary += String.fromCharCode(bytes[i]);
+	}
+	return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function base64urlDecode(str: string): ArrayBuffer {
+	let s = str.replace(/-/g, '+').replace(/_/g, '/');
+	while (s.length % 4) s += '=';
+	const binary = atob(s);
+	const bytes = new Uint8Array(binary.length);
+	for (let i = 0; i < binary.length; i++) {
+		bytes[i] = binary.charCodeAt(i);
+	}
+	return bytes.buffer;
+}
+
+// --- JWK Export ---
+
+function getJwkAlg(algoName: string, hashName: string, keyLength?: number): string | undefined {
+	if (algoName === 'RSA-OAEP') {
+		if (hashName === 'SHA-1') return 'RSA-OAEP';
+		if (hashName === 'SHA-256') return 'RSA-OAEP-256';
+		if (hashName === 'SHA-384') return 'RSA-OAEP-384';
+		if (hashName === 'SHA-512') return 'RSA-OAEP-512';
+	}
+	if (algoName === 'RSASSA-PKCS1-v1_5') {
+		if (hashName === 'SHA-1') return 'RS1';
+		if (hashName === 'SHA-256') return 'RS256';
+		if (hashName === 'SHA-384') return 'RS384';
+		if (hashName === 'SHA-512') return 'RS512';
+	}
+	if (algoName === 'RSA-PSS') {
+		if (hashName === 'SHA-1') return 'PS1';
+		if (hashName === 'SHA-256') return 'PS256';
+		if (hashName === 'SHA-384') return 'PS384';
+		if (hashName === 'SHA-512') return 'PS512';
+	}
+	if (algoName === 'AES-CBC' || algoName === 'AES-GCM' || algoName === 'AES-CTR') {
+		const prefix = algoName === 'AES-CBC' ? 'A' : algoName === 'AES-GCM' ? 'A' : 'A';
+		const suffix = algoName === 'AES-CBC' ? 'CBC' : algoName === 'AES-GCM' ? 'GCM' : 'CTR';
+		// Not all combos have standard alg names, but common ones:
+		if (keyLength) return `A${keyLength}${suffix}`;
+	}
+	if (algoName === 'HMAC') {
+		if (hashName === 'SHA-256') return 'HS256';
+		if (hashName === 'SHA-384') return 'HS384';
+		if (hashName === 'SHA-512') return 'HS512';
+	}
+	return undefined;
+}
+
+async function exportKeyJwk(key: CryptoKey<never>): Promise<JsonWebKey> {
+	const algo = key.algorithm as any;
+	const algoName = algo.name as string;
+
+	if (
+		algoName === 'RSA-OAEP' ||
+		algoName === 'RSA-PSS' ||
+		algoName === 'RSASSA-PKCS1-v1_5'
+	) {
+		const components = $.cryptoRsaExportComponents(key) as ArrayBuffer[];
+		const hashName = algo.hash?.name || 'SHA-256';
+		const jwk: JsonWebKey = {
+			kty: 'RSA',
+			n: base64urlEncode(components[0]),
+			e: base64urlEncode(components[1]),
+			alg: getJwkAlg(algoName, hashName),
+			ext: key.extractable,
+			key_ops: Array.prototype.slice.call(key.usages),
+		};
+		if (key.type === 'private' && components.length > 2) {
+			jwk.d = base64urlEncode(components[2]);
+			jwk.p = base64urlEncode(components[3]);
+			jwk.q = base64urlEncode(components[4]);
+			jwk.dp = base64urlEncode(components[5]);
+			jwk.dq = base64urlEncode(components[6]);
+			jwk.qi = base64urlEncode(components[7]);
+		}
+		return jwk;
+	}
+
+	if (algoName === 'ECDSA' || algoName === 'ECDH') {
+		const raw = await $.cryptoExportKey('raw', key) as ArrayBuffer;
+		const rawBytes = new Uint8Array(raw);
+		const curveName = algo.namedCurve as string;
+		const coordSize = curveName === 'P-256' ? 32 : 48;
+		const jwk: JsonWebKey = {
+			kty: 'EC',
+			crv: curveName,
+			x: base64urlEncode(rawBytes.slice(1, 1 + coordSize).buffer),
+			y: base64urlEncode(rawBytes.slice(1 + coordSize).buffer),
+			ext: key.extractable,
+			key_ops: Array.prototype.slice.call(key.usages),
+		};
+		if (key.type === 'private') {
+			// For private keys, raw_key_data is the scalar d
+			jwk.d = base64urlEncode(raw);
+		}
+		return jwk;
+	}
+
+	if (
+		algoName === 'AES-CBC' ||
+		algoName === 'AES-CTR' ||
+		algoName === 'AES-GCM'
+	) {
+		const raw = await $.cryptoExportKey('raw', key) as ArrayBuffer;
+		return {
+			kty: 'oct',
+			k: base64urlEncode(raw),
+			alg: getJwkAlg(algoName, '', algo.length),
+			ext: key.extractable,
+			key_ops: Array.prototype.slice.call(key.usages),
+		};
+	}
+
+	if (algoName === 'HMAC') {
+		const raw = await $.cryptoExportKey('raw', key) as ArrayBuffer;
+		const hashName = algo.hash?.name || 'SHA-256';
+		return {
+			kty: 'oct',
+			k: base64urlEncode(raw),
+			alg: getJwkAlg(algoName, hashName),
+			ext: key.extractable,
+			key_ops: Array.prototype.slice.call(key.usages),
+		};
+	}
+
+	throw new DOMException(
+		`JWK export not supported for ${algoName}`,
+		'NotSupportedError',
+	);
+}
+
+// --- JWK Import ---
+
+async function importKeyJwk(
+	jwk: JsonWebKey,
+	algo: Algorithm,
+	extractable: boolean,
+	keyUsages: KeyUsage[],
+): Promise<CryptoKey<never>> {
+	const algoName = algo.name;
+
+	if (
+		algoName === 'RSA-OAEP' ||
+		algoName === 'RSA-PSS' ||
+		algoName === 'RSASSA-PKCS1-v1_5'
+	) {
+		const hashAlgo = (algo as any).hash;
+		const hashName =
+			typeof hashAlgo === 'string' ? hashAlgo : hashAlgo.name;
+		const n = base64urlDecode(jwk.n!);
+		const e = base64urlDecode(jwk.e!);
+		const isPrivate = !!jwk.d;
+		const d = isPrivate ? base64urlDecode(jwk.d!) : null;
+		const p = isPrivate && jwk.p ? base64urlDecode(jwk.p) : null;
+		const q = isPrivate && jwk.q ? base64urlDecode(jwk.q) : null;
+
+		return proto(
+			$.cryptoKeyNewRsa(
+				algoName,
+				hashName,
+				isPrivate ? 'private' : 'public',
+				n,
+				e,
+				d,
+				p,
+				q,
+				extractable,
+				keyUsages,
+			),
+			CryptoKey,
+		) as CryptoKey<never>;
+	}
+
+	if (algoName === 'ECDSA' || algoName === 'ECDH') {
+		const namedCurve = (algo as any).namedCurve;
+		if (jwk.d) {
+			// Private key
+			const x = base64urlDecode(jwk.x!);
+			const y = base64urlDecode(jwk.y!);
+			const d = base64urlDecode(jwk.d);
+			const coordSize = namedCurve === 'P-256' ? 32 : 48;
+			const pubRaw = new Uint8Array(1 + coordSize * 2);
+			pubRaw[0] = 0x04;
+			pubRaw.set(new Uint8Array(x), 1);
+			pubRaw.set(new Uint8Array(y), 1 + coordSize);
+
+			const privKey = $.cryptoKeyNewEcPrivate(
+				{ name: algoName, namedCurve },
+				d,
+				pubRaw.buffer,
+				extractable,
+				keyUsages,
+			);
+			return proto(privKey, CryptoKey) as CryptoKey<never>;
+		} else {
+			// Public key - construct uncompressed point
+			const x = base64urlDecode(jwk.x!);
+			const y = base64urlDecode(jwk.y!);
+			const coordSize = namedCurve === 'P-256' ? 32 : 48;
+			const raw = new Uint8Array(1 + coordSize * 2);
+			raw[0] = 0x04;
+			raw.set(new Uint8Array(x), 1);
+			raw.set(new Uint8Array(y), 1 + coordSize);
+
+			const subtleCrypto = crypto.subtle;
+			return subtleCrypto.importKey(
+				'raw',
+				raw.buffer,
+				{ name: algoName, namedCurve } as any,
+				extractable,
+				keyUsages,
+			) as Promise<CryptoKey<never>>;
+		}
+	}
+
+	if (
+		algoName === 'AES-CBC' ||
+		algoName === 'AES-CTR' ||
+		algoName === 'AES-GCM' ||
+		algoName === 'HMAC'
+	) {
+		const raw = base64urlDecode(jwk.k!);
+		const subtleCrypto = crypto.subtle;
+		return subtleCrypto.importKey(
+			'raw',
+			raw,
+			algo as any,
+			extractable,
+			keyUsages,
+		) as Promise<CryptoKey<never>>;
+	}
+
+	if (algoName === 'PBKDF2' || algoName === 'HKDF') {
+		const raw = base64urlDecode(jwk.k!);
+		const subtleCrypto = crypto.subtle;
+		return subtleCrypto.importKey(
+			'raw',
+			raw,
+			algo as any,
+			extractable,
+			keyUsages,
+		) as Promise<CryptoKey<never>>;
+	}
+
+	throw new DOMException(
+		`JWK import not supported for ${algoName}`,
+		'NotSupportedError',
+	);
+}

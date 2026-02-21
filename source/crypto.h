@@ -3,6 +3,7 @@
 #include "types.h"
 #include <mbedtls/version.h>
 #include <mbedtls/ecp.h>
+#include <mbedtls/rsa.h>
 
 typedef enum {
 	NX_CRYPTO_KEY_TYPE_UNKNOWN,
@@ -21,7 +22,10 @@ typedef enum {
 	NX_CRYPTO_KEY_ALGORITHM_ECDSA,
 	NX_CRYPTO_KEY_ALGORITHM_ECDH,
 	NX_CRYPTO_KEY_ALGORITHM_PBKDF2,
-	NX_CRYPTO_KEY_ALGORITHM_HKDF
+	NX_CRYPTO_KEY_ALGORITHM_HKDF,
+	NX_CRYPTO_KEY_ALGORITHM_RSA_OAEP,
+	NX_CRYPTO_KEY_ALGORITHM_RSA_PSS,
+	NX_CRYPTO_KEY_ALGORITHM_RSASSA_PKCS1_V1_5
 } nx_crypto_key_algorithm;
 
 typedef enum {
@@ -86,5 +90,11 @@ typedef struct {
 	mbedtls_ecp_keypair keypair;
 	char curve_name[8];  // "P-256" or "P-384"
 } nx_crypto_key_ec_t;
+
+typedef struct {
+	mbedtls_rsa_context rsa;
+	char hash_name[16];  // "SHA-256", etc.
+	int salt_length;     // For PSS: -1 = hash length (default)
+} nx_crypto_key_rsa_t;
 
 void nx_init_crypto(JSContext *ctx, JSValueConst init_obj);
