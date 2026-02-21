@@ -14,8 +14,5 @@
     "@nx.js/nsp": "workspace:^",
     "@nx.js/runtime": "workspace:^",
     "esbuild": "^0.17.19"
-  },
-  "dependencies": {
-    "@nx.js/http": "workspace:^"
   }
 }

@@ -9,9 +9,12 @@ typedef struct {
 	WebSession session;
 	Event *exit_event;
 	bool started;
+	bool session_mode;  // true = WebSession (async), false = blocking
 	bool js_extension;
 	int boot_mode;
 	char *url;
+	char *document_path;
+	bool offline_mode;
 	JSContext *ctx;
 } nx_web_applet_t;
 
@@ -22,13 +25,16 @@ static nx_web_applet_t *nx_web_applet_get(JSContext *ctx, JSValueConst obj) {
 static void finalizer_web_applet(JSRuntime *rt, JSValue val) {
 	nx_web_applet_t *data = JS_GetOpaque(val, nx_web_applet_class_id);
 	if (data) {
-		if (data->started) {
+		if (data->started && data->session_mode) {
 			WebCommonReply reply;
 			webSessionWaitForExit(&data->session, &reply);
 			webSessionClose(&data->session);
 		}
 		if (data->url) {
 			js_free_rt(rt, data->url);
+		}
+		if (data->document_path) {
+			js_free_rt(rt, data->document_path);
 		}
 		js_free_rt(rt, data);
 	}
@@ -44,9 +50,12 @@ static JSValue nx_web_applet_new(JSContext *ctx, JSValueConst this_val,
 	JS_SetOpaque(obj, data);
 	data->ctx = ctx;
 	data->started = false;
+	data->session_mode = false;
 	data->js_extension = false;
 	data->boot_mode = 0;
 	data->url = NULL;
+	data->document_path = NULL;
+	data->offline_mode = false;
 	return obj;
 }
 
@@ -60,7 +69,25 @@ static JSValue nx_web_applet_set_url(JSContext *ctx, JSValueConst this_val,
 		js_free(ctx, data->url);
 	}
 	data->url = js_strdup(ctx, url);
+	data->offline_mode = false;
 	JS_FreeCString(ctx, url);
+	return JS_UNDEFINED;
+}
+
+static JSValue nx_web_applet_set_document_path(JSContext *ctx,
+											   JSValueConst this_val,
+											   int argc,
+											   JSValueConst *argv) {
+	nx_web_applet_t *data = nx_web_applet_get(ctx, argv[0]);
+	if (!data) return JS_EXCEPTION;
+	const char *path = JS_ToCString(ctx, argv[1]);
+	if (!path) return JS_EXCEPTION;
+	if (data->document_path) {
+		js_free(ctx, data->document_path);
+	}
+	data->document_path = js_strdup(ctx, path);
+	data->offline_mode = true;
+	JS_FreeCString(ctx, path);
 	return JS_UNDEFINED;
 }
 
@@ -84,6 +111,48 @@ static JSValue nx_web_applet_set_boot_mode(JSContext *ctx,
 	return JS_UNDEFINED;
 }
 
+static Result _web_applet_configure(nx_web_applet_t *data) {
+	Result rc;
+
+	if (data->offline_mode) {
+		// Offline applet — serves HTML from app's romfs
+		u64 app_id = 0;
+		rc = svcGetInfo(&app_id, InfoType_ProgramId, CUR_PROCESS_HANDLE, 0);
+		if (R_FAILED(rc)) return rc;
+
+		rc = webOfflineCreate(&data->config,
+							  WebDocumentKind_OfflineHtmlPage, app_id,
+							  data->document_path ? data->document_path
+												  : "/index.html");
+	} else {
+		// Online applet — loads a URL
+		rc = webPageCreate(&data->config, data->url);
+		if (R_FAILED(rc)) return rc;
+
+		// Set whitelist to allow all URLs
+		rc = webConfigSetWhitelist(&data->config,
+								  "^http://.*$\n^https://.*$");
+	}
+
+	if (R_FAILED(rc)) return rc;
+
+	if (data->js_extension) {
+		rc = webConfigSetJsExtension(&data->config, true);
+		if (R_FAILED(rc)) return rc;
+	}
+
+	// Enable touch
+	webConfigSetTouchEnabledOnContents(&data->config, true);
+
+	if (data->boot_mode != 0) {
+		rc = webConfigSetBootMode(&data->config,
+								 (WebSessionBootMode)data->boot_mode);
+		if (R_FAILED(rc)) return rc;
+	}
+
+	return 0;
+}
+
 static JSValue nx_web_applet_start(JSContext *ctx, JSValueConst this_val,
 								   int argc, JSValueConst *argv) {
 	nx_web_applet_t *data = nx_web_applet_get(ctx, argv[0]);
@@ -93,8 +162,8 @@ static JSValue nx_web_applet_start(JSContext *ctx, JSValueConst this_val,
 		return JS_ThrowTypeError(ctx, "WebApplet already started");
 	}
 
-	if (!data->url) {
-		return JS_ThrowTypeError(ctx, "WebApplet URL not set");
+	if (!data->url && !data->offline_mode) {
+		return JS_ThrowTypeError(ctx, "WebApplet URL or document path not set");
 	}
 
 	// Web applets can only be launched from Application mode
@@ -102,35 +171,16 @@ static JSValue nx_web_applet_start(JSContext *ctx, JSValueConst this_val,
 	if (at != AppletType_Application && at != AppletType_SystemApplication) {
 		return JS_ThrowTypeError(ctx,
 			"WebApplet requires Application mode. "
-			"Launch via NSP or hold R when opening a game to use hbmenu in Application mode.");
+			"Launch via NSP or hold R when opening a game to use hbmenu "
+			"in Application mode.");
 	}
 
-	Result rc = webPageCreate(&data->config, data->url);
+	Result rc = _web_applet_configure(data);
 	if (R_FAILED(rc)) {
-		return nx_throw_libnx_error(ctx, rc, "webPageCreate()");
+		return nx_throw_libnx_error(ctx, rc, "WebApplet configure");
 	}
 
-	// Set whitelist to allow all URLs (including local network IPs)
-	rc = webConfigSetWhitelist(&data->config, "^http://.*$\n^https://.*$");
-	if (R_FAILED(rc)) {
-		return nx_throw_libnx_error(ctx, rc, "webConfigSetWhitelist()");
-	}
-
-	if (data->js_extension) {
-		rc = webConfigSetJsExtension(&data->config, true);
-		if (R_FAILED(rc)) {
-			return nx_throw_libnx_error(ctx, rc, "webConfigSetJsExtension()");
-		}
-	}
-
-	if (data->boot_mode != 0) {
-		rc = webConfigSetBootMode(&data->config,
-								 (WebSessionBootMode)data->boot_mode);
-		if (R_FAILED(rc)) {
-			return nx_throw_libnx_error(ctx, rc, "webConfigSetBootMode()");
-		}
-	}
-
+	// Use WebSession for async mode
 	webSessionCreate(&data->session, &data->config);
 
 	rc = webSessionStart(&data->session, &data->exit_event);
@@ -140,15 +190,63 @@ static JSValue nx_web_applet_start(JSContext *ctx, JSValueConst this_val,
 	}
 
 	data->started = true;
+	data->session_mode = true;
 	return JS_UNDEFINED;
+}
+
+static JSValue nx_web_applet_show(JSContext *ctx, JSValueConst this_val,
+								  int argc, JSValueConst *argv) {
+	nx_web_applet_t *data = nx_web_applet_get(ctx, argv[0]);
+	if (!data) return JS_EXCEPTION;
+
+	if (!data->url && !data->offline_mode) {
+		return JS_ThrowTypeError(ctx, "WebApplet URL or document path not set");
+	}
+
+	// Web applets can only be launched from Application mode
+	AppletType at = appletGetAppletType();
+	if (at != AppletType_Application && at != AppletType_SystemApplication) {
+		return JS_ThrowTypeError(ctx,
+			"WebApplet requires Application mode.");
+	}
+
+	Result rc = _web_applet_configure(data);
+	if (R_FAILED(rc)) {
+		return nx_throw_libnx_error(ctx, rc, "WebApplet configure");
+	}
+
+	// Blocking show
+	WebCommonReply reply;
+	rc = webConfigShow(&data->config, &reply);
+	if (R_FAILED(rc)) {
+		return nx_throw_libnx_error(ctx, rc, "webConfigShow()");
+	}
+
+	// Get exit reason and last URL
+	JSValue result = JS_NewObject(ctx);
+
+	WebExitReason reason;
+	if (R_SUCCEEDED(webReplyGetExitReason(&reply, &reason))) {
+		JS_SetPropertyStr(ctx, result, "exitReason", JS_NewInt32(ctx, reason));
+	}
+
+	char lastUrl[0x1000];
+	size_t lastUrlSize = 0;
+	if (R_SUCCEEDED(
+			webReplyGetLastUrl(&reply, lastUrl, sizeof(lastUrl), &lastUrlSize))) {
+		JS_SetPropertyStr(ctx, result, "lastUrl",
+						  JS_NewStringLen(ctx, lastUrl, lastUrlSize > 0 ? lastUrlSize - 1 : 0));
+	}
+
+	return result;
 }
 
 static JSValue nx_web_applet_appear(JSContext *ctx, JSValueConst this_val,
 									int argc, JSValueConst *argv) {
 	nx_web_applet_t *data = nx_web_applet_get(ctx, argv[0]);
 	if (!data) return JS_EXCEPTION;
-	if (!data->started) {
-		return JS_ThrowTypeError(ctx, "WebApplet not started");
+	if (!data->started || !data->session_mode) {
+		return JS_ThrowTypeError(ctx, "WebApplet not started in session mode");
 	}
 	bool flag = false;
 	Result rc = webSessionAppear(&data->session, &flag);
@@ -163,8 +261,8 @@ static JSValue nx_web_applet_send_message(JSContext *ctx,
 										  JSValueConst *argv) {
 	nx_web_applet_t *data = nx_web_applet_get(ctx, argv[0]);
 	if (!data) return JS_EXCEPTION;
-	if (!data->started) {
-		return JS_ThrowTypeError(ctx, "WebApplet not started");
+	if (!data->started || !data->session_mode) {
+		return JS_ThrowTypeError(ctx, "WebApplet not started in session mode");
 	}
 	size_t len;
 	const char *msg = JS_ToCStringLen(ctx, &len, argv[1]);
@@ -185,7 +283,7 @@ static JSValue nx_web_applet_poll_messages(JSContext *ctx,
 										   JSValueConst *argv) {
 	nx_web_applet_t *data = nx_web_applet_get(ctx, argv[0]);
 	if (!data) return JS_EXCEPTION;
-	if (!data->started) {
+	if (!data->started || !data->session_mode) {
 		return JS_NewArray(ctx);
 	}
 
@@ -201,7 +299,6 @@ static JSValue nx_web_applet_poll_messages(JSContext *ctx,
 		if (R_FAILED(rc) || !flag) {
 			break;
 		}
-		// out_size may include null terminator, use strlen for safety
 		size_t str_len = out_size > 0 ? strnlen(buf, (size_t)out_size) : 0;
 		JSValue str = JS_NewStringLen(ctx, buf, str_len);
 		JS_SetPropertyUint32(ctx, arr, index++, str);
@@ -215,8 +312,8 @@ static JSValue nx_web_applet_request_exit(JSContext *ctx,
 										  JSValueConst *argv) {
 	nx_web_applet_t *data = nx_web_applet_get(ctx, argv[0]);
 	if (!data) return JS_EXCEPTION;
-	if (!data->started) {
-		return JS_ThrowTypeError(ctx, "WebApplet not started");
+	if (!data->started || !data->session_mode) {
+		return JS_ThrowTypeError(ctx, "WebApplet not started in session mode");
 	}
 	Result rc = webSessionRequestExit(&data->session);
 	if (R_FAILED(rc)) {
@@ -229,11 +326,12 @@ static JSValue nx_web_applet_close(JSContext *ctx, JSValueConst this_val,
 								   int argc, JSValueConst *argv) {
 	nx_web_applet_t *data = nx_web_applet_get(ctx, argv[0]);
 	if (!data) return JS_EXCEPTION;
-	if (data->started) {
+	if (data->started && data->session_mode) {
 		WebCommonReply reply;
 		webSessionWaitForExit(&data->session, &reply);
 		webSessionClose(&data->session);
 		data->started = false;
+		data->session_mode = false;
 	}
 	return JS_UNDEFINED;
 }
@@ -242,10 +340,9 @@ static JSValue nx_web_applet_is_running(JSContext *ctx, JSValueConst this_val,
 										int argc, JSValueConst *argv) {
 	nx_web_applet_t *data = nx_web_applet_get(ctx, argv[0]);
 	if (!data) return JS_EXCEPTION;
-	if (!data->started) {
+	if (!data->started || !data->session_mode) {
 		return JS_FALSE;
 	}
-	// Check the exit event — if signaled, applet has exited
 	bool running = true;
 	if (data->exit_event) {
 		Result rc = eventWait(data->exit_event, 0);
@@ -259,10 +356,13 @@ static JSValue nx_web_applet_is_running(JSContext *ctx, JSValueConst this_val,
 static const JSCFunctionListEntry function_list[] = {
 	JS_CFUNC_DEF("webAppletNew", 0, nx_web_applet_new),
 	JS_CFUNC_DEF("webAppletSetUrl", 2, nx_web_applet_set_url),
+	JS_CFUNC_DEF("webAppletSetDocumentPath", 2,
+				  nx_web_applet_set_document_path),
 	JS_CFUNC_DEF("webAppletSetJsExtension", 2,
 				  nx_web_applet_set_js_extension),
 	JS_CFUNC_DEF("webAppletSetBootMode", 2, nx_web_applet_set_boot_mode),
 	JS_CFUNC_DEF("webAppletStart", 1, nx_web_applet_start),
+	JS_CFUNC_DEF("webAppletShow", 1, nx_web_applet_show),
 	JS_CFUNC_DEF("webAppletAppear", 1, nx_web_applet_appear),
 	JS_CFUNC_DEF("webAppletSendMessage", 2, nx_web_applet_send_message),
 	JS_CFUNC_DEF("webAppletPollMessages", 1, nx_web_applet_poll_messages),

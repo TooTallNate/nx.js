@@ -448,10 +448,6 @@ importers:
         version: 0.17.19
 
   apps/web-applet:
-    dependencies:
-      '@nx.js/http':
-        specifier: workspace:^
-        version: link:../../packages/http
     devDependencies:
       '@nx.js/nro':
         specifier: workspace:^
