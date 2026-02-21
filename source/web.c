@@ -8,6 +8,7 @@ typedef enum {
 	WEB_MODE_NONE,
 	WEB_MODE_WEB_SESSION,   // WebApplet with WebSession (HTTPS, window.nx)
 	WEB_MODE_WIFI_AUTH,     // WifiWebAuthApplet (HTTP, localhost, no whitelist)
+	WEB_MODE_OFFLINE,       // Offline applet (html-document NCA, window.nx)
 } nx_web_mode_t;
 
 typedef struct {
@@ -37,7 +38,7 @@ static void finalizer_web_applet(JSRuntime *rt, JSValue val) {
 	nx_web_applet_t *data = JS_GetOpaque(val, nx_web_applet_class_id);
 	if (data) {
 		if (data->started) {
-			if (data->mode == WEB_MODE_WEB_SESSION) {
+			if (data->mode == WEB_MODE_WEB_SESSION || data->mode == WEB_MODE_OFFLINE) {
 				WebCommonReply reply;
 				webSessionWaitForExit(&data->session, &reply);
 				webSessionClose(&data->session);
@@ -107,6 +108,10 @@ static JSValue nx_web_applet_set_boot_mode(JSContext *ctx,
 
 static bool _is_http_url(const char *url) {
 	return url && strncmp(url, "http://", 7) == 0;
+}
+
+static bool _is_offline_url(const char *url) {
+	return url && strncmp(url, "offline:/", 9) == 0;
 }
 
 static Result _configure_web_session(nx_web_applet_t *data) {
@@ -185,6 +190,44 @@ static Result _start_wifi_auth(nx_web_applet_t *data) {
 	return 0;
 }
 
+static Result _start_offline(nx_web_applet_t *data) {
+	// Get app's program ID for mounting offline HTML content
+	u64 app_id = 0;
+	Result rc = svcGetInfo(&app_id, InfoType_ProgramId, CUR_PROCESS_HANDLE, 0);
+	if (R_FAILED(rc)) return rc;
+
+	// DocumentPath: skip "offline:/" prefix, path must contain ".htdocs/"
+	const char *doc_path = data->url + 8;  // skip "offline:"
+
+	rc = webOfflineCreate(&data->config, WebDocumentKind_OfflineHtmlPage,
+						  app_id, doc_path);
+	if (R_FAILED(rc)) return rc;
+
+	if (data->js_extension) {
+		rc = webConfigSetJsExtension(&data->config, true);
+		if (R_FAILED(rc)) return rc;
+	}
+
+	webConfigSetTouchEnabledOnContents(&data->config, true);
+
+	if (data->boot_mode != 0) {
+		rc = webConfigSetBootMode(&data->config,
+								 (WebSessionBootMode)data->boot_mode);
+		if (R_FAILED(rc)) return rc;
+	}
+
+	// Use WebSession for async (offline ShimKind supports it on FW 7.0+)
+	webSessionCreate(&data->session, &data->config);
+	rc = webSessionStart(&data->session, &data->exit_event);
+	if (R_FAILED(rc)) {
+		webSessionClose(&data->session);
+		return rc;
+	}
+
+	data->mode = WEB_MODE_OFFLINE;
+	return 0;
+}
+
 static JSValue nx_web_applet_start(JSContext *ctx, JSValueConst this_val,
 								   int argc, JSValueConst *argv) {
 	nx_web_applet_t *data = nx_web_applet_get(ctx, argv[0]);
@@ -208,7 +251,13 @@ static JSValue nx_web_applet_start(JSContext *ctx, JSValueConst this_val,
 	}
 
 	Result rc;
-	if (_is_http_url(data->url)) {
+	if (_is_offline_url(data->url)) {
+		// offline:/ URLs use the Offline applet (html-document NCA)
+		rc = _start_offline(data);
+		if (R_FAILED(rc)) {
+			return nx_throw_libnx_error(ctx, rc, "Offline applet start");
+		}
+	} else if (_is_http_url(data->url)) {
 		// HTTP URLs use WifiWebAuthApplet (no whitelist, localhost works)
 		rc = _start_wifi_auth(data);
 		if (R_FAILED(rc)) {
@@ -230,7 +279,7 @@ static JSValue nx_web_applet_appear(JSContext *ctx, JSValueConst this_val,
 									int argc, JSValueConst *argv) {
 	nx_web_applet_t *data = nx_web_applet_get(ctx, argv[0]);
 	if (!data) return JS_EXCEPTION;
-	if (!data->started || data->mode != WEB_MODE_WEB_SESSION) {
+	if (!data->started || data->mode != WEB_MODE_WEB_SESSION && data->mode != WEB_MODE_OFFLINE) {
 		return JS_ThrowTypeError(ctx,
 			"appear() only available in WebSession mode (HTTPS URLs)");
 	}
@@ -247,7 +296,7 @@ static JSValue nx_web_applet_send_message(JSContext *ctx,
 										  JSValueConst *argv) {
 	nx_web_applet_t *data = nx_web_applet_get(ctx, argv[0]);
 	if (!data) return JS_EXCEPTION;
-	if (!data->started || data->mode != WEB_MODE_WEB_SESSION) {
+	if (!data->started || data->mode != WEB_MODE_WEB_SESSION && data->mode != WEB_MODE_OFFLINE) {
 		return JS_ThrowTypeError(ctx,
 			"sendMessage() only available in WebSession mode (HTTPS URLs)");
 	}
@@ -270,7 +319,7 @@ static JSValue nx_web_applet_poll_messages(JSContext *ctx,
 										   JSValueConst *argv) {
 	nx_web_applet_t *data = nx_web_applet_get(ctx, argv[0]);
 	if (!data) return JS_EXCEPTION;
-	if (!data->started || data->mode != WEB_MODE_WEB_SESSION) {
+	if (!data->started || data->mode != WEB_MODE_WEB_SESSION && data->mode != WEB_MODE_OFFLINE) {
 		return JS_NewArray(ctx);
 	}
 
@@ -303,7 +352,7 @@ static JSValue nx_web_applet_request_exit(JSContext *ctx,
 		return JS_ThrowTypeError(ctx, "WebApplet not started");
 	}
 	Result rc;
-	if (data->mode == WEB_MODE_WEB_SESSION) {
+	if (data->mode == WEB_MODE_WEB_SESSION || data->mode == WEB_MODE_OFFLINE) {
 		rc = webSessionRequestExit(&data->session);
 	} else {
 		rc = appletHolderRequestExit(&data->wifi_holder);
@@ -319,7 +368,7 @@ static JSValue nx_web_applet_close(JSContext *ctx, JSValueConst this_val,
 	nx_web_applet_t *data = nx_web_applet_get(ctx, argv[0]);
 	if (!data) return JS_EXCEPTION;
 	if (data->started) {
-		if (data->mode == WEB_MODE_WEB_SESSION) {
+		if (data->mode == WEB_MODE_WEB_SESSION || data->mode == WEB_MODE_OFFLINE) {
 			WebCommonReply reply;
 			webSessionWaitForExit(&data->session, &reply);
 			webSessionClose(&data->session);
@@ -341,7 +390,7 @@ static JSValue nx_web_applet_is_running(JSContext *ctx, JSValueConst this_val,
 		return JS_FALSE;
 	}
 
-	if (data->mode == WEB_MODE_WEB_SESSION) {
+	if (data->mode == WEB_MODE_WEB_SESSION || data->mode == WEB_MODE_OFFLINE) {
 		if (data->exit_event) {
 			Result rc = eventWait(data->exit_event, 0);
 			if (R_SUCCEEDED(rc)) return JS_FALSE;
@@ -363,6 +412,7 @@ static JSValue nx_web_applet_get_mode(JSContext *ctx, JSValueConst this_val,
 	switch (data->mode) {
 		case WEB_MODE_WEB_SESSION: return JS_NewString(ctx, "web-session");
 		case WEB_MODE_WIFI_AUTH: return JS_NewString(ctx, "wifi-auth");
+		case WEB_MODE_OFFLINE: return JS_NewString(ctx, "offline");
 		default: return JS_NewString(ctx, "none");
 	}
 }
