@@ -19,28 +19,35 @@ Below is a checklist of the currently implemented standardized algorithms provid
   - [`encrypt()`](/runtime/api/classes/SubtleCrypto#encrypt) and [`decrypt()`](/runtime/api/classes/SubtleCrypto#decrypt): encrypt and decrypt data.
     - ✅ `"AES-CBC"`
     - ✅ `"AES-CTR"`
-    - ❌ `"AES-GCM"`
+    - ✅ `"AES-GCM"`
     - ❌ `"RSA-OAEP"`
   - [`sign()`](/runtime/api/classes/SubtleCrypto#sign) and [`verify()`](/runtime/api/classes/SubtleCrypto#verify): sign and verify data.
     - ✅ `"HMAC"` (with `"SHA-1"`, `"SHA-256"`, `"SHA-384"`, `"SHA-512"`)
+    - ✅ `"ECDSA"` (with `"P-256"` and `"P-384"` curves)
     - ❌ `"RSASSA-PKCS1-v1_5"`
     - ❌ `"RSA-PSS"`
-    - ❌ `"ECDSA"`
   - [`generateKey()`](/runtime/api/classes/SubtleCrypto#generateKey): generate a new cryptographic key.
     - ✅ `"AES-CBC"`
     - ✅ `"AES-CTR"`
     - ✅ `"AES-GCM"`
     - ✅ `"HMAC"`
+    - ✅ `"ECDSA"` (with `"P-256"` and `"P-384"` curves)
+    - ✅ `"ECDH"` (with `"P-256"` and `"P-384"` curves)
     - ❌ `"RSA-OAEP"` / `"RSASSA-PKCS1-v1_5"` / `"RSA-PSS"`
-    - ❌ `"ECDSA"` / `"ECDH"`
+  - [`deriveBits()`](/runtime/api/classes/SubtleCrypto#deriveBits) and [`deriveKey()`](/runtime/api/classes/SubtleCrypto#deriveKey): derive bits or a key from a base key.
+    - ✅ `"ECDH"` (with `"P-256"` and `"P-384"` curves)
+    - ✅ `"HKDF"` (with `"SHA-256"`, `"SHA-384"`, `"SHA-512"`)
+    - ✅ `"PBKDF2"` (with `"SHA-256"`, `"SHA-384"`, `"SHA-512"`)
   - [`importKey()`](/runtime/api/classes/SubtleCrypto#importKey): import a key from external data.
-    - ✅ `"raw"` format (AES and HMAC keys)
+    - ✅ `"raw"` format (AES, HMAC, HKDF, and PBKDF2 keys)
     - ❌ `"jwk"` format
     - ❌ `"pkcs8"` / `"spki"` formats
   - [`exportKey()`](/runtime/api/classes/SubtleCrypto#exportKey): export a key to external data.
     - ✅ `"raw"` format (extractable keys)
     - ❌ `"jwk"` format
     - ❌ `"pkcs8"` / `"spki"` formats
+  - [`wrapKey()`](/runtime/api/classes/SubtleCrypto#wrapKey) and [`unwrapKey()`](/runtime/api/classes/SubtleCrypto#unwrapKey): wrap and unwrap keys.
+    - ❌ Not yet implemented
 
 ### Non-Standard Algorithms
 
