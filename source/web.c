@@ -13,8 +13,6 @@ typedef struct {
 	bool js_extension;
 	int boot_mode;
 	char *url;
-	char *document_path;
-	bool offline_mode;
 	JSContext *ctx;
 } nx_web_applet_t;
 
@@ -32,9 +30,6 @@ static void finalizer_web_applet(JSRuntime *rt, JSValue val) {
 		}
 		if (data->url) {
 			js_free_rt(rt, data->url);
-		}
-		if (data->document_path) {
-			js_free_rt(rt, data->document_path);
 		}
 		js_free_rt(rt, data);
 	}
@@ -54,8 +49,6 @@ static JSValue nx_web_applet_new(JSContext *ctx, JSValueConst this_val,
 	data->js_extension = false;
 	data->boot_mode = 0;
 	data->url = NULL;
-	data->document_path = NULL;
-	data->offline_mode = false;
 	return obj;
 }
 
@@ -69,25 +62,7 @@ static JSValue nx_web_applet_set_url(JSContext *ctx, JSValueConst this_val,
 		js_free(ctx, data->url);
 	}
 	data->url = js_strdup(ctx, url);
-	data->offline_mode = false;
 	JS_FreeCString(ctx, url);
-	return JS_UNDEFINED;
-}
-
-static JSValue nx_web_applet_set_document_path(JSContext *ctx,
-											   JSValueConst this_val,
-											   int argc,
-											   JSValueConst *argv) {
-	nx_web_applet_t *data = nx_web_applet_get(ctx, argv[0]);
-	if (!data) return JS_EXCEPTION;
-	const char *path = JS_ToCString(ctx, argv[1]);
-	if (!path) return JS_EXCEPTION;
-	if (data->document_path) {
-		js_free(ctx, data->document_path);
-	}
-	data->document_path = js_strdup(ctx, path);
-	data->offline_mode = true;
-	JS_FreeCString(ctx, path);
 	return JS_UNDEFINED;
 }
 
@@ -111,19 +86,24 @@ static JSValue nx_web_applet_set_boot_mode(JSContext *ctx,
 	return JS_UNDEFINED;
 }
 
+static bool _is_romfs_url(const char *url) {
+	return url && strncmp(url, "romfs:/", 7) == 0;
+}
+
 static Result _web_applet_configure(nx_web_applet_t *data) {
 	Result rc;
 
-	if (data->offline_mode) {
+	if (_is_romfs_url(data->url)) {
 		// Offline applet — serves HTML from app's romfs
+		// URL format: romfs:/path/to/file.html → document path: /path/to/file.html
 		u64 app_id = 0;
 		rc = svcGetInfo(&app_id, InfoType_ProgramId, CUR_PROCESS_HANDLE, 0);
 		if (R_FAILED(rc)) return rc;
 
+		const char *doc_path = data->url + 6;  // skip "romfs:"
 		rc = webOfflineCreate(&data->config,
 							  WebDocumentKind_OfflineHtmlPage, app_id,
-							  data->document_path ? data->document_path
-												  : "/index.html");
+							  doc_path);
 	} else {
 		// Online applet — loads a URL
 		rc = webPageCreate(&data->config, data->url);
@@ -162,7 +142,7 @@ static JSValue nx_web_applet_start(JSContext *ctx, JSValueConst this_val,
 		return JS_ThrowTypeError(ctx, "WebApplet already started");
 	}
 
-	if (!data->url && !data->offline_mode) {
+	if (!data->url) {
 		return JS_ThrowTypeError(ctx, "WebApplet URL or document path not set");
 	}
 
@@ -199,7 +179,7 @@ static JSValue nx_web_applet_show(JSContext *ctx, JSValueConst this_val,
 	nx_web_applet_t *data = nx_web_applet_get(ctx, argv[0]);
 	if (!data) return JS_EXCEPTION;
 
-	if (!data->url && !data->offline_mode) {
+	if (!data->url) {
 		return JS_ThrowTypeError(ctx, "WebApplet URL or document path not set");
 	}
 
@@ -356,8 +336,6 @@ static JSValue nx_web_applet_is_running(JSContext *ctx, JSValueConst this_val,
 static const JSCFunctionListEntry function_list[] = {
 	JS_CFUNC_DEF("webAppletNew", 0, nx_web_applet_new),
 	JS_CFUNC_DEF("webAppletSetUrl", 2, nx_web_applet_set_url),
-	JS_CFUNC_DEF("webAppletSetDocumentPath", 2,
-				  nx_web_applet_set_document_path),
 	JS_CFUNC_DEF("webAppletSetJsExtension", 2,
 				  nx_web_applet_set_js_extension),
 	JS_CFUNC_DEF("webAppletSetBootMode", 2, nx_web_applet_set_boot_mode),

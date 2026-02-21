@@ -350,7 +350,6 @@ export interface Init {
 	// web.c
 	webAppletNew(): any;
 	webAppletSetUrl(applet: any, url: string): void;
-	webAppletSetDocumentPath(applet: any, path: string): void;
 	webAppletSetJsExtension(applet: any, flag: boolean): void;
 	webAppletSetBootMode(applet: any, mode: number): void;
 	webAppletStart(applet: any): void;

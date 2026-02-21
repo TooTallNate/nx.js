@@ -21,27 +21,26 @@ export interface WebAppletShowResult {
  * Opens the Switch's built-in web browser as a Library Applet.
  * Requires Application mode (NSP install or hbmenu via title override).
  *
- * Two modes of operation:
+ * Supports two URL schemes:
+ * - `https://` or `http://` — opens the online web browser
+ * - `romfs:/` — opens the offline browser, serving HTML from the app's romfs
  *
- * ### Online mode (URL)
- * Opens the browser to a web URL:
+ * @example Online (blocking)
  * ```typescript
  * const applet = new Switch.WebApplet('https://example.com');
- * const result = await applet.show(); // blocking
+ * const result = await applet.show();
+ * console.log(result.lastUrl);
  * ```
  *
- * ### Offline mode (romfs HTML)
- * Serves HTML files from the app's romfs:
+ * @example Offline from romfs (blocking)
  * ```typescript
- * const applet = new Switch.WebApplet();
- * applet.documentPath = '/index.html';
+ * const applet = new Switch.WebApplet('romfs:/index.html');
  * const result = await applet.show();
  * ```
  *
- * ### Session mode (non-blocking with messaging)
- * For bidirectional communication via `window.nx`:
+ * @example Session mode with messaging (non-blocking)
  * ```typescript
- * const applet = new Switch.WebApplet('https://myapp.com');
+ * const applet = new Switch.WebApplet('romfs:/app.html');
  * applet.jsExtension = true;
  *
  * applet.addEventListener('message', (e) => {
@@ -53,53 +52,26 @@ export interface WebAppletShowResult {
  *   console.log('Browser closed');
  * });
  *
- * await applet.start(); // non-blocking
+ * await applet.start();
  * ```
  */
 export class WebApplet extends EventTarget {
 	#native: any;
 	#pollInterval: any = null;
 	#started = false;
-	#url: string | undefined;
-	#documentPath: string | undefined;
+	#url: string;
 	#jsExtension = false;
 	#bootHidden = false;
 
-	constructor(url?: string) {
+	constructor(url: string) {
 		super();
 		this.#url = url;
 		this.#native = $.webAppletNew();
 	}
 
 	/**
-	 * The URL to navigate to (online mode).
-	 */
-	get url(): string | undefined {
-		return this.#url;
-	}
-
-	set url(value: string) {
-		this.#url = value;
-		this.#documentPath = undefined;
-	}
-
-	/**
-	 * Path to an HTML document in the app's romfs (offline mode).
-	 * When set, the applet uses the offline browser instead of loading a URL.
-	 * @example '/index.html'
-	 */
-	get documentPath(): string | undefined {
-		return this.#documentPath;
-	}
-
-	set documentPath(value: string) {
-		this.#documentPath = value;
-		this.#url = undefined;
-	}
-
-	/**
 	 * Enable the `window.nx` JavaScript API in the browser for
-	 * bidirectional messaging. Only useful with `start()` (session mode).
+	 * bidirectional messaging. Only useful with {@link start} (session mode).
 	 */
 	get jsExtension() {
 		return this.#jsExtension;
@@ -110,7 +82,7 @@ export class WebApplet extends EventTarget {
 	}
 
 	/**
-	 * Start the browser hidden (can be shown later with `appear()`).
+	 * Start the browser hidden (can be shown later with {@link appear}).
 	 */
 	get bootHidden() {
 		return this.#bootHidden;
@@ -140,7 +112,7 @@ export class WebApplet extends EventTarget {
 	/**
 	 * Opens the browser in non-blocking session mode.
 	 * Use with `jsExtension = true` for bidirectional messaging via `window.nx`.
-	 * Listen for 'message' and 'exit' events.
+	 * Listen for `'message'` and `'exit'` events.
 	 */
 	async start(): Promise<void> {
 		if (this.#started) {
@@ -211,11 +183,7 @@ export class WebApplet extends EventTarget {
 	}
 
 	#configure() {
-		if (this.#documentPath) {
-			$.webAppletSetDocumentPath(this.#native, this.#documentPath);
-		} else if (this.#url) {
-			$.webAppletSetUrl(this.#native, this.#url);
-		}
+		$.webAppletSetUrl(this.#native, this.#url);
 		$.webAppletSetJsExtension(this.#native, this.#jsExtension);
 		if (this.#bootHidden) {
 			$.webAppletSetBootMode(this.#native, 1);

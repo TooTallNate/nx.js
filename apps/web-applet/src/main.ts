@@ -1,18 +1,70 @@
-// Web Applet Demo — opens the Switch browser to a URL
+// File Browser — demonstrates romfs offline mode with window.nx messaging
 //
-// Usage:
-//   Mode 1 (online): Opens a web URL, blocks until user closes browser
-//   Mode 2 (offline): Opens HTML from romfs (place index.html in romfs/)
+// The HTML UI is served from romfs (no network required).
+// Communication between the browser and nx.js happens via window.nx IPC.
 
-// --- Mode 1: Open a URL (blocking) ---
+const applet = new Switch.WebApplet('romfs:/index.html');
+applet.jsExtension = true;
 
-const applet = new Switch.WebApplet('https://nxjs.n8.io');
+// Handle RPC messages from the browser
+applet.addEventListener('message', (e: any) => {
+	const msg = JSON.parse(e.data);
+	let response: any;
 
-console.log('Opening web browser...');
-const result = await applet.show();
+	try {
+		switch (msg.type) {
+			case 'ls': {
+				const entries = Switch.readDirSync(msg.data.path);
+				response = entries.map((name: string) => {
+					const fullPath =
+						msg.data.path +
+						(msg.data.path.endsWith('/') ? '' : '/') +
+						name;
+					const stat = Switch.statSync(fullPath);
+					return {
+						name,
+						isDir: stat ? stat.isDirectory() : false,
+						size: stat ? stat.size : 0,
+					};
+				});
+				break;
+			}
 
-console.log('Browser closed');
-console.log('Exit reason:', result.exitReason);
-if (result.lastUrl) {
-	console.log('Last URL:', result.lastUrl);
-}
+			case 'read': {
+				const maxSize = msg.data.maxSize || 64000;
+				const stat = Switch.statSync(msg.data.path);
+				if (!stat) {
+					response = { error: 'File not found' };
+				} else if (stat.size > maxSize) {
+					const buf = Switch.readFileSync(msg.data.path);
+					const slice = buf.slice(0, maxSize);
+					response = {
+						content:
+							new TextDecoder().decode(slice) +
+							`\n\n... (truncated, ${stat.size} bytes total)`,
+					};
+				} else {
+					const buf = Switch.readFileSync(msg.data.path);
+					response = { content: new TextDecoder().decode(buf) };
+				}
+				break;
+			}
+
+			default:
+				response = { error: `Unknown command: ${msg.type}` };
+		}
+	} catch (err: any) {
+		response = { error: err.message || String(err) };
+	}
+
+	applet.sendMessage(JSON.stringify({ id: msg.id, data: response }));
+});
+
+applet.addEventListener('exit', () => {
+	console.log('File browser closed');
+	Switch.exit();
+});
+
+console.log('Starting file browser...');
+await applet.start();
+console.log('File browser started!');
