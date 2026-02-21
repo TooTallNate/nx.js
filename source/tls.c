@@ -59,10 +59,16 @@ static int nx_tls_load_ca_certs(nx_context_t *nx_ctx) {
 		return -1;
 	}
 
-	// Parse the returned SslBuiltInCertificateInfo array
+	// Parse the returned SslBuiltInCertificateInfo array.
+	// Only load certificates that are marked as EnabledTrusted — skip
+	// Removed, EnabledNotTrusted, Revoked, and Invalid entries so that
+	// retired / distrusted CAs don't pollute the trusted chain.
 	SslBuiltInCertificateInfo *cert_infos = (SslBuiltInCertificateInfo *)cert_buffer;
 	int loaded = 0;
 	for (u32 i = 0; i < total_certs; i++) {
+		if (cert_infos[i].status != SslTrustedCertStatus_EnabledTrusted) {
+			continue;
+		}
 		if (cert_infos[i].cert_data && cert_infos[i].cert_size > 0) {
 			int ret = mbedtls_x509_crt_parse_der(
 				&nx_ctx->ca_chain,

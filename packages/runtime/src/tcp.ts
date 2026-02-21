@@ -45,7 +45,11 @@ function write(fd: number, data: BufferSource) {
 	return toPromise($.write, fd, ab);
 }
 
-function tlsHandshake(fd: number, hostname: string, rejectUnauthorized: boolean) {
+function tlsHandshake(
+	fd: number,
+	hostname: string,
+	rejectUnauthorized: boolean,
+) {
 	return toPromise($.tlsHandshake, fd, hostname, rejectUnauthorized);
 }
 
