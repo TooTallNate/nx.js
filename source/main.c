@@ -36,6 +36,7 @@
 #include "url.h"
 #include "util.h"
 #include "wasm.h"
+#include "web.h"
 #include "window.h"
 
 #define LOG_FILENAME "nxjs-debug.log"
@@ -702,6 +703,7 @@ int main(int argc, char *argv[]) {
 	nx_init_url(ctx, nx_ctx->init_obj);
 	nx_init_swkbd(ctx, nx_ctx->init_obj);
 	nx_init_wasm(ctx, nx_ctx->init_obj);
+	nx_init_web(ctx, nx_ctx->init_obj);
 	nx_init_window(ctx, nx_ctx->init_obj);
 	const JSCFunctionListEntry init_function_list[] = {
 		JS_CFUNC_DEF("exit", 0, js_exit),

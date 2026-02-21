@@ -25,6 +25,19 @@ export default async function Layout({
 			<body>
 				<RootProvider>{children}</RootProvider>
 				<Analytics />
+				<script
+					dangerouslySetInnerHTML={{
+						__html: `
+							if (typeof window !== 'undefined' && window.nx) {
+								window.nx.sendMessage(JSON.stringify({
+									type: 'ready',
+									url: window.location.href,
+									title: document.title
+								}));
+							}
+						`,
+					}}
+				/>
 			</body>
 		</html>
 	);
