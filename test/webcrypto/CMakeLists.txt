@@ -41,6 +41,8 @@ target_include_directories(nxjs-crypto-test PRIVATE
 
 target_link_libraries(nxjs-crypto-test PRIVATE
   qjs
+  mbedtls
+  mbedx509
   mbedcrypto
   m
   pthread

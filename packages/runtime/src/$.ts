@@ -210,6 +210,34 @@ export interface Init {
 		length: number,
 	): Promise<ArrayBuffer>;
 	cryptoDigest(algorithm: string, buf: BufferSource): Promise<ArrayBuffer>;
+	cryptoGenerateKeyRsa(
+		modulusLength: number,
+		publicExponent: number,
+	): Promise<ArrayBuffer[]>;
+	cryptoKeyNewRsa(
+		algoName: string,
+		hashName: string,
+		type: string,
+		n: ArrayBuffer,
+		e: ArrayBuffer,
+		d: ArrayBuffer | null,
+		p: ArrayBuffer | null,
+		q: ArrayBuffer | null,
+		extractable: boolean,
+		usages: string[],
+	): CryptoKey<any>;
+	cryptoRsaExportComponents(key: CryptoKey<any>): ArrayBuffer[];
+	cryptoExportKeyPkcs8(key: CryptoKey<any>): ArrayBuffer;
+	cryptoExportKeySpki(key: CryptoKey<any>): ArrayBuffer;
+	cryptoImportKeyPkcs8Spki(
+		format: string,
+		data: BufferSource,
+		algoName: string,
+		paramName: string,
+		extractable: boolean,
+		usages: string[],
+	): CryptoKey<any>;
+	cryptoEcExportPublicRaw(key: CryptoKey<any>): ArrayBuffer;
 	sha256Hex(str: string): string;
 
 	// dommatrix.c

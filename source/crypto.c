@@ -2,6 +2,7 @@
 #include "async.h"
 #include "util.h"
 #include <errno.h>
+#include <mbedtls/error.h>
 #include <mbedtls/version.h>
 #include <mbedtls/gcm.h>
 #include <mbedtls/md.h>
@@ -14,8 +15,17 @@
 #include <mbedtls/bignum.h>
 #include <mbedtls/ctr_drbg.h>
 #include <mbedtls/entropy.h>
+#include <mbedtls/rsa.h>
+#include <mbedtls/pk.h>
+#include <mbedtls/base64.h>
+#include <mbedtls/asn1write.h>
+#include <mbedtls/asn1.h>
+#include <mbedtls/oid.h>
 #include <string.h>
 #include <switch.h>
+
+/* Forward declaration */
+static mbedtls_md_type_t nx_crypto_get_md_type(const char *hash_name);
 
 static JSClassID nx_crypto_key_class_id;
 
@@ -115,6 +125,14 @@ static void finalizer_crypto_key(JSRuntime *rt, JSValue val) {
 			nx_crypto_key_ec_t *ec = context->handle;
 			if (ec) {
 				mbedtls_ecp_keypair_free(&ec->keypair);
+			}
+		}
+		if (context->algorithm == NX_CRYPTO_KEY_ALGORITHM_RSA_OAEP ||
+			context->algorithm == NX_CRYPTO_KEY_ALGORITHM_RSA_PSS ||
+			context->algorithm == NX_CRYPTO_KEY_ALGORITHM_RSASSA_PKCS1_V1_5) {
+			nx_crypto_key_rsa_t *rsa = context->handle;
+			if (rsa) {
+				mbedtls_rsa_free(&rsa->rsa);
 			}
 		}
 		if (context->handle) {
@@ -334,6 +352,60 @@ void nx_crypto_encrypt_do(nx_work_t *req) {
 		} else if (aes->key_length == 64) {
 			data->err = ENOTSUP;
 		}
+	} else if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_RSA_OAEP) {
+		nx_crypto_key_rsa_t *rsa = (nx_crypto_key_rsa_t *)data->key->handle;
+		size_t rsa_len = mbedtls_rsa_get_len(&rsa->rsa);
+
+		data->result_size = rsa_len;
+		data->result = malloc(data->result_size);
+		if (!data->result) {
+			data->err = ENOMEM;
+			return;
+		}
+
+		mbedtls_md_type_t md_type = nx_crypto_get_md_type(rsa->hash_name);
+
+		mbedtls_entropy_context oaep_entropy;
+		mbedtls_ctr_drbg_context oaep_ctr_drbg;
+		mbedtls_entropy_init(&oaep_entropy);
+		mbedtls_ctr_drbg_init(&oaep_ctr_drbg);
+		int ret = mbedtls_ctr_drbg_seed(&oaep_ctr_drbg, mbedtls_entropy_func, &oaep_entropy, NULL, 0);
+		if (ret != 0) {
+			mbedtls_ctr_drbg_free(&oaep_ctr_drbg);
+			mbedtls_entropy_free(&oaep_entropy);
+			free(data->result);
+			data->result = NULL;
+			data->err = ret;
+			return;
+		}
+
+		mbedtls_rsa_set_padding(&rsa->rsa, MBEDTLS_RSA_PKCS_V21, md_type);
+
+		// label from algorithm_params (may be NULL)
+		uint8_t *label = NULL;
+		size_t label_len = 0;
+		if (data->algorithm_params) {
+			nx_crypto_aes_gcm_params_t *lp = (nx_crypto_aes_gcm_params_t *)data->algorithm_params;
+			label = lp->iv;
+			label_len = lp->iv_size;
+		}
+
+#if MBEDTLS_VERSION_MAJOR >= 3
+		ret = mbedtls_rsa_rsaes_oaep_encrypt(&rsa->rsa, mbedtls_ctr_drbg_random,
+			&oaep_ctr_drbg, (const char *)label, label_len, data->data_size, data->data, data->result);
+#else
+		ret = mbedtls_rsa_rsaes_oaep_encrypt(&rsa->rsa, mbedtls_ctr_drbg_random,
+			&oaep_ctr_drbg, MBEDTLS_RSA_PUBLIC, (const char *)label, label_len, data->data_size, data->data, data->result);
+#endif
+
+		mbedtls_ctr_drbg_free(&oaep_ctr_drbg);
+		mbedtls_entropy_free(&oaep_entropy);
+
+		if (ret != 0) {
+			free(data->result);
+			data->result = NULL;
+			data->err = ENOTSUP;
+		}
 	}
 }
 
@@ -369,7 +441,7 @@ static JSValue nx_crypto_encrypt(JSContext *ctx, JSValueConst this_val,
 	}
 
 	// Validate that the key may be used for encryption
-	if (!(data->key->usages & NX_CRYPTO_KEY_USAGE_ENCRYPT)) {
+	if (!(data->key->usages & (NX_CRYPTO_KEY_USAGE_ENCRYPT | NX_CRYPTO_KEY_USAGE_WRAP_KEY))) {
 		js_free(ctx, data);
 		return JS_ThrowTypeError(
 			ctx, "Key does not support the 'encrypt' operation");
@@ -502,6 +574,21 @@ static JSValue nx_crypto_encrypt(JSContext *ctx, JSValueConst this_val,
 		xts_params->sector_size = sector_size;
 
 		data->algorithm_params = xts_params;
+	} else if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_RSA_OAEP) {
+		// Optional label parameter
+		JSValue label_val = JS_GetPropertyStr(ctx, argv[0], "label");
+		if (!JS_IsUndefined(label_val) && !JS_IsNull(label_val)) {
+			nx_crypto_aes_gcm_params_t *lp =
+				js_mallocz(ctx, sizeof(nx_crypto_aes_gcm_params_t));
+			if (!lp) {
+				JS_FreeValue(ctx, label_val);
+				js_free(ctx, data);
+				return JS_EXCEPTION;
+			}
+			lp->iv = NX_GetBufferSource(ctx, &lp->iv_size, label_val);
+			data->algorithm_params = lp;
+		}
+		JS_FreeValue(ctx, label_val);
 	}
 
 	data->algorithm_val = JS_DupValue(ctx, argv[0]);
@@ -641,6 +728,73 @@ static JSValue nx_crypto_key_get_algorithm(JSContext *ctx,
 			nx_crypto_key_ec_t *ec = (nx_crypto_key_ec_t *)context->handle;
 			JS_SetPropertyStr(ctx, obj, "namedCurve",
 							  JS_NewString(ctx, ec->curve_name));
+			break;
+		}
+		case NX_CRYPTO_KEY_ALGORITHM_RSA_OAEP: {
+			name_val = "RSA-OAEP";
+			nx_crypto_key_rsa_t *rsa = (nx_crypto_key_rsa_t *)context->handle;
+			JS_SetPropertyStr(ctx, obj, "modulusLength",
+							  JS_NewUint32(ctx, mbedtls_rsa_get_len(&rsa->rsa) * 8));
+			JSValue hash_obj = JS_NewObject(ctx);
+			JS_SetPropertyStr(ctx, hash_obj, "name",
+							  JS_NewString(ctx, rsa->hash_name));
+			JS_SetPropertyStr(ctx, obj, "hash", hash_obj);
+			// publicExponent as Uint8Array
+			mbedtls_mpi E;
+			mbedtls_mpi_init(&E);
+			mbedtls_rsa_export(&rsa->rsa, NULL, NULL, NULL, NULL, &E);
+			size_t pe_len = mbedtls_mpi_size(&E);
+			uint8_t *pe_copy = malloc(pe_len);
+			if (pe_copy) {
+				mbedtls_mpi_write_binary(&E, pe_copy, pe_len);
+				JS_SetPropertyStr(ctx, obj, "publicExponent",
+					JS_NewArrayBuffer(ctx, pe_copy, pe_len, free_array_buffer, NULL, false));
+			}
+			mbedtls_mpi_free(&E);
+			break;
+		}
+		case NX_CRYPTO_KEY_ALGORITHM_RSA_PSS: {
+			name_val = "RSA-PSS";
+			nx_crypto_key_rsa_t *rsa = (nx_crypto_key_rsa_t *)context->handle;
+			JS_SetPropertyStr(ctx, obj, "modulusLength",
+							  JS_NewUint32(ctx, mbedtls_rsa_get_len(&rsa->rsa) * 8));
+			JSValue hash_obj = JS_NewObject(ctx);
+			JS_SetPropertyStr(ctx, hash_obj, "name",
+							  JS_NewString(ctx, rsa->hash_name));
+			JS_SetPropertyStr(ctx, obj, "hash", hash_obj);
+			mbedtls_mpi E2;
+			mbedtls_mpi_init(&E2);
+			mbedtls_rsa_export(&rsa->rsa, NULL, NULL, NULL, NULL, &E2);
+			size_t pe_len2 = mbedtls_mpi_size(&E2);
+			uint8_t *pe_copy2 = malloc(pe_len2);
+			if (pe_copy2) {
+				mbedtls_mpi_write_binary(&E2, pe_copy2, pe_len2);
+				JS_SetPropertyStr(ctx, obj, "publicExponent",
+					JS_NewArrayBuffer(ctx, pe_copy2, pe_len2, free_array_buffer, NULL, false));
+			}
+			mbedtls_mpi_free(&E2);
+			break;
+		}
+		case NX_CRYPTO_KEY_ALGORITHM_RSASSA_PKCS1_V1_5: {
+			name_val = "RSASSA-PKCS1-v1_5";
+			nx_crypto_key_rsa_t *rsa = (nx_crypto_key_rsa_t *)context->handle;
+			JS_SetPropertyStr(ctx, obj, "modulusLength",
+							  JS_NewUint32(ctx, mbedtls_rsa_get_len(&rsa->rsa) * 8));
+			JSValue hash_obj = JS_NewObject(ctx);
+			JS_SetPropertyStr(ctx, hash_obj, "name",
+							  JS_NewString(ctx, rsa->hash_name));
+			JS_SetPropertyStr(ctx, obj, "hash", hash_obj);
+			mbedtls_mpi E3;
+			mbedtls_mpi_init(&E3);
+			mbedtls_rsa_export(&rsa->rsa, NULL, NULL, NULL, NULL, &E3);
+			size_t pe_len3 = mbedtls_mpi_size(&E3);
+			uint8_t *pe_copy3 = malloc(pe_len3);
+			if (pe_copy3) {
+				mbedtls_mpi_write_binary(&E3, pe_copy3, pe_len3);
+				JS_SetPropertyStr(ctx, obj, "publicExponent",
+					JS_NewArrayBuffer(ctx, pe_copy3, pe_len3, free_array_buffer, NULL, false));
+			}
+			mbedtls_mpi_free(&E3);
 			break;
 		}
 		default:
@@ -1277,6 +1431,69 @@ void nx_crypto_decrypt_do(nx_work_t *req) {
 		} else if (aes->key_length == 64) {
 			data->err = ENOTSUP;
 		}
+	} else if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_RSA_OAEP) {
+		nx_crypto_key_rsa_t *rsa = (nx_crypto_key_rsa_t *)data->key->handle;
+		size_t rsa_len = mbedtls_rsa_get_len(&rsa->rsa);
+
+		mbedtls_md_type_t md_type = nx_crypto_get_md_type(rsa->hash_name);
+
+		mbedtls_entropy_context dec_entropy;
+		mbedtls_ctr_drbg_context dec_ctr_drbg;
+		mbedtls_entropy_init(&dec_entropy);
+		mbedtls_ctr_drbg_init(&dec_ctr_drbg);
+		int ret = mbedtls_ctr_drbg_seed(&dec_ctr_drbg, mbedtls_entropy_func, &dec_entropy, NULL, 0);
+		if (ret != 0) {
+			mbedtls_ctr_drbg_free(&dec_ctr_drbg);
+			mbedtls_entropy_free(&dec_entropy);
+			data->err = ret;
+			return;
+		}
+
+		mbedtls_rsa_set_padding(&rsa->rsa, MBEDTLS_RSA_PKCS_V21, md_type);
+
+		uint8_t *label = NULL;
+		size_t label_len = 0;
+		if (data->algorithm_params) {
+			nx_crypto_aes_gcm_params_t *lp = (nx_crypto_aes_gcm_params_t *)data->algorithm_params;
+			label = lp->iv;
+			label_len = lp->iv_size;
+		}
+
+		uint8_t *output = malloc(rsa_len);
+		if (!output) {
+			mbedtls_ctr_drbg_free(&dec_ctr_drbg);
+			mbedtls_entropy_free(&dec_entropy);
+			data->err = ENOMEM;
+			return;
+		}
+
+		size_t olen = 0;
+#if MBEDTLS_VERSION_MAJOR >= 3
+		ret = mbedtls_rsa_rsaes_oaep_decrypt(&rsa->rsa, mbedtls_ctr_drbg_random,
+			&dec_ctr_drbg, (const char *)label, label_len, &olen, data->data, output, rsa_len);
+#else
+		ret = mbedtls_rsa_rsaes_oaep_decrypt(&rsa->rsa, mbedtls_ctr_drbg_random,
+			&dec_ctr_drbg, MBEDTLS_RSA_PRIVATE, (const char *)label, label_len, &olen, data->data, output, rsa_len);
+#endif
+
+		mbedtls_ctr_drbg_free(&dec_ctr_drbg);
+		mbedtls_entropy_free(&dec_entropy);
+
+		if (ret != 0) {
+			free(output);
+			data->err = EACCES;
+			return;
+		}
+
+		data->result = malloc(olen);
+		if (!data->result) {
+			free(output);
+			data->err = ENOMEM;
+			return;
+		}
+		memcpy(data->result, output, olen);
+		data->result_size = olen;
+		free(output);
 	}
 }
 
@@ -1312,7 +1529,7 @@ static JSValue nx_crypto_subtle_decrypt(JSContext *ctx, JSValueConst this_val,
 	}
 
 	// Validate that the key may be used for decryption
-	if (!(data->key->usages & NX_CRYPTO_KEY_USAGE_DECRYPT)) {
+	if (!(data->key->usages & (NX_CRYPTO_KEY_USAGE_DECRYPT | NX_CRYPTO_KEY_USAGE_UNWRAP_KEY))) {
 		js_free(ctx, data);
 		return JS_ThrowTypeError(
 			ctx, "Key does not support the 'decrypt' operation");
@@ -1442,6 +1659,20 @@ static JSValue nx_crypto_subtle_decrypt(JSContext *ctx, JSValueConst this_val,
 		xts_params->sector_size = sector_size;
 
 		data->algorithm_params = xts_params;
+	} else if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_RSA_OAEP) {
+		JSValue label_val = JS_GetPropertyStr(ctx, argv[0], "label");
+		if (!JS_IsUndefined(label_val) && !JS_IsNull(label_val)) {
+			nx_crypto_aes_gcm_params_t *lp =
+				js_mallocz(ctx, sizeof(nx_crypto_aes_gcm_params_t));
+			if (!lp) {
+				JS_FreeValue(ctx, label_val);
+				js_free(ctx, data);
+				return JS_EXCEPTION;
+			}
+			lp->iv = NX_GetBufferSource(ctx, &lp->iv_size, label_val);
+			data->algorithm_params = lp;
+		}
+		JS_FreeValue(ctx, label_val);
 	}
 
 	data->algorithm_val = JS_DupValue(ctx, argv[0]);
@@ -1612,6 +1843,117 @@ sign_cleanup:
 			free(data->result);
 			data->result = NULL;
 		}
+	} else if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_RSASSA_PKCS1_V1_5) {
+		nx_crypto_key_rsa_t *rsa = (nx_crypto_key_rsa_t *)data->key->handle;
+		mbedtls_md_type_t md_type = nx_crypto_get_md_type(rsa->hash_name);
+		if (md_type == MBEDTLS_MD_NONE) { data->err = ENOTSUP; return; }
+
+		const mbedtls_md_info_t *md_info = mbedtls_md_info_from_type(md_type);
+		size_t hash_len = mbedtls_md_get_size(md_info);
+		uint8_t hash_buf[64];
+		int ret = mbedtls_md(md_info, data->data, data->data_size, hash_buf);
+		if (ret != 0) { data->err = ret; return; }
+
+		size_t rsa_len = mbedtls_rsa_get_len(&rsa->rsa);
+		data->result = malloc(rsa_len);
+		if (!data->result) { data->err = ENOMEM; return; }
+		data->result_size = rsa_len;
+
+		mbedtls_rsa_set_padding(&rsa->rsa, MBEDTLS_RSA_PKCS_V15, MBEDTLS_MD_NONE);
+		mbedtls_entropy_context sign_entropy;
+		mbedtls_ctr_drbg_context sign_ctr_drbg;
+		mbedtls_entropy_init(&sign_entropy);
+		mbedtls_ctr_drbg_init(&sign_ctr_drbg);
+		ret = mbedtls_ctr_drbg_seed(&sign_ctr_drbg, mbedtls_entropy_func,
+							  &sign_entropy, NULL, 0);
+		if (ret != 0) {
+			mbedtls_ctr_drbg_free(&sign_ctr_drbg);
+			mbedtls_entropy_free(&sign_entropy);
+			free(data->result);
+			data->result = NULL;
+			data->err = ret;
+			return;
+		}
+
+#if MBEDTLS_VERSION_MAJOR >= 3
+		ret = mbedtls_rsa_rsassa_pkcs1_v15_sign(&rsa->rsa,
+			mbedtls_ctr_drbg_random, &sign_ctr_drbg,
+			md_type, hash_len, hash_buf, data->result);
+#else
+		ret = mbedtls_rsa_rsassa_pkcs1_v15_sign(&rsa->rsa,
+			mbedtls_ctr_drbg_random, &sign_ctr_drbg,
+			MBEDTLS_RSA_PRIVATE, md_type, hash_len, hash_buf, data->result);
+#endif
+		mbedtls_ctr_drbg_free(&sign_ctr_drbg);
+		mbedtls_entropy_free(&sign_entropy);
+
+		if (ret != 0) {
+			free(data->result);
+			data->result = NULL;
+			data->err = ret;
+		}
+	} else if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_RSA_PSS) {
+		nx_crypto_key_rsa_t *rsa = (nx_crypto_key_rsa_t *)data->key->handle;
+		mbedtls_md_type_t md_type = nx_crypto_get_md_type(rsa->hash_name);
+		if (md_type == MBEDTLS_MD_NONE) { data->err = ENOTSUP; return; }
+
+		const mbedtls_md_info_t *md_info = mbedtls_md_info_from_type(md_type);
+		size_t hash_len = mbedtls_md_get_size(md_info);
+		uint8_t hash_buf2[64];
+		int ret = mbedtls_md(md_info, data->data, data->data_size, hash_buf2);
+		if (ret != 0) { data->err = ret; return; }
+
+		size_t rsa_len = mbedtls_rsa_get_len(&rsa->rsa);
+		data->result = malloc(rsa_len);
+		if (!data->result) { data->err = ENOMEM; return; }
+		data->result_size = rsa_len;
+
+		// Get salt length from algorithm_params or default to hash length
+		int salt_len = rsa->salt_length;
+		if (data->algorithm_params) {
+			salt_len = *(int *)data->algorithm_params;
+		}
+		if (salt_len < 0) salt_len = (int)hash_len;
+
+		mbedtls_entropy_context pss_entropy;
+		mbedtls_ctr_drbg_context pss_ctr_drbg;
+		mbedtls_entropy_init(&pss_entropy);
+		mbedtls_ctr_drbg_init(&pss_ctr_drbg);
+		ret = mbedtls_ctr_drbg_seed(&pss_ctr_drbg, mbedtls_entropy_func, &pss_entropy, NULL, 0);
+		if (ret != 0) {
+			mbedtls_ctr_drbg_free(&pss_ctr_drbg);
+			mbedtls_entropy_free(&pss_entropy);
+			free(data->result);
+			data->result = NULL;
+			data->err = ret;
+			return;
+		}
+
+		mbedtls_rsa_set_padding(&rsa->rsa, MBEDTLS_RSA_PKCS_V21, md_type);
+#if MBEDTLS_VERSION_MAJOR >= 3
+		ret = mbedtls_rsa_rsassa_pss_sign_ext(&rsa->rsa, mbedtls_ctr_drbg_random,
+			&pss_ctr_drbg, md_type, hash_len, hash_buf2, salt_len, data->result);
+#else
+		if (salt_len != (int)hash_len) {
+			mbedtls_ctr_drbg_free(&pss_ctr_drbg);
+			mbedtls_entropy_free(&pss_entropy);
+			free(data->result);
+			data->result = NULL;
+			data->err = ENOTSUP;
+			return;
+		}
+		ret = mbedtls_rsa_rsassa_pss_sign(&rsa->rsa, mbedtls_ctr_drbg_random,
+			&pss_ctr_drbg, MBEDTLS_RSA_PRIVATE, md_type, hash_len, hash_buf2, data->result);
+#endif
+
+		mbedtls_ctr_drbg_free(&pss_ctr_drbg);
+		mbedtls_entropy_free(&pss_entropy);
+
+		if (ret != 0) {
+			free(data->result);
+			data->result = NULL;
+			data->err = ENOTSUP;
+		}
 	} else {
 		data->err = ENOTSUP;
 	}
@@ -1683,6 +2025,22 @@ static JSValue nx_crypto_sign(JSContext *ctx, JSValueConst this_val, int argc,
 		strcpy(hash_copy, hash_str);
 		JS_FreeCString(ctx, hash_str);
 		data->algorithm_params = hash_copy;
+	}
+
+	// For RSA-PSS, extract saltLength
+	if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_RSA_PSS) {
+		JSValue salt_val = JS_GetPropertyStr(ctx, argv[0], "saltLength");
+		if (!JS_IsUndefined(salt_val)) {
+			int *salt_len_ptr = malloc(sizeof(int));
+			u32 sl;
+			if (JS_ToUint32(ctx, &sl, salt_val) == 0) {
+				*salt_len_ptr = (int)sl;
+			} else {
+				*salt_len_ptr = -1;
+			}
+			data->algorithm_params = salt_len_ptr;
+		}
+		JS_FreeValue(ctx, salt_val);
 	}
 
 	data->algorithm_val = JS_DupValue(ctx, argv[0]);
@@ -1779,6 +2137,52 @@ void nx_crypto_verify_do(nx_work_t *req) {
 
 		mbedtls_mpi_free(&r);
 		mbedtls_mpi_free(&s);
+	} else if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_RSASSA_PKCS1_V1_5) {
+		nx_crypto_key_rsa_t *rsa = (nx_crypto_key_rsa_t *)data->key->handle;
+		mbedtls_md_type_t md_type = nx_crypto_get_md_type(rsa->hash_name);
+		if (md_type == MBEDTLS_MD_NONE) { data->err = ENOTSUP; return; }
+
+		const mbedtls_md_info_t *md_info = mbedtls_md_info_from_type(md_type);
+		size_t hash_len = mbedtls_md_get_size(md_info);
+		uint8_t hash_buf[64];
+		int ret = mbedtls_md(md_info, data->data, data->data_size, hash_buf);
+		if (ret != 0) { data->err = ret; return; }
+
+		mbedtls_rsa_set_padding(&rsa->rsa, MBEDTLS_RSA_PKCS_V15, MBEDTLS_MD_NONE);
+#if MBEDTLS_VERSION_MAJOR >= 3
+		ret = mbedtls_rsa_rsassa_pkcs1_v15_verify(&rsa->rsa,
+			md_type, hash_len, hash_buf, data->signature);
+#else
+		ret = mbedtls_rsa_rsassa_pkcs1_v15_verify(&rsa->rsa, NULL, NULL,
+			MBEDTLS_RSA_PUBLIC, md_type, hash_len, hash_buf, data->signature);
+#endif
+		data->result = (ret == 0);
+	} else if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_RSA_PSS) {
+		nx_crypto_key_rsa_t *rsa = (nx_crypto_key_rsa_t *)data->key->handle;
+		mbedtls_md_type_t md_type = nx_crypto_get_md_type(rsa->hash_name);
+		if (md_type == MBEDTLS_MD_NONE) { data->err = ENOTSUP; return; }
+
+		const mbedtls_md_info_t *md_info = mbedtls_md_info_from_type(md_type);
+		size_t hash_len = mbedtls_md_get_size(md_info);
+		uint8_t hash_buf2[64];
+		int ret = mbedtls_md(md_info, data->data, data->data_size, hash_buf2);
+		if (ret != 0) { data->err = ret; return; }
+
+		int salt_len = rsa->salt_length;
+		if (data->algorithm_params) {
+			salt_len = *(int *)data->algorithm_params;
+		}
+		if (salt_len < 0) salt_len = (int)hash_len;
+
+		mbedtls_rsa_set_padding(&rsa->rsa, MBEDTLS_RSA_PKCS_V21, md_type);
+#if MBEDTLS_VERSION_MAJOR >= 3
+		ret = mbedtls_rsa_rsassa_pss_verify_ext(&rsa->rsa,
+			md_type, hash_len, hash_buf2, md_type, salt_len, data->signature);
+#else
+		ret = mbedtls_rsa_rsassa_pss_verify_ext(&rsa->rsa, NULL, NULL,
+			MBEDTLS_RSA_PUBLIC, md_type, hash_len, hash_buf2, md_type, salt_len, data->signature);
+#endif
+		data->result = (ret == 0);
 	} else {
 		data->err = ENOTSUP;
 	}
@@ -1857,6 +2261,22 @@ static JSValue nx_crypto_verify(JSContext *ctx, JSValueConst this_val, int argc,
 		strcpy(hash_copy, hash_str);
 		JS_FreeCString(ctx, hash_str);
 		data->algorithm_params = hash_copy;
+	}
+
+	// For RSA-PSS, extract saltLength
+	if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_RSA_PSS) {
+		JSValue salt_val = JS_GetPropertyStr(ctx, argv[0], "saltLength");
+		if (!JS_IsUndefined(salt_val)) {
+			int *salt_len_ptr = malloc(sizeof(int));
+			u32 sl;
+			if (JS_ToUint32(ctx, &sl, salt_val) == 0) {
+				*salt_len_ptr = (int)sl;
+			} else {
+				*salt_len_ptr = -1;
+			}
+			data->algorithm_params = salt_len_ptr;
+		}
+		JS_FreeValue(ctx, salt_val);
 	}
 
 	data->algorithm_val = JS_DupValue(ctx, argv[0]);
@@ -2397,6 +2817,738 @@ static JSValue nx_crypto_subtle_init(JSContext *ctx, JSValueConst this_val,
 	return JS_UNDEFINED;
 }
 
+// --- RSA Generate Key ---
+// Returns array: [n, e, d, p, q, dp, dq, qi] as ArrayBuffers
+typedef struct {
+	int err;
+	uint32_t modulus_length;
+	uint32_t public_exponent;
+	uint8_t *n; size_t n_len;
+	uint8_t *e; size_t e_len;
+	uint8_t *d; size_t d_len;
+	uint8_t *p; size_t p_len;
+	uint8_t *q; size_t q_len;
+	uint8_t *dp; size_t dp_len;
+	uint8_t *dq; size_t dq_len;
+	uint8_t *qi; size_t qi_len;
+} nx_crypto_generate_key_rsa_async_t;
+
+static void nx_crypto_generate_key_rsa_do(nx_work_t *req) {
+	nx_crypto_generate_key_rsa_async_t *data = (nx_crypto_generate_key_rsa_async_t *)req->data;
+
+	mbedtls_rsa_context rsa;
+	#if MBEDTLS_VERSION_MAJOR >= 3
+	mbedtls_rsa_init(&rsa);
+#else
+	mbedtls_rsa_init(&rsa, MBEDTLS_RSA_PKCS_V21, MBEDTLS_MD_SHA256);
+#endif
+
+	mbedtls_entropy_context entropy;
+	mbedtls_ctr_drbg_context ctr_drbg;
+	mbedtls_entropy_init(&entropy);
+	mbedtls_ctr_drbg_init(&ctr_drbg);
+	int ret = mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy, NULL, 0);
+	if (ret != 0) {
+		mbedtls_ctr_drbg_free(&ctr_drbg);
+		mbedtls_entropy_free(&entropy);
+		mbedtls_rsa_free(&rsa);
+		data->err = ret;
+		return;
+	}
+
+	ret = mbedtls_rsa_gen_key(&rsa, mbedtls_ctr_drbg_random, &ctr_drbg,
+		data->modulus_length, data->public_exponent);
+	mbedtls_ctr_drbg_free(&ctr_drbg);
+	mbedtls_entropy_free(&entropy);
+
+	if (ret != 0) {
+		mbedtls_rsa_free(&rsa);
+		data->err = ret;
+		return;
+	}
+
+	mbedtls_mpi mpi_n, mpi_p, mpi_q, mpi_d, mpi_e, mpi_dp, mpi_dq, mpi_qi;
+	mbedtls_mpi_init(&mpi_n); mbedtls_mpi_init(&mpi_p); mbedtls_mpi_init(&mpi_q);
+	mbedtls_mpi_init(&mpi_d); mbedtls_mpi_init(&mpi_e);
+	mbedtls_mpi_init(&mpi_dp); mbedtls_mpi_init(&mpi_dq); mbedtls_mpi_init(&mpi_qi);
+
+	mbedtls_rsa_export(&rsa, &mpi_n, &mpi_p, &mpi_q, &mpi_d, &mpi_e);
+
+	// Compute DP, DQ, QI
+	mbedtls_mpi mpi_p1, mpi_q1;
+	mbedtls_mpi_init(&mpi_p1); mbedtls_mpi_init(&mpi_q1);
+	mbedtls_mpi_sub_int(&mpi_p1, &mpi_p, 1);
+	mbedtls_mpi_sub_int(&mpi_q1, &mpi_q, 1);
+	mbedtls_mpi_mod_mpi(&mpi_dp, &mpi_d, &mpi_p1);
+	mbedtls_mpi_mod_mpi(&mpi_dq, &mpi_d, &mpi_q1);
+	mbedtls_mpi_inv_mod(&mpi_qi, &mpi_q, &mpi_p);
+	mbedtls_mpi_free(&mpi_p1); mbedtls_mpi_free(&mpi_q1);
+
+	#define EXPORT_MPI(field) \
+		data->field##_len = mbedtls_mpi_size(&mpi_##field); \
+		data->field = malloc(data->field##_len); \
+		if (!data->field) { data->err = ENOMEM; goto rsa_gen_cleanup; } \
+		mbedtls_mpi_write_binary(&mpi_##field, data->field, data->field##_len);
+
+	EXPORT_MPI(n); EXPORT_MPI(e); EXPORT_MPI(d);
+	EXPORT_MPI(p); EXPORT_MPI(q);
+	EXPORT_MPI(dp); EXPORT_MPI(dq); EXPORT_MPI(qi);
+	#undef EXPORT_MPI
+
+rsa_gen_cleanup:
+	mbedtls_mpi_free(&mpi_n); mbedtls_mpi_free(&mpi_p); mbedtls_mpi_free(&mpi_q);
+	mbedtls_mpi_free(&mpi_d); mbedtls_mpi_free(&mpi_e);
+	mbedtls_mpi_free(&mpi_dp); mbedtls_mpi_free(&mpi_dq); mbedtls_mpi_free(&mpi_qi);
+	mbedtls_rsa_free(&rsa);
+	if (data->err) {
+		free(data->n); free(data->e); free(data->d);
+		free(data->p); free(data->q);
+		free(data->dp); free(data->dq); free(data->qi);
+	}
+}
+
+static JSValue nx_crypto_generate_key_rsa_cb(JSContext *ctx, nx_work_t *req) {
+	nx_crypto_generate_key_rsa_async_t *data = (nx_crypto_generate_key_rsa_async_t *)req->data;
+
+	if (data->err) {
+		char err_buf[128];
+		mbedtls_strerror(data->err, err_buf, sizeof(err_buf));
+		JSValue err = JS_NewError(ctx);
+		JS_DefinePropertyValueStr(ctx, err, "message",
+			JS_NewString(ctx, err_buf),
+			JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+		return JS_Throw(ctx, err);
+	}
+
+	JSValue result = JS_NewArray(ctx);
+	#define SET_BUF(idx, field) \
+		JS_SetPropertyUint32(ctx, result, idx, \
+			JS_NewArrayBuffer(ctx, data->field, data->field##_len, free_array_buffer, NULL, false));
+	SET_BUF(0, n); SET_BUF(1, e); SET_BUF(2, d);
+	SET_BUF(3, p); SET_BUF(4, q);
+	SET_BUF(5, dp); SET_BUF(6, dq); SET_BUF(7, qi);
+	#undef SET_BUF
+	return result;
+}
+
+static JSValue nx_crypto_generate_key_rsa(JSContext *ctx, JSValueConst this_val,
+	int argc, JSValueConst *argv) {
+	NX_INIT_WORK_T(nx_crypto_generate_key_rsa_async_t);
+
+	u32 modulus_length, public_exponent;
+	if (JS_ToUint32(ctx, &modulus_length, argv[0]) ||
+		JS_ToUint32(ctx, &public_exponent, argv[1])) {
+		js_free(ctx, data);
+		return JS_EXCEPTION;
+	}
+	data->modulus_length = modulus_length;
+	data->public_exponent = public_exponent;
+
+	return nx_queue_async(ctx, req, nx_crypto_generate_key_rsa_do,
+		nx_crypto_generate_key_rsa_cb);
+}
+
+// --- RSA Key New ---
+// Creates a CryptoKey from RSA components
+// argv[0] = algorithm name, argv[1] = hash name, argv[2] = type ("public"/"private")
+// argv[3] = n, argv[4] = e, argv[5] = d (null for public), argv[6] = p, argv[7] = q
+// argv[8] = extractable, argv[9] = usages
+static JSValue nx_crypto_key_new_rsa(JSContext *ctx, JSValueConst this_val,
+	int argc, JSValueConst *argv) {
+	nx_crypto_key_t *context = js_mallocz(ctx, sizeof(nx_crypto_key_t));
+	if (!context) return JS_EXCEPTION;
+
+	context->algorithm_cached = JS_UNDEFINED;
+	context->usages_cached = JS_UNDEFINED;
+
+	const char *algo_name = JS_ToCString(ctx, argv[0]);
+	if (!algo_name) { js_free(ctx, context); return JS_EXCEPTION; }
+
+	if (strcmp(algo_name, "RSA-OAEP") == 0)
+		context->algorithm = NX_CRYPTO_KEY_ALGORITHM_RSA_OAEP;
+	else if (strcmp(algo_name, "RSA-PSS") == 0)
+		context->algorithm = NX_CRYPTO_KEY_ALGORITHM_RSA_PSS;
+	else if (strcmp(algo_name, "RSASSA-PKCS1-v1_5") == 0)
+		context->algorithm = NX_CRYPTO_KEY_ALGORITHM_RSASSA_PKCS1_V1_5;
+	else {
+		JS_FreeCString(ctx, algo_name);
+		js_free(ctx, context);
+		return JS_ThrowTypeError(ctx, "Unsupported RSA algorithm");
+	}
+	JS_FreeCString(ctx, algo_name);
+
+	const char *hash_name = JS_ToCString(ctx, argv[1]);
+	if (!hash_name) { js_free(ctx, context); return JS_EXCEPTION; }
+
+	const char *type_str = JS_ToCString(ctx, argv[2]);
+	if (!type_str) { JS_FreeCString(ctx, hash_name); js_free(ctx, context); return JS_EXCEPTION; }
+	if (strcmp(type_str, "public") == 0) {
+		context->type = NX_CRYPTO_KEY_TYPE_PUBLIC;
+	} else if (strcmp(type_str, "private") == 0) {
+		context->type = NX_CRYPTO_KEY_TYPE_PRIVATE;
+	} else {
+		JS_FreeCString(ctx, type_str);
+		JS_FreeCString(ctx, hash_name);
+		js_free(ctx, context);
+		return JS_ThrowTypeError(ctx, "Key type must be 'public' or 'private'");
+	}
+	JS_FreeCString(ctx, type_str);
+
+	int extractable = JS_ToBool(ctx, argv[8]);
+	context->extractable = extractable;
+
+	// Parse usages
+	uint32_t usages_size;
+	JS_ToUint32(ctx, &usages_size, JS_GetPropertyStr(ctx, argv[9], "length"));
+	for (uint32_t i = 0; i < usages_size; i++) {
+		JSValue usage_val = JS_GetPropertyUint32(ctx, argv[9], i);
+		if (!JS_IsString(usage_val)) {
+			JS_FreeValue(ctx, usage_val);
+			JS_FreeCString(ctx, hash_name);
+			js_free(ctx, context);
+			return JS_ThrowTypeError(ctx, "Expected string for usage");
+		}
+		const char *usage = JS_ToCString(ctx, usage_val);
+		JS_FreeValue(ctx, usage_val);
+		if (!usage) {
+			JS_FreeCString(ctx, hash_name);
+			js_free(ctx, context);
+			return JS_EXCEPTION;
+		}
+		if (strcmp(usage, "encrypt") == 0) context->usages |= NX_CRYPTO_KEY_USAGE_ENCRYPT;
+		else if (strcmp(usage, "decrypt") == 0) context->usages |= NX_CRYPTO_KEY_USAGE_DECRYPT;
+		else if (strcmp(usage, "sign") == 0) context->usages |= NX_CRYPTO_KEY_USAGE_SIGN;
+		else if (strcmp(usage, "verify") == 0) context->usages |= NX_CRYPTO_KEY_USAGE_VERIFY;
+		else if (strcmp(usage, "wrapKey") == 0) context->usages |= NX_CRYPTO_KEY_USAGE_WRAP_KEY;
+		else if (strcmp(usage, "unwrapKey") == 0) context->usages |= NX_CRYPTO_KEY_USAGE_UNWRAP_KEY;
+		JS_FreeCString(ctx, usage);
+	}
+
+	nx_crypto_key_rsa_t *rsa = js_mallocz(ctx, sizeof(nx_crypto_key_rsa_t));
+	if (!rsa) {
+		JS_FreeCString(ctx, hash_name);
+		js_free(ctx, context);
+		return JS_EXCEPTION;
+	}
+	{
+		int padding = (context->algorithm == NX_CRYPTO_KEY_ALGORITHM_RSASSA_PKCS1_V1_5)
+			? MBEDTLS_RSA_PKCS_V15 : MBEDTLS_RSA_PKCS_V21;
+		mbedtls_md_type_t md = nx_crypto_get_md_type(hash_name);
+#if MBEDTLS_VERSION_MAJOR >= 3
+		mbedtls_rsa_init(&rsa->rsa);
+		mbedtls_rsa_set_padding(&rsa->rsa, padding, md);
+#else
+		mbedtls_rsa_init(&rsa->rsa, padding, md);
+#endif
+	}
+	strncpy(rsa->hash_name, hash_name, sizeof(rsa->hash_name) - 1);
+	rsa->salt_length = -1;
+	JS_FreeCString(ctx, hash_name);
+
+	// Read N and E
+	size_t n_size, e_size;
+	const uint8_t *n_data = NX_GetBufferSource(ctx, &n_size, argv[3]);
+	const uint8_t *e_data = NX_GetBufferSource(ctx, &e_size, argv[4]);
+	if (!n_data || !e_data) {
+		mbedtls_rsa_free(&rsa->rsa);
+		js_free(ctx, rsa);
+		js_free(ctx, context);
+		return JS_EXCEPTION;
+	}
+
+	mbedtls_mpi N, E;
+	mbedtls_mpi_init(&N); mbedtls_mpi_init(&E);
+	mbedtls_mpi_read_binary(&N, n_data, n_size);
+	mbedtls_mpi_read_binary(&E, e_data, e_size);
+
+	if (context->type == NX_CRYPTO_KEY_TYPE_PRIVATE) {
+		size_t d_size = 0, p_size = 0, q_size = 0;
+		const uint8_t *d_data = NX_GetBufferSource(ctx, &d_size, argv[5]);
+		const uint8_t *p_data = NX_GetBufferSource(ctx, &p_size, argv[6]);
+		const uint8_t *q_data = NX_GetBufferSource(ctx, &q_size, argv[7]);
+
+		mbedtls_mpi D, P, Q;
+		mbedtls_mpi *pD = NULL, *pP = NULL, *pQ = NULL;
+		mbedtls_mpi_init(&D); mbedtls_mpi_init(&P); mbedtls_mpi_init(&Q);
+		if (d_data) { mbedtls_mpi_read_binary(&D, d_data, d_size); pD = &D; }
+		if (p_data) { mbedtls_mpi_read_binary(&P, p_data, p_size); pP = &P; }
+		if (q_data) { mbedtls_mpi_read_binary(&Q, q_data, q_size); pQ = &Q; }
+
+		int ret = mbedtls_rsa_import(&rsa->rsa, &N, pP, pQ, pD, &E);
+		mbedtls_mpi_free(&D); mbedtls_mpi_free(&P); mbedtls_mpi_free(&Q);
+		if (ret == 0) ret = mbedtls_rsa_complete(&rsa->rsa);
+		if (ret != 0) {
+			mbedtls_mpi_free(&N); mbedtls_mpi_free(&E);
+			mbedtls_rsa_free(&rsa->rsa);
+			js_free(ctx, rsa);
+			js_free(ctx, context);
+			return JS_ThrowPlainError(ctx, "Failed to import RSA private key: %d", ret);
+		}
+	} else {
+		int ret = mbedtls_rsa_import(&rsa->rsa, &N, NULL, NULL, NULL, &E);
+		if (ret == 0) ret = mbedtls_rsa_complete(&rsa->rsa);
+		if (ret != 0) {
+			mbedtls_mpi_free(&N); mbedtls_mpi_free(&E);
+			mbedtls_rsa_free(&rsa->rsa);
+			js_free(ctx, rsa);
+			js_free(ctx, context);
+			return JS_ThrowPlainError(ctx, "Failed to import RSA public key: %d", ret);
+		}
+	}
+	mbedtls_mpi_free(&N); mbedtls_mpi_free(&E);
+
+	context->handle = rsa;
+
+	JSValue obj = JS_NewObjectClass(ctx, nx_crypto_key_class_id);
+	if (JS_IsException(obj)) {
+		mbedtls_rsa_free(&rsa->rsa);
+		js_free(ctx, rsa);
+		js_free(ctx, context);
+		return obj;
+	}
+	JS_SetOpaque(obj, context);
+	return obj;
+}
+
+// --- RSA Export Key Components ---
+// Returns [n, e, d, p, q, dp, dq, qi] for private keys, [n, e] for public
+static JSValue nx_crypto_rsa_export_components(JSContext *ctx, JSValueConst this_val,
+	int argc, JSValueConst *argv) {
+	nx_crypto_key_t *key = JS_GetOpaque2(ctx, argv[0], nx_crypto_key_class_id);
+	if (!key) return JS_EXCEPTION;
+
+	if (!key->extractable)
+		return JS_ThrowTypeError(ctx, "Key is not extractable");
+
+	nx_crypto_key_rsa_t *rsa = (nx_crypto_key_rsa_t *)key->handle;
+	if (!rsa)
+		return JS_ThrowTypeError(ctx, "Not an RSA key");
+
+	JSValue result = JS_NewArray(ctx);
+
+	#define EXPORT_MPI_JS(idx, mpi_var) { \
+		size_t len = mbedtls_mpi_size(&mpi_var); \
+		uint8_t *buf = malloc(len); \
+		if (buf) { \
+			mbedtls_mpi_write_binary(&mpi_var, buf, len); \
+			JS_SetPropertyUint32(ctx, result, idx, \
+				JS_NewArrayBuffer(ctx, buf, len, free_array_buffer, NULL, false)); \
+		} \
+	}
+
+	if (key->type == NX_CRYPTO_KEY_TYPE_PRIVATE) {
+		mbedtls_mpi N, E, D, P, Q;
+		mbedtls_mpi_init(&N); mbedtls_mpi_init(&E); mbedtls_mpi_init(&D);
+		mbedtls_mpi_init(&P); mbedtls_mpi_init(&Q);
+		mbedtls_rsa_export(&rsa->rsa, &N, &P, &Q, &D, &E);
+
+		EXPORT_MPI_JS(0, N);
+		EXPORT_MPI_JS(1, E);
+		EXPORT_MPI_JS(2, D);
+		EXPORT_MPI_JS(3, P);
+		EXPORT_MPI_JS(4, Q);
+
+		mbedtls_mpi DP, DQ, QI, P1, Q1;
+		mbedtls_mpi_init(&DP); mbedtls_mpi_init(&DQ); mbedtls_mpi_init(&QI);
+		mbedtls_mpi_init(&P1); mbedtls_mpi_init(&Q1);
+		mbedtls_mpi_sub_int(&P1, &P, 1);
+		mbedtls_mpi_sub_int(&Q1, &Q, 1);
+		mbedtls_mpi_mod_mpi(&DP, &D, &P1);
+		mbedtls_mpi_mod_mpi(&DQ, &D, &Q1);
+		mbedtls_mpi_inv_mod(&QI, &Q, &P);
+		EXPORT_MPI_JS(5, DP);
+		EXPORT_MPI_JS(6, DQ);
+		EXPORT_MPI_JS(7, QI);
+		mbedtls_mpi_free(&DP); mbedtls_mpi_free(&DQ); mbedtls_mpi_free(&QI);
+		mbedtls_mpi_free(&P1); mbedtls_mpi_free(&Q1);
+
+		mbedtls_mpi_free(&N); mbedtls_mpi_free(&E); mbedtls_mpi_free(&D);
+		mbedtls_mpi_free(&P); mbedtls_mpi_free(&Q);
+	} else {
+		// Public key — only export N and E
+		mbedtls_mpi N, E;
+		mbedtls_mpi_init(&N); mbedtls_mpi_init(&E);
+		mbedtls_rsa_export(&rsa->rsa, &N, NULL, NULL, NULL, &E);
+
+		EXPORT_MPI_JS(0, N);
+		EXPORT_MPI_JS(1, E);
+
+		mbedtls_mpi_free(&N); mbedtls_mpi_free(&E);
+	}
+	#undef EXPORT_MPI_JS
+
+	return result;
+}
+
+// --- PKCS8 / SPKI Export ---
+static JSValue nx_crypto_export_key_pkcs8(JSContext *ctx, JSValueConst this_val,
+	int argc, JSValueConst *argv) {
+	nx_crypto_key_t *key = JS_GetOpaque2(ctx, argv[0], nx_crypto_key_class_id);
+	if (!key) return JS_EXCEPTION;
+	if (!key->extractable)
+		return JS_ThrowTypeError(ctx, "Key is not extractable");
+
+	mbedtls_pk_context pk;
+	mbedtls_pk_init(&pk);
+	int ret;
+
+	if (key->algorithm == NX_CRYPTO_KEY_ALGORITHM_RSA_OAEP ||
+		key->algorithm == NX_CRYPTO_KEY_ALGORITHM_RSA_PSS ||
+		key->algorithm == NX_CRYPTO_KEY_ALGORITHM_RSASSA_PKCS1_V1_5) {
+		nx_crypto_key_rsa_t *rsa = (nx_crypto_key_rsa_t *)key->handle;
+		ret = mbedtls_pk_setup(&pk, mbedtls_pk_info_from_type(MBEDTLS_PK_RSA));
+		if (ret != 0) { mbedtls_pk_free(&pk); return JS_ThrowPlainError(ctx, "pk setup failed"); }
+
+		mbedtls_mpi N, P, Q, D, E;
+		mbedtls_mpi_init(&N); mbedtls_mpi_init(&P); mbedtls_mpi_init(&Q);
+		mbedtls_mpi_init(&D); mbedtls_mpi_init(&E);
+		mbedtls_rsa_export(&rsa->rsa, &N, &P, &Q, &D, &E);
+
+		mbedtls_rsa_context *pk_rsa = mbedtls_pk_rsa(pk);
+		mbedtls_rsa_import(pk_rsa, &N, &P, &Q, &D, &E);
+		mbedtls_rsa_complete(pk_rsa);
+
+		mbedtls_mpi_free(&N); mbedtls_mpi_free(&P); mbedtls_mpi_free(&Q);
+		mbedtls_mpi_free(&D); mbedtls_mpi_free(&E);
+	} else if (key->algorithm == NX_CRYPTO_KEY_ALGORITHM_ECDSA ||
+			   key->algorithm == NX_CRYPTO_KEY_ALGORITHM_ECDH) {
+		nx_crypto_key_ec_t *ec = (nx_crypto_key_ec_t *)key->handle;
+		ret = mbedtls_pk_setup(&pk, mbedtls_pk_info_from_type(MBEDTLS_PK_ECKEY));
+		if (ret != 0) { mbedtls_pk_free(&pk); return JS_ThrowPlainError(ctx, "pk setup failed"); }
+
+		mbedtls_ecp_keypair *pk_ec = mbedtls_pk_ec(pk);
+		mbedtls_ecp_group_load(&pk_ec->grp, ec->keypair.grp.id);
+		mbedtls_mpi_copy(&pk_ec->d, &ec->keypair.d);
+		mbedtls_ecp_copy(&pk_ec->Q, &ec->keypair.Q);
+	} else {
+		mbedtls_pk_free(&pk);
+		return JS_ThrowTypeError(ctx, "Key type does not support PKCS8 export");
+	}
+
+	// Write DER
+	uint8_t buf[4096];
+	ret = mbedtls_pk_write_key_der(&pk, buf, sizeof(buf));
+	mbedtls_pk_free(&pk);
+
+	if (ret < 0)
+		return JS_ThrowPlainError(ctx, "Failed to write PKCS8 DER: %d", ret);
+
+	// mbedtls writes from the end of buf
+	uint8_t *der_start = buf + sizeof(buf) - ret;
+	uint8_t *result = malloc(ret);
+	if (!result) return JS_EXCEPTION;
+	memcpy(result, der_start, ret);
+	return JS_NewArrayBuffer(ctx, result, ret, free_array_buffer, NULL, false);
+}
+
+static JSValue nx_crypto_export_key_spki(JSContext *ctx, JSValueConst this_val,
+	int argc, JSValueConst *argv) {
+	nx_crypto_key_t *key = JS_GetOpaque2(ctx, argv[0], nx_crypto_key_class_id);
+	if (!key) return JS_EXCEPTION;
+	if (!key->extractable)
+		return JS_ThrowTypeError(ctx, "Key is not extractable");
+
+	mbedtls_pk_context pk;
+	mbedtls_pk_init(&pk);
+	int ret;
+
+	if (key->algorithm == NX_CRYPTO_KEY_ALGORITHM_RSA_OAEP ||
+		key->algorithm == NX_CRYPTO_KEY_ALGORITHM_RSA_PSS ||
+		key->algorithm == NX_CRYPTO_KEY_ALGORITHM_RSASSA_PKCS1_V1_5) {
+		nx_crypto_key_rsa_t *rsa = (nx_crypto_key_rsa_t *)key->handle;
+		ret = mbedtls_pk_setup(&pk, mbedtls_pk_info_from_type(MBEDTLS_PK_RSA));
+		if (ret != 0) { mbedtls_pk_free(&pk); return JS_ThrowPlainError(ctx, "pk setup failed"); }
+
+		mbedtls_mpi N, E;
+		mbedtls_mpi_init(&N); mbedtls_mpi_init(&E);
+		mbedtls_rsa_export(&rsa->rsa, &N, NULL, NULL, NULL, &E);
+
+		mbedtls_rsa_context *pk_rsa = mbedtls_pk_rsa(pk);
+		mbedtls_rsa_import(pk_rsa, &N, NULL, NULL, NULL, &E);
+		mbedtls_rsa_complete(pk_rsa);
+
+		mbedtls_mpi_free(&N); mbedtls_mpi_free(&E);
+	} else if (key->algorithm == NX_CRYPTO_KEY_ALGORITHM_ECDSA ||
+			   key->algorithm == NX_CRYPTO_KEY_ALGORITHM_ECDH) {
+		nx_crypto_key_ec_t *ec = (nx_crypto_key_ec_t *)key->handle;
+		ret = mbedtls_pk_setup(&pk, mbedtls_pk_info_from_type(MBEDTLS_PK_ECKEY));
+		if (ret != 0) { mbedtls_pk_free(&pk); return JS_ThrowPlainError(ctx, "pk setup failed"); }
+
+		mbedtls_ecp_keypair *pk_ec = mbedtls_pk_ec(pk);
+		mbedtls_ecp_group_load(&pk_ec->grp, ec->keypair.grp.id);
+		mbedtls_ecp_copy(&pk_ec->Q, &ec->keypair.Q);
+	} else {
+		mbedtls_pk_free(&pk);
+		return JS_ThrowTypeError(ctx, "Key type does not support SPKI export");
+	}
+
+	uint8_t buf[4096];
+	ret = mbedtls_pk_write_pubkey_der(&pk, buf, sizeof(buf));
+	mbedtls_pk_free(&pk);
+
+	if (ret < 0)
+		return JS_ThrowPlainError(ctx, "Failed to write SPKI DER: %d", ret);
+
+	uint8_t *der_start = buf + sizeof(buf) - ret;
+	uint8_t *result = malloc(ret);
+	if (!result) return JS_EXCEPTION;
+	memcpy(result, der_start, ret);
+	return JS_NewArrayBuffer(ctx, result, ret, free_array_buffer, NULL, false);
+}
+
+// --- PKCS8 / SPKI Import ---
+// Returns a CryptoKey opaque object
+// argv[0] = format ("pkcs8"/"spki"), argv[1] = DER data, argv[2] = algorithm name,
+// argv[3] = hash name, argv[4] = extractable, argv[5] = usages
+// For EC: argv[3] = namedCurve
+static JSValue nx_crypto_import_key_pkcs8_spki(JSContext *ctx, JSValueConst this_val,
+	int argc, JSValueConst *argv) {
+	const char *format = JS_ToCString(ctx, argv[0]);
+	if (!format) return JS_EXCEPTION;
+
+	size_t der_size;
+	const uint8_t *der_data = NX_GetBufferSource(ctx, &der_size, argv[1]);
+	if (!der_data) { JS_FreeCString(ctx, format); return JS_EXCEPTION; }
+
+	const char *algo_name = JS_ToCString(ctx, argv[2]);
+	if (!algo_name) { JS_FreeCString(ctx, format); return JS_EXCEPTION; }
+
+	const char *param_name = JS_ToCString(ctx, argv[3]); // hash or namedCurve
+	if (!param_name) { JS_FreeCString(ctx, format); JS_FreeCString(ctx, algo_name); return JS_EXCEPTION; }
+
+	int extractable = JS_ToBool(ctx, argv[4]);
+
+	mbedtls_pk_context pk;
+	mbedtls_pk_init(&pk);
+	int ret;
+
+	if (strcmp(format, "pkcs8") == 0) {
+#if MBEDTLS_VERSION_MAJOR >= 3
+		mbedtls_entropy_context imp_entropy;
+		mbedtls_ctr_drbg_context imp_ctr_drbg;
+		mbedtls_entropy_init(&imp_entropy);
+		mbedtls_ctr_drbg_init(&imp_ctr_drbg);
+		ret = mbedtls_ctr_drbg_seed(&imp_ctr_drbg, mbedtls_entropy_func, &imp_entropy, NULL, 0);
+		if (ret != 0) {
+			mbedtls_ctr_drbg_free(&imp_ctr_drbg);
+			mbedtls_entropy_free(&imp_entropy);
+			mbedtls_pk_free(&pk);
+			JS_FreeCString(ctx, format);
+			JS_FreeCString(ctx, algo_name);
+			JS_FreeCString(ctx, param_name);
+			char err_buf[128];
+			mbedtls_strerror(ret, err_buf, sizeof(err_buf));
+			return JS_ThrowPlainError(ctx, "Failed to seed DRBG: %s", err_buf);
+		}
+		ret = mbedtls_pk_parse_key(&pk, der_data, der_size, NULL, 0,
+			mbedtls_ctr_drbg_random, &imp_ctr_drbg);
+		mbedtls_ctr_drbg_free(&imp_ctr_drbg);
+		mbedtls_entropy_free(&imp_entropy);
+#else
+		ret = mbedtls_pk_parse_key(&pk, der_data, der_size, NULL, 0);
+#endif
+	} else {
+		ret = mbedtls_pk_parse_public_key(&pk, der_data, der_size);
+	}
+
+	if (ret != 0) {
+		mbedtls_pk_free(&pk);
+		JS_FreeCString(ctx, format);
+		JS_FreeCString(ctx, algo_name);
+		JS_FreeCString(ctx, param_name);
+		return JS_ThrowPlainError(ctx, "Failed to parse key: -0x%04x", -ret);
+	}
+
+	nx_crypto_key_t *context = js_mallocz(ctx, sizeof(nx_crypto_key_t));
+	if (!context) {
+		mbedtls_pk_free(&pk);
+		JS_FreeCString(ctx, format);
+		JS_FreeCString(ctx, algo_name);
+		JS_FreeCString(ctx, param_name);
+		return JS_EXCEPTION;
+	}
+	context->algorithm_cached = JS_UNDEFINED;
+	context->usages_cached = JS_UNDEFINED;
+	context->extractable = extractable;
+
+	// Parse usages
+	uint32_t usages_size;
+	JS_ToUint32(ctx, &usages_size, JS_GetPropertyStr(ctx, argv[5], "length"));
+	for (uint32_t i = 0; i < usages_size; i++) {
+		JSValue usage_val = JS_GetPropertyUint32(ctx, argv[5], i);
+		if (!JS_IsString(usage_val)) {
+			JS_FreeValue(ctx, usage_val);
+			mbedtls_pk_free(&pk);
+			JS_FreeCString(ctx, format); JS_FreeCString(ctx, algo_name); JS_FreeCString(ctx, param_name);
+			js_free(ctx, context);
+			return JS_ThrowTypeError(ctx, "Expected string for usage");
+		}
+		const char *usage = JS_ToCString(ctx, usage_val);
+		JS_FreeValue(ctx, usage_val);
+		if (!usage) {
+			mbedtls_pk_free(&pk);
+			JS_FreeCString(ctx, format); JS_FreeCString(ctx, algo_name); JS_FreeCString(ctx, param_name);
+			js_free(ctx, context);
+			return JS_EXCEPTION;
+		}
+		if (strcmp(usage, "encrypt") == 0) context->usages |= NX_CRYPTO_KEY_USAGE_ENCRYPT;
+		else if (strcmp(usage, "decrypt") == 0) context->usages |= NX_CRYPTO_KEY_USAGE_DECRYPT;
+		else if (strcmp(usage, "sign") == 0) context->usages |= NX_CRYPTO_KEY_USAGE_SIGN;
+		else if (strcmp(usage, "verify") == 0) context->usages |= NX_CRYPTO_KEY_USAGE_VERIFY;
+		else if (strcmp(usage, "wrapKey") == 0) context->usages |= NX_CRYPTO_KEY_USAGE_WRAP_KEY;
+		else if (strcmp(usage, "unwrapKey") == 0) context->usages |= NX_CRYPTO_KEY_USAGE_UNWRAP_KEY;
+		else if (strcmp(usage, "deriveBits") == 0) context->usages |= NX_CRYPTO_KEY_USAGE_DERIVE_BITS;
+		else if (strcmp(usage, "deriveKey") == 0) context->usages |= NX_CRYPTO_KEY_USAGE_DERIVE_KEY;
+		JS_FreeCString(ctx, usage);
+	}
+
+	context->type = (strcmp(format, "pkcs8") == 0) ? NX_CRYPTO_KEY_TYPE_PRIVATE : NX_CRYPTO_KEY_TYPE_PUBLIC;
+
+	mbedtls_pk_type_t pk_type = mbedtls_pk_get_type(&pk);
+
+	if (pk_type == MBEDTLS_PK_RSA) {
+		if (strcmp(algo_name, "RSA-OAEP") == 0)
+			context->algorithm = NX_CRYPTO_KEY_ALGORITHM_RSA_OAEP;
+		else if (strcmp(algo_name, "RSA-PSS") == 0)
+			context->algorithm = NX_CRYPTO_KEY_ALGORITHM_RSA_PSS;
+		else if (strcmp(algo_name, "RSASSA-PKCS1-v1_5") == 0)
+			context->algorithm = NX_CRYPTO_KEY_ALGORITHM_RSASSA_PKCS1_V1_5;
+		else {
+			mbedtls_pk_free(&pk);
+			JS_FreeCString(ctx, format); JS_FreeCString(ctx, algo_name); JS_FreeCString(ctx, param_name);
+			js_free(ctx, context);
+			return JS_ThrowTypeError(ctx, "Unsupported RSA algorithm for import");
+		}
+
+		nx_crypto_key_rsa_t *rsa = js_mallocz(ctx, sizeof(nx_crypto_key_rsa_t));
+		if (!rsa) {
+			mbedtls_pk_free(&pk);
+			JS_FreeCString(ctx, format); JS_FreeCString(ctx, algo_name); JS_FreeCString(ctx, param_name);
+			js_free(ctx, context);
+			return JS_EXCEPTION;
+		}
+		{
+			int padding = (context->algorithm == NX_CRYPTO_KEY_ALGORITHM_RSASSA_PKCS1_V1_5)
+				? MBEDTLS_RSA_PKCS_V15 : MBEDTLS_RSA_PKCS_V21;
+			mbedtls_md_type_t md = nx_crypto_get_md_type(param_name);
+#if MBEDTLS_VERSION_MAJOR >= 3
+			mbedtls_rsa_init(&rsa->rsa);
+			mbedtls_rsa_set_padding(&rsa->rsa, padding, md);
+#else
+			mbedtls_rsa_init(&rsa->rsa, padding, md);
+#endif
+		}
+		strncpy(rsa->hash_name, param_name, sizeof(rsa->hash_name) - 1);
+		rsa->salt_length = -1;
+
+		// Copy RSA context from pk
+		mbedtls_rsa_context *src_rsa = mbedtls_pk_rsa(pk);
+		ret = mbedtls_rsa_copy(&rsa->rsa, src_rsa);
+		if (ret != 0) {
+			mbedtls_pk_free(&pk);
+			mbedtls_rsa_free(&rsa->rsa);
+			js_free(ctx, rsa);
+			JS_FreeCString(ctx, format); JS_FreeCString(ctx, algo_name); JS_FreeCString(ctx, param_name);
+			js_free(ctx, context);
+			return JS_ThrowPlainError(ctx, "Failed to copy RSA key: %d", ret);
+		}
+
+		context->handle = rsa;
+	} else if (pk_type == MBEDTLS_PK_ECKEY) {
+		if (strcmp(algo_name, "ECDSA") == 0)
+			context->algorithm = NX_CRYPTO_KEY_ALGORITHM_ECDSA;
+		else if (strcmp(algo_name, "ECDH") == 0)
+			context->algorithm = NX_CRYPTO_KEY_ALGORITHM_ECDH;
+		else {
+			mbedtls_pk_free(&pk);
+			JS_FreeCString(ctx, format); JS_FreeCString(ctx, algo_name); JS_FreeCString(ctx, param_name);
+			js_free(ctx, context);
+			return JS_ThrowTypeError(ctx, "Unsupported EC algorithm for import");
+		}
+
+		nx_crypto_key_ec_t *ec = js_mallocz(ctx, sizeof(nx_crypto_key_ec_t));
+		if (!ec) {
+			mbedtls_pk_free(&pk);
+			JS_FreeCString(ctx, format); JS_FreeCString(ctx, algo_name); JS_FreeCString(ctx, param_name);
+			js_free(ctx, context);
+			return JS_EXCEPTION;
+		}
+		mbedtls_ecp_keypair_init(&ec->keypair);
+		strncpy(ec->curve_name, param_name, sizeof(ec->curve_name) - 1);
+
+		mbedtls_ecp_keypair *src_ec = mbedtls_pk_ec(pk);
+		mbedtls_ecp_group_load(&ec->keypair.grp, src_ec->grp.id);
+		mbedtls_ecp_copy(&ec->keypair.Q, &src_ec->Q);
+		if (context->type == NX_CRYPTO_KEY_TYPE_PRIVATE)
+			mbedtls_mpi_copy(&ec->keypair.d, &src_ec->d);
+
+		context->handle = ec;
+	} else {
+		mbedtls_pk_free(&pk);
+		JS_FreeCString(ctx, format); JS_FreeCString(ctx, algo_name); JS_FreeCString(ctx, param_name);
+		js_free(ctx, context);
+		return JS_ThrowTypeError(ctx, "Unsupported key type in DER");
+	}
+
+	mbedtls_pk_free(&pk);
+	JS_FreeCString(ctx, format);
+	JS_FreeCString(ctx, algo_name);
+	JS_FreeCString(ctx, param_name);
+
+	JSValue obj = JS_NewObjectClass(ctx, nx_crypto_key_class_id);
+	if (JS_IsException(obj)) {
+		// Free embedded mbedtls structures before freeing handle
+		if (context->algorithm == NX_CRYPTO_KEY_ALGORITHM_RSA_OAEP ||
+			context->algorithm == NX_CRYPTO_KEY_ALGORITHM_RSA_PSS ||
+			context->algorithm == NX_CRYPTO_KEY_ALGORITHM_RSASSA_PKCS1_V1_5) {
+			nx_crypto_key_rsa_t *rsa_h = context->handle;
+			if (rsa_h) mbedtls_rsa_free(&rsa_h->rsa);
+		} else if (context->algorithm == NX_CRYPTO_KEY_ALGORITHM_ECDSA ||
+				   context->algorithm == NX_CRYPTO_KEY_ALGORITHM_ECDH) {
+			nx_crypto_key_ec_t *ec_h = context->handle;
+			if (ec_h) mbedtls_ecp_keypair_free(&ec_h->keypair);
+		}
+		if (context->handle) js_free(ctx, context->handle);
+		js_free(ctx, context);
+		return obj;
+	}
+	JS_SetOpaque(obj, context);
+	return obj;
+}
+
+// --- EC Export Public Raw ---
+// Returns uncompressed public point (04 || x || y) for any EC key (public or private)
+static JSValue nx_crypto_ec_export_public_raw(JSContext *ctx, JSValueConst this_val,
+	int argc, JSValueConst *argv) {
+	nx_crypto_key_t *key = JS_GetOpaque2(ctx, argv[0], nx_crypto_key_class_id);
+	if (!key) return JS_EXCEPTION;
+
+	if (key->algorithm != NX_CRYPTO_KEY_ALGORITHM_ECDSA &&
+		key->algorithm != NX_CRYPTO_KEY_ALGORITHM_ECDH) {
+		return JS_ThrowTypeError(ctx, "Not an EC key");
+	}
+
+	if (!key->extractable) {
+		return JS_ThrowTypeError(ctx, "Key is not extractable");
+	}
+
+	nx_crypto_key_ec_t *ec = (nx_crypto_key_ec_t *)key->handle;
+	size_t coord_size = mbedtls_mpi_size(&ec->keypair.grp.P);
+	size_t buf_size = 1 + 2 * coord_size;
+	uint8_t *buf = malloc(buf_size);
+	if (!buf) return JS_EXCEPTION;
+
+	size_t olen = 0;
+	int ret = mbedtls_ecp_point_write_binary(&ec->keypair.grp, &ec->keypair.Q,
+		MBEDTLS_ECP_PF_UNCOMPRESSED, &olen, buf, buf_size);
+	if (ret != 0) {
+		free(buf);
+		return JS_ThrowPlainError(ctx, "Failed to export EC public point: %d", ret);
+	}
+
+	return JS_NewArrayBuffer(ctx, buf, olen, free_array_buffer, NULL, false);
+}
+
 static const JSCFunctionListEntry function_list[] = {
 	JS_CFUNC_DEF("cryptoInit", 1, nx_crypto_init),
 	JS_CFUNC_DEF("cryptoKeyNew", 1, nx_crypto_key_new),
@@ -2410,6 +3562,13 @@ static const JSCFunctionListEntry function_list[] = {
 	JS_CFUNC_DEF("cryptoGenerateKeyEc", 0, nx_crypto_generate_key_ec),
 	JS_CFUNC_DEF("cryptoKeyNewEcPrivate", 0, nx_crypto_key_new_ec_private),
 	JS_CFUNC_DEF("cryptoDeriveBits", 0, nx_crypto_derive_bits),
+	JS_CFUNC_DEF("cryptoGenerateKeyRsa", 0, nx_crypto_generate_key_rsa),
+	JS_CFUNC_DEF("cryptoKeyNewRsa", 0, nx_crypto_key_new_rsa),
+	JS_CFUNC_DEF("cryptoRsaExportComponents", 0, nx_crypto_rsa_export_components),
+	JS_CFUNC_DEF("cryptoExportKeyPkcs8", 0, nx_crypto_export_key_pkcs8),
+	JS_CFUNC_DEF("cryptoExportKeySpki", 0, nx_crypto_export_key_spki),
+	JS_CFUNC_DEF("cryptoImportKeyPkcs8Spki", 0, nx_crypto_import_key_pkcs8_spki),
+	JS_CFUNC_DEF("cryptoEcExportPublicRaw", 0, nx_crypto_ec_export_public_raw),
 	JS_CFUNC_DEF("sha256Hex", 0, nx_crypto_sha256_hex),
 };
 

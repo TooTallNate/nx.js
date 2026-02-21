@@ -15,6 +15,7 @@
 #include <mbedtls/sha1.h>
 #include <mbedtls/sha256.h>
 #include <mbedtls/aes.h>
+#include <mbedtls/pk.h>
 
 typedef uint32_t Result;
 typedef uint64_t u64;
