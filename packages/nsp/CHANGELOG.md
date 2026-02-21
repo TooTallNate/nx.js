@@ -1,5 +1,7 @@
 # @nx.js/nsp
 
+## 0.0.66
+
 ## 0.0.65
 
 ### Patch Changes
