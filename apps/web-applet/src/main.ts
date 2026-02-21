@@ -147,7 +147,7 @@ listen({
 	},
 });
 
-const applet = new Switch.WebApplet('http://localhost:8080');
+const applet = new Switch.WebApplet('http://127.0.0.1:8080');
 applet.jsExtension = true;
 
 // Handle RPC messages from the browser
