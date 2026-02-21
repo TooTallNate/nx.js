@@ -97,6 +97,14 @@ static JSValue nx_web_applet_start(JSContext *ctx, JSValueConst this_val,
 		return JS_ThrowTypeError(ctx, "WebApplet URL not set");
 	}
 
+	// Web applets can only be launched from Application mode
+	AppletType at = appletGetAppletType();
+	if (at != AppletType_Application && at != AppletType_SystemApplication) {
+		return JS_ThrowTypeError(ctx,
+			"WebApplet requires Application mode. "
+			"Launch via NSP or hold R when opening a game to use hbmenu in Application mode.");
+	}
+
 	Result rc = webPageCreate(&data->config, data->url);
 	if (R_FAILED(rc)) {
 		return nx_throw_libnx_error(ctx, rc, "webPageCreate()");
