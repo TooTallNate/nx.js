@@ -1,4 +1,4 @@
-import { createServer } from '@nx.js/http';
+import { listen } from '@nx.js/http';
 
 // HTML page served to the browser
 const html = `<!DOCTYPE html>
@@ -23,13 +23,14 @@ const html = `<!DOCTYPE html>
 </body>
 </html>`;
 
-const server = createServer((req) => {
-	return new Response(html, {
-		headers: { 'Content-Type': 'text/html' },
-	});
+listen({
+	port: 8080,
+	fetch(req) {
+		return new Response(html, {
+			headers: { 'Content-Type': 'text/html' },
+		});
+	},
 });
-
-server.listen(8080);
 
 const applet = new Switch.WebApplet('http://localhost:8080');
 applet.jsExtension = true;
