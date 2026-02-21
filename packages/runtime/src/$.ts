@@ -237,6 +237,7 @@ export interface Init {
 		extractable: boolean,
 		usages: string[],
 	): CryptoKey<any>;
+	cryptoEcExportPublicRaw(key: CryptoKey<any>): ArrayBuffer;
 	sha256Hex(str: string): string;
 
 	// dommatrix.c

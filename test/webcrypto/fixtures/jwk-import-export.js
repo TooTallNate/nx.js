@@ -113,6 +113,62 @@ async function run() {
 	var rsaDec = await crypto.subtle.decrypt({ name: 'RSA-OAEP' }, rsaKeyPair.privateKey, rsaEnc);
 	results.rsaJwkRoundTrip = textDecode(rsaDec) === 'JWK test';
 
+	// --- ECDSA JWK round trip ---
+	var ecKeyPair = await crypto.subtle.generateKey(
+		{ name: 'ECDSA', namedCurve: 'P-256' },
+		true,
+		['sign', 'verify']
+	);
+
+	var ecPubJwk = await crypto.subtle.exportKey('jwk', ecKeyPair.publicKey);
+	results.ecPubJwk = {
+		kty: ecPubJwk.kty,
+		crv: ecPubJwk.crv,
+		hasX: typeof ecPubJwk.x === 'string',
+		hasY: typeof ecPubJwk.y === 'string',
+		hasD: typeof ecPubJwk.d === 'string',
+	};
+
+	var ecPrivJwk = await crypto.subtle.exportKey('jwk', ecKeyPair.privateKey);
+	results.ecPrivJwk = {
+		kty: ecPrivJwk.kty,
+		crv: ecPrivJwk.crv,
+		hasX: typeof ecPrivJwk.x === 'string',
+		hasY: typeof ecPrivJwk.y === 'string',
+		hasD: typeof ecPrivJwk.d === 'string',
+	};
+
+	// Re-import and verify round-trip
+	var reimportedEcPub = await crypto.subtle.importKey(
+		'jwk',
+		ecPubJwk,
+		{ name: 'ECDSA', namedCurve: 'P-256' },
+		true,
+		['verify']
+	);
+
+	var reimportedEcPriv = await crypto.subtle.importKey(
+		'jwk',
+		ecPrivJwk,
+		{ name: 'ECDSA', namedCurve: 'P-256' },
+		true,
+		['sign']
+	);
+
+	var ecData = textEncode('EC JWK test');
+	var ecSig = await crypto.subtle.sign(
+		{ name: 'ECDSA', hash: 'SHA-256' },
+		reimportedEcPriv,
+		ecData
+	);
+	var ecVer = await crypto.subtle.verify(
+		{ name: 'ECDSA', hash: 'SHA-256' },
+		reimportedEcPub,
+		ecSig,
+		ecData
+	);
+	results.ecJwkRoundTrip = ecVer;
+
 	__output(results);
 }
 

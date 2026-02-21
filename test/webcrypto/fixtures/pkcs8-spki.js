@@ -74,6 +74,58 @@ async function run() {
 	);
 	results.reimportRoundTripVerified = verified;
 
+	// --- ECDSA PKCS8/SPKI round trip ---
+	var ecKeyPair = await crypto.subtle.generateKey(
+		{ name: 'ECDSA', namedCurve: 'P-256' },
+		true,
+		['sign', 'verify']
+	);
+
+	// Export SPKI (public)
+	var ecSpki = await crypto.subtle.exportKey('spki', ecKeyPair.publicKey);
+	results.ecSpkiIsArrayBuffer = ecSpki instanceof ArrayBuffer;
+	results.ecSpkiHasData = ecSpki.byteLength > 0;
+
+	var reimportedEcPub = await crypto.subtle.importKey(
+		'spki',
+		ecSpki,
+		{ name: 'ECDSA', namedCurve: 'P-256' },
+		true,
+		['verify']
+	);
+	results.ecReimportedPubType = reimportedEcPub.type;
+	results.ecReimportedPubAlgo = reimportedEcPub.algorithm.name;
+
+	// Export PKCS8 (private)
+	var ecPkcs8 = await crypto.subtle.exportKey('pkcs8', ecKeyPair.privateKey);
+	results.ecPkcs8IsArrayBuffer = ecPkcs8 instanceof ArrayBuffer;
+	results.ecPkcs8HasData = ecPkcs8.byteLength > 0;
+
+	var reimportedEcPriv = await crypto.subtle.importKey(
+		'pkcs8',
+		ecPkcs8,
+		{ name: 'ECDSA', namedCurve: 'P-256' },
+		true,
+		['sign']
+	);
+	results.ecReimportedPrivType = reimportedEcPriv.type;
+	results.ecReimportedPrivAlgo = reimportedEcPriv.algorithm.name;
+
+	// Sign with reimported private, verify with reimported public
+	var ecData = textEncode('EC PKCS8/SPKI test');
+	var ecSignature = await crypto.subtle.sign(
+		{ name: 'ECDSA', hash: 'SHA-256' },
+		reimportedEcPriv,
+		ecData
+	);
+	var ecVerified = await crypto.subtle.verify(
+		{ name: 'ECDSA', hash: 'SHA-256' },
+		reimportedEcPub,
+		ecSignature,
+		ecData
+	);
+	results.ecReimportRoundTripVerified = ecVerified;
+
 	__output(results);
 }
 

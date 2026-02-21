@@ -397,6 +397,12 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 				pe instanceof Uint8Array
 					? pe.reduce((acc, b) => acc * 256 + b, 0)
 					: 65537;
+			if (peNum > 0xFFFFFFFF) {
+				throw new DOMException(
+					'publicExponent exceeds 32 bits',
+					'OperationError',
+				);
+			}
 
 			const components = (await $.cryptoGenerateKeyRsa(
 				rsaAlgo.modulusLength,
@@ -762,21 +768,23 @@ async function exportKeyJwk(key: CryptoKey<never>): Promise<JsonWebKey> {
 	}
 
 	if (algoName === 'ECDSA' || algoName === 'ECDH') {
-		const raw = await $.cryptoExportKey('raw', key) as ArrayBuffer;
-		const rawBytes = new Uint8Array(raw);
+		// Always get the public point (04 || x || y) via dedicated native function
+		const pubRaw = $.cryptoEcExportPublicRaw(key) as ArrayBuffer;
+		const pubBytes = new Uint8Array(pubRaw);
 		const curveName = algo.namedCurve as string;
 		const coordSize = curveName === 'P-256' ? 32 : 48;
 		const jwk: JsonWebKey = {
 			kty: 'EC',
 			crv: curveName,
-			x: base64urlEncode(rawBytes.slice(1, 1 + coordSize).buffer),
-			y: base64urlEncode(rawBytes.slice(1 + coordSize).buffer),
+			x: base64urlEncode(pubBytes.slice(1, 1 + coordSize).buffer),
+			y: base64urlEncode(pubBytes.slice(1 + coordSize).buffer),
 			ext: key.extractable,
 			key_ops: Array.prototype.slice.call(key.usages),
 		};
 		if (key.type === 'private') {
 			// For private keys, raw_key_data is the scalar d
-			jwk.d = base64urlEncode(raw);
+			const privRaw = $.cryptoExportKey('raw', key) as ArrayBuffer;
+			jwk.d = base64urlEncode(privRaw);
 		}
 		return jwk;
 	}
