@@ -28,8 +28,8 @@ async function run() {
 
 	// Export SPKI
 	var spki = await crypto.subtle.exportKey('spki', rsaKeyPair.publicKey);
-	results.spkiLength = spki.byteLength;
 	results.spkiIsArrayBuffer = spki instanceof ArrayBuffer;
+	results.spkiHasData = spki.byteLength > 0;
 
 	// Re-import SPKI
 	var reimportedPub = await crypto.subtle.importKey(
@@ -44,8 +44,8 @@ async function run() {
 
 	// Export PKCS8
 	var pkcs8 = await crypto.subtle.exportKey('pkcs8', rsaKeyPair.privateKey);
-	results.pkcs8Length = pkcs8.byteLength;
 	results.pkcs8IsArrayBuffer = pkcs8 instanceof ArrayBuffer;
+	results.pkcs8HasData = pkcs8.byteLength > 0;
 
 	// Re-import PKCS8
 	var reimportedPriv = await crypto.subtle.importKey(
