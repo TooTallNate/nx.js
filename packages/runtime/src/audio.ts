@@ -352,10 +352,3 @@ export class Audio extends EventTarget {
 	}
 }
 def(Audio);
-
-// Make Audio available globally
-Object.defineProperty(globalThis, 'Audio', {
-	value: Audio,
-	writable: true,
-	configurable: true,
-});
