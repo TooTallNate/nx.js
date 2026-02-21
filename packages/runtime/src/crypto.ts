@@ -3,6 +3,8 @@ import { INTERNAL_SYMBOL } from './internal';
 import { assertInternalConstructor, createInternal, def, stub } from './utils';
 import { CryptoKey, type CryptoKeyPair } from './crypto/crypto-key';
 import { proto } from './utils';
+import { TextEncoder } from './polyfills/text-encoder';
+import { TextDecoder } from './polyfills/text-decoder';
 import type {
 	AesCbcParams,
 	AesCtrParams,
