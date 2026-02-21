@@ -2,13 +2,13 @@
 
 A demo app showcasing the `Audio` class in nx.js.
 
-## Setup
+## Audio Files
 
-Place audio files in the `romfs/` directory:
+The `romfs/` directory contains sample audio files for testing:
 
-- `romfs/music.mp3` — An MP3 file
-- `romfs/sound.wav` — A WAV file
-- `romfs/track.ogg` — An OGG Vorbis file
+- `romfs/music.mp3` — Piano sample (public domain)
+- `romfs/sound.wav` — Synthesized C major arpeggio (generated, public domain)
+- `romfs/track.ogg` — "Example" speech clip from [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Example.ogg) (public domain)
 
 ## Controls
 
