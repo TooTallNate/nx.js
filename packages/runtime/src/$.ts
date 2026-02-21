@@ -353,7 +353,6 @@ export interface Init {
 	webAppletSetJsExtension(applet: any, flag: boolean): void;
 	webAppletSetBootMode(applet: any, mode: number): void;
 	webAppletStart(applet: any): void;
-	webAppletShow(applet: any): { exitReason?: number; lastUrl?: string };
 	webAppletAppear(applet: any): boolean;
 	webAppletSendMessage(applet: any, msg: string): boolean;
 	webAppletPollMessages(applet: any): string[];

@@ -12,23 +12,11 @@ class WebAppletMessageEvent extends Event {
 	}
 }
 
-export interface WebAppletShowResult {
-	exitReason?: number;
-	lastUrl?: string;
-}
-
 /**
  * Opens the Switch's built-in web browser as a Library Applet.
  * Requires Application mode (NSP install or hbmenu via title override).
  *
- * @example Blocking mode
- * ```typescript
- * const applet = new Switch.WebApplet('https://example.com');
- * const result = await applet.show();
- * console.log(result.lastUrl);
- * ```
- *
- * @example Session mode with messaging (non-blocking)
+ * @example Non-blocking with messaging
  * ```typescript
  * const applet = new Switch.WebApplet('https://myapp.example.com');
  * applet.jsExtension = true;
@@ -91,16 +79,7 @@ export class WebApplet extends EventTarget {
 	}
 
 	/**
-	 * Opens the browser and blocks until the user closes it.
-	 * Returns information about why the browser was closed and the last URL visited.
-	 */
-	async show(): Promise<WebAppletShowResult> {
-		this.#configure();
-		return $.webAppletShow(this.#native) as WebAppletShowResult;
-	}
-
-	/**
-	 * Opens the browser in non-blocking session mode.
+	 * Opens the browser. The nx.js event loop continues running.
 	 * Use with `jsExtension = true` for bidirectional messaging via `window.nx`.
 	 * Listen for `'message'` and `'exit'` events.
 	 */
