@@ -5,11 +5,87 @@
 #include <mbedtls/error.h>
 #include <mbedtls/net_sockets.h>
 #include <mbedtls/ssl.h>
+#include <mbedtls/x509_crt.h>
+#include <switch/services/ssl.h>
 
 static JSClassID nx_tls_context_class_id;
 
 static nx_tls_context_t *nx_tls_context_get(JSContext *ctx, JSValueConst obj) {
 	return JS_GetOpaque2(ctx, obj, nx_tls_context_class_id);
+}
+
+/**
+ * Load CA certificates from the Switch's built-in SSL certificate store.
+ * Uses libnx's ssl service to retrieve all system CA certs in DER format,
+ * then parses them into an mbedtls x509 certificate chain.
+ * Returns 0 on success, non-zero on failure.
+ */
+static int nx_tls_load_ca_certs(nx_context_t *nx_ctx) {
+	if (nx_ctx->ca_certs_loaded) {
+		return 0;
+	}
+
+	mbedtls_x509_crt_init(&nx_ctx->ca_chain);
+
+	Result rc = sslInitialize(1);
+	if (R_FAILED(rc)) {
+		fprintf(stderr, "sslInitialize() failed: 0x%x\n", rc);
+		return -1;
+	}
+
+	// Request all built-in CA certificates
+	u32 ca_cert_id = (u32)SslCaCertificateId_All;
+	u32 buf_size = 0;
+	rc = sslGetCertificateBufSize(&ca_cert_id, 1, &buf_size);
+	if (R_FAILED(rc)) {
+		fprintf(stderr, "sslGetCertificateBufSize() failed: 0x%x\n", rc);
+		sslExit();
+		return -1;
+	}
+
+	void *cert_buffer = malloc(buf_size);
+	if (!cert_buffer) {
+		fprintf(stderr, "Failed to allocate cert buffer (%u bytes)\n", buf_size);
+		sslExit();
+		return -1;
+	}
+
+	u32 total_certs = 0;
+	rc = sslGetCertificates(cert_buffer, buf_size, &ca_cert_id, 1, &total_certs);
+	if (R_FAILED(rc)) {
+		fprintf(stderr, "sslGetCertificates() failed: 0x%x\n", rc);
+		free(cert_buffer);
+		sslExit();
+		return -1;
+	}
+
+	// Parse the returned SslBuiltInCertificateInfo array.
+	// Only load certificates that are marked as EnabledTrusted — skip
+	// Removed, EnabledNotTrusted, Revoked, and Invalid entries so that
+	// retired / distrusted CAs don't pollute the trusted chain.
+	SslBuiltInCertificateInfo *cert_infos = (SslBuiltInCertificateInfo *)cert_buffer;
+	int loaded = 0;
+	for (u32 i = 0; i < total_certs; i++) {
+		if (cert_infos[i].status != SslTrustedCertStatus_EnabledTrusted) {
+			continue;
+		}
+		if (cert_infos[i].cert_data && cert_infos[i].cert_size > 0) {
+			int ret = mbedtls_x509_crt_parse_der(
+				&nx_ctx->ca_chain,
+				cert_infos[i].cert_data,
+				cert_infos[i].cert_size);
+			if (ret == 0) {
+				loaded++;
+			}
+		}
+	}
+
+	free(cert_buffer);
+	sslExit();
+
+	fprintf(stderr, "Loaded %d/%u system CA certificates\n", loaded, total_certs);
+	nx_ctx->ca_certs_loaded = true;
+	return 0;
 }
 
 static void finalizer_tls_context(JSRuntime *rt, JSValue val) {
@@ -95,6 +171,12 @@ JSValue nx_tls_handshake(JSContext *ctx, JSValueConst this_val, int argc,
 		return JS_EXCEPTION;
 	}
 
+	// argv[3] is the rejectUnauthorized flag (default: true)
+	int reject_unauthorized = 1;
+	if (argc > 3 && JS_IsBool(argv[3])) {
+		reject_unauthorized = JS_ToBool(ctx, argv[3]);
+	}
+
 	JSValue obj = JS_NewObjectClass(ctx, nx_tls_context_class_id);
 	nx_tls_context_t *data = js_mallocz(ctx, sizeof(nx_tls_context_t));
 	if (!data) {
@@ -118,7 +200,19 @@ JSValue nx_tls_handshake(JSContext *ctx, JSValueConst this_val, int argc,
 						  error_buf);
 		return JS_EXCEPTION;
 	}
-	mbedtls_ssl_conf_authmode(&data->conf, MBEDTLS_SSL_VERIFY_NONE);
+	if (reject_unauthorized) {
+		// Load system CA certs (lazy, once per context)
+		if (nx_tls_load_ca_certs(nx_ctx) == 0) {
+			mbedtls_ssl_conf_authmode(&data->conf, MBEDTLS_SSL_VERIFY_REQUIRED);
+			mbedtls_ssl_conf_ca_chain(&data->conf, &nx_ctx->ca_chain, NULL);
+		} else {
+			// Failed to load certs — fall back to no verification with a warning
+			fprintf(stderr, "Warning: failed to load system CA certs, TLS verification disabled\n");
+			mbedtls_ssl_conf_authmode(&data->conf, MBEDTLS_SSL_VERIFY_NONE);
+		}
+	} else {
+		mbedtls_ssl_conf_authmode(&data->conf, MBEDTLS_SSL_VERIFY_NONE);
+	}
 	mbedtls_ssl_conf_rng(&data->conf, mbedtls_ctr_drbg_random,
 						 &nx_ctx->ctr_drbg);
 	if ((ret = mbedtls_ssl_set_hostname(&data->ssl, hostname)) != 0) {

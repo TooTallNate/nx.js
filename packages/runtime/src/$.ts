@@ -1,19 +1,13 @@
-import type {
-	Album,
-	AlbumFile,
-	Application,
-	FileSystem,
-	IRSensor,
-	NetworkInfo,
-	Profile,
-	ProfileUid,
-	SaveData,
-	SaveDataCreationInfo,
-	Service,
-	Stats,
-	Versions,
-	ReadFileOptions,
-} from './switch';
+import type { PromiseState } from '@nx.js/inspect';
+import type { CanvasRenderingContext2D } from './canvas/canvas-rendering-context-2d';
+import type { ImageBitmap } from './canvas/image-bitmap';
+import type { OffscreenCanvas } from './canvas/offscreen-canvas';
+import type { OffscreenCanvasRenderingContext2D } from './canvas/offscreen-canvas-rendering-context-2d';
+import type { Crypto, CryptoKey, SubtleCrypto } from './crypto';
+import type { DOMMatrix, DOMMatrixInit, DOMMatrixReadOnly } from './dommatrix';
+import type { DOMPoint, DOMPointInit } from './dompoint';
+import type { FontFace } from './font/font-face';
+import type { Image } from './image';
 import type {
 	Callback,
 	Keys,
@@ -24,26 +18,32 @@ import type {
 	WasmInstanceOpaque,
 	WasmModuleOpaque,
 } from './internal';
-import type { Touch } from './polyfills/event';
-import type { Server, TlsContextOpaque } from './tcp';
-import type { MemoryDescriptor, Memory } from './wasm';
 import type { BatteryManager } from './navigator/battery';
-import type { VirtualKeyboard } from './navigator/virtual-keyboard';
-import type { OffscreenCanvas } from './canvas/offscreen-canvas';
-import type { ImageBitmap } from './canvas/image-bitmap';
-import type { CanvasRenderingContext2D } from './canvas/canvas-rendering-context-2d';
-import type { OffscreenCanvasRenderingContext2D } from './canvas/offscreen-canvas-rendering-context-2d';
-import type { Image } from './image';
-import type { Screen } from './screen';
-import type { FontFace } from './font/font-face';
-import type { URL, URLSearchParams } from './polyfills/url';
-import type { DOMPoint, DOMPointInit } from './dompoint';
-import type { DOMMatrix, DOMMatrixReadOnly, DOMMatrixInit } from './dommatrix';
 import type { Gamepad, GamepadButton } from './navigator/gamepad';
-import type { Crypto, CryptoKey, SubtleCrypto } from './crypto';
-import type { Window } from './window';
+import type { VirtualKeyboard } from './navigator/virtual-keyboard';
+import type { Touch } from './polyfills/event';
+import type { URL, URLSearchParams } from './polyfills/url';
+import type { Screen } from './screen';
+import type {
+	Album,
+	AlbumFile,
+	Application,
+	FileSystem,
+	IRSensor,
+	NetworkInfo,
+	Profile,
+	ProfileUid,
+	ReadFileOptions,
+	SaveData,
+	SaveDataCreationInfo,
+	Service,
+	Stats,
+	Versions,
+} from './switch';
+import type { Server, TlsContextOpaque } from './tcp';
 import type { Algorithm, BufferSource } from './types';
-import type { PromiseState } from '@nx.js/inspect';
+import type { Memory, MemoryDescriptor } from './wasm';
+import type { Window } from './window';
 
 type ClassOf<T> = {
 	new (...args: any[]): T;
@@ -364,6 +364,7 @@ export interface Init {
 		cb: Callback<TlsContextOpaque>,
 		fd: number,
 		hostname: string,
+		rejectUnauthorized: boolean,
 	): void;
 	tlsWrite(
 		cb: Callback<number>,

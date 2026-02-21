@@ -5,6 +5,7 @@
 #include <ft2build.h>
 #include <mbedtls/ctr_drbg.h>
 #include <mbedtls/entropy.h>
+#include <mbedtls/x509_crt.h>
 #include <poll.h>
 #include <pthread.h>
 #include <quickjs.h>
@@ -94,6 +95,10 @@ typedef struct nx_context_s {
 	bool mbedtls_initialized;
 	mbedtls_entropy_context entropy;
 	mbedtls_ctr_drbg_context ctr_drbg;
+
+	// System CA certificate chain (loaded lazily from Switch SSL service)
+	bool ca_certs_loaded;
+	mbedtls_x509_crt ca_chain;
 
 	bool spl_initialized;
 } nx_context_t;

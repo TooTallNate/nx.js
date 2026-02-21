@@ -3,6 +3,7 @@
 #include <mbedtls/net_sockets.h>
 #include <mbedtls/ssl.h>
 #include <mbedtls/version.h>
+#include <mbedtls/x509_crt.h>
 
 typedef struct {
 	mbedtls_net_context server_fd;
