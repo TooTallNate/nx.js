@@ -6,7 +6,8 @@
 #include <stdio.h>
 #include <switch.h>
 
-u32 __nx_applet_exit_mode = 0;
+// Declared as weak in libnx — only modify when launching NRO
+extern u32 __nx_applet_exit_mode;
 
 // External function to cleanly exit the main event loop
 extern void nx_exit_event_loop(void);
