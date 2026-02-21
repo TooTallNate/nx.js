@@ -3371,19 +3371,17 @@ static JSValue nx_crypto_import_key_pkcs8_spki(JSContext *ctx, JSValueConst this
 		strncpy(rsa->hash_name, param_name, sizeof(rsa->hash_name) - 1);
 		rsa->salt_length = -1;
 
-		// Copy RSA key from pk
+		// Copy RSA context from pk
 		mbedtls_rsa_context *src_rsa = mbedtls_pk_rsa(pk);
-		mbedtls_mpi N, P, Q, D, E;
-		mbedtls_mpi_init(&N); mbedtls_mpi_init(&P); mbedtls_mpi_init(&Q);
-		mbedtls_mpi_init(&D); mbedtls_mpi_init(&E);
-		mbedtls_rsa_export(src_rsa, &N, &P, &Q, &D, &E);
-		if (context->type == NX_CRYPTO_KEY_TYPE_PRIVATE)
-			mbedtls_rsa_import(&rsa->rsa, &N, &P, &Q, &D, &E);
-		else
-			mbedtls_rsa_import(&rsa->rsa, &N, NULL, NULL, NULL, &E);
-		mbedtls_rsa_complete(&rsa->rsa);
-		mbedtls_mpi_free(&N); mbedtls_mpi_free(&P); mbedtls_mpi_free(&Q);
-		mbedtls_mpi_free(&D); mbedtls_mpi_free(&E);
+		ret = mbedtls_rsa_copy(&rsa->rsa, src_rsa);
+		if (ret != 0) {
+			mbedtls_pk_free(&pk);
+			mbedtls_rsa_free(&rsa->rsa);
+			js_free(ctx, rsa);
+			JS_FreeCString(ctx, format); JS_FreeCString(ctx, algo_name); JS_FreeCString(ctx, param_name);
+			js_free(ctx, context);
+			return JS_ThrowPlainError(ctx, "Failed to copy RSA key: %d", ret);
+		}
 
 		context->handle = rsa;
 	} else if (pk_type == MBEDTLS_PK_ECKEY) {
