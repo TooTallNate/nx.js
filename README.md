@@ -58,17 +58,17 @@ for improvements, please open an issue or submit a pull request in the
    installed
 1. Install required packages from the official registry:
    ```bash
-   dkp-pacman -S switch-dev switch-freetype switch-libjpeg-turbo switch-libpng switch-libwebp switch-libzstd switch-mbedtls
+   sudo dkp-pacman -S switch-dev switch-freetype switch-libjpeg-turbo switch-libpng switch-libwebp switch-libzstd switch-mbedtls
    ```
 1. Install additional packages which are not in the official registry (cairo,
    pixman, wasm3, harfbuzz, quickjs-ng):
    ```bash
    docker pull ghcr.io/tootallnate/pacman-packages:nxjs
    docker run -it --rm --platform linux/amd64 --mount type=bind,source="$(pwd)",target=/host ghcr.io/tootallnate/pacman-packages:nxjs sh -c 'cp packages/*/*.pkg.tar.zst /host'
-   dkp-pacman -U *.pkg.tar.zst
+   sudo dkp-pacman -U *.pkg.tar.zst
    ```
 1. `qjsc` needs to be installed (**note**: must match the version of the QuickJS
-   dkp package installed in the previous step)
+   dkp package installed in the previous step, see [here](https://github.com/TooTallNate/pacman-packages/blob/nxjs/Dockerfile#L80))
 1. Now you can compile one of the example apps into a self-contained `.nro`:
    ```bash
    ./build.sh hello-world

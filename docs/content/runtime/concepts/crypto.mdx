@@ -4,7 +4,8 @@ description: Algorithms exposed by the Web Crypto API
 ---
 
 nx.js implements the [Web Crypto API](https://developer.mozilla.org/docs/Web/API/Web_Crypto_API),
-which allows your application to perform cryptographic operations such as encryption and decryption.
+which allows your application to perform cryptographic operations such as encryption, decryption,
+hashing, signing, and key management.
 
 ## Cryptography functions
 
@@ -17,11 +18,29 @@ Below is a checklist of the currently implemented standardized algorithms provid
     - ✅ `"SHA-512"`
   - [`encrypt()`](/runtime/api/classes/SubtleCrypto#encrypt) and [`decrypt()`](/runtime/api/classes/SubtleCrypto#decrypt): encrypt and decrypt data.
     - ✅ `"AES-CBC"`
-    - ❌ `"AES-CTR"`
+    - ✅ `"AES-CTR"`
     - ❌ `"AES-GCM"`
     - ❌ `"RSA-OAEP"`
   - [`sign()`](/runtime/api/classes/SubtleCrypto#sign) and [`verify()`](/runtime/api/classes/SubtleCrypto#verify): sign and verify data.
-    - ❌ None - not currently implemented
+    - ✅ `"HMAC"` (with `"SHA-1"`, `"SHA-256"`, `"SHA-384"`, `"SHA-512"`)
+    - ❌ `"RSASSA-PKCS1-v1_5"`
+    - ❌ `"RSA-PSS"`
+    - ❌ `"ECDSA"`
+  - [`generateKey()`](/runtime/api/classes/SubtleCrypto#generateKey): generate a new cryptographic key.
+    - ✅ `"AES-CBC"`
+    - ✅ `"AES-CTR"`
+    - ✅ `"AES-GCM"`
+    - ✅ `"HMAC"`
+    - ❌ `"RSA-OAEP"` / `"RSASSA-PKCS1-v1_5"` / `"RSA-PSS"`
+    - ❌ `"ECDSA"` / `"ECDH"`
+  - [`importKey()`](/runtime/api/classes/SubtleCrypto#importKey): import a key from external data.
+    - ✅ `"raw"` format (AES and HMAC keys)
+    - ❌ `"jwk"` format
+    - ❌ `"pkcs8"` / `"spki"` formats
+  - [`exportKey()`](/runtime/api/classes/SubtleCrypto#exportKey): export a key to external data.
+    - ✅ `"raw"` format (extractable keys)
+    - ❌ `"jwk"` format
+    - ❌ `"pkcs8"` / `"spki"` formats
 
 ### Non-Standard Algorithms
 

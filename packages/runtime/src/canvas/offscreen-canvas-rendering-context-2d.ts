@@ -2,6 +2,8 @@ import toPx = require('to-px/index.js');
 import colorRgba = require('color-rgba');
 import parseCssFont from 'parse-css-font';
 import { $ } from '../$';
+import { CanvasGradient } from './canvas-gradient';
+import { INTERNAL_SYMBOL } from '../internal';
 import { ImageData } from './image-data';
 import {
 	createInternal,
@@ -36,6 +38,8 @@ import type {
 
 interface OffscreenCanvasRenderingContext2DInternal {
 	canvas: OffscreenCanvas;
+	fillGradient: CanvasGradient | null;
+	strokeGradient: CanvasGradient | null;
 }
 
 const _ = createInternal<
@@ -54,12 +58,13 @@ export class OffscreenCanvasRenderingContext2D {
 			$.canvasContext2dNew(canvas),
 			OffscreenCanvasRenderingContext2D,
 		);
-		_.set(ctx, { canvas });
+		_.set(ctx, { canvas, fillGradient: null, strokeGradient: null });
 		ctx.font = '10px sans-serif';
 		return ctx;
 	}
 
 	// TODO: implement
+
 	declare direction: string;
 	declare fontKerning: string;
 
@@ -153,18 +158,21 @@ export class OffscreenCanvasRenderingContext2D {
 	 * @default "#000" (black)
 	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/fillStyle
 	 */
-	get fillStyle(): string {
+	get fillStyle(): string | CanvasGradient {
+		const fg = _(this).fillGradient; if (fg) return fg;
 		return rgbaToString($.canvasContext2dGetFillStyle(this));
 	}
-	set fillStyle(v: string) {
-		if (typeof v === 'string') {
+	set fillStyle(v: string | CanvasGradient) {
+		if (v instanceof CanvasGradient) {
+			$.canvasContext2dSetFillStyleGradient(this, v._opaque);
+			_(this).fillGradient = v;
+		} else if (typeof v === 'string') {
 			const parsed = colorRgba(v);
 			if (!parsed || parsed.length !== 4) {
 				return;
 			}
 			$.canvasContext2dSetFillStyle(this, ...parsed);
-		} else {
-			throw new Error('CanvasGradient/CanvasPattern not implemented.');
+			_(this).fillGradient = null;
 		}
 	}
 
@@ -174,18 +182,21 @@ export class OffscreenCanvasRenderingContext2D {
 	 * @default "#000" (black)
 	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/strokeStyle
 	 */
-	get strokeStyle(): string {
+	get strokeStyle(): string | CanvasGradient {
+		const sg = _(this).strokeGradient; if (sg) return sg;
 		return rgbaToString($.canvasContext2dGetStrokeStyle(this));
 	}
-	set strokeStyle(v: string) {
-		if (typeof v === 'string') {
+	set strokeStyle(v: string | CanvasGradient) {
+		if (v instanceof CanvasGradient) {
+			$.canvasContext2dSetStrokeStyleGradient(this, v._opaque);
+			_(this).strokeGradient = v;
+		} else if (typeof v === 'string') {
 			const parsed = colorRgba(v);
 			if (!parsed || parsed.length !== 4) {
 				return;
 			}
 			$.canvasContext2dSetStrokeStyle(this, ...parsed);
-		} else {
-			throw new Error('CanvasGradient/CanvasPattern not implemented.');
+			_(this).strokeGradient = null;
 		}
 	}
 
@@ -845,7 +856,8 @@ export class OffscreenCanvasRenderingContext2D {
 		x1: number,
 		y1: number,
 	): CanvasGradient {
-		throw new Error('Method not implemented.');
+		const opaque = $.canvasGradientNewLinear(x0, y0, x1, y1);
+		return new (CanvasGradient as any)(INTERNAL_SYMBOL, opaque);
 	}
 	createPattern(
 		image: CanvasImageSource,
@@ -861,7 +873,8 @@ export class OffscreenCanvasRenderingContext2D {
 		y1: number,
 		r1: number,
 	): CanvasGradient {
-		throw new Error('Method not implemented.');
+		const opaque = $.canvasGradientNewRadial(x0, y0, r0, x1, y1, r1);
+		return new (CanvasGradient as any)(INTERNAL_SYMBOL, opaque);
 	}
 
 	/**

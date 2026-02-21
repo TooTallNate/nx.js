@@ -29,7 +29,8 @@ const MODULES_DIR = join(ROOT, 'fixtures', 'modules');
 const OUTPUT_DIR = join(ROOT, 'output');
 const BUILD_DIR = join(ROOT, 'build');
 const BINARY = join(BUILD_DIR, 'nxjs-wasm-test');
-const BRIDGE = join(BUILD_DIR, 'wasm_api.js');
+const RUNTIME = join(ROOT, '../../packages/runtime/runtime.js');
+const HELPERS = join(BUILD_DIR, 'test-helpers.js');
 
 function ensureDir(dir: string) {
 	if (!existsSync(dir)) {
@@ -42,7 +43,7 @@ function ensureDir(dir: string) {
  */
 function runWithNxjs(fixturePath: string, outputPath: string): unknown {
 	execSync(
-		`"${BINARY}" "${BRIDGE}" "${fixturePath}" "${outputPath}" "${MODULES_DIR}"`,
+		`"${BINARY}" "${RUNTIME}" "${HELPERS}" "${fixturePath}" "${outputPath}" "${MODULES_DIR}"`,
 		{ timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'] }
 	);
 	const raw = readFileSync(outputPath, 'utf-8');
@@ -125,9 +126,14 @@ describe('WebAssembly conformance: nx.js vs Chrome', () => {
 				`WASM test binary not found at ${BINARY}. Run 'cmake -B build && cmake --build build' first.`
 			);
 		}
-		if (!existsSync(BRIDGE)) {
+		if (!existsSync(RUNTIME)) {
 			throw new Error(
-				`WASM API bridge not found at ${BRIDGE}. Run 'cmake -B build && cmake --build build' first.`
+				`Runtime not found at ${RUNTIME}. Run 'pnpm -w build:runtime' first.`
+			);
+		}
+		if (!existsSync(HELPERS)) {
+			throw new Error(
+				`Test helpers not found at ${HELPERS}. Run 'cmake -B build && cmake --build build' first.`
 			);
 		}
 

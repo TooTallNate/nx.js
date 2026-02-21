@@ -2,6 +2,7 @@ import { $ } from './$';
 import { INTERNAL_SYMBOL } from './internal';
 import { assertInternalConstructor, createInternal, def, stub } from './utils';
 import { CryptoKey, type CryptoKeyPair } from './crypto/crypto-key';
+import { proto } from './utils';
 import type {
 	AesCbcParams,
 	AesCtrParams,
@@ -16,6 +17,7 @@ import type {
 	EcdhKeyDeriveParams,
 	EcdsaParams,
 	HmacImportParams,
+	HmacKeyGenParams,
 	JsonWebKey,
 	KeyAlgorithmIdentifier,
 	KeyFormat,
@@ -146,7 +148,7 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 		stub();
 	}
 
-	deriveBits(
+	async deriveBits(
 		algorithm:
 			| AlgorithmIdentifier
 			| EcdhKeyDeriveParams
@@ -155,10 +157,18 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 		baseKey: CryptoKey<never>,
 		length: number,
 	): Promise<ArrayBuffer> {
-		throw new Error('Method not implemented.');
+		const algo = normalizeAlgorithm(algorithm);
+		// Normalize hash inside algorithm params
+		if ('hash' in algo) {
+			const algoWithHash = algo as Algorithm & {
+				hash: HashAlgorithmIdentifier;
+			};
+			algoWithHash.hash = normalizeHashAlgorithm(algoWithHash.hash);
+		}
+		return $.cryptoDeriveBits(algo, baseKey, length);
 	}
 
-	deriveKey(
+	async deriveKey(
 		algorithm:
 			| AlgorithmIdentifier
 			| EcdhKeyDeriveParams
@@ -174,7 +184,33 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 		extractable: boolean,
 		keyUsages: KeyUsage[],
 	): Promise<CryptoKey<never>> {
-		throw new Error('Method not implemented.');
+		const dkt =
+			typeof derivedKeyType === 'string'
+				? { name: derivedKeyType }
+				: derivedKeyType;
+
+		// Determine the key length in bits
+		let lengthBits: number;
+		if ('length' in dkt && typeof (dkt as { length?: unknown }).length === 'number') {
+			lengthBits = (dkt as AesDerivedKeyParams).length;
+		} else if (dkt.name === 'HMAC') {
+			const hmacDkt = dkt as HmacImportParams;
+			lengthBits = getHashLength(hmacDkt.hash);
+		} else {
+			throw new DOMException(
+				'Cannot determine key length for derived key type',
+				'OperationError',
+			);
+		}
+
+		const bits = await this.deriveBits(algorithm, baseKey, lengthBits);
+		return this.importKey(
+			'raw',
+			bits,
+			dkt,
+			extractable,
+			keyUsages,
+		);
 	}
 
 	/**
@@ -230,11 +266,17 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 		format: 'pkcs8' | 'raw' | 'spki',
 		key: CryptoKey<never>,
 	): Promise<ArrayBuffer>;
-	exportKey(
+	async exportKey(
 		format: KeyFormat,
 		key: CryptoKey<never>,
 	): Promise<ArrayBuffer | JsonWebKey> {
-		throw new Error('Method not implemented.');
+		if (format === 'raw') {
+			return $.cryptoExportKey(format, key);
+		}
+		throw new DOMException(
+			`Unsupported export format: ${format}`,
+			'NotSupportedError',
+		);
 	}
 
 	generateKey(
@@ -248,16 +290,111 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 		keyUsages: readonly KeyUsage[],
 	): Promise<CryptoKeyPair<never>>;
 	generateKey(
-		algorithm: AesKeyGenParams,
+		algorithm: AesKeyGenParams | HmacKeyGenParams,
 		extractable: boolean,
 		keyUsages: readonly KeyUsage[],
 	): Promise<CryptoKey<never>>;
-	generateKey(
+	async generateKey(
 		algorithm: unknown,
 		extractable: unknown,
 		keyUsages: unknown,
-	): Promise<CryptoKey<never> | CryptoKeyPair<never>> {
-		throw new Error('Method not implemented.');
+	): Promise<CryptoKey<any> | CryptoKeyPair<any>> {
+		const algo =
+			typeof algorithm === 'string'
+				? { name: algorithm }
+				: (algorithm as Algorithm);
+
+		if (
+			algo.name === 'AES-CBC' ||
+			algo.name === 'AES-CTR' ||
+			algo.name === 'AES-GCM'
+		) {
+			const length = (algo as AesKeyGenParams).length;
+			if (length !== 128 && length !== 192 && length !== 256) {
+				throw new DOMException(
+					'AES key length must be 128, 192, or 256 bits',
+					'OperationError',
+				);
+			}
+			const keyData = new Uint8Array(length / 8);
+			crypto.getRandomValues(keyData);
+			return this.importKey(
+				'raw',
+				keyData,
+				algo,
+				extractable as boolean,
+				keyUsages as KeyUsage[],
+			);
+		}
+
+		if (algo.name === 'ECDSA' || algo.name === 'ECDH') {
+			const ecAlgo = algo as EcKeyGenParams;
+			const [pubRaw, privRaw] = $.cryptoGenerateKeyEc(
+				ecAlgo.namedCurve,
+			) as [ArrayBuffer, ArrayBuffer];
+
+			// Import public key
+			const publicKey = await this.importKey(
+				'raw',
+				pubRaw,
+				{ name: algo.name, namedCurve: ecAlgo.namedCurve } as any,
+				extractable as boolean,
+				algo.name === 'ECDSA'
+					? (keyUsages as KeyUsage[]).filter(
+							(u) => u === 'verify',
+						)
+					: [],
+			);
+
+			// Create private key via native call
+			const privUsages =
+				algo.name === 'ECDSA'
+					? (keyUsages as KeyUsage[]).filter(
+							(u) => u === 'sign',
+						)
+					: (keyUsages as KeyUsage[]).filter(
+							(u) =>
+								u === 'deriveBits' || u === 'deriveKey',
+						);
+			const privKeyRaw = $.cryptoKeyNewEcPrivate(
+				{ name: algo.name, namedCurve: ecAlgo.namedCurve },
+				privRaw,
+				pubRaw,
+				extractable as boolean,
+				privUsages,
+			);
+			const privateKey = proto(privKeyRaw, CryptoKey);
+
+			return {
+				publicKey,
+				privateKey,
+			} as CryptoKeyPair<any>;
+		}
+
+		if (algo.name === 'HMAC') {
+			const hmacAlgo = algo as HmacKeyGenParams;
+			const hashLength = getHashLength(hmacAlgo.hash);
+			const length = hmacAlgo.length || hashLength;
+			const keyData = new Uint8Array(Math.ceil(length / 8));
+			crypto.getRandomValues(keyData);
+			// Normalize hash to object form for importKey
+			const importAlgo = {
+				...hmacAlgo,
+				hash: normalizeHashAlgorithm(hmacAlgo.hash),
+			};
+			return this.importKey(
+				'raw',
+				keyData,
+				importAlgo,
+				extractable as boolean,
+				keyUsages as KeyUsage[],
+			);
+		}
+
+		throw new DOMException(
+			`Unsupported algorithm: ${algo.name}`,
+			'NotSupportedError',
+		);
 	}
 
 	/**
@@ -280,6 +417,13 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 		extractable: boolean,
 		keyUsages: KeyUsage[],
 	): Promise<CryptoKey<Cipher>>;
+	importKey(
+		format: KeyFormat,
+		keyData: BufferSource | JsonWebKey,
+		algorithm: Algorithm,
+		extractable: boolean,
+		keyUsages: KeyUsage[],
+	): Promise<CryptoKey<never>>;
 	async importKey<Cipher extends KeyAlgorithmIdentifier>(
 		format: KeyFormat,
 		keyData: BufferSource | JsonWebKey,
@@ -306,12 +450,12 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 		return key;
 	}
 
-	sign(
+	async sign(
 		algorithm: AlgorithmIdentifier | RsaPssParams | EcdsaParams,
 		key: CryptoKey<never>,
 		data: BufferSource,
 	): Promise<ArrayBuffer> {
-		throw new Error('Method not implemented.');
+		return $.cryptoSign(normalizeAlgorithm(algorithm), key, data);
 	}
 
 	unwrapKey(
@@ -335,13 +479,18 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 		throw new Error('Method not implemented.');
 	}
 
-	verify(
+	async verify(
 		algorithm: AlgorithmIdentifier | RsaPssParams | EcdsaParams,
 		key: CryptoKey<never>,
 		signature: BufferSource,
 		data: BufferSource,
 	): Promise<boolean> {
-		throw new Error('Method not implemented.');
+		return $.cryptoVerify(
+			normalizeAlgorithm(algorithm),
+			key,
+			signature,
+			data,
+		);
 	}
 
 	wrapKey(
@@ -364,3 +513,30 @@ def(SubtleCrypto);
 function normalizeAlgorithm(algorithm: AlgorithmIdentifier): Algorithm {
 	return typeof algorithm === 'string' ? { name: algorithm } : algorithm;
 }
+
+function normalizeHashAlgorithm(
+	hash: HashAlgorithmIdentifier,
+): { name: string } {
+	return typeof hash === 'string' ? { name: hash } : hash;
+}
+
+function getHashLength(hash: HashAlgorithmIdentifier): number {
+	const name = typeof hash === 'string' ? hash : hash.name;
+	switch (name) {
+		case 'SHA-1':
+			return 160;
+		case 'SHA-256':
+			return 256;
+		case 'SHA-384':
+			return 384;
+		case 'SHA-512':
+			return 512;
+		default:
+			throw new DOMException(
+				`Unrecognized hash algorithm: ${name}`,
+				'NotSupportedError',
+			);
+	}
+}
+
+type HashAlgorithmIdentifier = AlgorithmIdentifier;

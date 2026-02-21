@@ -1,0 +1,230 @@
+name: Conformance Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-runtime:
+    name: Build Runtime
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install
+      - name: Build dependent packages
+        run: pnpm build --filter @nx.js/runtime
+      - name: Bundle runtime
+        working-directory: packages/runtime
+        run: node bundle.mjs
+      - name: Upload runtime artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-bundle
+          path: packages/runtime/runtime.js
+          retention-days: 1
+
+  canvas:
+    name: Canvas 2D
+    needs: build-runtime
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download runtime bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: runtime-bundle
+          path: packages/runtime
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake build-essential pkg-config \
+            libcairo2-dev libfreetype-dev libharfbuzz-dev \
+            libpng-dev libturbojpeg0-dev libwebp-dev \
+            fonts-dejavu-core
+
+      - name: Build canvas test binary
+        working-directory: test/canvas
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build -j$(nproc)
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install Node.js dependencies
+        working-directory: test/canvas
+        run: pnpm install
+
+      - name: Install Playwright browsers
+        working-directory: test/canvas
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run canvas conformance tests
+        working-directory: test/canvas
+        run: pnpm test:canvas
+
+      - name: Upload test output images
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: canvas-test-output
+          path: test/canvas/output/
+          retention-days: 14
+
+  wasm:
+    name: WebAssembly
+    needs: build-runtime
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download runtime bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: runtime-bundle
+          path: packages/runtime
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake build-essential
+
+      - name: Build wasm test binary
+        working-directory: test/wasm
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build -j$(nproc)
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install Node.js dependencies
+        working-directory: test/wasm
+        run: pnpm install
+
+      - name: Install Playwright
+        working-directory: test/wasm
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run wasm tests
+        working-directory: test/wasm
+        run: pnpm test:wasm
+
+      - name: Upload test output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wasm-test-output
+          path: test/wasm/output/
+          retention-days: 14
+
+  compression:
+    name: Compression Streams
+    needs: build-runtime
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download runtime bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: runtime-bundle
+          path: packages/runtime
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake build-essential pkg-config zlib1g-dev libzstd-dev
+
+      - name: Build compression test binary
+        working-directory: test/compression
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build -j$(nproc)
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install Node.js dependencies
+        working-directory: test/compression
+        run: pnpm install
+
+      - name: Install Playwright
+        working-directory: test/compression
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run compression tests
+        working-directory: test/compression
+        run: pnpm test:compression
+
+      - name: Upload test output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compression-test-output
+          path: test/compression/output/
+          retention-days: 14
+
+  webcrypto:
+    name: WebCrypto
+    needs: build-runtime
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download runtime bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: runtime-bundle
+          path: packages/runtime
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake build-essential
+
+      - name: Build webcrypto test binary
+        working-directory: test/webcrypto
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build -j$(nproc)
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install Node.js dependencies
+        working-directory: test/webcrypto
+        run: pnpm install
+
+      - name: Install Playwright
+        working-directory: test/webcrypto
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run webcrypto conformance tests
+        working-directory: test/webcrypto
+        run: pnpm test:webcrypto
+
+      - name: Upload test output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: webcrypto-test-output
+          path: test/webcrypto/output/
+          retention-days: 14

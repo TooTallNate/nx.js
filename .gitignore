@@ -1,3 +1,4 @@
+/switch-*-any.pkg.tar.zst
 node_modules
 .turbo
 /packages/*/dist

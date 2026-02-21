@@ -50,6 +50,7 @@ type ClassOf<T> = {
 };
 
 type FileHandle = Opaque<'FileHandle'>;
+type CanvasGradientOpaque = Opaque<'CanvasGradientOpaque'>;
 type CompressHandle = Opaque<'CompressHandle'>;
 type DecompressHandle = Opaque<'DecompressHandle'>;
 type SaveDataIterator = Opaque<'SaveDataIterator'>;
@@ -122,6 +123,37 @@ export interface Init {
 		ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
 		...rgba: RGBA
 	): number[];
+	canvasContext2dSetFillStyleGradient(
+		ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
+		gradient: CanvasGradientOpaque,
+	): void;
+	canvasContext2dSetStrokeStyleGradient(
+		ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
+		gradient: CanvasGradientOpaque,
+	): void;
+	canvasGradientNewLinear(
+		x0: number,
+		y0: number,
+		x1: number,
+		y1: number,
+	): CanvasGradientOpaque;
+	canvasGradientNewRadial(
+		x0: number,
+		y0: number,
+		r0: number,
+		x1: number,
+		y1: number,
+		r1: number,
+	): CanvasGradientOpaque;
+	canvasGradientInitClass(c: any): void;
+	canvasGradientAddColorStop(
+		gradient: any,
+		offset: number,
+		r: number,
+		g: number,
+		b: number,
+		a: number,
+	): void;
 
 	// compression.c
 	compressNew(format: string): CompressHandle;
@@ -151,6 +183,31 @@ export interface Init {
 		algorithm: Algorithm,
 		key: CryptoKey<any>,
 		data: BufferSource,
+	): Promise<ArrayBuffer>;
+	cryptoSign(
+		algorithm: Algorithm,
+		key: CryptoKey<any>,
+		data: BufferSource,
+	): Promise<ArrayBuffer>;
+	cryptoVerify(
+		algorithm: Algorithm,
+		key: CryptoKey<any>,
+		signature: BufferSource,
+		data: BufferSource,
+	): Promise<boolean>;
+	cryptoExportKey(format: string, key: CryptoKey<any>): ArrayBuffer;
+	cryptoGenerateKeyEc(namedCurve: string): [ArrayBuffer, ArrayBuffer];
+	cryptoKeyNewEcPrivate(
+		algorithm: any,
+		privateKey: ArrayBuffer,
+		publicKey: ArrayBuffer,
+		extractable: boolean,
+		usages: string[],
+	): any;
+	cryptoDeriveBits(
+		algorithm: any,
+		baseKey: CryptoKey<any>,
+		length: number,
 	): Promise<ArrayBuffer>;
 	cryptoDigest(algorithm: string, buf: BufferSource): Promise<ArrayBuffer>;
 	sha256Hex(str: string): string;
@@ -347,6 +404,7 @@ export interface Init {
 	wasmModuleImports(m: WasmModuleOpaque): any[];
 	wasmGlobalGet(g: WasmGlobalOpaque): any;
 	wasmGlobalSet(g: WasmGlobalOpaque, v: any): void;
+	wasmValidate(bytes: ArrayBuffer): boolean;
 
 	// window.c
 	windowInit(c: Window): void;

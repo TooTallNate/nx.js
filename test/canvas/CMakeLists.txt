@@ -82,9 +82,4 @@ set_source_files_properties(
   PROPERTIES COMPILE_FLAGS "-Wno-unused-parameter -Wno-sign-compare -Wno-implicit-fallthrough -Wno-missing-field-initializers"
 )
 
-# Copy the JS bridge to the build directory
-configure_file(
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/canvas_api.js
-  ${CMAKE_CURRENT_BINARY_DIR}/canvas_api.js
-  COPYONLY
-)
+# No JS bridge needed — we use the real runtime.js directly

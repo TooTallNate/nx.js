@@ -362,5 +362,6 @@ export async function instantiateStreaming(
 
 /** [MDN Reference](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/validate) */
 export function validate(bytes: BufferSource): boolean {
-	throw new Error('Method not implemented.');
+	const buffer = bufferSourceToArrayBuffer(bytes);
+	return $.wasmValidate(buffer);
 }

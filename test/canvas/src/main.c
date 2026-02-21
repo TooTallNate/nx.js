@@ -4,7 +4,12 @@
  * Minimal QuickJS host for testing the nx.js Canvas 2D implementation
  * on x86_64 without a Nintendo Switch.
  *
- * Usage: nxjs-canvas-test <bridge.js> <fixture.js> <output.png> [width] [height]
+ * Uses the real runtime.js instead of a custom JS bridge. A Proxy stub
+ * catches missing native functions (from modules we don't link) as no-ops,
+ * allowing the full runtime to initialize with only canvas/font/image/
+ * dommatrix natives.
+ *
+ * Usage: nxjs-canvas-test <runtime.js> <fixture.js> <output.png> [width] [height]
  */
 
 // Include the real source headers — compat/ directory provides stubs for
@@ -66,16 +71,53 @@ static cairo_surface_t *get_canvas_surface(JSContext *ctx) {
 	return canvas->surface;
 }
 
+/**
+ * Evaluate a JS file. Returns 0 on success, -1 on error.
+ */
+static int eval_file(JSContext *ctx, const char *path, const char *label) {
+	size_t len;
+	char *src = read_file(path, &len);
+	if (!src) {
+		fprintf(stderr, "Failed to read %s: %s\n", label, path);
+		return -1;
+	}
+
+	JSValue val = JS_Eval(ctx, src, len, path, JS_EVAL_TYPE_GLOBAL);
+	free(src);
+
+	if (JS_IsException(val)) {
+		fprintf(stderr, "%s evaluation failed:\n", label);
+		print_js_error(ctx);
+		JS_FreeValue(ctx, val);
+		return -1;
+	}
+	JS_FreeValue(ctx, val);
+	return 0;
+}
+
+/**
+ * Proxy stub: wraps $ so that any missing native function returns a no-op
+ * that returns an empty object (needed so runtime.js can initialize modules
+ * we don't link — e.g. wasm, compression — without crashing).
+ */
+static const char *PROXY_STUB =
+    "globalThis.$ = new Proxy($, {\n"
+    "    get: function(target, prop) {\n"
+    "        if (prop in target) return target[prop];\n"
+    "        return function() { return {}; };\n"
+    "    }\n"
+    "});\n";
+
 int main(int argc, char *argv[]) {
 	if (argc < 4) {
 		fprintf(stderr,
-		        "Usage: %s <bridge.js> <fixture.js> <output.png> [width] "
+		        "Usage: %s <runtime.js> <fixture.js> <output.png> [width] "
 		        "[height]\n",
 		        argv[0]);
 		return 1;
 	}
 
-	const char *bridge_path = argv[1];
+	const char *runtime_path = argv[1];
 	const char *fixture_path = argv[2];
 	const char *output_path = argv[3];
 	int canvas_width = argc > 4 ? atoi(argv[4]) : 200;
@@ -116,12 +158,21 @@ int main(int argc, char *argv[]) {
 	nx_init_font(ctx, nx_ctx.init_obj);
 	nx_init_image(ctx, nx_ctx.init_obj);
 
-	// Expose init_obj as global '$' so the JS bridge can access native
-	// functions
+	// Set version, entrypoint, argv on init_obj (runtime.js reads these)
+	JSValue version_obj = JS_NewObject(ctx);
+	JS_SetPropertyStr(ctx, version_obj, "nxjs",
+	                  JS_NewString(ctx, "0.0.0-test"));
+	JS_SetPropertyStr(ctx, version_obj, "hos", JS_NewString(ctx, "0.0.0"));
+	JS_SetPropertyStr(ctx, nx_ctx.init_obj, "version", version_obj);
+	JS_SetPropertyStr(ctx, nx_ctx.init_obj, "entrypoint",
+	                  JS_NewString(ctx, "file:///test.js"));
+	JS_SetPropertyStr(ctx, nx_ctx.init_obj, "argv", JS_NewArray(ctx));
+
+	// Expose init_obj as global '$'
 	JSValue global = JS_GetGlobalObject(ctx);
 	JS_SetPropertyStr(ctx, global, "$", JS_DupValue(ctx, nx_ctx.init_obj));
 
-	// Set canvas dimensions as globals for the bridge
+	// Set canvas dimensions as globals for the createCanvas helper
 	JS_SetPropertyStr(ctx, global, "__canvas_width__",
 	                  JS_NewInt32(ctx, canvas_width));
 	JS_SetPropertyStr(ctx, global, "__canvas_height__",
@@ -129,53 +180,120 @@ int main(int argc, char *argv[]) {
 
 	JS_FreeValue(ctx, global);
 
-	// Load and evaluate the JS bridge
-	size_t bridge_len;
-	char *bridge_src = read_file(bridge_path, &bridge_len);
-	if (!bridge_src) {
-		fprintf(stderr, "Failed to read bridge: %s\n", bridge_path);
-		JS_FreeContext(ctx);
-		JS_FreeRuntime(rt);
-		return 1;
-	}
-
-	JSValue bridge_val =
-	    JS_Eval(ctx, bridge_src, bridge_len, bridge_path, JS_EVAL_TYPE_GLOBAL);
-	free(bridge_src);
-
-	if (JS_IsException(bridge_val)) {
-		fprintf(stderr, "Bridge evaluation failed:\n");
+	// Evaluate the Proxy stub (catches missing native functions as no-ops)
+	JSValue proxy_val =
+	    JS_Eval(ctx, PROXY_STUB, strlen(PROXY_STUB), "<proxy>",
+	            JS_EVAL_TYPE_GLOBAL);
+	if (JS_IsException(proxy_val)) {
+		fprintf(stderr, "Proxy stub evaluation failed:\n");
 		print_js_error(ctx);
-		JS_FreeValue(ctx, bridge_val);
+		JS_FreeValue(ctx, proxy_val);
 		JS_FreeContext(ctx);
 		JS_FreeRuntime(rt);
 		return 1;
 	}
-	JS_FreeValue(ctx, bridge_val);
+	JS_FreeValue(ctx, proxy_val);
+
+	// Override getSystemFont with a host-system fallback font.
+	// The real getSystemFont (from font.c / nx_init_font) calls
+	// plGetSharedFontByType() which requires the Switch font service.
+	// On the host we load a TTF from the filesystem instead.
+	{
+		const char *font_paths[] = {
+		    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+		    "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+		    "/usr/share/fonts/truetype/freefont/FreeSans.ttf",
+		    "/usr/share/fonts/truetype/ubuntu/Ubuntu-R.ttf",
+		    "/usr/share/fonts/TTF/DejaVuSans.ttf",
+		    NULL,
+		};
+
+		size_t font_len = 0;
+		char *font_data = NULL;
+		for (int i = 0; font_paths[i]; i++) {
+			FILE *f = fopen(font_paths[i], "rb");
+			if (!f)
+				continue;
+			fseek(f, 0, SEEK_END);
+			long len = ftell(f);
+			fseek(f, 0, SEEK_SET);
+			font_data = malloc(len);
+			if (font_data) {
+				font_len = fread(font_data, 1, len, f);
+			}
+			fclose(f);
+			if (font_data)
+				break;
+		}
+
+		if (font_data) {
+			JSValue font_ab =
+			    JS_NewArrayBufferCopy(ctx, (uint8_t *)font_data, font_len);
+			global = JS_GetGlobalObject(ctx);
+			JS_SetPropertyStr(ctx, global, "__hostFallbackFont__", font_ab);
+			JS_FreeValue(ctx, global);
+			free(font_data);
+
+			static const char *FONT_OVERRIDE =
+			    "$.getSystemFont = function() { return "
+			    "__hostFallbackFont__; };\n";
+			JSValue fo_val =
+			    JS_Eval(ctx, FONT_OVERRIDE, strlen(FONT_OVERRIDE),
+			            "<font-override>", JS_EVAL_TYPE_GLOBAL);
+			if (JS_IsException(fo_val)) {
+				fprintf(stderr,
+				        "Warning: font override failed, canvas font tests may "
+				        "fail\n");
+				print_js_error(ctx);
+			}
+			JS_FreeValue(ctx, fo_val);
+		} else {
+			fprintf(stderr,
+			        "Warning: no fallback font found on host — "
+			        "getSystemFont will fail at runtime\n");
+		}
+	}
+
+	// Load and evaluate runtime.js
+	if (eval_file(ctx, runtime_path, "runtime") != 0) {
+		JS_FreeContext(ctx);
+		JS_FreeRuntime(rt);
+		return 1;
+	}
+
+	// Provide createCanvas() using the runtime's OffscreenCanvas
+	{
+		char create_canvas_fn[512];
+		snprintf(create_canvas_fn, sizeof(create_canvas_fn),
+		         "globalThis.createCanvas = function(w, h) {\n"
+		         "    if (w === undefined) w = %d;\n"
+		         "    if (h === undefined) h = %d;\n"
+		         "    var canvas = new OffscreenCanvas(w, h);\n"
+		         "    var ctx = canvas.getContext('2d');\n"
+		         "    globalThis.__nxjs_surface__ = canvas;\n"
+		         "    return { canvas: canvas, ctx: ctx };\n"
+		         "};\n",
+		         canvas_width, canvas_height);
+		JSValue cc_val =
+		    JS_Eval(ctx, create_canvas_fn, strlen(create_canvas_fn),
+		            "<createCanvas>", JS_EVAL_TYPE_GLOBAL);
+		if (JS_IsException(cc_val)) {
+			fprintf(stderr, "createCanvas setup failed:\n");
+			print_js_error(ctx);
+			JS_FreeValue(ctx, cc_val);
+			JS_FreeContext(ctx);
+			JS_FreeRuntime(rt);
+			return 1;
+		}
+		JS_FreeValue(ctx, cc_val);
+	}
 
 	// Load and evaluate the test fixture
-	size_t fixture_len;
-	char *fixture_src = read_file(fixture_path, &fixture_len);
-	if (!fixture_src) {
-		fprintf(stderr, "Failed to read fixture: %s\n", fixture_path);
+	if (eval_file(ctx, fixture_path, "fixture") != 0) {
 		JS_FreeContext(ctx);
 		JS_FreeRuntime(rt);
 		return 1;
 	}
-
-	JSValue fixture_val = JS_Eval(ctx, fixture_src, fixture_len, fixture_path,
-	                              JS_EVAL_TYPE_GLOBAL);
-	free(fixture_src);
-
-	if (JS_IsException(fixture_val)) {
-		fprintf(stderr, "Fixture evaluation failed:\n");
-		print_js_error(ctx);
-		JS_FreeValue(ctx, fixture_val);
-		JS_FreeContext(ctx);
-		JS_FreeRuntime(rt);
-		return 1;
-	}
-	JS_FreeValue(ctx, fixture_val);
 
 	// Get the canvas surface and write to PNG
 	cairo_surface_t *surface = get_canvas_surface(ctx);

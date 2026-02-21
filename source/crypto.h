@@ -1,5 +1,8 @@
 #pragma once
+#define MBEDTLS_ALLOW_PRIVATE_ACCESS
 #include "types.h"
+#include <mbedtls/version.h>
+#include <mbedtls/ecp.h>
 
 typedef enum {
 	NX_CRYPTO_KEY_TYPE_UNKNOWN,
@@ -12,7 +15,13 @@ typedef enum {
 	NX_CRYPTO_KEY_ALGORITHM_UNKNOWN,
 	NX_CRYPTO_KEY_ALGORITHM_AES_CBC,
 	NX_CRYPTO_KEY_ALGORITHM_AES_CTR,
-	NX_CRYPTO_KEY_ALGORITHM_AES_XTS
+	NX_CRYPTO_KEY_ALGORITHM_AES_XTS,
+	NX_CRYPTO_KEY_ALGORITHM_AES_GCM,
+	NX_CRYPTO_KEY_ALGORITHM_HMAC,
+	NX_CRYPTO_KEY_ALGORITHM_ECDSA,
+	NX_CRYPTO_KEY_ALGORITHM_ECDH,
+	NX_CRYPTO_KEY_ALGORITHM_PBKDF2,
+	NX_CRYPTO_KEY_ALGORITHM_HKDF
 } nx_crypto_key_algorithm;
 
 typedef enum {
@@ -34,7 +43,15 @@ typedef struct {
 	nx_crypto_key_usage usages;
 	JSValue usages_cached;
 	void *handle;
+	uint8_t *raw_key_data;  // Raw key material (for exportKey)
+	size_t raw_key_size;     // Size of raw key data
 } nx_crypto_key_t;
+
+typedef struct {
+	uint8_t *key;
+	size_t key_length;
+	char hash_name[16];  // "SHA-256", etc.
+} nx_crypto_key_hmac_t;
 
 typedef struct {
 	u8 key_length; /* 16 (128-bit), 24 (192-bit), 32 (256-bit), etc. */
@@ -64,5 +81,10 @@ typedef struct {
 		Aes256XtsContext xts_256;
 	} encrypt;
 } nx_crypto_key_aes_t;
+
+typedef struct {
+	mbedtls_ecp_keypair keypair;
+	char curve_name[8];  // "P-256" or "P-384"
+} nx_crypto_key_ec_t;
 
 void nx_init_crypto(JSContext *ctx, JSValueConst init_obj);

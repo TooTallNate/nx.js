@@ -28,7 +28,7 @@ const FIXTURES_DIR = join(ROOT, 'fixtures');
 const OUTPUT_DIR = join(ROOT, 'output');
 const BUILD_DIR = join(ROOT, 'build');
 const BINARY = join(BUILD_DIR, 'nxjs-canvas-test');
-const BRIDGE = join(BUILD_DIR, 'canvas_api.js');
+const RUNTIME = join(ROOT, '../../packages/runtime/runtime.js');
 
 // Pixel difference threshold: percentage of total pixels that can differ
 // Cairo and Chrome use different rasterizers, so some anti-aliasing differences
@@ -50,7 +50,7 @@ function ensureDir(dir: string) {
  */
 function renderWithNxjs(fixturePath: string, outputPath: string): Buffer {
 	execSync(
-		`"${BINARY}" "${BRIDGE}" "${fixturePath}" "${outputPath}" ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`,
+		`"${BINARY}" "${RUNTIME}" "${fixturePath}" "${outputPath}" ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`,
 		{ timeout: 10000 }
 	);
 	return readFileSync(outputPath);
@@ -157,15 +157,15 @@ describe('Canvas 2D conformance: nx.js vs Chrome', () => {
 	beforeAll(async () => {
 		ensureDir(OUTPUT_DIR);
 
-		// Verify the binary exists
+		// Verify the binary and runtime exist
 		if (!existsSync(BINARY)) {
 			throw new Error(
 				`Canvas test binary not found at ${BINARY}. Run 'pnpm build' first.`
 			);
 		}
-		if (!existsSync(BRIDGE)) {
+		if (!existsSync(RUNTIME)) {
 			throw new Error(
-				`Canvas API bridge not found at ${BRIDGE}. Run 'pnpm build' first.`
+				`Runtime not found at ${RUNTIME}. Run 'pnpm -w build:runtime' first.`
 			);
 		}
 
@@ -199,6 +199,11 @@ describe('Canvas 2D conformance: nx.js vs Chrome', () => {
 				fixtureCode,
 				chromeOutputPath
 			);
+
+			// Snapshot the nx.js output for visual regression tracking
+			expect(nxjsPng).toMatchImageSnapshot({
+				customSnapshotIdentifier: name,
+			});
 
 			// Compare
 			const { diffPercent, numDiffPixels, totalPixels } = compareImages(
