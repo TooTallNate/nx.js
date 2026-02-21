@@ -2811,7 +2811,11 @@ static void nx_crypto_generate_key_rsa_do(nx_work_t *req) {
 	nx_crypto_generate_key_rsa_async_t *data = (nx_crypto_generate_key_rsa_async_t *)req->data;
 
 	mbedtls_rsa_context rsa;
+	#if MBEDTLS_VERSION_MAJOR >= 3
 	mbedtls_rsa_init(&rsa);
+#else
+	mbedtls_rsa_init(&rsa, MBEDTLS_RSA_PKCS_V21, MBEDTLS_MD_SHA256);
+#endif
 
 	mbedtls_entropy_context entropy;
 	mbedtls_ctr_drbg_context ctr_drbg;
@@ -2837,36 +2841,36 @@ static void nx_crypto_generate_key_rsa_do(nx_work_t *req) {
 		return;
 	}
 
-	mbedtls_mpi N, P, Q, D, E, DP, DQ, QI;
-	mbedtls_mpi_init(&N); mbedtls_mpi_init(&P); mbedtls_mpi_init(&Q);
-	mbedtls_mpi_init(&D); mbedtls_mpi_init(&E);
-	mbedtls_mpi_init(&DP); mbedtls_mpi_init(&DQ); mbedtls_mpi_init(&QI);
+	mbedtls_mpi mpi_n, mpi_p, mpi_q, mpi_d, mpi_e, mpi_dp, mpi_dq, mpi_qi;
+	mbedtls_mpi_init(&mpi_n); mbedtls_mpi_init(&mpi_p); mbedtls_mpi_init(&mpi_q);
+	mbedtls_mpi_init(&mpi_d); mbedtls_mpi_init(&mpi_e);
+	mbedtls_mpi_init(&mpi_dp); mbedtls_mpi_init(&mpi_dq); mbedtls_mpi_init(&mpi_qi);
 
-	mbedtls_rsa_export(&rsa, &N, &P, &Q, &D, &E);
+	mbedtls_rsa_export(&rsa, &mpi_n, &mpi_p, &mpi_q, &mpi_d, &mpi_e);
 
 	// Compute DP, DQ, QI
-	mbedtls_mpi P1, Q1;
-	mbedtls_mpi_init(&P1); mbedtls_mpi_init(&Q1);
-	mbedtls_mpi_sub_int(&P1, &P, 1);
-	mbedtls_mpi_sub_int(&Q1, &Q, 1);
-	mbedtls_mpi_mod_mpi(&DP, &D, &P1);
-	mbedtls_mpi_mod_mpi(&DQ, &D, &Q1);
-	mbedtls_mpi_inv_mod(&QI, &Q, &P);
-	mbedtls_mpi_free(&P1); mbedtls_mpi_free(&Q1);
+	mbedtls_mpi mpi_p1, mpi_q1;
+	mbedtls_mpi_init(&mpi_p1); mbedtls_mpi_init(&mpi_q1);
+	mbedtls_mpi_sub_int(&mpi_p1, &mpi_p, 1);
+	mbedtls_mpi_sub_int(&mpi_q1, &mpi_q, 1);
+	mbedtls_mpi_mod_mpi(&mpi_dp, &mpi_d, &mpi_p1);
+	mbedtls_mpi_mod_mpi(&mpi_dq, &mpi_d, &mpi_q1);
+	mbedtls_mpi_inv_mod(&mpi_qi, &mpi_q, &mpi_p);
+	mbedtls_mpi_free(&mpi_p1); mbedtls_mpi_free(&mpi_q1);
 
 	#define EXPORT_MPI(field) \
-		data->field##_len = mbedtls_mpi_size(&field); \
+		data->field##_len = mbedtls_mpi_size(&mpi_##field); \
 		data->field = malloc(data->field##_len); \
-		if (data->field) mbedtls_mpi_write_binary(&field, data->field, data->field##_len);
+		if (data->field) mbedtls_mpi_write_binary(&mpi_##field, data->field, data->field##_len);
 
 	EXPORT_MPI(n); EXPORT_MPI(e); EXPORT_MPI(d);
 	EXPORT_MPI(p); EXPORT_MPI(q);
 	EXPORT_MPI(dp); EXPORT_MPI(dq); EXPORT_MPI(qi);
 	#undef EXPORT_MPI
 
-	mbedtls_mpi_free(&N); mbedtls_mpi_free(&P); mbedtls_mpi_free(&Q);
-	mbedtls_mpi_free(&D); mbedtls_mpi_free(&E);
-	mbedtls_mpi_free(&DP); mbedtls_mpi_free(&DQ); mbedtls_mpi_free(&QI);
+	mbedtls_mpi_free(&mpi_n); mbedtls_mpi_free(&mpi_p); mbedtls_mpi_free(&mpi_q);
+	mbedtls_mpi_free(&mpi_d); mbedtls_mpi_free(&mpi_e);
+	mbedtls_mpi_free(&mpi_dp); mbedtls_mpi_free(&mpi_dq); mbedtls_mpi_free(&mpi_qi);
 	mbedtls_rsa_free(&rsa);
 }
 
@@ -2970,7 +2974,11 @@ static JSValue nx_crypto_key_new_rsa(JSContext *ctx, JSValueConst this_val,
 		js_free(ctx, context);
 		return JS_EXCEPTION;
 	}
+	#if MBEDTLS_VERSION_MAJOR >= 3
 	mbedtls_rsa_init(&rsa->rsa);
+#else
+	mbedtls_rsa_init(&rsa->rsa, MBEDTLS_RSA_PKCS_V21, MBEDTLS_MD_SHA256);
+#endif
 	strncpy(rsa->hash_name, hash_name, sizeof(rsa->hash_name) - 1);
 	rsa->salt_length = -1;
 	JS_FreeCString(ctx, hash_name);
@@ -3323,7 +3331,11 @@ static JSValue nx_crypto_import_key_pkcs8_spki(JSContext *ctx, JSValueConst this
 			js_free(ctx, context);
 			return JS_EXCEPTION;
 		}
-		mbedtls_rsa_init(&rsa->rsa);
+		#if MBEDTLS_VERSION_MAJOR >= 3
+	mbedtls_rsa_init(&rsa->rsa);
+#else
+	mbedtls_rsa_init(&rsa->rsa, MBEDTLS_RSA_PKCS_V21, MBEDTLS_MD_SHA256);
+#endif
 		strncpy(rsa->hash_name, param_name, sizeof(rsa->hash_name) - 1);
 		rsa->salt_length = -1;
 
