@@ -1,7 +1,9 @@
 import { listen } from '@nx.js/http';
 
-// ── HTML/CSS/JS for the file browser UI ──
+const { ip } = Switch.networkInfo();
+console.log(`Switch IP: ${ip}`);
 
+// Simple HTML page for the file browser
 const clientHtml = `<!DOCTYPE html>
 <html>
 <head>
@@ -16,7 +18,6 @@ const clientHtml = `<!DOCTYPE html>
     display: flex; align-items: center; gap: 8px; }
   #path-bar button { background: #e94560; color: white; border: none; padding: 4px 12px; border-radius: 4px;
     cursor: pointer; font-size: 14px; }
-  #path-bar button:hover { background: #c73e54; }
   #listing { padding: 8px 24px; }
   .entry { display: flex; align-items: center; padding: 12px 16px; border-bottom: 1px solid #16213e;
     cursor: pointer; border-radius: 4px; gap: 12px; }
@@ -34,15 +35,15 @@ const clientHtml = `<!DOCTYPE html>
 </style>
 </head>
 <body>
-<header><h1>📂 nx.js File Browser</h1></header>
+<header><h1>nx.js File Browser</h1></header>
 <div id="path-bar">
-  <button onclick="goUp()">⬆ Up</button>
+  <button onclick="goUp()">Up</button>
   <span id="current-path">sdmc:/</span>
 </div>
 <div id="listing"><div class="loading">Loading...</div></div>
 
 <div id="preview">
-  <button id="preview-close" onclick="closePreview()">✕ Close</button>
+  <button id="preview-close" onclick="closePreview()">Close</button>
   <pre id="preview-content"></pre>
 </div>
 
@@ -81,17 +82,20 @@ function navigate(path) {
 
   send('ls', { path: path }).then(function(entries) {
     var html = '';
-    // Sort: directories first, then alphabetical
     entries.sort(function(a, b) {
       if (a.isDir !== b.isDir) return a.isDir ? -1 : 1;
       return a.name.localeCompare(b.name);
     });
     for (var i = 0; i < entries.length; i++) {
       var e = entries[i];
-      var icon = e.isDir ? '📁' : '📄';
+      var icon = e.isDir ? '&#128193;' : '&#128196;';
       var size = e.isDir ? '' : formatSize(e.size);
       var fullPath = currentPath + (currentPath.endsWith('/') ? '' : '/') + e.name;
-      html += '<div class="entry" onclick="' + (e.isDir ? "navigate('" + fullPath + "')" : "preview('" + fullPath + "')") + '">';
+      if (e.isDir) {
+        html += '<div class="entry" onclick="navigate(\\'' + fullPath.replace(/'/g, "\\\\'") + '\\')">';
+      } else {
+        html += '<div class="entry" onclick="preview(\\'' + fullPath.replace(/'/g, "\\\\'") + '\\')">';
+      }
       html += '<span class="icon">' + icon + '</span>';
       html += '<span class="name">' + e.name + '</span>';
       html += '<span class="size">' + size + '</span>';
@@ -117,7 +121,6 @@ function goUp() {
 function preview(path) {
   document.getElementById('preview').style.display = 'block';
   document.getElementById('preview-content').textContent = 'Loading...';
-
   send('read', { path: path, maxSize: 64000 }).then(function(result) {
     if (result.error) {
       document.getElementById('preview-content').textContent = 'Error: ' + result.error;
@@ -136,22 +139,26 @@ navigate('sdmc:/');
 </body>
 </html>`;
 
-// ── Backend: HTTP server + WebApplet message handler ──
-
-// Use the Switch's LAN IP — the browser applet runs as a separate
-// process and can't reach the app via loopback (127.0.0.1/localhost)
-const { ip } = Switch.networkInfo();
-
-listen({
-	port: 8080,
-	fetch() {
+// Start the HTTP server first
+const port = 8080;
+const server = listen({
+	port,
+	fetch(req) {
+		console.log(`HTTP ${req.method} ${req.url}`);
 		return new Response(clientHtml, {
 			headers: { 'Content-Type': 'text/html; charset=utf-8' },
 		});
 	},
 });
 
-const applet = new Switch.WebApplet(`http://${ip}:8080`);
+const url = `http://${ip}:${port}`;
+console.log(`HTTP server listening on ${url}`);
+
+// Check applet type before trying to open browser
+const appletType = Switch.appletType();
+console.log(`Applet type: ${appletType}`);
+
+const applet = new Switch.WebApplet(url);
 applet.jsExtension = true;
 
 // Handle RPC messages from the browser
@@ -213,5 +220,6 @@ applet.addEventListener('exit', () => {
 	Switch.exit();
 });
 
+console.log('Starting web applet...');
 await applet.start();
-console.log('File browser started at http://localhost:8080');
+console.log('Web applet started!');
