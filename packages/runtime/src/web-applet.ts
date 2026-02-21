@@ -21,26 +21,16 @@ export interface WebAppletShowResult {
  * Opens the Switch's built-in web browser as a Library Applet.
  * Requires Application mode (NSP install or hbmenu via title override).
  *
- * Supports two URL schemes:
- * - `https://` or `http://` — opens the online web browser
- * - `romfs:/` — opens the offline browser, serving HTML from the app's romfs
- *
- * @example Online (blocking)
+ * @example Blocking mode
  * ```typescript
  * const applet = new Switch.WebApplet('https://example.com');
  * const result = await applet.show();
  * console.log(result.lastUrl);
  * ```
  *
- * @example Offline from romfs (blocking)
- * ```typescript
- * const applet = new Switch.WebApplet('romfs:/index.html');
- * const result = await applet.show();
- * ```
- *
  * @example Session mode with messaging (non-blocking)
  * ```typescript
- * const applet = new Switch.WebApplet('romfs:/app.html');
+ * const applet = new Switch.WebApplet('https://myapp.example.com');
  * applet.jsExtension = true;
  *
  * applet.addEventListener('message', (e) => {

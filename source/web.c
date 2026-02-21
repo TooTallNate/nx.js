@@ -86,34 +86,15 @@ static JSValue nx_web_applet_set_boot_mode(JSContext *ctx,
 	return JS_UNDEFINED;
 }
 
-static bool _is_romfs_url(const char *url) {
-	return url && strncmp(url, "romfs:/", 7) == 0;
-}
-
 static Result _web_applet_configure(nx_web_applet_t *data) {
 	Result rc;
 
-	if (_is_romfs_url(data->url)) {
-		// Offline applet — serves HTML from app's romfs
-		// URL format: romfs:/path/to/file.html → document path: /path/to/file.html
-		u64 app_id = 0;
-		rc = svcGetInfo(&app_id, InfoType_ProgramId, CUR_PROCESS_HANDLE, 0);
-		if (R_FAILED(rc)) return rc;
+	rc = webPageCreate(&data->config, data->url);
+	if (R_FAILED(rc)) return rc;
 
-		const char *doc_path = data->url + 6;  // skip "romfs:"
-		rc = webOfflineCreate(&data->config,
-							  WebDocumentKind_OfflineHtmlPage, app_id,
-							  doc_path);
-	} else {
-		// Online applet — loads a URL
-		rc = webPageCreate(&data->config, data->url);
-		if (R_FAILED(rc)) return rc;
-
-		// Set whitelist to allow all URLs
-		rc = webConfigSetWhitelist(&data->config,
-								  "^http://.*$\n^https://.*$");
-	}
-
+	// Set whitelist to allow all URLs
+	rc = webConfigSetWhitelist(&data->config,
+							  "^http://.*$\n^https://.*$");
 	if (R_FAILED(rc)) return rc;
 
 	if (data->js_extension) {
