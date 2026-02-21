@@ -74,6 +74,24 @@ async function run() {
 	);
 	results.reimportRoundTripVerified = verified;
 
+	// --- RSA SPKI cross-verification (case 5) ---
+	// Sign with ORIGINAL private key, verify with SPKI-REIMPORTED public key.
+	// This catches the mbedtls_rsa_copy bug where manual MPI export/import
+	// lost internal RSA state needed for verify operations.
+	var crossData = textEncode('RSA SPKI cross-verify test');
+	var crossSig = await crypto.subtle.sign(
+		{ name: 'RSASSA-PKCS1-v1_5' },
+		rsaKeyPair.privateKey,
+		crossData
+	);
+	var crossVerified = await crypto.subtle.verify(
+		{ name: 'RSASSA-PKCS1-v1_5' },
+		reimportedPub,
+		crossSig,
+		crossData
+	);
+	results.rsaSpkiCrossVerified = crossVerified;
+
 	// --- ECDSA PKCS8/SPKI cross-verification (case 4) ---
 	// Export EC private as PKCS8, reimport, sign.
 	// Export EC public as SPKI, reimport, verify the signature.
