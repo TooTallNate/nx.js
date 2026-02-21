@@ -1,16 +1,24 @@
-// Web Applet Demo — opens the Switch's built-in browser
+// Web Applet Demo — opens the nx.js docs in the Switch browser
 //
-// The browser opens non-blocking, so the nx.js event loop keeps running.
-// When jsExtension is enabled, the browser and nx.js can communicate
-// via window.nx.sendMessage() / window.nx.onMessage.
+// The docs site detects window.nx and sends messages back to the app.
 
 const applet = new Switch.WebApplet('https://nxjs.n8.io');
+applet.jsExtension = true;
+
+applet.addEventListener('message', (e: any) => {
+	try {
+		const msg = JSON.parse(e.data);
+		console.log(`[browser] ${msg.type}: ${msg.title || msg.url || e.data}`);
+	} catch {
+		console.log(`[browser] ${e.data}`);
+	}
+});
 
 applet.addEventListener('exit', () => {
 	console.log('Browser closed');
 	Switch.exit();
 });
 
-console.log('Opening browser...');
+console.log('Opening nx.js docs in browser...');
 await applet.start();
 console.log('Browser opened!');
