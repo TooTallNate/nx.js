@@ -44,6 +44,7 @@ let baseRomfsDir = new URL('romfs/', root);
 let baseIconPath = new URL(iconName, root);
 let iconPath = new URL(iconName, appRoot);
 const logoDir = new URL('logo/', appRoot);
+const htmlDocDir = new URL('html-document/', appRoot);
 const romfsDir = new URL('romfs/', appRoot);
 const nspDir = createTmpDir('nsp');
 const ncaDir = createTmpDir('nca');
@@ -146,6 +147,7 @@ try {
 		titleid,
 		'--nopatchnacplogo',
 		...(existsSync(logoDir) ? [] : ['--nologo']),
+		...(existsSync(htmlDocDir) ? ['--htmldocdir', fileURLToPath(htmlDocDir)] : []),
 		...process.argv.slice(2),
 	];
 

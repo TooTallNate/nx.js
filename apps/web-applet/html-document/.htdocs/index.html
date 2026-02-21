@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>nx.js File Browser</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, system-ui, sans-serif; background: #1a1a2e; color: #eee; }
+  header { background: #16213e; padding: 16px 24px; border-bottom: 2px solid #e94560; }
+  header h1 { font-size: 24px; color: #e94560; }
+  #path-bar { background: #0f3460; padding: 10px 24px; font-family: monospace; font-size: 14px; color: #aaa;
+    display: flex; align-items: center; gap: 8px; }
+  #path-bar button { background: #e94560; color: white; border: none; padding: 6px 16px; border-radius: 4px;
+    cursor: pointer; font-size: 14px; }
+  #listing { padding: 8px 24px; }
+  .entry { display: flex; align-items: center; padding: 14px 16px; border-bottom: 1px solid #16213e;
+    cursor: pointer; border-radius: 4px; gap: 12px; }
+  .entry:hover { background: #16213e; }
+  .icon { font-size: 24px; width: 32px; text-align: center; flex-shrink: 0; }
+  .name { flex: 1; font-size: 16px; word-break: break-all; }
+  .size { color: #888; font-size: 14px; font-family: monospace; white-space: nowrap; }
+  .loading { text-align: center; padding: 40px; color: #888; font-size: 18px; }
+  #preview-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.92); z-index: 100; }
+  #preview-header { position: fixed; top: 0; left: 0; right: 0; background: #16213e; padding: 12px 24px;
+    display: flex; justify-content: space-between; align-items: center; z-index: 101; }
+  #preview-title { font-family: monospace; font-size: 14px; color: #aaa; }
+  #preview-close { background: #e94560; color: white; border: none; padding: 6px 16px;
+    border-radius: 4px; cursor: pointer; font-size: 14px; }
+  #preview-content { position: fixed; top: 48px; left: 0; right: 0; bottom: 0; overflow: auto;
+    padding: 16px 24px; font-family: monospace; font-size: 13px; white-space: pre-wrap;
+    word-break: break-all; background: #1a1a2e; }
+  #status { background: #0f3460; padding: 8px 24px; font-size: 12px; color: #888; }
+</style>
+</head>
+<body>
+<header><h1>&#128193; nx.js File Browser</h1></header>
+<div id="status">Connecting to nx.js...</div>
+<div id="path-bar">
+  <button onclick="goUp()">&#11014; Up</button>
+  <span id="current-path">sdmc:/</span>
+</div>
+<div id="listing"><div class="loading">Loading...</div></div>
+
+<div id="preview-overlay">
+  <div id="preview-header">
+    <span id="preview-title"></span>
+    <button id="preview-close" onclick="closePreview()">Close</button>
+  </div>
+  <pre id="preview-content"></pre>
+</div>
+
+<script>
+var currentPath = 'sdmc:/';
+var msgId = 0;
+var pending = {};
+
+function send(type, data) {
+  var id = ++msgId;
+  return new Promise(function(resolve, reject) {
+    pending[id] = resolve;
+    window.nx.sendMessage(JSON.stringify({ id: id, type: type, data: data }));
+  });
+}
+
+window.nx.addEventListener('message', function(evt) {
+  try {
+    var msg = JSON.parse(evt.data);
+    if (msg.id && pending[msg.id]) {
+      pending[msg.id](msg.data);
+      delete pending[msg.id];
+    }
+  } catch(e) {}
+});
+
+document.getElementById('status').textContent = 'Connected via window.nx (offline mode)';
+
+function formatSize(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+  if (b < 1073741824) return (b / 1048576).toFixed(1) + ' MB';
+  return (b / 1073741824).toFixed(2) + ' GB';
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function navigate(path) {
+  currentPath = path;
+  document.getElementById('current-path').textContent = path;
+  document.getElementById('listing').innerHTML = '<div class="loading">Loading...</div>';
+
+  send('ls', { path: path }).then(function(entries) {
+    if (!entries || entries.error) {
+      document.getElementById('listing').innerHTML =
+        '<div class="loading">Error: ' + escapeHtml(entries ? entries.error : 'No response') + '</div>';
+      return;
+    }
+    entries.sort(function(a, b) {
+      if (a.isDir !== b.isDir) return a.isDir ? -1 : 1;
+      return a.name.localeCompare(b.name);
+    });
+    var html = '';
+    for (var i = 0; i < entries.length; i++) {
+      var e = entries[i];
+      var icon = e.isDir ? '&#128193;' : '&#128196;';
+      var size = e.isDir ? '' : formatSize(e.size);
+      var fullPath = currentPath + (currentPath.endsWith('/') ? '' : '/') + e.name;
+      var escaped = escapeHtml(fullPath).replace(/'/g, '&#39;');
+      html += '<div class="entry" onclick="' +
+        (e.isDir ? "navigate('" + escaped + "')" : "preview('" + escaped + "')") + '">';
+      html += '<span class="icon">' + icon + '</span>';
+      html += '<span class="name">' + escapeHtml(e.name) + '</span>';
+      html += '<span class="size">' + size + '</span>';
+      html += '</div>';
+    }
+    if (entries.length === 0) html = '<div class="loading">Empty directory</div>';
+    document.getElementById('listing').innerHTML = html;
+  });
+}
+
+function goUp() {
+  var parts = currentPath.replace(/\/$/, '').split('/');
+  if (parts.length > 1) {
+    parts.pop();
+    var parent = parts.join('/');
+    if (!parent.endsWith('/')) parent += '/';
+    navigate(parent);
+  }
+}
+
+function preview(path) {
+  document.getElementById('preview-overlay').style.display = 'block';
+  document.getElementById('preview-title').textContent = path;
+  document.getElementById('preview-content').textContent = 'Loading...';
+  send('read', { path: path, maxSize: 64000 }).then(function(result) {
+    if (result && result.error) {
+      document.getElementById('preview-content').textContent = 'Error: ' + result.error;
+    } else if (result) {
+      document.getElementById('preview-content').textContent = result.content;
+    }
+  });
+}
+
+function closePreview() {
+  document.getElementById('preview-overlay').style.display = 'none';
+}
+
+navigate('sdmc:/');
+</script>
+</body>
+</html>
