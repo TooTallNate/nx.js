@@ -200,3 +200,5 @@ The `screen` global is the main display (1280×720). Use `screen.getContext('2d'
 - Can't call JS APIs from thread pool worker callbacks — only in `after_work_cb`
 - Switch memory is limited — be mindful of large allocations
 - `romfs:/` paths use forward slashes, colon after scheme
+- **Globals like `setTimeout`, `setInterval`, `clearTimeout`, `clearInterval` are NOT available inside `packages/runtime/src/`** — they're only registered as globals in `index.ts` for user code. Within the runtime package itself, import them: `import { setInterval, clearInterval } from './timers';`
+- **Gamepad button mapping** is NOT standard Web Gamepad API order. Use `@nx.js/constants` `Button` enum (e.g. `Button.A`, `Button.B`). The order is: B=0, A=1, Y=2, X=3, L=4, R=5, ZL=6, ZR=7, Minus=8, Plus=9, StickL=10, StickR=11, Up=12, Down=13, Left=14, Right=15
