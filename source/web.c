@@ -110,6 +110,12 @@ static JSValue nx_web_applet_start(JSContext *ctx, JSValueConst this_val,
 		return nx_throw_libnx_error(ctx, rc, "webPageCreate()");
 	}
 
+	// Set whitelist to allow all URLs (including local network IPs)
+	rc = webConfigSetWhitelist(&data->config, "^http://.*$\n^https://.*$");
+	if (R_FAILED(rc)) {
+		return nx_throw_libnx_error(ctx, rc, "webConfigSetWhitelist()");
+	}
+
 	if (data->js_extension) {
 		rc = webConfigSetJsExtension(&data->config, true);
 		if (R_FAILED(rc)) {
