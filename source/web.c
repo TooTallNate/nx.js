@@ -1,7 +1,6 @@
 #include "web.h"
 #include "error.h"
-#include "types.h"
-#include <switch/applets/web.h>
+#include <string.h>
 
 static JSClassID nx_web_applet_class_id;
 
@@ -188,7 +187,9 @@ static JSValue nx_web_applet_poll_messages(JSContext *ctx,
 		if (R_FAILED(rc) || !flag) {
 			break;
 		}
-		JSValue str = JS_NewStringLen(ctx, buf, (size_t)out_size);
+		// out_size may include null terminator, use strlen for safety
+		size_t str_len = out_size > 0 ? strnlen(buf, (size_t)out_size) : 0;
+		JSValue str = JS_NewStringLen(ctx, buf, str_len);
 		JS_SetPropertyUint32(ctx, arr, index++, str);
 	}
 
