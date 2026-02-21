@@ -113,7 +113,7 @@ async function run() {
 	var rsaDec = await crypto.subtle.decrypt({ name: 'RSA-OAEP' }, rsaKeyPair.privateKey, rsaEnc);
 	results.rsaJwkRoundTrip = textDecode(rsaDec) === 'JWK test';
 
-	// --- ECDSA JWK round trip ---
+	// --- ECDSA JWK: public vs private key field checks (case 2) ---
 	var ecKeyPair = await crypto.subtle.generateKey(
 		{ name: 'ECDSA', namedCurve: 'P-256' },
 		true,
@@ -121,32 +121,24 @@ async function run() {
 	);
 
 	var ecPubJwk = await crypto.subtle.exportKey('jwk', ecKeyPair.publicKey);
-	results.ecPubJwk = {
-		kty: ecPubJwk.kty,
-		crv: ecPubJwk.crv,
-		hasX: typeof ecPubJwk.x === 'string',
-		hasY: typeof ecPubJwk.y === 'string',
-		hasD: typeof ecPubJwk.d === 'string',
-	};
-
 	var ecPrivJwk = await crypto.subtle.exportKey('jwk', ecKeyPair.privateKey);
-	results.ecPrivJwk = {
-		kty: ecPrivJwk.kty,
-		crv: ecPrivJwk.crv,
-		hasX: typeof ecPrivJwk.x === 'string',
-		hasY: typeof ecPrivJwk.y === 'string',
-		hasD: typeof ecPrivJwk.d === 'string',
-	};
 
-	// Re-import and verify round-trip
-	var reimportedEcPub = await crypto.subtle.importKey(
-		'jwk',
-		ecPubJwk,
-		{ name: 'ECDSA', namedCurve: 'P-256' },
-		true,
-		['verify']
-	);
+	// Public JWK should have x, y but NOT d
+	results.ecPubHasX = typeof ecPubJwk.x === 'string' && ecPubJwk.x.length > 0;
+	results.ecPubHasY = typeof ecPubJwk.y === 'string' && ecPubJwk.y.length > 0;
+	results.ecPubNoD = typeof ecPubJwk.d === 'undefined';
 
+	// Private JWK should have x, y AND d
+	results.ecPrivHasX = typeof ecPrivJwk.x === 'string' && ecPrivJwk.x.length > 0;
+	results.ecPrivHasY = typeof ecPrivJwk.y === 'string' && ecPrivJwk.y.length > 0;
+	results.ecPrivHasD = typeof ecPrivJwk.d === 'string' && ecPrivJwk.d.length > 0;
+
+	// x and y MUST match between public and private exports (same key pair)
+	results.ecXyMatch = ecPubJwk.x === ecPrivJwk.x && ecPubJwk.y === ecPrivJwk.y;
+
+	// --- ECDSA JWK: x/y are correct public point, not derived from d (case 1) ---
+	// Verify that x/y from the private key JWK are actually the public point:
+	// reimport private JWK, sign; verify with ORIGINAL public key (not reimported)
 	var reimportedEcPriv = await crypto.subtle.importKey(
 		'jwk',
 		ecPrivJwk,
@@ -155,19 +147,43 @@ async function run() {
 		['sign']
 	);
 
-	var ecData = textEncode('EC JWK test');
+	var ecData = textEncode('EC JWK x/y verification');
 	var ecSig = await crypto.subtle.sign(
 		{ name: 'ECDSA', hash: 'SHA-256' },
 		reimportedEcPriv,
 		ecData
 	);
-	var ecVer = await crypto.subtle.verify(
+	// Verify with the ORIGINAL public key — proves the reimported private key
+	// has the correct key material (x/y were the real public point)
+	var ecVerOriginal = await crypto.subtle.verify(
+		{ name: 'ECDSA', hash: 'SHA-256' },
+		ecKeyPair.publicKey,
+		ecSig,
+		ecData
+	);
+	results.ecJwkPrivSignVerifyWithOriginalPub = ecVerOriginal;
+
+	// Also reimport the public JWK and verify
+	var reimportedEcPub = await crypto.subtle.importKey(
+		'jwk',
+		ecPubJwk,
+		{ name: 'ECDSA', namedCurve: 'P-256' },
+		true,
+		['verify']
+	);
+	var ecVerReimported = await crypto.subtle.verify(
 		{ name: 'ECDSA', hash: 'SHA-256' },
 		reimportedEcPub,
 		ecSig,
 		ecData
 	);
-	results.ecJwkRoundTrip = ecVer;
+	results.ecJwkRoundTrip = ecVerReimported;
+
+	// Verify d is NOT the same bytes as the public point (the original bug)
+	// d should be ~32 bytes for P-256, while x and y are each 32 bytes
+	// If x/y were mistakenly derived from the raw private scalar, they'd be wrong
+	results.ecDNotEqualX = ecPrivJwk.d !== ecPrivJwk.x;
+	results.ecDNotEqualY = ecPrivJwk.d !== ecPrivJwk.y;
 
 	__output(results);
 }

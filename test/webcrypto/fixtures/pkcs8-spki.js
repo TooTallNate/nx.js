@@ -74,29 +74,16 @@ async function run() {
 	);
 	results.reimportRoundTripVerified = verified;
 
-	// --- ECDSA PKCS8/SPKI round trip ---
+	// --- ECDSA PKCS8/SPKI cross-verification (case 4) ---
+	// Export EC private as PKCS8, reimport, sign.
+	// Export EC public as SPKI, reimport, verify the signature.
 	var ecKeyPair = await crypto.subtle.generateKey(
 		{ name: 'ECDSA', namedCurve: 'P-256' },
 		true,
 		['sign', 'verify']
 	);
 
-	// Export SPKI (public)
-	var ecSpki = await crypto.subtle.exportKey('spki', ecKeyPair.publicKey);
-	results.ecSpkiIsArrayBuffer = ecSpki instanceof ArrayBuffer;
-	results.ecSpkiHasData = ecSpki.byteLength > 0;
-
-	var reimportedEcPub = await crypto.subtle.importKey(
-		'spki',
-		ecSpki,
-		{ name: 'ECDSA', namedCurve: 'P-256' },
-		true,
-		['verify']
-	);
-	results.ecReimportedPubType = reimportedEcPub.type;
-	results.ecReimportedPubAlgo = reimportedEcPub.algorithm.name;
-
-	// Export PKCS8 (private)
+	// Export and reimport PKCS8 (private)
 	var ecPkcs8 = await crypto.subtle.exportKey('pkcs8', ecKeyPair.privateKey);
 	results.ecPkcs8IsArrayBuffer = ecPkcs8 instanceof ArrayBuffer;
 	results.ecPkcs8HasData = ecPkcs8.byteLength > 0;
@@ -111,20 +98,90 @@ async function run() {
 	results.ecReimportedPrivType = reimportedEcPriv.type;
 	results.ecReimportedPrivAlgo = reimportedEcPriv.algorithm.name;
 
-	// Sign with reimported private, verify with reimported public
-	var ecData = textEncode('EC PKCS8/SPKI test');
+	// Export and reimport SPKI (public)
+	var ecSpki = await crypto.subtle.exportKey('spki', ecKeyPair.publicKey);
+	results.ecSpkiIsArrayBuffer = ecSpki instanceof ArrayBuffer;
+	results.ecSpkiHasData = ecSpki.byteLength > 0;
+
+	var reimportedEcPub = await crypto.subtle.importKey(
+		'spki',
+		ecSpki,
+		{ name: 'ECDSA', namedCurve: 'P-256' },
+		true,
+		['verify']
+	);
+	results.ecReimportedPubType = reimportedEcPub.type;
+	results.ecReimportedPubAlgo = reimportedEcPub.algorithm.name;
+
+	// Sign with REIMPORTED private key (from PKCS8)
+	var ecData = textEncode('EC PKCS8/SPKI cross-verify');
 	var ecSignature = await crypto.subtle.sign(
 		{ name: 'ECDSA', hash: 'SHA-256' },
 		reimportedEcPriv,
 		ecData
 	);
-	var ecVerified = await crypto.subtle.verify(
+
+	// Verify with REIMPORTED public key (from SPKI) — cross-verification
+	var ecVerReimported = await crypto.subtle.verify(
 		{ name: 'ECDSA', hash: 'SHA-256' },
 		reimportedEcPub,
 		ecSignature,
 		ecData
 	);
-	results.ecReimportRoundTripVerified = ecVerified;
+	results.ecCrossVerifyReimported = ecVerReimported;
+
+	// Also verify with ORIGINAL public key to prove key material preserved
+	var ecVerOriginal = await crypto.subtle.verify(
+		{ name: 'ECDSA', hash: 'SHA-256' },
+		ecKeyPair.publicKey,
+		ecSignature,
+		ecData
+	);
+	results.ecCrossVerifyOriginal = ecVerOriginal;
+
+	// --- RSA PKCS1 sign with reimported SPKI public key (case 5) ---
+	// This tests the mbedtls_rsa_copy path in SPKI import
+	var rsaPkcs1Pair = await crypto.subtle.generateKey(
+		{
+			name: 'RSASSA-PKCS1-v1_5',
+			modulusLength: 2048,
+			publicExponent: new Uint8Array([1, 0, 1]),
+			hash: 'SHA-256',
+		},
+		true,
+		['sign', 'verify']
+	);
+
+	// Sign with ORIGINAL private key
+	var rsaPkcs1Data = textEncode('RSA PKCS1 SPKI reimport test');
+	var rsaPkcs1Sig = await crypto.subtle.sign(
+		{ name: 'RSASSA-PKCS1-v1_5' },
+		rsaPkcs1Pair.privateKey,
+		rsaPkcs1Data
+	);
+
+	// Export public key as SPKI, reimport
+	var rsaPkcs1Spki = await crypto.subtle.exportKey('spki', rsaPkcs1Pair.publicKey);
+	var reimportedRsaPub = await crypto.subtle.importKey(
+		'spki',
+		rsaPkcs1Spki,
+		{ name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+		true,
+		['verify']
+	);
+
+	// Verify with REIMPORTED public key — this is the specific bug path
+	var rsaPkcs1Ver = await crypto.subtle.verify(
+		{ name: 'RSASSA-PKCS1-v1_5' },
+		reimportedRsaPub,
+		rsaPkcs1Sig,
+		rsaPkcs1Data
+	);
+	results.rsaPkcs1SpkiReimportVerify = rsaPkcs1Ver;
+
+	// Also verify the reimported key's algorithm is correct
+	results.rsaPkcs1ReimportAlgo = reimportedRsaPub.algorithm.name;
+	results.rsaPkcs1ReimportHash = reimportedRsaPub.algorithm.hash.name;
 
 	__output(results);
 }
