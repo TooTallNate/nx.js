@@ -4,17 +4,17 @@ set -euo pipefail
 APP="${1-hello-world}"
 
 # Build JS runtime
-pnpm bundle
+pnpm bundle --force
 
 # Build packages and example app
-pnpm build --filter "$APP"
+pnpm build --filter "$APP" --force
 
 # Build nx.js `.nro`
 rm -f nxjs.nro
 make
 
 # Package app `.nro`
-pnpm nro --filter "$APP"
+pnpm nro --filter "$APP" --force
 
 if [ -n "${UPLOAD-}" ]; then
 	app_path="$(pnpm list -r --depth -1 --json | jq -r '.[] | select(.name=="'"${APP}"'") | .path')"
