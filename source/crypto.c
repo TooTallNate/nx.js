@@ -440,7 +440,7 @@ static JSValue nx_crypto_encrypt(JSContext *ctx, JSValueConst this_val,
 	}
 
 	// Validate that the key may be used for encryption
-	if (!(data->key->usages & NX_CRYPTO_KEY_USAGE_ENCRYPT)) {
+	if (!(data->key->usages & (NX_CRYPTO_KEY_USAGE_ENCRYPT | NX_CRYPTO_KEY_USAGE_WRAP_KEY))) {
 		js_free(ctx, data);
 		return JS_ThrowTypeError(
 			ctx, "Key does not support the 'encrypt' operation");
@@ -1535,7 +1535,7 @@ static JSValue nx_crypto_subtle_decrypt(JSContext *ctx, JSValueConst this_val,
 	}
 
 	// Validate that the key may be used for decryption
-	if (!(data->key->usages & NX_CRYPTO_KEY_USAGE_DECRYPT)) {
+	if (!(data->key->usages & (NX_CRYPTO_KEY_USAGE_DECRYPT | NX_CRYPTO_KEY_USAGE_UNWRAP_KEY))) {
 		js_free(ctx, data);
 		return JS_ThrowTypeError(
 			ctx, "Key does not support the 'decrypt' operation");
@@ -1864,17 +1864,29 @@ sign_cleanup:
 		data->result_size = rsa_len;
 
 		mbedtls_rsa_set_padding(&rsa->rsa, MBEDTLS_RSA_PKCS_V15, MBEDTLS_MD_NONE);
+		mbedtls_entropy_context sign_entropy;
+		mbedtls_ctr_drbg_context sign_ctr_drbg;
+		mbedtls_entropy_init(&sign_entropy);
+		mbedtls_ctr_drbg_init(&sign_ctr_drbg);
+		mbedtls_ctr_drbg_seed(&sign_ctr_drbg, mbedtls_entropy_func,
+							  &sign_entropy, NULL, 0);
+
 #if MBEDTLS_VERSION_MAJOR >= 3
-		ret = mbedtls_rsa_rsassa_pkcs1_v15_sign(&rsa->rsa, NULL, NULL,
+		ret = mbedtls_rsa_rsassa_pkcs1_v15_sign(&rsa->rsa,
+			mbedtls_ctr_drbg_random, &sign_ctr_drbg,
 			md_type, hash_len, hash_buf, data->result);
 #else
-		ret = mbedtls_rsa_rsassa_pkcs1_v15_sign(&rsa->rsa, NULL, NULL,
+		ret = mbedtls_rsa_rsassa_pkcs1_v15_sign(&rsa->rsa,
+			mbedtls_ctr_drbg_random, &sign_ctr_drbg,
 			MBEDTLS_RSA_PRIVATE, md_type, hash_len, hash_buf, data->result);
 #endif
+		mbedtls_ctr_drbg_free(&sign_ctr_drbg);
+		mbedtls_entropy_free(&sign_entropy);
+
 		if (ret != 0) {
 			free(data->result);
 			data->result = NULL;
-			data->err = ENOTSUP;
+			data->err = ret;
 		}
 	} else if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_RSA_PSS) {
 		nx_crypto_key_rsa_t *rsa = (nx_crypto_key_rsa_t *)data->key->handle;
@@ -2974,11 +2986,17 @@ static JSValue nx_crypto_key_new_rsa(JSContext *ctx, JSValueConst this_val,
 		js_free(ctx, context);
 		return JS_EXCEPTION;
 	}
-	#if MBEDTLS_VERSION_MAJOR >= 3
-	mbedtls_rsa_init(&rsa->rsa);
+	{
+		int padding = (context->algorithm == NX_CRYPTO_KEY_ALGORITHM_RSASSA_PKCS1_V1_5)
+			? MBEDTLS_RSA_PKCS_V15 : MBEDTLS_RSA_PKCS_V21;
+		mbedtls_md_type_t md = nx_crypto_get_md_type(hash_name);
+#if MBEDTLS_VERSION_MAJOR >= 3
+		mbedtls_rsa_init(&rsa->rsa);
+		mbedtls_rsa_set_padding(&rsa->rsa, padding, md);
 #else
-	mbedtls_rsa_init(&rsa->rsa, MBEDTLS_RSA_PKCS_V21, MBEDTLS_MD_SHA256);
+		mbedtls_rsa_init(&rsa->rsa, padding, md);
 #endif
+	}
 	strncpy(rsa->hash_name, hash_name, sizeof(rsa->hash_name) - 1);
 	rsa->salt_length = -1;
 	JS_FreeCString(ctx, hash_name);
@@ -3061,12 +3079,6 @@ static JSValue nx_crypto_rsa_export_components(JSContext *ctx, JSValueConst this
 	if (!rsa)
 		return JS_ThrowTypeError(ctx, "Not an RSA key");
 
-	mbedtls_mpi N, E, D, P, Q;
-	mbedtls_mpi_init(&N); mbedtls_mpi_init(&E); mbedtls_mpi_init(&D);
-	mbedtls_mpi_init(&P); mbedtls_mpi_init(&Q);
-
-	mbedtls_rsa_export(&rsa->rsa, &N, &P, &Q, &D, &E);
-
 	JSValue result = JS_NewArray(ctx);
 
 	#define EXPORT_MPI_JS(idx, mpi_var) { \
@@ -3079,10 +3091,14 @@ static JSValue nx_crypto_rsa_export_components(JSContext *ctx, JSValueConst this
 		} \
 	}
 
-	EXPORT_MPI_JS(0, N);
-	EXPORT_MPI_JS(1, E);
-
 	if (key->type == NX_CRYPTO_KEY_TYPE_PRIVATE) {
+		mbedtls_mpi N, E, D, P, Q;
+		mbedtls_mpi_init(&N); mbedtls_mpi_init(&E); mbedtls_mpi_init(&D);
+		mbedtls_mpi_init(&P); mbedtls_mpi_init(&Q);
+		mbedtls_rsa_export(&rsa->rsa, &N, &P, &Q, &D, &E);
+
+		EXPORT_MPI_JS(0, N);
+		EXPORT_MPI_JS(1, E);
 		EXPORT_MPI_JS(2, D);
 		EXPORT_MPI_JS(3, P);
 		EXPORT_MPI_JS(4, Q);
@@ -3100,11 +3116,21 @@ static JSValue nx_crypto_rsa_export_components(JSContext *ctx, JSValueConst this
 		EXPORT_MPI_JS(7, QI);
 		mbedtls_mpi_free(&DP); mbedtls_mpi_free(&DQ); mbedtls_mpi_free(&QI);
 		mbedtls_mpi_free(&P1); mbedtls_mpi_free(&Q1);
+
+		mbedtls_mpi_free(&N); mbedtls_mpi_free(&E); mbedtls_mpi_free(&D);
+		mbedtls_mpi_free(&P); mbedtls_mpi_free(&Q);
+	} else {
+		// Public key — only export N and E
+		mbedtls_mpi N, E;
+		mbedtls_mpi_init(&N); mbedtls_mpi_init(&E);
+		mbedtls_rsa_export(&rsa->rsa, &N, NULL, NULL, NULL, &E);
+
+		EXPORT_MPI_JS(0, N);
+		EXPORT_MPI_JS(1, E);
+
+		mbedtls_mpi_free(&N); mbedtls_mpi_free(&E);
 	}
 	#undef EXPORT_MPI_JS
-
-	mbedtls_mpi_free(&N); mbedtls_mpi_free(&E); mbedtls_mpi_free(&D);
-	mbedtls_mpi_free(&P); mbedtls_mpi_free(&Q);
 
 	return result;
 }
@@ -3331,11 +3357,17 @@ static JSValue nx_crypto_import_key_pkcs8_spki(JSContext *ctx, JSValueConst this
 			js_free(ctx, context);
 			return JS_EXCEPTION;
 		}
-		#if MBEDTLS_VERSION_MAJOR >= 3
-	mbedtls_rsa_init(&rsa->rsa);
+		{
+			int padding = (context->algorithm == NX_CRYPTO_KEY_ALGORITHM_RSASSA_PKCS1_V1_5)
+				? MBEDTLS_RSA_PKCS_V15 : MBEDTLS_RSA_PKCS_V21;
+			mbedtls_md_type_t md = nx_crypto_get_md_type(param_name);
+#if MBEDTLS_VERSION_MAJOR >= 3
+			mbedtls_rsa_init(&rsa->rsa);
+			mbedtls_rsa_set_padding(&rsa->rsa, padding, md);
 #else
-	mbedtls_rsa_init(&rsa->rsa, MBEDTLS_RSA_PKCS_V21, MBEDTLS_MD_SHA256);
+			mbedtls_rsa_init(&rsa->rsa, padding, md);
 #endif
+		}
 		strncpy(rsa->hash_name, param_name, sizeof(rsa->hash_name) - 1);
 		rsa->salt_length = -1;
 

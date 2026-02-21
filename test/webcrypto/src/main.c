@@ -102,7 +102,31 @@ static const char *PROXY_STUB =
     "        if (prop in target) return target[prop];\n"
     "        return function() { return {}; };\n"
     "    }\n"
-    "});\n";
+    "});\n"
+    // btoa/atob polyfills for test harness (normally provided by window.c)
+    "globalThis.btoa = function(s) {\n"
+    "    var T = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';\n"
+    "    var r = '', i, pad = s.length % 3;\n"
+    "    for (i = 0; i < s.length; i += 3) {\n"
+    "        var n = (s.charCodeAt(i) << 16) | ((i+1<s.length ? s.charCodeAt(i+1) : 0) << 8) | (i+2<s.length ? s.charCodeAt(i+2) : 0);\n"
+    "        r += T[(n>>18)&63] + T[(n>>12)&63] + (i+1<s.length ? T[(n>>6)&63] : '=') + (i+2<s.length ? T[n&63] : '=');\n"
+    "    }\n"
+    "    return r;\n"
+    "};\n"
+    "globalThis.atob = function(s) {\n"
+    "    var T = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';\n"
+    "    s = s.replace(/[=]+$/, '');\n"
+    "    var r = '', i;\n"
+    "    for (i = 0; i < s.length; i += 4) {\n"
+    "        var a = T.indexOf(s[i]), b = T.indexOf(s[i+1] || 'A');\n"
+    "        var c = T.indexOf(s[i+2] || 'A'), d = T.indexOf(s[i+3] || 'A');\n"
+    "        var n = (a << 18) | (b << 12) | (c << 6) | d;\n"
+    "        r += String.fromCharCode((n >> 16) & 255);\n"
+    "        if (i + 2 < s.length) r += String.fromCharCode((n >> 8) & 255);\n"
+    "        if (i + 3 < s.length) r += String.fromCharCode(n & 255);\n"
+    "    }\n"
+    "    return r;\n"
+    "};\n";
 
 int main(int argc, char *argv[]) {
 	if (argc < 5) {
