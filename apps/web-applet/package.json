@@ -1,0 +1,21 @@
+{
+  "name": "web-applet",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Web Applet demo with bidirectional messaging",
+  "scripts": {
+    "build": "esbuild --bundle --sourcemap --sources-content=false --target=es2022 --format=esm --outdir=romfs src/main.ts",
+    "nro": "nxjs-nro",
+    "nsp": "nxjs-nsp"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@nx.js/nro": "workspace:^",
+    "@nx.js/nsp": "workspace:^",
+    "@nx.js/runtime": "workspace:^",
+    "esbuild": "^0.17.19"
+  },
+  "dependencies": {
+    "@nx.js/http": "workspace:^"
+  }
+}

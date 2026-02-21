@@ -347,6 +347,19 @@ export interface Init {
 	swkbdHide(s: VirtualKeyboard): void;
 	swkbdUpdate(this: VirtualKeyboard): void;
 
+	// web.c
+	webAppletNew(): any;
+	webAppletSetUrl(applet: any, url: string): void;
+	webAppletSetJsExtension(applet: any, flag: boolean): void;
+	webAppletSetBootMode(applet: any, mode: number): void;
+	webAppletStart(applet: any): void;
+	webAppletAppear(applet: any): boolean;
+	webAppletSendMessage(applet: any, msg: string): boolean;
+	webAppletPollMessages(applet: any): string[];
+	webAppletRequestExit(applet: any): void;
+	webAppletClose(applet: any): void;
+	webAppletIsRunning(applet: any): boolean;
+
 	// tcp.c
 	connect(cb: Callback<number>, ip: string, port: number): void;
 	write(cb: Callback<number>, fd: number, data: ArrayBuffer): void;

@@ -447,6 +447,25 @@ importers:
         specifier: ^0.17.19
         version: 0.17.19
 
+  apps/web-applet:
+    dependencies:
+      '@nx.js/http':
+        specifier: workspace:^
+        version: link:../../packages/http
+    devDependencies:
+      '@nx.js/nro':
+        specifier: workspace:^
+        version: link:../../packages/nro
+      '@nx.js/nsp':
+        specifier: workspace:^
+        version: link:../../packages/nsp
+      '@nx.js/runtime':
+        specifier: workspace:^
+        version: link:../../packages/runtime
+      esbuild:
+        specifier: ^0.17.19
+        version: 0.17.19
+
   docs:
     dependencies:
       '@vercel/analytics':
