@@ -140,7 +140,7 @@ navigate('sdmc:/');
 </html>`;
 
 // Start the HTTP server first
-const port = 8080;
+const port = 80;
 const server = listen({
 	port,
 	fetch(req) {
@@ -151,7 +151,7 @@ const server = listen({
 	},
 });
 
-const url = `http://${ip}:${port}`;
+const url = port === 80 ? `http://${ip}` : `http://${ip}:${port}`;
 console.log(`HTTP server listening on ${url}`);
 
 // Check applet type before trying to open browser
