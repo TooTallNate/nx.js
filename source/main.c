@@ -11,6 +11,7 @@
 #include "album.h"
 #include "applet.h"
 #include "async.h"
+#include "audio.h"
 #include "battery.h"
 #include "canvas.h"
 #include "compression.h"
@@ -679,6 +680,7 @@ int main(int argc, char *argv[]) {
 	nx_init_account(ctx, nx_ctx->init_obj);
 	nx_init_album(ctx, nx_ctx->init_obj);
 	nx_init_applet(ctx, nx_ctx->init_obj);
+	nx_init_audio(ctx, nx_ctx->init_obj);
 	nx_init_battery(ctx, nx_ctx->init_obj);
 	nx_init_canvas(ctx, nx_ctx->init_obj);
 	nx_init_compression(ctx, nx_ctx->init_obj);

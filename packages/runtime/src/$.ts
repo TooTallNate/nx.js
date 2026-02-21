@@ -406,6 +406,35 @@ export interface Init {
 	wasmGlobalSet(g: WasmGlobalOpaque, v: any): void;
 	wasmValidate(bytes: ArrayBuffer): boolean;
 
+	// audio.c
+	audioInit(): void;
+	audioExit(): void;
+	audioDecode(buffer: ArrayBuffer, mimeType: string): Promise<{
+		pcmData: ArrayBuffer;
+		sampleRate: number;
+		channels: number;
+		samples: number;
+		byteLength: number;
+	}>;
+	audioPlay(
+		pcmData: ArrayBuffer,
+		voiceId: number,
+		volume: number,
+		loop: boolean,
+		sampleRate: number,
+		channels: number,
+		totalSamples: number,
+	): void;
+	audioStop(voiceId: number): void;
+	audioPause(voiceId: number, paused: boolean): void;
+	audioSetVolume(voiceId: number, volume: number): void;
+	audioSetPitch(voiceId: number, pitch: number): void;
+	audioUpdate(): void;
+	audioGetPlayedSamples(voiceId: number): number;
+	audioAllocVoice(): number;
+	audioFreeVoice(voiceId: number): void;
+	audioIsPlaying(voiceId: number): boolean;
+
 	// window.c
 	windowInit(c: Window): void;
 

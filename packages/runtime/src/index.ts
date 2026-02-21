@@ -123,6 +123,9 @@ export interface ImportMeta {
  */
 export declare function queueMicrotask(callback: () => void): void;
 
+import './audio';
+export type * from './audio';
+
 import './window';
 export type * from './window';
 
