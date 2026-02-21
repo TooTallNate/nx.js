@@ -23,6 +23,9 @@
 #include <string.h>
 #include <switch.h>
 
+/* Forward declaration */
+static mbedtls_md_type_t nx_crypto_get_md_type(const char *hash_name);
+
 static JSClassID nx_crypto_key_class_id;
 
 typedef struct {
@@ -386,8 +389,13 @@ void nx_crypto_encrypt_do(nx_work_t *req) {
 			label_len = lp->iv_size;
 		}
 
+#if MBEDTLS_VERSION_MAJOR >= 3
 		ret = mbedtls_rsa_rsaes_oaep_encrypt(&rsa->rsa, mbedtls_ctr_drbg_random,
 			&oaep_ctr_drbg, (const char *)label, label_len, data->data_size, data->data, data->result);
+#else
+		ret = mbedtls_rsa_rsaes_oaep_encrypt(&rsa->rsa, mbedtls_ctr_drbg_random,
+			&oaep_ctr_drbg, MBEDTLS_RSA_PUBLIC, (const char *)label, label_len, data->data_size, data->data, data->result);
+#endif
 
 		mbedtls_ctr_drbg_free(&oaep_ctr_drbg);
 		mbedtls_entropy_free(&oaep_entropy);
@@ -1466,8 +1474,13 @@ void nx_crypto_decrypt_do(nx_work_t *req) {
 		}
 
 		size_t olen = 0;
+#if MBEDTLS_VERSION_MAJOR >= 3
 		ret = mbedtls_rsa_rsaes_oaep_decrypt(&rsa->rsa, mbedtls_ctr_drbg_random,
 			&dec_ctr_drbg, (const char *)label, label_len, &olen, data->data, output, rsa_len);
+#else
+		ret = mbedtls_rsa_rsaes_oaep_decrypt(&rsa->rsa, mbedtls_ctr_drbg_random,
+			&dec_ctr_drbg, MBEDTLS_RSA_PRIVATE, (const char *)label, label_len, &olen, data->data, output, rsa_len);
+#endif
 
 		mbedtls_ctr_drbg_free(&dec_ctr_drbg);
 		mbedtls_entropy_free(&dec_entropy);
@@ -1851,8 +1864,13 @@ sign_cleanup:
 		data->result_size = rsa_len;
 
 		mbedtls_rsa_set_padding(&rsa->rsa, MBEDTLS_RSA_PKCS_V15, MBEDTLS_MD_NONE);
+#if MBEDTLS_VERSION_MAJOR >= 3
 		ret = mbedtls_rsa_rsassa_pkcs1_v15_sign(&rsa->rsa, NULL, NULL,
 			md_type, hash_len, hash_buf, data->result);
+#else
+		ret = mbedtls_rsa_rsassa_pkcs1_v15_sign(&rsa->rsa, NULL, NULL,
+			MBEDTLS_RSA_PRIVATE, md_type, hash_len, hash_buf, data->result);
+#endif
 		if (ret != 0) {
 			free(data->result);
 			data->result = NULL;
@@ -2106,8 +2124,13 @@ void nx_crypto_verify_do(nx_work_t *req) {
 		if (ret != 0) { data->err = ret; return; }
 
 		mbedtls_rsa_set_padding(&rsa->rsa, MBEDTLS_RSA_PKCS_V15, MBEDTLS_MD_NONE);
+#if MBEDTLS_VERSION_MAJOR >= 3
 		ret = mbedtls_rsa_rsassa_pkcs1_v15_verify(&rsa->rsa,
 			md_type, hash_len, hash_buf, data->signature);
+#else
+		ret = mbedtls_rsa_rsassa_pkcs1_v15_verify(&rsa->rsa, NULL, NULL,
+			MBEDTLS_RSA_PUBLIC, md_type, hash_len, hash_buf, data->signature);
+#endif
 		data->result = (ret == 0);
 	} else if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_RSA_PSS) {
 		nx_crypto_key_rsa_t *rsa = (nx_crypto_key_rsa_t *)data->key->handle;
@@ -2127,8 +2150,13 @@ void nx_crypto_verify_do(nx_work_t *req) {
 		if (salt_len < 0) salt_len = (int)hash_len;
 
 		mbedtls_rsa_set_padding(&rsa->rsa, MBEDTLS_RSA_PKCS_V21, md_type);
+#if MBEDTLS_VERSION_MAJOR >= 3
 		ret = mbedtls_rsa_rsassa_pss_verify_ext(&rsa->rsa,
 			md_type, hash_len, hash_buf2, md_type, salt_len, data->signature);
+#else
+		ret = mbedtls_rsa_rsassa_pss_verify_ext(&rsa->rsa, NULL, NULL,
+			MBEDTLS_RSA_PUBLIC, md_type, hash_len, hash_buf2, md_type, salt_len, data->signature);
+#endif
 		data->result = (ret == 0);
 	} else {
 		data->err = ENOTSUP;
