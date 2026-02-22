@@ -15,7 +15,6 @@ Pass an HTTP or HTTPS URL to open a web page in the browser. The nx.js event loo
 
 ```typescript
 const applet = new Switch.WebApplet('https://example.com');
-applet.jsExtension = true;
 
 applet.addEventListener('message', (e) => {
   console.log('From browser:', e.data);
@@ -26,7 +25,7 @@ applet.addEventListener('exit', () => {
   console.log('Browser closed');
 });
 
-await applet.start();
+await applet.start({ jsExtension: true });
 console.log(applet.mode); // "web-session"
 ```
 
@@ -42,7 +41,7 @@ window.nx.sendMessage('Hello from the browser!');
 ```
 
 <Callout>
-The `window.nx` API is only available when `jsExtension` is set to `true` before calling `start()`.
+The `window.nx` API is only available when `jsExtension` is set to `true` in the `start()` options.
 </Callout>
 
 ## Offline Mode
@@ -51,22 +50,20 @@ The offline mode loads HTML directly from the app's HtmlDocument NCA — no netw
 
 ```typescript
 const applet = new Switch.WebApplet('offline:/.htdocs/index.html');
-applet.jsExtension = true;
 
 applet.addEventListener('message', (e) => {
   const msg = JSON.parse(e.data);
-  // Handle RPC from the browser
   const response = { id: msg.id, result: 'ok' };
   applet.sendMessage(JSON.stringify(response));
 });
 
-await applet.start();
+await applet.start({ jsExtension: true });
 console.log(applet.mode); // "offline"
 ```
 
 ### Setting Up Offline HTML
 
-To use offline mode, create an `htmldoc` directory in your app root with the following structure:
+Create an `htmldoc` directory in your app root with the following structure:
 
 ```
 my-app/
@@ -89,70 +86,29 @@ When building your NSP with `@nx.js/nsp`, the `htmldoc/` directory is automatica
 
 The document path in the `offline:` URL is relative to the `html-document/` directory. So `offline:/.htdocs/index.html` resolves to `html-document/.htdocs/index.html` inside the NCA.
 
-## Properties
+## Configuration
 
-### `mode`
+All configuration is passed as an options object to `start()`. Options control display, input, and media behavior of the browser applet. Every option is optional with sensible defaults.
 
-Returns the current operating mode as a string:
+```typescript
+await applet.start({
+  jsExtension: true,
+  footer: false,
+  leftStickMode: 'pointer',
+  bootDisplayKind: 'black',
+  pageScrollIndicator: false,
+});
+```
 
-| Mode | Description |
-|------|-------------|
-| `"web-session"` | Online mode — HTTP/HTTPS URL with WebSession |
-| `"offline"` | Offline mode — HTML from HtmlDocument NCA |
-| `"none"` | Not started |
+For the full list of available options, see the [`WebAppletOptions`](/runtime/api/WebAppletOptions) API reference.
 
-### `jsExtension`
-
-Set to `true` before calling `start()` to enable the `window.nx` JavaScript API in the browser, which allows bidirectional messaging.
-
-### `bootHidden`
-
-Set to `true` before calling `start()` to launch the browser hidden. Use `appear()` to show it later.
-
-## Methods
-
-### `start()`
-
-Launches the browser applet. Returns a `Promise` that resolves when the applet has started. The nx.js event loop continues running.
-
-### `sendMessage(msg: string)`
-
-Sends a string message to the browser page. The page receives it via `window.nx.addEventListener('message', callback)`. Returns `true` if the message was sent successfully.
-
-<Callout>
-Messages include an implicit NUL terminator in the WebSession protocol. The maximum content queue size is 32KB.
-</Callout>
-
-### `appear()`
-
-Makes the browser visible if it was started with `bootHidden = true`.
-
-### `requestExit()`
-
-Requests the browser applet to close gracefully.
-
-### `close()`
-
-Force-closes the browser applet and cleans up resources.
-
-## Events
-
-### `message`
-
-Fired when the browser page sends a message via `window.nx.sendMessage()`. The event has a `data` property containing the message string.
-
-### `exit`
-
-Fired when the browser applet exits (user pressed B or X to close).
-
-## Building an RPC Pattern
+## RPC Pattern
 
 A common pattern is to use JSON-based RPC between your app and the browser UI:
 
 ```typescript
 // nx.js side
 const applet = new Switch.WebApplet('offline:/.htdocs/index.html');
-applet.jsExtension = true;
 
 applet.addEventListener('message', (e) => {
   const msg = JSON.parse(e.data);
@@ -175,7 +131,7 @@ applet.addEventListener('message', (e) => {
   }));
 });
 
-await applet.start();
+await applet.start({ jsExtension: true });
 ```
 
 ```javascript

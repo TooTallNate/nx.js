@@ -377,10 +377,7 @@ export interface Init {
 
 	// web.c
 	webAppletNew(): any;
-	webAppletSetUrl(applet: any, url: string): void;
-	webAppletSetJsExtension(applet: any, flag: boolean): void;
-	webAppletSetBootMode(applet: any, mode: number): void;
-	webAppletStart(applet: any): void;
+	webAppletStart(applet: any, url: string, options: Record<string, any>): void;
 	webAppletAppear(applet: any): boolean;
 	webAppletSendMessage(applet: any, msg: string): boolean;
 	webAppletPollMessages(applet: any): string[];

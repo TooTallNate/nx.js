@@ -13,13 +13,63 @@ class WebAppletMessageEvent extends Event {
 }
 
 /**
+ * Configuration options for {@link WebApplet.start | `WebApplet.start()`}.
+ * All values are optional and only take effect at launch time.
+ */
+export interface WebAppletOptions {
+	/** Enable the `window.nx` JavaScript API in the browser for bidirectional messaging. */
+	jsExtension?: boolean;
+	/** Start the browser hidden (can be shown later with {@link WebApplet.appear | `appear()`}). */
+	bootHidden?: boolean;
+	/** Whether to show the footer (address bar). */
+	footer?: boolean;
+	/** Whether to show a pointer cursor. */
+	pointer?: boolean;
+	/** Left stick behavior: `'pointer'` (move pointer) or `'cursor'` (scroll). */
+	leftStickMode?: 'pointer' | 'cursor';
+	/** Boot display screen color. */
+	bootDisplayKind?: 'default' | 'white' | 'black';
+	/** Background kind. */
+	backgroundKind?: 'default';
+	/** Footer fixed display kind. */
+	footerFixedKind?: 'default' | 'always' | 'hidden';
+	/** Boot as a media player applet. */
+	bootAsMediaPlayer?: boolean;
+	/** Enable/disable screenshot capture (Web mode only). */
+	screenShot?: boolean;
+	/** Enable/disable the page cache. */
+	pageCache?: boolean;
+	/** Enable/disable Web Audio API. */
+	webAudio?: boolean;
+	/** Enable/disable page fade transition. */
+	pageFade?: boolean;
+	/** Show/hide the boot loading icon (Offline mode only). */
+	bootLoadingIcon?: boolean;
+	/** Show/hide the page scroll indicator. */
+	pageScrollIndicator?: boolean;
+	/** Enable/disable media player speed controls. */
+	mediaPlayerSpeedControl?: boolean;
+	/** Enable/disable media autoplay. */
+	mediaAutoPlay?: boolean;
+	/** Override web audio volume (0.0 to 1.0). */
+	overrideWebAudioVolume?: number;
+	/** Override media audio volume (0.0 to 1.0). */
+	overrideMediaAudioVolume?: number;
+	/** Enable/disable media player auto-close on end. */
+	mediaPlayerAutoClose?: boolean;
+	/** Show/hide media player UI (Offline mode only). */
+	mediaPlayerUi?: boolean;
+	/** Additional string appended to the user agent (Web mode only). */
+	userAgentAdditionalString?: string;
+}
+
+/**
  * Opens the Switch's built-in web browser as a Library Applet.
  * Requires Application mode (NSP install or hbmenu via title override).
  *
  * @example Non-blocking with messaging
  * ```typescript
  * const applet = new Switch.WebApplet('https://myapp.example.com');
- * applet.jsExtension = true;
  *
  * applet.addEventListener('message', (e) => {
  *   console.log('From browser:', e.data);
@@ -30,7 +80,7 @@ class WebAppletMessageEvent extends Event {
  *   console.log('Browser closed');
  * });
  *
- * await applet.start();
+ * await applet.start({ jsExtension: true });
  * ```
  */
 export class WebApplet extends EventTarget {
@@ -38,36 +88,11 @@ export class WebApplet extends EventTarget {
 	#pollInterval: any = null;
 	#started = false;
 	#url: string;
-	#jsExtension = false;
-	#bootHidden = false;
 
 	constructor(url: string) {
 		super();
 		this.#url = url;
 		this.#native = $.webAppletNew();
-	}
-
-	/**
-	 * Enable the `window.nx` JavaScript API in the browser for
-	 * bidirectional messaging. Only useful with {@link start} (session mode).
-	 */
-	get jsExtension() {
-		return this.#jsExtension;
-	}
-
-	set jsExtension(value: boolean) {
-		this.#jsExtension = value;
-	}
-
-	/**
-	 * Start the browser hidden (can be shown later with {@link appear}).
-	 */
-	get bootHidden() {
-		return this.#bootHidden;
-	}
-
-	set bootHidden(value: boolean) {
-		this.#bootHidden = value;
 	}
 
 	/**
@@ -90,16 +115,15 @@ export class WebApplet extends EventTarget {
 
 	/**
 	 * Opens the browser. The nx.js event loop continues running.
-	 * Use with `jsExtension = true` for bidirectional messaging via `window.nx`.
+	 * Pass an options object to configure the applet before launch.
 	 * Listen for `'message'` and `'exit'` events.
 	 */
-	async start(): Promise<void> {
+	async start(options?: WebAppletOptions): Promise<void> {
 		if (this.#started) {
 			throw new Error('WebApplet already started');
 		}
 
-		this.#configure();
-		$.webAppletStart(this.#native);
+		$.webAppletStart(this.#native, this.#url, options ?? {});
 		this.#started = true;
 
 		this.#pollInterval = setInterval(() => {
@@ -132,7 +156,7 @@ export class WebApplet extends EventTarget {
 	/**
 	 * Send a string message to the browser page.
 	 * The page receives it via `window.nx.onMessage`.
-	 * Requires `jsExtension = true`.
+	 * Requires `jsExtension: true` in the start options.
 	 */
 	sendMessage(msg: string): boolean {
 		if (!this.#started) {
@@ -158,14 +182,6 @@ export class WebApplet extends EventTarget {
 		if (this.#started) {
 			$.webAppletClose(this.#native);
 			this.#cleanup();
-		}
-	}
-
-	#configure() {
-		$.webAppletSetUrl(this.#native, this.#url);
-		$.webAppletSetJsExtension(this.#native, this.#jsExtension);
-		if (this.#bootHidden) {
-			$.webAppletSetBootMode(this.#native, 1);
 		}
 	}
 
