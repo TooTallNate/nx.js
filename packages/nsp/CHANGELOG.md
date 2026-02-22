@@ -1,5 +1,11 @@
 # @nx.js/nsp
 
+## 0.0.66
+
+### Patch Changes
+
+- feat: automatically wrap `htmldoc/` contents into the `html-document/.htdocs/` structure required by the HtmlDocument NCA. Users just place files directly in `htmldoc/` — no manual nesting needed. ([#213](https://github.com/TooTallNate/nx.js/pull/213))
+
 ## 0.0.65
 
 ### Patch Changes
