@@ -76,7 +76,7 @@ window.nx.addEventListener('message', function(evt) {
       dbg.textContent += ' | NO pending handler for id=' + msg.id;
     }
   } catch(e) {
-    dbg.textContent = 'Message parse error: ' + e.message + ' | raw=' + String(evt.data).substring(0, 200);
+    dbg.textContent = 'Parse error: ' + e.message + ' | len=' + (evt.data ? evt.data.length : '?') + ' | tail=' + String(evt.data).slice(-80);
   }
 });
 

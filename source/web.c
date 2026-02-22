@@ -307,7 +307,10 @@ static JSValue nx_web_applet_send_message(JSContext *ctx,
 	const char *msg = JS_ToCStringLen(ctx, &len, argv[1]);
 	if (!msg) return JS_EXCEPTION;
 	bool flag = false;
-	Result rc = webSessionTrySendContentMessage(&data->session, msg, (u32)len,
+	// Send len+1 to include the NUL terminator. The browser-side
+	// webSessionTryReceiveContentMessage NUL-terminates at size-1,
+	// so without the extra byte the last character gets truncated.
+	Result rc = webSessionTrySendContentMessage(&data->session, msg, (u32)(len + 1),
 												&flag);
 	JS_FreeCString(ctx, msg);
 	if (R_FAILED(rc)) {
