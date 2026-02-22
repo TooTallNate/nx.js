@@ -80,8 +80,7 @@ export class WebApplet extends EventTarget {
 
 	/**
 	 * The current operating mode:
-	 * - `'web-session'` — HTTPS URL with WebSession (supports `window.nx` messaging)
-	 * - `'wifi-auth'` — HTTP URL via WifiWebAuthApplet (supports localhost/LAN, no messaging)
+	 * - `'web-session'` — HTTP/HTTPS URL with WebSession (supports `window.nx` messaging)
 	 * - `'offline'` — Offline applet loading HTML from app's html-document NCA (supports `window.nx` messaging)
 	 * - `'none'` — not started
 	 */
