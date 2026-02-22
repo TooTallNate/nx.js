@@ -1,0 +1,204 @@
+---
+title: Web Browser
+description: Launch the built-in web browser with bidirectional messaging
+---
+
+nx.js can launch the Nintendo Switch's built-in web browser as a Library Applet, with support for bidirectional messaging between your app and the browser via `window.nx`.
+
+<Callout type="warn">
+Web browser applets require **Application mode**. Your app must be running as an installed NSP, or launched from hbmenu while holding R over a game (title override).
+</Callout>
+
+## Online Mode
+
+Pass an HTTP or HTTPS URL to open a web page in the browser. The nx.js event loop continues running, so your app can send and receive messages while the browser is open.
+
+```typescript
+const applet = new Switch.WebApplet('https://example.com');
+applet.jsExtension = true;
+
+applet.addEventListener('message', (e) => {
+  console.log('From browser:', e.data);
+  applet.sendMessage('Hello from nx.js!');
+});
+
+applet.addEventListener('exit', () => {
+  console.log('Browser closed');
+});
+
+await applet.start();
+console.log(applet.mode); // "web-session"
+```
+
+The browser page can communicate back using the `window.nx` API:
+
+```javascript
+// In the browser page
+window.nx.addEventListener('message', (evt) => {
+  console.log('From nx.js:', evt.data);
+});
+
+window.nx.sendMessage('Hello from the browser!');
+```
+
+<Callout>
+The `window.nx` API is only available when `jsExtension` is set to `true` before calling `start()`.
+</Callout>
+
+## Offline Mode
+
+The offline mode loads HTML directly from the app's HtmlDocument NCA — no network connection required. This is ideal for bundling a UI with your app.
+
+```typescript
+const applet = new Switch.WebApplet('offline:/.htdocs/index.html');
+applet.jsExtension = true;
+
+applet.addEventListener('message', (e) => {
+  const msg = JSON.parse(e.data);
+  // Handle RPC from the browser
+  const response = { id: msg.id, result: 'ok' };
+  applet.sendMessage(JSON.stringify(response));
+});
+
+await applet.start();
+console.log(applet.mode); // "offline"
+```
+
+### Setting Up Offline HTML
+
+To use offline mode, create an `htmldoc` directory in your app root with the following structure:
+
+```
+my-app/
+├── htmldoc/
+│   └── html-document/
+│       └── .htdocs/
+│           ├── index.html
+│           ├── style.css
+│           └── app.js
+├── romfs/
+│   └── main.js
+└── package.json
+```
+
+<Callout type="warn">
+The `html-document/.htdocs/` nesting is required — the offline applet expects this exact directory structure inside the HtmlDocument NCA.
+</Callout>
+
+When building your NSP with `@nx.js/nsp`, the `htmldoc/` directory is automatically packaged into a HtmlDocument NCA and included in the NSP.
+
+The document path in the `offline:` URL is relative to the `html-document/` directory. So `offline:/.htdocs/index.html` resolves to `html-document/.htdocs/index.html` inside the NCA.
+
+## Properties
+
+### `mode`
+
+Returns the current operating mode as a string:
+
+| Mode | Description |
+|------|-------------|
+| `"web-session"` | Online mode — HTTP/HTTPS URL with WebSession |
+| `"offline"` | Offline mode — HTML from HtmlDocument NCA |
+| `"none"` | Not started |
+
+### `jsExtension`
+
+Set to `true` before calling `start()` to enable the `window.nx` JavaScript API in the browser, which allows bidirectional messaging.
+
+### `bootHidden`
+
+Set to `true` before calling `start()` to launch the browser hidden. Use `appear()` to show it later.
+
+## Methods
+
+### `start()`
+
+Launches the browser applet. Returns a `Promise` that resolves when the applet has started. The nx.js event loop continues running.
+
+### `sendMessage(msg: string)`
+
+Sends a string message to the browser page. The page receives it via `window.nx.addEventListener('message', callback)`. Returns `true` if the message was sent successfully.
+
+<Callout>
+Messages include an implicit NUL terminator in the WebSession protocol. The maximum content queue size is 32KB.
+</Callout>
+
+### `appear()`
+
+Makes the browser visible if it was started with `bootHidden = true`.
+
+### `requestExit()`
+
+Requests the browser applet to close gracefully.
+
+### `close()`
+
+Force-closes the browser applet and cleans up resources.
+
+## Events
+
+### `message`
+
+Fired when the browser page sends a message via `window.nx.sendMessage()`. The event has a `data` property containing the message string.
+
+### `exit`
+
+Fired when the browser applet exits (user pressed B or X to close).
+
+## Building an RPC Pattern
+
+A common pattern is to use JSON-based RPC between your app and the browser UI:
+
+```typescript
+// nx.js side
+const applet = new Switch.WebApplet('offline:/.htdocs/index.html');
+applet.jsExtension = true;
+
+applet.addEventListener('message', (e) => {
+  const msg = JSON.parse(e.data);
+  let result;
+
+  switch (msg.type) {
+    case 'readDir':
+      result = Switch.readDirSync(msg.path);
+      break;
+    case 'readFile':
+      result = new TextDecoder().decode(
+        Switch.readFileSync(msg.path)
+      );
+      break;
+  }
+
+  applet.sendMessage(JSON.stringify({
+    id: msg.id,
+    data: result,
+  }));
+});
+
+await applet.start();
+```
+
+```javascript
+// Browser side (in .htdocs/index.html)
+let msgId = 0;
+const pending = {};
+
+function rpc(type, data) {
+  const id = ++msgId;
+  return new Promise((resolve) => {
+    pending[id] = resolve;
+    window.nx.sendMessage(JSON.stringify({ id, type, ...data }));
+  });
+}
+
+window.nx.addEventListener('message', (evt) => {
+  const msg = JSON.parse(evt.data);
+  if (msg.id && pending[msg.id]) {
+    pending[msg.id](msg.data);
+    delete pending[msg.id];
+  }
+});
+
+// Usage
+const files = await rpc('readDir', { path: 'sdmc:/' });
+```

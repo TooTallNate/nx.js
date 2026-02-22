@@ -387,6 +387,7 @@ export interface Init {
 	webAppletRequestExit(applet: any): void;
 	webAppletClose(applet: any): void;
 	webAppletIsRunning(applet: any): boolean;
+	webAppletGetMode(applet: any): string;
 
 	// tcp.c
 	connect(cb: Callback<number>, ip: string, port: number): void;

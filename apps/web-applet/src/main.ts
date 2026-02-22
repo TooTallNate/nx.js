@@ -1,24 +1,90 @@
-// Web Applet Demo — opens the nx.js docs in the Switch browser
+// File Browser — Offline mode with window.nx IPC
 //
-// The docs site detects window.nx and sends messages back to the app.
+// HTML is loaded from the app's html-document NCA (no network required).
+// Communication happens via window.nx messaging.
+//
+// To build as NSP: pnpm nsp
+// The html-document/ directory is automatically packaged into the NCA.
 
-const applet = new Switch.WebApplet('https://nxjs.n8.io');
+const applet = new Switch.WebApplet('offline:/.htdocs/index.html');
 applet.jsExtension = true;
 
+// Handle RPC messages from the browser
 applet.addEventListener('message', (e: any) => {
+	let msg: any;
 	try {
-		const msg = JSON.parse(e.data);
-		console.log(`[browser] ${msg.type}: ${msg.title || msg.url || e.data}`);
+		msg = JSON.parse(e.data);
 	} catch {
-		console.log(`[browser] ${e.data}`);
+		console.error('Failed to parse message from browser');
+		return;
 	}
+
+	let response: any;
+
+	try {
+		switch (msg.type) {
+			case 'ls': {
+				const entries = Switch.readDirSync(msg.data.path);
+				response = entries.map((name: string) => {
+					const fullPath =
+						msg.data.path +
+						(msg.data.path.endsWith('/') ? '' : '/') +
+						name;
+					try {
+						const stat = Switch.statSync(fullPath);
+						const isDir = stat
+							? (stat.mode & 0o170000) === 0o040000
+							: false;
+						return {
+							name,
+							isDir,
+							size: stat ? stat.size : 0,
+						};
+					} catch {
+						return {
+							name,
+							isDir: false,
+							size: -1,
+						};
+					}
+				});
+				break;
+			}
+
+			case 'read': {
+				const maxSize = msg.data.maxSize || 64000;
+				const stat = Switch.statSync(msg.data.path);
+				if (!stat) {
+					response = { error: 'File not found' };
+				} else if (stat.size > maxSize) {
+					const buf = Switch.readFileSync(msg.data.path);
+					const slice = buf.slice(0, maxSize);
+					response = {
+						content:
+							new TextDecoder().decode(slice) +
+							`\n\n... (truncated, ${stat.size} bytes total)`,
+					};
+				} else {
+					const buf = Switch.readFileSync(msg.data.path);
+					response = { content: new TextDecoder().decode(buf) };
+				}
+				break;
+			}
+
+			default:
+				response = { error: `Unknown command: ${msg.type}` };
+		}
+	} catch (err: any) {
+		response = { error: err.message || String(err) };
+	}
+
+	applet.sendMessage(JSON.stringify({ id: msg.id, data: response }));
 });
 
 applet.addEventListener('exit', () => {
-	console.log('Browser closed');
-	Switch.exit();
+	console.log('File browser closed');
 });
 
-console.log('Opening nx.js docs in browser...');
+console.log('Starting offline file browser...');
 await applet.start();
-console.log('Browser opened!');
+console.log(`File browser started in ${applet.mode} mode`);
