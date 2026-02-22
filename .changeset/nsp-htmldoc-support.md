@@ -2,4 +2,4 @@
 "@nx.js/nsp": patch
 ---
 
-feat: package `htmldoc/` directory as HtmlDocument NCA for offline web applet support
+feat: automatically wrap `htmldoc/` contents into the `html-document/.htdocs/` structure required by the HtmlDocument NCA. Users just place files directly in `htmldoc/` — no manual nesting needed.
