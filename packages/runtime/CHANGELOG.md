@@ -1,5 +1,64 @@
 # @nx.js/runtime
 
+## 0.0.66
+
+### Patch Changes
+
+- Add `CanvasGradient` support with `createLinearGradient()` and `createRadialGradient()` methods on `CanvasRenderingContext2D` ([#199](https://github.com/TooTallNate/nx.js/pull/199))
+
+- Add `SO_REUSEADDR` to server socket — prevents "address already in use" errors on restart ([#192](https://github.com/TooTallNate/nx.js/pull/192))
+
+- feat: add `Audio` class for audio playback (MP3, WAV, OGG Vorbis) ([#207](https://github.com/TooTallNate/nx.js/pull/207))
+
+- Cache `WebAssembly.Memory.buffer` and invalidate on `grow()` ([#195](https://github.com/TooTallNate/nx.js/pull/195))
+
+- feat(crypto): add RSA algorithms (RSA-OAEP, RSASSA-PKCS1-v1_5, RSA-PSS), JWK/PKCS8/SPKI key formats, and wrapKey/unwrapKey ([#211](https://github.com/TooTallNate/nx.js/pull/211))
+
+- Enable TLS certificate verification by default using the Switch system CA store ([#194](https://github.com/TooTallNate/nx.js/pull/194))
+
+- Fix `arc()` counterclockwise parameter — was reading out-of-bounds `argv[6]` instead of `argv[5]`, and now properly defaults to `false` when omitted ([#184](https://github.com/TooTallNate/nx.js/pull/184))
+
+- Fix async queue next-pointer initialization — always set `req->next` unconditionally ([#192](https://github.com/TooTallNate/nx.js/pull/192))
+
+- Fix HID vibration memory leak — free `JS_GetPropertyStr` values in `js_hid_send_vibration_values()` ([#192](https://github.com/TooTallNate/nx.js/pull/192))
+
+- Fix NSP crash at boot caused by incorrect `debug_flags` encoding in NPDM ([`91b2561`](https://github.com/TooTallNate/nx.js/commit/91b2561262b7c7512af48a800c0ae7d3a15ebf66))
+
+- Fix unsafe poll list iteration — switch to `SLIST_FOREACH_SAFE` in `nx_poll()` to handle callback removals ([#192](https://github.com/TooTallNate/nx.js/pull/192))
+
+- Fix `restore()` crash when no font face is set — added null check before calling `cairo_set_font_face` ([#184](https://github.com/TooTallNate/nx.js/pull/184))
+
+- Fix `statToObject` atime/ctime timestamps — was using `tv_nsec` (nanoseconds) instead of `tv_sec` (seconds) ([#192](https://github.com/TooTallNate/nx.js/pull/192))
+
+- Fix TCP connect / TLS handshake string leak — free `JS_ToCString` result on error paths ([#192](https://github.com/TooTallNate/nx.js/pull/192))
+
+- refactor(web): rename `offline:` URL protocol to `htmldoc:` and abstract away internal NCA structure. Users now reference files directly (e.g. `htmldoc:/index.html`) — the `.htdocs/` prefix required by the Switch offline applet is prepended automatically. ([#217](https://github.com/TooTallNate/nx.js/pull/217))
+
+- Implement `WebAssembly.validate()` function ([#195](https://github.com/TooTallNate/nx.js/pull/195))
+
+- Fix grammatical error in `console` docs ([`4fe4a8a`](https://github.com/TooTallNate/nx.js/commit/4fe4a8ad238778046cef35b0da19988114b42184))
+
+- feat: add offline mode for `Switch.WebApplet` using HtmlDocument NCA. Load HTML directly from the app's bundled content with `offline:` URLs — no network required. Supports `window.nx` bidirectional messaging via WebSession. ([#213](https://github.com/TooTallNate/nx.js/pull/213))
+
+- feat(web): change WebApplet configuration to options object passed to `start()` instead of setter properties ([#216](https://github.com/TooTallNate/nx.js/pull/216))
+
+- feat: add `Switch.WebApplet` for spawning the built-in web browser with async bidirectional messaging ([#212](https://github.com/TooTallNate/nx.js/pull/212))
+
+- Add AES-GCM encrypt/decrypt support to WebCrypto API ([#203](https://github.com/TooTallNate/nx.js/pull/203))
+
+- Add ECDSA sign/verify and ECDH key derivation to WebCrypto API (P-256, P-384) ([#205](https://github.com/TooTallNate/nx.js/pull/205))
+
+- Add PBKDF2 and HKDF key derivation to WebCrypto API ([#204](https://github.com/TooTallNate/nx.js/pull/204))
+
+- Expand WebCrypto API with `generateKey()`, `exportKey('raw')`, HMAC `sign()`/`verify()`, and fix `CryptoKey.type` fall-through bug ([#198](https://github.com/TooTallNate/nx.js/pull/198))
+
+  - **Fix**: `CryptoKey.type` getter now returns the correct type instead of always returning `"secret"` (missing `break` statements in switch)
+  - **Feature**: `SubtleCrypto.generateKey()` for AES-CBC, AES-CTR, AES-GCM, and HMAC algorithms
+  - **Feature**: `SubtleCrypto.exportKey('raw')` to export raw key material from extractable keys
+  - **Feature**: `SubtleCrypto.sign()` and `SubtleCrypto.verify()` for HMAC (SHA-1, SHA-256, SHA-384, SHA-512)
+  - **Feature**: `SubtleCrypto.importKey('raw')` now supports HMAC keys
+  - **Internal**: Raw key material is now stored in `CryptoKey` for export support
+
 ## 0.0.65
 
 ### Patch Changes
