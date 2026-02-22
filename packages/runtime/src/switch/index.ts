@@ -24,7 +24,7 @@ export * from './album';
 export * from './file-system';
 export * from './service';
 export { Socket, Server };
-export { WebApplet } from '../web-applet';
+export { WebApplet, type WebAppletOptions } from '../web-applet';
 
 export type PathLike = string | URL;
 

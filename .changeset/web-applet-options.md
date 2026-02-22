@@ -2,4 +2,4 @@
 "@nx.js/runtime": patch
 ---
 
-feat(web): expose additional WebApplet configuration options (display, input, UI, media)
+feat(web): change WebApplet configuration to options object passed to `start()` instead of setter properties
