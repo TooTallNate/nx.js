@@ -24,9 +24,11 @@ applet.addEventListener('message', (e: any) => {
 						(msg.data.path.endsWith('/') ? '' : '/') +
 						name;
 					const stat = Switch.statSync(fullPath);
+					// S_IFDIR = 0o040000 (0x4000)
+					const isDir = stat ? (stat.mode & 0o170000) === 0o040000 : false;
 					return {
 						name,
-						isDir: stat ? stat.isDirectory() : false,
+						isDir,
 						size: stat ? stat.size : 0,
 					};
 				});

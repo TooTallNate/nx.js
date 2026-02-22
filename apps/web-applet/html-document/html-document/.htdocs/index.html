@@ -51,29 +51,6 @@
 </div>
 
 <script>
-// Debug: check window.nx availability
-(function() {
-  var info = [];
-  info.push('typeof window.nx: ' + typeof window.nx);
-  if (window.nx) {
-    info.push('typeof nx.sendMessage: ' + typeof window.nx.sendMessage);
-    info.push('typeof nx.addEventListener: ' + typeof window.nx.addEventListener);
-    var keys = [];
-    for (var k in window.nx) keys.push(k);
-    info.push('nx keys: [' + keys.join(', ') + ']');
-  }
-  info.push('userAgent: ' + navigator.userAgent);
-  info.push('location: ' + window.location.href);
-  info.push('time: ' + new Date().toISOString());
-
-  var dbg = document.createElement('div');
-  dbg.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#ff0;color:#000;padding:12px 24px;font-family:monospace;font-size:13px;z-index:9999;white-space:pre-wrap;border-bottom:3px solid #f00;';
-  dbg.textContent = info.join('\n');
-  document.addEventListener('DOMContentLoaded', function() {
-    document.body.insertBefore(dbg, document.body.firstChild);
-  });
-})();
-
 var currentPath = 'sdmc:/';
 var msgId = 0;
 var pending = {};
