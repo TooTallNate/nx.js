@@ -7,7 +7,6 @@
 // The html-document/ directory is automatically packaged into the NCA.
 
 const applet = new Switch.WebApplet('offline:/.htdocs/index.html');
-applet.jsExtension = true;
 
 // Handle RPC messages from the browser
 applet.addEventListener('message', (e: any) => {
@@ -86,5 +85,5 @@ applet.addEventListener('exit', () => {
 });
 
 console.log('Starting offline file browser...');
-await applet.start();
+await applet.start({ jsExtension: true });
 console.log(`File browser started in ${applet.mode} mode`);
