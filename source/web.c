@@ -191,16 +191,16 @@ static Result _start_wifi_auth(nx_web_applet_t *data) {
 }
 
 static Result _start_offline(nx_web_applet_t *data) {
-	// Get app's program ID for mounting offline HTML content
-	u64 app_id = 0;
-	Result rc = svcGetInfo(&app_id, InfoType_ProgramId, CUR_PROCESS_HANDLE, 0);
-	if (R_FAILED(rc)) return rc;
+	Result rc;
 
-	// DocumentPath: skip "offline:/" prefix, path must contain ".htdocs/"
-	const char *doc_path = data->url + 8;  // skip "offline:"
+	// DocumentPath: skip "offline:/" prefix to get relative path.
+	// Per switchbrew docs, the path must be relative (no leading '/')
+	// and must contain ".htdocs/". For OfflineHtmlPage the ApplicationId
+	// is ignored by the applet, so we pass 0.
+	const char *doc_path = data->url + 9;  // skip "offline:/"
 
 	rc = webOfflineCreate(&data->config, WebDocumentKind_OfflineHtmlPage,
-						  app_id, doc_path);
+						  0, doc_path);
 	if (R_FAILED(rc)) return rc;
 
 	if (data->js_extension) {
