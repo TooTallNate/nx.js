@@ -279,7 +279,7 @@ static JSValue nx_web_applet_appear(JSContext *ctx, JSValueConst this_val,
 									int argc, JSValueConst *argv) {
 	nx_web_applet_t *data = nx_web_applet_get(ctx, argv[0]);
 	if (!data) return JS_EXCEPTION;
-	if (!data->started || data->mode != WEB_MODE_WEB_SESSION && data->mode != WEB_MODE_OFFLINE) {
+	if (!data->started || (data->mode != WEB_MODE_WEB_SESSION && data->mode != WEB_MODE_OFFLINE)) {
 		return JS_ThrowTypeError(ctx,
 			"appear() only available in WebSession mode (HTTPS URLs)");
 	}
@@ -296,7 +296,7 @@ static JSValue nx_web_applet_send_message(JSContext *ctx,
 										  JSValueConst *argv) {
 	nx_web_applet_t *data = nx_web_applet_get(ctx, argv[0]);
 	if (!data) return JS_EXCEPTION;
-	if (!data->started || data->mode != WEB_MODE_WEB_SESSION && data->mode != WEB_MODE_OFFLINE) {
+	if (!data->started || (data->mode != WEB_MODE_WEB_SESSION && data->mode != WEB_MODE_OFFLINE)) {
 		return JS_ThrowTypeError(ctx,
 			"sendMessage() only available in WebSession mode (HTTPS URLs)");
 	}
@@ -319,7 +319,7 @@ static JSValue nx_web_applet_poll_messages(JSContext *ctx,
 										   JSValueConst *argv) {
 	nx_web_applet_t *data = nx_web_applet_get(ctx, argv[0]);
 	if (!data) return JS_EXCEPTION;
-	if (!data->started || data->mode != WEB_MODE_WEB_SESSION && data->mode != WEB_MODE_OFFLINE) {
+	if (!data->started || (data->mode != WEB_MODE_WEB_SESSION && data->mode != WEB_MODE_OFFLINE)) {
 		return JS_NewArray(ctx);
 	}
 
