@@ -123,8 +123,7 @@ export class WebApplet extends EventTarget {
 			throw new Error('WebApplet already started');
 		}
 
-		this.#configure(options);
-		$.webAppletStart(this.#native);
+		$.webAppletStart(this.#native, this.#url, options ?? {});
 		this.#started = true;
 
 		this.#pollInterval = setInterval(() => {
@@ -184,61 +183,6 @@ export class WebApplet extends EventTarget {
 			$.webAppletClose(this.#native);
 			this.#cleanup();
 		}
-	}
-
-	#configure(options?: WebAppletOptions) {
-		const bootDisplayKindMap = { default: 0, white: 1, black: 2 } as const;
-		const leftStickModeMap = { pointer: 0, cursor: 1 } as const;
-		const footerFixedKindMap = { default: 0, always: 1, hidden: 2 } as const;
-
-		$.webAppletSetUrl(this.#native, this.#url);
-
-		if (!options) return;
-
-		if (options.jsExtension !== undefined)
-			$.webAppletSetJsExtension(this.#native, options.jsExtension);
-		if (options.bootHidden)
-			$.webAppletSetBootMode(this.#native, 1);
-		if (options.bootDisplayKind !== undefined)
-			$.webAppletSetBootDisplayKind(this.#native, bootDisplayKindMap[options.bootDisplayKind]);
-		if (options.backgroundKind !== undefined)
-			$.webAppletSetBackgroundKind(this.#native, 0);
-		if (options.footer !== undefined)
-			$.webAppletSetFooter(this.#native, options.footer);
-		if (options.pointer !== undefined)
-			$.webAppletSetPointer(this.#native, options.pointer);
-		if (options.leftStickMode !== undefined)
-			$.webAppletSetLeftStickMode(this.#native, leftStickModeMap[options.leftStickMode]);
-		if (options.bootAsMediaPlayer !== undefined)
-			$.webAppletSetBootAsMediaPlayer(this.#native, options.bootAsMediaPlayer);
-		if (options.screenShot !== undefined)
-			$.webAppletSetScreenShot(this.#native, options.screenShot);
-		if (options.pageCache !== undefined)
-			$.webAppletSetPageCache(this.#native, options.pageCache);
-		if (options.webAudio !== undefined)
-			$.webAppletSetWebAudio(this.#native, options.webAudio);
-		if (options.footerFixedKind !== undefined)
-			$.webAppletSetFooterFixedKind(this.#native, footerFixedKindMap[options.footerFixedKind]);
-		if (options.pageFade !== undefined)
-			$.webAppletSetPageFade(this.#native, options.pageFade);
-		if (options.bootLoadingIcon !== undefined)
-			$.webAppletSetBootLoadingIcon(this.#native, options.bootLoadingIcon);
-		if (options.pageScrollIndicator !== undefined)
-			$.webAppletSetPageScrollIndicator(this.#native, options.pageScrollIndicator);
-		if (options.mediaPlayerSpeedControl !== undefined)
-			$.webAppletSetMediaPlayerSpeedControl(this.#native, options.mediaPlayerSpeedControl);
-		if (options.mediaAutoPlay !== undefined)
-			$.webAppletSetMediaAutoPlay(this.#native, options.mediaAutoPlay);
-		if (options.overrideWebAudioVolume !== undefined)
-			$.webAppletSetOverrideWebAudioVolume(this.#native, options.overrideWebAudioVolume);
-		if (options.overrideMediaAudioVolume !== undefined)
-			$.webAppletSetOverrideMediaAudioVolume(this.#native, options.overrideMediaAudioVolume);
-		if (options.mediaPlayerAutoClose !== undefined)
-			$.webAppletSetMediaPlayerAutoClose(this.#native, options.mediaPlayerAutoClose);
-		if (options.mediaPlayerUi !== undefined)
-			$.webAppletSetMediaPlayerUi(this.#native, options.mediaPlayerUi);
-		if (options.userAgentAdditionalString !== undefined)
-			$.webAppletSetUserAgentAdditionalString(this.#native, options.userAgentAdditionalString);
 	}
 
 	#cleanup() {

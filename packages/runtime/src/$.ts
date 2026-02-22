@@ -377,30 +377,7 @@ export interface Init {
 
 	// web.c
 	webAppletNew(): any;
-	webAppletSetUrl(applet: any, url: string): void;
-	webAppletSetJsExtension(applet: any, flag: boolean): void;
-	webAppletSetBootMode(applet: any, mode: number): void;
-	webAppletSetBootDisplayKind(applet: any, kind: number): void;
-	webAppletSetBackgroundKind(applet: any, kind: number): void;
-	webAppletSetFooter(applet: any, flag: boolean): void;
-	webAppletSetPointer(applet: any, flag: boolean): void;
-	webAppletSetLeftStickMode(applet: any, mode: number): void;
-	webAppletSetBootAsMediaPlayer(applet: any, flag: boolean): void;
-	webAppletSetScreenShot(applet: any, flag: boolean): void;
-	webAppletSetPageCache(applet: any, flag: boolean): void;
-	webAppletSetWebAudio(applet: any, flag: boolean): void;
-	webAppletSetFooterFixedKind(applet: any, kind: number): void;
-	webAppletSetPageFade(applet: any, flag: boolean): void;
-	webAppletSetBootLoadingIcon(applet: any, flag: boolean): void;
-	webAppletSetPageScrollIndicator(applet: any, flag: boolean): void;
-	webAppletSetMediaPlayerSpeedControl(applet: any, flag: boolean): void;
-	webAppletSetMediaAutoPlay(applet: any, flag: boolean): void;
-	webAppletSetOverrideWebAudioVolume(applet: any, value: number): void;
-	webAppletSetOverrideMediaAudioVolume(applet: any, value: number): void;
-	webAppletSetMediaPlayerAutoClose(applet: any, flag: boolean): void;
-	webAppletSetMediaPlayerUi(applet: any, flag: boolean): void;
-	webAppletSetUserAgentAdditionalString(applet: any, str: string): void;
-	webAppletStart(applet: any): void;
+	webAppletStart(applet: any, url: string, options: Record<string, any>): void;
 	webAppletAppear(applet: any): boolean;
 	webAppletSendMessage(applet: any, msg: string): boolean;
 	webAppletPollMessages(applet: any): string[];
