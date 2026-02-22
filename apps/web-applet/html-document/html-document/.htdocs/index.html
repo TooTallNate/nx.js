@@ -64,19 +64,14 @@ function send(type, data) {
 }
 
 window.nx.addEventListener('message', function(evt) {
-  var dbg = document.getElementById('status');
-  dbg.textContent = 'Got message: type=' + typeof evt.data + ', length=' + (evt.data ? evt.data.length : 'null');
   try {
     var msg = JSON.parse(evt.data);
-    dbg.textContent += ' | parsed id=' + msg.id + ', hasData=' + !!msg.data;
     if (msg.id && pending[msg.id]) {
       pending[msg.id](msg.data);
       delete pending[msg.id];
-    } else {
-      dbg.textContent += ' | NO pending handler for id=' + msg.id;
     }
   } catch(e) {
-    dbg.textContent = 'Parse error: ' + e.message + ' | len=' + (evt.data ? evt.data.length : '?') + ' | tail=' + String(evt.data).slice(-80);
+    console.error('Message parse error:', e.message);
   }
 });
 
