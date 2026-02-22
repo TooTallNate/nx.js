@@ -223,17 +223,26 @@ static Result _start_htmldoc(nx_web_applet_t *data, const char *url,
 							 JSContext *ctx, JSValueConst opts) {
 	Result rc;
 
-	// DocumentPath: skip "htmldoc:" prefix (and optional '/') to get
-	// a relative path. Per libnx/switchbrew docs:
+	// DocumentPath: the user provides a path like "htmldoc:/index.html",
+	// we prepend ".htdocs/" to build the full path the offline applet expects.
+	// Per libnx/switchbrew docs:
 	// - id=0 for OfflineHtmlPage (uses the calling application's content)
 	// - Path is relative to "html-document/" in the HtmlDocument NCA RomFS
-	// - Path must contain ".htdocs/"
-	// - Path must not have a leading '/'
-	const char *doc_path = url + 8;  // skip "htmldoc:"
-	if (*doc_path == '/') doc_path++;  // skip optional '/'
+	// - Path must contain ".htdocs/" and must not have a leading '/'
+	const char *user_path = url + 8;  // skip "htmldoc:"
+	if (*user_path == '/') user_path++;  // skip optional '/'
+
+	// Build ".htdocs/{user_path}"
+	size_t prefix_len = 7;  // ".htdocs/"
+	size_t user_len = strlen(user_path);
+	char *doc_path = js_malloc(ctx, prefix_len + user_len + 1);
+	if (!doc_path) return MAKERESULT(Module_Libnx, LibnxError_OutOfMemory);
+	memcpy(doc_path, ".htdocs/", prefix_len);
+	memcpy(doc_path + prefix_len, user_path, user_len + 1);
 
 	rc = webOfflineCreate(&data->config, WebDocumentKind_OfflineHtmlPage,
 						  0, doc_path);
+	js_free(ctx, doc_path);
 	if (R_FAILED(rc)) return rc;
 
 	_apply_options(ctx, data, opts);

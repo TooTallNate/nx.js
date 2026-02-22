@@ -49,7 +49,7 @@ The `window.nx` API is only available when `jsExtension` is set to `true` in the
 The htmldoc mode loads HTML directly from the app's HtmlDocument NCA — no network connection required. This is ideal for bundling a HTML-based UI with your app.
 
 ```typescript
-const applet = new Switch.WebApplet('htmldoc:/.htdocs/index.html');
+const applet = new Switch.WebApplet('htmldoc:/index.html');
 
 applet.addEventListener('message', (e) => {
   const msg = JSON.parse(e.data);
@@ -63,28 +63,20 @@ console.log(applet.mode); // "htmldoc"
 
 ### Setting Up Offline HTML
 
-Create an `htmldoc` directory in your app root with the following structure:
+Create an `htmldoc` directory in your app root with your HTML files:
 
 ```
 my-app/
 ├── htmldoc/
-│   └── html-document/
-│       └── .htdocs/
-│           ├── index.html
-│           ├── style.css
-│           └── app.js
+│   ├── index.html
+│   ├── style.css
+│   └── app.js
 ├── romfs/
 │   └── main.js
 └── package.json
 ```
 
-<Callout type="warn">
-The `html-document/.htdocs/` nesting is required — the HtmlDocument applet expects this exact directory structure inside the HtmlDocument NCA.
-</Callout>
-
-When building your NSP with `@nx.js/nsp`, the `htmldoc/` directory is automatically packaged into a HtmlDocument NCA and included in the NSP.
-
-The document path in the `htmldoc:` URL is relative to the `html-document/` directory. So `htmldoc:/.htdocs/index.html` resolves to `html-document/.htdocs/index.html` inside the NCA.
+When building your NSP with `@nx.js/nsp`, the `htmldoc/` contents are automatically wrapped into the required NCA structure and included in the NSP.
 
 ## Configuration
 
@@ -108,7 +100,7 @@ A common pattern is to use JSON-based RPC between your app and the browser UI:
 
 ```typescript
 // nx.js side
-const applet = new Switch.WebApplet('htmldoc:/.htdocs/index.html');
+const applet = new Switch.WebApplet('htmldoc:/index.html');
 
 applet.addEventListener('message', (e) => {
   const msg = JSON.parse(e.data);
@@ -135,7 +127,7 @@ await applet.start({ jsExtension: true });
 ```
 
 ```javascript
-// Browser side (in .htdocs/index.html)
+// Browser side (in htmldoc/index.html)
 let msgId = 0;
 const pending = {};
 
