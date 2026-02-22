@@ -3,6 +3,8 @@ title: Web Browser
 description: Launch the built-in web browser with bidirectional messaging
 ---
 
+import { File, Folder, Files } from 'fumadocs-ui/components/files';
+
 nx.js can launch the Nintendo Switch's built-in web browser as a Library Applet, with support for bidirectional messaging between your app and the browser via `window.nx`.
 
 <Callout type="warn">
@@ -44,12 +46,12 @@ window.nx.sendMessage('Hello from the browser!');
 The `window.nx` API is only available when `jsExtension` is set to `true` in the `start()` options.
 </Callout>
 
-## Offline Mode
+## HtmlDoc Mode
 
-The offline mode loads HTML directly from the app's HtmlDocument NCA — no network connection required. This is ideal for bundling a UI with your app.
+The htmldoc mode loads HTML directly from the app's HtmlDocument NCA — no network connection required. This is ideal for bundling a HTML-based UI with your app.
 
 ```typescript
-const applet = new Switch.WebApplet('offline:/.htdocs/index.html');
+const applet = new Switch.WebApplet('htmldoc:/index.html');
 
 applet.addEventListener('message', (e) => {
   const msg = JSON.parse(e.data);
@@ -58,33 +60,26 @@ applet.addEventListener('message', (e) => {
 });
 
 await applet.start({ jsExtension: true });
-console.log(applet.mode); // "offline"
+console.log(applet.mode); // "htmldoc"
 ```
 
 ### Setting Up Offline HTML
 
-Create an `htmldoc` directory in your app root with the following structure:
+Create an `htmldoc` directory in your app root with your HTML files:
 
-```
-my-app/
-├── htmldoc/
-│   └── html-document/
-│       └── .htdocs/
-│           ├── index.html
-│           ├── style.css
-│           └── app.js
-├── romfs/
-│   └── main.js
-└── package.json
-```
+<Files>
+  <Folder name="htmldoc" defaultOpen>
+    <File name="index.html" />
+    <File name="style.css" />
+    <File name="app.js" />
+  </Folder>
+  <File name="package.json" />
+  <Folder name="romfs" defaultOpen>
+    <File name="main.js" />
+  </Folder>
+</Files>
 
-<Callout type="warn">
-The `html-document/.htdocs/` nesting is required — the offline applet expects this exact directory structure inside the HtmlDocument NCA.
-</Callout>
-
-When building your NSP with `@nx.js/nsp`, the `htmldoc/` directory is automatically packaged into a HtmlDocument NCA and included in the NSP.
-
-The document path in the `offline:` URL is relative to the `html-document/` directory. So `offline:/.htdocs/index.html` resolves to `html-document/.htdocs/index.html` inside the NCA.
+When building your NSP with `@nx.js/nsp`, the `htmldoc/` contents are automatically wrapped into the required NCA structure and included in the NSP.
 
 ## Configuration
 
@@ -100,7 +95,7 @@ await applet.start({
 });
 ```
 
-For the full list of available options, see the [`WebAppletOptions`](/runtime/api/WebAppletOptions) API reference.
+For the full list of available options, see the [`WebAppletOptions`](/runtime/api/namespaces/Switch/interfaces/WebAppletOptions) API reference.
 
 ## RPC Pattern
 
@@ -108,7 +103,7 @@ A common pattern is to use JSON-based RPC between your app and the browser UI:
 
 ```typescript
 // nx.js side
-const applet = new Switch.WebApplet('offline:/.htdocs/index.html');
+const applet = new Switch.WebApplet('htmldoc:/index.html');
 
 applet.addEventListener('message', (e) => {
   const msg = JSON.parse(e.data);
@@ -135,7 +130,7 @@ await applet.start({ jsExtension: true });
 ```
 
 ```javascript
-// Browser side (in .htdocs/index.html)
+// Browser side (in htmldoc/index.html)
 let msgId = 0;
 const pending = {};
 

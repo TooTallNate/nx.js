@@ -1,12 +1,12 @@
 // File Browser — Offline mode with window.nx IPC
 //
-// HTML is loaded from the app's html-document NCA (no network required).
+// HTML is loaded from the app's HtmlDocument NCA (no network required).
 // Communication happens via window.nx messaging.
 //
 // To build as NSP: pnpm nsp
-// The html-document/ directory is automatically packaged into the NCA.
+// The htmldoc/ directory contents are automatically packaged into the NCA.
 
-const applet = new Switch.WebApplet('offline:/.htdocs/index.html');
+const applet = new Switch.WebApplet('htmldoc:/index.html');
 
 // Handle RPC messages from the browser
 applet.addEventListener('message', (e: any) => {

@@ -44,7 +44,7 @@ let baseRomfsDir = new URL('romfs/', root);
 let baseIconPath = new URL(iconName, root);
 let iconPath = new URL(iconName, appRoot);
 const logoDir = new URL('logo/', appRoot);
-const htmlDocDir = new URL('htmldoc/', appRoot);
+const htmlDocUserDir = new URL('htmldoc/', appRoot);
 const romfsDir = new URL('romfs/', appRoot);
 const nspDir = createTmpDir('nsp');
 const ncaDir = createTmpDir('nca');
@@ -124,6 +124,14 @@ try {
 		tmpPaths.push(dest);
 	}
 
+	// Wrap htmldoc/ contents into html-document/.htdocs/ structure for the NCA
+	let htmlDocNcaDir: URL | undefined;
+	if (existsSync(htmlDocUserDir)) {
+		htmlDocNcaDir = createTmpDir('htmldoc');
+		const htdocsDir = new URL('html-document/.htdocs/', htmlDocNcaDir);
+		cpSync(htmlDocUserDir, htdocsDir, { recursive: true });
+	}
+
 	// Generate NSP file via `hacbrewpack`
 	console.log();
 	console.log(chalk.bold('Running `hacbrewpack`:'));
@@ -147,7 +155,7 @@ try {
 		titleid,
 		'--nopatchnacplogo',
 		...(existsSync(logoDir) ? [] : ['--nologo']),
-		...(existsSync(htmlDocDir) ? ['--htmldocdir', fileURLToPath(htmlDocDir)] : []),
+		...(htmlDocNcaDir ? ['--htmldocdir', fileURLToPath(htmlDocNcaDir)] : []),
 		...process.argv.slice(2),
 	];
 
