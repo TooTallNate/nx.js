@@ -105,7 +105,7 @@ function navigate(path) {
     for (var i = 0; i < entries.length; i++) {
       var e = entries[i];
       var icon = e.isDir ? '&#128193;' : '&#128196;';
-      var size = e.isDir ? '' : formatSize(e.size);
+      var size = e.isDir ? '' : (e.size < 0 ? '⚠️' : formatSize(e.size));
       var fullPath = currentPath + (currentPath.endsWith('/') ? '' : '/') + e.name;
       var escaped = escapeHtml(fullPath).replace(/'/g, '&#39;');
       html += '<div class="entry" onclick="' +
