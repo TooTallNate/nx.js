@@ -6,7 +6,7 @@
 // To build as NSP: pnpm nsp
 // The html-document/ directory is automatically packaged into the NCA.
 
-const applet = new Switch.WebApplet('offline:/.htdocs/index.html');
+const applet = new Switch.WebApplet('htmldoc:/.htdocs/index.html');
 
 // Handle RPC messages from the browser
 applet.addEventListener('message', (e: any) => {

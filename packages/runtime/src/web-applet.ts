@@ -106,7 +106,7 @@ export class WebApplet extends EventTarget {
 	/**
 	 * The current operating mode:
 	 * - `'web-session'` — HTTP/HTTPS URL with WebSession (supports `window.nx` messaging)
-	 * - `'offline'` — Offline applet loading HTML from app's html-document NCA (supports `window.nx` messaging)
+	 * - `'htmldoc'` — HtmlDocument applet loading HTML from app's html-document NCA (supports `window.nx` messaging)
 	 * - `'none'` — not started
 	 */
 	get mode(): string {

@@ -107,8 +107,8 @@ static int _get_enum_opt(JSContext *ctx, JSValueConst opts, const char *name,
 	return -1;
 }
 
-static bool _is_offline_url(const char *url) {
-	return url && strncmp(url, "offline:", 8) == 0;
+static bool _is_htmldoc_url(const char *url) {
+	return url && strncmp(url, "htmldoc:", 8) == 0;
 }
 
 // Apply options from JS object to the WebCommonConfig
@@ -219,17 +219,17 @@ static Result _start_web_session(nx_web_applet_t *data, const char *url,
 	return 0;
 }
 
-static Result _start_offline(nx_web_applet_t *data, const char *url,
+static Result _start_htmldoc(nx_web_applet_t *data, const char *url,
 							 JSContext *ctx, JSValueConst opts) {
 	Result rc;
 
-	// DocumentPath: skip "offline:" prefix (and optional '/') to get
+	// DocumentPath: skip "htmldoc:" prefix (and optional '/') to get
 	// a relative path. Per libnx/switchbrew docs:
 	// - id=0 for OfflineHtmlPage (uses the calling application's content)
 	// - Path is relative to "html-document/" in the HtmlDocument NCA RomFS
 	// - Path must contain ".htdocs/"
 	// - Path must not have a leading '/'
-	const char *doc_path = url + 8;  // skip "offline:"
+	const char *doc_path = url + 8;  // skip "htmldoc:"
 	if (*doc_path == '/') doc_path++;  // skip optional '/'
 
 	rc = webOfflineCreate(&data->config, WebDocumentKind_OfflineHtmlPage,
@@ -276,8 +276,8 @@ static JSValue nx_web_applet_start(JSContext *ctx, JSValueConst this_val,
 	}
 
 	Result rc;
-	if (_is_offline_url(url)) {
-		rc = _start_offline(data, url, ctx, opts);
+	if (_is_htmldoc_url(url)) {
+		rc = _start_htmldoc(data, url, ctx, opts);
 	} else {
 		rc = _start_web_session(data, url, ctx, opts);
 	}
@@ -412,7 +412,7 @@ static JSValue nx_web_applet_get_mode(JSContext *ctx, JSValueConst this_val,
 	if (!data) return JS_EXCEPTION;
 	switch (data->mode) {
 		case WEB_MODE_WEB_SESSION: return JS_NewString(ctx, "web-session");
-		case WEB_MODE_OFFLINE: return JS_NewString(ctx, "offline");
+		case WEB_MODE_OFFLINE: return JS_NewString(ctx, "htmldoc");
 		default: return JS_NewString(ctx, "none");
 	}
 }

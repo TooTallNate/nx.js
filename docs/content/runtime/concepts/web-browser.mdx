@@ -44,12 +44,12 @@ window.nx.sendMessage('Hello from the browser!');
 The `window.nx` API is only available when `jsExtension` is set to `true` in the `start()` options.
 </Callout>
 
-## Offline Mode
+## HtmlDoc Mode
 
-The offline mode loads HTML directly from the app's HtmlDocument NCA — no network connection required. This is ideal for bundling a UI with your app.
+The htmldoc mode loads HTML directly from the app's HtmlDocument NCA — no network connection required. This is ideal for bundling a UI with your app.
 
 ```typescript
-const applet = new Switch.WebApplet('offline:/.htdocs/index.html');
+const applet = new Switch.WebApplet('htmldoc:/.htdocs/index.html');
 
 applet.addEventListener('message', (e) => {
   const msg = JSON.parse(e.data);
@@ -58,7 +58,7 @@ applet.addEventListener('message', (e) => {
 });
 
 await applet.start({ jsExtension: true });
-console.log(applet.mode); // "offline"
+console.log(applet.mode); // "htmldoc"
 ```
 
 ### Setting Up Offline HTML
@@ -79,12 +79,12 @@ my-app/
 ```
 
 <Callout type="warn">
-The `html-document/.htdocs/` nesting is required — the offline applet expects this exact directory structure inside the HtmlDocument NCA.
+The `html-document/.htdocs/` nesting is required — the HtmlDocument applet expects this exact directory structure inside the HtmlDocument NCA.
 </Callout>
 
 When building your NSP with `@nx.js/nsp`, the `htmldoc/` directory is automatically packaged into a HtmlDocument NCA and included in the NSP.
 
-The document path in the `offline:` URL is relative to the `html-document/` directory. So `offline:/.htdocs/index.html` resolves to `html-document/.htdocs/index.html` inside the NCA.
+The document path in the `htmldoc:` URL is relative to the `html-document/` directory. So `htmldoc:/.htdocs/index.html` resolves to `html-document/.htdocs/index.html` inside the NCA.
 
 ## Configuration
 
@@ -108,7 +108,7 @@ A common pattern is to use JSON-based RPC between your app and the browser UI:
 
 ```typescript
 // nx.js side
-const applet = new Switch.WebApplet('offline:/.htdocs/index.html');
+const applet = new Switch.WebApplet('htmldoc:/.htdocs/index.html');
 
 applet.addEventListener('message', (e) => {
   const msg = JSON.parse(e.data);
