@@ -11,13 +11,25 @@ applet.jsExtension = true;
 
 // Handle RPC messages from the browser
 applet.addEventListener('message', (e: any) => {
-	const msg = JSON.parse(e.data);
+	console.log('Received message from browser:', e.data);
+
+	let msg: any;
+	try {
+		msg = JSON.parse(e.data);
+	} catch (parseErr: any) {
+		console.error('Failed to parse message:', parseErr.message);
+		return;
+	}
+
+	console.log(`RPC: type=${msg.type}, id=${msg.id}, data=${JSON.stringify(msg.data)}`);
 	let response: any;
 
 	try {
 		switch (msg.type) {
 			case 'ls': {
+				console.log(`ls: ${msg.data.path}`);
 				const entries = Switch.readDirSync(msg.data.path);
+				console.log(`ls: got ${entries.length} entries`);
 				response = entries.map((name: string) => {
 					const fullPath =
 						msg.data.path +
@@ -25,7 +37,9 @@ applet.addEventListener('message', (e: any) => {
 						name;
 					const stat = Switch.statSync(fullPath);
 					// S_IFDIR = 0o040000 (0x4000)
-					const isDir = stat ? (stat.mode & 0o170000) === 0o040000 : false;
+					const isDir = stat
+						? (stat.mode & 0o170000) === 0o040000
+						: false;
 					return {
 						name,
 						isDir,
@@ -36,6 +50,7 @@ applet.addEventListener('message', (e: any) => {
 			}
 
 			case 'read': {
+				console.log(`read: ${msg.data.path}`);
 				const maxSize = msg.data.maxSize || 64000;
 				const stat = Switch.statSync(msg.data.path);
 				if (!stat) {
@@ -59,15 +74,18 @@ applet.addEventListener('message', (e: any) => {
 				response = { error: `Unknown command: ${msg.type}` };
 		}
 	} catch (err: any) {
+		console.error(`RPC error for ${msg.type}:`, err.message || String(err));
 		response = { error: err.message || String(err) };
 	}
 
-	applet.sendMessage(JSON.stringify({ id: msg.id, data: response }));
+	const reply = JSON.stringify({ id: msg.id, data: response });
+	console.log(`Sending reply for id=${msg.id}, length=${reply.length}`);
+	const sent = applet.sendMessage(reply);
+	console.log(`sendMessage result: ${sent}`);
 });
 
 applet.addEventListener('exit', () => {
 	console.log('File browser closed');
-	Switch.exit();
 });
 
 console.log('Starting offline file browser...');
