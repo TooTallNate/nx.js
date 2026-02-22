@@ -64,13 +64,20 @@ function send(type, data) {
 }
 
 window.nx.addEventListener('message', function(evt) {
+  var dbg = document.getElementById('status');
+  dbg.textContent = 'Got message: type=' + typeof evt.data + ', length=' + (evt.data ? evt.data.length : 'null');
   try {
     var msg = JSON.parse(evt.data);
+    dbg.textContent += ' | parsed id=' + msg.id + ', hasData=' + !!msg.data;
     if (msg.id && pending[msg.id]) {
       pending[msg.id](msg.data);
       delete pending[msg.id];
+    } else {
+      dbg.textContent += ' | NO pending handler for id=' + msg.id;
     }
-  } catch(e) {}
+  } catch(e) {
+    dbg.textContent = 'Message parse error: ' + e.message + ' | raw=' + String(evt.data).substring(0, 200);
+  }
 });
 
 document.getElementById('status').textContent = 'Connected via window.nx (offline mode)';
