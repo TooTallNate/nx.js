@@ -65,16 +65,17 @@ console.log(applet.mode); // "htmldoc"
 
 Create an `htmldoc` directory in your app root with your HTML files:
 
-```
-my-app/
-├── htmldoc/
-│   ├── index.html
-│   ├── style.css
-│   └── app.js
-├── romfs/
-│   └── main.js
-└── package.json
-```
+<Files>
+  <Folder name="htmldoc" defaultOpen>
+    <File name="index.html" />
+    <File name="style.css" />
+    <File name="app.js" />
+  </Folder>
+  <File name="package.json" />
+  <Folder name="romfs" defaultOpen>
+    <File name="main.js" />
+  </Folder>
+</Files>
 
 When building your NSP with `@nx.js/nsp`, the `htmldoc/` contents are automatically wrapped into the required NCA structure and included in the NSP.
 
