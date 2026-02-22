@@ -53,7 +53,6 @@ const applet = new Switch.WebApplet('offline:/.htdocs/index.html');
 
 applet.addEventListener('message', (e) => {
   const msg = JSON.parse(e.data);
-  // Handle RPC from the browser
   const response = { id: msg.id, result: 'ok' };
   applet.sendMessage(JSON.stringify(response));
 });
@@ -64,7 +63,7 @@ console.log(applet.mode); // "offline"
 
 ### Setting Up Offline HTML
 
-To use offline mode, create an `htmldoc` directory in your app root with the following structure:
+Create an `htmldoc` directory in your app root with the following structure:
 
 ```
 my-app/
@@ -87,98 +86,23 @@ When building your NSP with `@nx.js/nsp`, the `htmldoc/` directory is automatica
 
 The document path in the `offline:` URL is relative to the `html-document/` directory. So `offline:/.htdocs/index.html` resolves to `html-document/.htdocs/index.html` inside the NCA.
 
-## Options
+## Configuration
 
-All configuration is passed as an options object to `start()`. Every option is optional — sensible defaults are used when omitted.
+All configuration is passed as an options object to `start()`. Options control display, input, and media behavior of the browser applet. Every option is optional with sensible defaults.
 
 ```typescript
-const applet = new Switch.WebApplet('offline:/.htdocs/index.html');
 await applet.start({
   jsExtension: true,
   footer: false,
   leftStickMode: 'pointer',
   bootDisplayKind: 'black',
+  pageScrollIndicator: false,
 });
 ```
 
-| Option | Type | Description |
-|--------|------|-------------|
-| `jsExtension` | `boolean` | Enable the `window.nx` JavaScript API for bidirectional messaging |
-| `bootHidden` | `boolean` | Start the browser hidden (show later with `appear()`) |
-| `footer` | `boolean` | Show/hide the footer (address bar) |
-| `pointer` | `boolean` | Show/hide a pointer cursor |
-| `leftStickMode` | `'pointer' \| 'cursor'` | Left stick behavior: move pointer or scroll |
-| `bootDisplayKind` | `'default' \| 'white' \| 'black'` | Boot display screen color |
-| `backgroundKind` | `'default'` | Background kind |
-| `footerFixedKind` | `'default' \| 'always' \| 'hidden'` | Footer fixed display kind |
-| `bootAsMediaPlayer` | `boolean` | Boot as a media player applet |
-| `screenShot` | `boolean` | Enable/disable screenshot capture (Web mode only) |
-| `pageCache` | `boolean` | Enable/disable the page cache |
-| `webAudio` | `boolean` | Enable/disable Web Audio API |
-| `pageFade` | `boolean` | Enable/disable page fade transition |
-| `bootLoadingIcon` | `boolean` | Show/hide the boot loading icon (Offline mode only) |
-| `pageScrollIndicator` | `boolean` | Show/hide the page scroll indicator |
-| `mediaPlayerSpeedControl` | `boolean` | Enable/disable media player speed controls |
-| `mediaAutoPlay` | `boolean` | Enable/disable media autoplay |
-| `overrideWebAudioVolume` | `number` | Override web audio volume (0.0 to 1.0) |
-| `overrideMediaAudioVolume` | `number` | Override media audio volume (0.0 to 1.0) |
-| `mediaPlayerAutoClose` | `boolean` | Enable/disable media player auto-close on end |
-| `mediaPlayerUi` | `boolean` | Show/hide media player UI (Offline mode only) |
-| `userAgentAdditionalString` | `string` | Additional string appended to the user agent (Web mode only) |
+For the full list of available options, see the [`WebAppletOptions`](/runtime/api/WebAppletOptions) API reference.
 
-## Properties
-
-### `mode`
-
-Returns the current operating mode as a string:
-
-| Mode | Description |
-|------|-------------|
-| `"web-session"` | Online mode — HTTP/HTTPS URL with WebSession |
-| `"offline"` | Offline mode — HTML from HtmlDocument NCA |
-| `"none"` | Not started |
-
-### `running`
-
-Returns `true` if the browser applet is currently running.
-
-## Methods
-
-### `start(options?)`
-
-Launches the browser applet with the given options. Returns a `Promise` that resolves when the applet has started. The nx.js event loop continues running.
-
-### `sendMessage(msg: string)`
-
-Sends a string message to the browser page. The page receives it via `window.nx.addEventListener('message', callback)`. Returns `true` if the message was sent successfully.
-
-<Callout>
-Messages include an implicit NUL terminator in the WebSession protocol. The maximum content queue size is 32KB.
-</Callout>
-
-### `appear()`
-
-Makes the browser visible if it was started with `bootHidden: true`.
-
-### `requestExit()`
-
-Requests the browser applet to close gracefully.
-
-### `close()`
-
-Force-closes the browser applet and cleans up resources.
-
-## Events
-
-### `message`
-
-Fired when the browser page sends a message via `window.nx.sendMessage()`. The event has a `data` property containing the message string.
-
-### `exit`
-
-Fired when the browser applet exits (user pressed B or X to close).
-
-## Building an RPC Pattern
+## RPC Pattern
 
 A common pattern is to use JSON-based RPC between your app and the browser UI:
 
