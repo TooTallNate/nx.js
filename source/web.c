@@ -111,7 +111,7 @@ static bool _is_http_url(const char *url) {
 }
 
 static bool _is_offline_url(const char *url) {
-	return url && strncmp(url, "offline:/", 9) == 0;
+	return url && strncmp(url, "offline:", 8) == 0;
 }
 
 static Result _configure_web_session(nx_web_applet_t *data) {
@@ -193,11 +193,12 @@ static Result _start_wifi_auth(nx_web_applet_t *data) {
 static Result _start_offline(nx_web_applet_t *data) {
 	Result rc;
 
-	// DocumentPath: skip "offline:/" prefix to get relative path.
-	// Per switchbrew docs, the path must be relative (no leading '/')
-	// and must contain ".htdocs/". For OfflineHtmlPage the ApplicationId
-	// is ignored by the applet, so we pass 0.
-	const char *doc_path = data->url + 9;  // skip "offline:/"
+	// DocumentPath: skip "offline:" prefix (and optional '/') to get
+	// a relative path. Per switchbrew docs, the path must be relative
+	// (no leading '/') and must contain ".htdocs/". For OfflineHtmlPage
+	// the ApplicationId is ignored by the applet, so we pass 0.
+	const char *doc_path = data->url + 8;  // skip "offline:"
+	if (*doc_path == '/') doc_path++;       // skip optional '/'
 
 	rc = webOfflineCreate(&data->config, WebDocumentKind_OfflineHtmlPage,
 						  0, doc_path);
