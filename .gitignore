@@ -1,6 +1,8 @@
-/switch-*-any.pkg.tar.zst
 node_modules
+.DS_Store
 .turbo
+
+/switch-*-any.pkg.tar.zst
 /packages/*/dist
 /packages/*/docs
 /lib/*/lib
@@ -11,7 +13,6 @@ node_modules
 /control
 
 /nxjs.*
-!/nxjs.jpg
 /build
 /romfs
 
