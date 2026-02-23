@@ -58,7 +58,7 @@ for improvements, please open an issue or submit a pull request in the
    installed
 1. Install required packages from the official registry:
    ```bash
-   sudo dkp-pacman -S switch-dev switch-freetype switch-libjpeg-turbo switch-libpng switch-libwebp switch-libzstd switch-mbedtls
+   sudo dkp-pacman -S switch-dev switch-freetype switch-libjpeg-turbo switch-libpng switch-harfbuzz switch-libwebp switch-libzstd switch-mbedtls
    ```
 1. Install additional packages which are not in the official registry (cairo,
    pixman, wasm3, harfbuzz, quickjs-ng):
