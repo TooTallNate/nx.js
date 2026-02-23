@@ -2651,22 +2651,6 @@ static JSValue nx_canvas_gradient_new_radial(JSContext *ctx,
 	return obj;
 }
 
-static JSValue nx_canvas_gradient_add_color_stop(JSContext *ctx,
-												 JSValueConst this_val,
-												 int argc,
-												 JSValueConst *argv) {
-	cairo_pattern_t *pattern =
-		JS_GetOpaque2(ctx, this_val, nx_canvas_gradient_class_id);
-	if (!pattern)
-		return JS_EXCEPTION;
-	double args[5];
-	if (js_validate_doubles_args(ctx, argv, args, 5, 0))
-		return JS_EXCEPTION;
-	cairo_pattern_add_color_stop_rgba(pattern, args[0], args[1] / 255.,
-									  args[2] / 255., args[3] / 255., args[4]);
-	return JS_UNDEFINED;
-}
-
 static JSValue nx_canvas_gradient_add_color_stop_standalone(
 	JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv) {
 	cairo_pattern_t *pattern =

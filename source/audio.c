@@ -14,7 +14,10 @@
 
 #define STB_VORBIS_NO_STDIO
 #define STB_VORBIS_NO_PUSHDATA_API
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #include "vendor/stb_vorbis.c"
+#pragma GCC diagnostic pop
 
 #define AUDIO_SAMPLE_RATE 48000
 #define AUDIO_NUM_VOICES 24

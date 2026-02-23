@@ -392,10 +392,10 @@ void nx_crypto_encrypt_do(nx_work_t *req) {
 
 #if MBEDTLS_VERSION_MAJOR >= 3
 		ret = mbedtls_rsa_rsaes_oaep_encrypt(&rsa->rsa, mbedtls_ctr_drbg_random,
-			&oaep_ctr_drbg, (const char *)label, label_len, data->data_size, data->data, data->result);
+			&oaep_ctr_drbg, (const unsigned char *)label, label_len, data->data_size, data->data, data->result);
 #else
 		ret = mbedtls_rsa_rsaes_oaep_encrypt(&rsa->rsa, mbedtls_ctr_drbg_random,
-			&oaep_ctr_drbg, MBEDTLS_RSA_PUBLIC, (const char *)label, label_len, data->data_size, data->data, data->result);
+			&oaep_ctr_drbg, MBEDTLS_RSA_PUBLIC, (const unsigned char *)label, label_len, data->data_size, data->data, data->result);
 #endif
 
 		mbedtls_ctr_drbg_free(&oaep_ctr_drbg);
@@ -658,6 +658,9 @@ static JSValue nx_crypto_key_get_type(JSContext *ctx, JSValueConst this_val,
 		break;
 	case NX_CRYPTO_KEY_TYPE_SECRET:
 		type = "secret";
+		break;
+	default:
+		type = "unknown";
 		break;
 	}
 	return JS_NewString(ctx, type);
@@ -1470,10 +1473,10 @@ void nx_crypto_decrypt_do(nx_work_t *req) {
 		size_t olen = 0;
 #if MBEDTLS_VERSION_MAJOR >= 3
 		ret = mbedtls_rsa_rsaes_oaep_decrypt(&rsa->rsa, mbedtls_ctr_drbg_random,
-			&dec_ctr_drbg, (const char *)label, label_len, &olen, data->data, output, rsa_len);
+			&dec_ctr_drbg, (const unsigned char *)label, label_len, &olen, data->data, output, rsa_len);
 #else
 		ret = mbedtls_rsa_rsaes_oaep_decrypt(&rsa->rsa, mbedtls_ctr_drbg_random,
-			&dec_ctr_drbg, MBEDTLS_RSA_PRIVATE, (const char *)label, label_len, &olen, data->data, output, rsa_len);
+			&dec_ctr_drbg, MBEDTLS_RSA_PRIVATE, (const unsigned char *)label, label_len, &olen, data->data, output, rsa_len);
 #endif
 
 		mbedtls_ctr_drbg_free(&dec_ctr_drbg);
