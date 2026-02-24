@@ -233,7 +233,7 @@ static Result _start_htmldoc(nx_web_applet_t *data, const char *url,
 	if (*user_path == '/') user_path++;  // skip optional '/'
 
 	// Build ".htdocs/{user_path}"
-	size_t prefix_len = 7;  // ".htdocs/"
+	size_t prefix_len = 8;  // ".htdocs/"
 	size_t user_len = strlen(user_path);
 	char *doc_path = js_malloc(ctx, prefix_len + user_len + 1);
 	if (!doc_path) return MAKERESULT(Module_Libnx, LibnxError_OutOfMemory);
