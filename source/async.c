@@ -71,6 +71,7 @@ JSValue nx_queue_async(JSContext *ctx, nx_work_t *req, nx_work_cb work_cb,
 
 	// Add to linked list
 	nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
+	req->async_done_mutex = &nx_ctx->async_done_mutex;
 	pthread_mutex_lock(&nx_ctx->async_done_mutex);
 	req->next = nx_ctx->work_queue;
 	nx_ctx->work_queue = req;
