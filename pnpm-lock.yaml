@@ -688,6 +688,9 @@ importers:
       '@nx.js/patch-nacp':
         specifier: 2.0.0
         version: link:../patch-nacp
+      '@tootallnate/hacbrewpack':
+        specifier: ^0.0.1
+        version: 0.0.1
       '@tootallnate/nacp':
         specifier: ^0.2.0
         version: 0.2.0
@@ -700,9 +703,6 @@ importers:
       jimp:
         specifier: ^1.6.0
         version: 1.6.0
-      line-async-iterator:
-        specifier: ^5.0.1
-        version: 5.0.1
       terminal-image:
         specifier: ^3.0.0
         version: 3.1.1
@@ -4132,8 +4132,36 @@ packages:
     resolution: {integrity: sha512-OvjF+z51L3ov0OyAU0duzsYuvO01PH7x4t6DJx+guahgTnBHkhJdG7soQeTSFLWN3efnHyibZ4Z8l2EuWwJN3A==}
     dev: false
 
+  /@tootallnate/aes-xts@0.0.1:
+    resolution: {integrity: sha512-dajgTqbQ98Z24EfZknLE1U9EPexkpce315L9FMFKqcz2QZVzEaAJGjHjk4gtNmdWfJSinfYHM8J13SZI0f8edw==}
+    dev: false
+
+  /@tootallnate/cnmt@0.0.1:
+    resolution: {integrity: sha512-VCvNJE/jNUp2+numJ3r0i0uVL5p6EO5FV9iJZpLJqLY+VYnjAEuvb7MkMMcWLoBqpYYxfKakq1O7UkjJqiXnUg==}
+    dev: false
+
+  /@tootallnate/hacbrewpack@0.0.1:
+    resolution: {integrity: sha512-vsVc9iO+6vI81TjxEb35FdSaK2gaL++LjgipntfPaIiaM7S+Z5CloB45L+Ih5tMNrXHwRMj74BYpzepDI+xxiA==}
+    dependencies:
+      '@tootallnate/cnmt': 0.0.1
+      '@tootallnate/nca': 0.0.1
+      '@tootallnate/romfs': 0.1.1
+    dev: false
+
+  /@tootallnate/ivfc@0.0.1:
+    resolution: {integrity: sha512-ftsCuHRDLQVlCBg2pTAi8aY/vH8G2mB1tFb6urWJyTQ39CUFbwgYOCvCx2xX3rXaNLSqSamQyIpDibcn0D0H+Q==}
+    dev: false
+
   /@tootallnate/nacp@0.2.0:
     resolution: {integrity: sha512-DzETn6PBoezv3t6nIAQNTffSH6+NBdmlLYG7+eKzVGyuvH4KiZUr0/TqrH/Uv7jBO2Vl3xSaOMt6L61yLe0VNA==}
+    dev: false
+
+  /@tootallnate/nca@0.0.1:
+    resolution: {integrity: sha512-dMLMjfBd2puXmQU+SiSX4rcnc50RA05hxhRaKIwxOz3m82AA7pu10MYCJqnNCuxdTLdhRnKwaLAaA5oKVm3FLg==}
+    dependencies:
+      '@tootallnate/aes-xts': 0.0.1
+      '@tootallnate/cnmt': 0.0.1
+      '@tootallnate/ivfc': 0.0.1
     dev: false
 
   /@tootallnate/nro@0.1.2:
@@ -4148,6 +4176,10 @@ packages:
 
   /@tootallnate/romfs@0.1.0:
     resolution: {integrity: sha512-ZXEgARulK9g0wLgL2mrsxOyAfcI0pAVSi+0UUs1B3lfbBv7qaltMe37YTmn8Aa8BvJ/sc+XqTI5aA7U6NX/nRg==}
+    dev: false
+
+  /@tootallnate/romfs@0.1.1:
+    resolution: {integrity: sha512-dd0435f0hPfOV5KGKMxS0NAgruaukQ4MoOdLcZr36HQMNee23qVEsEiYZyxvJZ0ixwoXYMr65ZrzdFOjpNp29w==}
     dev: false
 
   /@types/bytes@3.1.5:
@@ -6131,10 +6163,6 @@ packages:
       lightningcss-win32-arm64-msvc: 1.30.2
       lightningcss-win32-x64-msvc: 1.30.2
     dev: true
-
-  /line-async-iterator@5.0.1:
-    resolution: {integrity: sha512-3WKSBtHP1AQ4lJ8JLfWyDz04F0Vbo6tfCtQ7fil/5R8UCjJ4zvWcCiqwx5XKFaoDb78utaOygRHVYL+aJFLlOQ==}
-    dev: false
 
   /linkify-it@5.0.0:
     resolution: {integrity: sha512-5aHCbzQRADcdP+ATqnDuhhJ/MRIqDkZX5pyjFHRRysS8vZ5AbqGEoFIb6pYHPZ+L/OC2Lc+xT8uHVVR5CAK/wQ==}
