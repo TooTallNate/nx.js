@@ -757,6 +757,8 @@ int main(int argc, char *argv[]) {
 	snprintf(version_str, 12, "%d.%d.%d", HOSVER_MAJOR(hos_version),
 			 HOSVER_MINOR(hos_version), HOSVER_MICRO(hos_version));
 	JS_SetPropertyStr(ctx, version_obj, "hos", JS_NewString(ctx, version_str));
+	JS_SetPropertyStr(ctx, version_obj, "libnx",
+					  JS_NewString(ctx, LIBNX_VERSION));
 	JS_SetPropertyStr(ctx, version_obj, "mbedtls",
 					  JS_NewString(ctx, MBEDTLS_VERSION_STRING));
 	JS_SetPropertyStr(ctx, version_obj, "nxjs",

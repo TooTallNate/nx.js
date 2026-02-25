@@ -35,6 +35,8 @@ APP_TITLE   :=  nx.js
 APP_TITLEID :=  016e782e6a730000 # 6e782e6a73 is "nx.js" in hex 😉
 APP_AUTHOR  :=  TooTallNate
 APP_VERSION :=  `jq -r .version < ../packages/runtime/package.json`
+LIBNX_VERSION := $(shell $(DEVKITPRO)/pacman/bin/pacman -Q libnx 2>/dev/null | cut -d' ' -f2 | cut -d'-' -f1)
+LIBTURBOJPEG_VERSION := $(shell $(DEVKITPRO)/pacman/bin/pacman -Q switch-libjpeg-turbo 2>/dev/null | cut -d' ' -f2 | cut -d'-' -f1)
 
 TARGET		:=	nxjs
 BUILD		:=	build
@@ -51,7 +53,9 @@ CONFIG_JSON	:=	npdm.json
 ARCH	:=	-march=armv8-a+crc+crypto -mtune=cortex-a57 -mtp=soft -fPIE
 
 CFLAGS	:=	-g -Wall -O2 -ffunction-sections \
-			$(ARCH) $(DEFINES) -DNXJS_VERSION="\"${APP_VERSION}\""
+			$(ARCH) $(DEFINES) -DNXJS_VERSION="\"${APP_VERSION}\"" \
+			-DLIBNX_VERSION="\"$(LIBNX_VERSION)\"" \
+			-DLIBTURBOJPEG_VERSION="\"$(LIBTURBOJPEG_VERSION)\""
 
 CFLAGS	+=	$(INCLUDE) -D__SWITCH__ `aarch64-none-elf-pkg-config freetype2 cairo --cflags`
 

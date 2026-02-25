@@ -1,27 +1,27 @@
 import { $ } from '../$';
 import { INTERNAL_SYMBOL } from '../internal';
-import { Env } from './env';
 import { Event } from '../polyfills/event';
-import { pathToString } from '../utils';
 import {
-	Socket,
-	connect as tcpConnect,
 	createServer,
 	parseAddress,
 	Server,
+	Socket,
+	connect as tcpConnect,
 } from '../tcp';
+import { pathToString } from '../utils';
+import { Env } from './env';
 
+export * from '../fs';
+export * from './album';
 export * from './dns';
 export * from './env';
-export * from '../fs';
+export * from './file-system';
 export * from './inspect';
-export * from './savedata';
+export * from './irsensor';
 export * from './nifm';
 export * from './ns';
-export * from './irsensor';
 export * from './profile';
-export * from './album';
-export * from './file-system';
+export * from './savedata';
 export * from './service';
 export { Socket, Server };
 export { WebApplet, type WebAppletOptions } from '../web-applet';
@@ -45,6 +45,8 @@ export interface Versions {
 	readonly freetype2: string;
 	readonly harfbuzz: string;
 	readonly hos: string;
+	readonly libnx: string;
+	readonly mbedtls: string;
 	readonly nxjs: string;
 	readonly png: string;
 	readonly quickjs: string;

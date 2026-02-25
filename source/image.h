@@ -3,8 +3,6 @@
 #include <png.h>
 #include <webp/decode.h>
 
-#define LIBTURBOJPEG_VERSION "2.1.2"
-
 enum ImageFormat { FORMAT_PNG, FORMAT_JPEG, FORMAT_WEBP, FORMAT_UNKNOWN };
 
 typedef struct {
