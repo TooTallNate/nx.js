@@ -1,5 +1,17 @@
 # @nx.js/runtime
 
+## 0.0.67
+
+### Patch Changes
+
+- feat: add `libnx` and `mbedtls` to `Switch.version`, and derive `libnx` and `turbojpeg` versions from devkitPro pacman at build time ([`b47f65c`](https://github.com/TooTallNate/nx.js/commit/b47f65cc33729f0dd6d4e61b5e6b93c0108b3f19))
+
+- Update libnx in CI for firmware 21.0.0+ compat fix ([`815d3c2`](https://github.com/TooTallNate/nx.js/commit/815d3c2839a7e6649103474cf0254294695b1810))
+
+- fix: initialize `async_done_mutex` pointer on async work request before dispatching to thread pool ([`5e405d7`](https://github.com/TooTallNate/nx.js/commit/5e405d74e75425b249ea1fb382c4f6e6c25e2bcc))
+
+- fix: correct off-by-one in `.htdocs/` prefix length for web applet document path ([`4fd9787`](https://github.com/TooTallNate/nx.js/commit/4fd978798b48debc5e0a28a80ae3629601c737da))
+
 ## 0.0.66
 
 ### Patch Changes

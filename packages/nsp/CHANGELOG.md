@@ -1,5 +1,11 @@
 # @nx.js/nsp
 
+## 0.0.67
+
+### Patch Changes
+
+- refactor: use `@tootallnate/hacbrewpack` npm package instead of bundled emscripten WASM build ([`056a075`](https://github.com/TooTallNate/nx.js/commit/056a07507715fccb0e99050157a347083904fa8b))
+
 ## 0.0.66
 
 ### Patch Changes
