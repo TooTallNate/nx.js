@@ -26,14 +26,10 @@ applet.addEventListener('message', (e: any) => {
 				const entries = Switch.readDirSync(msg.data.path);
 				response = entries.map((name: string) => {
 					const fullPath =
-						msg.data.path +
-						(msg.data.path.endsWith('/') ? '' : '/') +
-						name;
+						msg.data.path + (msg.data.path.endsWith('/') ? '' : '/') + name;
 					try {
 						const stat = Switch.statSync(fullPath);
-						const isDir = stat
-							? (stat.mode & 0o170000) === 0o040000
-							: false;
+						const isDir = stat ? (stat.mode & 0o170000) === 0o040000 : false;
 						return {
 							name,
 							isDir,

@@ -159,7 +159,8 @@ export class OffscreenCanvasRenderingContext2D {
 	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/fillStyle
 	 */
 	get fillStyle(): string | CanvasGradient {
-		const fg = _(this).fillGradient; if (fg) return fg;
+		const fg = _(this).fillGradient;
+		if (fg) return fg;
 		return rgbaToString($.canvasContext2dGetFillStyle(this));
 	}
 	set fillStyle(v: string | CanvasGradient) {
@@ -183,7 +184,8 @@ export class OffscreenCanvasRenderingContext2D {
 	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/strokeStyle
 	 */
 	get strokeStyle(): string | CanvasGradient {
-		const sg = _(this).strokeGradient; if (sg) return sg;
+		const sg = _(this).strokeGradient;
+		if (sg) return sg;
 		return rgbaToString($.canvasContext2dGetStrokeStyle(this));
 	}
 	set strokeStyle(v: string | CanvasGradient) {

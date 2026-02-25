@@ -155,9 +155,7 @@ export class Audio extends EventTarget {
 	get currentTime(): number {
 		if (!this.#decoded) return 0;
 		if (this.#voiceId >= 0 && !this.#paused) {
-			const played = $.audioGetPlayedSamples(
-				this.#voiceId,
-			) as number;
+			const played = $.audioGetPlayedSamples(this.#voiceId) as number;
 			return (played + this.#sampleOffset) / this.#decoded.sampleRate;
 		}
 		return this.#sampleOffset / (this.#decoded?.sampleRate ?? 48000);
@@ -238,9 +236,7 @@ export class Audio extends EventTarget {
 		fetch(url)
 			.then((res) => {
 				if (!res.ok) {
-					throw new Error(
-						`Failed to load audio: ${res.status}`,
-					);
+					throw new Error(`Failed to load audio: ${res.status}`);
 				}
 				return res.arrayBuffer();
 			})
@@ -254,19 +250,14 @@ export class Audio extends EventTarget {
 					this.dispatchEvent(new Event('canplaythrough'));
 				},
 				(error) => {
-					this.dispatchEvent(
-						new ErrorEvent('error', { error }),
-					);
+					this.dispatchEvent(new ErrorEvent('error', { error }));
 				},
 			);
 	}
 
 	async play(): Promise<void> {
 		if (!this.#decoded) {
-			throw new DOMException(
-				'No audio source loaded',
-				'InvalidStateError',
-			);
+			throw new DOMException('No audio source loaded', 'InvalidStateError');
 		}
 
 		ensureAudioInit();

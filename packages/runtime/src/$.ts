@@ -448,7 +448,10 @@ export interface Init {
 	// audio.c
 	audioInit(): void;
 	audioExit(): void;
-	audioDecode(buffer: ArrayBuffer, mimeType: string): Promise<{
+	audioDecode(
+		buffer: ArrayBuffer,
+		mimeType: string,
+	): Promise<{
 		pcmData: ArrayBuffer;
 		sampleRate: number;
 		channels: number;

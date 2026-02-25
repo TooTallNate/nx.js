@@ -193,7 +193,10 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 
 		// Determine the key length in bits
 		let lengthBits: number;
-		if ('length' in dkt && typeof (dkt as { length?: unknown }).length === 'number') {
+		if (
+			'length' in dkt &&
+			typeof (dkt as { length?: unknown }).length === 'number'
+		) {
 			lengthBits = (dkt as AesDerivedKeyParams).length;
 		} else if (dkt.name === 'HMAC') {
 			const hmacDkt = dkt as HmacImportParams;
@@ -206,13 +209,7 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 		}
 
 		const bits = await this.deriveBits(algorithm, baseKey, lengthBits);
-		return this.importKey(
-			'raw',
-			bits,
-			dkt,
-			extractable,
-			keyUsages,
-		);
+		return this.importKey('raw', bits, dkt, extractable, keyUsages);
 	}
 
 	/**
@@ -340,9 +337,10 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 
 		if (algo.name === 'ECDSA' || algo.name === 'ECDH') {
 			const ecAlgo = algo as EcKeyGenParams;
-			const [pubRaw, privRaw] = $.cryptoGenerateKeyEc(
-				ecAlgo.namedCurve,
-			) as [ArrayBuffer, ArrayBuffer];
+			const [pubRaw, privRaw] = $.cryptoGenerateKeyEc(ecAlgo.namedCurve) as [
+				ArrayBuffer,
+				ArrayBuffer,
+			];
 
 			// Import public key
 			const publicKey = await this.importKey(
@@ -351,21 +349,16 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 				{ name: algo.name, namedCurve: ecAlgo.namedCurve } as any,
 				extractable as boolean,
 				algo.name === 'ECDSA'
-					? (keyUsages as KeyUsage[]).filter(
-							(u) => u === 'verify',
-						)
+					? (keyUsages as KeyUsage[]).filter((u) => u === 'verify')
 					: [],
 			);
 
 			// Create private key via native call
 			const privUsages =
 				algo.name === 'ECDSA'
-					? (keyUsages as KeyUsage[]).filter(
-							(u) => u === 'sign',
-						)
+					? (keyUsages as KeyUsage[]).filter((u) => u === 'sign')
 					: (keyUsages as KeyUsage[]).filter(
-							(u) =>
-								u === 'deriveBits' || u === 'deriveKey',
+							(u) => u === 'deriveBits' || u === 'deriveKey',
 						);
 			const privKeyRaw = $.cryptoKeyNewEcPrivate(
 				{ name: algo.name, namedCurve: ecAlgo.namedCurve },
@@ -389,15 +382,13 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 		) {
 			const rsaAlgo = algo as RsaHashedKeyGenParams;
 			const hashName =
-				typeof rsaAlgo.hash === 'string'
-					? rsaAlgo.hash
-					: rsaAlgo.hash.name;
+				typeof rsaAlgo.hash === 'string' ? rsaAlgo.hash : rsaAlgo.hash.name;
 			const pe = rsaAlgo.publicExponent;
 			const peNum =
 				pe instanceof Uint8Array
 					? pe.reduce((acc, b) => acc * 256 + b, 0)
 					: 65537;
-			if (peNum > 0xFFFFFFFF) {
+			if (peNum > 0xffffffff) {
 				throw new DOMException(
 					'publicExponent exceeds 32 bits',
 					'OperationError',
@@ -425,9 +416,7 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 						? (keyUsages as KeyUsage[]).filter(
 								(u) => u === 'encrypt' || u === 'wrapKey',
 							)
-						: (keyUsages as KeyUsage[]).filter(
-								(u) => u === 'verify',
-							),
+						: (keyUsages as KeyUsage[]).filter((u) => u === 'verify'),
 				),
 				CryptoKey,
 			);
@@ -445,12 +434,9 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 					extractable as boolean,
 					algo.name === 'RSA-OAEP'
 						? (keyUsages as KeyUsage[]).filter(
-								(u) =>
-									u === 'decrypt' || u === 'unwrapKey',
+								(u) => u === 'decrypt' || u === 'unwrapKey',
 							)
-						: (keyUsages as KeyUsage[]).filter(
-								(u) => u === 'sign',
-							),
+						: (keyUsages as KeyUsage[]).filter((u) => u === 'sign'),
 				),
 				CryptoKey,
 			);
@@ -621,12 +607,7 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 		signature: BufferSource,
 		data: BufferSource,
 	): Promise<boolean> {
-		return $.cryptoVerify(
-			normalizeAlgorithm(algorithm),
-			key,
-			signature,
-			data,
-		);
+		return $.cryptoVerify(normalizeAlgorithm(algorithm), key, signature, data);
 	}
 
 	async wrapKey(
@@ -655,9 +636,9 @@ function normalizeAlgorithm(algorithm: AlgorithmIdentifier): Algorithm {
 	return typeof algorithm === 'string' ? { name: algorithm } : algorithm;
 }
 
-function normalizeHashAlgorithm(
-	hash: HashAlgorithmIdentifier,
-): { name: string } {
+function normalizeHashAlgorithm(hash: HashAlgorithmIdentifier): {
+	name: string;
+} {
 	return typeof hash === 'string' ? { name: hash } : hash;
 }
 
@@ -690,7 +671,10 @@ function base64urlEncode(buf: ArrayBuffer): string {
 	for (let i = 0; i < bytes.length; i++) {
 		binary += String.fromCharCode(bytes[i]);
 	}
-	return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+	return btoa(binary)
+		.replace(/\+/g, '-')
+		.replace(/\//g, '_')
+		.replace(/=+$/, '');
 }
 
 function base64urlDecode(str: string): ArrayBuffer {
@@ -706,7 +690,11 @@ function base64urlDecode(str: string): ArrayBuffer {
 
 // --- JWK Export ---
 
-function getJwkAlg(algoName: string, hashName: string, keyLength?: number): string | undefined {
+function getJwkAlg(
+	algoName: string,
+	hashName: string,
+	keyLength?: number,
+): string | undefined {
 	if (algoName === 'RSA-OAEP') {
 		if (hashName === 'SHA-1') return 'RSA-OAEP';
 		if (hashName === 'SHA-256') return 'RSA-OAEP-256';
@@ -725,8 +713,13 @@ function getJwkAlg(algoName: string, hashName: string, keyLength?: number): stri
 		if (hashName === 'SHA-384') return 'PS384';
 		if (hashName === 'SHA-512') return 'PS512';
 	}
-	if (algoName === 'AES-CBC' || algoName === 'AES-GCM' || algoName === 'AES-CTR') {
-		const suffix = algoName === 'AES-CBC' ? 'CBC' : algoName === 'AES-GCM' ? 'GCM' : 'CTR';
+	if (
+		algoName === 'AES-CBC' ||
+		algoName === 'AES-GCM' ||
+		algoName === 'AES-CTR'
+	) {
+		const suffix =
+			algoName === 'AES-CBC' ? 'CBC' : algoName === 'AES-GCM' ? 'GCM' : 'CTR';
 		if (keyLength) return `A${keyLength}${suffix}`;
 	}
 	if (algoName === 'HMAC') {
@@ -794,7 +787,7 @@ async function exportKeyJwk(key: CryptoKey<never>): Promise<JsonWebKey> {
 		algoName === 'AES-CTR' ||
 		algoName === 'AES-GCM'
 	) {
-		const raw = await $.cryptoExportKey('raw', key) as ArrayBuffer;
+		const raw = (await $.cryptoExportKey('raw', key)) as ArrayBuffer;
 		return {
 			kty: 'oct',
 			k: base64urlEncode(raw),
@@ -805,7 +798,7 @@ async function exportKeyJwk(key: CryptoKey<never>): Promise<JsonWebKey> {
 	}
 
 	if (algoName === 'HMAC') {
-		const raw = await $.cryptoExportKey('raw', key) as ArrayBuffer;
+		const raw = (await $.cryptoExportKey('raw', key)) as ArrayBuffer;
 		const hashName = algo.hash?.name || 'SHA-256';
 		return {
 			kty: 'oct',
@@ -838,8 +831,7 @@ async function importKeyJwk(
 		algoName === 'RSASSA-PKCS1-v1_5'
 	) {
 		const hashAlgo = (algo as any).hash;
-		const hashName =
-			typeof hashAlgo === 'string' ? hashAlgo : hashAlgo.name;
+		const hashName = typeof hashAlgo === 'string' ? hashAlgo : hashAlgo.name;
 		const n = base64urlDecode(jwk.n!);
 		const e = base64urlDecode(jwk.e!);
 		const isPrivate = !!jwk.d;

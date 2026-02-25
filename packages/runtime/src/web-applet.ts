@@ -129,9 +129,7 @@ export class WebApplet extends EventTarget {
 		this.#pollInterval = setInterval(() => {
 			if (!this.#started) return;
 
-			const messages = $.webAppletPollMessages(
-				this.#native,
-			) as string[];
+			const messages = $.webAppletPollMessages(this.#native) as string[];
 			for (const msg of messages) {
 				this.dispatchEvent(new WebAppletMessageEvent(msg));
 			}

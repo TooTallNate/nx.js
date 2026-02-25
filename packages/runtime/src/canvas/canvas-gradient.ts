@@ -42,7 +42,14 @@ export class CanvasGradient {
 			);
 		}
 		const opaque = _(this).opaque;
-		$.canvasGradientAddColorStop(opaque, offset, parsed[0], parsed[1], parsed[2], parsed[3]);
+		$.canvasGradientAddColorStop(
+			opaque,
+			offset,
+			parsed[0],
+			parsed[1],
+			parsed[2],
+			parsed[3],
+		);
 	}
 
 	/**
