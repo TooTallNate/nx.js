@@ -59,16 +59,6 @@ static int _get_bool_opt(JSContext *ctx, JSValueConst opts, const char *name) {
 	return result;
 }
 
-// Helper: get an int property from the options object, returns -1 if not present
-static int _get_int_opt(JSContext *ctx, JSValueConst opts, const char *name) {
-	JSValue val = JS_GetPropertyStr(ctx, opts, name);
-	if (JS_IsUndefined(val)) return -1;
-	int32_t result;
-	JS_ToInt32(ctx, &result, val);
-	JS_FreeValue(ctx, val);
-	return result;
-}
-
 // Helper: get a double property from the options object, returns -1.0 if not present
 static double _get_float_opt(JSContext *ctx, JSValueConst opts, const char *name) {
 	JSValue val = JS_GetPropertyStr(ctx, opts, name);
