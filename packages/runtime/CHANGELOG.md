@@ -1,5 +1,11 @@
 # @nx.js/runtime
 
+## 0.0.68
+
+### Patch Changes
+
+- Implement `OffscreenCanvas` `width`/`height` setters per the HTML Canvas spec. ([#220](https://github.com/TooTallNate/nx.js/pull/220))
+
 ## 0.0.67
 
 ### Patch Changes
