@@ -21,7 +21,6 @@ static void nx_canvas_ensure_surface(JSContext *ctx,
 	nx_canvas_t *canvas = context->canvas;
 	if (!canvas->surface_dirty)
 		return;
-	canvas->surface_dirty = false;
 
 	// Free old resources. Order matters: cairo context references the surface,
 	// and the surface references the data buffer. Destroy in dependency order.
@@ -43,6 +42,7 @@ static void nx_canvas_ensure_surface(JSContext *ctx,
 	// Drawing on a 0-dimension canvas is a no-op per spec, and
 	// lazy init handles this naturally.
 	if (canvas->width == 0 || canvas->height == 0) {
+		canvas->surface_dirty = false;
 		// Still need to reset context state below, but no surface/buffer
 		goto reset_state;
 	}
@@ -51,6 +51,7 @@ static void nx_canvas_ensure_surface(JSContext *ctx,
 	// Also covers stride overflow (width * 4).
 	if (canvas->width > SIZE_MAX / 4 ||
 		(size_t)canvas->height > SIZE_MAX / ((size_t)canvas->width * 4)) {
+		// Leave surface_dirty=true so next resize attempt can retry
 		JS_ThrowRangeError(ctx, "Canvas dimensions too large");
 		return;
 	}
@@ -59,6 +60,7 @@ static void nx_canvas_ensure_surface(JSContext *ctx,
 	size_t buf_size = (size_t)canvas->width * canvas->height * 4;
 	uint8_t *buffer = js_mallocz(ctx, buf_size);
 	if (!buffer) {
+		// Leave surface_dirty=true so next resize attempt can retry
 		JS_ThrowOutOfMemory(ctx);
 		return;
 	}
@@ -67,7 +69,36 @@ static void nx_canvas_ensure_surface(JSContext *ctx,
 		buffer, CAIRO_FORMAT_ARGB32, canvas->width, canvas->height,
 		canvas->width * 4);
 
+	// Check for Cairo surface creation errors
+	cairo_status_t surface_status = cairo_surface_status(canvas->surface);
+	if (surface_status != CAIRO_STATUS_SUCCESS) {
+		JS_ThrowInternalError(ctx, "Failed to create Cairo surface: %s",
+			cairo_status_to_string(surface_status));
+		cairo_surface_destroy(canvas->surface);
+		canvas->surface = NULL;
+		js_free(ctx, canvas->data);
+		canvas->data = NULL;
+		return;
+	}
+
 	context->ctx = cairo_create(canvas->surface);
+
+	// Check for Cairo context creation errors
+	cairo_status_t ctx_status = cairo_status(context->ctx);
+	if (ctx_status != CAIRO_STATUS_SUCCESS) {
+		JS_ThrowInternalError(ctx, "Failed to create Cairo context: %s",
+			cairo_status_to_string(ctx_status));
+		cairo_destroy(context->ctx);
+		context->ctx = NULL;
+		cairo_surface_destroy(canvas->surface);
+		canvas->surface = NULL;
+		js_free(ctx, canvas->data);
+		canvas->data = NULL;
+		return;
+	}
+
+	// Surface successfully created — clear the dirty flag
+	canvas->surface_dirty = false;
 
 reset_state:
 	// Clear the current path
@@ -136,6 +167,14 @@ reset_state:
 		return JS_EXCEPTION;                                                   \
 	}                                                                          \
 	nx_canvas_ensure_surface(ctx, context);                                    \
+	if (!context->ctx) {                                                       \
+		/* ensure_surface failed (OOM/overflow/zero dims) — either an         \
+		 * exception was thrown or the canvas has zero dimensions.             \
+		 * For zero dims, drawing is a no-op per spec. */                     \
+		if (context->canvas->width == 0 || context->canvas->height == 0)       \
+			return JS_UNDEFINED;                                               \
+		return JS_EXCEPTION;                                                   \
+	}                                                                          \
 	cairo_t *cr = context->ctx;                                                \
 	(void)cr;
 
@@ -146,6 +185,11 @@ reset_state:
 		return JS_EXCEPTION;                                                   \
 	}                                                                          \
 	nx_canvas_ensure_surface(ctx, context);                                    \
+	if (!context->ctx) {                                                       \
+		if (context->canvas->width == 0 || context->canvas->height == 0)       \
+			return JS_UNDEFINED;                                               \
+		return JS_EXCEPTION;                                                   \
+	}                                                                          \
 	cairo_t *cr = context->ctx;                                                \
 	(void)cr;
 
