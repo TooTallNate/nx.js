@@ -276,12 +276,19 @@ static JSValue nx_wasm_global_value_set(JSContext *ctx, JSValueConst this_val,
 	return JS_UNDEFINED;
 }
 
+typedef struct {
+	JSContext *ctx;
+	JSValue func;
+} nx_wasm_imported_func_t;
+
 static JSClassID nx_wasm_instance_class_id;
 
 typedef struct {
 	IM3Runtime runtime;
 	IM3Module module;
 	bool loaded;
+	nx_wasm_imported_func_t **imported_funcs;
+	size_t num_imported_funcs;
 } nx_wasm_instance_t;
 
 // static nx_wasm_instance_t *nx_wasm_instance_get(JSContext *ctx, JSValueConst
@@ -293,20 +300,19 @@ typedef struct {
 static void finalizer_wasm_instance(JSRuntime *rt, JSValue val) {
 	nx_wasm_instance_t *i = JS_GetOpaque(val, nx_wasm_instance_class_id);
 	if (i) {
-		if (i->module) {
-			// Free JS references held by imported functions before the
-			// runtime/module is torn down.
-			for (size_t j = 0; j < i->module->numFunctions; j++) {
-				IM3Function f = &i->module->functions[j];
-				if (f->import.moduleUtf8 && f->import.fieldUtf8 &&
-					f->userdata) {
-					nx_wasm_imported_func_t *imported =
-						(nx_wasm_imported_func_t *)f->userdata;
+		// Free JS references held by imported functions before the
+		// runtime/module is torn down.
+		if (i->imported_funcs) {
+			for (size_t j = 0; j < i->num_imported_funcs; j++) {
+				nx_wasm_imported_func_t *imported = i->imported_funcs[j];
+				if (imported) {
 					JS_FreeValueRT(rt, imported->func);
 					js_free_rt(rt, imported);
-					f->userdata = NULL;
 				}
 			}
+			js_free_rt(rt, i->imported_funcs);
+		}
+		if (i->module) {
 			// Free the module, only if it wasn't previously loaded.
 			if (!i->loaded)
 				m3_FreeModule(i->module);
@@ -350,11 +356,6 @@ static JSValue nx_wasm_new_module(JSContext *ctx, JSValueConst this_val,
 
 	return obj;
 }
-
-typedef struct {
-	JSContext *ctx;
-	JSValue func;
-} nx_wasm_imported_func_t;
 
 m3ApiRawFunction(nx_wasm_imported_func) {
 	IM3Function func = _ctx->function;
@@ -539,8 +540,6 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val,
 				}
 				js->ctx = ctx;
 
-				// TODO: when do we de-dup this func? probably when the instance
-				// is being finalized?
 				js->func = JS_DupValue(ctx, v);
 				// js->func = v;
 
@@ -556,6 +555,22 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val,
 					JS_FreeValue(ctx, opaque);
 					return nx_throw_wasm_error(ctx, "LinkError", r);
 				}
+
+				// Track the imported func so it can be freed in the finalizer
+				nx_wasm_imported_func_t **new_arr = js_realloc(
+					ctx, instance->imported_funcs,
+					(instance->num_imported_funcs + 1) *
+						sizeof(nx_wasm_imported_func_t *));
+				if (!new_arr) {
+					JS_FreeValue(ctx, v);
+					JS_FreeValue(ctx, matching_import);
+					JS_FreeValue(ctx, exports_array);
+					JS_FreeValue(ctx, opaque);
+					JS_ThrowOutOfMemory(ctx);
+					return JS_EXCEPTION;
+				}
+				instance->imported_funcs = new_arr;
+				instance->imported_funcs[instance->num_imported_funcs++] = js;
 			}
 
 			JS_FreeValue(ctx, v);
