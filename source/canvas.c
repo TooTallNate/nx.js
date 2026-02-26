@@ -9,6 +9,7 @@
 #include "image.h"
 #include <math.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 /**
  * Lazily recreates the canvas surface and resets the 2D context state after
@@ -21,9 +22,29 @@ static void nx_canvas_ensure_surface(JSContext *ctx,
 	if (canvas->surface)
 		return;
 
+	// Handle zero-width/height dimensions: skip surface creation.
+	// Drawing on a 0-dimension canvas is a no-op per spec, and
+	// lazy init handles this naturally.
+	if (canvas->width == 0 || canvas->height == 0) {
+		// Still need to reset context state below, but no surface/buffer
+		goto reset_state;
+	}
+
+	// Overflow check for buffer size calculation (width * height * 4).
+	// Also covers stride overflow (width * 4).
+	if (canvas->width > SIZE_MAX / 4 ||
+		(size_t)canvas->height > SIZE_MAX / ((size_t)canvas->width * 4)) {
+		JS_ThrowRangeError(ctx, "Canvas dimensions too large");
+		return;
+	}
+
 	// Allocate new backing buffer (zeroed = transparent black)
-	size_t buf_size = canvas->width * canvas->height * 4;
+	size_t buf_size = (size_t)canvas->width * canvas->height * 4;
 	uint8_t *buffer = js_mallocz(ctx, buf_size);
+	if (!buffer) {
+		JS_ThrowOutOfMemory(ctx);
+		return;
+	}
 	canvas->data = buffer;
 	canvas->surface = cairo_image_surface_create_for_data(
 		buffer, CAIRO_FORMAT_ARGB32, canvas->width, canvas->height,
@@ -35,6 +56,7 @@ static void nx_canvas_ensure_surface(JSContext *ctx,
 	}
 	context->ctx = cairo_create(canvas->surface);
 
+reset_state:
 	// Clear the current path
 	if (context->path) {
 		cairo_path_destroy(context->path);
@@ -76,6 +98,8 @@ static void nx_canvas_ensure_surface(JSContext *ctx,
 	}
 	state->font = JS_UNDEFINED;
 	state->font_size = 10.;
+	state->ft_face = NULL;
+	state->hb_font = NULL;
 	state->fill = (nx_rgba_t){0., 0., 0., 1.};     // black
 	state->stroke = (nx_rgba_t){0., 0., 0., 1.};   // black
 	state->fill_source_type = SOURCE_RGBA;
@@ -86,8 +110,10 @@ static void nx_canvas_ensure_surface(JSContext *ctx,
 	state->text_align = TEXT_ALIGN_START;
 	state->text_baseline = TEXT_BASELINE_ALPHABETIC;
 
-	// Reset cairo state
-	cairo_set_line_width(context->ctx, 1.);
+	// Reset cairo state (only if we have a context)
+	if (context->ctx) {
+		cairo_set_line_width(context->ctx, 1.);
+	}
 }
 
 #define CANVAS_CONTEXT_ARGV0                                                   \
