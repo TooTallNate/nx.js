@@ -19,8 +19,25 @@
 static void nx_canvas_ensure_surface(JSContext *ctx,
 								 nx_canvas_context_2d_t *context) {
 	nx_canvas_t *canvas = context->canvas;
-	if (canvas->surface)
+	if (!canvas->surface_dirty)
 		return;
+	canvas->surface_dirty = false;
+
+	// Free old resources. Order matters: cairo context references the surface,
+	// and the surface references the data buffer. Destroy in dependency order.
+	if (context->ctx) {
+		cairo_destroy(context->ctx);
+		context->ctx = NULL;
+	}
+	if (canvas->surface) {
+		cairo_surface_finish(canvas->surface);
+		cairo_surface_destroy(canvas->surface);
+		canvas->surface = NULL;
+	}
+	if (canvas->data) {
+		js_free(ctx, canvas->data);
+		canvas->data = NULL;
+	}
 
 	// Handle zero-width/height dimensions: skip surface creation.
 	// Drawing on a 0-dimension canvas is a no-op per spec, and
@@ -50,10 +67,6 @@ static void nx_canvas_ensure_surface(JSContext *ctx,
 		buffer, CAIRO_FORMAT_ARGB32, canvas->width, canvas->height,
 		canvas->width * 4);
 
-	// Destroy old cairo context
-	if (context->ctx) {
-		cairo_destroy(context->ctx);
-	}
 	context->ctx = cairo_create(canvas->surface);
 
 reset_state:
@@ -211,6 +224,7 @@ static void restore_path(nx_canvas_context_2d_t *context) {
 	cairo_new_path(context->ctx);
 	cairo_append_path(context->ctx, context->path);
 	cairo_path_destroy(context->path);
+	context->path = NULL;
 }
 
 static void fill(nx_canvas_context_2d_t *context, bool preserve) {
@@ -1719,16 +1733,12 @@ static JSValue nx_canvas_set_width(JSContext *ctx, JSValueConst this_val,
 	uint32_t new_width;
 	if (JS_ToUint32(ctx, &new_width, argv[0]))
 		return JS_EXCEPTION;
-	// Per spec, setting width always resets the canvas, even to the same value
+	// Per spec, setting width always resets the canvas, even to the same value.
+	// Don't free surface/data here — the cairo context (owned by
+	// canvas_context_2d) still references them. Let ensure_surface handle
+	// cleanup when the next drawing operation runs.
 	canvas->width = new_width;
-	if (canvas->surface) {
-		cairo_surface_destroy(canvas->surface);
-		canvas->surface = NULL;
-	}
-	if (canvas->data) {
-		js_free(ctx, canvas->data);
-		canvas->data = NULL;
-	}
+	canvas->surface_dirty = true;
 	return JS_UNDEFINED;
 }
 
@@ -1746,16 +1756,9 @@ static JSValue nx_canvas_set_height(JSContext *ctx, JSValueConst this_val,
 	uint32_t new_height;
 	if (JS_ToUint32(ctx, &new_height, argv[0]))
 		return JS_EXCEPTION;
-	// Per spec, setting height always resets the canvas, even to the same value
+	// Per spec, setting height always resets the canvas, even to the same value.
 	canvas->height = new_height;
-	if (canvas->surface) {
-		cairo_surface_destroy(canvas->surface);
-		canvas->surface = NULL;
-	}
-	if (canvas->data) {
-		js_free(ctx, canvas->data);
-		canvas->data = NULL;
-	}
+	canvas->surface_dirty = true;
 	return JS_UNDEFINED;
 }
 
