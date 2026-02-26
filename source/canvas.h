@@ -11,6 +11,7 @@ typedef struct {
 	uint32_t height;
 	uint8_t *data;
 	cairo_surface_t *surface;
+	bool surface_dirty; // set by width/height setters, cleared by ensure_surface
 } nx_canvas_t;
 
 nx_canvas_t *nx_get_canvas(JSContext *ctx, JSValueConst obj);

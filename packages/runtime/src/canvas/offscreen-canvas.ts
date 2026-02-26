@@ -1,10 +1,10 @@
 import { $ } from '../$';
-import { Blob } from '../polyfills/blob';
+import { INTERNAL_SYMBOL } from '../internal';
+import type { Blob } from '../polyfills/blob';
 import { EventTarget } from '../polyfills/event-target';
+import type { ImageEncodeOptions } from '../types';
 import { createInternal, def, proto } from '../utils';
 import { OffscreenCanvasRenderingContext2D } from './offscreen-canvas-rendering-context-2d';
-import type { ImageEncodeOptions } from '../types';
-import { INTERNAL_SYMBOL } from '../internal';
 
 interface OffscreenCanvasInternal {
 	context2d?: OffscreenCanvasRenderingContext2D;
@@ -57,7 +57,7 @@ export class OffscreenCanvas
 				`OffscreenCanvas.getContext: '${contextId}' (value of argument 1) is not a valid value for enumeration OffscreenRenderingContextId.`,
 			);
 		}
-		let i = _(this);
+		const i = _(this);
 		if (!i.context2d) {
 			i.context2d = new OffscreenCanvasRenderingContext2D(
 				// @ts-expect-error

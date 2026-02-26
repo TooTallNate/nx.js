@@ -7,7 +7,7 @@ include(FetchContent)
 FetchContent_Declare(
   quickjs
   GIT_REPOSITORY https://github.com/quickjs-ng/quickjs.git
-  GIT_TAG        v0.10.1
+  GIT_TAG        v0.12.1
 )
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 set(QJS_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
