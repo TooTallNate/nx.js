@@ -878,10 +878,10 @@ static JSValue nx_canvas_context_2d_round_rect(JSContext *ctx,
 			upperLeft.x *= scale;
 			upperLeft.y *= scale;
 			upperRight.x *= scale;
-			upperRight.x *= scale;
+			upperRight.y *= scale;
+			lowerLeft.x *= scale;
 			lowerLeft.y *= scale;
-			lowerLeft.y *= scale;
-			lowerRight.y *= scale;
+			lowerRight.x *= scale;
 			lowerRight.y *= scale;
 		}
 	}
@@ -946,6 +946,8 @@ static JSValue nx_canvas_context_2d_set_font(JSContext *ctx,
 		return JS_EXCEPTION;
 
 	context->state->font_size = font_size;
+	if (context->state->font_string)
+		free((void *)context->state->font_string);
 	context->state->font_string = strdup(font_string);
 	context->state->ft_face = face->ft_face;
 	context->state->hb_font = face->hb_font;
@@ -1709,7 +1711,8 @@ static void finalizer_canvas_context_2d(JSRuntime *rt, JSValue val) {
 	nx_canvas_context_2d_t *context =
 		JS_GetOpaque(val, nx_canvas_context_class_id);
 	if (context) {
-		cairo_destroy(context->ctx);
+		if (context->ctx)
+			cairo_destroy(context->ctx);
 		finalizer_canvas_context_2d_state(rt, context->state);
 		js_free_rt(rt, context);
 	}
