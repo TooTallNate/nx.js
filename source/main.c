@@ -52,6 +52,8 @@ static PrintConsole *print_console = NULL;
 static NWindow *win = NULL;
 static Framebuffer *framebuffer = NULL;
 static uint8_t *js_framebuffer = NULL;
+static u32 js_fb_width = 0;
+static u32 js_fb_height = 0;
 
 void nx_console_init(nx_context_t *nx_ctx) {
 	nx_ctx->rendering_mode = NX_RENDERING_MODE_CONSOLE;
@@ -86,6 +88,8 @@ static JSValue nx_framebuffer_init(JSContext *ctx, JSValueConst this_val,
 	width = canvas->width;
 	height = canvas->height;
 	js_framebuffer = canvas->data;
+	js_fb_width = width;
+	js_fb_height = height;
 	framebuffer = malloc(sizeof(Framebuffer));
 	framebufferCreate(framebuffer, win, width, height, PIXEL_FORMAT_BGRA_8888,
 					  2);
@@ -563,7 +567,7 @@ void nx_render_loading_image(nx_context_t *nx_ctx, const char *nro_path) {
 
 		u32 stride;
 		u8 *framebuf = (u8 *)framebufferBegin(framebuffer, &stride);
-		memcpy(framebuf, js_framebuffer, 1280 * 720 * 4);
+		memcpy(framebuf, js_framebuffer, width * height * 4);
 		framebufferEnd(framebuffer);
 
 		free(js_framebuffer);
@@ -909,7 +913,7 @@ main_loop:
 			// Copy the JS framebuffer to the current Switch buffer
 			u32 stride;
 			u8 *framebuf = (u8 *)framebufferBegin(framebuffer, &stride);
-			memcpy(framebuf, js_framebuffer, 1280 * 720 * 4);
+			memcpy(framebuf, js_framebuffer, js_fb_width * js_fb_height * 4);
 			framebufferEnd(framebuffer);
 		}
 	}
