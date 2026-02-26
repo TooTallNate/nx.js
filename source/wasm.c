@@ -294,6 +294,19 @@ static void finalizer_wasm_instance(JSRuntime *rt, JSValue val) {
 	nx_wasm_instance_t *i = JS_GetOpaque(val, nx_wasm_instance_class_id);
 	if (i) {
 		if (i->module) {
+			// Free JS references held by imported functions before the
+			// runtime/module is torn down.
+			for (size_t j = 0; j < i->module->numFunctions; j++) {
+				IM3Function f = &i->module->functions[j];
+				if (f->import.moduleUtf8 && f->import.fieldUtf8 &&
+					f->userdata) {
+					nx_wasm_imported_func_t *imported =
+						(nx_wasm_imported_func_t *)f->userdata;
+					JS_FreeValueRT(rt, imported->func);
+					js_free_rt(rt, imported);
+					f->userdata = NULL;
+				}
+			}
 			// Free the module, only if it wasn't previously loaded.
 			if (!i->loaded)
 				m3_FreeModule(i->module);
@@ -387,16 +400,18 @@ static JSValue find_matching_import(JSContext *ctx, M3ImportInfo *info,
 	for (size_t i = 0; i < imports_array_length; i++) {
 		JSValue entry = JS_GetPropertyUint32(ctx, imports_array, i);
 
-		const char *module_name =
-			JS_ToCString(ctx, JS_GetPropertyStr(ctx, entry, "module"));
+		JSValue module_val = JS_GetPropertyStr(ctx, entry, "module");
+		const char *module_name = JS_ToCString(ctx, module_val);
+		JS_FreeValue(ctx, module_val);
 		if (strcmp(info->moduleUtf8, module_name) != 0) {
 			JS_FreeCString(ctx, module_name);
 			JS_FreeValue(ctx, entry);
 			continue;
 		}
 
-		const char *field_name =
-			JS_ToCString(ctx, JS_GetPropertyStr(ctx, entry, "name"));
+		JSValue name_val = JS_GetPropertyStr(ctx, entry, "name");
+		const char *field_name = JS_ToCString(ctx, name_val);
+		JS_FreeValue(ctx, name_val);
 		if (strcmp(info->fieldUtf8, field_name) != 0) {
 			JS_FreeCString(ctx, module_name);
 			JS_FreeCString(ctx, field_name);
@@ -442,10 +457,14 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val,
 
 	JSValue imports_array = argv[1];
 	uint32_t imports_array_length;
-	if (JS_ToUint32(ctx, &imports_array_length,
-					JS_GetPropertyStr(ctx, imports_array, "length"))) {
+	JSValue imports_len_val =
+		JS_GetPropertyStr(ctx, imports_array, "length");
+	if (JS_ToUint32(ctx, &imports_array_length, imports_len_val)) {
+		JS_FreeValue(ctx, imports_len_val);
+		JS_FreeValue(ctx, opaque);
 		return JS_EXCEPTION;
 	}
+	JS_FreeValue(ctx, imports_len_val);
 
 	/* When the WASM module declares the memory as an import, we need to "map"
 	   the provided `WebAssembly.Memory` data into the runtime here, before
@@ -455,6 +474,7 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val,
 		JSValue matching_import = find_matching_import(
 			ctx, import, imports_array, imports_array_length);
 		if (JS_IsUndefined(matching_import)) {
+			JS_FreeValue(ctx, opaque);
 			JS_ThrowTypeError(ctx, "Missing import memory \"%s.%s\"",
 							  import->moduleUtf8, import->fieldUtf8);
 			return JS_EXCEPTION;
@@ -498,6 +518,8 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val,
 			JSValue matching_import = find_matching_import(
 				ctx, &f->import, imports_array, imports_array_length);
 			if (JS_IsUndefined(matching_import)) {
+				JS_FreeValue(ctx, exports_array);
+				JS_FreeValue(ctx, opaque);
 				JS_ThrowTypeError(ctx, "Missing import function \"%s.%s\"",
 								  f->import.moduleUtf8, f->import.fieldUtf8);
 				return JS_EXCEPTION;
@@ -510,6 +532,8 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val,
 				if (!js) {
 					JS_FreeValue(ctx, v);
 					JS_FreeValue(ctx, matching_import);
+					JS_FreeValue(ctx, exports_array);
+					JS_FreeValue(ctx, opaque);
 					JS_ThrowOutOfMemory(ctx);
 					return JS_EXCEPTION;
 				}
@@ -528,6 +552,8 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val,
 					JS_FreeValue(ctx, matching_import);
 					JS_FreeValue(ctx, js->func);
 					js_free(ctx, js);
+					JS_FreeValue(ctx, exports_array);
+					JS_FreeValue(ctx, opaque);
 					return nx_throw_wasm_error(ctx, "LinkError", r);
 				}
 			}
@@ -537,8 +563,11 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val,
 		} else if (f->export_name) {
 			// Exported `Function`
 			JSValue val = nx_wasm_exported_func_new(ctx, f);
-			if (JS_IsException(val))
+			if (JS_IsException(val)) {
+				JS_FreeValue(ctx, exports_array);
+				JS_FreeValue(ctx, opaque);
 				return JS_EXCEPTION;
+			}
 
 			JSValue item = JS_NewObject(ctx);
 			JS_DefinePropertyValueStr(ctx, item, "kind",
@@ -560,6 +589,8 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val,
 			JSValue matching_import = find_matching_import(
 				ctx, &g->import, imports_array, imports_array_length);
 			if (JS_IsUndefined(matching_import)) {
+				JS_FreeValue(ctx, exports_array);
+				JS_FreeValue(ctx, opaque);
 				JS_ThrowTypeError(ctx, "Missing import global \"%s.%s\"",
 								  g->import.moduleUtf8, g->import.fieldUtf8);
 				return JS_EXCEPTION;
@@ -579,6 +610,8 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val,
 			if (nx__wasm_towebassemblyvalue(ctx, initial_value, g->type,
 											&g->i32Value)) {
 				JS_FreeValue(ctx, initial_value);
+				JS_FreeValue(ctx, exports_array);
+				JS_FreeValue(ctx, opaque);
 				return JS_EXCEPTION;
 			}
 
@@ -587,10 +620,14 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val,
 			// Exported `Global`
 			JSValue op = nx_wasm_new_global(ctx, JS_UNDEFINED, 0, NULL);
 			if (JS_IsException(op)) {
+				JS_FreeValue(ctx, exports_array);
+				JS_FreeValue(ctx, opaque);
 				return JS_EXCEPTION;
 			}
 			nx_wasm_global_t *nx_g = nx_wasm_global_get(ctx, op);
 			if (!nx_g) {
+				JS_FreeValue(ctx, exports_array);
+				JS_FreeValue(ctx, opaque);
 				return JS_EXCEPTION;
 			}
 			nx_g->global = g;
@@ -611,8 +648,11 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val,
 	if (instance->module->memoryExportName) {
 		// Exported `Memory`
 		JSValue val = nx_wasm_memory_new_(ctx);
-		if (JS_IsException(val))
+		if (JS_IsException(val)) {
+			JS_FreeValue(ctx, exports_array);
+			JS_FreeValue(ctx, opaque);
 			return JS_EXCEPTION;
+		}
 
 		nx_wasm_memory_t *data = nx_wasm_memory_get(ctx, val);
 		data->mem = &runtime->memory;
@@ -633,8 +673,11 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val,
 	if (instance->module->table0ExportName) {
 		// Exported `Table`
 		JSValue val = nx_wasm_table_new_(ctx);
-		if (JS_IsException(val))
+		if (JS_IsException(val)) {
+			JS_FreeValue(ctx, exports_array);
+			JS_FreeValue(ctx, opaque);
 			return JS_EXCEPTION;
+		}
 
 		nx_wasm_table_t *data = nx_wasm_table_get(ctx, val);
 		data->table = instance->module->table0;
