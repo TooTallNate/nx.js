@@ -10,12 +10,93 @@
 #include <math.h>
 #include <stdbool.h>
 
+/**
+ * Lazily recreates the canvas surface and resets the 2D context state after
+ * the canvas has been resized. Per the HTML spec, setting width or height
+ * must reset the rendering context to its default state.
+ */
+static void nx_canvas_ensure_surface(JSContext *ctx,
+								 nx_canvas_context_2d_t *context) {
+	nx_canvas_t *canvas = context->canvas;
+	if (canvas->surface)
+		return;
+
+	// Allocate new backing buffer (zeroed = transparent black)
+	size_t buf_size = canvas->width * canvas->height * 4;
+	uint8_t *buffer = js_mallocz(ctx, buf_size);
+	canvas->data = buffer;
+	canvas->surface = cairo_image_surface_create_for_data(
+		buffer, CAIRO_FORMAT_ARGB32, canvas->width, canvas->height,
+		canvas->width * 4);
+
+	// Destroy old cairo context
+	if (context->ctx) {
+		cairo_destroy(context->ctx);
+	}
+	context->ctx = cairo_create(canvas->surface);
+
+	// Clear the current path
+	if (context->path) {
+		cairo_path_destroy(context->path);
+		context->path = NULL;
+	}
+
+	// Free the drawing state stack (keep only the top-level state)
+	nx_canvas_context_2d_state_t *state = context->state;
+	if (state->next) {
+		// Can't use the recursive finalizer since it uses `js_free_rt`,
+		// but we have a JSContext here. Free the chain manually.
+		nx_canvas_context_2d_state_t *s = state->next;
+		while (s) {
+			nx_canvas_context_2d_state_t *next = s->next;
+			if (s->font_string)
+				free((void *)s->font_string);
+			if (s->fill_gradient)
+				cairo_pattern_destroy(s->fill_gradient);
+			if (s->stroke_gradient)
+				cairo_pattern_destroy(s->stroke_gradient);
+			js_free(ctx, s);
+			s = next;
+		}
+		state->next = NULL;
+	}
+
+	// Reset the drawing state to defaults (per HTML canvas spec)
+	if (state->font_string) {
+		free((void *)state->font_string);
+		state->font_string = NULL;
+	}
+	if (state->fill_gradient) {
+		cairo_pattern_destroy(state->fill_gradient);
+		state->fill_gradient = NULL;
+	}
+	if (state->stroke_gradient) {
+		cairo_pattern_destroy(state->stroke_gradient);
+		state->stroke_gradient = NULL;
+	}
+	state->font = JS_UNDEFINED;
+	state->font_size = 10.;
+	state->fill = (nx_rgba_t){0., 0., 0., 1.};     // black
+	state->stroke = (nx_rgba_t){0., 0., 0., 1.};   // black
+	state->fill_source_type = SOURCE_RGBA;
+	state->stroke_source_type = SOURCE_RGBA;
+	state->global_alpha = 1.;
+	state->image_smoothing_quality = CAIRO_FILTER_FAST;
+	state->image_smoothing_enabled = true;
+	state->text_align = TEXT_ALIGN_START;
+	state->text_baseline = TEXT_BASELINE_ALPHABETIC;
+
+	// Reset cairo state
+	cairo_set_line_width(context->ctx, 1.);
+}
+
 #define CANVAS_CONTEXT_ARGV0                                                   \
 	nx_canvas_context_2d_t *context =                                          \
 		JS_GetOpaque2(ctx, argv[0], nx_canvas_context_class_id);               \
 	if (!context) {                                                            \
 		return JS_EXCEPTION;                                                   \
 	}                                                                          \
+	nx_canvas_ensure_surface(ctx, context);                                    \
 	cairo_t *cr = context->ctx;                                                \
 	(void)cr;
 
@@ -25,6 +106,7 @@
 	if (!context) {                                                            \
 		return JS_EXCEPTION;                                                   \
 	}                                                                          \
+	nx_canvas_ensure_surface(ctx, context);                                    \
 	cairo_t *cr = context->ctx;                                                \
 	(void)cr;
 
@@ -1605,6 +1687,22 @@ static JSValue nx_canvas_get_width(JSContext *ctx, JSValueConst this_val,
 
 static JSValue nx_canvas_set_width(JSContext *ctx, JSValueConst this_val,
 								   int argc, JSValueConst *argv) {
+	nx_canvas_t *canvas = nx_get_canvas(ctx, this_val);
+	if (!canvas)
+		return JS_EXCEPTION;
+	uint32_t new_width;
+	if (JS_ToUint32(ctx, &new_width, argv[0]))
+		return JS_EXCEPTION;
+	// Per spec, setting width always resets the canvas, even to the same value
+	canvas->width = new_width;
+	if (canvas->surface) {
+		cairo_surface_destroy(canvas->surface);
+		canvas->surface = NULL;
+	}
+	if (canvas->data) {
+		js_free(ctx, canvas->data);
+		canvas->data = NULL;
+	}
 	return JS_UNDEFINED;
 }
 
@@ -1616,6 +1714,22 @@ static JSValue nx_canvas_get_height(JSContext *ctx, JSValueConst this_val,
 
 static JSValue nx_canvas_set_height(JSContext *ctx, JSValueConst this_val,
 									int argc, JSValueConst *argv) {
+	nx_canvas_t *canvas = nx_get_canvas(ctx, this_val);
+	if (!canvas)
+		return JS_EXCEPTION;
+	uint32_t new_height;
+	if (JS_ToUint32(ctx, &new_height, argv[0]))
+		return JS_EXCEPTION;
+	// Per spec, setting height always resets the canvas, even to the same value
+	canvas->height = new_height;
+	if (canvas->surface) {
+		cairo_surface_destroy(canvas->surface);
+		canvas->surface = NULL;
+	}
+	if (canvas->data) {
+		js_free(ctx, canvas->data);
+		canvas->data = NULL;
+	}
 	return JS_UNDEFINED;
 }
 
