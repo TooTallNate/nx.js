@@ -1729,14 +1729,19 @@ nx_canvas_t *nx_get_canvas(JSContext *ctx, JSValueConst obj) {
 
 static JSValue nx_canvas_new(JSContext *ctx, JSValueConst this_val, int argc,
 							 JSValueConst *argv) {
-	int width;
-	int height;
-	if (JS_ToInt32(ctx, &width, argv[0]))
+	uint32_t width;
+	uint32_t height;
+	if (JS_ToUint32(ctx, &width, argv[0]))
 		return JS_EXCEPTION;
-	if (JS_ToInt32(ctx, &height, argv[1]))
+	if (JS_ToUint32(ctx, &height, argv[1]))
 		return JS_EXCEPTION;
 
-	size_t buf_size = width * height * 4;
+	if (width == 0 || height == 0 || width > SIZE_MAX / 4 ||
+		(size_t)height > SIZE_MAX / ((size_t)width * 4)) {
+		return JS_ThrowRangeError(ctx, "Canvas dimensions too large");
+	}
+
+	size_t buf_size = (size_t)width * height * 4;
 	uint8_t *buffer = js_mallocz(ctx, buf_size);
 	if (!buffer)
 		return JS_EXCEPTION;
