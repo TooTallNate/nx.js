@@ -3,7 +3,6 @@ import { assertInternalConstructor, createInternal, def, proto } from './utils';
 import { Blob } from './polyfills/blob';
 import { EventTarget } from './polyfills/event-target';
 import { INTERNAL_SYMBOL } from './internal';
-import { mimeToTypeCode, resolvedMimeType } from './canvas/encode';
 import { CanvasRenderingContext2D } from './canvas/canvas-rendering-context-2d';
 import { initTouchscreen } from './touchscreen';
 import type { TouchEvent } from './polyfills/event';
@@ -130,11 +129,13 @@ export class Screen extends EventTarget implements globalThis.Screen {
 		type = 'image/png',
 		quality = 0.92,
 	) {
-		const mime = resolvedMimeType(type);
-		const buf = $.canvasToBuffer(this, mimeToTypeCode(type), quality);
-		const blob = new Blob([buf], { type: mime });
-		// Per spec, callback is invoked asynchronously
-		queueMicrotask(() => callback(blob));
+		$.canvasToBuffer(this, type, quality).then((buf: ArrayBuffer) => {
+			const mime =
+				type === 'image/jpeg' || type === 'image/webp'
+					? type
+					: 'image/png';
+			callback(new Blob([buf], { type: mime }));
+		});
 	}
 
 	/**
@@ -156,14 +157,10 @@ export class Screen extends EventTarget implements globalThis.Screen {
 	 * @see https://developer.mozilla.org/docs/Web/API/HTMLCanvasElement/toDataURL
 	 */
 	toDataURL(type = 'image/png', quality = 0.92) {
-		const mime = resolvedMimeType(type);
-		const buf = $.canvasToBuffer(this, mimeToTypeCode(type), quality);
-		const bytes = new Uint8Array(buf);
-		let binary = '';
-		for (let i = 0; i < bytes.length; i++) {
-			binary += String.fromCharCode(bytes[i]);
-		}
-		return `data:${mime};base64,${btoa(binary)}`;
+		// Note: per spec toDataURL is synchronous on HTMLCanvasElement,
+		// but we return a Promise since encoding runs on the thread pool.
+		// TODO: Consider if this needs to be sync for compat.
+		return $.canvasToDataURL(this, type, quality);
 	}
 
 	// Compat with HTML DOM interface
