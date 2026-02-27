@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(nxjs-runtime-test C)
+project(nxjs-runtime-test C CXX)
 
 include(FetchContent)
 
@@ -15,10 +15,13 @@ FetchContent_MakeAvailable(quickjs)
 
 add_executable(nxjs-runtime-test
   src/main.c
+  src/url_copy.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../source/ada.cpp
 )
 
 target_include_directories(nxjs-runtime-test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/src
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../source
 )
 
 target_link_libraries(nxjs-runtime-test PRIVATE

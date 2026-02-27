@@ -12,6 +12,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+/* nx_init_url from url_copy.c */
+void nx_init_url(JSContext *ctx, JSValueConst this_val);
 
 static char *read_file(const char *path, size_t *out_len) {
 	FILE *f = fopen(path, "rb");
@@ -181,6 +183,7 @@ int main(int argc, char *argv[]) {
 			JS_NewCFunction(ctx, js_print, "print", 1));
 		JS_SetPropertyStr(ctx, dollar, "printErr",
 			JS_NewCFunction(ctx, js_print_err, "printErr", 1));
+		nx_init_url(ctx, dollar);
 		JS_SetPropertyStr(ctx, global, "$", dollar);
 	}
 	JS_FreeValue(ctx, global);
