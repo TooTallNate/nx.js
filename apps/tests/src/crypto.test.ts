@@ -349,6 +349,127 @@ test("`crypto.subtle.decrypt()` with 'AES-CTR' algorithm, 128-bit key", async ()
 
 // #endregion
 
+// #region Concurrent operations (thread-safety)
+
+test("concurrent `crypto.subtle.encrypt()` with same AES-CBC 128-bit key", async () => {
+	const keyData = new Uint8Array([
+		188, 136, 184, 200, 227, 200, 149, 203, 33, 186, 60, 145, 54, 19, 92, 88,
+	]);
+
+	const key = await crypto.subtle.importKey('raw', keyData, 'AES-CBC', false, [
+		'encrypt',
+	]);
+
+	// Different IVs for each concurrent operation
+	const ivs = [
+		new Uint8Array([38, 89, 172, 231, 98, 165, 172, 212, 137, 184, 41, 162, 105, 26, 119, 158]),
+		new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]),
+		new Uint8Array([16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]),
+		new Uint8Array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
+	];
+
+	const plaintext = new TextEncoder().encode('hello');
+
+	// Fire all encryptions concurrently with the same key but different IVs
+	const results = await Promise.all(
+		ivs.map((iv) =>
+			crypto.subtle.encrypt({ name: 'AES-CBC', iv }, key, plaintext),
+		),
+	);
+
+	// Each result should be a valid ArrayBuffer
+	for (const result of results) {
+		assert.instance(result, ArrayBuffer);
+		assert.equal(result.byteLength, 16); // one AES block with PKCS#7 padding
+	}
+
+	// All results should be different (different IVs = different ciphertexts)
+	const hexResults = results.map((r) => toHex(r));
+	const unique = new Set(hexResults);
+	assert.equal(unique.size, ivs.length, 'Each IV should produce a unique ciphertext');
+
+	// First IV matches the known value from the non-concurrent test
+	assert.equal(hexResults[0], '4b4fddd4b88f2e6a36500f89aa177d0d');
+});
+
+test("concurrent `crypto.subtle.decrypt()` with same AES-CBC 128-bit key", async () => {
+	const keyData = new Uint8Array([
+		188, 136, 184, 200, 227, 200, 149, 203, 33, 186, 60, 145, 54, 19, 92, 88,
+	]);
+
+	const key = await crypto.subtle.importKey('raw', keyData, 'AES-CBC', false, [
+		'encrypt', 'decrypt',
+	]);
+
+	const iv = new Uint8Array([
+		38, 89, 172, 231, 98, 165, 172, 212, 137, 184, 41, 162, 105, 26, 119, 158,
+	]);
+
+	// Encrypt the same plaintext multiple times with different data
+	const plaintexts = ['hello', 'world', 'foo!!', 'bar!!'];
+	const ciphertexts = await Promise.all(
+		plaintexts.map((p) =>
+			crypto.subtle.encrypt(
+				{ name: 'AES-CBC', iv },
+				key,
+				new TextEncoder().encode(p),
+			),
+		),
+	);
+
+	// Now decrypt all concurrently
+	const decrypted = await Promise.all(
+		ciphertexts.map((ct) =>
+			crypto.subtle.decrypt({ name: 'AES-CBC', iv }, key, ct),
+		),
+	);
+
+	for (let i = 0; i < plaintexts.length; i++) {
+		assert.equal(
+			new TextDecoder().decode(new Uint8Array(decrypted[i])),
+			plaintexts[i],
+		);
+	}
+});
+
+test("concurrent `crypto.subtle.encrypt()` with same AES-CTR 128-bit key", async () => {
+	const keyData = new Uint8Array([
+		188, 136, 184, 200, 227, 200, 149, 203, 33, 186, 60, 145, 54, 19, 92, 88,
+	]);
+
+	const key = await crypto.subtle.importKey('raw', keyData, 'AES-CTR', false, [
+		'encrypt',
+	]);
+
+	const counters = [
+		new Uint8Array([38, 89, 172, 231, 98, 165, 172, 212, 137, 184, 41, 162, 105, 26, 119, 158]),
+		new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]),
+		new Uint8Array([16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]),
+		new Uint8Array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
+	];
+
+	const plaintext = new TextEncoder().encode('hello');
+
+	const results = await Promise.all(
+		counters.map((counter) =>
+			crypto.subtle.encrypt(
+				{ name: 'AES-CTR', counter, length: 64 },
+				key,
+				plaintext,
+			),
+		),
+	);
+
+	const hexResults = results.map((r) => toHex(r));
+	const unique = new Set(hexResults);
+	assert.equal(unique.size, counters.length, 'Each counter should produce a unique ciphertext');
+
+	// First counter matches the known value
+	assert.equal(hexResults[0], '3476c80fdb');
+});
+
+// #endregion
+
 // #region nx.js specific APIs
 
 // Non-standard APIs that are only going to work on nx.js
