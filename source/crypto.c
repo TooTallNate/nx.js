@@ -3583,6 +3583,9 @@ static JSValue nx_base64url_encode(JSContext *ctx, JSValueConst this_val,
 	if (!input)
 		return JS_EXCEPTION;
 
+	if (input_len == 0)
+		return JS_NewString(ctx, "");
+
 	// First pass: get required buffer size for standard base64
 	size_t b64_len = 0;
 	int ret = mbedtls_base64_encode(NULL, 0, &b64_len, input, input_len);
@@ -3621,6 +3624,11 @@ static JSValue nx_base64url_decode(JSContext *ctx, JSValueConst this_val,
 	const char *input = JS_ToCStringLen(ctx, &input_len, argv[0]);
 	if (!input)
 		return JS_EXCEPTION;
+
+	if (input_len == 0) {
+		JS_FreeCString(ctx, input);
+		return JS_NewArrayBuffer(ctx, NULL, 0, NULL, NULL, false);
+	}
 
 	// Convert base64url to standard base64: - to +, _ to /, add padding
 	size_t padded_len = input_len;
