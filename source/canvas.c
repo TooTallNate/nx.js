@@ -1818,6 +1818,10 @@ static JSValue nx_canvas_set_height(JSContext *ctx, JSValueConst this_val,
 	return JS_UNDEFINED;
 }
 
+static JSValue nx_canvas_proto_to_data_url(JSContext *ctx,
+										   JSValueConst this_val, int argc,
+										   JSValueConst *argv);
+
 static JSValue nx_canvas_init_class(JSContext *ctx, JSValueConst this_val,
 									int argc, JSValueConst *argv) {
 	JSAtom atom;
