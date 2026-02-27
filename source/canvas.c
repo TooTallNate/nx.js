@@ -259,18 +259,28 @@ static void apply_shadow(nx_canvas_context_2d_t *context, shadow_draw_mode_t mod
 		cairo_append_path(cr, path);
 		cairo_path_destroy(path);
 	} else {
-		// No blur, just offset shadow
+		// No blur, just offset shadow.
+		// Cairo stores path in device coords at the time of path construction,
+		// so translating the CTM after the path is built does NOT move the path.
+		// We must reconstruct the path with the offset applied.
+		cairo_path_t *path = cairo_copy_path(cr);
 		cairo_save(cr);
 		cairo_translate(cr, state->shadow_offset_x, state->shadow_offset_y);
+		cairo_new_path(cr);
+		cairo_append_path(cr, path);
 		cairo_set_source_rgba(cr,
 			state->shadow_color.r, state->shadow_color.g,
 			state->shadow_color.b, state->shadow_color.a * state->global_alpha);
 		if (mode == SHADOW_DRAW_FILL) {
-			cairo_fill_preserve(cr);
+			cairo_fill(cr);
 		} else {
-			cairo_stroke_preserve(cr);
+			cairo_stroke(cr);
 		}
 		cairo_restore(cr);
+		// Restore original path
+		cairo_new_path(cr);
+		cairo_append_path(cr, path);
+		cairo_path_destroy(path);
 	}
 }
 
