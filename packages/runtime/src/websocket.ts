@@ -374,8 +374,8 @@ export class WebSocket extends EventTarget {
 					// Need more data
 					const { value, done } = await reader.read();
 					if (done) {
-						const state: number = this.#readyState;
-						if (state !== CLOSED) {
+						const state = this.#readyState as number;
+						if (state !== (CLOSED as number)) {
 							this.#readyState = CLOSED;
 							this.#fireEvent(
 								'close',
@@ -630,9 +630,9 @@ export class WebSocket extends EventTarget {
 			let bytes: Uint8Array;
 			if (ArrayBuffer.isView(data)) {
 				bytes = new Uint8Array(
-					data.buffer,
-					data.byteOffset,
-					data.byteLength,
+					(data as DataView).buffer,
+					(data as DataView).byteOffset,
+					(data as DataView).byteLength,
 				);
 			} else {
 				bytes = new Uint8Array(data);
