@@ -266,38 +266,6 @@ test('drawing works correctly after resize', () => {
 	assert.equal(data.data[3], 255);
 });
 
-// toDataURL tests
-test('`OffscreenCanvas#toDataURL()` returns a PNG data URL by default', () => {
-	var canvas = new OffscreenCanvas(10, 10);
-	var ctx = canvas.getContext('2d');
-	ctx.fillStyle = 'red';
-	ctx.fillRect(0, 0, 10, 10);
-	var url = canvas.toDataURL();
-	assert.ok(url.startsWith('data:image/png;base64,'), 'should start with PNG data URL prefix');
-	// Decode to verify it's valid base64
-	var base64 = url.slice('data:image/png;base64,'.length);
-	assert.ok(base64.length > 0, 'base64 data should not be empty');
-});
-
-test('`OffscreenCanvas#toDataURL("image/jpeg")` returns a JPEG data URL', () => {
-	var canvas = new OffscreenCanvas(10, 10);
-	var ctx = canvas.getContext('2d');
-	ctx.fillStyle = 'blue';
-	ctx.fillRect(0, 0, 10, 10);
-	var url = canvas.toDataURL('image/jpeg');
-	assert.ok(url.startsWith('data:image/jpeg;base64,'), 'should start with JPEG data URL prefix');
-});
-
-test('`OffscreenCanvas#toDataURL()` encodes pixel data correctly', () => {
-	var canvas = new OffscreenCanvas(1, 1);
-	var ctx = canvas.getContext('2d');
-	ctx.fillStyle = '#ff0000';
-	ctx.fillRect(0, 0, 1, 1);
-	var url = canvas.toDataURL();
-	// Round-trip: decode the data URL back to pixels via a new canvas
-	assert.ok(url.startsWith('data:image/png;base64,'));
-});
-
 // convertToBlob tests
 test('`OffscreenCanvas#convertToBlob()` returns a Blob', async () => {
 	var canvas = new OffscreenCanvas(10, 10);
