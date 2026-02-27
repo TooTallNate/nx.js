@@ -663,30 +663,7 @@ function getHashLength(hash: HashAlgorithmIdentifier): number {
 
 type HashAlgorithmIdentifier = AlgorithmIdentifier;
 
-// --- Base64url helpers ---
-
-function base64urlEncode(buf: ArrayBuffer): string {
-	const bytes = new Uint8Array(buf);
-	let binary = '';
-	for (let i = 0; i < bytes.length; i++) {
-		binary += String.fromCharCode(bytes[i]);
-	}
-	return btoa(binary)
-		.replace(/\+/g, '-')
-		.replace(/\//g, '_')
-		.replace(/=+$/, '');
-}
-
-function base64urlDecode(str: string): ArrayBuffer {
-	let s = str.replace(/-/g, '+').replace(/_/g, '/');
-	while (s.length % 4) s += '=';
-	const binary = atob(s);
-	const bytes = new Uint8Array(binary.length);
-	for (let i = 0; i < binary.length; i++) {
-		bytes[i] = binary.charCodeAt(i);
-	}
-	return bytes.buffer;
-}
+const { base64urlEncode, base64urlDecode } = $;
 
 // --- JWK Export ---
 
