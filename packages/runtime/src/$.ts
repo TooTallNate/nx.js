@@ -131,6 +131,13 @@ export interface Init {
 		ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
 		gradient: CanvasGradientOpaque,
 	): void;
+	canvasContext2dGetShadowColor(
+		ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
+	): RGBA;
+	canvasContext2dSetShadowColor(
+		ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
+		...rgba: RGBA
+	): void;
 	canvasGradientNewLinear(
 		x0: number,
 		y0: number,
