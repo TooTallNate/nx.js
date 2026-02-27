@@ -10,6 +10,8 @@
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <turbojpeg.h>
+#include <webp/encode.h>
 
 /**
  * Lazily recreates the canvas surface and resets the 2D context state after
@@ -3059,7 +3061,138 @@ static cairo_status_t png_write_callback(void *closure,
 }
 
 /**
- * canvasToBuffer(canvas) -> ArrayBuffer containing PNG data
+ * Encode cairo surface as PNG into an ArrayBuffer.
+ */
+static JSValue encode_png(JSContext *ctx, cairo_surface_t *surface) {
+	png_write_buffer_t buf = {NULL, 0, 4096};
+	buf.data = malloc(buf.capacity);
+	if (!buf.data) {
+		return JS_ThrowOutOfMemory(ctx);
+	}
+	cairo_status_t status =
+		cairo_surface_write_to_png_stream(surface, png_write_callback, &buf);
+	if (status != CAIRO_STATUS_SUCCESS) {
+		free(buf.data);
+		return JS_ThrowInternalError(ctx, "Failed to encode PNG: %s",
+									 cairo_status_to_string(status));
+	}
+	JSValue ab = JS_NewArrayBufferCopy(ctx, buf.data, buf.size);
+	free(buf.data);
+	return ab;
+}
+
+/**
+ * Convert BGRA (cairo ARGB32 on little-endian) to RGB, removing alpha
+ * by compositing against white background.
+ */
+static uint8_t *bgra_to_rgb(const uint8_t *bgra, int width, int height,
+							 int stride) {
+	uint8_t *rgb = malloc(width * height * 3);
+	if (!rgb)
+		return NULL;
+	for (int y = 0; y < height; y++) {
+		const uint8_t *row = bgra + y * stride;
+		for (int x = 0; x < width; x++) {
+			uint8_t b = row[x * 4 + 0];
+			uint8_t g = row[x * 4 + 1];
+			uint8_t r = row[x * 4 + 2];
+			uint8_t a = row[x * 4 + 3];
+			// Composite over white (premultiplied alpha in cairo)
+			if (a == 0) {
+				rgb[(y * width + x) * 3 + 0] = 255;
+				rgb[(y * width + x) * 3 + 1] = 255;
+				rgb[(y * width + x) * 3 + 2] = 255;
+			} else if (a == 255) {
+				rgb[(y * width + x) * 3 + 0] = r;
+				rgb[(y * width + x) * 3 + 1] = g;
+				rgb[(y * width + x) * 3 + 2] = b;
+			} else {
+				// cairo uses premultiplied alpha: composite over white
+				// premultiplied: color_out = color_premul + (1 - alpha) * white
+				float inv_a = 1.0f - a / 255.0f;
+				rgb[(y * width + x) * 3 + 0] =
+					(uint8_t)(r + 255 * inv_a + 0.5f);
+				rgb[(y * width + x) * 3 + 1] =
+					(uint8_t)(g + 255 * inv_a + 0.5f);
+				rgb[(y * width + x) * 3 + 2] =
+					(uint8_t)(b + 255 * inv_a + 0.5f);
+			}
+		}
+	}
+	return rgb;
+}
+
+/**
+ * Encode cairo surface as JPEG into an ArrayBuffer.
+ */
+static JSValue encode_jpeg(JSContext *ctx, cairo_surface_t *surface,
+						   int quality) {
+	int width = cairo_image_surface_get_width(surface);
+	int height = cairo_image_surface_get_height(surface);
+	int stride = cairo_image_surface_get_stride(surface);
+	uint8_t *data = cairo_image_surface_get_data(surface);
+
+	// JPEG doesn't support alpha - composite over white
+	uint8_t *rgb = bgra_to_rgb(data, width, height, stride);
+	if (!rgb) {
+		return JS_ThrowOutOfMemory(ctx);
+	}
+
+	tjhandle handle = tjInitCompress();
+	if (!handle) {
+		free(rgb);
+		return JS_ThrowInternalError(ctx, "Failed to init JPEG compressor");
+	}
+
+	unsigned char *jpeg_buf = NULL;
+	unsigned long jpeg_size = 0;
+
+	int result = tjCompress2(handle, rgb, width, 0, height, TJPF_RGB,
+							 &jpeg_buf, &jpeg_size, TJSAMP_420, quality,
+							 TJFLAG_FASTDCT);
+	free(rgb);
+
+	if (result != 0) {
+		const char *err = tjGetErrorStr2(handle);
+		tjDestroy(handle);
+		return JS_ThrowInternalError(ctx, "Failed to encode JPEG: %s", err);
+	}
+
+	tjDestroy(handle);
+
+	JSValue ab = JS_NewArrayBufferCopy(ctx, jpeg_buf, jpeg_size);
+	tjFree(jpeg_buf);
+	return ab;
+}
+
+/**
+ * Encode cairo surface as WebP into an ArrayBuffer.
+ */
+static JSValue encode_webp(JSContext *ctx, cairo_surface_t *surface,
+						   float quality) {
+	int width = cairo_image_surface_get_width(surface);
+	int height = cairo_image_surface_get_height(surface);
+	int stride = cairo_image_surface_get_stride(surface);
+	uint8_t *data = cairo_image_surface_get_data(surface);
+
+	// WebP supports BGRA directly
+	uint8_t *output = NULL;
+	size_t output_size =
+		WebPEncodeBGRA(data, width, height, stride, quality, &output);
+
+	if (output_size == 0 || !output) {
+		return JS_ThrowInternalError(ctx, "Failed to encode WebP");
+	}
+
+	JSValue ab = JS_NewArrayBufferCopy(ctx, output, output_size);
+	WebPFree(output);
+	return ab;
+}
+
+/**
+ * canvasToBuffer(canvas, type, quality) -> ArrayBuffer containing encoded image
+ * type: 0 = PNG, 1 = JPEG, 2 = WebP
+ * quality: 0.0 - 1.0 (used for JPEG and WebP)
  */
 static JSValue nx_canvas_to_buffer(JSContext *ctx, JSValueConst this_val,
 								   int argc, JSValueConst *argv) {
@@ -3068,44 +3201,50 @@ static JSValue nx_canvas_to_buffer(JSContext *ctx, JSValueConst this_val,
 		return JS_ThrowTypeError(ctx, "Expected a canvas object");
 	}
 
+	int type = 0;
+	double quality = 0.92;
+	if (argc > 1) {
+		JS_ToInt32(ctx, &type, argv[1]);
+	}
+	if (argc > 2) {
+		JS_ToFloat64(ctx, &quality, argv[2]);
+	}
+	if (quality < 0.0)
+		quality = 0.0;
+	if (quality > 1.0)
+		quality = 1.0;
+
 	if (!canvas->surface || canvas->width == 0 || canvas->height == 0) {
-		// Return empty PNG for zero-dimension canvas
-		// Flush surface if dirty - but if no surface, create a temporary one
+		// Return empty image for zero-dimension canvas
 		cairo_surface_t *surface = cairo_image_surface_create(
 			CAIRO_FORMAT_ARGB32, canvas->width ? canvas->width : 1,
 			canvas->height ? canvas->height : 1);
-		png_write_buffer_t buf = {NULL, 0, 4096};
-		buf.data = malloc(buf.capacity);
-		if (!buf.data) {
-			cairo_surface_destroy(surface);
-			return JS_ThrowOutOfMemory(ctx);
+		JSValue result;
+		switch (type) {
+		case 1:
+			result = encode_jpeg(ctx, surface, (int)(quality * 100));
+			break;
+		case 2:
+			result = encode_webp(ctx, surface, (float)(quality * 100));
+			break;
+		default:
+			result = encode_png(ctx, surface);
+			break;
 		}
-		cairo_surface_write_to_png_stream(surface, png_write_callback, &buf);
 		cairo_surface_destroy(surface);
-		JSValue ab = JS_NewArrayBufferCopy(ctx, buf.data, buf.size);
-		free(buf.data);
-		return ab;
+		return result;
 	}
 
 	cairo_surface_flush(canvas->surface);
 
-	png_write_buffer_t buf = {NULL, 0, 4096};
-	buf.data = malloc(buf.capacity);
-	if (!buf.data) {
-		return JS_ThrowOutOfMemory(ctx);
+	switch (type) {
+	case 1:
+		return encode_jpeg(ctx, canvas->surface, (int)(quality * 100));
+	case 2:
+		return encode_webp(ctx, canvas->surface, (float)(quality * 100));
+	default:
+		return encode_png(ctx, canvas->surface);
 	}
-
-	cairo_status_t status =
-		cairo_surface_write_to_png_stream(canvas->surface, png_write_callback, &buf);
-	if (status != CAIRO_STATUS_SUCCESS) {
-		free(buf.data);
-		return JS_ThrowInternalError(ctx, "Failed to encode PNG: %s",
-									 cairo_status_to_string(status));
-	}
-
-	JSValue ab = JS_NewArrayBufferCopy(ctx, buf.data, buf.size);
-	free(buf.data);
-	return ab;
 }
 
 static const JSCFunctionListEntry init_function_list[] = {
@@ -3137,7 +3276,7 @@ static const JSCFunctionListEntry init_function_list[] = {
 	JS_CFUNC_DEF("canvasGradientInitClass", 0, nx_canvas_gradient_init_class),
 	JS_CFUNC_DEF("canvasGradientAddColorStop", 0,
 				 nx_canvas_gradient_add_color_stop_standalone),
-	JS_CFUNC_DEF("canvasToBuffer", 1, nx_canvas_to_buffer),
+	JS_CFUNC_DEF("canvasToBuffer", 3, nx_canvas_to_buffer),
 };
 
 void nx_init_canvas(JSContext *ctx, JSValueConst init_obj) {

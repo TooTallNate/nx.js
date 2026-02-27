@@ -22,6 +22,7 @@ pkg_check_modules(CAIRO_FT REQUIRED cairo-ft)
 pkg_check_modules(PNG REQUIRED libpng)
 pkg_check_modules(TURBOJPEG REQUIRED libturbojpeg)
 pkg_check_modules(WEBP REQUIRED libwebp)
+pkg_check_modules(SHARPYUV QUIET libsharpyuv)
 
 set(NX_SOURCE_DIR "${CMAKE_SOURCE_DIR}/../../source")
 
@@ -69,6 +70,7 @@ target_link_libraries(nxjs-canvas-test PRIVATE
   ${PNG_LIBRARIES}
   ${TURBOJPEG_LIBRARIES}
   ${WEBP_LIBRARIES}
+  ${SHARPYUV_LIBRARIES}
   m
   pthread
 )

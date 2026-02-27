@@ -84,7 +84,7 @@ export interface Init {
 
 	// canvas.c
 	canvasNew(width: number, height: number): Screen | OffscreenCanvas;
-	canvasToBuffer(canvas: Screen | OffscreenCanvas): ArrayBuffer;
+	canvasToBuffer(canvas: Screen | OffscreenCanvas, type?: number, quality?: number): ArrayBuffer;
 	canvasInitClass(c: ClassOf<Screen | OffscreenCanvas>): void;
 	canvasContext2dNew(c: Screen): CanvasRenderingContext2D;
 	canvasContext2dNew(c: OffscreenCanvas): OffscreenCanvasRenderingContext2D;

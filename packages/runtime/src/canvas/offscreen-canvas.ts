@@ -4,6 +4,7 @@ import { Blob as NxBlob } from '../polyfills/blob';
 import { EventTarget } from '../polyfills/event-target';
 import type { ImageEncodeOptions } from '../types';
 import { createInternal, def, proto } from '../utils';
+import { mimeToTypeCode, resolvedMimeType } from './encode';
 import { OffscreenCanvasRenderingContext2D } from './offscreen-canvas-rendering-context-2d';
 
 interface OffscreenCanvasInternal {
@@ -45,8 +46,13 @@ export class OffscreenCanvas
 	}
 
 	convertToBlob(options?: ImageEncodeOptions | undefined): Promise<Blob> {
-		const buf = $.canvasToBuffer(this);
-		const blob = new NxBlob([buf], { type: options?.type ?? 'image/png' });
+		const mime = resolvedMimeType(options?.type);
+		const buf = $.canvasToBuffer(
+			this,
+			mimeToTypeCode(options?.type),
+			options?.quality ?? 0.92,
+		);
+		const blob = new NxBlob([buf], { type: mime });
 		return Promise.resolve(blob);
 	}
 

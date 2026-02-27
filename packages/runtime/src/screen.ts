@@ -3,6 +3,7 @@ import { assertInternalConstructor, createInternal, def, proto } from './utils';
 import { Blob } from './polyfills/blob';
 import { EventTarget } from './polyfills/event-target';
 import { INTERNAL_SYMBOL } from './internal';
+import { mimeToTypeCode, resolvedMimeType } from './canvas/encode';
 import { CanvasRenderingContext2D } from './canvas/canvas-rendering-context-2d';
 import { initTouchscreen } from './touchscreen';
 import type { TouchEvent } from './polyfills/event';
@@ -127,11 +128,11 @@ export class Screen extends EventTarget implements globalThis.Screen {
 	toBlob(
 		callback: (blob: Blob | null) => void,
 		type = 'image/png',
-		quality = 0.8,
+		quality = 0.92,
 	) {
-		// Only PNG is supported currently
-		const buf = $.canvasToBuffer(this);
-		const blob = new Blob([buf], { type: 'image/png' });
+		const mime = resolvedMimeType(type);
+		const buf = $.canvasToBuffer(this, mimeToTypeCode(type), quality);
+		const blob = new Blob([buf], { type: mime });
 		// Per spec, callback is invoked asynchronously
 		queueMicrotask(() => callback(blob));
 	}
@@ -154,14 +155,15 @@ export class Screen extends EventTarget implements globalThis.Screen {
 	 * @param quality A number between `0` and `1` indicating the image quality to be used when creating images using file formats that support lossy compression (such as `image/jpeg`). The default quality value will be used if this option is not specified, or if the number is outside the allowed range.
 	 * @see https://developer.mozilla.org/docs/Web/API/HTMLCanvasElement/toDataURL
 	 */
-	toDataURL(type = 'image/png', quality = 0.8) {
-		const buf = $.canvasToBuffer(this);
+	toDataURL(type = 'image/png', quality = 0.92) {
+		const mime = resolvedMimeType(type);
+		const buf = $.canvasToBuffer(this, mimeToTypeCode(type), quality);
 		const bytes = new Uint8Array(buf);
 		let binary = '';
 		for (let i = 0; i < bytes.length; i++) {
 			binary += String.fromCharCode(bytes[i]);
 		}
-		return `data:image/png;base64,${btoa(binary)}`;
+		return `data:${mime};base64,${btoa(binary)}`;
 	}
 
 	// Compat with HTML DOM interface
