@@ -180,6 +180,7 @@ JSValue nx_tls_handshake(JSContext *ctx, JSValueConst this_val, int argc,
 	JSValue obj = JS_NewObjectClass(ctx, nx_tls_context_class_id);
 	nx_tls_context_t *data = js_mallocz(ctx, sizeof(nx_tls_context_t));
 	if (!data) {
+		JS_FreeValue(ctx, obj);
 		JS_ThrowOutOfMemory(ctx);
 		return JS_EXCEPTION;
 	}
@@ -198,6 +199,8 @@ JSValue nx_tls_handshake(JSContext *ctx, JSValueConst this_val, int argc,
 		mbedtls_strerror(ret, error_buf, 100);
 		JS_ThrowTypeError(ctx, "Failed setting SSL config defaults: %s",
 						  error_buf);
+		JS_FreeCString(ctx, hostname);
+		JS_FreeValue(ctx, obj);
 		return JS_EXCEPTION;
 	}
 	if (reject_unauthorized) {
@@ -219,6 +222,8 @@ JSValue nx_tls_handshake(JSContext *ctx, JSValueConst this_val, int argc,
 		char error_buf[100];
 		mbedtls_strerror(ret, error_buf, 100);
 		JS_ThrowTypeError(ctx, "Failed setting hostname: %s", error_buf);
+		JS_FreeCString(ctx, hostname);
+		JS_FreeValue(ctx, obj);
 		return JS_EXCEPTION;
 	}
 	mbedtls_ssl_set_bio(&data->ssl, &data->server_fd, mbedtls_net_send,
@@ -227,6 +232,8 @@ JSValue nx_tls_handshake(JSContext *ctx, JSValueConst this_val, int argc,
 		char error_buf[100];
 		mbedtls_strerror(ret, error_buf, 100);
 		JS_ThrowTypeError(ctx, "Failed setting up SSL: %s", error_buf);
+		JS_FreeCString(ctx, hostname);
+		JS_FreeValue(ctx, obj);
 		return JS_EXCEPTION;
 	}
 
