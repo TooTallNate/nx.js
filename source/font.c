@@ -15,6 +15,10 @@ static JSValue nx_new_font_face(JSContext *ctx, JSValueConst this_val, int argc,
 
 	size_t bytes;
 	FT_Byte *font_data = JS_GetArrayBuffer(ctx, &bytes, argv[0]);
+	if (!font_data) {
+		js_free(ctx, context);
+		return JS_EXCEPTION;
+	}
 	context->font_buffer = js_malloc(ctx, bytes);
 	memcpy(context->font_buffer, font_data, bytes);
 
