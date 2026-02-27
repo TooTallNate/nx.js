@@ -226,12 +226,14 @@ static JSValue nx_crypto_digest(JSContext *ctx, JSValueConst this_val, int argc,
 	data->algorithm = JS_ToCString(ctx, argv[0]);
 	if (!data->algorithm) {
 		js_free(ctx, data);
+		free(req);
 		return JS_EXCEPTION;
 	}
 	data->data = NX_GetBufferSource(ctx, &data->size, argv[1]);
 	if (!data->data) {
 		JS_FreeCString(ctx, data->algorithm);
 		js_free(ctx, data);
+		free(req);
 		return JS_EXCEPTION;
 	}
 	data->data_val = JS_DupValue(ctx, argv[1]);
@@ -446,12 +448,14 @@ static JSValue nx_crypto_encrypt(JSContext *ctx, JSValueConst this_val,
 	data->key = JS_GetOpaque2(ctx, argv[1], nx_crypto_key_class_id);
 	if (!data->key) {
 		js_free(ctx, data);
+		free(req);
 		return JS_EXCEPTION;
 	}
 
 	// Validate that the key may be used for encryption
 	if (!(data->key->usages & (NX_CRYPTO_KEY_USAGE_ENCRYPT | NX_CRYPTO_KEY_USAGE_WRAP_KEY))) {
 		js_free(ctx, data);
+		free(req);
 		return JS_ThrowTypeError(
 			ctx, "Key does not support the 'encrypt' operation");
 	}
@@ -459,6 +463,7 @@ static JSValue nx_crypto_encrypt(JSContext *ctx, JSValueConst this_val,
 	data->data = NX_GetBufferSource(ctx, &data->data_size, argv[2]);
 	if (!data->data) {
 		js_free(ctx, data);
+		free(req);
 		return JS_EXCEPTION;
 	}
 
@@ -466,14 +471,17 @@ static JSValue nx_crypto_encrypt(JSContext *ctx, JSValueConst this_val,
 		nx_crypto_aes_cbc_params_t *cbc_params =
 			js_mallocz(ctx, sizeof(nx_crypto_aes_cbc_params_t));
 		if (!cbc_params) {
+			free(req);
 			js_free(ctx, data);
 			return JS_EXCEPTION;
 		}
 
 		size_t iv_size;
-		cbc_params->iv = NX_GetBufferSource(
-			ctx, &iv_size, JS_GetPropertyStr(ctx, argv[0], "iv"));
+		JSValue iv_val = JS_GetPropertyStr(ctx, argv[0], "iv");
+		cbc_params->iv = NX_GetBufferSource(ctx, &iv_size, iv_val);
+		JS_FreeValue(ctx, iv_val);
 		if (!cbc_params->iv) {
+			free(req);
 			js_free(ctx, data);
 			js_free(ctx, cbc_params);
 			return JS_EXCEPTION;
@@ -481,6 +489,7 @@ static JSValue nx_crypto_encrypt(JSContext *ctx, JSValueConst this_val,
 
 		// Validate IV size
 		if (iv_size != 16) {
+			free(req);
 			js_free(ctx, data);
 			js_free(ctx, cbc_params);
 			return JS_ThrowTypeError(
@@ -493,14 +502,17 @@ static JSValue nx_crypto_encrypt(JSContext *ctx, JSValueConst this_val,
 		nx_crypto_aes_ctr_params_t *ctr_params =
 			js_mallocz(ctx, sizeof(nx_crypto_aes_ctr_params_t));
 		if (!ctr_params) {
+			free(req);
 			js_free(ctx, data);
 			return JS_EXCEPTION;
 		}
 
 		size_t ctr_size;
-		ctr_params->ctr = NX_GetBufferSource(
-			ctx, &ctr_size, JS_GetPropertyStr(ctx, argv[0], "counter"));
+		JSValue counter_val = JS_GetPropertyStr(ctx, argv[0], "counter");
+		ctr_params->ctr = NX_GetBufferSource(ctx, &ctr_size, counter_val);
+		JS_FreeValue(ctx, counter_val);
 		if (!ctr_params->ctr) {
+			free(req);
 			js_free(ctx, data);
 			js_free(ctx, ctr_params);
 			return JS_EXCEPTION;
@@ -508,6 +520,7 @@ static JSValue nx_crypto_encrypt(JSContext *ctx, JSValueConst this_val,
 
 		// Validate counter size
 		if (ctr_size != 16) {
+			free(req);
 			js_free(ctx, data);
 			js_free(ctx, ctr_params);
 			return JS_ThrowTypeError(ctx, "Counter must be 16 bytes (got %lu)",
@@ -519,13 +532,17 @@ static JSValue nx_crypto_encrypt(JSContext *ctx, JSValueConst this_val,
 		nx_crypto_aes_gcm_params_t *gcm_params =
 			js_mallocz(ctx, sizeof(nx_crypto_aes_gcm_params_t));
 		if (!gcm_params) {
+			free(req);
 			js_free(ctx, data);
 			return JS_EXCEPTION;
 		}
 
+		JSValue iv_val = JS_GetPropertyStr(ctx, argv[0], "iv");
 		gcm_params->iv = NX_GetBufferSource(
-			ctx, &gcm_params->iv_size, JS_GetPropertyStr(ctx, argv[0], "iv"));
+			ctx, &gcm_params->iv_size, iv_val);
+		JS_FreeValue(ctx, iv_val);
 		if (!gcm_params->iv) {
+			free(req);
 			js_free(ctx, data);
 			js_free(ctx, gcm_params);
 			return JS_EXCEPTION;
@@ -540,12 +557,15 @@ static JSValue nx_crypto_encrypt(JSContext *ctx, JSValueConst this_val,
 			gcm_params->additional_data = NULL;
 			gcm_params->additional_data_size = 0;
 		}
+		JS_FreeValue(ctx, ad_val);
 
 		// tagLength is optional, defaults to 128 bits
 		JSValue tag_val = JS_GetPropertyStr(ctx, argv[0], "tagLength");
 		if (!JS_IsUndefined(tag_val) && !JS_IsNull(tag_val)) {
 			u32 tag_bits;
 			if (JS_ToUint32(ctx, &tag_bits, tag_val)) {
+				JS_FreeValue(ctx, tag_val);
+				free(req);
 				js_free(ctx, data);
 				js_free(ctx, gcm_params);
 				return JS_EXCEPTION;
@@ -554,26 +574,33 @@ static JSValue nx_crypto_encrypt(JSContext *ctx, JSValueConst this_val,
 		} else {
 			gcm_params->tag_length = 16; // 128 bits default
 		}
+		JS_FreeValue(ctx, tag_val);
 
 		data->algorithm_params = gcm_params;
 	} else if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_AES_XTS) {
 		nx_crypto_aes_xts_params_t *xts_params =
 			js_mallocz(ctx, sizeof(nx_crypto_aes_xts_params_t));
 		if (!xts_params) {
+			free(req);
 			js_free(ctx, data);
 			return JS_EXCEPTION;
 		}
 
-		int is_nintendo =
-			JS_ToBool(ctx, JS_GetPropertyStr(ctx, argv[0], "isNintendo"));
+		JSValue is_nintendo_val = JS_GetPropertyStr(ctx, argv[0], "isNintendo");
+		int is_nintendo = JS_ToBool(ctx, is_nintendo_val);
+		JS_FreeValue(ctx, is_nintendo_val);
 
+		JSValue sector_val = JS_GetPropertyStr(ctx, argv[0], "sector");
+		JSValue sector_size_val = JS_GetPropertyStr(ctx, argv[0], "sectorSize");
 		u32 sector;
 		u32 sector_size;
-		if (is_nintendo == -1 ||
-			JS_ToUint32(ctx, &sector,
-						JS_GetPropertyStr(ctx, argv[0], "sector")) ||
-			JS_ToUint32(ctx, &sector_size,
-						JS_GetPropertyStr(ctx, argv[0], "sectorSize"))) {
+		int err = (is_nintendo == -1 ||
+			JS_ToUint32(ctx, &sector, sector_val) ||
+			JS_ToUint32(ctx, &sector_size, sector_size_val));
+		JS_FreeValue(ctx, sector_val);
+		JS_FreeValue(ctx, sector_size_val);
+		if (err) {
+			free(req);
 			js_free(ctx, data);
 			js_free(ctx, xts_params);
 			return JS_EXCEPTION;
@@ -591,6 +618,7 @@ static JSValue nx_crypto_encrypt(JSContext *ctx, JSValueConst this_val,
 				js_mallocz(ctx, sizeof(nx_crypto_aes_gcm_params_t));
 			if (!lp) {
 				JS_FreeValue(ctx, label_val);
+				free(req);
 				js_free(ctx, data);
 				return JS_EXCEPTION;
 			}
@@ -1537,12 +1565,14 @@ static JSValue nx_crypto_subtle_decrypt(JSContext *ctx, JSValueConst this_val,
 	data->key = JS_GetOpaque2(ctx, argv[1], nx_crypto_key_class_id);
 	if (!data->key) {
 		js_free(ctx, data);
+		free(req);
 		return JS_EXCEPTION;
 	}
 
 	// Validate that the key may be used for decryption
 	if (!(data->key->usages & (NX_CRYPTO_KEY_USAGE_DECRYPT | NX_CRYPTO_KEY_USAGE_UNWRAP_KEY))) {
 		js_free(ctx, data);
+		free(req);
 		return JS_ThrowTypeError(
 			ctx, "Key does not support the 'decrypt' operation");
 	}
@@ -1550,6 +1580,7 @@ static JSValue nx_crypto_subtle_decrypt(JSContext *ctx, JSValueConst this_val,
 	data->data = NX_GetBufferSource(ctx, &data->data_size, argv[2]);
 	if (!data->data) {
 		js_free(ctx, data);
+		free(req);
 		return JS_EXCEPTION;
 	}
 
@@ -1557,14 +1588,17 @@ static JSValue nx_crypto_subtle_decrypt(JSContext *ctx, JSValueConst this_val,
 		nx_crypto_aes_cbc_params_t *cbc_params =
 			js_mallocz(ctx, sizeof(nx_crypto_aes_cbc_params_t));
 		if (!cbc_params) {
+			free(req);
 			js_free(ctx, data);
 			return JS_EXCEPTION;
 		}
 
 		size_t iv_size;
-		cbc_params->iv = NX_GetBufferSource(
-			ctx, &iv_size, JS_GetPropertyStr(ctx, argv[0], "iv"));
+		JSValue iv_val = JS_GetPropertyStr(ctx, argv[0], "iv");
+		cbc_params->iv = NX_GetBufferSource(ctx, &iv_size, iv_val);
+		JS_FreeValue(ctx, iv_val);
 		if (!cbc_params->iv) {
+			free(req);
 			js_free(ctx, data);
 			js_free(ctx, cbc_params);
 			return JS_EXCEPTION;
@@ -1572,6 +1606,7 @@ static JSValue nx_crypto_subtle_decrypt(JSContext *ctx, JSValueConst this_val,
 
 		// Validate IV size
 		if (iv_size != 16) {
+			free(req);
 			js_free(ctx, data);
 			js_free(ctx, cbc_params);
 			return JS_ThrowTypeError(ctx,
@@ -1583,14 +1618,17 @@ static JSValue nx_crypto_subtle_decrypt(JSContext *ctx, JSValueConst this_val,
 		nx_crypto_aes_ctr_params_t *ctr_params =
 			js_mallocz(ctx, sizeof(nx_crypto_aes_ctr_params_t));
 		if (!ctr_params) {
+			free(req);
 			js_free(ctx, data);
 			return JS_EXCEPTION;
 		}
 
 		size_t ctr_size;
-		ctr_params->ctr = NX_GetBufferSource(
-			ctx, &ctr_size, JS_GetPropertyStr(ctx, argv[0], "counter"));
+		JSValue counter_val = JS_GetPropertyStr(ctx, argv[0], "counter");
+		ctr_params->ctr = NX_GetBufferSource(ctx, &ctr_size, counter_val);
+		JS_FreeValue(ctx, counter_val);
 		if (!ctr_params->ctr) {
+			free(req);
 			js_free(ctx, data);
 			js_free(ctx, ctr_params);
 			return JS_EXCEPTION;
@@ -1598,6 +1636,7 @@ static JSValue nx_crypto_subtle_decrypt(JSContext *ctx, JSValueConst this_val,
 
 		// Validate counter size
 		if (ctr_size != 16) {
+			free(req);
 			js_free(ctx, data);
 			js_free(ctx, ctr_params);
 			return JS_ThrowTypeError(ctx, "Counter must be 16 bytes (got %lu)",
@@ -1609,13 +1648,17 @@ static JSValue nx_crypto_subtle_decrypt(JSContext *ctx, JSValueConst this_val,
 		nx_crypto_aes_gcm_params_t *gcm_params =
 			js_mallocz(ctx, sizeof(nx_crypto_aes_gcm_params_t));
 		if (!gcm_params) {
+			free(req);
 			js_free(ctx, data);
 			return JS_EXCEPTION;
 		}
 
+		JSValue iv_val = JS_GetPropertyStr(ctx, argv[0], "iv");
 		gcm_params->iv = NX_GetBufferSource(
-			ctx, &gcm_params->iv_size, JS_GetPropertyStr(ctx, argv[0], "iv"));
+			ctx, &gcm_params->iv_size, iv_val);
+		JS_FreeValue(ctx, iv_val);
 		if (!gcm_params->iv) {
+			free(req);
 			js_free(ctx, data);
 			js_free(ctx, gcm_params);
 			return JS_EXCEPTION;
@@ -1629,11 +1672,14 @@ static JSValue nx_crypto_subtle_decrypt(JSContext *ctx, JSValueConst this_val,
 			gcm_params->additional_data = NULL;
 			gcm_params->additional_data_size = 0;
 		}
+		JS_FreeValue(ctx, ad_val);
 
 		JSValue tag_val = JS_GetPropertyStr(ctx, argv[0], "tagLength");
 		if (!JS_IsUndefined(tag_val) && !JS_IsNull(tag_val)) {
 			u32 tag_bits;
 			if (JS_ToUint32(ctx, &tag_bits, tag_val)) {
+				JS_FreeValue(ctx, tag_val);
+				free(req);
 				js_free(ctx, data);
 				js_free(ctx, gcm_params);
 				return JS_EXCEPTION;
@@ -1642,26 +1688,33 @@ static JSValue nx_crypto_subtle_decrypt(JSContext *ctx, JSValueConst this_val,
 		} else {
 			gcm_params->tag_length = 16;
 		}
+		JS_FreeValue(ctx, tag_val);
 
 		data->algorithm_params = gcm_params;
 	} else if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_AES_XTS) {
 		nx_crypto_aes_xts_params_t *xts_params =
 			js_mallocz(ctx, sizeof(nx_crypto_aes_xts_params_t));
 		if (!xts_params) {
+			free(req);
 			js_free(ctx, data);
 			return JS_EXCEPTION;
 		}
 
-		int is_nintendo =
-			JS_ToBool(ctx, JS_GetPropertyStr(ctx, argv[0], "isNintendo"));
+		JSValue is_nintendo_val = JS_GetPropertyStr(ctx, argv[0], "isNintendo");
+		int is_nintendo = JS_ToBool(ctx, is_nintendo_val);
+		JS_FreeValue(ctx, is_nintendo_val);
 
+		JSValue sector_val = JS_GetPropertyStr(ctx, argv[0], "sector");
+		JSValue sector_size_val = JS_GetPropertyStr(ctx, argv[0], "sectorSize");
 		u32 sector;
 		u32 sector_size;
-		if (is_nintendo == -1 ||
-			JS_ToUint32(ctx, &sector,
-						JS_GetPropertyStr(ctx, argv[0], "sector")) ||
-			JS_ToUint32(ctx, &sector_size,
-						JS_GetPropertyStr(ctx, argv[0], "sectorSize"))) {
+		int err = (is_nintendo == -1 ||
+			JS_ToUint32(ctx, &sector, sector_val) ||
+			JS_ToUint32(ctx, &sector_size, sector_size_val));
+		JS_FreeValue(ctx, sector_val);
+		JS_FreeValue(ctx, sector_size_val);
+		if (err) {
+			free(req);
 			js_free(ctx, data);
 			js_free(ctx, xts_params);
 			return JS_EXCEPTION;
@@ -1678,6 +1731,7 @@ static JSValue nx_crypto_subtle_decrypt(JSContext *ctx, JSValueConst this_val,
 				js_mallocz(ctx, sizeof(nx_crypto_aes_gcm_params_t));
 			if (!lp) {
 				JS_FreeValue(ctx, label_val);
+				free(req);
 				js_free(ctx, data);
 				return JS_EXCEPTION;
 			}
@@ -2454,7 +2508,13 @@ static JSValue nx_crypto_key_new_ec_private(JSContext *ctx, JSValueConst this_va
 
 	// Parse usages
 	uint32_t usages_size;
-	JS_ToUint32(ctx, &usages_size, JS_GetPropertyStr(ctx, argv[4], "length"));
+	JSValue usages_len_val = JS_GetPropertyStr(ctx, argv[4], "length");
+	if (JS_ToUint32(ctx, &usages_size, usages_len_val)) {
+		JS_FreeValue(ctx, usages_len_val);
+		js_free(ctx, context);
+		return JS_EXCEPTION;
+	}
+	JS_FreeValue(ctx, usages_len_val);
 	for (uint32_t i = 0; i < usages_size; i++) {
 		JSValue usage_val = JS_GetPropertyUint32(ctx, argv[4], i);
 		const char *usage = JS_ToCString(ctx, usage_val);

@@ -95,6 +95,7 @@ JSValue nx_js_tcp_read(JSContext *ctx, JSValueConst this_val, int argc,
 	uint8_t *buffer = JS_GetArrayBuffer(ctx, &buffer_size, buffer_value);
 	int fd;
 	if (!buffer || JS_ToInt32(ctx, &fd, argv[1])) {
+		JS_FreeValue(ctx, buffer_value);
 		return JS_EXCEPTION;
 	}
 
@@ -146,6 +147,7 @@ JSValue nx_js_tcp_write(JSContext *ctx, JSValueConst this_val, int argc,
 	uint8_t *buffer = JS_GetArrayBuffer(ctx, &buffer_size, buffer_val);
 	int fd;
 	if (!buffer || JS_ToInt32(ctx, &fd, argv[1])) {
+		JS_FreeValue(ctx, buffer_val);
 		JS_ThrowTypeError(ctx, "invalid input");
 		return JS_EXCEPTION;
 	}
@@ -255,6 +257,7 @@ JSValue nx_js_tcp_server_new(JSContext *ctx, JSValueConst this_val, int argc,
 	JS_FreeCString(ctx, ip);
 
 	if (fd < 0) {
+		JS_FreeValue(ctx, obj);
 		JS_ThrowTypeError(ctx, strerror(errno));
 		return JS_EXCEPTION;
 	}

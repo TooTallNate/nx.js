@@ -2205,10 +2205,12 @@ static JSValue nx_canvas_context_2d_set_line_dash(JSContext *ctx,
 	uint32_t zero_dashes = 0;
 	double dashes[num_dashes];
 	for (uint32_t i = 0; i < num_dashes; i++) {
-		if (JS_ToFloat64(ctx, &dashes[i],
-						 JS_GetPropertyUint32(ctx, argv[0], i % length))) {
+		JSValue v = JS_GetPropertyUint32(ctx, argv[0], i % length);
+		if (JS_ToFloat64(ctx, &dashes[i], v)) {
+			JS_FreeValue(ctx, v);
 			return JS_UNDEFINED;
 		}
+		JS_FreeValue(ctx, v);
 		if (dashes[i] == 0)
 			zero_dashes++;
 	}

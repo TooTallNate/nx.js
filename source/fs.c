@@ -217,13 +217,25 @@ JSValue nx_fopen(JSContext *ctx, JSValueConst this_val, int argc,
 				 JSValueConst *argv) {
 	NX_INIT_WORK_T(nx_fs_fopen_async_t);
 	data->path = JS_ToCString(ctx, argv[0]);
+	if (!data->path) {
+		free(data);
+		free(req);
+		return JS_EXCEPTION;
+	}
 	data->mode = JS_ToCString(ctx, argv[1]);
-	if (!data->path || !data->mode) {
+	if (!data->mode) {
+		JS_FreeCString(ctx, data->path);
+		free(data);
+		free(req);
 		return JS_EXCEPTION;
 	}
 	if (argc > 2 && JS_IsNumber(argv[2])) {
 		u32 start_offset;
 		if (JS_ToUint32(ctx, &start_offset, argv[2])) {
+			JS_FreeCString(ctx, data->path);
+			JS_FreeCString(ctx, data->mode);
+			free(data);
+			free(req);
 			return JS_EXCEPTION;
 		}
 		data->start_offset = start_offset;
@@ -453,11 +465,21 @@ JSValue nx_read_file(JSContext *ctx, JSValueConst this_val, int argc,
 		JSValue end_val = JS_GetPropertyStr(ctx, argv[1], "end");
 		if (JS_IsNumber(start_val) &&
 			JS_ToUint32(ctx, &data->start, start_val)) {
+			JS_FreeValue(ctx, start_val);
+			JS_FreeValue(ctx, end_val);
+			free(req);
+			free(data);
 			return JS_EXCEPTION;
 		}
 		if (JS_IsNumber(end_val) && JS_ToUint32(ctx, &data->end, end_val)) {
+			JS_FreeValue(ctx, start_val);
+			JS_FreeValue(ctx, end_val);
+			free(req);
+			free(data);
 			return JS_EXCEPTION;
 		}
+		JS_FreeValue(ctx, start_val);
+		JS_FreeValue(ctx, end_val);
 		if (!data->end) {
 			data->end = UINT32_MAX;
 		}
@@ -465,6 +487,8 @@ JSValue nx_read_file(JSContext *ctx, JSValueConst this_val, int argc,
 
 	data->filename = JS_ToCString(ctx, argv[0]);
 	if (!data->filename) {
+		free(req);
+		free(data);
 		return JS_EXCEPTION;
 	}
 
@@ -482,11 +506,17 @@ JSValue nx_read_file_sync(JSContext *ctx, JSValueConst this_val, int argc,
 		JSValue start_val = JS_GetPropertyStr(ctx, argv[1], "start");
 		JSValue end_val = JS_GetPropertyStr(ctx, argv[1], "end");
 		if (JS_IsNumber(start_val) && JS_ToUint32(ctx, &start, start_val)) {
+			JS_FreeValue(ctx, start_val);
+			JS_FreeValue(ctx, end_val);
 			return JS_EXCEPTION;
 		}
 		if (JS_IsNumber(end_val) && JS_ToUint32(ctx, &end, end_val)) {
+			JS_FreeValue(ctx, start_val);
+			JS_FreeValue(ctx, end_val);
 			return JS_EXCEPTION;
 		}
+		JS_FreeValue(ctx, start_val);
+		JS_FreeValue(ctx, end_val);
 	}
 
 	const char *filename = JS_ToCString(ctx, argv[0]);
