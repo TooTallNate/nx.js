@@ -13,7 +13,8 @@
     "build": "node build.mjs",
     "bundle": "node bundle.mjs",
     "bundle-minify": "MINIFY=1 node bundle.mjs",
-    "docs": "typedoc && ../../type-aliases-meta.sh"
+    "docs": "typedoc && ../../type-aliases-meta.sh",
+    "test": "vitest run"
   },
   "files": [
     "dist"
@@ -32,9 +33,11 @@
     "data-uri-to-buffer": "^6.0.1",
     "dts-bundle-generator": "^8.1.2",
     "esbuild": "^0.17.19",
+    "fastest-levenshtein": "^1.0.16",
     "kleur": "github:TooTallNate/kleur#rgb",
     "parse-css-font": "^4.0.0",
     "to-px": "^1.1.0",
+    "vitest": "^4.0.18",
     "web-streams-polyfill": "^4.0.0"
   }
 }
