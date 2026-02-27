@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <switch.h>
+#include <turbojpeg.h>
 #include <unistd.h>
 
 #include "account.h"
@@ -557,22 +558,21 @@ void nx_render_loading_image(nx_context_t *nx_ctx, const char *nro_path) {
 		win = nwindowGetDefault();
 		int width = 1280;
 		int height = 720;
-		js_framebuffer = malloc(width * height * 4);
+		js_framebuffer = NULL;
 		framebuffer = malloc(sizeof(Framebuffer));
 		framebufferCreate(framebuffer, win, width, height, PIXEL_FORMAT_BGRA_8888,
 						2);
 		framebufferMakeLinear(framebuffer);
 
-		decode_jpeg(loading_image, loading_image_size, &js_framebuffer, &width, &height);
-		// TODO: ensure decompression was successful
-		// TODO: ensure width and height are correct
+		if (decode_jpeg(loading_image, loading_image_size, &js_framebuffer, &width, &height) == 0 &&
+			js_framebuffer != NULL) {
+			u32 stride;
+			u8 *framebuf = (u8 *)framebufferBegin(framebuffer, &stride);
+			memcpy(framebuf, js_framebuffer, width * height * 4);
+			framebufferEnd(framebuffer);
+		}
 
-		u32 stride;
-		u8 *framebuf = (u8 *)framebufferBegin(framebuffer, &stride);
-		memcpy(framebuf, js_framebuffer, width * height * 4);
-		framebufferEnd(framebuffer);
-
-		free(js_framebuffer);
+		tjFree(js_framebuffer);
 		free(loading_image);
 		js_framebuffer = NULL;
 

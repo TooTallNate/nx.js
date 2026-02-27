@@ -101,7 +101,15 @@ uint8_t *decode_png(uint8_t *input, size_t input_size, u32 *width,
 		png_set_add_alpha(png_ptr, 0xff, PNG_FILLER_AFTER);
 	}
 
-	uint8_t *image_data = malloc(4 * (*width) * (*height));
+	// Guard against overflow from untrusted PNG dimensions
+	if (*width == 0 || *height == 0 ||
+		*width > 16384 || *height > 16384 ||
+		(size_t)(*width) > SIZE_MAX / 4 / (*height)) {
+		png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
+		return NULL;
+	}
+
+	uint8_t *image_data = malloc(4 * (size_t)(*width) * (*height));
 	png_bytep *rows = malloc(sizeof(png_bytep) * (*height));
 	if (!image_data || !rows) {
 		free(image_data);
@@ -109,7 +117,7 @@ uint8_t *decode_png(uint8_t *input, size_t input_size, u32 *width,
 		png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
 		return NULL;
 	}
-	for (int i = 0; i < *height; ++i) {
+	for (u32 i = 0; i < *height; ++i) {
 		rows[i] = image_data + i * 4 * (*width);
 	}
 
