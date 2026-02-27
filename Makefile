@@ -64,7 +64,7 @@ CXXFLAGS	:=	$(CFLAGS) -fno-rtti -fno-exceptions
 ASFLAGS	:=	-g $(ARCH)
 LDFLAGS	=	-specs=${DEVKITPRO}/libnx/switch.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
 
-LIBS	:=  -pthread -lmbedtls -lmbedx509 -lmbedcrypto -lharfbuzz `aarch64-none-elf-pkg-config freetype2 cairo --libs` -lturbojpeg -lwebp -lsharpyuv -lqjs -lm3 -lm -lzstd
+LIBS	:=  -pthread -lmbedtls -lmbedx509 -lmbedcrypto -lharfbuzz `aarch64-none-elf-pkg-config freetype2 cairo --libs` -lturbojpeg -lwebp -lqjs -lm3 -lm -lzstd
 
 #---------------------------------------------------------------------------------
 # list of directories containing libraries, this must be the top level containing
