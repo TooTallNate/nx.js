@@ -874,9 +874,6 @@ importers:
       esbuild:
         specifier: ^0.17.19
         version: 0.17.19
-      vitest:
-        specifier: ^3.0.0
-        version: 3.2.4(@types/node@22.19.11)
 
   test/wasm:
     devDependencies:
