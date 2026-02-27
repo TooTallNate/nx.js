@@ -664,7 +664,6 @@ function getHashLength(hash: HashAlgorithmIdentifier): number {
 type HashAlgorithmIdentifier = AlgorithmIdentifier;
 
 const { base64urlEncode, base64urlDecode } = $;
-
 // --- JWK Export ---
 
 function getJwkAlg(

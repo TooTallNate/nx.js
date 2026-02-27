@@ -481,6 +481,8 @@ export interface Init {
 
 	// window.c
 	windowInit(c: Window): void;
+	base64urlEncode(buf: ArrayBuffer): string;
+	base64urlDecode(str: string): ArrayBuffer;
 
 	applyPath: any;
 }
