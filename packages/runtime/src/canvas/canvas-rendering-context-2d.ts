@@ -220,6 +220,49 @@ export class CanvasRenderingContext2D {
 	declare globalCompositeOperation: GlobalCompositeOperation;
 
 	/**
+	 * Specifies the amount of blur applied to shadows. Default is 0 (no blur).
+	 *
+	 * @default 0
+	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/shadowBlur
+	 */
+	declare shadowBlur: number;
+
+	/**
+	 * Specifies the color of shadows.
+	 *
+	 * @default "rgba(0, 0, 0, 0)"
+	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/shadowColor
+	 */
+	get shadowColor(): string {
+		return rgbaToString($.canvasContext2dGetShadowColor(this));
+	}
+	set shadowColor(v: string) {
+		if (typeof v === 'string') {
+			const parsed = colorRgba(v);
+			if (!parsed || parsed.length !== 4) {
+				return;
+			}
+			$.canvasContext2dSetShadowColor(this, ...parsed);
+		}
+	}
+
+	/**
+	 * Specifies the distance that shadows will be offset horizontally.
+	 *
+	 * @default 0
+	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/shadowOffsetX
+	 */
+	declare shadowOffsetX: number;
+
+	/**
+	 * Specifies the distance that shadows will be offset vertically.
+	 *
+	 * @default 0
+	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/shadowOffsetY
+	 */
+	declare shadowOffsetY: number;
+
+	/**
 	 * Determines whether scaled images are smoothed (`true`) or not (`false`).
 	 *
 	 * @default true
