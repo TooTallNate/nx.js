@@ -2446,6 +2446,10 @@ static JSValue nx_crypto_key_new_ec_private(JSContext *ctx, JSValueConst this_va
 	context->usages_cached = JS_UNDEFINED;
 
 	int extractable = JS_ToBool(ctx, argv[3]);
+	if (extractable == -1) {
+		js_free(ctx, context);
+		return JS_EXCEPTION;
+	}
 	context->extractable = extractable;
 
 	// Parse usages
@@ -3007,6 +3011,11 @@ static JSValue nx_crypto_key_new_rsa(JSContext *ctx, JSValueConst this_val,
 	JS_FreeCString(ctx, type_str);
 
 	int extractable = JS_ToBool(ctx, argv[8]);
+	if (extractable == -1) {
+		JS_FreeCString(ctx, hash_name);
+		js_free(ctx, context);
+		return JS_EXCEPTION;
+	}
 	context->extractable = extractable;
 
 	// Parse usages
@@ -3329,6 +3338,12 @@ static JSValue nx_crypto_import_key_pkcs8_spki(JSContext *ctx, JSValueConst this
 	if (!param_name) { JS_FreeCString(ctx, format); JS_FreeCString(ctx, algo_name); return JS_EXCEPTION; }
 
 	int extractable = JS_ToBool(ctx, argv[4]);
+	if (extractable == -1) {
+		JS_FreeCString(ctx, format);
+		JS_FreeCString(ctx, algo_name);
+		JS_FreeCString(ctx, param_name);
+		return JS_EXCEPTION;
+	}
 
 	mbedtls_pk_context pk;
 	mbedtls_pk_init(&pk);

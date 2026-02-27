@@ -291,6 +291,8 @@ static JSValue nx_audio_play(JSContext *ctx, JSValueConst this_val, int argc,
 	JS_ToFloat64(ctx, &volume, argv[2]);
 
 	int loop = JS_ToBool(ctx, argv[3]);
+	if (loop == -1)
+		return JS_EXCEPTION;
 
 	int32_t sample_rate;
 	JS_ToInt32(ctx, &sample_rate, argv[4]);
@@ -364,6 +366,8 @@ static JSValue nx_audio_pause(JSContext *ctx, JSValueConst this_val, int argc,
 	int voice_id;
 	JS_ToInt32(ctx, &voice_id, argv[0]);
 	int paused = JS_ToBool(ctx, argv[1]);
+	if (paused == -1)
+		return JS_EXCEPTION;
 	audrvVoiceSetPaused(&audio_driver, voice_id, paused);
 	audrvUpdate(&audio_driver);
 	return JS_UNDEFINED;

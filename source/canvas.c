@@ -216,12 +216,10 @@ static inline int min(int a, int b) { return a < b ? a : b; }
 
 static inline float minf(float a, float b) { return a < b ? a : b; }
 
-static inline void generic_swap(void *a, void *b, size_t size) {
-	// Temporary storage for the swap
-	char temp[size];
-	memcpy(temp, a, size);
-	memcpy(a, b, size);
-	memcpy(b, temp, size);
+static inline void point_swap(Point *a, Point *b) {
+	Point temp = *a;
+	*a = *b;
+	*b = temp;
 }
 
 static int js_validate_doubles_args(JSContext *ctx, JSValueConst *argv,
@@ -853,16 +851,16 @@ static JSValue nx_canvas_context_2d_round_rect(JSContext *ctx,
 		clockwise = false;
 		x += width;
 		width = -width;
-		generic_swap(&upperLeft, &upperRight, sizeof(Point));
-		generic_swap(&lowerLeft, &lowerRight, sizeof(Point));
+		point_swap(&upperLeft, &upperRight);
+		point_swap(&lowerLeft, &lowerRight);
 	}
 
 	if (height < 0) {
 		clockwise = !clockwise;
 		y += height;
 		height = -height;
-		generic_swap(&upperLeft, &upperRight, sizeof(Point));
-		generic_swap(&lowerLeft, &lowerRight, sizeof(Point));
+		point_swap(&upperLeft, &upperRight);
+		point_swap(&lowerLeft, &lowerRight);
 	}
 
 	// 11. Corner curves must not overlap. Scale radii to prevent this.
