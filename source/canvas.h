@@ -70,6 +70,10 @@ typedef struct nx_canvas_context_2d_state_s {
 	hb_font_t *hb_font;
 	bool image_smoothing_enabled;
 	double global_alpha;
+	nx_rgba_t shadow_color;
+	double shadow_blur;
+	double shadow_offset_x;
+	double shadow_offset_y;
 	struct nx_canvas_context_2d_state_s *next;
 } nx_canvas_context_2d_state_t;
 

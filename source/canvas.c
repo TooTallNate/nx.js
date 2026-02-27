@@ -269,7 +269,187 @@ static void restore_path(nx_canvas_context_2d_t *context) {
 	context->path = NULL;
 }
 
+static bool has_shadow(nx_canvas_context_2d_t *context) {
+	return context->state->shadow_color.a > 0 &&
+		   (context->state->shadow_blur > 0 ||
+			context->state->shadow_offset_x != 0 ||
+			context->state->shadow_offset_y != 0);
+}
+
+// Box blur implementation for shadow blur effect
+static void blur_surface(cairo_surface_t *surface, int radius) {
+	if (radius <= 0)
+		return;
+	cairo_surface_flush(surface);
+	unsigned char *data = cairo_image_surface_get_data(surface);
+	int width = cairo_image_surface_get_width(surface);
+	int height = cairo_image_surface_get_height(surface);
+	int stride = cairo_image_surface_get_stride(surface);
+	if (!data || width <= 0 || height <= 0)
+		return;
+
+	unsigned char *tmp = malloc(stride * height);
+	if (!tmp)
+		return;
+
+	// 3-pass box blur approximates Gaussian
+	for (int pass = 0; pass < 3; pass++) {
+		// Horizontal pass
+		for (int y = 0; y < height; y++) {
+			for (int x = 0; x < width; x++) {
+				int r = 0, g = 0, b = 0, a = 0, count = 0;
+				for (int kx = -radius; kx <= radius; kx++) {
+					int sx = x + kx;
+					if (sx >= 0 && sx < width) {
+						unsigned char *p = data + y * stride + sx * 4;
+						b += p[0];
+						g += p[1];
+						r += p[2];
+						a += p[3];
+						count++;
+					}
+				}
+				unsigned char *d = tmp + y * stride + x * 4;
+				d[0] = b / count;
+				d[1] = g / count;
+				d[2] = r / count;
+				d[3] = a / count;
+			}
+		}
+		// Vertical pass
+		for (int y = 0; y < height; y++) {
+			for (int x = 0; x < width; x++) {
+				int r = 0, g = 0, b = 0, a = 0, count = 0;
+				for (int ky = -radius; ky <= radius; ky++) {
+					int sy = y + ky;
+					if (sy >= 0 && sy < height) {
+						unsigned char *p = tmp + sy * stride + x * 4;
+						b += p[0];
+						g += p[1];
+						r += p[2];
+						a += p[3];
+						count++;
+					}
+				}
+				unsigned char *d = data + y * stride + x * 4;
+				d[0] = b / count;
+				d[1] = g / count;
+				d[2] = r / count;
+				d[3] = a / count;
+			}
+		}
+	}
+	free(tmp);
+	cairo_surface_mark_dirty(surface);
+}
+
+typedef enum {
+	SHADOW_DRAW_FILL,
+	SHADOW_DRAW_STROKE
+} shadow_draw_mode_t;
+
+static void apply_shadow(nx_canvas_context_2d_t *context, shadow_draw_mode_t mode) {
+	if (!has_shadow(context))
+		return;
+	cairo_t *cr = context->ctx;
+	nx_canvas_context_2d_state_t *state = context->state;
+	double blur = state->shadow_blur;
+
+	if (blur > 0) {
+		// Get the extents of the current path
+		double x1, y1, x2, y2;
+		cairo_path_t *path = cairo_copy_path(cr);
+		if (mode == SHADOW_DRAW_FILL) {
+			cairo_fill_extents(cr, &x1, &y1, &x2, &y2);
+		} else {
+			cairo_stroke_extents(cr, &x1, &y1, &x2, &y2);
+		}
+
+		int pad = (int)(blur * 2);
+		int sw = (int)(x2 - x1) + pad * 2 + 2;
+		int sh = (int)(y2 - y1) + pad * 2 + 2;
+		if (sw <= 0 || sh <= 0) {
+			cairo_path_destroy(path);
+			return;
+		}
+
+		cairo_surface_t *shadow_surface =
+			cairo_image_surface_create(CAIRO_FORMAT_ARGB32, sw, sh);
+		cairo_t *shadow_cr = cairo_create(shadow_surface);
+
+		// Copy the current transformation + line properties
+		cairo_matrix_t matrix;
+		cairo_get_matrix(cr, &matrix);
+		cairo_set_matrix(shadow_cr, &matrix);
+		cairo_translate(shadow_cr, -x1 + pad, -y1 + pad);
+		cairo_set_line_width(shadow_cr, cairo_get_line_width(cr));
+		cairo_set_line_cap(shadow_cr, cairo_get_line_cap(cr));
+		cairo_set_line_join(shadow_cr, cairo_get_line_join(cr));
+		cairo_set_miter_limit(shadow_cr, cairo_get_miter_limit(cr));
+
+		// Replay path on shadow context
+		cairo_new_path(shadow_cr);
+		cairo_append_path(shadow_cr, path);
+
+		// Set shadow color
+		cairo_set_source_rgba(shadow_cr,
+			state->shadow_color.r, state->shadow_color.g,
+			state->shadow_color.b, state->shadow_color.a * state->global_alpha);
+
+		// Draw the shadow shape
+		if (mode == SHADOW_DRAW_FILL) {
+			cairo_fill(shadow_cr);
+		} else {
+			cairo_stroke(shadow_cr);
+		}
+		cairo_destroy(shadow_cr);
+
+		// Blur the shadow surface
+		blur_surface(shadow_surface, (int)(blur / 2));
+
+		// Paint shadow surface onto main context
+		cairo_save(cr);
+		cairo_identity_matrix(cr);
+		cairo_set_source_surface(cr, shadow_surface,
+			x1 - pad + state->shadow_offset_x,
+			y1 - pad + state->shadow_offset_y);
+		cairo_paint(cr);
+		cairo_restore(cr);
+
+		cairo_surface_destroy(shadow_surface);
+
+		// Restore path on main context
+		cairo_new_path(cr);
+		cairo_append_path(cr, path);
+		cairo_path_destroy(path);
+	} else {
+		// No blur, just offset shadow.
+		// Cairo stores path in device coords at the time of path construction,
+		// so translating the CTM after the path is built does NOT move the path.
+		// We must reconstruct the path with the offset applied.
+		cairo_path_t *path = cairo_copy_path(cr);
+		cairo_save(cr);
+		cairo_translate(cr, state->shadow_offset_x, state->shadow_offset_y);
+		cairo_new_path(cr);
+		cairo_append_path(cr, path);
+		cairo_set_source_rgba(cr,
+			state->shadow_color.r, state->shadow_color.g,
+			state->shadow_color.b, state->shadow_color.a * state->global_alpha);
+		if (mode == SHADOW_DRAW_FILL) {
+			cairo_fill(cr);
+		} else {
+			cairo_stroke(cr);
+		}
+		cairo_restore(cr);
+		// Restore original path
+		cairo_new_path(cr);
+		cairo_append_path(cr, path);
+		cairo_path_destroy(path);
+	}
+}
+
 static void fill(nx_canvas_context_2d_t *context, bool preserve) {
+	apply_shadow(context, SHADOW_DRAW_FILL);
 	if (context->state->fill_source_type == SOURCE_GRADIENT &&
 		context->state->fill_gradient) {
 		cairo_set_source(context->ctx, context->state->fill_gradient);
@@ -287,6 +467,7 @@ static void fill(nx_canvas_context_2d_t *context, bool preserve) {
 }
 
 static void stroke(nx_canvas_context_2d_t *context, bool preserve) {
+	apply_shadow(context, SHADOW_DRAW_STROKE);
 	if (context->state->stroke_source_type == SOURCE_GRADIENT &&
 		context->state->stroke_gradient) {
 		cairo_set_source(context->ctx, context->state->stroke_gradient);
@@ -2246,6 +2427,86 @@ static JSValue nx_canvas_context_2d_set_global_alpha(JSContext *ctx,
 	return JS_UNDEFINED;
 }
 
+// Shadow property getters/setters
+
+static JSValue nx_canvas_context_2d_get_shadow_blur(JSContext *ctx,
+	JSValueConst this_val, int argc, JSValueConst *argv) {
+	CANVAS_CONTEXT_THIS;
+	return JS_NewFloat64(ctx, context->state->shadow_blur);
+}
+
+static JSValue nx_canvas_context_2d_set_shadow_blur(JSContext *ctx,
+	JSValueConst this_val, int argc, JSValueConst *argv) {
+	CANVAS_CONTEXT_THIS;
+	double value;
+	if (JS_ToFloat64(ctx, &value, argv[0]))
+		return JS_EXCEPTION;
+	if (value >= 0) {
+		context->state->shadow_blur = value;
+	}
+	return JS_UNDEFINED;
+}
+
+static JSValue nx_canvas_context_2d_get_shadow_offset_x(JSContext *ctx,
+	JSValueConst this_val, int argc, JSValueConst *argv) {
+	CANVAS_CONTEXT_THIS;
+	return JS_NewFloat64(ctx, context->state->shadow_offset_x);
+}
+
+static JSValue nx_canvas_context_2d_set_shadow_offset_x(JSContext *ctx,
+	JSValueConst this_val, int argc, JSValueConst *argv) {
+	CANVAS_CONTEXT_THIS;
+	double value;
+	if (JS_ToFloat64(ctx, &value, argv[0]))
+		return JS_EXCEPTION;
+	context->state->shadow_offset_x = value;
+	return JS_UNDEFINED;
+}
+
+static JSValue nx_canvas_context_2d_get_shadow_offset_y(JSContext *ctx,
+	JSValueConst this_val, int argc, JSValueConst *argv) {
+	CANVAS_CONTEXT_THIS;
+	return JS_NewFloat64(ctx, context->state->shadow_offset_y);
+}
+
+static JSValue nx_canvas_context_2d_set_shadow_offset_y(JSContext *ctx,
+	JSValueConst this_val, int argc, JSValueConst *argv) {
+	CANVAS_CONTEXT_THIS;
+	double value;
+	if (JS_ToFloat64(ctx, &value, argv[0]))
+		return JS_EXCEPTION;
+	context->state->shadow_offset_y = value;
+	return JS_UNDEFINED;
+}
+
+static JSValue nx_canvas_context_2d_get_shadow_color(JSContext *ctx,
+	JSValueConst this_val, int argc, JSValueConst *argv) {
+	CANVAS_CONTEXT_ARGV0;
+	JSValue arr = JS_NewArray(ctx);
+	JS_SetPropertyUint32(ctx, arr, 0,
+		JS_NewInt32(ctx, context->state->shadow_color.r * 255));
+	JS_SetPropertyUint32(ctx, arr, 1,
+		JS_NewInt32(ctx, context->state->shadow_color.g * 255));
+	JS_SetPropertyUint32(ctx, arr, 2,
+		JS_NewInt32(ctx, context->state->shadow_color.b * 255));
+	JS_SetPropertyUint32(ctx, arr, 3,
+		JS_NewFloat64(ctx, context->state->shadow_color.a));
+	return arr;
+}
+
+static JSValue nx_canvas_context_2d_set_shadow_color(JSContext *ctx,
+	JSValueConst this_val, int argc, JSValueConst *argv) {
+	CANVAS_CONTEXT_ARGV0;
+	double args[4];
+	if (js_validate_doubles_args(ctx, argv, args, 4, 1))
+		return JS_EXCEPTION;
+	context->state->shadow_color.r = args[0] / 255.;
+	context->state->shadow_color.g = args[1] / 255.;
+	context->state->shadow_color.b = args[2] / 255.;
+	context->state->shadow_color.a = args[3];
+	return JS_UNDEFINED;
+}
+
 static JSValue nx_canvas_context_2d_get_global_composite_operation(
 	JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv) {
 	CANVAS_CONTEXT_THIS;
@@ -2929,6 +3190,14 @@ static JSValue nx_canvas_context_2d_init_class(JSContext *ctx,
 				  nx_canvas_context_2d_set_line_width);
 	NX_DEF_GETSET(proto, "miterLimit", nx_canvas_context_2d_get_miter_limit,
 				  nx_canvas_context_2d_set_miter_limit);
+	NX_DEF_GETSET(proto, "shadowBlur", nx_canvas_context_2d_get_shadow_blur,
+				 nx_canvas_context_2d_set_shadow_blur);
+	NX_DEF_GETSET(proto, "shadowOffsetX",
+				 nx_canvas_context_2d_get_shadow_offset_x,
+				 nx_canvas_context_2d_set_shadow_offset_x);
+	NX_DEF_GETSET(proto, "shadowOffsetY",
+				 nx_canvas_context_2d_get_shadow_offset_y,
+				 nx_canvas_context_2d_set_shadow_offset_y);
 	NX_DEF_GETSET(proto, "textAlign", nx_canvas_context_2d_get_text_align,
 				  nx_canvas_context_2d_set_text_align);
 	NX_DEF_GETSET(proto, "textBaseline", nx_canvas_context_2d_get_text_baseline,
@@ -3052,6 +3321,10 @@ static const JSCFunctionListEntry init_function_list[] = {
 				 nx_canvas_context_2d_get_stroke_style),
 	JS_CFUNC_DEF("canvasContext2dSetStrokeStyle", 0,
 				 nx_canvas_context_2d_set_stroke_style),
+	JS_CFUNC_DEF("canvasContext2dGetShadowColor", 0,
+				 nx_canvas_context_2d_get_shadow_color),
+	JS_CFUNC_DEF("canvasContext2dSetShadowColor", 0,
+				 nx_canvas_context_2d_set_shadow_color),
 	JS_CFUNC_DEF("canvasContext2dSetFillStyleGradient", 0,
 				 nx_canvas_context_2d_set_fill_style_gradient),
 	JS_CFUNC_DEF("canvasContext2dSetStrokeStyleGradient", 0,
