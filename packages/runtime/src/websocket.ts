@@ -7,6 +7,8 @@ import { EventTarget } from './polyfills/event-target';
 import { Event } from './polyfills/event';
 import { Blob } from './polyfills/blob';
 
+export type BinaryType = 'blob' | 'arraybuffer';
+
 // WebSocket ready states
 const CONNECTING = 0;
 const OPEN = 1;
@@ -21,7 +23,7 @@ const OP_CLOSE = 0x8;
 const OP_PING = 0x9;
 const OP_PONG = 0xa;
 
-interface MessageEventInit extends EventInit {
+export interface MessageEventInit extends EventInit {
 	data?: any;
 	origin?: string;
 	lastEventId?: string;
@@ -29,7 +31,7 @@ interface MessageEventInit extends EventInit {
 	ports?: any[];
 }
 
-class MessageEvent extends Event {
+export class MessageEvent extends Event {
 	readonly data: any;
 	readonly origin: string;
 	readonly lastEventId: string;
@@ -45,13 +47,13 @@ class MessageEvent extends Event {
 	}
 }
 
-interface CloseEventInit extends EventInit {
+export interface CloseEventInit extends EventInit {
 	code?: number;
 	reason?: string;
 	wasClean?: boolean;
 }
 
-class CloseEvent extends Event {
+export class CloseEvent extends Event {
 	readonly code: number;
 	readonly reason: string;
 	readonly wasClean: boolean;
