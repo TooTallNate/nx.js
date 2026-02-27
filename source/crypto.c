@@ -254,16 +254,19 @@ void nx_crypto_encrypt_do(nx_work_t *req) {
 		}
 
 		if (aes->key_length == 16) {
-			aes128CbcContextResetIv(&aes->encrypt.cbc_128, cbc_params->iv);
-			aes128CbcEncrypt(&aes->encrypt.cbc_128, data->result, data->result,
+			Aes128CbcContext ctx_copy = aes->encrypt.cbc_128;
+			aes128CbcContextResetIv(&ctx_copy, cbc_params->iv);
+			aes128CbcEncrypt(&ctx_copy, data->result, data->result,
 							 data->result_size);
 		} else if (aes->key_length == 24) {
-			aes192CbcContextResetIv(&aes->encrypt.cbc_192, cbc_params->iv);
-			aes192CbcEncrypt(&aes->encrypt.cbc_192, data->result, data->result,
+			Aes192CbcContext ctx_copy = aes->encrypt.cbc_192;
+			aes192CbcContextResetIv(&ctx_copy, cbc_params->iv);
+			aes192CbcEncrypt(&ctx_copy, data->result, data->result,
 							 data->result_size);
 		} else if (aes->key_length == 32) {
-			aes256CbcContextResetIv(&aes->encrypt.cbc_256, cbc_params->iv);
-			aes256CbcEncrypt(&aes->encrypt.cbc_256, data->result, data->result,
+			Aes256CbcContext ctx_copy = aes->encrypt.cbc_256;
+			aes256CbcContextResetIv(&ctx_copy, cbc_params->iv);
+			aes256CbcEncrypt(&ctx_copy, data->result, data->result,
 							 data->result_size);
 		}
 	} else if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_AES_CTR) {
@@ -279,16 +282,19 @@ void nx_crypto_encrypt_do(nx_work_t *req) {
 		}
 
 		if (aes->key_length == 16) {
-			aes128CtrContextResetCtr(&aes->decrypt.ctr_128, ctr_params->ctr);
-			aes128CtrCrypt(&aes->decrypt.ctr_128, data->result, data->data,
+			Aes128CtrContext ctx_copy = aes->decrypt.ctr_128;
+			aes128CtrContextResetCtr(&ctx_copy, ctr_params->ctr);
+			aes128CtrCrypt(&ctx_copy, data->result, data->data,
 						   data->result_size);
 		} else if (aes->key_length == 24) {
-			aes192CtrContextResetCtr(&aes->decrypt.ctr_192, ctr_params->ctr);
-			aes192CtrCrypt(&aes->decrypt.ctr_192, data->result, data->data,
+			Aes192CtrContext ctx_copy = aes->decrypt.ctr_192;
+			aes192CtrContextResetCtr(&ctx_copy, ctr_params->ctr);
+			aes192CtrCrypt(&ctx_copy, data->result, data->data,
 						   data->result_size);
 		} else if (aes->key_length == 32) {
-			aes256CtrContextResetCtr(&aes->decrypt.ctr_256, ctr_params->ctr);
-			aes256CtrCrypt(&aes->decrypt.ctr_256, data->result, data->data,
+			Aes256CtrContext ctx_copy = aes->decrypt.ctr_256;
+			aes256CtrContextResetCtr(&ctx_copy, ctr_params->ctr);
+			aes256CtrCrypt(&ctx_copy, data->result, data->data,
 						   data->result_size);
 		}
 	} else if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_AES_GCM) {
@@ -343,15 +349,16 @@ void nx_crypto_encrypt_do(nx_work_t *req) {
 		}
 
 		if (aes->key_length == 32) {
+			Aes128XtsContext ctx_copy = aes->encrypt.xts_128;
 			void *dst = data->result;
 			void *src = data->data;
 			u64 sector = xts_params->sector;
 			for (size_t i = 0; i < data->data_size;
 				 i += xts_params->sector_size) {
-				aes128XtsContextResetSector(&aes->encrypt.xts_128, sector++,
+				aes128XtsContextResetSector(&ctx_copy, sector++,
 											xts_params->is_nintendo);
 				data->result_size += aes128XtsEncrypt(
-					&aes->encrypt.xts_128, dst, src, xts_params->sector_size);
+					&ctx_copy, dst, src, xts_params->sector_size);
 
 				dst = (u8 *)dst + xts_params->sector_size;
 				src = (u8 *)src + xts_params->sector_size;
@@ -1326,16 +1333,19 @@ void nx_crypto_decrypt_do(nx_work_t *req) {
 		}
 
 		if (aes->key_length == 16) {
-			aes128CbcContextResetIv(&aes->decrypt.cbc_128, cbc_params->iv);
-			aes128CbcDecrypt(&aes->decrypt.cbc_128, data->result, data->data,
+			Aes128CbcContext ctx_copy = aes->decrypt.cbc_128;
+			aes128CbcContextResetIv(&ctx_copy, cbc_params->iv);
+			aes128CbcDecrypt(&ctx_copy, data->result, data->data,
 							 data->data_size);
 		} else if (aes->key_length == 24) {
-			aes192CbcContextResetIv(&aes->decrypt.cbc_192, cbc_params->iv);
-			aes192CbcDecrypt(&aes->decrypt.cbc_192, data->result, data->data,
+			Aes192CbcContext ctx_copy = aes->decrypt.cbc_192;
+			aes192CbcContextResetIv(&ctx_copy, cbc_params->iv);
+			aes192CbcDecrypt(&ctx_copy, data->result, data->data,
 							 data->data_size);
 		} else if (aes->key_length == 32) {
-			aes256CbcContextResetIv(&aes->decrypt.cbc_256, cbc_params->iv);
-			aes256CbcDecrypt(&aes->decrypt.cbc_256, data->result, data->data,
+			Aes256CbcContext ctx_copy = aes->decrypt.cbc_256;
+			aes256CbcContextResetIv(&ctx_copy, cbc_params->iv);
+			aes256CbcDecrypt(&ctx_copy, data->result, data->data,
 							 data->data_size);
 		}
 
@@ -1354,16 +1364,19 @@ void nx_crypto_decrypt_do(nx_work_t *req) {
 		}
 
 		if (aes->key_length == 16) {
-			aes128CtrContextResetCtr(&aes->decrypt.ctr_128, ctr_params->ctr);
-			aes128CtrCrypt(&aes->decrypt.ctr_128, data->result, data->data,
+			Aes128CtrContext ctx_copy = aes->decrypt.ctr_128;
+			aes128CtrContextResetCtr(&ctx_copy, ctr_params->ctr);
+			aes128CtrCrypt(&ctx_copy, data->result, data->data,
 						   data->result_size);
 		} else if (aes->key_length == 24) {
-			aes192CtrContextResetCtr(&aes->decrypt.ctr_192, ctr_params->ctr);
-			aes192CtrCrypt(&aes->decrypt.ctr_192, data->result, data->data,
+			Aes192CtrContext ctx_copy = aes->decrypt.ctr_192;
+			aes192CtrContextResetCtr(&ctx_copy, ctr_params->ctr);
+			aes192CtrCrypt(&ctx_copy, data->result, data->data,
 						   data->result_size);
 		} else if (aes->key_length == 32) {
-			aes256CtrContextResetCtr(&aes->decrypt.ctr_256, ctr_params->ctr);
-			aes256CtrCrypt(&aes->decrypt.ctr_256, data->result, data->data,
+			Aes256CtrContext ctx_copy = aes->decrypt.ctr_256;
+			aes256CtrContextResetCtr(&ctx_copy, ctr_params->ctr);
+			aes256CtrCrypt(&ctx_copy, data->result, data->data,
 						   data->result_size);
 		}
 	} else if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_AES_GCM) {
@@ -1425,15 +1438,16 @@ void nx_crypto_decrypt_do(nx_work_t *req) {
 		}
 
 		if (aes->key_length == 32) {
+			Aes128XtsContext ctx_copy = aes->decrypt.xts_128;
 			void *dst = data->result;
 			void *src = data->data;
 			uint64_t sector = xts_params->sector;
 			for (size_t i = 0; i < data->data_size;
 				 i += xts_params->sector_size) {
-				aes128XtsContextResetSector(&aes->decrypt.xts_128, sector++,
+				aes128XtsContextResetSector(&ctx_copy, sector++,
 											xts_params->is_nintendo);
 				data->result_size += aes128XtsDecrypt(
-					&aes->decrypt.xts_128, dst, src, xts_params->sector_size);
+					&ctx_copy, dst, src, xts_params->sector_size);
 
 				dst = (u8 *)dst + xts_params->sector_size;
 				src = (u8 *)src + xts_params->sector_size;
