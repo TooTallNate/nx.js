@@ -1,5 +1,6 @@
 import { $ } from './$';
 import { assertInternalConstructor, createInternal, def, proto } from './utils';
+import { Blob } from './polyfills/blob';
 import { EventTarget } from './polyfills/event-target';
 import { INTERNAL_SYMBOL } from './internal';
 import { CanvasRenderingContext2D } from './canvas/canvas-rendering-context-2d';
@@ -128,7 +129,11 @@ export class Screen extends EventTarget implements globalThis.Screen {
 		type = 'image/png',
 		quality = 0.8,
 	) {
-		throw new Error('Method not implemented.');
+		// Only PNG is supported currently
+		const buf = $.canvasToBuffer(this);
+		const blob = new Blob([buf], { type: 'image/png' });
+		// Per spec, callback is invoked asynchronously
+		queueMicrotask(() => callback(blob));
 	}
 
 	/**
@@ -150,7 +155,13 @@ export class Screen extends EventTarget implements globalThis.Screen {
 	 * @see https://developer.mozilla.org/docs/Web/API/HTMLCanvasElement/toDataURL
 	 */
 	toDataURL(type = 'image/png', quality = 0.8) {
-		throw new Error('Method not implemented.');
+		const buf = $.canvasToBuffer(this);
+		const bytes = new Uint8Array(buf);
+		let binary = '';
+		for (let i = 0; i < bytes.length; i++) {
+			binary += String.fromCharCode(bytes[i]);
+		}
+		return `data:image/png;base64,${btoa(binary)}`;
 	}
 
 	// Compat with HTML DOM interface

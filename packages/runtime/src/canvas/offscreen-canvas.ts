@@ -1,6 +1,6 @@
 import { $ } from '../$';
 import { INTERNAL_SYMBOL } from '../internal';
-import type { Blob } from '../polyfills/blob';
+import { Blob as NxBlob } from '../polyfills/blob';
 import { EventTarget } from '../polyfills/event-target';
 import type { ImageEncodeOptions } from '../types';
 import { createInternal, def, proto } from '../utils';
@@ -45,7 +45,9 @@ export class OffscreenCanvas
 	}
 
 	convertToBlob(options?: ImageEncodeOptions | undefined): Promise<Blob> {
-		throw new Error('Method not implemented.');
+		const buf = $.canvasToBuffer(this);
+		const blob = new NxBlob([buf], { type: options?.type ?? 'image/png' });
+		return Promise.resolve(blob);
 	}
 
 	getContext(

@@ -3032,6 +3032,82 @@ static void finalizer_canvas(JSRuntime *rt, JSValue val) {
 	}
 }
 
+typedef struct {
+	uint8_t *data;
+	size_t size;
+	size_t capacity;
+} png_write_buffer_t;
+
+static cairo_status_t png_write_callback(void *closure,
+										 const unsigned char *data,
+										 unsigned int length) {
+	png_write_buffer_t *buf = (png_write_buffer_t *)closure;
+	size_t needed = buf->size + length;
+	if (needed > buf->capacity) {
+		size_t new_cap = buf->capacity * 2;
+		if (new_cap < needed)
+			new_cap = needed;
+		uint8_t *new_data = realloc(buf->data, new_cap);
+		if (!new_data)
+			return CAIRO_STATUS_NO_MEMORY;
+		buf->data = new_data;
+		buf->capacity = new_cap;
+	}
+	memcpy(buf->data + buf->size, data, length);
+	buf->size += length;
+	return CAIRO_STATUS_SUCCESS;
+}
+
+/**
+ * canvasToBuffer(canvas) -> ArrayBuffer containing PNG data
+ */
+static JSValue nx_canvas_to_buffer(JSContext *ctx, JSValueConst this_val,
+								   int argc, JSValueConst *argv) {
+	nx_canvas_t *canvas = nx_get_canvas(ctx, argv[0]);
+	if (!canvas) {
+		return JS_ThrowTypeError(ctx, "Expected a canvas object");
+	}
+
+	if (!canvas->surface || canvas->width == 0 || canvas->height == 0) {
+		// Return empty PNG for zero-dimension canvas
+		// Flush surface if dirty - but if no surface, create a temporary one
+		cairo_surface_t *surface = cairo_image_surface_create(
+			CAIRO_FORMAT_ARGB32, canvas->width ? canvas->width : 1,
+			canvas->height ? canvas->height : 1);
+		png_write_buffer_t buf = {NULL, 0, 4096};
+		buf.data = malloc(buf.capacity);
+		if (!buf.data) {
+			cairo_surface_destroy(surface);
+			return JS_ThrowOutOfMemory(ctx);
+		}
+		cairo_surface_write_to_png_stream(surface, png_write_callback, &buf);
+		cairo_surface_destroy(surface);
+		JSValue ab = JS_NewArrayBufferCopy(ctx, buf.data, buf.size);
+		free(buf.data);
+		return ab;
+	}
+
+	cairo_surface_flush(canvas->surface);
+
+	png_write_buffer_t buf = {NULL, 0, 4096};
+	buf.data = malloc(buf.capacity);
+	if (!buf.data) {
+		return JS_ThrowOutOfMemory(ctx);
+	}
+
+	cairo_status_t status =
+		cairo_surface_write_to_png_stream(canvas->surface, png_write_callback, &buf);
+	if (status != CAIRO_STATUS_SUCCESS) {
+		free(buf.data);
+		return JS_ThrowInternalError(ctx, "Failed to encode PNG: %s",
+									 cairo_status_to_string(status));
+	}
+
+	JSValue ab = JS_NewArrayBufferCopy(ctx, buf.data, buf.size);
+	free(buf.data);
+	return ab;
+}
+
 static const JSCFunctionListEntry init_function_list[] = {
 	JS_CFUNC_DEF("canvasNew", 0, nx_canvas_new),
 	JS_CFUNC_DEF("canvasInitClass", 0, nx_canvas_init_class),
@@ -3061,6 +3137,7 @@ static const JSCFunctionListEntry init_function_list[] = {
 	JS_CFUNC_DEF("canvasGradientInitClass", 0, nx_canvas_gradient_init_class),
 	JS_CFUNC_DEF("canvasGradientAddColorStop", 0,
 				 nx_canvas_gradient_add_color_stop_standalone),
+	JS_CFUNC_DEF("canvasToBuffer", 1, nx_canvas_to_buffer),
 };
 
 void nx_init_canvas(JSContext *ctx, JSValueConst init_obj) {
