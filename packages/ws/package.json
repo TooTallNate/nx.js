@@ -1,0 +1,33 @@
+{
+	"name": "@nx.js/ws",
+	"version": "0.0.1",
+	"description": "WebSocket server for nx.js",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/TooTallNate/nx.js.git",
+		"directory": "packages/ws"
+	},
+	"homepage": "https://nxjs.n8.io/ws",
+	"main": "dist/index.js",
+	"scripts": {
+		"build": "tsc"
+	},
+	"files": [
+		"dist"
+	],
+	"publishConfig": {
+		"access": "public"
+	},
+	"devDependencies": {
+		"@nx.js/runtime": "workspace:*"
+	},
+	"keywords": [
+		"nx.js",
+		"switch",
+		"websocket",
+		"server",
+		"ws"
+	],
+	"author": "Nathan Rajlich <n@n8.io>",
+	"license": "MIT"
+}
