@@ -630,10 +630,11 @@ export class WebSocket extends EventTarget {
 			if (data instanceof ArrayBuffer || data instanceof SharedArrayBuffer) {
 				bytes = new Uint8Array(data);
 			} else {
+				const view = data as ArrayBufferView;
 				bytes = new Uint8Array(
-					data.buffer,
-					data.byteOffset,
-					data.byteLength,
+					view.buffer,
+					view.byteOffset,
+					view.byteLength,
 				);
 			}
 			this.#bufferedAmount += bytes.length;
