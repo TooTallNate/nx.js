@@ -1,6 +1,8 @@
 import colorRgba = require('color-rgba');
+
 import { $ } from '../$';
-import { createInternal, assertInternalConstructor, def } from '../utils';
+import { DOMException } from '../dom-exception';
+import { assertInternalConstructor, createInternal, def } from '../utils';
 
 interface CanvasGradientInternal {
 	opaque: any;

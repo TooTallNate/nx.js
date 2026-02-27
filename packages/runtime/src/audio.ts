@@ -1,10 +1,11 @@
 import { $ } from './$';
-import { def } from './utils';
-import { setInterval, clearInterval } from './timers';
-import { Event, ErrorEvent } from './polyfills/event';
+import { DOMException } from './dom-exception';
+import { fetch } from './fetch/fetch';
+import { ErrorEvent, Event } from './polyfills/event';
 import { EventTarget } from './polyfills/event-target';
 import { URL } from './polyfills/url';
-import { fetch } from './fetch/fetch';
+import { clearInterval, setInterval } from './timers';
+import { def } from './utils';
 
 const HAVE_NOTHING = 0;
 const HAVE_METADATA = 1;
