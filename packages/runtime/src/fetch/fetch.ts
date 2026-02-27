@@ -176,11 +176,12 @@ async function fetchHttp(req: Request, url: URL): Promise<Response> {
 		req.headers.set('transfer-encoding', 'chunked');
 	}
 
-	let header = `${req.method} ${url.pathname}${url.search} HTTP/1.1\r\n`;
+	const headerParts = [`${req.method} ${url.pathname}${url.search} HTTP/1.1`];
 	for (const [name, value] of req.headers) {
-		header += `${name}: ${value}\r\n`;
+		headerParts.push(`${name}: ${value}`);
 	}
-	header += '\r\n';
+	headerParts.push('', '');
+	const header = headerParts.join('\r\n');
 	const w = socket.writable.getWriter();
 	await w.write(encoder.encode(header));
 
