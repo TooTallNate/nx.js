@@ -806,6 +806,12 @@ importers:
         specifier: ^2.0.5
         version: 2.1.9
 
+  packages/ws:
+    devDependencies:
+      '@nx.js/runtime':
+        specifier: workspace:*
+        version: link:../runtime
+
   test/canvas:
     devDependencies:
       '@types/jest-image-snapshot':
