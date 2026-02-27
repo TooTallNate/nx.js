@@ -246,6 +246,8 @@ export interface Init {
 	): CryptoKey<any>;
 	cryptoEcExportPublicRaw(key: CryptoKey<any>): ArrayBuffer;
 	sha256Hex(str: string): string;
+	base64urlEncode(buf: ArrayBuffer): string;
+	base64urlDecode(str: string): ArrayBuffer;
 
 	// dommatrix.c
 	dommatrixNew(values?: number[]): DOMMatrix | DOMMatrixReadOnly;
