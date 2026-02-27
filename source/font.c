@@ -15,6 +15,10 @@ static JSValue nx_new_font_face(JSContext *ctx, JSValueConst this_val, int argc,
 
 	size_t bytes;
 	FT_Byte *font_data = JS_GetArrayBuffer(ctx, &bytes, argv[0]);
+	if (!font_data) {
+		js_free(ctx, context);
+		return JS_EXCEPTION;
+	}
 	context->font_buffer = js_malloc(ctx, bytes);
 	memcpy(context->font_buffer, font_data, bytes);
 
@@ -23,11 +27,16 @@ static JSValue nx_new_font_face(JSContext *ctx, JSValueConst this_val, int argc,
 		FT_Init_FreeType(&nx_ctx->ft_library);
 	}
 
-	FT_New_Memory_Face(nx_ctx->ft_library,
+	FT_Error ft_err = FT_New_Memory_Face(nx_ctx->ft_library,
 					   context->font_buffer, /* first byte in memory */
 					   bytes,                /* size in bytes        */
 					   0,                    /* face_index           */
 					   &context->ft_face);
+	if (ft_err) {
+		js_free(ctx, context->font_buffer);
+		js_free(ctx, context);
+		return JS_ThrowInternalError(ctx, "FreeType: failed to load font face (error %d)", ft_err);
+	}
 
 	// For CAIRO, load using FreeType
 	context->cairo_font =
@@ -37,13 +46,41 @@ static JSValue nx_new_font_face(JSContext *ctx, JSValueConst this_val, int argc,
 	// font)
 	hb_blob_t *blob = hb_blob_create((const char *)context->font_buffer, bytes,
 									 0, NULL, NULL);
+	if (!blob) {
+		cairo_font_face_destroy(context->cairo_font);
+		FT_Done_Face(context->ft_face);
+		js_free(ctx, context->font_buffer);
+		js_free(ctx, context);
+		return JS_ThrowInternalError(ctx, "HarfBuzz: failed to create blob");
+	}
 	hb_face_t *face = hb_face_create(blob, 0);
+	if (!face) {
+		hb_blob_destroy(blob);
+		cairo_font_face_destroy(context->cairo_font);
+		FT_Done_Face(context->ft_face);
+		js_free(ctx, context->font_buffer);
+		js_free(ctx, context);
+		return JS_ThrowInternalError(ctx, "HarfBuzz: failed to create face");
+	}
 	context->hb_font = hb_font_create(face);
+	hb_face_destroy(face);
+	hb_blob_destroy(blob);
+	if (!context->hb_font) {
+		cairo_font_face_destroy(context->cairo_font);
+		FT_Done_Face(context->ft_face);
+		js_free(ctx, context->font_buffer);
+		js_free(ctx, context);
+		return JS_ThrowInternalError(ctx, "HarfBuzz: failed to create font");
+	}
 	hb_ot_font_set_funcs(context->hb_font);
 	hb_font_set_scale(context->hb_font, 30 * 64, 30 * 64);
 
 	JSValue obj = JS_NewObjectClass(ctx, nx_font_face_class_id);
 	if (JS_IsException(obj)) {
+		hb_font_destroy(context->hb_font);
+		cairo_font_face_destroy(context->cairo_font);
+		FT_Done_Face(context->ft_face);
+		js_free(ctx, context->font_buffer);
 		js_free(ctx, context);
 		return obj;
 	}
