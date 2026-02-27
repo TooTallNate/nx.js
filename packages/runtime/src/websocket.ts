@@ -374,7 +374,8 @@ export class WebSocket extends EventTarget {
 					// Need more data
 					const { value, done } = await reader.read();
 					if (done) {
-						if ((this.#readyState as number) !== CLOSED) {
+						const state: number = this.#readyState;
+						if (state !== CLOSED) {
 							this.#readyState = CLOSED;
 							this.#fireEvent(
 								'close',
@@ -627,15 +628,14 @@ export class WebSocket extends EventTarget {
 			});
 		} else {
 			let bytes: Uint8Array;
-			if (data instanceof ArrayBuffer || data instanceof SharedArrayBuffer) {
-				bytes = new Uint8Array(data);
-			} else {
-				const view = data as ArrayBufferView;
+			if (ArrayBuffer.isView(data)) {
 				bytes = new Uint8Array(
-					view.buffer,
-					view.byteOffset,
-					view.byteLength,
+					data.buffer,
+					data.byteOffset,
+					data.byteLength,
 				);
+			} else {
+				bytes = new Uint8Array(data);
 			}
 			this.#bufferedAmount += bytes.length;
 			this.#sendFrame(OP_BINARY, bytes).then(() => {
