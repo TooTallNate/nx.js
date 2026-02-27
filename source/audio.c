@@ -304,7 +304,8 @@ static JSValue nx_audio_play(JSContext *ctx, JSValueConst this_val, int argc,
 
 	uint64_t total_samples;
 	double samples_dbl;
-	JS_ToFloat64(ctx, &samples_dbl, argv[6]);
+	if (JS_ToFloat64(ctx, &samples_dbl, argv[6]))
+		return JS_EXCEPTION;
 	total_samples = (uint64_t)samples_dbl;
 
 	/* Add the PCM buffer as a mempool */
