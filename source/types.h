@@ -74,6 +74,9 @@ struct nx_work_s {
 enum nx_rendering_mode { NX_RENDERING_MODE_INIT, NX_RENDERING_MODE_CONSOLE, NX_RENDERING_MODE_CANVAS };
 
 typedef struct nx_context_s {
+	// Threading invariant: `had_error` is only written from the main thread
+	// (in error handlers) and read from the main thread (in the main loop
+	// and async callback processing). No cross-thread access occurs.
 	int had_error;
 	enum nx_rendering_mode rendering_mode;
 	nx_poll_t poll;

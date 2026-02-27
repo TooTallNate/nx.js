@@ -282,21 +282,25 @@ static JSValue nx_audio_play(JSContext *ctx, JSValueConst this_val, int argc,
 		return JS_EXCEPTION;
 
 	int voice_id;
-	JS_ToInt32(ctx, &voice_id, argv[1]);
+	if (JS_ToInt32(ctx, &voice_id, argv[1]))
+		return JS_EXCEPTION;
 	if (voice_id < 0 || voice_id >= AUDIO_NUM_VOICES) {
 		return JS_ThrowRangeError(ctx, "Invalid voice ID");
 	}
 
 	double volume;
-	JS_ToFloat64(ctx, &volume, argv[2]);
+	if (JS_ToFloat64(ctx, &volume, argv[2]))
+		return JS_EXCEPTION;
 
 	int loop = JS_ToBool(ctx, argv[3]);
 
 	int32_t sample_rate;
-	JS_ToInt32(ctx, &sample_rate, argv[4]);
+	if (JS_ToInt32(ctx, &sample_rate, argv[4]))
+		return JS_EXCEPTION;
 
 	int32_t channels;
-	JS_ToInt32(ctx, &channels, argv[5]);
+	if (JS_ToInt32(ctx, &channels, argv[5]))
+		return JS_EXCEPTION;
 
 	uint64_t total_samples;
 	double samples_dbl;
@@ -347,7 +351,8 @@ static JSValue nx_audio_stop(JSContext *ctx, JSValueConst this_val, int argc,
 	if (!audio_initialized)
 		return JS_UNDEFINED;
 	int voice_id;
-	JS_ToInt32(ctx, &voice_id, argv[0]);
+	if (JS_ToInt32(ctx, &voice_id, argv[0]))
+		return JS_EXCEPTION;
 	if (voice_id < 0 || voice_id >= AUDIO_NUM_VOICES)
 		return JS_ThrowRangeError(ctx, "Invalid voice ID");
 

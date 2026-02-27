@@ -205,7 +205,7 @@ static JSValue js_cwd(JSContext *ctx, JSValueConst this_val, int argc,
 					  JSValueConst *argv) {
 	char cwd[1024];
 	if (getcwd(cwd, sizeof(cwd)) != NULL) {
-		char final_path[1029];
+		char final_path[1036];
 
 		// Emulators such as Ryujinx don't have
 		// the "sdmc:" prefix, so add it

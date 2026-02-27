@@ -404,6 +404,13 @@ void nx_read_file_do(nx_work_t *req) {
 		data->end = total_size;
 	}
 
+	if (data->start > data->end) {
+		data->size = 0;
+		data->result = NULL;
+		fclose(file);
+		return;
+	}
+
 	data->size = data->end - data->start;
 
 	// Seek to start offset

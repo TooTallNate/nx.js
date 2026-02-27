@@ -141,6 +141,8 @@ int decode_jpeg(uint8_t *jpegBuf, size_t jpegSize, uint8_t **output, int *width,
 	if (tjDecompress2(handle, jpegBuf, jpegSize, *output, *width, 0 /*pitch*/,
 					  *height, TJPF_BGRA, TJFLAG_FASTDCT) == -1) {
 		// printf("Error in tjDecompress2(): %s\n", tjGetErrorStr());
+		tjFree(*output);
+		*output = NULL;
 		goto cleanup;
 	}
 
