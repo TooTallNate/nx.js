@@ -1824,6 +1824,7 @@ static JSValue nx_canvas_init_class(JSContext *ctx, JSValueConst this_val,
 	JSValue proto = JS_GetPropertyStr(ctx, argv[0], "prototype");
 	NX_DEF_GETSET(proto, "width", nx_canvas_get_width, nx_canvas_set_width);
 	NX_DEF_GETSET(proto, "height", nx_canvas_get_height, nx_canvas_set_height);
+	NX_DEF_FUNC(proto, "toDataURL", nx_canvas_proto_to_data_url, 0);
 	JS_FreeValue(ctx, proto);
 	return JS_UNDEFINED;
 }
@@ -3369,126 +3370,25 @@ static JSValue nx_canvas_to_buffer(JSContext *ctx, JSValueConst this_val,
 	return nx_queue_async(ctx, req, nx_canvas_encode_do, nx_canvas_encode_cb);
 }
 
-/* ---- Async canvasToDataURL ---- */
-
-typedef struct {
-	cairo_surface_t *snapshot;
-	int type;
-	double quality;
-	char *data_url;
-	int err;
-} nx_canvas_data_url_async_t;
-
-static void nx_canvas_data_url_do(nx_work_t *req) {
-	nx_canvas_data_url_async_t *data = (nx_canvas_data_url_async_t *)req->data;
-	uint8_t *buf = NULL;
-	size_t buf_size = 0;
-
-	if (encode_surface(data->snapshot, data->type, data->quality, &buf,
-					   &buf_size) != 0) {
-		data->err = -1;
-		return;
-	}
-
-	const char *mime = type_code_to_mime(data->type);
-
-	// Base64 encode using mbedtls
-	size_t b64_len = 0;
-	mbedtls_base64_encode(NULL, 0, &b64_len, buf, buf_size);
-
-	// "data:" + mime + ";base64," + b64 + NUL
-	size_t prefix_len = 5 + strlen(mime) + 8; // "data:" + mime + ";base64,"
-	data->data_url = malloc(prefix_len + b64_len + 1);
-	if (!data->data_url) {
-		free(buf);
-		data->err = -1;
-		return;
-	}
-
-	int written = sprintf(data->data_url, "data:%s;base64,", mime);
-
-	size_t actual_len = 0;
-	mbedtls_base64_encode((unsigned char *)data->data_url + written,
-						  b64_len + 1, &actual_len, buf, buf_size);
-	data->data_url[written + actual_len] = '\0';
-	free(buf);
-}
-
-static JSValue nx_canvas_data_url_cb(JSContext *ctx, nx_work_t *req) {
-	nx_canvas_data_url_async_t *data =
-		(nx_canvas_data_url_async_t *)req->data;
-	cairo_surface_destroy(data->snapshot);
-
-	if (data->err || !data->data_url) {
-		if (data->data_url)
-			free(data->data_url);
-		return JS_ThrowInternalError(ctx, "Failed to encode data URL");
-	}
-
-	JSValue result = JS_NewString(ctx, data->data_url);
-	free(data->data_url);
-	return result;
-}
-
 /**
- * canvasToDataURL(canvas, type, quality) -> Promise<string>
- * Returns a "data:" URL with base64-encoded image.
- * Encoding and base64 run on the thread pool.
+ * Proto method: toDataURL(type, quality) -> string
+ * `this` is the canvas object.
  */
-static JSValue nx_canvas_to_data_url(JSContext *ctx, JSValueConst this_val,
-									 int argc, JSValueConst *argv) {
-	nx_canvas_t *canvas = nx_get_canvas(ctx, argv[0]);
+static JSValue nx_canvas_proto_to_data_url(JSContext *ctx,
+										   JSValueConst this_val, int argc,
+										   JSValueConst *argv) {
+	nx_canvas_t *canvas = nx_get_canvas(ctx, this_val);
 	if (!canvas) {
 		return JS_ThrowTypeError(ctx, "Expected a canvas object");
 	}
 
 	const char *type_str = NULL;
 	double quality = 0.92;
-	if (argc > 1 && !JS_IsUndefined(argv[1])) {
-		type_str = JS_ToCString(ctx, argv[1]);
+	if (argc > 0 && !JS_IsUndefined(argv[0])) {
+		type_str = JS_ToCString(ctx, argv[0]);
 	}
-	if (argc > 2) {
-		JS_ToFloat64(ctx, &quality, argv[2]);
-	}
-	if (quality < 0.0)
-		quality = 0.0;
-	if (quality > 1.0)
-		quality = 1.0;
-
-	int type_code = mime_to_type_code(type_str);
-	if (type_str)
-		JS_FreeCString(ctx, type_str);
-
-	NX_INIT_WORK_T(nx_canvas_data_url_async_t);
-	data->snapshot = snapshot_surface(canvas);
-	data->type = type_code;
-	data->quality = quality;
-	data->data_url = NULL;
-	data->err = 0;
-
-	return nx_queue_async(ctx, req, nx_canvas_data_url_do,
-						  nx_canvas_data_url_cb);
-}
-
-/**
- * canvasToDataURLSync(canvas, type, quality) -> string
- * Synchronous version — encoding runs on the calling thread.
- */
-static JSValue nx_canvas_to_data_url_sync(JSContext *ctx,
-										  JSValueConst this_val, int argc,
-										  JSValueConst *argv) {
-	nx_canvas_t *canvas = nx_get_canvas(ctx, argv[0]);
-	if (!canvas) {
-		return JS_ThrowTypeError(ctx, "Expected a canvas object");
-	}
-
-	const char *type_str = NULL;
-	double quality = 0.92;
-	if (argc > 1 && !JS_IsUndefined(argv[1])) {
-		type_str = JS_ToCString(ctx, argv[1]);
-	}
-	if (argc > 2) {
-		JS_ToFloat64(ctx, &quality, argv[2]);
+	if (argc > 1) {
+		JS_ToFloat64(ctx, &quality, argv[1]);
 	}
 	if (quality < 0.0)
 		quality = 0.0;
@@ -3564,8 +3464,6 @@ static const JSCFunctionListEntry init_function_list[] = {
 	JS_CFUNC_DEF("canvasGradientAddColorStop", 0,
 				 nx_canvas_gradient_add_color_stop_standalone),
 	JS_CFUNC_DEF("canvasToBuffer", 3, nx_canvas_to_buffer),
-	JS_CFUNC_DEF("canvasToDataURL", 3, nx_canvas_to_data_url),
-	JS_CFUNC_DEF("canvasToDataURLSync", 3, nx_canvas_to_data_url_sync),
 };
 
 void nx_init_canvas(JSContext *ctx, JSValueConst init_obj) {

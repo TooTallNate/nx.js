@@ -85,8 +85,6 @@ export interface Init {
 	// canvas.c
 	canvasNew(width: number, height: number): Screen | OffscreenCanvas;
 	canvasToBuffer(canvas: Screen | OffscreenCanvas, type?: string, quality?: number): Promise<ArrayBuffer>;
-	canvasToDataURL(canvas: Screen | OffscreenCanvas, type?: string, quality?: number): Promise<string>;
-	canvasToDataURLSync(canvas: Screen | OffscreenCanvas, type?: string, quality?: number): string;
 	canvasInitClass(c: ClassOf<Screen | OffscreenCanvas>): void;
 	canvasContext2dNew(c: Screen): CanvasRenderingContext2D;
 	canvasContext2dNew(c: OffscreenCanvas): OffscreenCanvasRenderingContext2D;

@@ -1,5 +1,5 @@
 import { $ } from './$';
-import { assertInternalConstructor, createInternal, def, normalizeImageMime, proto } from './utils';
+import { assertInternalConstructor, createInternal, def, normalizeImageMime, proto, stub } from './utils';
 import { Blob } from './polyfills/blob';
 import { EventTarget } from './polyfills/event-target';
 import { INTERNAL_SYMBOL } from './internal';
@@ -153,7 +153,7 @@ export class Screen extends EventTarget implements globalThis.Screen {
 	 * @see https://developer.mozilla.org/docs/Web/API/HTMLCanvasElement/toDataURL
 	 */
 	toDataURL(type = 'image/png', quality = 0.92): string {
-		return $.canvasToDataURLSync(this, type, quality);
+		stub();
 	}
 
 	// Compat with HTML DOM interface
