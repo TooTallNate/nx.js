@@ -67,6 +67,12 @@ JSValue nx_dns_resolve_cb(JSContext *ctx, nx_work_t *req) {
 	JS_FreeCString(ctx, data->hostname);
 
 	if (data->err) {
+		if (data->entries) {
+			for (size_t i = 0; i < data->num_entries; i++) {
+				free(data->entries[i]);
+			}
+			free(data->entries);
+		}
 		JSValue err = JS_NewError(ctx);
 		JS_DefinePropertyValueStr(ctx, err, "message",
 								  JS_NewString(ctx, gai_strerror(data->err)),
