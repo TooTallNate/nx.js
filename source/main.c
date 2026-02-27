@@ -188,6 +188,7 @@ static JSValue js_print(JSContext *ctx, JSValueConst this_val, int argc,
 		nx_console_init(nx_ctx);
 	}
 	const char *str = JS_ToCString(ctx, argv[0]);
+	if (!str) return JS_EXCEPTION;
 	printf("%s", str);
 	JS_FreeCString(ctx, str);
 	return JS_UNDEFINED;
@@ -196,6 +197,7 @@ static JSValue js_print(JSContext *ctx, JSValueConst this_val, int argc,
 static JSValue js_print_err(JSContext *ctx, JSValueConst this_val, int argc,
 							JSValueConst *argv) {
 	const char *str = JS_ToCString(ctx, argv[0]);
+	if (!str) return JS_EXCEPTION;
 	fprintf(stderr, "%s", str);
 	JS_FreeCString(ctx, str);
 	return JS_UNDEFINED;
@@ -573,6 +575,10 @@ void nx_render_loading_image(nx_context_t *nx_ctx, const char *nro_path) {
 		free(js_framebuffer);
 		free(loading_image);
 		js_framebuffer = NULL;
+
+		framebufferClose(framebuffer);
+		free(framebuffer);
+		framebuffer = NULL;
 	}
 }
 

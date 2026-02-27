@@ -102,12 +102,19 @@ uint8_t *decode_png(uint8_t *input, size_t input_size, u32 *width,
 	}
 
 	uint8_t *image_data = malloc(4 * (*width) * (*height));
-	png_bytep rows[*height];
+	png_bytep *rows = malloc(sizeof(png_bytep) * (*height));
+	if (!image_data || !rows) {
+		free(image_data);
+		free(rows);
+		png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
+		return NULL;
+	}
 	for (int i = 0; i < *height; ++i) {
 		rows[i] = image_data + i * 4 * (*width);
 	}
 
 	png_read_image(png_ptr, rows);
+	free(rows);
 
 	png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
 
