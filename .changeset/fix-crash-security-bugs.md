@@ -1,5 +1,5 @@
 ---
-'nx.js': patch
+'@nx.js/runtime': patch
 ---
 
 Fix high-severity crash/security bugs in C runtime:
