@@ -1,5 +1,6 @@
 import { $ } from './$';
-import { assertInternalConstructor, createInternal, def, proto } from './utils';
+import { assertInternalConstructor, createInternal, def, normalizeImageMime, proto, stub } from './utils';
+import { Blob } from './polyfills/blob';
 import { EventTarget } from './polyfills/event-target';
 import { INTERNAL_SYMBOL } from './internal';
 import { CanvasRenderingContext2D } from './canvas/canvas-rendering-context-2d';
@@ -126,9 +127,11 @@ export class Screen extends EventTarget implements globalThis.Screen {
 	toBlob(
 		callback: (blob: Blob | null) => void,
 		type = 'image/png',
-		quality = 0.8,
+		quality = 0.92,
 	) {
-		throw new Error('Method not implemented.');
+		$.canvasToBuffer(this, type, quality).then((buf: ArrayBuffer) => {
+			callback(new Blob([buf], { type: normalizeImageMime(type) }));
+		});
 	}
 
 	/**
@@ -149,8 +152,8 @@ export class Screen extends EventTarget implements globalThis.Screen {
 	 * @param quality A number between `0` and `1` indicating the image quality to be used when creating images using file formats that support lossy compression (such as `image/jpeg`). The default quality value will be used if this option is not specified, or if the number is outside the allowed range.
 	 * @see https://developer.mozilla.org/docs/Web/API/HTMLCanvasElement/toDataURL
 	 */
-	toDataURL(type = 'image/png', quality = 0.8) {
-		throw new Error('Method not implemented.');
+	toDataURL(type = 'image/png', quality = 0.92): string {
+		stub();
 	}
 
 	// Compat with HTML DOM interface

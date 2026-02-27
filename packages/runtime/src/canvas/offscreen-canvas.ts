@@ -1,9 +1,9 @@
 import { $ } from '../$';
 import { INTERNAL_SYMBOL } from '../internal';
-import type { Blob } from '../polyfills/blob';
+import { Blob as NxBlob } from '../polyfills/blob';
 import { EventTarget } from '../polyfills/event-target';
 import type { ImageEncodeOptions } from '../types';
-import { createInternal, def, proto } from '../utils';
+import { createInternal, def, normalizeImageMime, proto } from '../utils';
 import { OffscreenCanvasRenderingContext2D } from './offscreen-canvas-rendering-context-2d';
 
 interface OffscreenCanvasInternal {
@@ -44,8 +44,11 @@ export class OffscreenCanvas
 		return c;
 	}
 
-	convertToBlob(options?: ImageEncodeOptions | undefined): Promise<Blob> {
-		throw new Error('Method not implemented.');
+	async convertToBlob(options?: ImageEncodeOptions | undefined): Promise<Blob> {
+		const type = options?.type;
+		const quality = options?.quality ?? 0.92;
+		const buf = await $.canvasToBuffer(this, type, quality);
+		return new NxBlob([buf], { type: normalizeImageMime(type) }) as Blob;
 	}
 
 	getContext(

@@ -10,6 +10,10 @@
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <mbedtls/base64.h>
+#include <turbojpeg.h>
+#include <webp/encode.h>
+#include "async.h"
 
 /**
  * Lazily recreates the canvas surface and resets the 2D context state after
@@ -1993,12 +1997,17 @@ static JSValue nx_canvas_set_height(JSContext *ctx, JSValueConst this_val,
 	return JS_UNDEFINED;
 }
 
+static JSValue nx_canvas_proto_to_data_url(JSContext *ctx,
+										   JSValueConst this_val, int argc,
+										   JSValueConst *argv);
+
 static JSValue nx_canvas_init_class(JSContext *ctx, JSValueConst this_val,
 									int argc, JSValueConst *argv) {
 	JSAtom atom;
 	JSValue proto = JS_GetPropertyStr(ctx, argv[0], "prototype");
 	NX_DEF_GETSET(proto, "width", nx_canvas_get_width, nx_canvas_set_width);
 	NX_DEF_GETSET(proto, "height", nx_canvas_get_height, nx_canvas_set_height);
+	NX_DEF_FUNC(proto, "toDataURL", nx_canvas_proto_to_data_url, 0);
 	JS_FreeValue(ctx, proto);
 	return JS_UNDEFINED;
 }
@@ -3301,6 +3310,403 @@ static void finalizer_canvas(JSRuntime *rt, JSValue val) {
 	}
 }
 
+typedef struct {
+	uint8_t *data;
+	size_t size;
+	size_t capacity;
+} png_write_buffer_t;
+
+static cairo_status_t png_write_callback(void *closure,
+										 const unsigned char *data,
+										 unsigned int length) {
+	png_write_buffer_t *buf = (png_write_buffer_t *)closure;
+	size_t needed = buf->size + length;
+	if (needed > buf->capacity) {
+		size_t new_cap = buf->capacity * 2;
+		if (new_cap < needed)
+			new_cap = needed;
+		uint8_t *new_data = realloc(buf->data, new_cap);
+		if (!new_data)
+			return CAIRO_STATUS_NO_MEMORY;
+		buf->data = new_data;
+		buf->capacity = new_cap;
+	}
+	memcpy(buf->data + buf->size, data, length);
+	buf->size += length;
+	return CAIRO_STATUS_SUCCESS;
+}
+
+/**
+ * Encode cairo surface as PNG into a malloc'd buffer.
+ * On success, sets *out and *out_size. On failure, returns non-zero.
+ */
+static int encode_png_buf(cairo_surface_t *surface, uint8_t **out,
+						  size_t *out_size) {
+	png_write_buffer_t buf = {NULL, 0, 4096};
+	buf.data = malloc(buf.capacity);
+	if (!buf.data)
+		return -1;
+	cairo_status_t status =
+		cairo_surface_write_to_png_stream(surface, png_write_callback, &buf);
+	if (status != CAIRO_STATUS_SUCCESS) {
+		free(buf.data);
+		return -1;
+	}
+	*out = buf.data;
+	*out_size = buf.size;
+	return 0;
+}
+
+/**
+ * Convert BGRA (cairo ARGB32 on little-endian) to RGB, removing alpha
+ * by compositing against white background.
+ */
+static uint8_t *bgra_to_rgb(const uint8_t *bgra, int width, int height,
+							 int stride) {
+	uint8_t *rgb = malloc(width * height * 3);
+	if (!rgb)
+		return NULL;
+	for (int y = 0; y < height; y++) {
+		const uint8_t *row = bgra + y * stride;
+		for (int x = 0; x < width; x++) {
+			uint8_t b = row[x * 4 + 0];
+			uint8_t g = row[x * 4 + 1];
+			uint8_t r = row[x * 4 + 2];
+			uint8_t a = row[x * 4 + 3];
+			// Composite over white (premultiplied alpha in cairo)
+			if (a == 0) {
+				rgb[(y * width + x) * 3 + 0] = 255;
+				rgb[(y * width + x) * 3 + 1] = 255;
+				rgb[(y * width + x) * 3 + 2] = 255;
+			} else if (a == 255) {
+				rgb[(y * width + x) * 3 + 0] = r;
+				rgb[(y * width + x) * 3 + 1] = g;
+				rgb[(y * width + x) * 3 + 2] = b;
+			} else {
+				// cairo uses premultiplied alpha: composite over white
+				// premultiplied: color_out = color_premul + (1 - alpha) * white
+				float inv_a = 1.0f - a / 255.0f;
+				rgb[(y * width + x) * 3 + 0] =
+					(uint8_t)(r + 255 * inv_a + 0.5f);
+				rgb[(y * width + x) * 3 + 1] =
+					(uint8_t)(g + 255 * inv_a + 0.5f);
+				rgb[(y * width + x) * 3 + 2] =
+					(uint8_t)(b + 255 * inv_a + 0.5f);
+			}
+		}
+	}
+	return rgb;
+}
+
+/**
+ * Encode cairo surface as JPEG into a malloc'd buffer.
+ * On success, sets *out and *out_size. Caller must tjFree(*out).
+ */
+static int encode_jpeg_buf(cairo_surface_t *surface, int quality,
+						   uint8_t **out, size_t *out_size) {
+	int width = cairo_image_surface_get_width(surface);
+	int height = cairo_image_surface_get_height(surface);
+	int stride = cairo_image_surface_get_stride(surface);
+	uint8_t *data = cairo_image_surface_get_data(surface);
+
+	uint8_t *rgb = bgra_to_rgb(data, width, height, stride);
+	if (!rgb)
+		return -1;
+
+	tjhandle handle = tjInitCompress();
+	if (!handle) {
+		free(rgb);
+		return -1;
+	}
+
+	unsigned char *jpeg_buf = NULL;
+	unsigned long jpeg_size = 0;
+
+	int result = tjCompress2(handle, rgb, width, 0, height, TJPF_RGB,
+							 &jpeg_buf, &jpeg_size, TJSAMP_420, quality,
+							 TJFLAG_FASTDCT);
+	free(rgb);
+	tjDestroy(handle);
+
+	if (result != 0) {
+		if (jpeg_buf)
+			tjFree(jpeg_buf);
+		return -1;
+	}
+
+	*out = jpeg_buf;
+	*out_size = jpeg_size;
+	return 0;
+}
+
+/**
+ * Encode cairo surface as WebP into a malloc'd buffer.
+ * On success, sets *out and *out_size. Caller must WebPFree(*out).
+ */
+static int encode_webp_buf(cairo_surface_t *surface, float quality,
+						   uint8_t **out, size_t *out_size) {
+	int width = cairo_image_surface_get_width(surface);
+	int height = cairo_image_surface_get_height(surface);
+	int stride = cairo_image_surface_get_stride(surface);
+	uint8_t *data = cairo_image_surface_get_data(surface);
+
+	uint8_t *output = NULL;
+	size_t output_size =
+		WebPEncodeBGRA(data, width, height, stride, quality, &output);
+
+	if (output_size == 0 || !output)
+		return -1;
+
+	*out = output;
+	*out_size = output_size;
+	return 0;
+}
+
+/**
+ * Encode a cairo surface snapshot into a buffer.
+ * Returns 0 on success. Caller must free *out (with free/tjFree/WebPFree
+ * depending on type — we copy into a uniform malloc'd buffer to simplify).
+ */
+static int encode_surface(cairo_surface_t *surface, int type, double quality,
+						  uint8_t **out, size_t *out_size) {
+	switch (type) {
+	case 1: {
+		uint8_t *jpeg_buf = NULL;
+		size_t jpeg_size = 0;
+		int ret = encode_jpeg_buf(surface, (int)(quality * 100), &jpeg_buf,
+								  &jpeg_size);
+		if (ret != 0)
+			return -1;
+		// Copy to malloc'd buffer for uniform free()
+		*out = malloc(jpeg_size);
+		if (!*out) {
+			tjFree(jpeg_buf);
+			return -1;
+		}
+		memcpy(*out, jpeg_buf, jpeg_size);
+		*out_size = jpeg_size;
+		tjFree(jpeg_buf);
+		return 0;
+	}
+	case 2: {
+		uint8_t *webp_buf = NULL;
+		size_t webp_size = 0;
+		int ret = encode_webp_buf(surface, (float)(quality * 100), &webp_buf,
+								  &webp_size);
+		if (ret != 0)
+			return -1;
+		*out = malloc(webp_size);
+		if (!*out) {
+			WebPFree(webp_buf);
+			return -1;
+		}
+		memcpy(*out, webp_buf, webp_size);
+		*out_size = webp_size;
+		WebPFree(webp_buf);
+		return 0;
+	}
+	default:
+		return encode_png_buf(surface, out, out_size);
+	}
+}
+
+/**
+ * Map MIME type string to integer type code.
+ * 0 = PNG (default), 1 = JPEG, 2 = WebP.
+ * Unsupported types fall back to PNG (0).
+ */
+static int mime_to_type_code(const char *type) {
+	if (type) {
+		if (strcmp(type, "image/jpeg") == 0)
+			return 1;
+		if (strcmp(type, "image/webp") == 0)
+			return 2;
+	}
+	return 0;
+}
+
+/**
+ * Return the canonical MIME string for a type code.
+ */
+static const char *type_code_to_mime(int type) {
+	switch (type) {
+	case 1:
+		return "image/jpeg";
+	case 2:
+		return "image/webp";
+	default:
+		return "image/png";
+	}
+}
+
+/* ---- Async canvasToBuffer ---- */
+
+typedef struct {
+	// Input (copied from canvas before thread)
+	cairo_surface_t *snapshot;
+	int type;
+	double quality;
+	// Output
+	uint8_t *result;
+	size_t result_size;
+	int err;
+} nx_canvas_encode_async_t;
+
+static void nx_canvas_encode_do(nx_work_t *req) {
+	nx_canvas_encode_async_t *data = (nx_canvas_encode_async_t *)req->data;
+	data->err =
+		encode_surface(data->snapshot, data->type, data->quality,
+					   &data->result, &data->result_size);
+}
+
+static void free_array_buffer_cb(JSRuntime *rt, void *opaque, void *ptr) {
+	free(ptr);
+}
+
+static JSValue nx_canvas_encode_cb(JSContext *ctx, nx_work_t *req) {
+	nx_canvas_encode_async_t *data = (nx_canvas_encode_async_t *)req->data;
+	cairo_surface_destroy(data->snapshot);
+
+	if (data->err) {
+		return JS_ThrowInternalError(ctx, "Failed to encode image");
+	}
+
+	return JS_NewArrayBuffer(ctx, data->result, data->result_size,
+							 free_array_buffer_cb, NULL, false);
+}
+
+/**
+ * Take a snapshot of the canvas surface for use on the thread pool.
+ */
+static cairo_surface_t *snapshot_surface(nx_canvas_t *canvas) {
+	if (!canvas->surface || canvas->width == 0 || canvas->height == 0) {
+		return cairo_image_surface_create(
+			CAIRO_FORMAT_ARGB32, canvas->width ? canvas->width : 1,
+			canvas->height ? canvas->height : 1);
+	}
+	cairo_surface_flush(canvas->surface);
+	// Create an independent copy so the thread pool doesn't race with JS
+	int w = cairo_image_surface_get_width(canvas->surface);
+	int h = cairo_image_surface_get_height(canvas->surface);
+	int stride = cairo_image_surface_get_stride(canvas->surface);
+	uint8_t *src = cairo_image_surface_get_data(canvas->surface);
+	cairo_surface_t *copy =
+		cairo_image_surface_create(CAIRO_FORMAT_ARGB32, w, h);
+	uint8_t *dst = cairo_image_surface_get_data(copy);
+	int dst_stride = cairo_image_surface_get_stride(copy);
+	for (int y = 0; y < h; y++) {
+		memcpy(dst + y * dst_stride, src + y * stride, w * 4);
+	}
+	cairo_surface_mark_dirty(copy);
+	return copy;
+}
+
+/**
+ * canvasToBuffer(canvas, type, quality) -> Promise<ArrayBuffer>
+ * type: string MIME type ("image/png", "image/jpeg", "image/webp")
+ * quality: 0.0 - 1.0 (used for JPEG and WebP)
+ *
+ * Encoding runs on the thread pool.
+ */
+static JSValue nx_canvas_to_buffer(JSContext *ctx, JSValueConst this_val,
+								   int argc, JSValueConst *argv) {
+	nx_canvas_t *canvas = nx_get_canvas(ctx, argv[0]);
+	if (!canvas) {
+		return JS_ThrowTypeError(ctx, "Expected a canvas object");
+	}
+
+	const char *type_str = NULL;
+	double quality = 0.92;
+	if (argc > 1 && !JS_IsUndefined(argv[1])) {
+		type_str = JS_ToCString(ctx, argv[1]);
+	}
+	if (argc > 2) {
+		JS_ToFloat64(ctx, &quality, argv[2]);
+	}
+	if (quality < 0.0)
+		quality = 0.0;
+	if (quality > 1.0)
+		quality = 1.0;
+
+	int type_code = mime_to_type_code(type_str);
+	if (type_str)
+		JS_FreeCString(ctx, type_str);
+
+	NX_INIT_WORK_T(nx_canvas_encode_async_t);
+	data->snapshot = snapshot_surface(canvas);
+	data->type = type_code;
+	data->quality = quality;
+	data->result = NULL;
+	data->result_size = 0;
+	data->err = 0;
+
+	return nx_queue_async(ctx, req, nx_canvas_encode_do, nx_canvas_encode_cb);
+}
+
+/**
+ * Proto method: toDataURL(type, quality) -> string
+ * `this` is the canvas object.
+ */
+static JSValue nx_canvas_proto_to_data_url(JSContext *ctx,
+										   JSValueConst this_val, int argc,
+										   JSValueConst *argv) {
+	nx_canvas_t *canvas = nx_get_canvas(ctx, this_val);
+	if (!canvas) {
+		return JS_ThrowTypeError(ctx, "Expected a canvas object");
+	}
+
+	const char *type_str = NULL;
+	double quality = 0.92;
+	if (argc > 0 && !JS_IsUndefined(argv[0])) {
+		type_str = JS_ToCString(ctx, argv[0]);
+	}
+	if (argc > 1) {
+		JS_ToFloat64(ctx, &quality, argv[1]);
+	}
+	if (quality < 0.0)
+		quality = 0.0;
+	if (quality > 1.0)
+		quality = 1.0;
+
+	int type_code = mime_to_type_code(type_str);
+	if (type_str)
+		JS_FreeCString(ctx, type_str);
+
+	cairo_surface_t *snapshot = snapshot_surface(canvas);
+
+	uint8_t *buf = NULL;
+	size_t buf_size = 0;
+	if (encode_surface(snapshot, type_code, quality, &buf, &buf_size) != 0) {
+		cairo_surface_destroy(snapshot);
+		return JS_ThrowInternalError(ctx, "Failed to encode data URL");
+	}
+	cairo_surface_destroy(snapshot);
+
+	const char *mime = type_code_to_mime(type_code);
+
+	// Base64 encode
+	size_t b64_len = 0;
+	mbedtls_base64_encode(NULL, 0, &b64_len, buf, buf_size);
+
+	size_t prefix_len = 5 + strlen(mime) + 8;
+	char *data_url = malloc(prefix_len + b64_len + 1);
+	if (!data_url) {
+		free(buf);
+		return JS_ThrowInternalError(ctx, "Out of memory");
+	}
+
+	int written = sprintf(data_url, "data:%s;base64,", mime);
+	size_t actual_len = 0;
+	mbedtls_base64_encode((unsigned char *)data_url + written, b64_len + 1,
+						  &actual_len, buf, buf_size);
+	data_url[written + actual_len] = '\0';
+	free(buf);
+
+	JSValue result = JS_NewString(ctx, data_url);
+	free(data_url);
+	return result;
+}
+
 static const JSCFunctionListEntry init_function_list[] = {
 	JS_CFUNC_DEF("canvasNew", 0, nx_canvas_new),
 	JS_CFUNC_DEF("canvasInitClass", 0, nx_canvas_init_class),
@@ -3334,6 +3740,7 @@ static const JSCFunctionListEntry init_function_list[] = {
 	JS_CFUNC_DEF("canvasGradientInitClass", 0, nx_canvas_gradient_init_class),
 	JS_CFUNC_DEF("canvasGradientAddColorStop", 0,
 				 nx_canvas_gradient_add_color_stop_standalone),
+	JS_CFUNC_DEF("canvasToBuffer", 3, nx_canvas_to_buffer),
 };
 
 void nx_init_canvas(JSContext *ctx, JSValueConst init_obj) {

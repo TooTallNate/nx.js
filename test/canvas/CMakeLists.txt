@@ -13,6 +13,16 @@ set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 set(QJS_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(quickjs)
 
+# Fetch mbedtls (for base64 used by canvas toDataURL)
+FetchContent_Declare(
+  mbedtls
+  GIT_REPOSITORY https://github.com/Mbed-TLS/mbedtls.git
+  GIT_TAG        v3.6.0
+)
+set(ENABLE_TESTING OFF CACHE BOOL "" FORCE)
+set(ENABLE_PROGRAMS OFF CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(mbedtls)
+
 # Find system libraries via pkg-config
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(CAIRO REQUIRED cairo)
@@ -48,6 +58,7 @@ target_include_directories(nxjs-canvas-test PRIVATE
   ${PNG_INCLUDE_DIRS}
   ${TURBOJPEG_INCLUDE_DIRS}
   ${WEBP_INCLUDE_DIRS}
+  ${mbedtls_SOURCE_DIR}/include
 )
 
 target_link_directories(nxjs-canvas-test PRIVATE
@@ -69,6 +80,7 @@ target_link_libraries(nxjs-canvas-test PRIVATE
   ${PNG_LIBRARIES}
   ${TURBOJPEG_LIBRARIES}
   ${WEBP_LIBRARIES}
+  mbedcrypto
   m
   pthread
 )

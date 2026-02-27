@@ -266,4 +266,57 @@ test('drawing works correctly after resize', () => {
 	assert.equal(data.data[3], 255);
 });
 
+// convertToBlob tests
+test('`OffscreenCanvas#convertToBlob()` returns a Blob', async () => {
+	var canvas = new OffscreenCanvas(10, 10);
+	var ctx = canvas.getContext('2d');
+	ctx.fillStyle = 'green';
+	ctx.fillRect(0, 0, 10, 10);
+	var blob = await canvas.convertToBlob();
+	assert.ok(blob instanceof Blob, 'should return a Blob');
+	assert.equal(blob.type, 'image/png');
+	assert.ok(blob.size > 0, 'blob should have data');
+});
+
+test('`OffscreenCanvas#convertToBlob()` with JPEG type', async () => {
+	var canvas = new OffscreenCanvas(10, 10);
+	var ctx = canvas.getContext('2d');
+	ctx.fillStyle = 'yellow';
+	ctx.fillRect(0, 0, 10, 10);
+	var blob = await canvas.convertToBlob({ type: 'image/jpeg' });
+	assert.ok(blob instanceof Blob, 'should return a Blob');
+	assert.equal(blob.type, 'image/jpeg');
+	assert.ok(blob.size > 0, 'blob should have data');
+});
+
+test('`OffscreenCanvas#convertToBlob()` data is valid PNG', async () => {
+	var canvas = new OffscreenCanvas(2, 2);
+	var ctx = canvas.getContext('2d');
+	ctx.fillStyle = '#ff00ff';
+	ctx.fillRect(0, 0, 2, 2);
+	var blob = await canvas.convertToBlob();
+	var buf = new Uint8Array(await blob.arrayBuffer());
+	// PNG magic bytes: 137 80 78 71 13 10 26 10
+	assert.equal(buf[0], 137);
+	assert.equal(buf[1], 80);  // P
+	assert.equal(buf[2], 78);  // N
+	assert.equal(buf[3], 71);  // G
+});
+
+// screen.toDataURL tests
+test('`screen.toDataURL()` returns a PNG data URL', () => {
+	var url = screen.toDataURL();
+	assert.ok(url.startsWith('data:image/png;base64,'), 'should start with PNG data URL prefix');
+});
+
+// screen.toBlob tests
+test('`screen.toBlob()` calls back with a Blob', async () => {
+	var blob: Blob | null = await new Promise((resolve) => {
+		screen.toBlob((b) => resolve(b));
+	});
+	assert.ok(blob instanceof Blob, 'should return a Blob');
+	assert.equal(blob!.type, 'image/png');
+	assert.ok(blob!.size > 0, 'blob should have data');
+});
+
 test.run();

@@ -152,6 +152,17 @@ export function runOnce(fn: () => void) {
 	};
 }
 
+/**
+ * Normalize an image encoding MIME type string.
+ * Only `image/jpeg` and `image/webp` are preserved; everything else
+ * (including `undefined` / unsupported strings) falls back to `image/png`.
+ */
+export function normalizeImageMime(type?: string): string {
+	return type === 'image/jpeg' || type === 'image/webp'
+		? type
+		: 'image/png';
+}
+
 export const FunctionPrototypeWithIteratorHelpers = {};
 Object.setPrototypeOf(FunctionPrototypeWithIteratorHelpers, Function.prototype);
 for (const name of Object.getOwnPropertyNames(Iterator.prototype)) {
