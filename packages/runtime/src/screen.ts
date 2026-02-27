@@ -1,5 +1,5 @@
 import { $ } from './$';
-import { assertInternalConstructor, createInternal, def, proto } from './utils';
+import { assertInternalConstructor, createInternal, def, normalizeImageMime, proto } from './utils';
 import { Blob } from './polyfills/blob';
 import { EventTarget } from './polyfills/event-target';
 import { INTERNAL_SYMBOL } from './internal';
@@ -130,11 +130,7 @@ export class Screen extends EventTarget implements globalThis.Screen {
 		quality = 0.92,
 	) {
 		$.canvasToBuffer(this, type, quality).then((buf: ArrayBuffer) => {
-			const mime =
-				type === 'image/jpeg' || type === 'image/webp'
-					? type
-					: 'image/png';
-			callback(new Blob([buf], { type: mime }));
+			callback(new Blob([buf], { type: normalizeImageMime(type) }));
 		});
 	}
 
@@ -156,11 +152,8 @@ export class Screen extends EventTarget implements globalThis.Screen {
 	 * @param quality A number between `0` and `1` indicating the image quality to be used when creating images using file formats that support lossy compression (such as `image/jpeg`). The default quality value will be used if this option is not specified, or if the number is outside the allowed range.
 	 * @see https://developer.mozilla.org/docs/Web/API/HTMLCanvasElement/toDataURL
 	 */
-	toDataURL(type = 'image/png', quality = 0.92) {
-		// Note: per spec toDataURL is synchronous on HTMLCanvasElement,
-		// but we return a Promise since encoding runs on the thread pool.
-		// TODO: Consider if this needs to be sync for compat.
-		return $.canvasToDataURL(this, type, quality);
+	toDataURL(type = 'image/png', quality = 0.92): string {
+		return $.canvasToDataURLSync(this, type, quality);
 	}
 
 	// Compat with HTML DOM interface

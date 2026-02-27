@@ -3,7 +3,7 @@ import { INTERNAL_SYMBOL } from '../internal';
 import { Blob as NxBlob } from '../polyfills/blob';
 import { EventTarget } from '../polyfills/event-target';
 import type { ImageEncodeOptions } from '../types';
-import { createInternal, def, proto } from '../utils';
+import { createInternal, def, normalizeImageMime, proto } from '../utils';
 import { OffscreenCanvasRenderingContext2D } from './offscreen-canvas-rendering-context-2d';
 
 interface OffscreenCanvasInternal {
@@ -48,11 +48,7 @@ export class OffscreenCanvas
 		const type = options?.type;
 		const quality = options?.quality ?? 0.92;
 		const buf = await $.canvasToBuffer(this, type, quality);
-		const mime =
-			type === 'image/jpeg' || type === 'image/webp'
-				? type
-				: 'image/png';
-		return new NxBlob([buf], { type: mime }) as Blob;
+		return new NxBlob([buf], { type: normalizeImageMime(type) }) as Blob;
 	}
 
 	getContext(

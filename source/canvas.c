@@ -3470,6 +3470,70 @@ static JSValue nx_canvas_to_data_url(JSContext *ctx, JSValueConst this_val,
 						  nx_canvas_data_url_cb);
 }
 
+/**
+ * canvasToDataURLSync(canvas, type, quality) -> string
+ * Synchronous version — encoding runs on the calling thread.
+ */
+static JSValue nx_canvas_to_data_url_sync(JSContext *ctx,
+										  JSValueConst this_val, int argc,
+										  JSValueConst *argv) {
+	nx_canvas_t *canvas = nx_get_canvas(ctx, argv[0]);
+	if (!canvas) {
+		return JS_ThrowTypeError(ctx, "Expected a canvas object");
+	}
+
+	const char *type_str = NULL;
+	double quality = 0.92;
+	if (argc > 1 && !JS_IsUndefined(argv[1])) {
+		type_str = JS_ToCString(ctx, argv[1]);
+	}
+	if (argc > 2) {
+		JS_ToFloat64(ctx, &quality, argv[2]);
+	}
+	if (quality < 0.0)
+		quality = 0.0;
+	if (quality > 1.0)
+		quality = 1.0;
+
+	int type_code = mime_to_type_code(type_str);
+	if (type_str)
+		JS_FreeCString(ctx, type_str);
+
+	cairo_surface_t *snapshot = snapshot_surface(canvas);
+
+	uint8_t *buf = NULL;
+	size_t buf_size = 0;
+	if (encode_surface(snapshot, type_code, quality, &buf, &buf_size) != 0) {
+		cairo_surface_destroy(snapshot);
+		return JS_ThrowInternalError(ctx, "Failed to encode data URL");
+	}
+	cairo_surface_destroy(snapshot);
+
+	const char *mime = type_code_to_mime(type_code);
+
+	// Base64 encode
+	size_t b64_len = 0;
+	mbedtls_base64_encode(NULL, 0, &b64_len, buf, buf_size);
+
+	size_t prefix_len = 5 + strlen(mime) + 8;
+	char *data_url = malloc(prefix_len + b64_len + 1);
+	if (!data_url) {
+		free(buf);
+		return JS_ThrowInternalError(ctx, "Out of memory");
+	}
+
+	int written = sprintf(data_url, "data:%s;base64,", mime);
+	size_t actual_len = 0;
+	mbedtls_base64_encode((unsigned char *)data_url + written, b64_len + 1,
+						  &actual_len, buf, buf_size);
+	data_url[written + actual_len] = '\0';
+	free(buf);
+
+	JSValue result = JS_NewString(ctx, data_url);
+	free(data_url);
+	return result;
+}
+
 static const JSCFunctionListEntry init_function_list[] = {
 	JS_CFUNC_DEF("canvasNew", 0, nx_canvas_new),
 	JS_CFUNC_DEF("canvasInitClass", 0, nx_canvas_init_class),
@@ -3501,6 +3565,7 @@ static const JSCFunctionListEntry init_function_list[] = {
 				 nx_canvas_gradient_add_color_stop_standalone),
 	JS_CFUNC_DEF("canvasToBuffer", 3, nx_canvas_to_buffer),
 	JS_CFUNC_DEF("canvasToDataURL", 3, nx_canvas_to_data_url),
+	JS_CFUNC_DEF("canvasToDataURLSync", 3, nx_canvas_to_data_url_sync),
 };
 
 void nx_init_canvas(JSContext *ctx, JSValueConst init_obj) {
