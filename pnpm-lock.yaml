@@ -218,8 +218,8 @@ importers:
         specifier: ^18.2.0
         version: 18.3.1
       react-tela:
-        specifier: 0.0.3
-        version: 0.0.3(react@18.3.1)
+        specifier: 1.0.1
+        version: 1.0.1(react@18.3.1)
     devDependencies:
       '@nx.js/nro':
         specifier: workspace:^
@@ -3648,6 +3648,12 @@ packages:
 
   /@radix-ui/rect@1.1.1:
     resolution: {integrity: sha512-HPwpGIzkl28mWyZqG52jiqDJ12waP11Pa1lGoiyUkIEuMLBP0oeK/C89esbXrxsky5we7dfd8U58nm0SgAWpVw==}
+    dev: false
+
+  /@react-tela/core@1.0.1:
+    resolution: {integrity: sha512-YKauwKwFuPutI1729j67PFw8t/t1YVXD/Dsvc3TVDsNDjZAOvh8JXQVG/9swWIFBhvldRK+5/RZlhPgh4EujcQ==}
+    dependencies:
+      parse-svg-path: 0.1.2
     dev: false
 
   /@rollup/rollup-android-arm-eabi@4.53.3:
@@ -7394,12 +7400,12 @@ packages:
       tslib: 2.8.1
     dev: false
 
-  /react-tela@0.0.3(react@18.3.1):
-    resolution: {integrity: sha512-9xB0kg1ziMyvlHDMwbpwG0c+5wDfbAFut5u4nbJZadgvnc05GO1K8DugqrM0BynWM/hZ40gMbTZ9RQVEf+zmeQ==}
+  /react-tela@1.0.1(react@18.3.1):
+    resolution: {integrity: sha512-Aqd741Ju9JbUZtzhOV8swBYgoK1HGr4Bnfrs0X/5n2OdNDY/jEp4b5/lGAezxqWKEU5GMNJYSM0WQKNgIycmPg==}
     peerDependencies:
       react: '18'
     dependencies:
-      parse-svg-path: 0.1.2
+      '@react-tela/core': 1.0.1
       react: 18.3.1
       react-reconciler: 0.29.2(react@18.3.1)
     dev: false

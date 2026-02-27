@@ -3,6 +3,7 @@
 #include <cairo.h>
 #include <png.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <turbojpeg.h>
@@ -249,8 +250,14 @@ JSValue nx_image_new(JSContext *ctx, JSValueConst this_val, int argc,
 			JS_ToUint32(ctx, &data->height, argv[1])) {
 			return JS_EXCEPTION;
 		}
+		// Overflow check before allocation
+		if (data->width == 0 || data->height == 0 ||
+			data->width > SIZE_MAX / 4 ||
+			(size_t)data->height > SIZE_MAX / ((size_t)data->width * 4)) {
+			return JS_ThrowRangeError(ctx, "Image dimensions too large");
+		}
 		// Width and height were specified, so allocate a backing store to use
-		data->data = js_mallocz(ctx, data->width * data->height * 4);
+		data->data = js_mallocz(ctx, (size_t)data->width * data->height * 4);
 		data->data_needs_js_free = true;
 		if (!data->data) {
 			return JS_EXCEPTION;

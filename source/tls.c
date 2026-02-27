@@ -101,30 +101,31 @@ static void finalizer_tls_context(JSRuntime *rt, JSValue val) {
 
 void nx_tls_on_connect(nx_poll_t *p, nx_tls_connect_t *req) {
 	nx_js_callback_t *req_cb = (nx_js_callback_t *)req->opaque;
+	JSContext *ctx = req_cb->context;
 	JSValue args[] = {JS_UNDEFINED, JS_UNDEFINED};
 
 	if (req->err) {
 		/* Error during TLS handshake */
 		char error_buf[100];
 		mbedtls_strerror(req->err, error_buf, 100);
-		args[0] = JS_NewError(req_cb->context);
-		JS_SetPropertyStr(req_cb->context, args[0], "message",
-						  JS_NewString(req_cb->context, error_buf));
+		args[0] = JS_NewError(ctx);
+		JS_SetPropertyStr(ctx, args[0], "message",
+						  JS_NewString(ctx, error_buf));
 	} else {
 		/* Handshake complete */
 		args[1] = req_cb->buffer;
 	}
 
 	JSValue ret_val =
-		JS_Call(req_cb->context, req_cb->callback, JS_NULL, 2, args);
-	JS_FreeValue(req_cb->context, req_cb->buffer);
-	JS_FreeValue(req_cb->context, req_cb->callback);
+		JS_Call(ctx, req_cb->callback, JS_NULL, 2, args);
+	JS_FreeValue(ctx, req_cb->buffer);
+	JS_FreeValue(ctx, req_cb->callback);
 	if (JS_IsException(ret_val)) {
-		nx_emit_error_event(req_cb->context);
+		nx_emit_error_event(ctx);
 	}
-	JS_FreeValue(req_cb->context, ret_val);
-	free(req_cb);
-	free(req);
+	JS_FreeValue(ctx, ret_val);
+	js_free(ctx, req_cb);
+	js_free(ctx, req);
 }
 
 void nx_tls_do_handshake(nx_poll_t *p, nx_watcher_t *watcher, int revents) {
@@ -180,6 +181,7 @@ JSValue nx_tls_handshake(JSContext *ctx, JSValueConst this_val, int argc,
 	JSValue obj = JS_NewObjectClass(ctx, nx_tls_context_class_id);
 	nx_tls_context_t *data = js_mallocz(ctx, sizeof(nx_tls_context_t));
 	if (!data) {
+		JS_FreeValue(ctx, obj);
 		JS_ThrowOutOfMemory(ctx);
 		return JS_EXCEPTION;
 	}
@@ -198,6 +200,8 @@ JSValue nx_tls_handshake(JSContext *ctx, JSValueConst this_val, int argc,
 		mbedtls_strerror(ret, error_buf, 100);
 		JS_ThrowTypeError(ctx, "Failed setting SSL config defaults: %s",
 						  error_buf);
+		JS_FreeCString(ctx, hostname);
+		JS_FreeValue(ctx, obj);
 		return JS_EXCEPTION;
 	}
 	if (reject_unauthorized) {
@@ -219,6 +223,8 @@ JSValue nx_tls_handshake(JSContext *ctx, JSValueConst this_val, int argc,
 		char error_buf[100];
 		mbedtls_strerror(ret, error_buf, 100);
 		JS_ThrowTypeError(ctx, "Failed setting hostname: %s", error_buf);
+		JS_FreeCString(ctx, hostname);
+		JS_FreeValue(ctx, obj);
 		return JS_EXCEPTION;
 	}
 	mbedtls_ssl_set_bio(&data->ssl, &data->server_fd, mbedtls_net_send,
@@ -227,13 +233,15 @@ JSValue nx_tls_handshake(JSContext *ctx, JSValueConst this_val, int argc,
 		char error_buf[100];
 		mbedtls_strerror(ret, error_buf, 100);
 		JS_ThrowTypeError(ctx, "Failed setting up SSL: %s", error_buf);
+		JS_FreeCString(ctx, hostname);
+		JS_FreeValue(ctx, obj);
 		return JS_EXCEPTION;
 	}
 
 	JS_FreeCString(ctx, hostname);
 
-	nx_tls_connect_t *req = malloc(sizeof(nx_tls_connect_t));
-	nx_js_callback_t *req_cb = malloc(sizeof(nx_js_callback_t));
+	nx_tls_connect_t *req = js_malloc(ctx, sizeof(nx_tls_connect_t));
+	nx_js_callback_t *req_cb = js_malloc(ctx, sizeof(nx_js_callback_t));
 	req_cb->context = ctx;
 	req_cb->callback = JS_DupValue(ctx, argv[0]);
 	req_cb->buffer = JS_DupValue(ctx, obj);
@@ -308,8 +316,8 @@ void nx_tls_do_read(nx_poll_t *p, nx_watcher_t *watcher, int revents) {
 		nx_emit_error_event(ctx);
 	}
 	JS_FreeValue(ctx, ret_val);
-	free(req_cb);
-	free(req);
+	js_free(ctx, req_cb);
+	js_free(ctx, req);
 }
 
 JSValue nx_tls_read(JSContext *ctx, JSValueConst this_val, int argc,
@@ -327,8 +335,8 @@ JSValue nx_tls_read(JSContext *ctx, JSValueConst this_val, int argc,
 
 	JSValue buffer_value = JS_DupValue(ctx, argv[2]);
 
-	nx_tls_read_t *req = malloc(sizeof(nx_tls_read_t));
-	nx_js_callback_t *req_cb = malloc(sizeof(nx_js_callback_t));
+	nx_tls_read_t *req = js_malloc(ctx, sizeof(nx_tls_read_t));
+	nx_js_callback_t *req_cb = js_malloc(ctx, sizeof(nx_js_callback_t));
 	req_cb->context = ctx;
 	req_cb->callback = JS_DupValue(ctx, argv[0]);
 	req_cb->buffer = buffer_value;
@@ -390,8 +398,8 @@ void nx_tls_do_write(nx_poll_t *p, nx_watcher_t *watcher, int revents) {
 		nx_emit_error_event(ctx);
 	}
 	JS_FreeValue(ctx, ret_val);
-	free(req_cb);
-	free(req);
+	js_free(ctx, req_cb);
+	js_free(ctx, req);
 }
 
 JSValue nx_tls_write(JSContext *ctx, JSValueConst this_val, int argc,
@@ -409,8 +417,8 @@ JSValue nx_tls_write(JSContext *ctx, JSValueConst this_val, int argc,
 
 	JSValue buffer_value = JS_DupValue(ctx, argv[2]);
 
-	nx_tls_write_t *req = malloc(sizeof(nx_tls_write_t));
-	nx_js_callback_t *req_cb = malloc(sizeof(nx_js_callback_t));
+	nx_tls_write_t *req = js_malloc(ctx, sizeof(nx_tls_write_t));
+	nx_js_callback_t *req_cb = js_malloc(ctx, sizeof(nx_js_callback_t));
 	req_cb->context = ctx;
 	req_cb->callback = JS_DupValue(ctx, argv[0]);
 	req_cb->buffer = buffer_value;

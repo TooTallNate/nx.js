@@ -566,6 +566,8 @@ static JSValue nx_wasm_new_instance(JSContext *ctx, JSValueConst this_val,
 					JS_FreeValue(ctx, matching_import);
 					JS_FreeValue(ctx, exports_array);
 					JS_FreeValue(ctx, opaque);
+					JS_FreeValue(ctx, js->func);
+					js_free(ctx, js);
 					JS_ThrowOutOfMemory(ctx);
 					return JS_EXCEPTION;
 				}

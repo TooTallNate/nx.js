@@ -103,10 +103,19 @@ void *pad_pkcs7(size_t block_size, const uint8_t *input, size_t input_len,
 
 // Function to remove PKCS#7 padding after decryption
 size_t unpad_pkcs7(size_t block_size, uint8_t *input, size_t input_len) {
+	if (input_len == 0)
+		return 0;
 	uint8_t pad_value = input[input_len - 1];
-	if (pad_value > block_size || pad_value == 0)
-		return input_len;         // Invalid padding
-	return input_len - pad_value; // Return unpadded length
+	if (pad_value > block_size || pad_value == 0 || pad_value > input_len)
+		return input_len;
+	// Validate all padding bytes in constant time
+	uint8_t bad = 0;
+	for (size_t i = 0; i < pad_value; i++) {
+		bad |= input[input_len - 1 - i] ^ pad_value;
+	}
+	if (bad != 0)
+		return input_len; // invalid padding
+	return input_len - pad_value;
 }
 
 static void finalizer_crypto_key(JSRuntime *rt, JSValue val) {
@@ -2491,6 +2500,10 @@ static JSValue nx_crypto_key_new_ec_private(JSContext *ctx, JSValueConst this_va
 	context->usages_cached = JS_UNDEFINED;
 
 	int extractable = JS_ToBool(ctx, argv[3]);
+	if (extractable == -1) {
+		js_free(ctx, context);
+		return JS_EXCEPTION;
+	}
 	context->extractable = extractable;
 
 	// Parse usages
@@ -3058,6 +3071,11 @@ static JSValue nx_crypto_key_new_rsa(JSContext *ctx, JSValueConst this_val,
 	JS_FreeCString(ctx, type_str);
 
 	int extractable = JS_ToBool(ctx, argv[8]);
+	if (extractable == -1) {
+		JS_FreeCString(ctx, hash_name);
+		js_free(ctx, context);
+		return JS_EXCEPTION;
+	}
 	context->extractable = extractable;
 
 	// Parse usages
@@ -3380,6 +3398,12 @@ static JSValue nx_crypto_import_key_pkcs8_spki(JSContext *ctx, JSValueConst this
 	if (!param_name) { JS_FreeCString(ctx, format); JS_FreeCString(ctx, algo_name); return JS_EXCEPTION; }
 
 	int extractable = JS_ToBool(ctx, argv[4]);
+	if (extractable == -1) {
+		JS_FreeCString(ctx, format);
+		JS_FreeCString(ctx, algo_name);
+		JS_FreeCString(ctx, param_name);
+		return JS_EXCEPTION;
+	}
 
 	mbedtls_pk_context pk;
 	mbedtls_pk_init(&pk);

@@ -28,8 +28,8 @@ void nx_on_connect(nx_poll_t *p, nx_connect_t *req) {
 		nx_emit_error_event(ctx);
 	}
 	JS_FreeValue(ctx, ret_val);
-	free(req_cb);
-	free(req);
+	js_free(ctx, req_cb);
+	js_free(ctx, req);
 }
 
 JSValue nx_js_tcp_connect(JSContext *ctx, JSValueConst this_val, int argc,
@@ -43,8 +43,8 @@ JSValue nx_js_tcp_connect(JSContext *ctx, JSValueConst this_val, int argc,
 	}
 
 	nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
-	nx_connect_t *req = malloc(sizeof(nx_connect_t));
-	nx_js_callback_t *req_cb = malloc(sizeof(nx_js_callback_t));
+	nx_connect_t *req = js_malloc(ctx, sizeof(nx_connect_t));
+	nx_js_callback_t *req_cb = js_malloc(ctx, sizeof(nx_js_callback_t));
 	req_cb->context = ctx;
 	req_cb->callback = JS_DupValue(ctx, argv[0]);
 	req_cb->buffer = JS_UNDEFINED;
@@ -84,8 +84,8 @@ void nx_on_read(nx_poll_t *p, nx_read_t *req) {
 		nx_emit_error_event(ctx);
 	}
 	JS_FreeValue(ctx, ret_val);
-	free(req_cb);
-	free(req);
+	js_free(ctx, req_cb);
+	js_free(ctx, req);
 }
 
 JSValue nx_js_tcp_read(JSContext *ctx, JSValueConst this_val, int argc,
@@ -100,8 +100,8 @@ JSValue nx_js_tcp_read(JSContext *ctx, JSValueConst this_val, int argc,
 	}
 
 	nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
-	nx_read_t *req = malloc(sizeof(nx_read_t));
-	nx_js_callback_t *req_cb = malloc(sizeof(nx_js_callback_t));
+	nx_read_t *req = js_malloc(ctx, sizeof(nx_read_t));
+	nx_js_callback_t *req_cb = js_malloc(ctx, sizeof(nx_js_callback_t));
 	req_cb->context = ctx;
 	req_cb->callback = JS_DupValue(ctx, argv[0]);
 	req_cb->buffer = buffer_value;
@@ -136,8 +136,8 @@ void nx_on_write(nx_poll_t *p, nx_write_t *req) {
 		nx_emit_error_event(ctx);
 	}
 	JS_FreeValue(ctx, ret_val);
-	free(req_cb);
-	free(req);
+	js_free(ctx, req_cb);
+	js_free(ctx, req);
 }
 
 JSValue nx_js_tcp_write(JSContext *ctx, JSValueConst this_val, int argc,
@@ -153,8 +153,8 @@ JSValue nx_js_tcp_write(JSContext *ctx, JSValueConst this_val, int argc,
 	}
 
 	nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
-	nx_write_t *req = malloc(sizeof(nx_write_t));
-	nx_js_callback_t *req_cb = malloc(sizeof(nx_js_callback_t));
+	nx_write_t *req = js_malloc(ctx, sizeof(nx_write_t));
+	nx_js_callback_t *req_cb = js_malloc(ctx, sizeof(nx_js_callback_t));
 	req_cb->context = ctx;
 	req_cb->callback = JS_DupValue(ctx, argv[0]);
 	req_cb->buffer = buffer_val;

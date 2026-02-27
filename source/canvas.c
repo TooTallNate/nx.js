@@ -216,12 +216,10 @@ static inline int min(int a, int b) { return a < b ? a : b; }
 
 static inline float minf(float a, float b) { return a < b ? a : b; }
 
-static inline void generic_swap(void *a, void *b, size_t size) {
-	// Temporary storage for the swap
-	char temp[size];
-	memcpy(temp, a, size);
-	memcpy(a, b, size);
-	memcpy(b, temp, size);
+static inline void point_swap(Point *a, Point *b) {
+	Point temp = *a;
+	*a = *b;
+	*b = temp;
 }
 
 static int js_validate_doubles_args(JSContext *ctx, JSValueConst *argv,
@@ -853,16 +851,16 @@ static JSValue nx_canvas_context_2d_round_rect(JSContext *ctx,
 		clockwise = false;
 		x += width;
 		width = -width;
-		generic_swap(&upperLeft, &upperRight, sizeof(Point));
-		generic_swap(&lowerLeft, &lowerRight, sizeof(Point));
+		point_swap(&upperLeft, &upperRight);
+		point_swap(&lowerLeft, &lowerRight);
 	}
 
 	if (height < 0) {
 		clockwise = !clockwise;
 		y += height;
 		height = -height;
-		generic_swap(&upperLeft, &upperRight, sizeof(Point));
-		generic_swap(&lowerLeft, &lowerRight, sizeof(Point));
+		point_swap(&upperLeft, &upperRight);
+		point_swap(&lowerLeft, &lowerRight);
 	}
 
 	// 11. Corner curves must not overlap. Scale radii to prevent this.
@@ -878,10 +876,10 @@ static JSValue nx_canvas_context_2d_round_rect(JSContext *ctx,
 			upperLeft.x *= scale;
 			upperLeft.y *= scale;
 			upperRight.x *= scale;
-			upperRight.x *= scale;
+			upperRight.y *= scale;
+			lowerLeft.x *= scale;
 			lowerLeft.y *= scale;
-			lowerLeft.y *= scale;
-			lowerRight.y *= scale;
+			lowerRight.x *= scale;
 			lowerRight.y *= scale;
 		}
 	}
@@ -946,6 +944,8 @@ static JSValue nx_canvas_context_2d_set_font(JSContext *ctx,
 		return JS_EXCEPTION;
 
 	context->state->font_size = font_size;
+	if (context->state->font_string)
+		free((void *)context->state->font_string);
 	context->state->font_string = strdup(font_string);
 	context->state->ft_face = face->ft_face;
 	context->state->hb_font = face->hb_font;
@@ -1709,7 +1709,8 @@ static void finalizer_canvas_context_2d(JSRuntime *rt, JSValue val) {
 	nx_canvas_context_2d_t *context =
 		JS_GetOpaque(val, nx_canvas_context_class_id);
 	if (context) {
-		cairo_destroy(context->ctx);
+		if (context->ctx)
+			cairo_destroy(context->ctx);
 		finalizer_canvas_context_2d_state(rt, context->state);
 		js_free_rt(rt, context);
 	}
@@ -1726,14 +1727,19 @@ nx_canvas_t *nx_get_canvas(JSContext *ctx, JSValueConst obj) {
 
 static JSValue nx_canvas_new(JSContext *ctx, JSValueConst this_val, int argc,
 							 JSValueConst *argv) {
-	int width;
-	int height;
-	if (JS_ToInt32(ctx, &width, argv[0]))
+	uint32_t width;
+	uint32_t height;
+	if (JS_ToUint32(ctx, &width, argv[0]))
 		return JS_EXCEPTION;
-	if (JS_ToInt32(ctx, &height, argv[1]))
+	if (JS_ToUint32(ctx, &height, argv[1]))
 		return JS_EXCEPTION;
 
-	size_t buf_size = width * height * 4;
+	if (width == 0 || height == 0 || width > SIZE_MAX / 4 ||
+		(size_t)height > SIZE_MAX / ((size_t)width * 4)) {
+		return JS_ThrowRangeError(ctx, "Canvas dimensions too large");
+	}
+
+	size_t buf_size = (size_t)width * height * 4;
 	uint8_t *buffer = js_mallocz(ctx, buf_size);
 	if (!buffer)
 		return JS_EXCEPTION;
