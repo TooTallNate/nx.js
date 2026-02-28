@@ -51,10 +51,28 @@ if (errors.length > 0) {
 		);
 	}
 	console.error(
-		'\nThis means a global reference was used instead of importing from the source file.',
+		'\nThis happens when a source file references a global (e.g. `new TextEncoder()`) instead',
 	);
 	console.error(
-		'Fix: import the class/function directly from its definition module.\n',
+		'of importing from the polyfill module. esbuild renames the local class to avoid the',
+	);
+	console.error(
+		'conflict, which causes def() to register it under the wrong name.',
+	);
+	console.error(
+		'\nFix: import the class/function directly from its source definition module.',
+	);
+	console.error(
+		'     e.g. `import { TextEncoder } from \'./polyfills/text-encoder\';`',
+	);
+	console.error(
+		'\nNote: Adding an explicit name string (e.g. `def(Foo2, "Foo")`) is a last resort —',
+	);
+	console.error(
+		'      it masks the underlying import issue and should only be used when the conflict',
+	);
+	console.error(
+		'      is unavoidable.\n',
 	);
 	process.exit(1);
 } else {
