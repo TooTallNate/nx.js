@@ -32,6 +32,13 @@ export class Event implements globalThis.Event {
 	readonly target: EventTarget | null;
 	readonly timeStamp: number;
 	readonly type: string;
+
+	/**
+	 * @internal Flag set by `stopImmediatePropagation()`.
+	 * Checked by `EventTarget.dispatchEvent()` to halt listener iteration.
+	 */
+	_stopImmediatePropagationFlag = false;
+
 	constructor(type: string, options?: EventInit) {
 		this.type = type;
 		this.bubbles =
@@ -43,24 +50,29 @@ export class Event implements globalThis.Event {
 			this.returnValue =
 				false;
 		this.currentTarget = this.srcElement = this.target = null;
-		this.eventPhase = this.timeStamp = 0;
+		this.eventPhase = 0;
+		this.timeStamp = typeof performance !== 'undefined' ? performance.now() : 0;
 		this.cancelable = false;
 		this.cancelBubble = false;
 		this.composed = false;
 		if (options) {
 			this.bubbles = options.bubbles ?? false;
 			this.cancelable = options.cancelable ?? false;
+			this.composed = options.composed ?? false;
 		}
 	}
 	composedPath(): EventTarget[] {
-		throw new Error('Method not implemented.');
+		return this.target ? [this.target] : [];
 	}
 	initEvent(
 		type: string,
 		bubbles?: boolean | undefined,
 		cancelable?: boolean | undefined,
 	): void {
-		throw new Error('Method not implemented.');
+		// @ts-expect-error - readonly
+		this.type = type;
+		this.bubbles = bubbles ?? false;
+		this.cancelable = cancelable ?? false;
 	}
 	preventDefault(): void {
 		if (this.cancelable) {
@@ -69,10 +81,10 @@ export class Event implements globalThis.Event {
 		}
 	}
 	stopImmediatePropagation(): void {
-		throw new Error('Method not implemented.');
+		this._stopImmediatePropagationFlag = true;
 	}
 	stopPropagation(): void {
-		throw new Error('Method not implemented.');
+		// No-op — no DOM tree to propagate through in this environment.
 	}
 }
 

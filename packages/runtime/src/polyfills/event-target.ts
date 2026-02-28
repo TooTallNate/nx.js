@@ -81,6 +81,16 @@ export class EventTarget implements globalThis.EventTarget {
 		const self = this || globalThis;
 		const cbs = getCbs(self, type);
 		if (cbs.some((cb) => cb.cb === callback)) return;
+		if (options?.signal) {
+			if (options.signal.aborted) return;
+			options.signal.addEventListener(
+				'abort',
+				() => {
+					self.removeEventListener(type, callback);
+				},
+				{ once: true },
+			);
+		}
 		cbs.push({ target: this || globalThis, cb: callback, options });
 	}
 
@@ -95,6 +105,7 @@ export class EventTarget implements globalThis.EventTarget {
 		// @ts-expect-error readonly
 		event.target = event.currentTarget = self;
 		for (const cb of cbs.slice()) {
+			if (event._stopImmediatePropagationFlag) break;
 			if (cb.options?.once) {
 				self.removeEventListener(event.type, cb.cb);
 			}
