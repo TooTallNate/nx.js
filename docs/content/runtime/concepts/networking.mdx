@@ -1,9 +1,9 @@
 ---
 title: Networking
-description: Client and Server TCP connections
+description: TCP and UDP networking
 ---
 
-nx.js provides a simple API for creating TCP client connections and servers. The TCP socket interface is based on the [WinterCG Socket API proposal](https://sockets-api.proposal.wintercg.org).
+nx.js provides APIs for TCP and UDP networking. The TCP socket interface is based on the [WinterCG Socket API proposal](https://sockets-api.proposal.wintercg.org). UDP datagrams are supported via `Switch.listenDatagram()`.
 
 ## TCP Client
 
@@ -54,9 +54,46 @@ const { ip } = Switch.networkInfo();
 console.log('Echo server listening on "%s:%d"', ip, port);
 ```
 
+## UDP Datagram Socket
+
+```typescript
+const socket = Switch.listenDatagram({
+    port: 9999,
+    message(e) {
+        console.log(`From ${e.remoteAddress}:${e.remotePort}:`, e.data);
+        socket.send('pong', e.remoteAddress, e.remotePort);
+    },
+});
+
+const addr = socket.address;
+console.log(`Listening on ${addr.address}:${addr.port}`);
+```
+
+### Broadcast
+
+```typescript
+const socket = Switch.listenDatagram({ port: 9999 });
+socket.setBroadcast(true);
+socket.send('hello network', '255.255.255.255', 9999);
+```
+
+### Multicast
+
+```typescript
+const socket = Switch.listenDatagram({
+    port: 5353,
+    message(e) {
+        console.log('Multicast message:', e.data);
+    },
+});
+
+socket.addMembership('239.255.255.250');
+```
+
 ## Learn more
 
 <Cards>
   <Card title="Making HTTP client requests using `fetch()`" href="/runtime/api/functions/fetch" />
   <Card title="Hosting an HTTP server using `@nx.js/http`" href="/http" />
+  <Card title="WebSocket server using `@nx.js/ws`" href="/ws" />
 </Cards>
