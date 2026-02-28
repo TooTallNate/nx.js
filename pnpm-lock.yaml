@@ -639,9 +639,15 @@ importers:
       '@nx.js/util':
         specifier: ^1.1.0
         version: link:../util
+      '@tootallnate/ncz':
+        specifier: link:../../../switch-tools/packages/ncz
+        version: link:../../../switch-tools/packages/ncz
       '@tootallnate/nsp':
         specifier: ^0.0.2
         version: 0.0.2
+      '@tootallnate/xci':
+        specifier: link:../../../switch-tools/packages/xci
+        version: link:../../../switch-tools/packages/xci
     devDependencies:
       '@nx.js/runtime':
         specifier: workspace:*
