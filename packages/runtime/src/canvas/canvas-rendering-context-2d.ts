@@ -1,5 +1,5 @@
-import toPx = require('to-px/index.js');
-import colorRgba = require('color-rgba');
+import toPx from 'to-px/index.js';
+import colorRgba from 'color-rgba';
 import parseCssFont from 'parse-css-font';
 import { $ } from '../$';
 import { ImageData } from './image-data';
