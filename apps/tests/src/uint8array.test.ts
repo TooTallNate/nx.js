@@ -83,7 +83,8 @@ test('fromHex: throws SyntaxError on invalid characters', () => {
 });
 
 test('fromHex: throws TypeError on non-string', () => {
-	assertThrows(() => Uint8Array.fromHex(123 as any), 'TypeError');
+	// @ts-expect-error Testing runtime type validation with non-string argument
+	assertThrows(() => Uint8Array.fromHex(123), 'TypeError');
 });
 
 // ========================================================================
@@ -175,10 +176,8 @@ test('toBase64: omitPadding with base64url', () => {
 });
 
 test('toBase64: throws TypeError on invalid alphabet', () => {
-	assertThrows(
-		() => u8(1).toBase64({ alphabet: 'invalid' as any }),
-		'TypeError',
-	);
+	// @ts-expect-error Testing runtime validation with invalid alphabet value
+	assertThrows(() => u8(1).toBase64({ alphabet: 'invalid' }), 'TypeError');
 });
 
 // ========================================================================
@@ -232,12 +231,14 @@ test('fromBase64: base64url rejects + and /', () => {
 });
 
 test('fromBase64: throws TypeError on non-string', () => {
-	assertThrows(() => Uint8Array.fromBase64(123 as any), 'TypeError');
+	// @ts-expect-error Testing runtime type validation with non-string argument
+	assertThrows(() => Uint8Array.fromBase64(123), 'TypeError');
 });
 
 test('fromBase64: throws TypeError on invalid alphabet', () => {
 	assertThrows(
-		() => Uint8Array.fromBase64('AA==', { alphabet: 'invalid' as any }),
+		// @ts-expect-error Testing runtime validation with invalid alphabet value
+		() => Uint8Array.fromBase64('AA==', { alphabet: 'invalid' }),
 		'TypeError',
 	);
 });
@@ -246,7 +247,8 @@ test('fromBase64: throws TypeError on invalid lastChunkHandling', () => {
 	assertThrows(
 		() =>
 			Uint8Array.fromBase64('AA==', {
-				lastChunkHandling: 'invalid' as any,
+				// @ts-expect-error Testing runtime validation with invalid lastChunkHandling value
+				lastChunkHandling: 'invalid',
 			}),
 		'TypeError',
 	);
@@ -530,18 +532,16 @@ test('setFromHex: throws TypeError on non-Uint8Array receiver', () => {
 // TypeError on non-string arguments for static/instance methods
 // ========================================================================
 
-test('fromHex: throws TypeError on non-string', () => {
-	assertThrows(() => Uint8Array.fromHex(123 as any), 'TypeError');
-});
-
 test('setFromBase64: throws TypeError on non-string argument', () => {
 	const arr = new Uint8Array(8);
-	assertThrows(() => arr.setFromBase64(123 as any), 'TypeError');
+	// @ts-expect-error Testing runtime type validation with non-string argument
+	assertThrows(() => arr.setFromBase64(123), 'TypeError');
 });
 
 test('setFromHex: throws TypeError on non-string argument', () => {
 	const arr = new Uint8Array(8);
-	assertThrows(() => arr.setFromHex(123 as any), 'TypeError');
+	// @ts-expect-error Testing runtime type validation with non-string argument
+	assertThrows(() => arr.setFromHex(123), 'TypeError');
 });
 
 test.run();
