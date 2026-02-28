@@ -14,4 +14,5 @@ import './text-encoder.test';
 import './wasm.test';
 import './window.test';
 import './url.test';
+import './uint8array.test';
 import './websocket.test';

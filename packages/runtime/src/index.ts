@@ -1,18 +1,29 @@
 import './polyfills';
-import { def } from './utils';
-import {
-	setTimeout,
-	setInterval,
-	clearTimeout,
-	clearInterval,
-	processTimers,
-} from './timers';
-import { callRafCallbacks } from './raf';
 import { console } from './console';
-import { Event, ErrorEvent, PromiseRejectionEvent } from './polyfills/event';
+import { ErrorEvent, Event, PromiseRejectionEvent } from './polyfills/event';
+import { callRafCallbacks } from './raf';
+import {
+	clearInterval,
+	clearTimeout,
+	processTimers,
+	setInterval,
+	setTimeout,
+} from './timers';
+import { def } from './utils';
 
-export type * from './types';
 export type * from './console';
+export type * from './crypto';
+export type * from './dommatrix';
+export type { DOMPoint, DOMPointInit, DOMPointReadOnly } from './dompoint';
+export type * from './domrect';
+export type { BodyInit } from './fetch/body';
+export type * from './fetch/fetch';
+export type * from './fetch/headers';
+export type * from './fetch/request';
+export type * from './fetch/response';
+export type { FontFace } from './font/font-face';
+export type { FontFaceSet, fonts } from './font/font-face-set';
+export type * from './image';
 export type * from './navigator';
 export type * from './navigator/battery';
 export type {
@@ -21,47 +32,37 @@ export type {
 	GamepadHapticActuator,
 } from './navigator/gamepad';
 export type { VirtualKeyboard } from './navigator/virtual-keyboard';
-export type * from './polyfills/event-target';
-export type { URL, URLSearchParams } from './polyfills/url';
-export type * from './polyfills/streams';
-export type * from './polyfills/event';
+export type * from './polyfills/abort-controller';
 export type * from './polyfills/blob';
+export type * from './polyfills/event';
+export type * from './polyfills/event-target';
 export type * from './polyfills/file';
-export type { TextDecoder, TextDecodeOptions } from './polyfills/text-decoder';
+export type * from './polyfills/form-data';
+export type * from './polyfills/streams';
+export type * from './polyfills/streams';
+export type { TextDecodeOptions, TextDecoder } from './polyfills/text-decoder';
 export type {
 	TextEncoder,
 	TextEncoderEncodeIntoResult,
 } from './polyfills/text-encoder';
-export type * from './polyfills/abort-controller';
-export type * from './polyfills/streams';
-export type { FontFaceSet, fonts } from './font/font-face-set';
-export type { FontFace } from './font/font-face';
-export type * from './polyfills/form-data';
-export type { BodyInit } from './fetch/body';
-export type * from './fetch/headers';
-export type * from './fetch/request';
-export type * from './fetch/response';
-export type * from './fetch/fetch';
-export type * from './crypto';
-export type * from './image';
-export type { DOMPoint, DOMPointInit, DOMPointReadOnly } from './dompoint';
-export type * from './dommatrix';
-export type * from './domrect';
-export type * from './sensor';
+export type { URL, URLSearchParams } from './polyfills/url';
 export type {
-	TimerHandler,
-	setTimeout,
-	setInterval,
-	clearTimeout,
-	clearInterval,
-} from './timers';
-export type {
+	cancelAnimationFrame,
 	FrameRequestCallback,
 	requestAnimationFrame,
-	cancelAnimationFrame,
 } from './raf';
+export type * from './sensor';
+export type {
+	clearInterval,
+	clearTimeout,
+	setInterval,
+	setTimeout,
+	TimerHandler,
+} from './timers';
+export type * from './types';
 
 import './storage';
+
 export type * from './storage';
 
 /**
@@ -73,14 +74,18 @@ export type * from './storage';
  * @see https://developer.mozilla.org/docs/WebAssembly
  */
 export type * as WebAssembly from './wasm';
+
 import * as WebAssembly from './wasm';
+
 def(WebAssembly, 'WebAssembly');
 
 /**
  * The `Switch` global object contains native interfaces to interact with the Switch hardware.
  */
 export type * as Switch from './switch';
+
 import * as Switch from './switch';
+
 def(Switch, 'Switch');
 
 def(console, 'console');
@@ -125,58 +130,76 @@ export declare function queueMicrotask(callback: () => void): void;
 
 import './audio';
 import './web-applet';
+
 export type * from './audio';
 
+import './uint8array';
+
+export type * from './uint8array';
+
 import './window';
+
 export type * from './window';
 
 import './performance';
+
 export type * from './performance';
 
 import { screen } from './screen';
+
 export type * from './screen';
 
 import './canvas/image-bitmap';
+
 export type * from './canvas/image-bitmap';
 
 export type * from './canvas/image-data';
 
 import './canvas/path2d';
+
 export type { Path2D } from './canvas/path2d';
 
 import './canvas/canvas-gradient';
+
 export type * from './canvas/canvas-gradient';
 
 import './canvas/canvas-rendering-context-2d';
+
 export type * from './canvas/canvas-rendering-context-2d';
 
 import './canvas/offscreen-canvas';
+
 export type * from './canvas/offscreen-canvas';
 
 import './canvas/offscreen-canvas-rendering-context-2d';
+
 export type * from './canvas/offscreen-canvas-rendering-context-2d';
 
 import './ambientlightsensor';
+
 export type * from './ambientlightsensor';
 
 import './dom-exception';
+
 export type * from './dom-exception';
 
 import './compression-streams';
+
 export type * from './compression-streams';
 
 import './websocket';
+
 export type {
-	WebSocket,
 	BinaryType,
-	MessageEvent,
-	MessageEventInit,
 	CloseEvent,
 	CloseEventInit,
+	MessageEvent,
+	MessageEventInit,
+	WebSocket,
 } from './websocket';
 
-import { dispatchTouchEvents } from './touchscreen';
 import { dispatchKeyboardEvents } from './keyboard';
+import { dispatchTouchEvents } from './touchscreen';
 
 $.onError((e) => {
 	const ev = new ErrorEvent('error', {

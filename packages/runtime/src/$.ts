@@ -493,6 +493,9 @@ export interface Init {
 	audioFreeVoice(voiceId: number): void;
 	audioIsPlaying(voiceId: number): boolean;
 
+	// uint8array.c
+	uint8arrayInit(c: typeof Uint8Array): void;
+
 	// window.c
 	windowInit(c: Window): void;
 
