@@ -766,9 +766,6 @@ importers:
       '@nx.js/inspect':
         specifier: workspace:*
         version: link:../inspect
-      '@nx.js/ws':
-        specifier: workspace:*
-        version: link:../ws
       '@types/color-rgba':
         specifier: ^2.1.2
         version: 2.1.3
