@@ -18,7 +18,7 @@ import {
 	parseFrameHeader,
 	type WebSocketInit,
 	INTERNAL_SYMBOL as WS_INTERNAL,
-} from '@nx.js/ws/frame';
+} from '../../ws/src/frame';
 import { DOMException } from './dom-exception';
 import { INTERNAL_SYMBOL } from './internal';
 import { Blob } from './polyfills/blob';
