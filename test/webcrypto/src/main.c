@@ -159,7 +159,8 @@ int main(int argc, char *argv[]) {
 	nx_ctx.unhandled_rejected_promise = JS_UNDEFINED;
 	JS_SetContextOpaque(ctx, &nx_ctx);
 
-	// Register crypto natives
+	// Register natives
+	nx_init_uint8array(ctx, nx_ctx.init_obj);
 	nx_init_crypto(ctx, nx_ctx.init_obj);
 
 	// Register Uint8Array base64/hex methods (needed for JWK export)
