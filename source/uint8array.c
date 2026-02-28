@@ -11,11 +11,26 @@ static const char hex_chars[] = "0123456789abcdef";
 // Stored reference to the Uint8Array constructor
 static JSValue uint8array_ctor = JS_UNINITIALIZED;
 
-// Helper: create a new Uint8Array from an ArrayBuffer
-static JSValue new_uint8array(JSContext *ctx, JSValue array_buf) {
+// Helper: create a new Uint8Array from an ArrayBuffer, with OOM safety
+static JSValue new_uint8array(JSContext *ctx, uint8_t *data, size_t len) {
+	JSValue array_buf = JS_NewArrayBuffer(ctx, data, len,
+										  free_array_buffer, NULL, false);
+	if (JS_IsException(array_buf)) {
+		free(data);
+		return JS_EXCEPTION;
+	}
 	JSValue result = JS_CallConstructor(ctx, uint8array_ctor, 1, &array_buf);
 	JS_FreeValue(ctx, array_buf);
 	return result;
+}
+
+// Helper: validate that `this` is a Uint8Array instance
+static int validate_uint8array(JSContext *ctx, JSValueConst this_val) {
+	if (!JS_IsInstanceOf(ctx, this_val, uint8array_ctor)) {
+		JS_ThrowTypeError(ctx, "Method requires a Uint8Array receiver");
+		return -1;
+	}
+	return 0;
 }
 
 // ---- Base64 alphabet helpers ----
@@ -197,6 +212,10 @@ static int base64_decode_impl(
 
 		if (chunk_len == 4) {
 			// Full chunk: produces 3 bytes
+			if (written > SIZE_MAX - 3) {
+				JS_ThrowRangeError(ctx, "base64 decoded output too large");
+				return -1;
+			}
 			if (output) {
 				output[written]     = (chunk[0] << 2) | (chunk[1] >> 4);
 				output[written + 1] = ((chunk[1] & 0xF) << 4) | (chunk[2] >> 2);
@@ -337,6 +356,7 @@ static int base64_decode_impl(
 
 static JSValue nx_uint8array_to_base64(JSContext *ctx, JSValueConst this_val,
 									   int argc, JSValueConst *argv) {
+	if (validate_uint8array(ctx, this_val) < 0) return JS_EXCEPTION;
 	size_t offset, length;
 	size_t buf_size;
 	JSValue buf_val = JS_GetTypedArrayBuffer(ctx, this_val, &offset, &length, &buf_size);
@@ -396,6 +416,7 @@ static JSValue nx_uint8array_to_base64(JSContext *ctx, JSValueConst this_val,
 
 static JSValue nx_uint8array_to_hex(JSContext *ctx, JSValueConst this_val,
 									int argc, JSValueConst *argv) {
+	if (validate_uint8array(ctx, this_val) < 0) return JS_EXCEPTION;
 	size_t offset, length;
 	size_t buf_size;
 	JSValue buf_val = JS_GetTypedArrayBuffer(ctx, this_val, &offset, &length, &buf_size);
@@ -409,6 +430,9 @@ static JSValue nx_uint8array_to_hex(JSContext *ctx, JSValueConst this_val,
 
 	if (length == 0)
 		return JS_NewString(ctx, "");
+
+	if (length > SIZE_MAX / 2)
+		return JS_ThrowRangeError(ctx, "Uint8Array too large to hex encode");
 
 	size_t hex_len = length * 2;
 	char *hex = js_malloc(ctx, hex_len);
@@ -443,7 +467,7 @@ static JSValue nx_uint8array_from_base64(JSContext *ctx, JSValueConst this_val,
 
 	if (input_len == 0) {
 		JS_FreeCString(ctx, input);
-		return new_uint8array(ctx, JS_NewArrayBuffer(ctx, NULL, 0, NULL, NULL, false));
+		return new_uint8array(ctx, NULL, 0);
 	}
 
 	// First pass: determine output size
@@ -472,8 +496,7 @@ static JSValue nx_uint8array_from_base64(JSContext *ctx, JSValueConst this_val,
 		return JS_EXCEPTION;
 	}
 
-	return new_uint8array(ctx,
-		JS_NewArrayBuffer(ctx, output, w2, free_array_buffer, NULL, false));
+	return new_uint8array(ctx, output, w2);
 }
 
 // ---- Uint8Array.fromHex(string) ----
@@ -494,7 +517,7 @@ static JSValue nx_uint8array_from_hex(JSContext *ctx, JSValueConst this_val,
 
 	if (input_len == 0) {
 		JS_FreeCString(ctx, input);
-		return new_uint8array(ctx, JS_NewArrayBuffer(ctx, NULL, 0, NULL, NULL, false));
+		return new_uint8array(ctx, NULL, 0);
 	}
 
 	size_t output_len = input_len / 2;
@@ -517,14 +540,14 @@ static JSValue nx_uint8array_from_hex(JSContext *ctx, JSValueConst this_val,
 
 	JS_FreeCString(ctx, input);
 
-	return new_uint8array(ctx,
-		JS_NewArrayBuffer(ctx, output, output_len, free_array_buffer, NULL, false));
+	return new_uint8array(ctx, output, output_len);
 }
 
 // ---- setFromBase64(string[, options]) -> {read, written} ----
 
 static JSValue nx_uint8array_set_from_base64(JSContext *ctx, JSValueConst this_val,
 											 int argc, JSValueConst *argv) {
+	if (validate_uint8array(ctx, this_val) < 0) return JS_EXCEPTION;
 	if (!JS_IsString(argv[0]))
 		return JS_ThrowTypeError(ctx, "Expected string");
 	// Get the destination typed array buffer
@@ -569,6 +592,7 @@ static JSValue nx_uint8array_set_from_base64(JSContext *ctx, JSValueConst this_v
 
 static JSValue nx_uint8array_set_from_hex(JSContext *ctx, JSValueConst this_val,
 										  int argc, JSValueConst *argv) {
+	if (validate_uint8array(ctx, this_val) < 0) return JS_EXCEPTION;
 	if (!JS_IsString(argv[0]))
 		return JS_ThrowTypeError(ctx, "Expected string");
 	// Get the destination typed array buffer

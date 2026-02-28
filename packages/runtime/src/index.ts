@@ -42,7 +42,6 @@ export type * from './polyfills/event-target';
 export type * from './polyfills/file';
 export type * from './polyfills/form-data';
 export type * from './polyfills/streams';
-export type * from './polyfills/streams';
 export type { TextDecodeOptions, TextDecoder } from './polyfills/text-decoder';
 export type {
 	TextEncoder,

@@ -497,4 +497,51 @@ test('setFromHex: zero-length array', () => {
 	assert.equal(result.written, 0);
 });
 
+// ========================================================================
+// Receiver validation (prototype methods must reject non-Uint8Array)
+// ========================================================================
+
+test('toBase64: throws TypeError on non-Uint8Array receiver', () => {
+	const fn = Uint8Array.prototype.toBase64;
+	assertThrows(() => fn.call(new Uint16Array(4)), 'TypeError');
+	assertThrows(() => fn.call(new Int8Array(4)), 'TypeError');
+	assertThrows(() => fn.call({}), 'TypeError');
+});
+
+test('toHex: throws TypeError on non-Uint8Array receiver', () => {
+	const fn = Uint8Array.prototype.toHex;
+	assertThrows(() => fn.call(new Uint16Array(4)), 'TypeError');
+	assertThrows(() => fn.call({}), 'TypeError');
+});
+
+test('setFromBase64: throws TypeError on non-Uint8Array receiver', () => {
+	const fn = Uint8Array.prototype.setFromBase64;
+	assertThrows(() => fn.call(new Uint16Array(4), 'AAAA'), 'TypeError');
+	assertThrows(() => fn.call({}, 'AAAA'), 'TypeError');
+});
+
+test('setFromHex: throws TypeError on non-Uint8Array receiver', () => {
+	const fn = Uint8Array.prototype.setFromHex;
+	assertThrows(() => fn.call(new Uint16Array(4), 'cafe'), 'TypeError');
+	assertThrows(() => fn.call({}, 'cafe'), 'TypeError');
+});
+
+// ========================================================================
+// TypeError on non-string arguments for static/instance methods
+// ========================================================================
+
+test('fromHex: throws TypeError on non-string', () => {
+	assertThrows(() => (Uint8Array as any).fromHex(123), 'TypeError');
+});
+
+test('setFromBase64: throws TypeError on non-string argument', () => {
+	const arr = new Uint8Array(8);
+	assertThrows(() => (arr as any).setFromBase64(123), 'TypeError');
+});
+
+test('setFromHex: throws TypeError on non-string argument', () => {
+	const arr = new Uint8Array(8);
+	assertThrows(() => (arr as any).setFromHex(123), 'TypeError');
+});
+
 test.run();
