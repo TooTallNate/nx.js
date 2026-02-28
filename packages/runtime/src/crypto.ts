@@ -1,10 +1,9 @@
 import { $ } from './$';
-import { INTERNAL_SYMBOL } from './internal';
-import { assertInternalConstructor, createInternal, def, stub } from './utils';
 import { CryptoKey, type CryptoKeyPair } from './crypto/crypto-key';
-import { proto } from './utils';
-import { TextEncoder } from './polyfills/text-encoder';
+import { DOMException } from './dom-exception';
+import { INTERNAL_SYMBOL } from './internal';
 import { TextDecoder } from './polyfills/text-decoder';
+import { TextEncoder } from './polyfills/text-encoder';
 import type {
 	AesCbcParams,
 	AesCtrParams,
@@ -13,11 +12,11 @@ import type {
 	AesKeyGenParams,
 	ArrayBufferView,
 	BufferSource,
-	EncryptionAlgorithm,
-	EcKeyGenParams,
-	EcKeyImportParams,
 	EcdhKeyDeriveParams,
 	EcdsaParams,
+	EcKeyGenParams,
+	EcKeyImportParams,
+	EncryptionAlgorithm,
 	HmacImportParams,
 	HmacKeyGenParams,
 	JsonWebKey,
@@ -26,6 +25,13 @@ import type {
 	KeyImportParams,
 	KeyUsage,
 } from './types';
+import {
+	assertInternalConstructor,
+	createInternal,
+	def,
+	proto,
+	stub,
+} from './utils';
 
 export * from './crypto/crypto-key';
 

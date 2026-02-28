@@ -1,5 +1,12 @@
 import { $ } from './$';
-import { assertInternalConstructor, createInternal, def, normalizeImageMime, proto, stub } from './utils';
+import {
+	assertInternalConstructor,
+	createInternal,
+	def,
+	normalizeImageMime,
+	proto,
+	stub,
+} from './utils';
 import { Blob } from './polyfills/blob';
 import { EventTarget } from './polyfills/event-target';
 import { INTERNAL_SYMBOL } from './internal';
