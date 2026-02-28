@@ -810,7 +810,7 @@ importers:
         version: 2.1.9
 
   packages/ws:
-    devDependencies:
+    dependencies:
       '@nx.js/runtime':
         specifier: workspace:*
         version: link:../runtime
