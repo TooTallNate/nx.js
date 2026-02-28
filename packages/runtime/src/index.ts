@@ -165,6 +165,16 @@ export type * from './dom-exception';
 import './compression-streams';
 export type * from './compression-streams';
 
+import './websocket';
+export type {
+	WebSocket,
+	BinaryType,
+	MessageEvent,
+	MessageEventInit,
+	CloseEvent,
+	CloseEventInit,
+} from './websocket';
+
 import { dispatchTouchEvents } from './touchscreen';
 import { dispatchKeyboardEvents } from './keyboard';
 
