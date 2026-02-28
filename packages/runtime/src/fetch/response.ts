@@ -60,10 +60,24 @@ export class Response extends Body implements globalThis.Response {
 
 	/**
 	 * Clone the response.
-	 * @throws {Error} - This method is not implemented.
+	 * @returns {Response} - A copy of the response with a tee'd body stream.
 	 */
 	clone(): Response {
-		throw new Error('Method not implemented.');
+		if (this.bodyUsed) {
+			throw new TypeError('Response body is already used');
+		}
+		const [body1, body2] = this.body ? this.body.tee() : [null, null];
+		// Replace our body with one branch, give the clone the other
+		this.body = body1;
+		const cloned = new Response(body2, {
+			status: this.status,
+			statusText: this.statusText,
+			headers: new Headers(this.headers),
+		});
+		cloned.type = this.type;
+		cloned.url = this.url;
+		cloned.redirected = this.redirected;
+		return cloned;
 	}
 
 	/**
@@ -84,10 +98,16 @@ export class Response extends Body implements globalThis.Response {
 	 * @returns {Response} - The new redirect response.
 	 */
 	static redirect(url: string | URL, status: number = 302): Response {
+		if (![301, 302, 303, 307, 308].includes(status)) {
+			throw new RangeError(
+				`Failed to execute 'redirect' on 'Response': Invalid status code`,
+			);
+		}
+		const urlString = String(url);
 		return new Response(null, {
 			status,
 			headers: {
-				location: String(url),
+				location: urlString,
 			},
 		});
 	}
