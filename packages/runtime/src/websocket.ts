@@ -106,9 +106,7 @@ export class WebSocket extends EventTarget {
 	#binaryType: BinaryType = 'blob';
 	#socket: Socket | null = null;
 	#writer: WritableStreamDefaultWriter<Uint8Array> | null = null;
-	#mask: boolean = true;
-	#requireMask: boolean = false;
-	#onCleanup: (() => void) | null = null;
+	#init: WebSocketInit | null = null; // non-null for server-created sockets
 
 	// Event handler properties
 	onopen: ((this: WebSocket, ev: Event) => any) | null = null;
@@ -130,13 +128,11 @@ export class WebSocket extends EventTarget {
 		// Uses a well-known symbol (Symbol.for) shared across bundles.
 		if ((url as unknown) === WS_INTERNAL) {
 			const init = protocols as unknown as WebSocketInit;
+			this.#init = init;
 			this.#url = init.url;
 			this.#protocol = init.protocol;
 			this.#extensions = init.extensions;
 			this.#writer = init.writer;
-			this.#mask = init.mask;
-			this.#requireMask = init.requireMask;
-			this.#onCleanup = init.onCleanup ?? null;
 			this.#readyState = OPEN;
 			queueMicrotask(() => this.#fireEvent('open', new Event('open')));
 			this.#readLoop(init.reader, init.initialBuffer);
@@ -406,7 +402,7 @@ export class WebSocket extends EventTarget {
 				buffer = buffer.slice(header.headerSize + header.payloadLength);
 
 				// Enforce masking requirement (server requires client frames to be masked)
-				if (this.#requireMask && !header.masked) {
+				if (this.#init?.requireMask && !header.masked) {
 					await this.#sendCloseFrame(1002, 'Client frames must be masked');
 					this.#readyState = CLOSED;
 					this.#cleanup();
@@ -502,7 +498,8 @@ export class WebSocket extends EventTarget {
 
 	async #sendFrame(opcode: number, payload: Uint8Array) {
 		if (!this.#writer) return;
-		const frame = buildFrame(opcode, payload, this.#mask);
+		// Client frames are masked; server frames are not
+		const frame = buildFrame(opcode, payload, !this.#init);
 		try {
 			await this.#writer.write(frame);
 		} catch {
@@ -524,13 +521,10 @@ export class WebSocket extends EventTarget {
 			}
 			this.#socket = null;
 		}
-		if (this.#onCleanup) {
-			try {
-				this.#onCleanup();
-			} catch {
-				// ignore
-			}
-			this.#onCleanup = null;
+		try {
+			this.#init?.onCleanup?.();
+		} catch {
+			// ignore
 		}
 		this.#writer = null;
 	}
