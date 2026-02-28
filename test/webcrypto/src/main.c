@@ -163,9 +163,6 @@ int main(int argc, char *argv[]) {
 	nx_init_uint8array(ctx, nx_ctx.init_obj);
 	nx_init_crypto(ctx, nx_ctx.init_obj);
 
-	// Register Uint8Array base64/hex methods (needed for JWK export)
-	nx_init_uint8array(ctx, nx_ctx.init_obj);
-
 	// Set version, entrypoint, argv
 	JSValue version_obj = JS_NewObject(ctx);
 	JS_SetPropertyStr(ctx, version_obj, "nxjs", JS_NewString(ctx, "0.0.0-test"));
