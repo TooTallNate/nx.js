@@ -2,6 +2,12 @@ import { assertInternalConstructor, createInternal, def } from '../utils';
 import type { EventTarget } from './event-target';
 import type { Gamepad } from '../navigator/gamepad';
 
+/**
+ * @internal WeakSet tracking events whose `stopImmediatePropagation()` was called.
+ * Used by `EventTarget.dispatchEvent()` to halt listener iteration.
+ */
+export const stopImmediatePropagationFlag = new WeakSet<Event>();
+
 export interface EventInit {
 	bubbles?: boolean;
 	cancelable?: boolean;
@@ -33,12 +39,6 @@ export class Event implements globalThis.Event {
 	readonly timeStamp: number;
 	readonly type: string;
 
-	/**
-	 * @internal Flag set by `stopImmediatePropagation()`.
-	 * Checked by `EventTarget.dispatchEvent()` to halt listener iteration.
-	 */
-	_stopImmediatePropagationFlag = false;
-
 	constructor(type: string, options?: EventInit) {
 		this.type = type;
 		this.bubbles =
@@ -61,8 +61,8 @@ export class Event implements globalThis.Event {
 			this.composed = options.composed ?? false;
 		}
 	}
-	composedPath(): EventTarget[] {
-		return this.target ? [this.target] : [];
+	composedPath(): globalThis.EventTarget[] {
+		return this.target ? [this.target as globalThis.EventTarget] : [];
 	}
 	initEvent(
 		type: string,
@@ -71,7 +71,9 @@ export class Event implements globalThis.Event {
 	): void {
 		// @ts-expect-error - readonly
 		this.type = type;
+		// @ts-expect-error - readonly
 		this.bubbles = bubbles ?? false;
+		// @ts-expect-error - readonly
 		this.cancelable = cancelable ?? false;
 	}
 	preventDefault(): void {
@@ -81,7 +83,7 @@ export class Event implements globalThis.Event {
 		}
 	}
 	stopImmediatePropagation(): void {
-		this._stopImmediatePropagationFlag = true;
+		stopImmediatePropagationFlag.add(this);
 	}
 	stopPropagation(): void {
 		// No-op — no DOM tree to propagate through in this environment.

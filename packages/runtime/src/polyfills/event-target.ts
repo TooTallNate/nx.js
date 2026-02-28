@@ -1,4 +1,5 @@
 import { def } from '../utils';
+import { stopImmediatePropagationFlag } from './event';
 import type { Event } from './event';
 import type { AbortSignal } from './abort-controller';
 
@@ -105,7 +106,7 @@ export class EventTarget implements globalThis.EventTarget {
 		// @ts-expect-error readonly
 		event.target = event.currentTarget = self;
 		for (const cb of cbs.slice()) {
-			if (event._stopImmediatePropagationFlag) break;
+			if (stopImmediatePropagationFlag.has(event)) break;
 			if (cb.options?.once) {
 				self.removeEventListener(event.type, cb.cb);
 			}
