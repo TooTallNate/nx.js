@@ -1,11 +1,4 @@
-import {
-	CLOSED,
-	computeAcceptKey,
-	concat,
-	maskData,
-	parseFrameHeader,
-} from './frame';
-import { ServerWebSocket } from './websocket';
+import { computeAcceptKey, concat, createWebSocket } from './frame';
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -19,7 +12,7 @@ export interface WebSocketServerOptions {
 
 export interface ConnectionEventDetail {
 	/** The connected WebSocket. */
-	socket: ServerWebSocket;
+	socket: WebSocket;
 	/** The original HTTP upgrade request. */
 	request: Request;
 }
@@ -51,7 +44,7 @@ export interface ConnectionEventDetail {
  * ```
  */
 export class WebSocketServer extends EventTarget {
-	readonly clients = new Set<ServerWebSocket>();
+	readonly clients = new Set<WebSocket>();
 	#server: ReturnType<typeof Switch.listen>;
 
 	constructor(opts: WebSocketServerOptions) {
@@ -145,7 +138,7 @@ export class WebSocketServer extends EventTarget {
 						return;
 					}
 
-					// Compute accept key using the shared utility
+					// Compute accept key
 					const acceptKey = await computeAcceptKey(key);
 
 					// Send 101 Switching Protocols
@@ -161,13 +154,20 @@ export class WebSocketServer extends EventTarget {
 					await writer.write(encoder.encode(responseHeaders));
 					writer.releaseLock();
 
-					// Create the server-side WebSocket
-					const ws = new ServerWebSocket(
-						socket.writable.getWriter(),
-						`ws://${host}${path}`,
-					);
+					// Create a real WebSocket instance via the factory
+					const ws = createWebSocket({
+						writer: socket.writable.getWriter(),
+						reader: socket.readable.getReader(),
+						url: `ws://${host}${path}`,
+						protocol: '',
+						extensions: '',
+						initialBuffer: remaining,
+						mask: false,
+						requireMask: true,
+						onCleanup: () => socket.close(),
+					});
+
 					this.clients.add(ws);
-					ws._open();
 
 					ws.addEventListener('close', () => {
 						this.clients.delete(ws);
@@ -178,80 +178,11 @@ export class WebSocketServer extends EventTarget {
 							detail: { socket: ws, request },
 						}),
 					);
-
-					// Start reading WebSocket frames
-					this.#readFrames(socket, ws, remaining);
 					return;
 				}
 			}
 		} catch (err) {
 			this.dispatchEvent(new CustomEvent('error', { detail: err }));
-		}
-	}
-
-	async #readFrames(
-		socket: Switch.Socket,
-		ws: ServerWebSocket,
-		initial: Uint8Array,
-	): Promise<void> {
-		const reader = socket.readable.getReader();
-		let buffer = initial;
-
-		try {
-			while (true) {
-				// Try to parse frames from the buffer
-				while (true) {
-					const header = parseFrameHeader(buffer);
-					if (
-						!header ||
-						buffer.length < header.headerSize + header.payloadLength
-					) {
-						break;
-					}
-
-					let payload = buffer.slice(
-						header.headerSize,
-						header.headerSize + header.payloadLength,
-					);
-					buffer = buffer.slice(header.headerSize + header.payloadLength);
-
-					// RFC 6455: client frames MUST be masked
-					if (!header.masked || !header.maskKey) {
-						ws.close(1002, 'Client frames must be masked');
-						reader.releaseLock();
-						return;
-					}
-
-					// Unmask the payload
-					payload = maskData(payload, header.maskKey);
-
-					ws._handleFrame(header.opcode, header.fin, payload);
-
-					if (ws.readyState === CLOSED) {
-						reader.releaseLock();
-						return;
-					}
-				}
-
-				const { done, value } = await reader.read();
-				if (done) break;
-
-				buffer = concat(buffer, value);
-			}
-		} catch (err) {
-			ws.dispatchEvent(new Event('error'));
-		} finally {
-			reader.releaseLock();
-			if (ws.readyState !== CLOSED) {
-				this.clients.delete(ws);
-				ws.dispatchEvent(
-					new CloseEvent('close', {
-						code: 1006,
-						reason: '',
-						wasClean: false,
-					}),
-				);
-			}
 		}
 	}
 }

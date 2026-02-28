@@ -16,6 +16,8 @@ import {
 	OP_TEXT,
 	OPEN,
 	parseFrameHeader,
+	type WebSocketInit,
+	INTERNAL_SYMBOL as WS_INTERNAL,
 } from '@nx.js/ws/frame';
 import { DOMException } from './dom-exception';
 import { INTERNAL_SYMBOL } from './internal';
@@ -100,10 +102,13 @@ export class WebSocket extends EventTarget {
 	#bufferedAmount: number = 0;
 	#protocol: string = '';
 	#extensions: string = '';
-	#url: string;
+	#url: string = '';
 	#binaryType: BinaryType = 'blob';
 	#socket: Socket | null = null;
 	#writer: WritableStreamDefaultWriter<Uint8Array> | null = null;
+	#mask: boolean = true;
+	#requireMask: boolean = false;
+	#onCleanup: (() => void) | null = null;
 
 	// Event handler properties
 	onopen: ((this: WebSocket, ev: Event) => any) | null = null;
@@ -120,6 +125,23 @@ export class WebSocket extends EventTarget {
 	 */
 	constructor(url: string | URL, protocols?: string | string[]) {
 		super();
+
+		// Internal construction path for server-created WebSockets.
+		// Uses a well-known symbol (Symbol.for) shared across bundles.
+		if ((url as unknown) === WS_INTERNAL) {
+			const init = protocols as unknown as WebSocketInit;
+			this.#url = init.url;
+			this.#protocol = init.protocol;
+			this.#extensions = init.extensions;
+			this.#writer = init.writer;
+			this.#mask = init.mask;
+			this.#requireMask = init.requireMask;
+			this.#onCleanup = init.onCleanup ?? null;
+			this.#readyState = OPEN;
+			queueMicrotask(() => this.#fireEvent('open', new Event('open')));
+			this.#readLoop(init.reader, init.initialBuffer);
+			return;
+		}
 
 		const parsedUrl = new URL(String(url));
 
@@ -383,7 +405,23 @@ export class WebSocket extends EventTarget {
 				);
 				buffer = buffer.slice(header.headerSize + header.payloadLength);
 
-				// Unmask if needed (server frames should not be masked, but handle it)
+				// Enforce masking requirement (server requires client frames to be masked)
+				if (this.#requireMask && !header.masked) {
+					await this.#sendCloseFrame(1002, 'Client frames must be masked');
+					this.#readyState = CLOSED;
+					this.#cleanup();
+					this.#fireEvent(
+						'close',
+						new CloseEvent('close', {
+							code: 1002,
+							reason: 'Client frames must be masked',
+							wasClean: false,
+						}),
+					);
+					return;
+				}
+
+				// Unmask if needed
 				if (header.masked && header.maskKey) {
 					payload = maskData(payload, header.maskKey);
 				}
@@ -464,8 +502,7 @@ export class WebSocket extends EventTarget {
 
 	async #sendFrame(opcode: number, payload: Uint8Array) {
 		if (!this.#writer) return;
-		// Client frames MUST be masked
-		const frame = buildFrame(opcode, payload, true);
+		const frame = buildFrame(opcode, payload, this.#mask);
 		try {
 			await this.#writer.write(frame);
 		} catch {
@@ -486,8 +523,16 @@ export class WebSocket extends EventTarget {
 				// ignore
 			}
 			this.#socket = null;
-			this.#writer = null;
 		}
+		if (this.#onCleanup) {
+			try {
+				this.#onCleanup();
+			} catch {
+				// ignore
+			}
+			this.#onCleanup = null;
+		}
+		this.#writer = null;
 	}
 
 	#fireEvent(handlerName: string, event: Event) {

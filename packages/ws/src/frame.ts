@@ -209,3 +209,52 @@ export async function computeAcceptKey(key: string): Promise<string> {
 	const hash = await crypto.subtle.digest('SHA-1', data);
 	return new Uint8Array(hash).toBase64();
 }
+
+// ---- Server-side WebSocket creation ----
+
+/**
+ * Well-known symbol used to signal the internal constructor path.
+ * Using `Symbol.for` ensures it's the same symbol across all bundles
+ * (the runtime bundle and user app bundles share the global symbol registry).
+ */
+export const INTERNAL_SYMBOL = Symbol.for('nx.ws.internal');
+
+/**
+ * Initialization options for creating a server-side WebSocket.
+ */
+export interface WebSocketInit {
+	/** The writable stream writer for sending frames. */
+	writer: WritableStreamDefaultWriter<Uint8Array>;
+	/** The readable stream reader for receiving frames. */
+	reader: ReadableStreamDefaultReader<Uint8Array>;
+	/** The URL of the WebSocket connection. */
+	url: string;
+	/** The negotiated sub-protocol. */
+	protocol: string;
+	/** The negotiated extensions. */
+	extensions: string;
+	/** Any leftover bytes from the HTTP upgrade that belong to the WebSocket stream. */
+	initialBuffer: Uint8Array;
+	/** Whether to mask outgoing frames (true for client, false for server). */
+	mask: boolean;
+	/** Whether to require incoming frames to be masked (true for server). */
+	requireMask: boolean;
+	/** Called when the WebSocket is cleaned up (e.g. to close the underlying TCP socket). */
+	onCleanup?: () => void;
+}
+
+/**
+ * Create a pre-connected WebSocket instance for server-side use.
+ *
+ * The returned instance is a real `WebSocket` object (passes `instanceof`)
+ * with its read loop already started. Server frames are NOT masked.
+ *
+ * Uses `globalThis.WebSocket` with the well-known `INTERNAL_SYMBOL` to
+ * trigger the internal constructor path, avoiding any cross-bundle
+ * registration issues.
+ *
+ * @internal
+ */
+export function createWebSocket(init: WebSocketInit): WebSocket {
+	return new (globalThis as any).WebSocket(INTERNAL_SYMBOL, init);
+}
