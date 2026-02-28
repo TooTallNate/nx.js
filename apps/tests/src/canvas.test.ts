@@ -298,15 +298,18 @@ test('`OffscreenCanvas#convertToBlob()` data is valid PNG', async () => {
 	var buf = new Uint8Array(await blob.arrayBuffer());
 	// PNG magic bytes: 137 80 78 71 13 10 26 10
 	assert.equal(buf[0], 137);
-	assert.equal(buf[1], 80);  // P
-	assert.equal(buf[2], 78);  // N
-	assert.equal(buf[3], 71);  // G
+	assert.equal(buf[1], 80); // P
+	assert.equal(buf[2], 78); // N
+	assert.equal(buf[3], 71); // G
 });
 
 // screen.toDataURL tests
 test('`screen.toDataURL()` returns a PNG data URL', () => {
 	var url = screen.toDataURL();
-	assert.ok(url.startsWith('data:image/png;base64,'), 'should start with PNG data URL prefix');
+	assert.ok(
+		url.startsWith('data:image/png;base64,'),
+		'should start with PNG data URL prefix',
+	);
 });
 
 // screen.toBlob tests

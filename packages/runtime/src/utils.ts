@@ -158,9 +158,7 @@ export function runOnce(fn: () => void) {
  * (including `undefined` / unsupported strings) falls back to `image/png`.
  */
 export function normalizeImageMime(type?: string): string {
-	return type === 'image/jpeg' || type === 'image/webp'
-		? type
-		: 'image/png';
+	return type === 'image/jpeg' || type === 'image/webp' ? type : 'image/png';
 }
 
 export const FunctionPrototypeWithIteratorHelpers = {};
