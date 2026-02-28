@@ -45,12 +45,5 @@
     "ws"
   ],
   "author": "Nathan Rajlich <n@n8.io>",
-  "license": "MIT",
-  "typesVersions": {
-    "*": {
-      "frame": [
-        "dist/frame.d.ts"
-      ]
-    }
-  }
+  "license": "MIT"
 }
