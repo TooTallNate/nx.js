@@ -12,6 +12,10 @@ export const httpDocs = defineDocs({
 	dir: 'content/http',
 });
 
+export const installTitleDocs = defineDocs({
+	dir: 'content/install-title',
+});
+
 export const inspectDocs = defineDocs({
 	dir: 'content/inspect',
 });
