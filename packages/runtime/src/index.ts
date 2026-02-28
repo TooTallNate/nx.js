@@ -12,6 +12,9 @@ import {
 import { def } from './utils';
 
 export type * from './console';
+
+import './uint8array';
+
 export type * from './crypto';
 export type * from './dommatrix';
 export type { DOMPoint, DOMPointInit, DOMPointReadOnly } from './dompoint';
@@ -60,6 +63,7 @@ export type {
 	TimerHandler,
 } from './timers';
 export type * from './types';
+export type * from './uint8array';
 
 import './storage';
 
@@ -132,10 +136,6 @@ import './audio';
 import './web-applet';
 
 export type * from './audio';
-
-import './uint8array';
-
-export type * from './uint8array';
 
 import './window';
 
