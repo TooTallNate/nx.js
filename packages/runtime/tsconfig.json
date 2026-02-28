@@ -1,8 +1,7 @@
 {
   "compilerOptions": {
     "target": "ESNext",
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
+    "module": "commonjs",
     "noEmit": true,
     "outDir": "./dist",
     "forceConsistentCasingInFileNames": true,
