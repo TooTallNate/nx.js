@@ -3,9 +3,6 @@
     "target": "ESNext",
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "paths": {
-      "@nx.js/ws/frame": ["../ws/src/frame.ts"]
-    },
     "noEmit": true,
     "outDir": "./dist",
     "forceConsistentCasingInFileNames": true,
