@@ -17,7 +17,6 @@
 #include <mbedtls/entropy.h>
 #include <mbedtls/rsa.h>
 #include <mbedtls/pk.h>
-#include <mbedtls/base64.h>
 #include <mbedtls/asn1write.h>
 #include <mbedtls/asn1.h>
 #include <mbedtls/oid.h>
@@ -3650,136 +3649,6 @@ static JSValue nx_crypto_ec_export_public_raw(JSContext *ctx, JSValueConst this_
 	return JS_NewArrayBuffer(ctx, buf, olen, free_array_buffer, NULL, false);
 }
 
-// Shared base64 encode: url_safe=0 for standard, url_safe=1 for base64url
-static JSValue nx_base64_encode_impl(JSContext *ctx, JSValueConst *argv,
-									 int url_safe) {
-	size_t input_len;
-	uint8_t *input = JS_GetArrayBuffer(ctx, &input_len, argv[0]);
-	if (!input)
-		return JS_EXCEPTION;
-
-	if (input_len == 0)
-		return JS_NewString(ctx, "");
-
-	// First pass: get required buffer size for standard base64
-	size_t b64_len = 0;
-	int ret = mbedtls_base64_encode(NULL, 0, &b64_len, input, input_len);
-	if (ret != MBEDTLS_ERR_BASE64_BUFFER_TOO_SMALL && ret != 0)
-		return JS_EXCEPTION;
-
-	unsigned char *b64 = js_malloc(ctx, b64_len);
-	if (!b64)
-		return JS_EXCEPTION;
-
-	ret = mbedtls_base64_encode(b64, b64_len, &b64_len, input, input_len);
-	if (ret != 0) {
-		js_free(ctx, b64);
-		return JS_EXCEPTION;
-	}
-
-	size_t out_len = b64_len;
-	if (url_safe) {
-		// Convert to base64url: replace + with -, / with _, strip trailing =
-		while (out_len > 0 && b64[out_len - 1] == '=')
-			out_len--;
-		for (size_t i = 0; i < out_len; i++) {
-			if (b64[i] == '+')
-				b64[i] = '-';
-			else if (b64[i] == '/')
-				b64[i] = '_';
-		}
-	}
-
-	JSValue result = JS_NewStringLen(ctx, (char *)b64, out_len);
-	js_free(ctx, b64);
-	return result;
-}
-
-// Shared base64 decode: url_safe=0 for standard, url_safe=1 for base64url
-static JSValue nx_base64_decode_impl(JSContext *ctx, JSValueConst *argv,
-									 int url_safe) {
-	size_t input_len;
-	const char *input = JS_ToCStringLen(ctx, &input_len, argv[0]);
-	if (!input)
-		return JS_EXCEPTION;
-
-	if (input_len == 0) {
-		JS_FreeCString(ctx, input);
-		return JS_NewArrayBuffer(ctx, NULL, 0, NULL, NULL, false);
-	}
-
-	// Normalize to standard base64 with padding
-	size_t padded_len = input_len;
-	if (padded_len % 4)
-		padded_len += 4 - (padded_len % 4);
-
-	unsigned char *b64 = js_malloc(ctx, padded_len);
-	if (!b64) {
-		JS_FreeCString(ctx, input);
-		return JS_EXCEPTION;
-	}
-
-	for (size_t i = 0; i < input_len; i++) {
-		if (url_safe && input[i] == '-')
-			b64[i] = '+';
-		else if (url_safe && input[i] == '_')
-			b64[i] = '/';
-		else
-			b64[i] = input[i];
-	}
-	for (size_t i = input_len; i < padded_len; i++)
-		b64[i] = '=';
-
-	JS_FreeCString(ctx, input);
-
-	// Decode
-	size_t output_len = 0;
-	int ret =
-		mbedtls_base64_decode(NULL, 0, &output_len, b64, padded_len);
-	if (ret != MBEDTLS_ERR_BASE64_BUFFER_TOO_SMALL && ret != 0) {
-		js_free(ctx, b64);
-		return JS_ThrowSyntaxError(ctx, "Invalid base64 character");
-	}
-
-	uint8_t *output = js_mallocz(ctx, output_len);
-	if (!output) {
-		js_free(ctx, b64);
-		return JS_EXCEPTION;
-	}
-
-	ret = mbedtls_base64_decode(output, output_len, &output_len, b64,
-								padded_len);
-	js_free(ctx, b64);
-
-	if (ret != 0) {
-		js_free(ctx, output);
-		return JS_ThrowSyntaxError(ctx, "Invalid base64 character");
-	}
-
-	return JS_NewArrayBuffer(ctx, output, output_len, free_array_buffer, NULL,
-							 false);
-}
-
-static JSValue nx_base64_encode(JSContext *ctx, JSValueConst this_val,
-								int argc, JSValueConst *argv) {
-	return nx_base64_encode_impl(ctx, argv, 0);
-}
-
-static JSValue nx_base64_decode(JSContext *ctx, JSValueConst this_val,
-								int argc, JSValueConst *argv) {
-	return nx_base64_decode_impl(ctx, argv, 0);
-}
-
-static JSValue nx_base64url_encode(JSContext *ctx, JSValueConst this_val,
-								   int argc, JSValueConst *argv) {
-	return nx_base64_encode_impl(ctx, argv, 1);
-}
-
-static JSValue nx_base64url_decode(JSContext *ctx, JSValueConst this_val,
-								   int argc, JSValueConst *argv) {
-	return nx_base64_decode_impl(ctx, argv, 1);
-}
-
 static const JSCFunctionListEntry function_list[] = {
 	JS_CFUNC_DEF("cryptoInit", 1, nx_crypto_init),
 	JS_CFUNC_DEF("cryptoKeyNew", 1, nx_crypto_key_new),
@@ -3801,10 +3670,6 @@ static const JSCFunctionListEntry function_list[] = {
 	JS_CFUNC_DEF("cryptoImportKeyPkcs8Spki", 0, nx_crypto_import_key_pkcs8_spki),
 	JS_CFUNC_DEF("cryptoEcExportPublicRaw", 0, nx_crypto_ec_export_public_raw),
 	JS_CFUNC_DEF("sha256Hex", 0, nx_crypto_sha256_hex),
-	JS_CFUNC_DEF("base64Encode", 1, nx_base64_encode),
-	JS_CFUNC_DEF("base64Decode", 1, nx_base64_decode),
-	JS_CFUNC_DEF("base64urlEncode", 1, nx_base64url_encode),
-	JS_CFUNC_DEF("base64urlDecode", 1, nx_base64url_decode),
 };
 
 void nx_init_crypto(JSContext *ctx, JSValueConst init_obj) {

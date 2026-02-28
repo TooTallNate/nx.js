@@ -29,6 +29,8 @@ add_executable(nxjs-crypto-test
   src/main.c
   src/stubs.c
   ${NX_SOURCE_DIR}/crypto.c
+  ${NX_SOURCE_DIR}/uint8array.c
+  ${NX_SOURCE_DIR}/util.c
 )
 
 # Compat headers (switch.h, poll.h, etc.) must come BEFORE system includes
@@ -51,6 +53,8 @@ target_link_libraries(nxjs-crypto-test PRIVATE
 # Suppress warnings from nx.js source files
 set_source_files_properties(
   ${NX_SOURCE_DIR}/crypto.c
+  ${NX_SOURCE_DIR}/uint8array.c
+  ${NX_SOURCE_DIR}/util.c
   PROPERTIES COMPILE_FLAGS "-Wno-unused-parameter -Wno-sign-compare -Wno-missing-field-initializers"
 )
 

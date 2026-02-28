@@ -1,4 +1,4 @@
-import { defineDocs, defineConfig } from 'fumadocs-mdx/config';
+import { defineConfig, defineDocs } from 'fumadocs-mdx/config';
 
 export const clkrstDocs = defineDocs({
 	dir: 'content/clkrst',
@@ -30,6 +30,10 @@ export const runtimeDocs = defineDocs({
 
 export const utilDocs = defineDocs({
 	dir: 'content/util',
+});
+
+export const wsDocs = defineDocs({
+	dir: 'content/ws',
 });
 
 export default defineConfig({

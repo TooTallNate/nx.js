@@ -22,7 +22,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v3
         with:
-          version: 8.5.0
+          version: 8.15.8
 
       - name: Setup Node.js 22.x
         uses: actions/setup-node@v4
@@ -38,6 +38,9 @@ jobs:
 
       - name: Bundle `runtime.js`
         run: pnpm bundle
+
+      - name: Check bundle for esbuild class renames
+        run: node packages/runtime/check-def-names.mjs
 
       - name: Build `nxjs.nro`
         run: make V=1
@@ -137,7 +140,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v3
         with:
-          version: 8.5.0
+          version: 8.15.8
 
       - name: Setup Node.js 22.x
         uses: actions/setup-node@v4

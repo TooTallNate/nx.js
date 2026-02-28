@@ -1,12 +1,12 @@
+import { DocsLayout } from 'fumadocs-ui/layouts/docs';
+import { DocsBody, DocsPage } from 'fumadocs-ui/layouts/docs/page';
+import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 import Logo from '@/app/logo';
 import { loaders } from '@/app/source';
-import { DocsPage, DocsBody } from 'fumadocs-ui/layouts/docs/page';
-import { notFound } from 'next/navigation';
-import { DocsLayout } from 'fumadocs-ui/layouts/docs';
+import { useMDXComponents } from '@/mdx-components';
 import Discord from '../discord';
 import GbaTemp from '../gbatemp';
-import type { Metadata } from 'next';
-import { useMDXComponents } from '@/mdx-components';
 
 const sidebarTabs = [
 	{
@@ -43,6 +43,11 @@ const sidebarTabs = [
 		title: '@nx.js/repl',
 		description: 'Read-Eval-Print Loop for nx.js',
 		url: '/repl',
+	},
+	{
+		title: '@nx.js/ws',
+		description: 'WebSocket server for nx.js',
+		url: '/ws',
 	},
 ];
 

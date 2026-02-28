@@ -8,6 +8,7 @@ import {
 	replDocs,
 	runtimeDocs,
 	utilDocs,
+	wsDocs,
 } from '../.source/server';
 
 export const loaders = new Map([
@@ -65,6 +66,13 @@ export const loaders = new Map([
 		loader({
 			baseUrl: '/util',
 			source: utilDocs.toFumadocsSource(),
+		}),
+	],
+	[
+		'ws',
+		loader({
+			baseUrl: '/ws',
+			source: wsDocs.toFumadocsSource(),
 		}),
 	],
 ]);

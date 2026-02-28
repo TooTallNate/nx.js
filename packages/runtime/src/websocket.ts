@@ -1,4 +1,24 @@
-import { $ } from './$';
+import {
+	buildFrame,
+	CLOSED,
+	CLOSING,
+	CONNECTING,
+	computeAcceptKey,
+	concat,
+	decodeClosePayload,
+	encodeClosePayload,
+	maskData,
+	OP_BINARY,
+	OP_CLOSE,
+	OP_CONTINUATION,
+	OP_PING,
+	OP_PONG,
+	OP_TEXT,
+	OPEN,
+	parseFrameHeader,
+	type WebSocketInit,
+	INTERNAL_SYMBOL as WS_INTERNAL,
+} from '../../ws/src/frame';
 import { DOMException } from './dom-exception';
 import { INTERNAL_SYMBOL } from './internal';
 import { Blob } from './polyfills/blob';
@@ -11,20 +31,6 @@ import { connect, Socket } from './tcp';
 import { def } from './utils';
 
 export type BinaryType = 'blob' | 'arraybuffer';
-
-// WebSocket ready states
-const CONNECTING = 0;
-const OPEN = 1;
-const CLOSING = 2;
-const CLOSED = 3;
-
-// WebSocket opcodes
-const OP_CONTINUATION = 0x0;
-const OP_TEXT = 0x1;
-const OP_BINARY = 0x2;
-const OP_CLOSE = 0x8;
-const OP_PING = 0x9;
-const OP_PONG = 0xa;
 
 export interface MessageEventInit extends EventInit {
 	data?: any;
@@ -71,93 +77,7 @@ export class CloseEvent extends Event {
 function generateKey(): string {
 	const bytes = new Uint8Array(16);
 	crypto.getRandomValues(bytes);
-	return $.base64Encode(bytes.buffer);
-}
-
-function concat(a: Uint8Array, b: Uint8Array): Uint8Array {
-	const c = new Uint8Array(a.length + b.length);
-	c.set(a, 0);
-	c.set(b, a.length);
-	return c;
-}
-
-function maskData(data: Uint8Array, maskKey: Uint8Array): Uint8Array {
-	const masked = new Uint8Array(data.length);
-	for (let i = 0; i < data.length; i++) {
-		masked[i] = data[i] ^ maskKey[i % 4];
-	}
-	return masked;
-}
-
-function buildFrame(opcode: number, payload: Uint8Array): Uint8Array {
-	const maskKey = new Uint8Array(4);
-	crypto.getRandomValues(maskKey);
-	const masked = maskData(payload, maskKey);
-
-	let headerLen = 2;
-	if (payload.length > 65535) headerLen += 8;
-	else if (payload.length > 125) headerLen += 2;
-
-	const frame = new Uint8Array(headerLen + 4 + payload.length);
-	frame[0] = 0x80 | opcode; // FIN + opcode
-	let offset = 1;
-
-	if (payload.length > 65535) {
-		frame[offset++] = 0x80 | 127; // MASK + 127
-		const view = new DataView(frame.buffer);
-		view.setBigUint64(offset, BigInt(payload.length));
-		offset += 8;
-	} else if (payload.length > 125) {
-		frame[offset++] = 0x80 | 126; // MASK + 126
-		frame[offset++] = (payload.length >> 8) & 0xff;
-		frame[offset++] = payload.length & 0xff;
-	} else {
-		frame[offset++] = 0x80 | payload.length; // MASK + length
-	}
-
-	frame.set(maskKey, offset);
-	offset += 4;
-	frame.set(masked, offset);
-	return frame;
-}
-
-interface FrameHeader {
-	fin: boolean;
-	opcode: number;
-	masked: boolean;
-	payloadLength: number;
-	maskKey: Uint8Array | null;
-	headerSize: number;
-}
-
-function parseFrameHeader(data: Uint8Array): FrameHeader | null {
-	if (data.length < 2) return null;
-
-	const fin = !!(data[0] & 0x80);
-	const opcode = data[0] & 0x0f;
-	const masked = !!(data[1] & 0x80);
-	let payloadLength = data[1] & 0x7f;
-	let offset = 2;
-
-	if (payloadLength === 126) {
-		if (data.length < 4) return null;
-		payloadLength = (data[2] << 8) | data[3];
-		offset = 4;
-	} else if (payloadLength === 127) {
-		if (data.length < 10) return null;
-		const view = new DataView(data.buffer, data.byteOffset);
-		payloadLength = Number(view.getBigUint64(2));
-		offset = 10;
-	}
-
-	let maskKey: Uint8Array | null = null;
-	if (masked) {
-		if (data.length < offset + 4) return null;
-		maskKey = data.slice(offset, offset + 4);
-		offset += 4;
-	}
-
-	return { fin, opcode, masked, payloadLength, maskKey, headerSize: offset };
+	return bytes.toBase64();
 }
 
 /**
@@ -182,10 +102,11 @@ export class WebSocket extends EventTarget {
 	#bufferedAmount: number = 0;
 	#protocol: string = '';
 	#extensions: string = '';
-	#url: string;
+	#url: string = '';
 	#binaryType: BinaryType = 'blob';
 	#socket: Socket | null = null;
 	#writer: WritableStreamDefaultWriter<Uint8Array> | null = null;
+	#init: WebSocketInit | null = null; // non-null for server-created sockets
 
 	// Event handler properties
 	onopen: ((this: WebSocket, ev: Event) => any) | null = null;
@@ -202,6 +123,21 @@ export class WebSocket extends EventTarget {
 	 */
 	constructor(url: string | URL, protocols?: string | string[]) {
 		super();
+
+		// Internal construction path for server-created WebSockets.
+		// Uses a well-known symbol (Symbol.for) shared across bundles.
+		if ((url as unknown) === WS_INTERNAL) {
+			const init = protocols as unknown as WebSocketInit;
+			this.#init = init;
+			this.#url = init.url;
+			this.#protocol = init.protocol;
+			this.#extensions = init.extensions;
+			this.#writer = init.writer;
+			this.#readyState = OPEN;
+			queueMicrotask(() => this.#fireEvent('open', new Event('open')));
+			this.#readLoop(init.reader, init.initialBuffer);
+			return;
+		}
 
 		const parsedUrl = new URL(String(url));
 
@@ -307,7 +243,6 @@ export class WebSocket extends EventTarget {
 				if (endIdx !== -1) {
 					responseHeaders = headerStr.slice(0, endIdx);
 					headersComplete = true;
-					// Keep leftover data
 					const headerBytes = encoder.encode(headerStr.slice(0, endIdx + 4));
 					buffer = buffer.slice(headerBytes.length);
 				}
@@ -336,7 +271,6 @@ export class WebSocket extends EventTarget {
 
 			// Handle redirects (301, 302, 303, 307, 308)
 			if (statusCode >= 300 && statusCode < 400) {
-				// Close current connection
 				reader.releaseLock();
 				writer.releaseLock();
 				this.#socket = null;
@@ -354,13 +288,11 @@ export class WebSocket extends EventTarget {
 					);
 				}
 
-				// Parse the redirect URL
 				const redirectUrl = new URL(
 					location,
 					`${isSecure ? 'wss' : 'ws'}://${hostname}${port !== (isSecure ? 443 : 80) ? ':' + port : ''}${path}`,
 				);
 
-				// Validate redirect scheme
 				const redirectScheme = redirectUrl.protocol;
 				if (
 					redirectScheme !== 'ws:' &&
@@ -379,7 +311,6 @@ export class WebSocket extends EventTarget {
 				const newPort = +redirectUrl.port || (newIsSecure ? 443 : 80);
 				const newPath = (redirectUrl.pathname || '/') + redirectUrl.search;
 
-				// Update the URL to reflect the final destination
 				redirectUrl.protocol = newIsSecure ? 'wss:' : 'ws:';
 				redirectUrl.hash = '';
 				this.#url = redirectUrl.href;
@@ -407,11 +338,7 @@ export class WebSocket extends EventTarget {
 				);
 			}
 
-			// Set negotiated protocol
-			const negotiatedProtocol = resHeaders.get('sec-websocket-protocol') ?? '';
-			this.#protocol = negotiatedProtocol;
-
-			// Set extensions
+			this.#protocol = resHeaders.get('sec-websocket-protocol') ?? '';
 			this.#extensions = resHeaders.get('sec-websocket-extensions') ?? '';
 
 			this.#readyState = OPEN;
@@ -443,13 +370,11 @@ export class WebSocket extends EventTarget {
 
 		try {
 			while (this.#readyState === OPEN || this.#readyState === CLOSING) {
-				// Try to parse a frame from buffer
 				const header = parseFrameHeader(buffer);
 				if (
 					!header ||
 					buffer.length < header.headerSize + header.payloadLength
 				) {
-					// Need more data
 					const { value, done } = await reader.read();
 					if (done) {
 						const state = this.#readyState as number;
@@ -476,7 +401,23 @@ export class WebSocket extends EventTarget {
 				);
 				buffer = buffer.slice(header.headerSize + header.payloadLength);
 
-				// Unmask if needed (server frames should not be masked, but handle it)
+				// Enforce masking requirement (server requires client frames to be masked)
+				if (this.#init?.requireMask && !header.masked) {
+					await this.#sendCloseFrame(1002, 'Client frames must be masked');
+					this.#readyState = CLOSED;
+					this.#cleanup();
+					this.#fireEvent(
+						'close',
+						new CloseEvent('close', {
+							code: 1002,
+							reason: 'Client frames must be masked',
+							wasClean: false,
+						}),
+					);
+					return;
+				}
+
+				// Unmask if needed
 				if (header.masked && header.maskKey) {
 					payload = maskData(payload, header.maskKey);
 				}
@@ -498,17 +439,9 @@ export class WebSocket extends EventTarget {
 						fragmentPayload = payload;
 					}
 				} else if (opcode === OP_CLOSE) {
-					let code = 1005;
-					let reason = '';
-					if (payload.length >= 2) {
-						code = (payload[0] << 8) | payload[1];
-						if (payload.length > 2) {
-							reason = decoder.decode(payload.slice(2));
-						}
-					}
+					const { code, reason } = decodeClosePayload(payload);
 
 					if (this.#readyState === OPEN) {
-						// Server initiated close - echo it back
 						this.#readyState = CLOSING;
 						await this.#sendCloseFrame(code, reason);
 					}
@@ -525,7 +458,6 @@ export class WebSocket extends EventTarget {
 					);
 					return;
 				} else if (opcode === OP_PING) {
-					// Respond with pong
 					await this.#sendFrame(OP_PONG, payload);
 				} else if (opcode === OP_PONG) {
 					// Ignore pong
@@ -552,7 +484,6 @@ export class WebSocket extends EventTarget {
 		if (opcode === OP_TEXT) {
 			data = decoder.decode(payload);
 		} else {
-			// Binary
 			if (this.#binaryType === 'arraybuffer') {
 				data = payload.buffer.slice(
 					payload.byteOffset,
@@ -567,7 +498,8 @@ export class WebSocket extends EventTarget {
 
 	async #sendFrame(opcode: number, payload: Uint8Array) {
 		if (!this.#writer) return;
-		const frame = buildFrame(opcode, payload);
+		// Client frames are masked; server frames are not
+		const frame = buildFrame(opcode, payload, !this.#init);
 		try {
 			await this.#writer.write(frame);
 		} catch {
@@ -576,16 +508,7 @@ export class WebSocket extends EventTarget {
 	}
 
 	async #sendCloseFrame(code?: number, reason?: string) {
-		let payload: Uint8Array;
-		if (code !== undefined) {
-			const reasonBytes = reason ? encoder.encode(reason) : new Uint8Array(0);
-			payload = new Uint8Array(2 + reasonBytes.length);
-			payload[0] = (code >> 8) & 0xff;
-			payload[1] = code & 0xff;
-			payload.set(reasonBytes, 2);
-		} else {
-			payload = new Uint8Array(0);
-		}
+		const payload = encodeClosePayload(code, reason);
 		await this.#sendFrame(OP_CLOSE, payload);
 	}
 
@@ -597,8 +520,13 @@ export class WebSocket extends EventTarget {
 				// ignore
 			}
 			this.#socket = null;
-			this.#writer = null;
 		}
+		try {
+			this.#init?.onCleanup?.();
+		} catch {
+			// ignore
+		}
+		this.#writer = null;
 	}
 
 	#fireEvent(handlerName: string, event: Event) {
@@ -766,13 +694,6 @@ export class WebSocket extends EventTarget {
 		this.#readyState = CLOSING;
 		this.#sendCloseFrame(code ?? 1000, reason);
 	}
-}
-
-async function computeAcceptKey(key: string): Promise<string> {
-	const magic = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
-	const data = encoder.encode(key + magic);
-	const hash = await crypto.subtle.digest('SHA-1', data);
-	return $.base64Encode(hash);
 }
 
 def(WebSocket);
