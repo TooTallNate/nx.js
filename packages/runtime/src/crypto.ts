@@ -669,7 +669,16 @@ function getHashLength(hash: HashAlgorithmIdentifier): number {
 
 type HashAlgorithmIdentifier = AlgorithmIdentifier;
 
-const { base64urlEncode, base64urlDecode } = $;
+const b64urlOpts = { alphabet: 'base64url' as const };
+
+function base64urlEncode(buf: ArrayBuffer): string {
+	return new Uint8Array(buf).toBase64(b64urlOpts);
+}
+
+function base64urlDecode(str: string): ArrayBuffer {
+	return Uint8Array.fromBase64(str, b64urlOpts).buffer;
+}
+
 // --- JWK Export ---
 
 function getJwkAlg(

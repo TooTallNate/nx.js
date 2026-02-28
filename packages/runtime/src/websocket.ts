@@ -1,4 +1,3 @@
-import { $ } from './$';
 import { DOMException } from './dom-exception';
 import { INTERNAL_SYMBOL } from './internal';
 import { Blob } from './polyfills/blob';
@@ -71,7 +70,7 @@ export class CloseEvent extends Event {
 function generateKey(): string {
 	const bytes = new Uint8Array(16);
 	crypto.getRandomValues(bytes);
-	return $.base64Encode(bytes.buffer);
+	return bytes.toBase64();
 }
 
 function concat(a: Uint8Array, b: Uint8Array): Uint8Array {
@@ -772,7 +771,7 @@ async function computeAcceptKey(key: string): Promise<string> {
 	const magic = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
 	const data = encoder.encode(key + magic);
 	const hash = await crypto.subtle.digest('SHA-1', data);
-	return $.base64Encode(hash);
+	return new Uint8Array(hash).toBase64();
 }
 
 def(WebSocket);
