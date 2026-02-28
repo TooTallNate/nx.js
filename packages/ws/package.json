@@ -30,7 +30,6 @@
   "publishConfig": {
     "access": "public"
   },
-
   "keywords": [
     "nx.js",
     "switch",
@@ -39,5 +38,12 @@
     "ws"
   ],
   "author": "Nathan Rajlich <n@n8.io>",
-  "license": "MIT"
+  "license": "MIT",
+  "typesVersions": {
+    "*": {
+      "frame": [
+        "dist/frame.d.ts"
+      ]
+    }
+  }
 }
