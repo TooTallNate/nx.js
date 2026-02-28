@@ -1,5 +1,5 @@
-import toPx from 'to-px/index.js';
-import colorRgba from 'color-rgba';
+import toPx = require('to-px/index.js');
+import colorRgba = require('color-rgba');
 import parseCssFont from 'parse-css-font';
 import { $ } from '../$';
 import { CanvasGradient } from './canvas-gradient';

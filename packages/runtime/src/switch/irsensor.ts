@@ -1,4 +1,4 @@
-import colorRgba from 'color-rgba';
+import colorRgba = require('color-rgba');
 import { $ } from '../$';
 import { ImageBitmap } from '../canvas/image-bitmap';
 import { INTERNAL_SYMBOL } from '../internal';
