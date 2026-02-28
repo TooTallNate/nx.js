@@ -330,7 +330,30 @@ async function installNca(
 
 	if (isNcz) {
 		console.debug(`Decompressing and installing NCZ "${name}" as "${ncaName}"`);
-		const { ncaSize, stream } = await decompressNcz(entry.data);
+		const { ncaSize, stream } = await decompressNcz(entry.data, {
+			decompressStream: (input) =>
+				input.pipeThrough(new DecompressionStream('zstd' as CompressionFormat)),
+			decompressBlob: async (blob) => {
+				const ds = new DecompressionStream('zstd' as CompressionFormat);
+				const decompressed = blob.stream().pipeThrough<Uint8Array>(ds);
+				const reader = decompressed.getReader();
+				const chunks: Uint8Array[] = [];
+				let total = 0;
+				for (;;) {
+					const { done, value } = await reader.read();
+					if (done) break;
+					chunks.push(value);
+					total += value.length;
+				}
+				const out = new Uint8Array(total);
+				let off = 0;
+				for (const c of chunks) {
+					out.set(c, off);
+					off += c.length;
+				}
+				return out;
+			},
+		});
 		console.debug(`NCZ decompressed NCA size: ${ncaSize}`);
 		await stream.pipeTo(
 			new ContentStoragePlaceholderWriteStream(
