@@ -92,10 +92,10 @@ import * as Switch from './switch';
 def(Switch, 'Switch');
 
 def(console, 'console');
-def(setTimeout, 'setTimeout');
-def(setInterval, 'setInterval');
-def(clearTimeout, 'clearTimeout');
-def(clearInterval, 'clearInterval');
+def(setTimeout);
+def(setInterval);
+def(clearTimeout);
+def(clearInterval);
 
 import './navigator';
 
