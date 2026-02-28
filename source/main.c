@@ -34,6 +34,7 @@
 #include "tcp.h"
 #include "tls.h"
 #include "types.h"
+#include "uint8array.h"
 #include "url.h"
 #include "util.h"
 #include "wasm.h"
@@ -710,6 +711,7 @@ int main(int argc, char *argv[]) {
 	nx_init_service(ctx, nx_ctx->init_obj);
 	nx_init_tcp(ctx, nx_ctx->init_obj);
 	nx_init_tls(ctx, nx_ctx->init_obj);
+	nx_init_uint8array(ctx, nx_ctx->init_obj);
 	nx_init_url(ctx, nx_ctx->init_obj);
 	nx_init_swkbd(ctx, nx_ctx->init_obj);
 	nx_init_wasm(ctx, nx_ctx->init_obj);

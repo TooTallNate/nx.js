@@ -9,6 +9,7 @@
 
 #include "types.h"
 #include "crypto.h"
+#include "uint8array.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -158,7 +159,8 @@ int main(int argc, char *argv[]) {
 	nx_ctx.unhandled_rejected_promise = JS_UNDEFINED;
 	JS_SetContextOpaque(ctx, &nx_ctx);
 
-	// Register crypto natives
+	// Register natives
+	nx_init_uint8array(ctx, nx_ctx.init_obj);
 	nx_init_crypto(ctx, nx_ctx.init_obj);
 
 	// Set version, entrypoint, argv

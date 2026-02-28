@@ -251,10 +251,6 @@ export interface Init {
 	): CryptoKey<any>;
 	cryptoEcExportPublicRaw(key: CryptoKey<any>): ArrayBuffer;
 	sha256Hex(str: string): string;
-	base64Encode(buf: ArrayBuffer): string;
-	base64Decode(str: string): ArrayBuffer;
-	base64urlEncode(buf: ArrayBuffer): string;
-	base64urlDecode(str: string): ArrayBuffer;
 
 	// dommatrix.c
 	dommatrixNew(values?: number[]): DOMMatrix | DOMMatrixReadOnly;
@@ -492,6 +488,9 @@ export interface Init {
 	audioAllocVoice(): number;
 	audioFreeVoice(voiceId: number): void;
 	audioIsPlaying(voiceId: number): boolean;
+
+	// uint8array.c
+	uint8arrayInit(c: typeof Uint8Array): void;
 
 	// window.c
 	windowInit(c: Window): void;
