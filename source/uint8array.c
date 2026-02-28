@@ -1,5 +1,6 @@
 #include "uint8array.h"
 #include <mbedtls/base64.h>
+#include <stdlib.h>
 #include <string.h>
 
 static void free_array_buffer(JSRuntime *rt, void *opaque, void *ptr) {
@@ -61,10 +62,22 @@ enum {
 	LAST_CHUNK_STOP_BEFORE_PARTIAL = 2,
 };
 
+// Validate options argument per GetOptionsObject:
+// undefined → defaults, object → use it, anything else → TypeError.
+// Returns 0 if options should use defaults (undefined), 1 if valid object, -1 on error.
+static int validate_options(JSContext *ctx, JSValueConst options) {
+	if (JS_IsUndefined(options))
+		return 0;
+	if (JS_IsObject(options))
+		return 1;
+	JS_ThrowTypeError(ctx, "Options must be an object or undefined");
+	return -1;
+}
+
 // Parse the `alphabet` option. Returns 0 for base64, 1 for base64url, -1 on error.
 static int parse_alphabet_option(JSContext *ctx, JSValueConst options) {
-	if (JS_IsUndefined(options) || !JS_IsObject(options))
-		return 0;
+	int v = validate_options(ctx, options);
+	if (v <= 0) return v; // 0 for defaults, -1 for error
 	JSValue val = JS_GetPropertyStr(ctx, options, "alphabet");
 	if (JS_IsUndefined(val)) {
 		JS_FreeValue(ctx, val);
@@ -89,8 +102,8 @@ static int parse_alphabet_option(JSContext *ctx, JSValueConst options) {
 
 // Parse the `omitPadding` option. Returns 0 or 1, or -1 on error.
 static int parse_omit_padding_option(JSContext *ctx, JSValueConst options) {
-	if (JS_IsUndefined(options) || !JS_IsObject(options))
-		return 0;
+	int v = validate_options(ctx, options);
+	if (v <= 0) return v;
 	JSValue val = JS_GetPropertyStr(ctx, options, "omitPadding");
 	if (JS_IsUndefined(val)) {
 		JS_FreeValue(ctx, val);
@@ -103,8 +116,9 @@ static int parse_omit_padding_option(JSContext *ctx, JSValueConst options) {
 
 // Parse the `lastChunkHandling` option. Returns enum value or -1 on error.
 static int parse_last_chunk_option(JSContext *ctx, JSValueConst options) {
-	if (JS_IsUndefined(options) || !JS_IsObject(options))
-		return LAST_CHUNK_LOOSE;
+	int v = validate_options(ctx, options);
+	if (v < 0) return -1;
+	if (v == 0) return LAST_CHUNK_LOOSE;
 	JSValue val = JS_GetPropertyStr(ctx, options, "lastChunkHandling");
 	if (JS_IsUndefined(val)) {
 		JS_FreeValue(ctx, val);
@@ -382,7 +396,6 @@ static JSValue nx_uint8array_to_base64(JSContext *ctx, JSValueConst this_val,
 	JS_FreeValue(ctx, buf_val);
 	if (!buf && length > 0)
 		return JS_EXCEPTION;
-	uint8_t *data = buf + offset;
 
 	JSValueConst options = argc > 0 ? argv[0] : JS_UNDEFINED;
 	int url_safe = parse_alphabet_option(ctx, options);
@@ -392,6 +405,8 @@ static JSValue nx_uint8array_to_base64(JSContext *ctx, JSValueConst this_val,
 
 	if (length == 0)
 		return JS_NewString(ctx, "");
+
+	uint8_t *data = buf + offset;
 
 	// Encode using mbedtls for the standard case
 	size_t b64_len = 0;
@@ -442,10 +457,11 @@ static JSValue nx_uint8array_to_hex(JSContext *ctx, JSValueConst this_val,
 	JS_FreeValue(ctx, buf_val);
 	if (!buf && length > 0)
 		return JS_EXCEPTION;
-	uint8_t *data = buf + offset;
 
 	if (length == 0)
 		return JS_NewString(ctx, "");
+
+	uint8_t *data = buf + offset;
 
 	if (length > SIZE_MAX / 2)
 		return JS_ThrowRangeError(ctx, "Uint8Array too large to hex encode");
@@ -576,7 +592,7 @@ static JSValue nx_uint8array_set_from_base64(JSContext *ctx, JSValueConst this_v
 	JS_FreeValue(ctx, buf_val);
 	if (!buf && length > 0)
 		return JS_EXCEPTION;
-	uint8_t *dest = buf + offset;
+	uint8_t *dest = buf ? buf + offset : NULL;
 
 	size_t input_len;
 	const char *input = JS_ToCStringLen(ctx, &input_len, argv[0]);
@@ -621,7 +637,7 @@ static JSValue nx_uint8array_set_from_hex(JSContext *ctx, JSValueConst this_val,
 	JS_FreeValue(ctx, buf_val);
 	if (!buf && length > 0)
 		return JS_EXCEPTION;
-	uint8_t *dest = buf + offset;
+	uint8_t *dest = buf ? buf + offset : NULL;
 
 	size_t input_len;
 	const char *input = JS_ToCStringLen(ctx, &input_len, argv[0]);

@@ -180,6 +180,16 @@ test('toBase64: throws TypeError on invalid alphabet', () => {
 	assertThrows(() => u8(1).toBase64({ alphabet: 'invalid' }), 'TypeError');
 });
 
+test('toBase64: throws TypeError on null options', () => {
+	// @ts-expect-error Testing that null options throws per GetOptionsObject spec
+	assertThrows(() => u8(1).toBase64(null), 'TypeError');
+});
+
+test('fromBase64: throws TypeError on null options', () => {
+	// @ts-expect-error Testing that null options throws per GetOptionsObject spec
+	assertThrows(() => Uint8Array.fromBase64('AA==', null), 'TypeError');
+});
+
 // ========================================================================
 // fromBase64()
 // ========================================================================
