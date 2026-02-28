@@ -9,6 +9,7 @@
 
 #include "types.h"
 #include "crypto.h"
+#include "uint8array.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -160,6 +161,9 @@ int main(int argc, char *argv[]) {
 
 	// Register crypto natives
 	nx_init_crypto(ctx, nx_ctx.init_obj);
+
+	// Register Uint8Array base64/hex methods (needed for JWK export)
+	nx_init_uint8array(ctx, nx_ctx.init_obj);
 
 	// Set version, entrypoint, argv
 	JSValue version_obj = JS_NewObject(ctx);
