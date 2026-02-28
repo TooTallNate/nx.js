@@ -20,7 +20,8 @@ const source = fs.readFileSync(runtimePath, 'utf-8');
 
 // Match def(<identifier>) and def(<identifier>, <optional second arg>)
 // The def() calls in the bundle look like: def(ClassName) or def(ClassName, "name")
-const defPattern = /\bdef\((\w+)(?:\s*,\s*("[^"]*"|'[^']*'))?\)/g;
+// Include \s* after opening paren to handle whitespace formatting variations
+const defPattern = /\bdef\(\s*(\w+)(?:\s*,\s*("[^"]*"|'[^']*'))?\)/g;
 
 let match;
 const errors = [];
