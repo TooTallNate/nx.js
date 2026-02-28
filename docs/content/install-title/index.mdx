@@ -95,6 +95,29 @@ for await (const step of install(blob, NcmStorageId.SdCard, { format: 'xci' })) 
 }
 ```
 
+## Validation Warnings
+
+The installer performs validation checks and emits warnings via the `onWarning` callback.
+If no callback is provided, warnings are treated as fatal errors and abort the installation.
+
+```typescript title="src/main.ts"
+for await (const step of install(file, NcmStorageId.SdCard, {
+    onWarning: async (warning) => {
+        console.warn(`Warning: ${warning.message}`);
+        // Return true to continue, false to abort
+        return true;
+    },
+})) {
+    // ...
+}
+```
+
+| Warning Code | Description |
+| --- | --- |
+| `already-installed` | The exact title ID + version is already installed |
+| `nca-already-registered` | A specific NCA is already in content storage |
+| `missing-ticket` | A `.tik` file is missing its corresponding `.cert` |
+
 ## How It Works
 
 1. **Parse container** — NSP/NSZ uses PFS0, XCI/XCZ uses HFS0

@@ -61,12 +61,78 @@ interface FileEntry {
 
 export type ContainerFormat = 'nsp' | 'nsz' | 'xci' | 'xcz';
 
+/**
+ * Warning codes emitted during installation validation.
+ */
+export type InstallWarningCode =
+	| 'already-installed'
+	| 'nca-already-registered'
+	| 'missing-ticket';
+
+/**
+ * A validation warning encountered during title installation.
+ */
+export interface InstallWarning {
+	/** Machine-readable warning code. */
+	code: InstallWarningCode;
+	/** Human-readable description of the warning. */
+	message: string;
+	/** Additional context about the warning. */
+	details: Record<string, unknown>;
+}
+
+/**
+ * Callback invoked when a validation warning is encountered during installation.
+ *
+ * Return `true` to continue installation despite the warning, or `false` to abort.
+ * If this callback is not provided, all warnings are treated as fatal errors.
+ */
+export type OnWarningCallback = (
+	warning: InstallWarning,
+) => Promise<boolean> | boolean;
+
 export interface InstallOptions {
 	/**
 	 * Hint for the container format. If not provided, the format will be
 	 * auto-detected from the magic bytes of the data.
 	 */
 	format?: ContainerFormat;
+
+	/**
+	 * Called when a validation warning is encountered during installation.
+	 *
+	 * Return `true` to continue, `false` to abort. If not provided,
+	 * warnings are treated as fatal errors and abort the installation.
+	 *
+	 * @example
+	 * ```typescript
+	 * install(file, storageId, {
+	 *   onWarning: async (warning) => {
+	 *     console.warn(warning.message);
+	 *     return confirm('Continue anyway?');
+	 *   },
+	 * });
+	 * ```
+	 */
+	onWarning?: OnWarningCallback;
+}
+
+/**
+ * Emit a warning via the `onWarning` callback. If the callback returns `false`
+ * (or is not provided), throws an error to abort the installation.
+ */
+async function emitWarning(
+	onWarning: OnWarningCallback | undefined,
+	warning: InstallWarning,
+): Promise<void> {
+	if (onWarning) {
+		const shouldContinue = await onWarning(warning);
+		if (!shouldContinue) {
+			throw new Error(`Installation aborted: ${warning.message}`);
+		}
+	} else {
+		throw new Error(warning.message);
+	}
 }
 
 async function* step<T>(
@@ -164,8 +230,21 @@ export async function* install(
 
 	const formatName = containerFormat === 'pfs0' ? 'NSP/NSZ' : 'XCI/XCZ';
 
+	const { onWarning } = options ?? {};
 	const contentStorage = NcmContentStorage.open(storageId);
 	const contentMetaDatabase = NcmContentMetaDatabase.open(storageId);
+
+	// Also check the other storage for already-installed detection
+	const otherStorageId =
+		storageId === NcmStorageId.SdCard
+			? NcmStorageId.BuiltInUser
+			: NcmStorageId.SdCard;
+	let otherContentMetaDatabase: NcmContentMetaDatabase | null = null;
+	try {
+		otherContentMetaDatabase = NcmContentMetaDatabase.open(otherStorageId);
+	} catch {
+		// May not be available (e.g. no SD card inserted)
+	}
 
 	// The NCA files that will be installed (by name, e.g. "abc123.nca")
 	const ncaFiles = new Set<string>();
@@ -196,7 +275,35 @@ export async function* install(
 			// Read the decrypted `.cnmt` file
 			const cnmtData = await readContentMeta(ncaName, contentStorage);
 
-			const contentMetaKey = await installContentMetaRecords(
+			const cnmtHeader = new PackagedContentMetaHeader(cnmtData);
+			const contentMetaKey = createContentMetaKey(cnmtHeader);
+			const titleIdHex = cnmtHeader.titleId.toString(16).padStart(16, '0');
+
+			// --- Validation: already-installed check ---
+			const isInstalledHere = contentMetaDatabase.has(contentMetaKey);
+			const isInstalledOther =
+				otherContentMetaDatabase?.has(contentMetaKey) ?? false;
+			if (isInstalledHere || isInstalledOther) {
+				const where = isInstalledHere
+					? storageId === NcmStorageId.SdCard
+						? 'SD card'
+						: 'NAND'
+					: otherStorageId === NcmStorageId.SdCard
+						? 'SD card'
+						: 'NAND';
+				await emitWarning(onWarning, {
+					code: 'already-installed',
+					message: `Title ${titleIdHex} v${cnmtHeader.version} (${NcmContentMetaType[cnmtHeader.type]}) is already installed on ${where}`,
+					details: {
+						titleId: cnmtHeader.titleId,
+						version: cnmtHeader.version,
+						type: cnmtHeader.type,
+						storage: isInstalledHere ? storageId : otherStorageId,
+					},
+				});
+			}
+
+			const installedContentMetaKey = await installContentMetaRecords(
 				contentMetaDatabase,
 				cnmtData,
 				createMetaContentInfo(ncaName, entry),
@@ -204,15 +311,35 @@ export async function* install(
 			);
 
 			// Add the content meta key for the application record
-			const cnmtHeader = new PackagedContentMetaHeader(cnmtData);
 			const titleId = getBaseTitleId(cnmtHeader.titleId, cnmtHeader.type);
 			let contentMetaKeys = titleIdToContentMetaKeysMap.get(titleId);
 			if (!contentMetaKeys) {
 				contentMetaKeys = [];
 				titleIdToContentMetaKeysMap.set(titleId, contentMetaKeys);
 			}
-			contentMetaKeys.push(contentMetaKey);
+			contentMetaKeys.push(installedContentMetaKey);
 		});
+	}
+
+	// --- Validation: missing ticket check ---
+	// Check if any NCA files reference a rights_id that would require a
+	// ticket, but no matching .tik file exists in the container.
+	// We check this by looking at whether .tik files exist for the
+	// title IDs we're installing. Note: not all NCAs require tickets
+	// (standard crypto NCAs don't), but if a container ships .tik files,
+	// they should all be present.
+	const ticketNames = new Set(
+		files.keys().filter((name) => name.endsWith('.tik')),
+	);
+	for (const tikName of ticketNames) {
+		const certName = `${tikName.slice(0, -4)}.cert`;
+		if (!files.has(certName)) {
+			await emitWarning(onWarning, {
+				code: 'missing-ticket',
+				message: `Ticket "${tikName}" is missing its corresponding certificate "${certName}"`,
+				details: { tikName, certName },
+			});
+		}
 	}
 
 	// Install Tickets / Certificates
@@ -228,6 +355,17 @@ export async function* install(
 			throw new Error(`Missing "${ncaName}" file`);
 		}
 		const actualName = files.has(ncaName) ? ncaName : nczName;
+
+		// --- Validation: NCA already-registered check ---
+		const contentId = NcmContentId.from(ncaName);
+		if (contentStorage.has(contentId)) {
+			await emitWarning(onWarning, {
+				code: 'nca-already-registered',
+				message: `NCA "${ncaName}" is already registered in content storage`,
+				details: { ncaName, contentId: contentId.toString() },
+			});
+		}
+
 		yield* step(`Install "${actualName}"`, async function* () {
 			await installNca(actualName, entry, contentStorage);
 		});
