@@ -39,6 +39,9 @@ jobs:
       - name: Bundle `runtime.js`
         run: pnpm bundle
 
+      - name: Check bundle for esbuild class renames
+        run: node packages/runtime/check-def-names.mjs
+
       - name: Build `nxjs.nro`
         run: make V=1
 
