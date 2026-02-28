@@ -42,6 +42,7 @@ import type {
 } from './switch';
 import type { Server, TlsContextOpaque } from './tcp';
 import type { Algorithm, BufferSource } from './types';
+import type { DatagramSocket } from './udp';
 import type { Memory, MemoryDescriptor } from './wasm';
 import type { Window } from './window';
 
@@ -409,6 +410,26 @@ export interface Init {
 		port: number,
 		onAccept: (fd: number) => void,
 	): Server;
+
+	// udp.c
+	udpInit(c: any): void;
+	udpNew(
+		ip: string,
+		port: number,
+		onRecv: (
+			err: Error | null,
+			bytesRead: number,
+			remoteIp: string,
+			remotePort: number,
+		) => void,
+	): DatagramSocket;
+	udpSend(
+		cb: Callback<number>,
+		fd: number,
+		data: ArrayBuffer,
+		ip: string,
+		port: number,
+	): void;
 
 	// tls.c
 	tlsHandshake(

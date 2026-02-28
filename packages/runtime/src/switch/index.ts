@@ -12,6 +12,12 @@ import { pathToString } from '../utils';
 import { Env } from './env';
 
 export * from '../fs';
+export type { DatagramEventInit, DatagramOptions } from '../udp';
+export {
+	DatagramEvent,
+	DatagramSocket,
+	listenDatagram,
+} from '../udp';
 export * from './album';
 export * from './dns';
 export * from './env';
