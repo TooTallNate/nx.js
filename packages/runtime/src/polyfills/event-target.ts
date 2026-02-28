@@ -1,8 +1,6 @@
 import { def } from '../utils';
 import { stopImmediatePropagationFlag } from './event';
 import type { Event } from './event';
-import type { AbortSignal } from './abort-controller';
-
 export interface EventListener<T extends Event> {
 	(evt: T): void;
 }
@@ -22,7 +20,7 @@ export interface EventListenerOptions {
 export interface AddEventListenerOptions extends EventListenerOptions {
 	once?: boolean;
 	passive?: boolean;
-	signal?: AbortSignal;
+	signal?: globalThis.AbortSignal;
 }
 
 interface Callback {
