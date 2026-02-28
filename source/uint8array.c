@@ -1,4 +1,5 @@
 #include "uint8array.h"
+#include "util.h"
 #include <mbedtls/base64.h>
 #include <stdlib.h>
 #include <string.h>
@@ -387,15 +388,6 @@ static int base64_decode_impl(
 static JSValue nx_uint8array_to_base64(JSContext *ctx, JSValueConst this_val,
 									   int argc, JSValueConst *argv) {
 	if (validate_uint8array(ctx, this_val) < 0) return JS_EXCEPTION;
-	size_t offset, length;
-	size_t buf_size;
-	JSValue buf_val = JS_GetTypedArrayBuffer(ctx, this_val, &offset, &length, &buf_size);
-	if (JS_IsException(buf_val))
-		return JS_EXCEPTION;
-	uint8_t *buf = JS_GetArrayBuffer(ctx, &buf_size, buf_val);
-	JS_FreeValue(ctx, buf_val);
-	if (!buf && length > 0)
-		return JS_EXCEPTION;
 
 	JSValueConst options = argc > 0 ? argv[0] : JS_UNDEFINED;
 	int url_safe = parse_alphabet_option(ctx, options);
@@ -403,10 +395,10 @@ static JSValue nx_uint8array_to_base64(JSContext *ctx, JSValueConst this_val,
 	int omit_padding = parse_omit_padding_option(ctx, options);
 	if (omit_padding < 0) return JS_EXCEPTION;
 
+	size_t length;
+	uint8_t *data = NX_GetBufferSource(ctx, &length, this_val);
 	if (length == 0)
 		return JS_NewString(ctx, "");
-
-	uint8_t *data = buf + offset;
 
 	// Encode using mbedtls for the standard case
 	size_t b64_len = 0;
@@ -448,20 +440,11 @@ static JSValue nx_uint8array_to_base64(JSContext *ctx, JSValueConst this_val,
 static JSValue nx_uint8array_to_hex(JSContext *ctx, JSValueConst this_val,
 									int argc, JSValueConst *argv) {
 	if (validate_uint8array(ctx, this_val) < 0) return JS_EXCEPTION;
-	size_t offset, length;
-	size_t buf_size;
-	JSValue buf_val = JS_GetTypedArrayBuffer(ctx, this_val, &offset, &length, &buf_size);
-	if (JS_IsException(buf_val))
-		return JS_EXCEPTION;
-	uint8_t *buf = JS_GetArrayBuffer(ctx, &buf_size, buf_val);
-	JS_FreeValue(ctx, buf_val);
-	if (!buf && length > 0)
-		return JS_EXCEPTION;
 
+	size_t length;
+	uint8_t *data = NX_GetBufferSource(ctx, &length, this_val);
 	if (length == 0)
 		return JS_NewString(ctx, "");
-
-	uint8_t *data = buf + offset;
 
 	if (length > SIZE_MAX / 2)
 		return JS_ThrowRangeError(ctx, "Uint8Array too large to hex encode");
@@ -582,17 +565,9 @@ static JSValue nx_uint8array_set_from_base64(JSContext *ctx, JSValueConst this_v
 	if (validate_uint8array(ctx, this_val) < 0) return JS_EXCEPTION;
 	if (!JS_IsString(argv[0]))
 		return JS_ThrowTypeError(ctx, "Expected string");
-	// Get the destination typed array buffer
-	size_t offset, length;
-	size_t buf_size;
-	JSValue buf_val = JS_GetTypedArrayBuffer(ctx, this_val, &offset, &length, &buf_size);
-	if (JS_IsException(buf_val))
-		return JS_EXCEPTION;
-	uint8_t *buf = JS_GetArrayBuffer(ctx, &buf_size, buf_val);
-	JS_FreeValue(ctx, buf_val);
-	if (!buf && length > 0)
-		return JS_EXCEPTION;
-	uint8_t *dest = buf ? buf + offset : NULL;
+
+	size_t length;
+	uint8_t *dest = NX_GetBufferSource(ctx, &length, this_val);
 
 	size_t input_len;
 	const char *input = JS_ToCStringLen(ctx, &input_len, argv[0]);
@@ -627,17 +602,9 @@ static JSValue nx_uint8array_set_from_hex(JSContext *ctx, JSValueConst this_val,
 	if (validate_uint8array(ctx, this_val) < 0) return JS_EXCEPTION;
 	if (!JS_IsString(argv[0]))
 		return JS_ThrowTypeError(ctx, "Expected string");
-	// Get the destination typed array buffer
-	size_t offset, length;
-	size_t buf_size;
-	JSValue buf_val = JS_GetTypedArrayBuffer(ctx, this_val, &offset, &length, &buf_size);
-	if (JS_IsException(buf_val))
-		return JS_EXCEPTION;
-	uint8_t *buf = JS_GetArrayBuffer(ctx, &buf_size, buf_val);
-	JS_FreeValue(ctx, buf_val);
-	if (!buf && length > 0)
-		return JS_EXCEPTION;
-	uint8_t *dest = buf ? buf + offset : NULL;
+
+	size_t length;
+	uint8_t *dest = NX_GetBufferSource(ctx, &length, this_val);
 
 	size_t input_len;
 	const char *input = JS_ToCStringLen(ctx, &input_len, argv[0]);
