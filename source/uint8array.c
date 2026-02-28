@@ -285,6 +285,10 @@ static int base64_decode_impl(
 				JS_ThrowSyntaxError(ctx, "Invalid base64: non-zero overflow bits");
 				return -1;
 			}
+			if (written > SIZE_MAX - 1) {
+				JS_ThrowRangeError(ctx, "base64 decoded output too large");
+				return -1;
+			}
 			if (output)
 				output[written] = (chunk[0] << 2) | (chunk[1] >> 4);
 			written += 1;
@@ -294,6 +298,10 @@ static int base64_decode_impl(
 				*out_read = read;
 				*out_written = written;
 				JS_ThrowSyntaxError(ctx, "Invalid base64: non-zero overflow bits");
+				return -1;
+			}
+			if (written > SIZE_MAX - 2) {
+				JS_ThrowRangeError(ctx, "base64 decoded output too large");
 				return -1;
 			}
 			if (output) {
@@ -336,11 +344,19 @@ static int base64_decode_impl(
 
 	// lastChunkHandling == "loose": decode partial chunk without checking extra bits
 	if (chunk_len == 2) {
+		if (written > SIZE_MAX - 1) {
+			JS_ThrowRangeError(ctx, "base64 decoded output too large");
+			return -1;
+		}
 		if (output)
 			output[written] = (chunk[0] << 2) | (chunk[1] >> 4);
 		written += 1;
 	} else {
 		// chunk_len == 3
+		if (written > SIZE_MAX - 2) {
+			JS_ThrowRangeError(ctx, "base64 decoded output too large");
+			return -1;
+		}
 		if (output) {
 			output[written]     = (chunk[0] << 2) | (chunk[1] >> 4);
 			output[written + 1] = ((chunk[1] & 0xF) << 4) | (chunk[2] >> 2);

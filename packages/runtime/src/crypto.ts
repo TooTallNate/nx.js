@@ -669,7 +669,7 @@ function getHashLength(hash: HashAlgorithmIdentifier): number {
 
 type HashAlgorithmIdentifier = AlgorithmIdentifier;
 
-const b64urlOpts = { alphabet: 'base64url' as const };
+const b64urlOpts = { alphabet: 'base64url' as const, omitPadding: true };
 
 function base64urlEncode(buf: ArrayBuffer): string {
 	return new Uint8Array(buf).toBase64(b64urlOpts);
