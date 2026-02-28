@@ -83,7 +83,7 @@ test('fromHex: throws SyntaxError on invalid characters', () => {
 });
 
 test('fromHex: throws TypeError on non-string', () => {
-	assertThrows(() => (Uint8Array as any).fromHex(123), 'TypeError');
+	assertThrows(() => Uint8Array.fromHex(123 as any), 'TypeError');
 });
 
 // ========================================================================
@@ -232,7 +232,7 @@ test('fromBase64: base64url rejects + and /', () => {
 });
 
 test('fromBase64: throws TypeError on non-string', () => {
-	assertThrows(() => (Uint8Array as any).fromBase64(123), 'TypeError');
+	assertThrows(() => Uint8Array.fromBase64(123 as any), 'TypeError');
 });
 
 test('fromBase64: throws TypeError on invalid alphabet', () => {
@@ -531,17 +531,17 @@ test('setFromHex: throws TypeError on non-Uint8Array receiver', () => {
 // ========================================================================
 
 test('fromHex: throws TypeError on non-string', () => {
-	assertThrows(() => (Uint8Array as any).fromHex(123), 'TypeError');
+	assertThrows(() => Uint8Array.fromHex(123 as any), 'TypeError');
 });
 
 test('setFromBase64: throws TypeError on non-string argument', () => {
 	const arr = new Uint8Array(8);
-	assertThrows(() => (arr as any).setFromBase64(123), 'TypeError');
+	assertThrows(() => arr.setFromBase64(123 as any), 'TypeError');
 });
 
 test('setFromHex: throws TypeError on non-string argument', () => {
 	const arr = new Uint8Array(8);
-	assertThrows(() => (arr as any).setFromHex(123), 'TypeError');
+	assertThrows(() => arr.setFromHex(123 as any), 'TypeError');
 });
 
 test.run();
