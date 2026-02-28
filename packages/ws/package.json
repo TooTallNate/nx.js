@@ -20,6 +20,13 @@
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "frame": [
+        "dist/frame.d.ts"
+      ]
+    }
+  },
   "scripts": {
     "build": "tsc",
     "docs": "typedoc && ../../type-aliases-meta.sh"
