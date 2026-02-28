@@ -78,6 +78,12 @@ export class AbortSignal extends EventTarget implements globalThis.AbortSignal {
 		return controller.signal;
 	}
 
+	// Instance method required by TypeScript's AbortSignal interface (TS incorrectly
+	// defines `any` as instance rather than static). Keep both to satisfy the type checker.
+	any(signals: Iterable<AbortSignal>): AbortSignal {
+		return AbortSignal.any(signals);
+	}
+
 	/**
 	 * Returns an `AbortSignal` that aborts when any of the given signals abort.
 	 * @see https://developer.mozilla.org/docs/Web/API/AbortSignal/any_static
