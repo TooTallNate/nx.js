@@ -806,11 +806,7 @@ importers:
         specifier: ^2.0.5
         version: 2.1.9
 
-  packages/ws:
-    dependencies:
-      '@nx.js/runtime':
-        specifier: workspace:*
-        version: link:../runtime
+  packages/ws: {}
 
   test/canvas:
     devDependencies:
