@@ -492,11 +492,18 @@ test('setFromBase64: zero-length array', () => {
 	assert.equal(result.written, 0);
 });
 
-test('setFromHex: zero-length array', () => {
+test('setFromHex: zero-length array with even input', () => {
 	const arr = new Uint8Array(0);
 	const result = arr.setFromHex('cafe');
 	assert.equal(result.read, 0);
 	assert.equal(result.written, 0);
+});
+
+test('setFromHex: zero-length array with odd input throws', () => {
+	// Per spec, FromHex validates even length before the loop,
+	// so odd-length input always throws even with a 0-length buffer
+	const arr = new Uint8Array(0);
+	assertThrows(() => arr.setFromHex('abc'), 'SyntaxError');
 });
 
 // ========================================================================
