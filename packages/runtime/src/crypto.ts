@@ -110,13 +110,15 @@ export class Crypto implements globalThis.Crypto {
 	 * @see https://developer.mozilla.org/docs/Web/API/Crypto/randomUUID
 	 */
 	randomUUID(): `${string}-${string}-${string}-${string}-${string}` {
-		let i = 0;
-		const bytes = new Uint8Array(31);
+		const bytes = new Uint8Array(16);
 		this.getRandomValues(bytes);
-		return '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, (v) => {
-			const c = +v;
-			return (c ^ (bytes[i++] & (15 >> (c / 4)))).toString(16);
-		}) as `${string}-${string}-${string}-${string}-${string}`;
+		// Set version 4 (0100xxxx) and variant 1 (10xxxxxx)
+		bytes[6] = (bytes[6] & 0x0f) | 0x40;
+		bytes[8] = (bytes[8] & 0x3f) | 0x80;
+		const h = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join(
+			'',
+		);
+		return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20, 32)}` as `${string}-${string}-${string}-${string}-${string}`;
 	}
 }
 $.cryptoInit(Crypto);
