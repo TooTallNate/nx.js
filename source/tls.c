@@ -14,10 +14,85 @@ static nx_tls_context_t *nx_tls_context_get(JSContext *ctx, JSValueConst obj) {
 	return JS_GetOpaque2(ctx, obj, nx_tls_context_class_id);
 }
 
+// Known built-in CA certificate IDs to load individually.
+// Loading one at a time avoids a libnx bug where sslGetCertificates()
+// with SslCaCertificateId_All can fail with LibnxError_ShouldNotHappen
+// due to a bounds-check issue in the pointer-fixup loop.
+static const u32 nx_ca_cert_ids[] = {
+	1,    // NintendoCAG3
+	2,    // NintendoClass2CAG3
+	3,    // NintendoRootCAG4 [16.0.0+]
+	1000, // AmazonRootCA1
+	1001, // StarfieldServicesRootCertificateAuthorityG2
+	1002, // AddTrustExternalCARoot
+	1003, // COMODOCertificationAuthority
+	1004, // UTNDATACorpSGC
+	1005, // UTNUSERFirstHardware
+	1006, // BaltimoreCyberTrustRoot
+	1007, // CybertrustGlobalRoot
+	1008, // VerizonGlobalRootCA
+	1009, // DigiCertAssuredIDRootCA
+	1010, // DigiCertAssuredIDRootG2
+	1011, // DigiCertGlobalRootCA
+	1012, // DigiCertGlobalRootG2
+	1013, // DigiCertHighAssuranceEVRootCA
+	1014, // EntrustnetCertificationAuthority2048
+	1015, // EntrustRootCertificationAuthority
+	1016, // EntrustRootCertificationAuthorityG2
+	1017, // GeoTrustGlobalCA2
+	1018, // GeoTrustGlobalCA
+	1019, // GeoTrustPrimaryCertificationAuthorityG3
+	1020, // GeoTrustPrimaryCertificationAuthority
+	1021, // GlobalSignRootCA
+	1022, // GlobalSignRootCAR2
+	1023, // GlobalSignRootCAR3
+	1024, // GoDaddyClass2CertificationAuthority
+	1025, // GoDaddyRootCertificateAuthorityG2
+	1026, // StarfieldClass2CertificationAuthority
+	1027, // StarfieldRootCertificateAuthorityG2
+	1028, // thawtePrimaryRootCAG3
+	1029, // thawtePrimaryRootCA
+	1030, // VeriSignClass3PublicPrimaryCertificationAuthorityG3
+	1031, // VeriSignClass3PublicPrimaryCertificationAuthorityG5
+	1032, // VeriSignUniversalRootCertificationAuthority
+	1033, // DSTRootCAX3 [6.0.0+]
+	1034, // USERTrustRsaCertificationAuthority [10.0.3+]
+	1035, // ISRGRootX10 [10.1.0+]
+	1036, // USERTrustEccCertificationAuthority [10.1.0+]
+	1037, // COMODORsaCertificationAuthority [10.1.0+]
+	1038, // COMODOEccCertificationAuthority [10.1.0+]
+	1039, // AmazonRootCA2 [11.0.0+]
+	1040, // AmazonRootCA3 [11.0.0+]
+	1041, // AmazonRootCA4 [11.0.0+]
+	1042, // DigiCertAssuredIDRootG3 [11.0.0+]
+	1043, // DigiCertGlobalRootG3 [11.0.0+]
+	1044, // DigiCertTrustedRootG4 [11.0.0+]
+	1045, // EntrustRootCertificationAuthorityEC1 [11.0.0+]
+	1046, // EntrustRootCertificationAuthorityG4 [11.0.0+]
+	1047, // GlobalSignECCRootCAR4 [11.0.0+]
+	1048, // GlobalSignECCRootCAR5 [11.0.0+]
+	1049, // GlobalSignECCRootCAR6 [11.0.0+]
+	1050, // GTSRootR1 [11.0.0+]
+	1051, // GTSRootR2 [11.0.0+]
+	1052, // GTSRootR3 [11.0.0+]
+	1053, // GTSRootR4 [11.0.0+]
+	1054, // SecurityCommunicationRootCA [12.0.0+]
+	1055, // GlobalSignRootE4 [15.0.0+]
+	1056, // GlobalSignRootR4 [15.0.0+]
+	1057, // TTeleSecGlobalRootClass2 [15.0.0+]
+	1058, // DigiCertTLSECCP384RootG5 [16.0.0+]
+	1059, // DigiCertTLSRSA4096RootG5 [16.0.0+]
+};
+
 /**
  * Load CA certificates from the Switch's built-in SSL certificate store.
- * Uses libnx's ssl service to retrieve all system CA certs in DER format,
+ * Uses libnx's ssl service to retrieve system CA certs in DER format,
  * then parses them into an mbedtls x509 certificate chain.
+ *
+ * Certificates are loaded one at a time to work around a libnx bug where
+ * sslGetCertificates() with SslCaCertificateId_All fails due to a
+ * bounds-check issue in the returned SslBuiltInCertificateInfo fixup.
+ *
  * Returns 0 on success, non-zero on failure.
  */
 static int nx_tls_load_ca_certs(nx_context_t *nx_ctx) {
@@ -33,57 +108,53 @@ static int nx_tls_load_ca_certs(nx_context_t *nx_ctx) {
 		return -1;
 	}
 
-	// Request all built-in CA certificates
-	u32 ca_cert_id = (u32)SslCaCertificateId_All;
-	u32 buf_size = 0;
-	rc = sslGetCertificateBufSize(&ca_cert_id, 1, &buf_size);
-	if (R_FAILED(rc)) {
-		fprintf(stderr, "sslGetCertificateBufSize() failed: 0x%x\n", rc);
-		sslExit();
-		return -1;
-	}
-
-	void *cert_buffer = malloc(buf_size);
-	if (!cert_buffer) {
-		fprintf(stderr, "Failed to allocate cert buffer (%u bytes)\n", buf_size);
-		sslExit();
-		return -1;
-	}
-
-	u32 total_certs = 0;
-	rc = sslGetCertificates(cert_buffer, buf_size, &ca_cert_id, 1, &total_certs);
-	if (R_FAILED(rc)) {
-		fprintf(stderr, "sslGetCertificates() failed: 0x%x\n", rc);
-		free(cert_buffer);
-		sslExit();
-		return -1;
-	}
-
-	// Parse the returned SslBuiltInCertificateInfo array.
-	// Only load certificates that are marked as EnabledTrusted — skip
-	// Removed, EnabledNotTrusted, Revoked, and Invalid entries so that
-	// retired / distrusted CAs don't pollute the trusted chain.
-	SslBuiltInCertificateInfo *cert_infos = (SslBuiltInCertificateInfo *)cert_buffer;
 	int loaded = 0;
-	for (u32 i = 0; i < total_certs; i++) {
-		if (cert_infos[i].status != SslTrustedCertStatus_EnabledTrusted) {
+	int total = (int)(sizeof(nx_ca_cert_ids) / sizeof(nx_ca_cert_ids[0]));
+
+	for (int i = 0; i < total; i++) {
+		u32 id = nx_ca_cert_ids[i];
+		u32 buf_size = 0;
+
+		rc = sslGetCertificateBufSize(&id, 1, &buf_size);
+		if (R_FAILED(rc)) {
+			// Cert may not exist on this firmware version, skip it
 			continue;
 		}
-		if (cert_infos[i].cert_data && cert_infos[i].cert_size > 0) {
-			int ret = mbedtls_x509_crt_parse_der(
-				&nx_ctx->ca_chain,
-				cert_infos[i].cert_data,
-				cert_infos[i].cert_size);
-			if (ret == 0) {
-				loaded++;
+
+		void *cert_buffer = malloc(buf_size);
+		if (!cert_buffer) {
+			continue;
+		}
+
+		u32 out_count = 0;
+		rc = sslGetCertificates(cert_buffer, buf_size, &id, 1, &out_count);
+		if (R_FAILED(rc)) {
+			free(cert_buffer);
+			continue;
+		}
+
+		SslBuiltInCertificateInfo *info = (SslBuiltInCertificateInfo *)cert_buffer;
+		for (u32 j = 0; j < out_count; j++) {
+			if (info[j].status != SslTrustedCertStatus_EnabledTrusted) {
+				continue;
+			}
+			if (info[j].cert_data && info[j].cert_size > 0) {
+				int ret = mbedtls_x509_crt_parse_der(
+					&nx_ctx->ca_chain,
+					info[j].cert_data,
+					info[j].cert_size);
+				if (ret == 0) {
+					loaded++;
+				}
 			}
 		}
+
+		free(cert_buffer);
 	}
 
-	free(cert_buffer);
 	sslExit();
 
-	fprintf(stderr, "Loaded %d/%u system CA certificates\n", loaded, total_certs);
+	fprintf(stderr, "Loaded %d system CA certificates\n", loaded);
 	nx_ctx->ca_certs_loaded = true;
 	return 0;
 }
