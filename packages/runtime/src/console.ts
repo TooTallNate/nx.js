@@ -48,13 +48,22 @@ export interface ConsoleOptions {
 	printErr?(s: string): void;
 }
 
-const _ = createInternal<Console, Required<ConsoleOptions>>();
+interface ConsoleInternal extends Required<ConsoleOptions> {
+	counts: Map<string, number>;
+	timers: Map<string, number>;
+	groupDepth: number;
+}
+
+const _ = createInternal<Console, ConsoleInternal>();
 
 export class Console {
 	constructor(opts: ConsoleOptions = {}) {
 		_.set(this, {
 			print: opts.print || $.print,
 			printErr: opts.print || $.printErr,
+			counts: new Map(),
+			timers: new Map(),
+			groupDepth: 0,
 		});
 	}
 
@@ -119,6 +128,160 @@ export class Console {
 		let s = new Error().stack!.split('\n').slice(1).join('\n');
 		if (!s.endsWith('\n')) s += '\n';
 		this.print(`Trace${f ? `: ${f}` : ''}\n${s}`);
+	};
+
+	/**
+	 * Logs the formatted `input` if `condition` is falsy.
+	 *
+	 * @see https://developer.mozilla.org/docs/Web/API/console/assert_static
+	 */
+	assert = (condition?: boolean, ...args: unknown[]) => {
+		if (!condition) {
+			if (args.length === 0) {
+				this.error('Assertion failed');
+			} else {
+				this.error(`Assertion failed: ${format(...args)}`);
+			}
+		}
+	};
+
+	/**
+	 * Logs the number of times `count()` has been called with the given label.
+	 *
+	 * @see https://developer.mozilla.org/docs/Web/API/console/count_static
+	 */
+	count = (label = 'default') => {
+		const i = _(this);
+		const count = (i.counts.get(label) || 0) + 1;
+		i.counts.set(label, count);
+		this.log(`${label}: ${count}`);
+	};
+
+	/**
+	 * Resets the counter for the given label.
+	 *
+	 * @see https://developer.mozilla.org/docs/Web/API/console/countReset_static
+	 */
+	countReset = (label = 'default') => {
+		_(this).counts.delete(label);
+	};
+
+	/**
+	 * Displays an interactive listing of the properties of the specified object.
+	 *
+	 * @see https://developer.mozilla.org/docs/Web/API/console/dir_static
+	 */
+	dir = (item?: unknown) => {
+		this.log(item);
+	};
+
+	/**
+	 * Alias for {@link Console.dir}.
+	 *
+	 * @see https://developer.mozilla.org/docs/Web/API/console/dirxml_static
+	 */
+	dirxml = (item?: unknown) => {
+		this.log(item);
+	};
+
+	/**
+	 * Creates a new inline group, indenting subsequent console messages.
+	 *
+	 * @see https://developer.mozilla.org/docs/Web/API/console/group_static
+	 */
+	group = (...label: unknown[]) => {
+		if (label.length > 0) {
+			this.log(...label);
+		}
+		_(this).groupDepth++;
+	};
+
+	/**
+	 * Alias for {@link Console.group}.
+	 *
+	 * @see https://developer.mozilla.org/docs/Web/API/console/groupCollapsed_static
+	 */
+	groupCollapsed = (...label: unknown[]) => {
+		this.group(...label);
+	};
+
+	/**
+	 * Exits the current inline group.
+	 *
+	 * @see https://developer.mozilla.org/docs/Web/API/console/groupEnd_static
+	 */
+	groupEnd = () => {
+		const i = _(this);
+		if (i.groupDepth > 0) i.groupDepth--;
+	};
+
+	/**
+	 * Displays tabular data as a table. Falls back to {@link Console.log}.
+	 *
+	 * @see https://developer.mozilla.org/docs/Web/API/console/table_static
+	 */
+	table = (data?: unknown) => {
+		this.log(data);
+	};
+
+	/**
+	 * Starts a timer with the given label.
+	 *
+	 * @see https://developer.mozilla.org/docs/Web/API/console/time_static
+	 */
+	time = (label = 'default') => {
+		_(this).timers.set(label, performance.now());
+	};
+
+	/**
+	 * Logs the elapsed time for the given timer and removes it.
+	 *
+	 * @see https://developer.mozilla.org/docs/Web/API/console/timeEnd_static
+	 */
+	timeEnd = (label = 'default') => {
+		const i = _(this);
+		const start = i.timers.get(label);
+		if (start === undefined) {
+			this.warn(`Timer '${label}' does not exist`);
+			return;
+		}
+		i.timers.delete(label);
+		this.log(`${label}: ${(performance.now() - start).toFixed(3)}ms`);
+	};
+
+	/**
+	 * Logs the elapsed time for the given timer without removing it.
+	 *
+	 * @see https://developer.mozilla.org/docs/Web/API/console/timeLog_static
+	 */
+	timeLog = (label = 'default', ...args: unknown[]) => {
+		const start = _(this).timers.get(label);
+		if (start === undefined) {
+			this.warn(`Timer '${label}' does not exist`);
+			return;
+		}
+		const elapsed = `${label}: ${(performance.now() - start).toFixed(3)}ms`;
+		if (args.length > 0) {
+			this.log(`${elapsed} ${format(...args)}`);
+		} else {
+			this.log(elapsed);
+		}
+	};
+
+	/**
+	 * Clears the console. No-op in this environment.
+	 *
+	 * @see https://developer.mozilla.org/docs/Web/API/console/clear_static
+	 */
+	clear = () => {};
+
+	/**
+	 * Outputs a message at the "info" log level. Alias for {@link Console.log}.
+	 *
+	 * @see https://developer.mozilla.org/docs/Web/API/console/info_static
+	 */
+	info = (...input: unknown[]) => {
+		this.log(...input);
 	};
 }
 
