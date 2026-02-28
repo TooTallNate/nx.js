@@ -1,6 +1,6 @@
+import { generateDtsBundle } from 'dts-bundle-generator';
 import fs from 'fs';
 import ts from 'typescript';
-import { generateDtsBundle } from 'dts-bundle-generator';
 
 const distDir = new URL('dist/', import.meta.url);
 
@@ -186,12 +186,57 @@ ${transform(name, input, { removeTypes: globalNames })
 }`;
 }
 
+// dts-bundle-generator strips `declare global` blocks, so we need to
+// extract them from source files and include them in the output manually.
+function extractDeclareGlobalBlocks(dir) {
+	const blocks = [];
+	const files = fs.readdirSync(dir, { withFileTypes: true });
+	for (const file of files) {
+		const fullPath = new URL(file.name, dir);
+		if (file.isDirectory()) {
+			blocks.push(...extractDeclareGlobalBlocks(new URL(file.name + '/', dir)));
+			continue;
+		}
+		if (!file.name.endsWith('.ts')) continue;
+		const content = fs.readFileSync(fullPath, 'utf-8');
+		const sourceFile = ts.createSourceFile(
+			file.name,
+			content,
+			ts.ScriptTarget.Latest,
+			true,
+			ts.ScriptKind.TS,
+		);
+		ts.forEachChild(sourceFile, (node) => {
+			if (
+				ts.isModuleDeclaration(node) &&
+				node.name.kind === ts.SyntaxKind.Identifier &&
+				node.name.text === 'global' &&
+				node.body &&
+				ts.isModuleBlock(node.body)
+			) {
+				const printer = ts.createPrinter();
+				for (const stmt of node.body.statements) {
+					blocks.push(
+						printer.printNode(ts.EmitHint.Unspecified, stmt, sourceFile),
+					);
+				}
+			}
+		});
+	}
+	return blocks;
+}
+
+const declareGlobalBlocks = extractDeclareGlobalBlocks(
+	new URL('src/', import.meta.url),
+);
+
 const output = `/// <reference no-default-lib="true"/>
 /// <reference lib="es2022" />
 /// <reference lib="esnext.promise" />
 /// <reference lib="esnext.iterator" />
 
 ${transform('globalThis', globalTypes)}
+${declareGlobalBlocks.length > 0 ? '\n' + declareGlobalBlocks.join('\n\n') : ''}
 
 /**
  * The \`Switch\` global object contains native interfaces to interact with the Switch hardware.
