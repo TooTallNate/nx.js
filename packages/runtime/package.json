@@ -26,6 +26,7 @@
   "devDependencies": {
     "@jridgewell/trace-mapping": "^0.3.20",
     "@nx.js/inspect": "workspace:*",
+    "@nx.js/ws": "workspace:*",
     "@types/color-rgba": "^2.1.2",
     "@types/to-px": "^1.1.4",
     "color-rgba": "^2.4.0",

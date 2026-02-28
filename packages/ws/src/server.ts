@@ -1,24 +1,14 @@
+import {
+	CLOSED,
+	computeAcceptKey,
+	concat,
+	maskData,
+	parseFrameHeader,
+} from './frame';
 import { ServerWebSocket } from './websocket';
-import { Opcode, parseFrame } from './frame';
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
-
-// SHA-1 hash via SubtleCrypto
-async function sha1(data: Uint8Array): Promise<ArrayBuffer> {
-	return crypto.subtle.digest('SHA-1', data);
-}
-
-function toBase64(buffer: ArrayBuffer): string {
-	const bytes = new Uint8Array(buffer);
-	let binary = '';
-	for (let i = 0; i < bytes.length; i++) {
-		binary += String.fromCharCode(bytes[i]);
-	}
-	return btoa(binary);
-}
-
-const WS_MAGIC = '258EAFA5-E914-47DA-95CA-5AB5A3CF4665';
 
 export interface WebSocketServerOptions {
 	/** Port to listen on. */
@@ -86,8 +76,6 @@ export class WebSocketServer extends EventTarget {
 	 * Returns the address the server is listening on.
 	 */
 	address(): { port: number; host: string } | null {
-		// The Switch.listen API doesn't expose address info directly,
-		// so we return what was configured.
 		return null;
 	}
 
@@ -105,7 +93,6 @@ export class WebSocketServer extends EventTarget {
 
 	async #handleConnection(socket: Switch.Socket): Promise<void> {
 		try {
-			// Read the HTTP upgrade request
 			const reader = socket.readable.getReader();
 			let buffer = new Uint8Array(0);
 
@@ -114,16 +101,12 @@ export class WebSocketServer extends EventTarget {
 				const { done, value } = await reader.read();
 				if (done) return;
 
-				const newBuf = new Uint8Array(buffer.length + value.length);
-				newBuf.set(buffer);
-				newBuf.set(value, buffer.length);
-				buffer = newBuf;
+				buffer = concat(buffer, value);
 
-				// Check for end of headers
 				const headerEnd = findHeaderEnd(buffer);
 				if (headerEnd !== -1) {
 					const headerBytes = buffer.slice(0, headerEnd);
-					const remaining = buffer.slice(headerEnd + 4); // skip \r\n\r\n
+					const remaining = buffer.slice(headerEnd + 4);
 					reader.releaseLock();
 
 					const headerStr = decoder.decode(headerBytes);
@@ -151,12 +134,7 @@ export class WebSocketServer extends EventTarget {
 					const upgrade = headers.get('upgrade');
 					const key = headers.get('sec-websocket-key');
 
-					if (
-						!upgrade ||
-						upgrade.toLowerCase() !== 'websocket' ||
-						!key
-					) {
-						// Not a WebSocket request — send 400
+					if (!upgrade || upgrade.toLowerCase() !== 'websocket' || !key) {
 						const writer = socket.writable.getWriter();
 						await writer.write(
 							encoder.encode(
@@ -167,7 +145,7 @@ export class WebSocketServer extends EventTarget {
 						return;
 					}
 
-					// Compute accept key
+					// Compute accept key using the shared utility
 					const acceptKey = await computeAcceptKey(key);
 
 					// Send 101 Switching Protocols
@@ -195,14 +173,10 @@ export class WebSocketServer extends EventTarget {
 						this.clients.delete(ws);
 					});
 
-					// Dispatch connection event
 					this.dispatchEvent(
-						new CustomEvent<ConnectionEventDetail>(
-							'connection',
-							{
-								detail: { socket: ws, request },
-							},
-						),
+						new CustomEvent<ConnectionEventDetail>('connection', {
+							detail: { socket: ws, request },
+						}),
 					);
 
 					// Start reading WebSocket frames
@@ -211,9 +185,7 @@ export class WebSocketServer extends EventTarget {
 				}
 			}
 		} catch (err) {
-			this.dispatchEvent(
-				new CustomEvent('error', { detail: err }),
-			);
+			this.dispatchEvent(new CustomEvent('error', { detail: err }));
 		}
 	}
 
@@ -229,27 +201,33 @@ export class WebSocketServer extends EventTarget {
 			while (true) {
 				// Try to parse frames from the buffer
 				while (true) {
-					const result = parseFrame(buffer);
-					if (!result) break;
-					const { frame, bytesConsumed } = result;
+					const header = parseFrameHeader(buffer);
+					if (
+						!header ||
+						buffer.length < header.headerSize + header.payloadLength
+					) {
+						break;
+					}
 
-					if (!frame.masked) {
-						// RFC 6455: client frames MUST be masked
+					let payload = buffer.slice(
+						header.headerSize,
+						header.headerSize + header.payloadLength,
+					);
+					buffer = buffer.slice(header.headerSize + header.payloadLength);
+
+					// RFC 6455: client frames MUST be masked
+					if (!header.masked || !header.maskKey) {
 						ws.close(1002, 'Client frames must be masked');
 						reader.releaseLock();
 						return;
 					}
 
-					ws._handleFrame(
-						frame.opcode as Opcode,
-						frame.fin,
-						frame.payload,
-					);
+					// Unmask the payload
+					payload = maskData(payload, header.maskKey);
 
-					buffer = buffer.slice(bytesConsumed);
+					ws._handleFrame(header.opcode, header.fin, payload);
 
-					// If the socket was closed, stop
-					if (ws.readyState === ServerWebSocket.CLOSED) {
+					if (ws.readyState === CLOSED) {
 						reader.releaseLock();
 						return;
 					}
@@ -258,16 +236,13 @@ export class WebSocketServer extends EventTarget {
 				const { done, value } = await reader.read();
 				if (done) break;
 
-				const newBuf = new Uint8Array(buffer.length + value.length);
-				newBuf.set(buffer);
-				newBuf.set(value, buffer.length);
-				buffer = newBuf;
+				buffer = concat(buffer, value);
 			}
 		} catch (err) {
 			ws.dispatchEvent(new Event('error'));
 		} finally {
 			reader.releaseLock();
-			if (ws.readyState !== ServerWebSocket.CLOSED) {
+			if (ws.readyState !== CLOSED) {
 				this.clients.delete(ws);
 				ws.dispatchEvent(
 					new CloseEvent('close', {
@@ -293,9 +268,4 @@ function findHeaderEnd(data: Uint8Array): number {
 		}
 	}
 	return -1;
-}
-
-async function computeAcceptKey(key: string): Promise<string> {
-	const hash = await sha1(encoder.encode(key + WS_MAGIC));
-	return toBase64(hash);
 }
