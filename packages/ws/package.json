@@ -30,7 +30,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "devDependencies": {
+  "peerDependencies": {
     "@nx.js/runtime": "workspace:*"
   },
   "keywords": [
