@@ -157,6 +157,6 @@ export class TextEncoder implements globalThis.TextEncoder {
 		return { read, written };
 	}
 }
-def(TextEncoder);
+def(TextEncoder, 'TextEncoder');
 
 export const encoder = new TextEncoder();
