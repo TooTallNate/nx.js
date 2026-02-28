@@ -8,10 +8,7 @@ test('WebSocket global', () => {
 	assert.ok(desc);
 	assert.equal(desc.writable, true);
 	assert.equal(desc.configurable, true);
-	assert.equal(
-		Object.prototype.toString.call(WebSocket),
-		'[object Function]',
-	);
+	assert.equal(Object.prototype.toString.call(WebSocket), '[object Function]');
 });
 
 test('WebSocket.CONNECTING is 0', () => {
@@ -33,12 +30,24 @@ test('WebSocket.CLOSED is 3', () => {
 test('constructor throws on invalid URL scheme', () => {
 	let err: DOMException | undefined;
 	try {
-		new WebSocket('http://example.com');
+		new WebSocket('ftp://example.com');
 	} catch (e: any) {
 		err = e;
 	}
 	assert.ok(err);
 	assert.equal(err!.name, 'SyntaxError');
+});
+
+test('constructor normalizes http: to ws:', () => {
+	const ws = new WebSocket('http://example.com');
+	assert.equal(ws.url, 'ws://example.com/');
+	ws.close();
+});
+
+test('constructor normalizes https: to wss:', () => {
+	const ws = new WebSocket('https://example.com');
+	assert.equal(ws.url, 'wss://example.com/');
+	ws.close();
 });
 
 test('constructor throws on duplicate protocols', () => {
@@ -153,7 +162,8 @@ function waitForEvent<K extends keyof WebSocketEventMap>(
 	});
 }
 
-// Helper to open a WebSocket and wait for the connection
+// Helper to open a WebSocket and wait for the connection.
+// Also consumes the welcome message sent by echo.websocket.org.
 function openAndWait(url: string): Promise<WebSocket> {
 	return new Promise((resolve, reject) => {
 		const ws = new WebSocket(url);
@@ -161,18 +171,26 @@ function openAndWait(url: string): Promise<WebSocket> {
 			reject(new Error(`Timed out connecting to ${url}`));
 		}, 10000);
 		ws.addEventListener(
-			'open',
+			'error',
 			() => {
 				clearTimeout(timer);
-				resolve(ws);
+				reject(new Error(`WebSocket error connecting to ${url}`));
 			},
 			{ once: true },
 		);
 		ws.addEventListener(
-			'error',
-			(ev) => {
-				clearTimeout(timer);
-				reject(new Error(`WebSocket error connecting to ${url}`));
+			'open',
+			() => {
+				// echo.websocket.org sends a welcome message on connect,
+				// consume it before resolving so tests only see their echos
+				ws.addEventListener(
+					'message',
+					() => {
+						clearTimeout(timer);
+						resolve(ws);
+					},
+					{ once: true },
+				);
 			},
 			{ once: true },
 		);
@@ -251,11 +269,17 @@ test('wss: onopen/onmessage/onclose handlers work', async () => {
 
 	await new Promise<void>((resolve, reject) => {
 		const timer = setTimeout(() => reject(new Error('Timeout')), 10000);
+		let welcomeReceived = false;
 		ws.onopen = () => {
 			events.push('open');
-			ws.send('handler test');
 		};
 		ws.onmessage = (ev) => {
+			if (!welcomeReceived) {
+				// Consume the welcome message from echo.websocket.org
+				welcomeReceived = true;
+				ws.send('handler test');
+				return;
+			}
 			events.push(`message:${ev.data}`);
 			ws.close();
 		};

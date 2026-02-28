@@ -1,11 +1,14 @@
-import { def } from './utils';
-import { Socket, connect } from './tcp';
+import { $ } from './$';
+import { DOMException } from './dom-exception';
 import { INTERNAL_SYMBOL } from './internal';
-import { encoder } from './polyfills/text-encoder';
-import { decoder } from './polyfills/text-decoder';
-import { EventTarget } from './polyfills/event-target';
-import { Event } from './polyfills/event';
 import { Blob } from './polyfills/blob';
+import { Event } from './polyfills/event';
+import { EventTarget } from './polyfills/event-target';
+import { decoder } from './polyfills/text-decoder';
+import { encoder } from './polyfills/text-encoder';
+import { URL } from './polyfills/url';
+import { connect, Socket } from './tcp';
+import { def } from './utils';
 
 export type BinaryType = 'blob' | 'arraybuffer';
 
@@ -68,7 +71,7 @@ export class CloseEvent extends Event {
 function generateKey(): string {
 	const bytes = new Uint8Array(16);
 	crypto.getRandomValues(bytes);
-	return btoa(String.fromCharCode(...bytes));
+	return $.base64Encode(bytes.buffer);
 }
 
 function concat(a: Uint8Array, b: Uint8Array): Uint8Array {
@@ -201,6 +204,14 @@ export class WebSocket extends EventTarget {
 		super();
 
 		const parsedUrl = new URL(String(url));
+
+		// Normalize http/https to ws/wss per the current spec
+		if (parsedUrl.protocol === 'http:') {
+			parsedUrl.protocol = 'ws:';
+		} else if (parsedUrl.protocol === 'https:') {
+			parsedUrl.protocol = 'wss:';
+		}
+
 		if (parsedUrl.protocol !== 'ws:' && parsedUrl.protocol !== 'wss:') {
 			throw new DOMException(
 				`The URL's scheme must be either 'ws' or 'wss'. '${parsedUrl.protocol.slice(0, -1)}' is not allowed.`,
@@ -244,7 +255,10 @@ export class WebSocket extends EventTarget {
 		path: string,
 		isSecure: boolean,
 		protocols: string[],
-	) {
+		redirectCount = 0,
+	): Promise<void> {
+		const MAX_REDIRECTS = 5;
+
 		try {
 			const socket = new Socket(
 				// @ts-expect-error Internal constructor
@@ -294,9 +308,7 @@ export class WebSocket extends EventTarget {
 					responseHeaders = headerStr.slice(0, endIdx);
 					headersComplete = true;
 					// Keep leftover data
-					const headerBytes = encoder.encode(
-						headerStr.slice(0, endIdx + 4),
-					);
+					const headerBytes = encoder.encode(headerStr.slice(0, endIdx + 4));
 					buffer = buffer.slice(headerBytes.length);
 				}
 			}
@@ -305,9 +317,10 @@ export class WebSocket extends EventTarget {
 			const lines = responseHeaders.split('\r\n');
 			const statusLine = lines[0];
 			const statusMatch = statusLine.match(/HTTP\/1\.1 (\d+)/);
-			if (!statusMatch || statusMatch[1] !== '101') {
+			if (!statusMatch) {
 				throw new Error(`WebSocket handshake failed: ${statusLine}`);
 			}
+			const statusCode = +statusMatch[1];
 
 			// Parse headers
 			const resHeaders = new Map<string, string>();
@@ -321,6 +334,70 @@ export class WebSocket extends EventTarget {
 				}
 			}
 
+			// Handle redirects (301, 302, 303, 307, 308)
+			if (statusCode >= 300 && statusCode < 400) {
+				// Close current connection
+				reader.releaseLock();
+				writer.releaseLock();
+				this.#socket = null;
+				this.#writer = null;
+				socket.close();
+
+				if (redirectCount >= MAX_REDIRECTS) {
+					throw new Error('Too many WebSocket redirects');
+				}
+
+				const location = resHeaders.get('location');
+				if (!location) {
+					throw new Error(
+						`WebSocket redirect (${statusCode}) without Location header`,
+					);
+				}
+
+				// Parse the redirect URL
+				const redirectUrl = new URL(
+					location,
+					`${isSecure ? 'wss' : 'ws'}://${hostname}${port !== (isSecure ? 443 : 80) ? ':' + port : ''}${path}`,
+				);
+
+				// Validate redirect scheme
+				const redirectScheme = redirectUrl.protocol;
+				if (
+					redirectScheme !== 'ws:' &&
+					redirectScheme !== 'wss:' &&
+					redirectScheme !== 'http:' &&
+					redirectScheme !== 'https:'
+				) {
+					throw new Error(
+						`WebSocket redirect to unsupported scheme: ${redirectScheme}`,
+					);
+				}
+
+				const newIsSecure =
+					redirectScheme === 'wss:' || redirectScheme === 'https:';
+				const newHostname = redirectUrl.hostname;
+				const newPort = +redirectUrl.port || (newIsSecure ? 443 : 80);
+				const newPath = (redirectUrl.pathname || '/') + redirectUrl.search;
+
+				// Update the URL to reflect the final destination
+				redirectUrl.protocol = newIsSecure ? 'wss:' : 'ws:';
+				redirectUrl.hash = '';
+				this.#url = redirectUrl.href;
+
+				return this.#connect(
+					newHostname,
+					newPort,
+					newPath,
+					newIsSecure,
+					protocols,
+					redirectCount + 1,
+				);
+			}
+
+			if (statusCode !== 101) {
+				throw new Error(`WebSocket handshake failed: ${statusLine}`);
+			}
+
 			// Validate Sec-WebSocket-Accept
 			const expectedAccept = await computeAcceptKey(key);
 			const actualAccept = resHeaders.get('sec-websocket-accept');
@@ -331,8 +408,7 @@ export class WebSocket extends EventTarget {
 			}
 
 			// Set negotiated protocol
-			const negotiatedProtocol =
-				resHeaders.get('sec-websocket-protocol') ?? '';
+			const negotiatedProtocol = resHeaders.get('sec-websocket-protocol') ?? '';
 			this.#protocol = negotiatedProtocol;
 
 			// Set extensions
@@ -486,10 +562,7 @@ export class WebSocket extends EventTarget {
 				data = new Blob([payload]);
 			}
 		}
-		this.#fireEvent(
-			'message',
-			new MessageEvent('message', { data }),
-		);
+		this.#fireEvent('message', new MessageEvent('message', { data }));
 	}
 
 	async #sendFrame(opcode: number, payload: Uint8Array) {
@@ -666,16 +739,13 @@ export class WebSocket extends EventTarget {
 			const encoded = encoder.encode(reason);
 			if (encoded.length > 123) {
 				throw new DOMException(
-					"The message must not be greater than 123 bytes.",
+					'The message must not be greater than 123 bytes.',
 					'SyntaxError',
 				);
 			}
 		}
 
-		if (
-			this.#readyState === CLOSING ||
-			this.#readyState === CLOSED
-		) {
+		if (this.#readyState === CLOSING || this.#readyState === CLOSED) {
 			return;
 		}
 
@@ -702,7 +772,7 @@ async function computeAcceptKey(key: string): Promise<string> {
 	const magic = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
 	const data = encoder.encode(key + magic);
 	const hash = await crypto.subtle.digest('SHA-1', data);
-	return btoa(String.fromCharCode(...new Uint8Array(hash)));
+	return $.base64Encode(hash);
 }
 
 def(WebSocket);

@@ -251,6 +251,8 @@ export interface Init {
 	): CryptoKey<any>;
 	cryptoEcExportPublicRaw(key: CryptoKey<any>): ArrayBuffer;
 	sha256Hex(str: string): string;
+	base64Encode(buf: ArrayBuffer): string;
+	base64Decode(str: string): ArrayBuffer;
 	base64urlEncode(buf: ArrayBuffer): string;
 	base64urlDecode(str: string): ArrayBuffer;
 
