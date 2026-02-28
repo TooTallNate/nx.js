@@ -8,18 +8,7 @@
     "forceConsistentCasingInFileNames": true,
     "strict": true,
     "skipLibCheck": true,
-    "types": ["@nx.js/runtime"],
-    "paths": {
-      "@tootallnate/ncz": [
-        "../../../switch-tools/packages/ncz/dist/index.d.ts"
-      ],
-      "@tootallnate/xci": [
-        "../../../switch-tools/packages/xci/dist/index.d.ts"
-      ],
-      "@tootallnate/hfs0": [
-        "../../../switch-tools/packages/hfs0/dist/index.d.ts"
-      ]
-    }
+    "types": ["@nx.js/runtime"]
   },
   "include": ["src/**/*.ts"]
 }

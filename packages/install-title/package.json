@@ -24,9 +24,9 @@
     "@nx.js/ncm": "^1.2.0",
     "@nx.js/ns": "^1.0.0",
     "@nx.js/util": "^1.1.0",
-    "@tootallnate/ncz": "link:../../../switch-tools/packages/ncz",
+    "@tootallnate/ncz": "^0.0.1",
     "@tootallnate/nsp": "^0.0.2",
-    "@tootallnate/xci": "link:../../../switch-tools/packages/xci"
+    "@tootallnate/xci": "^0.0.1"
   },
   "devDependencies": {
     "@nx.js/runtime": "workspace:*"

@@ -640,14 +640,14 @@ importers:
         specifier: ^1.1.0
         version: link:../util
       '@tootallnate/ncz':
-        specifier: link:../../../switch-tools/packages/ncz
-        version: link:../../../switch-tools/packages/ncz
+        specifier: ^0.0.1
+        version: 0.0.1
       '@tootallnate/nsp':
         specifier: ^0.0.2
         version: 0.0.2
       '@tootallnate/xci':
-        specifier: link:../../../switch-tools/packages/xci
-        version: link:../../../switch-tools/packages/xci
+        specifier: ^0.0.1
+        version: 0.0.1
     devDependencies:
       '@nx.js/runtime':
         specifier: workspace:*
@@ -4183,6 +4183,10 @@ packages:
       '@tootallnate/romfs': 0.1.1
     dev: false
 
+  /@tootallnate/hfs0@0.0.1:
+    resolution: {integrity: sha512-Ad67C0DdMgq3WoBxs/tlxRTm8T/kbqEx7KkOnFDvul8ToRJtThRnbmRUeSF8K6iOU+7Z0ZOFtbihGtnRmPN8FA==}
+    dev: false
+
   /@tootallnate/ivfc@0.0.1:
     resolution: {integrity: sha512-ftsCuHRDLQVlCBg2pTAi8aY/vH8G2mB1tFb6urWJyTQ39CUFbwgYOCvCx2xX3rXaNLSqSamQyIpDibcn0D0H+Q==}
     dev: false
@@ -4197,6 +4201,10 @@ packages:
       '@tootallnate/aes-xts': 0.0.1
       '@tootallnate/cnmt': 0.0.1
       '@tootallnate/ivfc': 0.0.1
+    dev: false
+
+  /@tootallnate/ncz@0.0.1:
+    resolution: {integrity: sha512-Ve9+3w5O1Qw5/NPI+1TYf9OaY3nSBXR/LEDjjmPd4wmulfyzFAidZ+5vSjrq3exDKCpgqTyIL09ycm2zPxHMiA==}
     dev: false
 
   /@tootallnate/nro@0.1.2:
@@ -4215,6 +4223,12 @@ packages:
 
   /@tootallnate/romfs@0.1.1:
     resolution: {integrity: sha512-dd0435f0hPfOV5KGKMxS0NAgruaukQ4MoOdLcZr36HQMNee23qVEsEiYZyxvJZ0ixwoXYMr65ZrzdFOjpNp29w==}
+    dev: false
+
+  /@tootallnate/xci@0.0.1:
+    resolution: {integrity: sha512-zANDzwZUVpQipeqOLCkV/Wn313GyIMAIci1L1/e3u3u+cN8KwJziDq7fAb1frN56Fqg/+hEbZ4ESY39hzGGr3w==}
+    dependencies:
+      '@tootallnate/hfs0': 0.0.1
     dev: false
 
   /@types/bytes@3.1.5:
