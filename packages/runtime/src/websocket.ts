@@ -16,7 +16,7 @@ import {
 	OP_TEXT,
 	OPEN,
 	parseFrameHeader,
-} from './ws-frame';
+} from '@nx.js/ws/frame';
 import { DOMException } from './dom-exception';
 import { INTERNAL_SYMBOL } from './internal';
 import { Blob } from './polyfills/blob';
