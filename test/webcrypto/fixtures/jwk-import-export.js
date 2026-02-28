@@ -18,7 +18,7 @@ async function run() {
 	var aesKey = await crypto.subtle.generateKey(
 		{ name: 'AES-GCM', length: 256 },
 		true,
-		['encrypt', 'decrypt']
+		['encrypt', 'decrypt'],
 	);
 
 	var aesJwk = await crypto.subtle.exportKey('jwk', aesKey);
@@ -33,21 +33,29 @@ async function run() {
 		aesJwk,
 		{ name: 'AES-GCM' },
 		true,
-		['encrypt', 'decrypt']
+		['encrypt', 'decrypt'],
 	);
 
 	// Verify by encrypting with both keys
 	var iv = new Uint8Array(12);
 	var plaintext = textEncode('JWK test');
-	var enc1 = await crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv }, aesKey, plaintext);
-	var dec2 = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv }, reimportedAes, enc1);
+	var enc1 = await crypto.subtle.encrypt(
+		{ name: 'AES-GCM', iv: iv },
+		aesKey,
+		plaintext,
+	);
+	var dec2 = await crypto.subtle.decrypt(
+		{ name: 'AES-GCM', iv: iv },
+		reimportedAes,
+		enc1,
+	);
 	results.aesRoundTrip = textDecode(dec2) === 'JWK test';
 
 	// --- HMAC JWK round trip ---
 	var hmacKey = await crypto.subtle.generateKey(
 		{ name: 'HMAC', hash: 'SHA-256' },
 		true,
-		['sign', 'verify']
+		['sign', 'verify'],
 	);
 
 	var hmacJwk = await crypto.subtle.exportKey('jwk', hmacKey);
@@ -61,11 +69,16 @@ async function run() {
 		hmacJwk,
 		{ name: 'HMAC', hash: 'SHA-256' },
 		true,
-		['sign', 'verify']
+		['sign', 'verify'],
 	);
 
 	var sig1 = await crypto.subtle.sign({ name: 'HMAC' }, hmacKey, plaintext);
-	var ver2 = await crypto.subtle.verify({ name: 'HMAC' }, reimportedHmac, sig1, plaintext);
+	var ver2 = await crypto.subtle.verify(
+		{ name: 'HMAC' },
+		reimportedHmac,
+		sig1,
+		plaintext,
+	);
 	results.hmacRoundTrip = ver2;
 
 	// --- RSA-OAEP JWK round trip ---
@@ -77,7 +90,7 @@ async function run() {
 			hash: 'SHA-256',
 		},
 		true,
-		['encrypt', 'decrypt']
+		['encrypt', 'decrypt'],
 	);
 
 	var rsaPubJwk = await crypto.subtle.exportKey('jwk', rsaKeyPair.publicKey);
@@ -106,18 +119,26 @@ async function run() {
 		rsaPubJwk,
 		{ name: 'RSA-OAEP', hash: 'SHA-256' },
 		true,
-		['encrypt']
+		['encrypt'],
 	);
 
-	var rsaEnc = await crypto.subtle.encrypt({ name: 'RSA-OAEP' }, reimportedPub, plaintext);
-	var rsaDec = await crypto.subtle.decrypt({ name: 'RSA-OAEP' }, rsaKeyPair.privateKey, rsaEnc);
+	var rsaEnc = await crypto.subtle.encrypt(
+		{ name: 'RSA-OAEP' },
+		reimportedPub,
+		plaintext,
+	);
+	var rsaDec = await crypto.subtle.decrypt(
+		{ name: 'RSA-OAEP' },
+		rsaKeyPair.privateKey,
+		rsaEnc,
+	);
 	results.rsaJwkRoundTrip = textDecode(rsaDec) === 'JWK test';
 
 	// --- ECDSA JWK: public vs private key field checks (case 2) ---
 	var ecKeyPair = await crypto.subtle.generateKey(
 		{ name: 'ECDSA', namedCurve: 'P-256' },
 		true,
-		['sign', 'verify']
+		['sign', 'verify'],
 	);
 
 	var ecPubJwk = await crypto.subtle.exportKey('jwk', ecKeyPair.publicKey);
@@ -129,9 +150,12 @@ async function run() {
 	results.ecPubNoD = typeof ecPubJwk.d === 'undefined';
 
 	// Private JWK should have x, y AND d
-	results.ecPrivHasX = typeof ecPrivJwk.x === 'string' && ecPrivJwk.x.length > 0;
-	results.ecPrivHasY = typeof ecPrivJwk.y === 'string' && ecPrivJwk.y.length > 0;
-	results.ecPrivHasD = typeof ecPrivJwk.d === 'string' && ecPrivJwk.d.length > 0;
+	results.ecPrivHasX =
+		typeof ecPrivJwk.x === 'string' && ecPrivJwk.x.length > 0;
+	results.ecPrivHasY =
+		typeof ecPrivJwk.y === 'string' && ecPrivJwk.y.length > 0;
+	results.ecPrivHasD =
+		typeof ecPrivJwk.d === 'string' && ecPrivJwk.d.length > 0;
 
 	// x and y MUST match between public and private exports (same key pair)
 	results.ecXyMatch = ecPubJwk.x === ecPrivJwk.x && ecPubJwk.y === ecPrivJwk.y;
@@ -144,14 +168,14 @@ async function run() {
 		ecPrivJwk,
 		{ name: 'ECDSA', namedCurve: 'P-256' },
 		true,
-		['sign']
+		['sign'],
 	);
 
 	var ecData = textEncode('EC JWK x/y verification');
 	var ecSig = await crypto.subtle.sign(
 		{ name: 'ECDSA', hash: 'SHA-256' },
 		reimportedEcPriv,
-		ecData
+		ecData,
 	);
 	// Verify with the ORIGINAL public key — proves the reimported private key
 	// has the correct key material (x/y were the real public point)
@@ -159,7 +183,7 @@ async function run() {
 		{ name: 'ECDSA', hash: 'SHA-256' },
 		ecKeyPair.publicKey,
 		ecSig,
-		ecData
+		ecData,
 	);
 	results.ecJwkPrivSignVerifyWithOriginalPub = ecVerOriginal;
 
@@ -169,13 +193,13 @@ async function run() {
 		ecPubJwk,
 		{ name: 'ECDSA', namedCurve: 'P-256' },
 		true,
-		['verify']
+		['verify'],
 	);
 	var ecVerReimported = await crypto.subtle.verify(
 		{ name: 'ECDSA', hash: 'SHA-256' },
 		reimportedEcPub,
 		ecSig,
-		ecData
+		ecData,
 	);
 	results.ecJwkRoundTrip = ecVerReimported;
 
@@ -184,6 +208,31 @@ async function run() {
 	// If x/y were mistakenly derived from the raw private scalar, they'd be wrong
 	results.ecDNotEqualX = ecPrivJwk.d !== ecPrivJwk.x;
 	results.ecDNotEqualY = ecPrivJwk.d !== ecPrivJwk.y;
+
+	// --- Base64url encoding: must be unpadded (no trailing '=') per RFC 7515 ---
+	// Check all JWK fields that contain base64url-encoded values
+	var b64urlFields = [
+		aesJwk.k,
+		hmacJwk.k,
+		rsaPubJwk.n,
+		rsaPubJwk.e,
+		rsaPrivJwk.n,
+		rsaPrivJwk.e,
+		rsaPrivJwk.d,
+		rsaPrivJwk.p,
+		rsaPrivJwk.q,
+		rsaPrivJwk.dp,
+		rsaPrivJwk.dq,
+		rsaPrivJwk.qi,
+		ecPubJwk.x,
+		ecPubJwk.y,
+		ecPrivJwk.x,
+		ecPrivJwk.y,
+		ecPrivJwk.d,
+	];
+	results.base64urlNoPadding = b64urlFields.every(function (v) {
+		return typeof v === 'string' && v.indexOf('=') === -1;
+	});
 
 	__output(results);
 }
