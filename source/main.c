@@ -26,6 +26,7 @@
 #include "gamepad.h"
 #include "image.h"
 #include "irs.h"
+#include "memory.h"
 #include "nifm.h"
 #include "ns.h"
 #include "poll.h"
@@ -170,6 +171,12 @@ bool delete_if_empty(const char *filename) {
 }
 
 static int is_running = 1;
+
+static JSValue js_gc(JSContext *ctx, JSValueConst this_val, int argc,
+					 JSValueConst *argv) {
+	JS_RunGC(JS_GetRuntime(ctx));
+	return JS_UNDEFINED;
+}
 
 static JSValue js_exit(JSContext *ctx, JSValueConst this_val, int argc,
 					   JSValueConst *argv) {
@@ -706,6 +713,7 @@ int main(int argc, char *argv[]) {
 	nx_init_gamepad(ctx, nx_ctx->init_obj);
 	nx_init_image(ctx, nx_ctx->init_obj);
 	nx_init_irs(ctx, nx_ctx->init_obj);
+	nx_init_memory(ctx, nx_ctx->init_obj);
 	nx_init_nifm(ctx, nx_ctx->init_obj);
 	nx_init_ns(ctx, nx_ctx->init_obj);
 	nx_init_service(ctx, nx_ctx->init_obj);
@@ -723,6 +731,7 @@ int main(int argc, char *argv[]) {
 		JS_CFUNC_DEF("chdir", 1, js_chdir),
 		JS_CFUNC_DEF("print", 1, js_print),
 		JS_CFUNC_DEF("printErr", 1, js_print_err),
+		JS_CFUNC_DEF("gc", 0, js_gc),
 		JS_CFUNC_DEF("getInternalPromiseState", 1,
 					 js_get_internal_promise_state),
 		JS_CFUNC_DEF("hidInitializeTouchScreen", 0,

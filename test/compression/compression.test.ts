@@ -11,17 +11,17 @@
  * 3. zstd tests: nx.js-only (Chrome doesn't support zstd)
  */
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { execSync } from 'node:child_process';
 import {
-	readFileSync,
-	readdirSync,
-	mkdirSync,
 	existsSync,
+	mkdirSync,
+	readdirSync,
+	readFileSync,
 	writeFileSync,
 } from 'node:fs';
-import { join, basename } from 'node:path';
-import { chromium, type Browser } from 'playwright';
+import { basename, join } from 'node:path';
+import { type Browser, chromium } from 'playwright';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 // Directories
 const ROOT = import.meta.dirname;
@@ -33,7 +33,11 @@ const RUNTIME = join(ROOT, '../../packages/runtime/runtime.js');
 const HELPERS = join(BUILD_DIR, 'test-helpers.js');
 
 // Fixtures that use zstd (not supported by Chrome)
-const NXJS_ONLY_FIXTURES = ['zstd-roundtrip'];
+const NXJS_ONLY_FIXTURES = [
+	'zstd-roundtrip',
+	'zstd-large-data',
+	'zstd-streaming',
+];
 
 // Fixtures that produce interop data (compressedBase64)
 const INTEROP_FIXTURES = ['gzip-interop', 'deflate-interop'];
@@ -50,7 +54,7 @@ function ensureDir(dir: string) {
 function runWithNxjs(fixturePath: string, outputPath: string): unknown {
 	execSync(
 		`"${BINARY}" "${RUNTIME}" "${HELPERS}" "${fixturePath}" "${outputPath}"`,
-		{ timeout: 15000, stdio: ['pipe', 'pipe', 'pipe'] }
+		{ timeout: 15000, stdio: ['pipe', 'pipe', 'pipe'] },
 	);
 	const raw = readFileSync(outputPath, 'utf-8');
 	return JSON.parse(raw);
@@ -63,7 +67,7 @@ function runWithNxjs(fixturePath: string, outputPath: string): unknown {
  */
 async function runRoundtripInChrome(
 	browser: Browser,
-	fixtureCode: string
+	fixtureCode: string,
 ): Promise<unknown> {
 	const page = await browser.newPage();
 	try {
@@ -74,7 +78,7 @@ async function runRoundtripInChrome(
 				// Provide compress / decompress using native Compression Streams
 				(globalThis as any).compress = async function (
 					format: string,
-					data: Uint8Array
+					data: Uint8Array,
 				): Promise<Uint8Array> {
 					const cs = new CompressionStream(format);
 					const writer = cs.writable.getWriter();
@@ -90,10 +94,7 @@ async function runRoundtripInChrome(
 						chunks.push(new Uint8Array(value));
 					}
 
-					const totalLen = chunks.reduce(
-						(s, c) => s + c.length,
-						0
-					);
+					const totalLen = chunks.reduce((s, c) => s + c.length, 0);
 					const result = new Uint8Array(totalLen);
 					let offset = 0;
 					for (const chunk of chunks) {
@@ -105,7 +106,7 @@ async function runRoundtripInChrome(
 
 				(globalThis as any).decompress = async function (
 					format: string,
-					data: Uint8Array
+					data: Uint8Array,
 				): Promise<Uint8Array> {
 					const ds = new DecompressionStream(format);
 					const writer = ds.writable.getWriter();
@@ -121,10 +122,7 @@ async function runRoundtripInChrome(
 						chunks.push(new Uint8Array(value));
 					}
 
-					const totalLen = chunks.reduce(
-						(s, c) => s + c.length,
-						0
-					);
+					const totalLen = chunks.reduce((s, c) => s + c.length, 0);
 					const result = new Uint8Array(totalLen);
 					let offset = 0;
 					for (const chunk of chunks) {
@@ -135,30 +133,22 @@ async function runRoundtripInChrome(
 				};
 
 				// Provide textEncode/textDecode
-				(globalThis as any).textEncode = function (
-					str: string
-				): Uint8Array {
+				(globalThis as any).textEncode = function (str: string): Uint8Array {
 					return new TextEncoder().encode(str);
 				};
-				(globalThis as any).textDecode = function (
-					bytes: Uint8Array
-				): string {
+				(globalThis as any).textDecode = function (bytes: Uint8Array): string {
 					return new TextDecoder().decode(bytes);
 				};
 
 				// Provide base64 helpers
-				(globalThis as any).toBase64 = function (
-					bytes: Uint8Array
-				): string {
+				(globalThis as any).toBase64 = function (bytes: Uint8Array): string {
 					let binary = '';
 					for (let i = 0; i < bytes.length; i++) {
 						binary += String.fromCharCode(bytes[i]);
 					}
 					return btoa(binary);
 				};
-				(globalThis as any).fromBase64 = function (
-					str: string
-				): Uint8Array {
+				(globalThis as any).fromBase64 = function (str: string): Uint8Array {
 					const binary = atob(str);
 					const bytes = new Uint8Array(binary.length);
 					for (let i = 0; i < binary.length; i++) {
@@ -193,7 +183,7 @@ async function runRoundtripInChrome(
 async function decompressInChrome(
 	browser: Browser,
 	format: string,
-	compressedBase64: string
+	compressedBase64: string,
 ): Promise<string> {
 	const page = await browser.newPage();
 	try {
@@ -239,7 +229,7 @@ async function decompressInChrome(
 
 				return new TextDecoder().decode(result);
 			},
-			{ format, compressedBase64 }
+			{ format, compressedBase64 },
 		);
 
 		return result;
@@ -254,7 +244,7 @@ async function decompressInChrome(
 async function compressInChrome(
 	browser: Browser,
 	format: string,
-	text: string
+	text: string,
 ): Promise<string> {
 	const page = await browser.newPage();
 	try {
@@ -292,7 +282,7 @@ async function compressInChrome(
 				}
 				return btoa(binary);
 			},
-			{ format, text }
+			{ format, text },
 		);
 
 		return result;
@@ -307,7 +297,7 @@ async function compressInChrome(
 function decompressWithNxjs(
 	format: string,
 	compressedBase64: string,
-	outputPath: string
+	outputPath: string,
 ): string {
 	const fixtureCode = `(function() {
 	var compressed = fromBase64("${compressedBase64}");
@@ -321,7 +311,7 @@ function decompressWithNxjs(
 
 	execSync(
 		`"${BINARY}" "${RUNTIME}" "${HELPERS}" "${fixturePath}" "${outputPath}"`,
-		{ timeout: 15000, stdio: ['pipe', 'pipe', 'pipe'] }
+		{ timeout: 15000, stdio: ['pipe', 'pipe', 'pipe'] },
 	);
 	const raw = readFileSync(outputPath, 'utf-8');
 	const result = JSON.parse(raw);
@@ -338,17 +328,17 @@ describe('Compression Streams conformance: nx.js vs Chrome', () => {
 
 		if (!existsSync(BINARY)) {
 			throw new Error(
-				`Compression test binary not found at ${BINARY}. Run 'cmake -B build && cmake --build build' first.`
+				`Compression test binary not found at ${BINARY}. Run 'cmake -B build && cmake --build build' first.`,
 			);
 		}
 		if (!existsSync(RUNTIME)) {
 			throw new Error(
-				`Runtime not found at ${RUNTIME}. Run 'pnpm -w build:runtime' first.`
+				`Runtime not found at ${RUNTIME}. Run 'pnpm -w build:runtime' first.`,
 			);
 		}
 		if (!existsSync(HELPERS)) {
 			throw new Error(
-				`Test helpers not found at ${HELPERS}. Run 'cmake -B build && cmake --build build' first.`
+				`Test helpers not found at ${HELPERS}. Run 'cmake -B build && cmake --build build' first.`,
 			);
 		}
 
@@ -375,21 +365,16 @@ describe('Compression Streams conformance: nx.js vs Chrome', () => {
 				const fixturePath = join(FIXTURES_DIR, fixture);
 				const nxjsOutputPath = join(OUTPUT_DIR, `nxjs-${name}.json`);
 
-				const nxjsResult = runWithNxjs(
-					fixturePath,
-					nxjsOutputPath
-				) as any;
+				const nxjsResult = runWithNxjs(fixturePath, nxjsOutputPath) as any;
 
 				console.log(`  ${name}: nx.js =`, JSON.stringify(nxjsResult));
 
 				// Verify roundtrip succeeded
 				expect(nxjsResult.roundtripMatch).toBe(true);
-				expect(nxjsResult.decompressedLength).toBe(
-					nxjsResult.originalLength
-				);
+				expect(nxjsResult.decompressedLength).toBe(nxjsResult.originalLength);
 				expect(nxjsResult.compressedLength).toBeGreaterThan(0);
 				expect(nxjsResult.compressedLength).toBeLessThan(
-					nxjsResult.originalLength * 2
+					nxjsResult.originalLength * 2,
 				);
 			});
 		} else if (isInterop) {
@@ -398,10 +383,7 @@ describe('Compression Streams conformance: nx.js vs Chrome', () => {
 				const fixturePath = join(FIXTURES_DIR, fixture);
 				const nxjsOutputPath = join(OUTPUT_DIR, `nxjs-${name}.json`);
 
-				const nxjsResult = runWithNxjs(
-					fixturePath,
-					nxjsOutputPath
-				) as any;
+				const nxjsResult = runWithNxjs(fixturePath, nxjsOutputPath) as any;
 
 				console.log(`  ${name}: nx.js compressed =`, {
 					format: nxjsResult.format,
@@ -412,7 +394,7 @@ describe('Compression Streams conformance: nx.js vs Chrome', () => {
 				const decompressedText = await decompressInChrome(
 					browser,
 					nxjsResult.format,
-					nxjsResult.compressedBase64
+					nxjsResult.compressedBase64,
 				);
 
 				expect(decompressedText).toBe(nxjsResult.originalText);
@@ -422,32 +404,26 @@ describe('Compression Streams conformance: nx.js vs Chrome', () => {
 				const fixturePath = join(FIXTURES_DIR, fixture);
 				const nxjsOutputPath = join(OUTPUT_DIR, `nxjs-${name}.json`);
 
-				const nxjsResult = runWithNxjs(
-					fixturePath,
-					nxjsOutputPath
-				) as any;
+				const nxjsResult = runWithNxjs(fixturePath, nxjsOutputPath) as any;
 
 				// Chrome compresses the same text
 				const chromeCompressedBase64 = await compressInChrome(
 					browser,
 					nxjsResult.format,
-					nxjsResult.originalText
+					nxjsResult.originalText,
 				);
 
 				console.log(
 					`  ${name}: Chrome compressed base64 length =`,
-					chromeCompressedBase64.length
+					chromeCompressedBase64.length,
 				);
 
 				// nx.js decompresses Chrome-compressed data
-				const reverseOutputPath = join(
-					OUTPUT_DIR,
-					`nxjs-reverse-${name}.json`
-				);
+				const reverseOutputPath = join(OUTPUT_DIR, `nxjs-reverse-${name}.json`);
 				const decompressedText = decompressWithNxjs(
 					nxjsResult.format,
 					chromeCompressedBase64,
-					reverseOutputPath
+					reverseOutputPath,
 				);
 
 				expect(decompressedText).toBe(nxjsResult.originalText);
@@ -461,25 +437,16 @@ describe('Compression Streams conformance: nx.js vs Chrome', () => {
 
 				// Run with both engines
 				const nxjsResult = runWithNxjs(fixturePath, nxjsOutputPath);
-				const chromeResult = await runRoundtripInChrome(
-					browser,
-					fixtureCode
-				);
+				const chromeResult = await runRoundtripInChrome(browser, fixtureCode);
 
 				// Write Chrome output for debugging
 				writeFileSync(
 					join(OUTPUT_DIR, `chrome-${name}.json`),
-					JSON.stringify(chromeResult, null, 2) + '\n'
+					JSON.stringify(chromeResult, null, 2) + '\n',
 				);
 
-				console.log(
-					`  ${name}: nx.js =`,
-					JSON.stringify(nxjsResult)
-				);
-				console.log(
-					`  ${name}: Chrome =`,
-					JSON.stringify(chromeResult)
-				);
+				console.log(`  ${name}: nx.js =`, JSON.stringify(nxjsResult));
+				console.log(`  ${name}: Chrome =`, JSON.stringify(chromeResult));
 
 				// Compare — we check structural match but ignore compressedLength
 				// since different implementations may produce different compressed
@@ -492,19 +459,15 @@ describe('Compression Streams conformance: nx.js vs Chrome', () => {
 					expect(nxjsObj.roundtripMatch).toBe(true);
 					expect(chromeObj.roundtripMatch).toBe(true);
 					expect(nxjsObj.output).toBe(chromeObj.output);
-					expect(nxjsObj.originalLength).toBe(
-						chromeObj.originalLength
-					);
-					expect(nxjsObj.decompressedLength).toBe(
-						chromeObj.decompressedLength
-					);
+					expect(nxjsObj.originalLength).toBe(chromeObj.originalLength);
+					expect(nxjsObj.decompressedLength).toBe(chromeObj.decompressedLength);
 				} else {
 					// Multi-format test (large-data)
 					for (const fmt of Object.keys(nxjsObj)) {
 						expect(nxjsObj[fmt].roundtripMatch).toBe(true);
 						expect(chromeObj[fmt].roundtripMatch).toBe(true);
 						expect(nxjsObj[fmt].originalLength).toBe(
-							chromeObj[fmt].originalLength
+							chromeObj[fmt].originalLength,
 						);
 					}
 				}

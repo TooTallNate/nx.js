@@ -20,6 +20,12 @@
 // Forward declaration — implemented in stubs.c
 void print_js_error(JSContext *ctx);
 
+static JSValue js_gc(JSContext *ctx, JSValueConst this_val, int argc,
+                     JSValueConst *argv) {
+	JS_RunGC(JS_GetRuntime(ctx));
+	return JS_UNDEFINED;
+}
+
 // Read entire file into a malloc'd buffer, returns NULL on failure
 static char *read_file_text(const char *path, size_t *out_len) {
 	FILE *f = fopen(path, "rb");
@@ -168,6 +174,10 @@ int main(int argc, char *argv[]) {
 
 	// Register native compression bindings on init_obj
 	nx_init_compression(ctx, nx_ctx.init_obj);
+
+	// Register $.gc() for triggering garbage collection
+	JS_SetPropertyStr(ctx, nx_ctx.init_obj, "gc",
+	                  JS_NewCFunction(ctx, js_gc, "gc", 0));
 
 	// Set version, entrypoint, argv on init_obj (runtime.js reads these)
 	JSValue version_obj = JS_NewObject(ctx);

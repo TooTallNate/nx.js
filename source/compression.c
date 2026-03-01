@@ -2,6 +2,8 @@
 #include "async.h"
 #include "util.h"
 #include <errno.h>
+#include <stdlib.h>
+#include <string.h>
 
 #define CHUNK 16384 // 16KB chunks
 
@@ -587,13 +589,10 @@ void nx_decompress_write_do(nx_work_t *req) {
 	} else if (data->context->format == NX_COMPRESSION_FORMAT_ZSTD) {
 		// If the frame is already complete, produce no output.
 		if (data->context->done) {
-			fprintf(stderr, "[zstd-write] frame done, skipping (input=%zu)\n", data->size);
 			data->result = NULL;
 			data->result_size = 0;
 			return;
 		}
-
-		fprintf(stderr, "[zstd-write] input=%zu bytes\n", data->size);
 
 		ZSTD_inBuffer input = {.src = data->data, .size = data->size, .pos = 0};
 
@@ -602,13 +601,9 @@ void nx_decompress_write_do(nx_work_t *req) {
 			data->context->scratch_cap = ZSTD_DStreamOutSize();
 			data->context->scratch = malloc(data->context->scratch_cap);
 			if (!data->context->scratch) {
-				fprintf(stderr, "[zstd-write] ENOMEM allocating scratch (%zu)\n",
-					   data->context->scratch_cap);
 				data->err = ENOMEM;
 				return;
 			}
-			fprintf(stderr, "[zstd-write] scratch allocated: %zu bytes\n",
-				   data->context->scratch_cap);
 		}
 
 		// Decompress all input using the scratch buffer, accumulating
@@ -616,13 +611,11 @@ void nx_decompress_write_do(nx_work_t *req) {
 		size_t result_cap = data->context->scratch_cap;
 		data->result = malloc(result_cap);
 		if (!data->result) {
-			fprintf(stderr, "[zstd-write] ENOMEM allocating result (%zu)\n", result_cap);
 			data->err = ENOMEM;
 			return;
 		}
 		data->result_size = 0;
 
-		int iterations = 0;
 		while (input.pos < input.size) {
 			ZSTD_outBuffer output = {
 				.dst = data->context->scratch,
@@ -633,8 +626,6 @@ void nx_decompress_write_do(nx_work_t *req) {
 				ZSTD_decompressStream(data->context->dctx, &output, &input);
 
 			if (ZSTD_isError(ret)) {
-				fprintf(stderr, "[zstd-write] ZSTD error: %s\n",
-					   ZSTD_getErrorName(ret));
 				free(data->result);
 				data->result = NULL;
 				ZSTD_freeDCtx(data->context->dctx);
@@ -643,22 +634,13 @@ void nx_decompress_write_do(nx_work_t *req) {
 				return;
 			}
 
-			iterations++;
-
 			if (output.pos > 0) {
 				// Grow result buffer if needed (doubling strategy)
-				size_t old_cap = result_cap;
 				while (data->result_size + output.pos > result_cap) {
 					result_cap *= 2;
 				}
-				if (result_cap != old_cap) {
-					fprintf(stderr, "[zstd-write] realloc %zu -> %zu\n",
-						   old_cap, result_cap);
-				}
 				unsigned char *new_result = realloc(data->result, result_cap);
 				if (!new_result) {
-					fprintf(stderr, "[zstd-write] ENOMEM realloc result (%zu)\n",
-						   result_cap);
 					free(data->result);
 					data->result = NULL;
 					data->err = ENOMEM;
@@ -672,14 +654,10 @@ void nx_decompress_write_do(nx_work_t *req) {
 
 			// ret == 0 means the frame is fully decoded
 			if (ret == 0) {
-				fprintf(stderr, "[zstd-write] frame complete\n");
 				data->context->done = 1;
 				break;
 			}
 		}
-
-		fprintf(stderr, "[zstd-write] done: %d iters, input consumed=%zu/%zu, output=%zu, result_cap=%zu\n",
-			   iterations, input.pos, input.size, data->result_size, result_cap);
 
 		// Shrink result buffer to actual size to avoid waste
 		if (data->result_size > 0 && data->result_size < result_cap) {

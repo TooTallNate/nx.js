@@ -1,3 +1,5 @@
+#include <stdlib.h>
+
 /**
  * Stub implementations for functions referenced by compression.c, util.c
  * that normally live in other nx.js source files or libnx.
