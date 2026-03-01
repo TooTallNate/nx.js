@@ -2,6 +2,7 @@
 #include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <netinet/in.h>
 #include <poll.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -70,33 +71,34 @@ int nx_add_watcher(nx_poll_t *p, nx_watcher_t *req) {
 }
 
 int nx_remove_watcher(nx_poll_t *p, nx_watcher_t *req) {
-	// Modify the `poll_fds` array to remove the `req->fd` value,
-	// but only if no other watchers are watching with the same fd
-	int fd_count = 0;
+	// Remove the watcher from the linked list first
+	SLIST_REMOVE(&p->watchers_head, req, nx_watcher_s, next);
+
+	// Recompute the events bitmask for this fd from remaining watchers,
+	// or remove the fd from poll_fds entirely if no watchers remain.
+	int combined_events = 0;
 	nx_watcher_t *watcher;
 	SLIST_FOREACH(watcher, &p->watchers_head, next) {
 		if (watcher->fd == req->fd) {
-			fd_count++;
-			if (fd_count > 1)
-				break;
+			combined_events |= watcher->events;
 		}
 	}
 
-	if (fd_count == 1) {
-		for (int i = 0; i < p->poll_fds_used; i++) {
-			if (p->poll_fds[i].fd == req->fd) {
-				// Shift all elements down one
+	for (int i = 0; i < p->poll_fds_used; i++) {
+		if (p->poll_fds[i].fd == req->fd) {
+			if (combined_events == 0) {
+				// No remaining watchers for this fd — remove from poll_fds
 				for (int j = i; j < p->poll_fds_used - 1; j++) {
 					p->poll_fds[j] = p->poll_fds[j + 1];
 				}
 				p->poll_fds_used--;
-				break;
+			} else {
+				// Other watchers remain — update events bitmask
+				p->poll_fds[i].events = combined_events;
 			}
+			break;
 		}
 	}
-
-	// Remove the watcher from the linked list of watchers
-	SLIST_REMOVE(&p->watchers_head, req, nx_watcher_s, next);
 
 	return 0;
 }
@@ -358,5 +360,138 @@ int nx_tcp_server(nx_poll_t *p, nx_server_t *req, const char *ip, int port,
 	req->callback = callback;
 	nx_add_watcher(p, (nx_watcher_t *)req);
 
+	return 0;
+}
+
+// ---- UDP ----
+
+// Persistent watcher callback: called each time data arrives on the UDP socket.
+// Does NOT remove the watcher — it stays active for the next datagram.
+void nx_recvfrom_ready(nx_poll_t *p, nx_watcher_t *watcher, int revents) {
+	nx_recvfrom_t *req = (nx_recvfrom_t *)watcher;
+	socklen_t addrlen = sizeof(req->remote_addr);
+	ssize_t n = recvfrom(req->fd, req->buffer, req->buffer_size, 0,
+						 (struct sockaddr *)&req->remote_addr, &addrlen);
+	if (n < 0) {
+		if (errno == EAGAIN || errno == EWOULDBLOCK) {
+			// No data available right now, will be called again next poll
+			return;
+		}
+		req->err = errno;
+		req->bytes_read = 0;
+	} else {
+		req->err = 0;
+		req->bytes_read = n;
+	}
+	req->callback(p, req);
+}
+
+// Create a UDP socket, bind it, and register a persistent POLLIN watcher.
+// The watcher fires `callback` each time a datagram arrives.
+// Returns 0 on success, -1 on error.
+int nx_udp_new(nx_poll_t *p, nx_recvfrom_t *req, const char *ip, int port,
+			   uint8_t *buffer, size_t buffer_size, nx_recvfrom_cb callback) {
+	int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+	if (sockfd < 0) {
+		printf("socket(SOCK_DGRAM) err: %s\n", strerror(errno));
+		return -1;
+	}
+
+	int optval = 1;
+	setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
+
+	if (set_nonblocking(sockfd) == -1) {
+		close(sockfd);
+		printf("fcntl() err: %s\n", strerror(errno));
+		return -1;
+	}
+
+	struct sockaddr_in bind_addr = {
+		.sin_family = AF_INET,
+		.sin_port = htons(port),
+	};
+
+	int inet_ret = inet_pton(AF_INET, ip, &bind_addr.sin_addr);
+	if (inet_ret <= 0) {
+		close(sockfd);
+		if (inet_ret == 0) {
+			// inet_pton returns 0 for invalid IP strings without setting errno
+			errno = EINVAL;
+		}
+		printf("inet_pton() err: %s\n", strerror(errno));
+		return -1;
+	}
+
+	if (bind(sockfd, (struct sockaddr *)&bind_addr, sizeof(bind_addr)) < 0) {
+		close(sockfd);
+		printf("bind() err: %s\n", strerror(errno));
+		return -1;
+	}
+
+	req->fd = sockfd;
+	req->err = 0;
+	req->events = POLLIN;
+	req->watcher_callback = nx_recvfrom_ready;
+	req->buffer = buffer;
+	req->buffer_size = buffer_size;
+	req->bytes_read = 0;
+	req->callback = callback;
+	nx_add_watcher(p, (nx_watcher_t *)req);
+
+	return 0;
+}
+
+// Non-blocking sendto with POLLOUT fallback (same pattern as nx_write).
+void nx_sendto_ready(nx_poll_t *p, nx_watcher_t *watcher, int revents) {
+	nx_sendto_t *req = (nx_sendto_t *)watcher;
+	ssize_t n = sendto(req->fd, req->buffer, req->buffer_size, 0,
+					   (struct sockaddr *)&req->dest_addr,
+					   sizeof(req->dest_addr));
+	if (n < 0) {
+		if (errno == EAGAIN || errno == EWOULDBLOCK) {
+			// Send buffer full, will retry on next POLLOUT
+			return;
+		}
+		nx_remove_watcher(p, watcher);
+		req->err = errno;
+		req->callback(p, req);
+	} else {
+		nx_remove_watcher(p, watcher);
+		req->err = 0;
+		req->bytes_written = n;
+		req->callback(p, req);
+	}
+}
+
+int nx_sendto(nx_poll_t *p, nx_sendto_t *req, int fd, const uint8_t *data,
+			  size_t num_bytes, struct sockaddr_in *dest,
+			  nx_sendto_cb callback) {
+	req->err = 0;
+	req->fd = fd;
+	req->buffer = data;
+	req->buffer_size = num_bytes;
+	req->bytes_written = 0;
+	req->dest_addr = *dest;
+	req->callback = callback;
+	req->watcher_callback = nx_sendto_ready;
+
+	// Attempt immediate sendto
+	ssize_t n = sendto(fd, data, num_bytes, 0, (struct sockaddr *)dest,
+					   sizeof(*dest));
+	if (n < 0) {
+		if (errno == EAGAIN || errno == EWOULDBLOCK) {
+			// Send buffer full, register POLLOUT watcher
+			req->events = POLLOUT;
+			nx_add_watcher(p, (nx_watcher_t *)req);
+			return 0;
+		}
+		req->err = errno;
+		callback(p, req);
+		return -1;
+	}
+
+	// Datagram sent successfully
+	req->bytes_written = n;
+	callback(p, req);
 	return 0;
 }
