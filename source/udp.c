@@ -231,10 +231,16 @@ static JSValue nx_js_dgram_get_address(JSContext *ctx, JSValueConst this_val,
 	if (!data)
 		return JS_EXCEPTION;
 
+	if (data->recv.fd < 0) {
+		JS_ThrowTypeError(ctx, "Socket is closed");
+		return JS_EXCEPTION;
+	}
+
 	struct sockaddr_in addr;
 	socklen_t len = sizeof(addr);
 	if (getsockname(data->recv.fd, (struct sockaddr *)&addr, &len) < 0) {
-		return JS_UNDEFINED;
+		JS_ThrowTypeError(ctx, "getsockname failed: %s", strerror(errno));
+		return JS_EXCEPTION;
 	}
 
 	char ip_str[INET_ADDRSTRLEN];

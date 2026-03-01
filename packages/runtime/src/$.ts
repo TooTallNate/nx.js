@@ -418,9 +418,9 @@ export interface Init {
 		port: number,
 		onRecv: (
 			err: Error | null,
-			data: ArrayBuffer,
-			remoteIp: string,
-			remotePort: number,
+			data?: ArrayBuffer,
+			remoteIp?: string,
+			remotePort?: number,
 		) => void,
 	): DatagramSocket;
 	udpSend(

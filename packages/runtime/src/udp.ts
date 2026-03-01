@@ -1,7 +1,7 @@
 import { $ } from './$';
-import { Event } from './polyfills/event';
+import { ErrorEvent, Event } from './polyfills/event';
 import { EventTarget } from './polyfills/event-target';
-import { toPromise } from './utils';
+import { stub, toPromise } from './utils';
 
 const encoder = new TextEncoder();
 
@@ -128,8 +128,7 @@ export class DatagramSocket extends EventTarget {
 	 * @param enabled Whether to enable broadcast.
 	 */
 	setBroadcast(enabled: boolean): void {
-		// Implemented natively via $.udpInit
-		throw new Error('not initialized');
+		stub();
 	}
 
 	/**
@@ -139,8 +138,7 @@ export class DatagramSocket extends EventTarget {
 	 * @param multicastInterface The local interface address to use. Defaults to `"0.0.0.0"` (any interface).
 	 */
 	addMembership(multicastAddress: string, multicastInterface?: string): void {
-		// Implemented natively via $.udpInit
-		throw new Error('not initialized');
+		stub();
 	}
 
 	/**
@@ -150,16 +148,14 @@ export class DatagramSocket extends EventTarget {
 	 * @param multicastInterface The local interface address. Defaults to `"0.0.0.0"`.
 	 */
 	dropMembership(multicastAddress: string, multicastInterface?: string): void {
-		// Implemented natively via $.udpInit
-		throw new Error('not initialized');
+		stub();
 	}
 
 	/**
 	 * Close the socket. No more datagrams will be received or sent.
 	 */
 	close(): void {
-		// Implemented natively via $.udpInit
-		throw new Error('not initialized');
+		stub();
 	}
 }
 
@@ -192,14 +188,14 @@ export function listenDatagram(opts: DatagramOptions): DatagramSocket {
 
 	const nativeSocket = $.udpNew(ip, port, (err, data, remoteIp, remotePort) => {
 		if (err) {
-			socket.dispatchEvent(new Event('error'));
+			socket.dispatchEvent(new ErrorEvent('error', { error: err }));
 			return;
 		}
 		socket.dispatchEvent(
 			new DatagramEvent('message', {
-				data,
-				remoteAddress: remoteIp,
-				remotePort,
+				data: data!,
+				remoteAddress: remoteIp!,
+				remotePort: remotePort!,
 			}),
 		);
 	});
