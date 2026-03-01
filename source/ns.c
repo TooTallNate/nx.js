@@ -62,7 +62,7 @@ static JSValue nx_ns_app_new(JSContext *ctx, JSValueConst this_val, int argc,
 			js_free(ctx, data);
 			return nx_throw_libnx_error(ctx, rc, "svcGetInfo()");
 		}
-	} else if (JS_IsBigInt(ctx, argv[0])) {
+	} else if (JS_IsBigInt(argv[0])) {
 		if (JS_ToBigUint64(ctx, &application_id, argv[0])) {
 			js_free(ctx, data);
 			return JS_EXCEPTION;

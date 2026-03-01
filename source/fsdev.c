@@ -588,7 +588,7 @@ static JSValue nx_save_data_create_sync(JSContext *ctx, JSValueConst this_val,
 	JS_FreeValue(ctx, val);
 
 	val = JS_GetPropertyStr(ctx, argv[0], "size");
-	if (JS_IsBigInt(ctx, val)) {
+	if (JS_IsBigInt(val)) {
 		if (JS_ToBigInt64(ctx, &crt.save_data_size, val)) {
 			return JS_EXCEPTION;
 		}
@@ -596,7 +596,7 @@ static JSValue nx_save_data_create_sync(JSContext *ctx, JSValueConst this_val,
 	JS_FreeValue(ctx, val);
 
 	val = JS_GetPropertyStr(ctx, argv[0], "journalSize");
-	if (JS_IsBigInt(ctx, val)) {
+	if (JS_IsBigInt(val)) {
 		if (JS_ToBigInt64(ctx, &crt.journal_size, val)) {
 			return JS_EXCEPTION;
 		}
@@ -615,7 +615,7 @@ static JSValue nx_save_data_create_sync(JSContext *ctx, JSValueConst this_val,
 	JS_FreeValue(ctx, val);
 
 	val = JS_GetPropertyStr(ctx, argv[0], "systemId");
-	if (JS_IsBigInt(ctx, val)) {
+	if (JS_IsBigInt(val)) {
 		if (JS_ToBigUint64(ctx, &attr.system_save_data_id, val)) {
 			return JS_EXCEPTION;
 		}
@@ -623,7 +623,7 @@ static JSValue nx_save_data_create_sync(JSContext *ctx, JSValueConst this_val,
 	JS_FreeValue(ctx, val);
 
 	val = JS_GetPropertyStr(ctx, argv[0], "applicationId");
-	if (JS_IsBigInt(ctx, val)) {
+	if (JS_IsBigInt(val)) {
 		if (JS_ToBigUint64(ctx, &attr.application_id, val)) {
 			return JS_EXCEPTION;
 		}
