@@ -366,6 +366,7 @@ static JSValue nx_js_dgram_get_recv_buffer(JSContext *ctx,
 // Init function: installs prototype methods on the DatagramSocket class
 static JSValue nx_js_udp_init(JSContext *ctx, JSValueConst this_val, int argc,
 							  JSValueConst *argv) {
+	JSAtom atom;
 	JSValue proto = JS_GetPropertyStr(ctx, argv[0], "prototype");
 	NX_DEF_FUNC(proto, "close", nx_js_dgram_close, 0);
 	NX_DEF_FUNC(proto, "setBroadcast", nx_js_dgram_set_broadcast, 1);
