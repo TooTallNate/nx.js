@@ -54,6 +54,7 @@ export interface Versions {
 	readonly libnx: string;
 	readonly mbedtls: string;
 	readonly nxjs: string;
+	readonly pixman: string;
 	readonly png: string;
 	readonly quickjs: string;
 	readonly turbojpeg: string;

@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <pixman.h>
 #include <switch.h>
 #include <turbojpeg.h>
 #include <unistd.h>
@@ -777,6 +778,8 @@ int main(int argc, char *argv[]) {
 					  JS_NewString(ctx, MBEDTLS_VERSION_STRING));
 	JS_SetPropertyStr(ctx, version_obj, "nxjs",
 					  JS_NewString(ctx, NXJS_VERSION));
+	JS_SetPropertyStr(ctx, version_obj, "pixman",
+					  JS_NewString(ctx, pixman_version_string()));
 	JS_SetPropertyStr(ctx, version_obj, "png",
 					  JS_NewString(ctx, PNG_LIBPNG_VER_STRING));
 	JS_SetPropertyStr(ctx, version_obj, "quickjs",
