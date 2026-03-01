@@ -179,6 +179,13 @@ importers:
         version: 0.17.19
 
   apps/hello-world:
+    dependencies:
+      '@nx.js/install-title':
+        specifier: workspace:^
+        version: link:../../packages/install-title
+      '@nx.js/ncm':
+        specifier: workspace:^
+        version: link:../../packages/ncm
     devDependencies:
       '@nx.js/nro':
         specifier: workspace:^
@@ -640,8 +647,8 @@ importers:
         specifier: ^1.1.0
         version: link:../util
       '@tootallnate/ncz':
-        specifier: ^0.0.1
-        version: 0.0.1
+        specifier: link:../../../switch-tools/packages/ncz
+        version: link:../../../switch-tools/packages/ncz
       '@tootallnate/nsp':
         specifier: ^0.0.2
         version: 0.0.2
@@ -4201,10 +4208,6 @@ packages:
       '@tootallnate/aes-xts': 0.0.1
       '@tootallnate/cnmt': 0.0.1
       '@tootallnate/ivfc': 0.0.1
-    dev: false
-
-  /@tootallnate/ncz@0.0.1:
-    resolution: {integrity: sha512-Ve9+3w5O1Qw5/NPI+1TYf9OaY3nSBXR/LEDjjmPd4wmulfyzFAidZ+5vSjrq3exDKCpgqTyIL09ycm2zPxHMiA==}
     dev: false
 
   /@tootallnate/nro@0.1.2:

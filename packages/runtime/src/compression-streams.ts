@@ -40,14 +40,31 @@ export class DecompressionStream
 {
 	constructor(format: CompressionFormat) {
 		const h = $.decompressNew(format);
+		let callCount = 0;
+		let totalIn = 0;
+		let totalOut = 0;
 		super({
 			async transform(chunk, controller) {
-				const b = await $.decompressWrite(h, chunk);
-				controller.enqueue(new Uint8Array(b));
+				callCount++;
+				totalIn += chunk.byteLength;
+				const b: ArrayBuffer = await $.decompressWrite(h, chunk);
+				totalOut += b.byteLength;
+				if (callCount <= 5 || callCount % 500 === 0) {
+					console.debug(
+						`[DS transform #${callCount}] in=${chunk.byteLength} out=${b.byteLength} totalIn=${totalIn} totalOut=${totalOut}`,
+					);
+				}
+				if (b.byteLength > 0) {
+					controller.enqueue(new Uint8Array(b));
+				}
 			},
 			async flush(controller) {
+				console.debug(
+					`[DS flush] calls=${callCount} totalIn=${totalIn} totalOut=${totalOut}`,
+				);
 				const b = await $.decompressFlush(h);
-				if (b) {
+				if (b && b.byteLength > 0) {
+					console.debug(`[DS flush] output=${b.byteLength}`);
 					controller.enqueue(new Uint8Array(b));
 				}
 			},

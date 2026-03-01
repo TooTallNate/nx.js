@@ -470,23 +470,28 @@ async function installNca(
 
 	if (isNcz) {
 		console.debug(`Decompressing and installing NCZ "${name}" as "${ncaName}"`);
-		const { ncaSize, stream } = await decompressNcz(entry.data, {
-			decompressStream: (input) =>
-				input.pipeThrough(new DecompressionStream('zstd' as CompressionFormat)),
-			decompressBlob: async (blob) => {
-				const ds = new DecompressionStream('zstd' as CompressionFormat);
-				const decompressed = blob.stream().pipeThrough<Uint8Array>(ds);
-				const response = new Response(decompressed);
-				return new Uint8Array(await response.arrayBuffer());
+		const { ncaSize } = await decompressNcz(
+			entry.data,
+			(ncaSize) => {
+				console.debug(`NCZ decompressed NCA size: ${ncaSize}`);
+				return new ContentStoragePlaceholderWriteStream(
+					contentStorage,
+					contentId,
+					ncaSize,
+				);
 			},
-		});
-		console.debug(`NCZ decompressed NCA size: ${ncaSize}`);
-		await stream.pipeTo(
-			new ContentStoragePlaceholderWriteStream(
-				contentStorage,
-				contentId,
-				ncaSize,
-			),
+			{
+				decompressStream: (input) =>
+					input.pipeThrough(
+						new DecompressionStream('zstd' as CompressionFormat),
+					),
+				decompressBlob: async (blob) => {
+					const ds = new DecompressionStream('zstd' as CompressionFormat);
+					const decompressed = blob.stream().pipeThrough<Uint8Array>(ds);
+					const response = new Response(decompressed);
+					return new Uint8Array(await response.arrayBuffer());
+				},
+			},
 		);
 		return ncaSize;
 	} else {

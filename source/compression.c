@@ -108,6 +108,9 @@ static void finalizer_decompress(JSRuntime *rt, JSValue val) {
 			if (context->dctx) {
 				ZSTD_freeDCtx(context->dctx);
 			}
+			if (context->scratch) {
+				free(context->scratch);
+			}
 		}
 		js_free_rt(rt, context);
 	}
@@ -473,6 +476,9 @@ static JSValue nx_decompress_new(JSContext *ctx, JSValueConst this_val,
 	} else if (strcmp(format, "zstd") == 0) {
 		context->format = NX_COMPRESSION_FORMAT_ZSTD;
 		context->dctx = ZSTD_createDCtx();
+		context->done = 0;
+		context->scratch = NULL;
+		context->scratch_cap = 0;
 		if (!context->dctx) {
 			JS_ThrowInternalError(ctx, "ZSTD_createDCtx() returned NULL");
 			js_free(ctx, context);
@@ -579,52 +585,111 @@ void nx_decompress_write_do(nx_work_t *req) {
 			data->result_size += have;
 		} while (ret != Z_STREAM_END);
 	} else if (data->context->format == NX_COMPRESSION_FORMAT_ZSTD) {
+		// If the frame is already complete, produce no output.
+		if (data->context->done) {
+			fprintf(stderr, "[zstd-write] frame done, skipping (input=%zu)\n", data->size);
+			data->result = NULL;
+			data->result_size = 0;
+			return;
+		}
+
+		fprintf(stderr, "[zstd-write] input=%zu bytes\n", data->size);
+
 		ZSTD_inBuffer input = {.src = data->data, .size = data->size, .pos = 0};
 
-		// Decompress chunks until done
-		while (input.pos < input.size) {
-			// Allocate or expand result buffer
-			size_t size = ZSTD_DStreamOutSize();
-			void *new_result = realloc(data->result, data->result_size + size);
-			if (!new_result) {
-				if (data->result) {
-					free(data->result);
-				}
-				ZSTD_freeDCtx(data->context->dctx);
-				data->context->dctx = NULL;
+		// Lazily allocate a reusable scratch buffer on the context.
+		if (!data->context->scratch) {
+			data->context->scratch_cap = ZSTD_DStreamOutSize();
+			data->context->scratch = malloc(data->context->scratch_cap);
+			if (!data->context->scratch) {
+				fprintf(stderr, "[zstd-write] ENOMEM allocating scratch (%zu)\n",
+					   data->context->scratch_cap);
 				data->err = ENOMEM;
 				return;
 			}
-			data->result = new_result;
+			fprintf(stderr, "[zstd-write] scratch allocated: %zu bytes\n",
+				   data->context->scratch_cap);
+		}
 
-			ZSTD_outBuffer output = {.dst = (char *)data->result +
-											data->result_size,
-									 .size = size,
-									 .pos = 0};
+		// Decompress all input using the scratch buffer, accumulating
+		// into the result with a doubling strategy.
+		size_t result_cap = data->context->scratch_cap;
+		data->result = malloc(result_cap);
+		if (!data->result) {
+			fprintf(stderr, "[zstd-write] ENOMEM allocating result (%zu)\n", result_cap);
+			data->err = ENOMEM;
+			return;
+		}
+		data->result_size = 0;
+
+		int iterations = 0;
+		while (input.pos < input.size) {
+			ZSTD_outBuffer output = {
+				.dst = data->context->scratch,
+				.size = data->context->scratch_cap,
+				.pos = 0};
 
 			size_t ret =
 				ZSTD_decompressStream(data->context->dctx, &output, &input);
 
 			if (ZSTD_isError(ret)) {
-				if (data->result) {
-					free(data->result);
-				}
+				fprintf(stderr, "[zstd-write] ZSTD error: %s\n",
+					   ZSTD_getErrorName(ret));
+				free(data->result);
+				data->result = NULL;
 				ZSTD_freeDCtx(data->context->dctx);
 				data->context->dctx = NULL;
 				data->err = -4;
 				return;
 			}
 
-			data->result_size += output.pos;
+			iterations++;
+
+			if (output.pos > 0) {
+				// Grow result buffer if needed (doubling strategy)
+				size_t old_cap = result_cap;
+				while (data->result_size + output.pos > result_cap) {
+					result_cap *= 2;
+				}
+				if (result_cap != old_cap) {
+					fprintf(stderr, "[zstd-write] realloc %zu -> %zu\n",
+						   old_cap, result_cap);
+				}
+				unsigned char *new_result = realloc(data->result, result_cap);
+				if (!new_result) {
+					fprintf(stderr, "[zstd-write] ENOMEM realloc result (%zu)\n",
+						   result_cap);
+					free(data->result);
+					data->result = NULL;
+					data->err = ENOMEM;
+					return;
+				}
+				data->result = new_result;
+				memcpy(data->result + data->result_size,
+					   data->context->scratch, output.pos);
+				data->result_size += output.pos;
+			}
+
+			// ret == 0 means the frame is fully decoded
+			if (ret == 0) {
+				fprintf(stderr, "[zstd-write] frame complete\n");
+				data->context->done = 1;
+				break;
+			}
 		}
 
-		// Shrink buffer to actual size
-		// TODO: remove?
-		if (data->result_size > 0) {
-			void *final_result = realloc(data->result, data->result_size);
-			if (final_result) {
-				data->result = final_result;
+		fprintf(stderr, "[zstd-write] done: %d iters, input consumed=%zu/%zu, output=%zu, result_cap=%zu\n",
+			   iterations, input.pos, input.size, data->result_size, result_cap);
+
+		// Shrink result buffer to actual size to avoid waste
+		if (data->result_size > 0 && data->result_size < result_cap) {
+			void *shrunk = realloc(data->result, data->result_size);
+			if (shrunk) {
+				data->result = shrunk;
 			}
+		} else if (data->result_size == 0) {
+			free(data->result);
+			data->result = NULL;
 		}
 	}
 }
@@ -716,47 +781,9 @@ void nx_decompress_flush_do(nx_work_t *req) {
 			inflateEnd(stream);
 		}
 	} else if (data->context->format == NX_COMPRESSION_FORMAT_ZSTD) {
-		// Initialize result buffer
+		// Nothing to flush — all input is fully processed in write calls.
 		data->result = NULL;
 		data->result_size = 0;
-
-		// Create empty input buffer since we're just flushing
-		ZSTD_inBuffer input = {.src = NULL, .size = 0, .pos = 0};
-
-		// Since we're just flushing with no input data, we only need one pass
-		// Allocate result buffer
-		size_t size = ZSTD_DStreamOutSize();
-		void *new_result = realloc(data->result, data->result_size + size);
-		if (!new_result) {
-			if (data->result) {
-				free(data->result);
-			}
-			ZSTD_freeDCtx(data->context->dctx);
-			data->context->dctx = NULL;
-			data->err = ENOMEM;
-			return;
-		}
-		data->result = new_result;
-
-		// Set up output buffer
-		ZSTD_outBuffer output = {.dst =
-									 (char *)data->result + data->result_size,
-								 .size = size,
-								 .pos = 0};
-
-		// Final flush of the decompressor
-		size_t ret =
-			ZSTD_decompressStream(data->context->dctx, &output, &input);
-
-		if (ZSTD_isError(ret)) {
-			free(data->result);
-			ZSTD_freeDCtx(data->context->dctx);
-			data->context->dctx = NULL;
-			data->err = EINVAL;
-			return;
-		}
-
-		data->result_size += output.pos;
 	}
 }
 
