@@ -97,13 +97,6 @@ export class DatagramSocket extends EventTarget {
 	declare readonly address: { address: string; port: number };
 
 	/**
-	 * The internal receive buffer (64KB ArrayBuffer).
-	 * Set by the native `$.udpInit` via a getter on the prototype.
-	 * @internal
-	 */
-	declare readonly recvBuffer: ArrayBuffer;
-
-	/**
 	 * Send a datagram to the specified address and port.
 	 *
 	 * @param data The data to send. Strings are encoded as UTF-8.
@@ -197,24 +190,19 @@ $.udpInit(DatagramSocket);
 export function listenDatagram(opts: DatagramOptions): DatagramSocket {
 	const { ip = '0.0.0.0', port = 0, message } = opts;
 
-	const nativeSocket = $.udpNew(
-		ip,
-		port,
-		(err, bytesRead, remoteIp, remotePort) => {
-			if (err) {
-				socket.dispatchEvent(new Event('error'));
-				return;
-			}
-			const data = new Uint8Array(socket.recvBuffer, 0, bytesRead);
-			socket.dispatchEvent(
-				new DatagramEvent('message', {
-					data: data.slice(), // Copy so the recv buffer can be reused
-					remoteAddress: remoteIp,
-					remotePort,
-				}),
-			);
-		},
-	);
+	const nativeSocket = $.udpNew(ip, port, (err, data, remoteIp, remotePort) => {
+		if (err) {
+			socket.dispatchEvent(new Event('error'));
+			return;
+		}
+		socket.dispatchEvent(
+			new DatagramEvent('message', {
+				data: new Uint8Array(data),
+				remoteAddress: remoteIp,
+				remotePort,
+			}),
+		);
+	});
 
 	// The native $.udpNew returns a C opaque object with the prototype
 	// methods already set. Set its prototype to DatagramSocket.prototype

@@ -71,33 +71,34 @@ int nx_add_watcher(nx_poll_t *p, nx_watcher_t *req) {
 }
 
 int nx_remove_watcher(nx_poll_t *p, nx_watcher_t *req) {
-	// Modify the `poll_fds` array to remove the `req->fd` value,
-	// but only if no other watchers are watching with the same fd
-	int fd_count = 0;
+	// Remove the watcher from the linked list first
+	SLIST_REMOVE(&p->watchers_head, req, nx_watcher_s, next);
+
+	// Recompute the events bitmask for this fd from remaining watchers,
+	// or remove the fd from poll_fds entirely if no watchers remain.
+	int combined_events = 0;
 	nx_watcher_t *watcher;
 	SLIST_FOREACH(watcher, &p->watchers_head, next) {
 		if (watcher->fd == req->fd) {
-			fd_count++;
-			if (fd_count > 1)
-				break;
+			combined_events |= watcher->events;
 		}
 	}
 
-	if (fd_count == 1) {
-		for (int i = 0; i < p->poll_fds_used; i++) {
-			if (p->poll_fds[i].fd == req->fd) {
-				// Shift all elements down one
+	for (int i = 0; i < p->poll_fds_used; i++) {
+		if (p->poll_fds[i].fd == req->fd) {
+			if (combined_events == 0) {
+				// No remaining watchers for this fd — remove from poll_fds
 				for (int j = i; j < p->poll_fds_used - 1; j++) {
 					p->poll_fds[j] = p->poll_fds[j + 1];
 				}
 				p->poll_fds_used--;
-				break;
+			} else {
+				// Other watchers remain — update events bitmask
+				p->poll_fds[i].events = combined_events;
 			}
+			break;
 		}
 	}
-
-	// Remove the watcher from the linked list of watchers
-	SLIST_REMOVE(&p->watchers_head, req, nx_watcher_s, next);
 
 	return 0;
 }

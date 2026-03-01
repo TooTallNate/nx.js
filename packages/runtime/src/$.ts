@@ -418,7 +418,7 @@ export interface Init {
 		port: number,
 		onRecv: (
 			err: Error | null,
-			bytesRead: number,
+			data: ArrayBuffer,
 			remoteIp: string,
 			remotePort: number,
 		) => void,

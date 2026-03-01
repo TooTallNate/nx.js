@@ -38,7 +38,8 @@ static void finalizer_dgram(JSRuntime *rt, JSValue val) {
 }
 
 // Called each time a datagram arrives on the socket.
-// Invokes the JS callback with (err, bytesRead, remoteIp, remotePort).
+// Invokes the JS callback with (err, data, remoteIp, remotePort).
+// `data` is a copy of only the received bytes (not the full 64KB buffer).
 void nx_on_recvfrom(nx_poll_t *p, nx_recvfrom_t *req) {
 	nx_js_callback_t *req_cb = (nx_js_callback_t *)req->opaque;
 	JSContext *ctx = req_cb->context;
@@ -50,7 +51,8 @@ void nx_on_recvfrom(nx_poll_t *p, nx_recvfrom_t *req) {
 		JS_SetPropertyStr(ctx, args[0], "message",
 						  JS_NewString(ctx, strerror(req->err)));
 	} else {
-		args[1] = JS_NewInt32(ctx, req->bytes_read);
+		// Copy only the received bytes into a new ArrayBuffer
+		args[1] = JS_NewArrayBufferCopy(ctx, req->buffer, req->bytes_read);
 
 		char ip_str[INET_ADDRSTRLEN];
 		inet_ntop(AF_INET, &req->remote_addr.sin_addr, ip_str,
@@ -351,18 +353,6 @@ static JSValue nx_js_dgram_drop_membership(JSContext *ctx,
 	return JS_UNDEFINED;
 }
 
-// dgramSocket.recvBuffer (getter) - expose the internal receive buffer as ArrayBuffer
-static JSValue nx_js_dgram_get_recv_buffer(JSContext *ctx,
-										   JSValueConst this_val, int argc,
-										   JSValueConst *argv) {
-	nx_js_dgram_t *data = nx_js_dgram_get(ctx, this_val);
-	if (!data)
-		return JS_EXCEPTION;
-	// Return a copy so JS buffer lifetime is decoupled from native memory
-	return JS_NewArrayBufferCopy(ctx, data->recv_buffer,
-								 sizeof(data->recv_buffer));
-}
-
 // Init function: installs prototype methods on the DatagramSocket class
 static JSValue nx_js_udp_init(JSContext *ctx, JSValueConst this_val, int argc,
 							  JSValueConst *argv) {
@@ -374,7 +364,6 @@ static JSValue nx_js_udp_init(JSContext *ctx, JSValueConst this_val, int argc,
 	NX_DEF_FUNC(proto, "dropMembership", nx_js_dgram_drop_membership, 1);
 	NX_DEF_GET(proto, "fd", nx_js_dgram_get_fd);
 	NX_DEF_GET(proto, "address", nx_js_dgram_get_address);
-	NX_DEF_GET(proto, "recvBuffer", nx_js_dgram_get_recv_buffer);
 	JS_FreeValue(ctx, proto);
 	return JS_UNDEFINED;
 }
