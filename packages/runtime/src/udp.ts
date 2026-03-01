@@ -38,8 +38,8 @@ export interface DatagramOptions {
  * Init data for a received datagram.
  */
 export interface DatagramEventInit extends EventInit {
-	/** The received data as a `Uint8Array`. */
-	data: Uint8Array;
+	/** The received data. */
+	data: ArrayBuffer;
 	/** The sender's IP address. */
 	remoteAddress: string;
 	/** The sender's port number. */
@@ -50,8 +50,8 @@ export interface DatagramEventInit extends EventInit {
  * Event dispatched when a datagram is received on a {@link DatagramSocket | `DatagramSocket`}.
  */
 export class DatagramEvent extends Event {
-	/** The received data as a `Uint8Array`. */
-	readonly data: Uint8Array;
+	/** The received data. */
+	readonly data: ArrayBuffer;
 	/** The sender's IP address. */
 	readonly remoteAddress: string;
 	/** The sender's port number. */
@@ -197,7 +197,7 @@ export function listenDatagram(opts: DatagramOptions): DatagramSocket {
 		}
 		socket.dispatchEvent(
 			new DatagramEvent('message', {
-				data: new Uint8Array(data),
+				data,
 				remoteAddress: remoteIp,
 				remotePort,
 			}),
