@@ -1,6 +1,6 @@
 {
   "name": "@nx.js/ws",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "WebSocket server for nx.js",
   "repository": {
     "type": "git",

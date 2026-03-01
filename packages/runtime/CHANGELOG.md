@@ -1,5 +1,66 @@
 # @nx.js/runtime
 
+## 0.0.69
+
+### Patch Changes
+
+- Add `Switch.version.pixman` to expose the pixman library version ([`a638b77`](https://github.com/TooTallNate/nx.js/commit/a638b7780d5048f6e1b996fa299601cb640d7220))
+
+- Fix `Blob` constructor to lowercase the `type` option per the W3C FileAPI spec. Fix `File.lastModified` to use `Date.now()` as default instead of unnecessary `new Date()` conversion. ([#284](https://github.com/TooTallNate/nx.js/pull/284))
+
+- Add Canvas 2D shadow support (`shadowBlur`, `shadowColor`, `shadowOffsetX`, `shadowOffsetY`) ([#255](https://github.com/TooTallNate/nx.js/pull/255))
+
+- feat: implement `toDataURL()` and `toBlob()` on Canvas, and `convertToBlob()` on OffscreenCanvas ([#256](https://github.com/TooTallNate/nx.js/pull/256))
+
+- Fix AbortController/AbortSignal spec conformance: default abort reason is now a `DOMException` with name `"AbortError"`, and implement `AbortSignal.abort()`, `AbortSignal.timeout()`, and `AbortSignal.any()` static methods. ([#283](https://github.com/TooTallNate/nx.js/pull/283))
+
+- fix: clone AES contexts per-operation in async crypto workers to prevent thread-unsafe sharing ([#253](https://github.com/TooTallNate/nx.js/pull/253))
+
+- fix: add overflow checks to canvas and image buffer allocations ([#246](https://github.com/TooTallNate/nx.js/pull/246))
+
+- fix: roundRect scaling bug, font_string leak, and finalizer null-check ([#248](https://github.com/TooTallNate/nx.js/pull/248))
+
+- Fix high-severity crash/security bugs in C runtime: ([#252](https://github.com/TooTallNate/nx.js/pull/252))
+
+  - Replace VLA with heap allocation in `decode_png` to prevent stack overflow with malicious PNGs (#229)
+  - Add NULL check for `JS_ToCString` return in `js_print` and `js_print_err` (#228)
+  - Free loading image framebuffer after rendering to prevent leak in console-mode apps (#227)
+
+- fix: import `DOMException` instead of referencing it as a global in `crypto.ts`, `audio.ts`, and `canvas-gradient.ts` ([`52530e8`](https://github.com/TooTallNate/nx.js/commit/52530e89514d2894ea603238f260008d540a6d8d))
+
+- fix: use actual canvas dimensions for framebuffer memcpy instead of hardcoded 1280×720 ([#247](https://github.com/TooTallNate/nx.js/pull/247))
+
+- fix: free leaked JSValue and memory on TLS handshake and DNS resolve error paths ([#251](https://github.com/TooTallNate/nx.js/pull/251))
+
+- fix: plug JSValue and resource leaks across crypto, wasm, tcp, fs, and canvas modules ([#249](https://github.com/TooTallNate/nx.js/pull/249))
+
+- fix: low-severity C code quality fixes (VLA removal, JS_ToBool checks, consistent allocator usage) ([#257](https://github.com/TooTallNate/nx.js/pull/257))
+
+- fix: batch fix six medium-severity C-level bugs ([#254](https://github.com/TooTallNate/nx.js/pull/254))
+
+  - fs: prevent unsigned underflow when readFile start > end (#239)
+  - audio: check JS_ToInt32 return values to avoid uninitialized voice_id (#238)
+  - font: add FreeType/HarfBuzz error handling for invalid font data (#237)
+  - image: free JPEG output buffer on decompression error (#236)
+  - async: document threading invariant for had_error field (#235)
+  - main: increase js_cwd buffer to prevent stack overflow with trailing slash (#233)
+
+- fix: validate all PKCS#7 padding bytes to prevent padding oracle attacks ([#245](https://github.com/TooTallNate/nx.js/pull/245))
+
+- fix: load system CA certificates individually to work around libnx `sslGetCertificates()` bounds-check bug with `SslCaCertificateId_All` ([`ca25396`](https://github.com/TooTallNate/nx.js/commit/ca25396f23999156d8df645ec07724690bafbc1b))
+
+- Replace hand-rolled base64 with mbedtls: use `mbedtls_base64_encode()`/`mbedtls_base64_decode()` for `atob`/`btoa`, and add native `$.base64urlEncode()`/`$.base64urlDecode()` to replace JS-land helpers ([#258](https://github.com/TooTallNate/nx.js/pull/258))
+
+- perf(fetch): use array join for header serialization ([`170fb9b`](https://github.com/TooTallNate/nx.js/commit/170fb9bdff79d3329d82c136b388c4d8d5114ed7))
+
+- feat: add UDP datagram socket support via `Switch.listenDatagram()` ([#292](https://github.com/TooTallNate/nx.js/pull/292))
+
+- feat: implement ES2025 `Uint8Array` base64/hex methods (`toBase64`, `toHex`, `fromBase64`, `fromHex`, `setFromBase64`, `setFromHex`) ([#288](https://github.com/TooTallNate/nx.js/pull/288))
+
+- Update build dependencies: pixman 0.42.2 → 0.46.4, cairo 1.18.0 → 1.18.4, quickjs 0.10.1 → 0.12.1 ([#293](https://github.com/TooTallNate/nx.js/pull/293))
+
+- Add WebSocket client API implementation (RFC 6455) with support for `ws://` and `wss://` connections, text/binary messages, proper frame masking, close handshake, ping/pong, and fragmented messages. ([#277](https://github.com/TooTallNate/nx.js/pull/277))
+
 ## 0.0.68
 
 ### Patch Changes
