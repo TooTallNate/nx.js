@@ -155,17 +155,17 @@ async function* step<T>(
  * - "HEAD" magic `0x48454144` at offset 0x100 → XCI/XCZ
  */
 async function detectFormat(data: Blob): Promise<'pfs0' | 'xci'> {
-	// Check for PFS0 magic at offset 0
+	// Check for PFS0 magic at offset 0 ("PFS0" = 0x50465330)
 	const pfs0Buf = await data.slice(0, 4).arrayBuffer();
-	const pfs0Magic = new DataView(pfs0Buf).getUint32(0, true);
-	if (pfs0Magic === 0x30534650) {
+	const pfs0Magic = new DataView(pfs0Buf).getUint32(0, false);
+	if (pfs0Magic === 0x50465330) {
 		return 'pfs0';
 	}
 
-	// Check for XCI "HEAD" magic at offset 0x100
+	// Check for XCI "HEAD" magic at offset 0x100 (0x48454144)
 	if (data.size > 0x104) {
 		const xciBuf = await data.slice(0x100, 0x104).arrayBuffer();
-		const xciMagic = new DataView(xciBuf).getUint32(0, true);
+		const xciMagic = new DataView(xciBuf).getUint32(0, false);
 		if (xciMagic === 0x48454144) {
 			return 'xci';
 		}
@@ -266,8 +266,9 @@ export async function* install(
 	for (const [name, entry] of cnmtNcaFiles) {
 		yield* step(`Install content meta "${name}"`, async function* () {
 			// Install the NCA so that we can mount the
-			// filesystem to read the `.cnmt` file inside
-			await installNca(name, entry, contentStorage);
+			// filesystem to read the `.cnmt` file inside.
+			// Returns the actual installed NCA size (decompressed for NCZ).
+			const installedSize = await installNca(name, entry, contentStorage);
 
 			// The name registered in content storage is always `.nca`
 			const ncaName = name.replace(/\.ncz$/, '.nca');
@@ -303,10 +304,12 @@ export async function* install(
 				});
 			}
 
+			// Use the actual installed size (not compressed size) for meta content info
+			const metaEntry = { ...entry, size: installedSize };
 			const installedContentMetaKey = await installContentMetaRecords(
 				contentMetaDatabase,
 				cnmtData,
-				createMetaContentInfo(ncaName, entry),
+				createMetaContentInfo(ncaName, metaEntry),
 				ncaFiles,
 			);
 
@@ -461,7 +464,7 @@ async function installNca(
 	name: string,
 	entry: FileEntry,
 	contentStorage: NcmContentStorage,
-) {
+): Promise<bigint> {
 	const isNcz = name.endsWith('.ncz');
 	const ncaName = isNcz ? name.replace(/\.ncz$/, '.nca') : name;
 	const contentId = NcmContentId.from(ncaName);
@@ -474,22 +477,8 @@ async function installNca(
 			decompressBlob: async (blob) => {
 				const ds = new DecompressionStream('zstd' as CompressionFormat);
 				const decompressed = blob.stream().pipeThrough<Uint8Array>(ds);
-				const reader = decompressed.getReader();
-				const chunks: Uint8Array[] = [];
-				let total = 0;
-				for (;;) {
-					const { done, value } = await reader.read();
-					if (done) break;
-					chunks.push(value);
-					total += value.length;
-				}
-				const out = new Uint8Array(total);
-				let off = 0;
-				for (const c of chunks) {
-					out.set(c, off);
-					off += c.length;
-				}
-				return out;
+				const response = new Response(decompressed);
+				return new Uint8Array(await response.arrayBuffer());
 			},
 		});
 		console.debug(`NCZ decompressed NCA size: ${ncaSize}`);
@@ -500,6 +489,7 @@ async function installNca(
 				ncaSize,
 			),
 		);
+		return ncaSize;
 	} else {
 		console.debug(`Installing "${name}" (${entry.size} bytes)`);
 		await entry.data
@@ -511,6 +501,7 @@ async function installNca(
 					entry.size,
 				),
 			);
+		return entry.size;
 	}
 }
 
