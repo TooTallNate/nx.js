@@ -151,7 +151,7 @@ async function* step<T>(
 /**
  * Detect the container format by reading magic bytes from the Blob.
  *
- * - PFS0 magic `0x30534650` at offset 0 → NSP/NSZ
+ * - PFS0 magic `0x50465330` at offset 0 → NSP/NSZ
  * - "HEAD" magic `0x48454144` at offset 0x100 → XCI/XCZ
  */
 async function detectFormat(data: Blob): Promise<'pfs0' | 'xci'> {
@@ -163,7 +163,7 @@ async function detectFormat(data: Blob): Promise<'pfs0' | 'xci'> {
 	}
 
 	// Check for XCI "HEAD" magic at offset 0x100 (0x48454144)
-	if (data.size > 0x104) {
+	if (data.size >= 0x104) {
 		const xciBuf = await data.slice(0x100, 0x104).arrayBuffer();
 		const xciMagic = new DataView(xciBuf).getUint32(0, false);
 		if (xciMagic === 0x48454144) {
@@ -324,13 +324,12 @@ export async function* install(
 		});
 	}
 
-	// --- Validation: missing ticket check ---
-	// Check if any NCA files reference a rights_id that would require a
-	// ticket, but no matching .tik file exists in the container.
-	// We check this by looking at whether .tik files exist for the
-	// title IDs we're installing. Note: not all NCAs require tickets
-	// (standard crypto NCAs don't), but if a container ships .tik files,
-	// they should all be present.
+	// --- Validation: ticket/certificate consistency check ---
+	// Ensure that for every .tik file in the container there is a
+	// corresponding .cert file with the same base name. This does not
+	// inspect NCA rights_ids or verify that tickets exist for specific
+	// NCAs; it only checks that any shipped tickets have their matching
+	// certificates present.
 	const ticketNames = new Set(
 		files.keys().filter((name) => name.endsWith('.tik')),
 	);
