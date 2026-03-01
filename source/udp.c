@@ -24,12 +24,15 @@ static nx_js_dgram_t *nx_js_dgram_get(JSContext *ctx, JSValueConst obj) {
 static void finalizer_dgram(JSRuntime *rt, JSValue val) {
 	nx_js_dgram_t *data = JS_GetOpaque(val, nx_dgram_class_id);
 	if (data) {
-		nx_context_t *nx_ctx = JS_GetContextOpaque(data->cb.context);
-		nx_remove_watcher(&nx_ctx->poll, (nx_watcher_t *)&data->recv);
+		if (data->recv.fd >= 0) {
+			nx_context_t *nx_ctx = JS_GetContextOpaque(data->cb.context);
+			nx_remove_watcher(&nx_ctx->poll, (nx_watcher_t *)&data->recv);
+			close(data->recv.fd);
+			data->recv.fd = -1;
+		}
 		if (!JS_IsUndefined(data->cb.callback)) {
 			JS_FreeValue(data->cb.context, data->cb.callback);
 		}
-		close(data->recv.fd);
 		js_free_rt(rt, data);
 	}
 }
@@ -80,12 +83,19 @@ static JSValue nx_js_udp_new(JSContext *ctx, JSValueConst this_val, int argc,
 	}
 
 	JSValue obj = JS_NewObjectClass(ctx, nx_dgram_class_id);
+	if (JS_IsException(obj)) {
+		JS_FreeCString(ctx, ip);
+		return JS_EXCEPTION;
+	}
+
 	nx_js_dgram_t *data = js_mallocz(ctx, sizeof(nx_js_dgram_t));
 	if (!data) {
 		JS_FreeCString(ctx, ip);
+		JS_FreeValue(ctx, obj);
 		JS_ThrowOutOfMemory(ctx);
 		return JS_EXCEPTION;
 	}
+	data->recv.fd = -1; // Initialize fd to invalid until nx_udp_new succeeds
 	JS_SetOpaque(obj, data);
 
 	nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
@@ -192,11 +202,14 @@ static JSValue nx_js_dgram_close(JSContext *ctx, JSValueConst this_val,
 	nx_js_dgram_t *data = nx_js_dgram_get(ctx, this_val);
 	if (!data)
 		return JS_EXCEPTION;
+	if (data->recv.fd < 0)
+		return JS_UNDEFINED; // Already closed
 	nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
 	nx_remove_watcher(&nx_ctx->poll, (nx_watcher_t *)&data->recv);
 	JS_FreeValue(ctx, data->cb.callback);
 	data->cb.callback = JS_UNDEFINED;
 	close(data->recv.fd);
+	data->recv.fd = -1;
 	return JS_UNDEFINED;
 }
 
@@ -239,6 +252,8 @@ static JSValue nx_js_dgram_set_broadcast(JSContext *ctx, JSValueConst this_val,
 	if (!data)
 		return JS_EXCEPTION;
 	int enabled = JS_ToBool(ctx, argv[0]);
+	if (enabled < 0)
+		return JS_EXCEPTION;
 	if (setsockopt(data->recv.fd, SOL_SOCKET, SO_BROADCAST, &enabled,
 				   sizeof(enabled)) < 0) {
 		JS_ThrowTypeError(ctx, "setsockopt(SO_BROADCAST): %s",
@@ -273,7 +288,11 @@ static JSValue nx_js_dgram_add_membership(JSContext *ctx,
 		const char *iface_addr = JS_ToCString(ctx, argv[1]);
 		if (!iface_addr)
 			return JS_EXCEPTION;
-		inet_pton(AF_INET, iface_addr, &mreq.imr_interface);
+		if (inet_pton(AF_INET, iface_addr, &mreq.imr_interface) <= 0) {
+			JS_FreeCString(ctx, iface_addr);
+			JS_ThrowTypeError(ctx, "invalid interface address");
+			return JS_EXCEPTION;
+		}
 		JS_FreeCString(ctx, iface_addr);
 	} else {
 		mreq.imr_interface.s_addr = htonl(INADDR_ANY);
@@ -313,7 +332,11 @@ static JSValue nx_js_dgram_drop_membership(JSContext *ctx,
 		const char *iface_addr = JS_ToCString(ctx, argv[1]);
 		if (!iface_addr)
 			return JS_EXCEPTION;
-		inet_pton(AF_INET, iface_addr, &mreq.imr_interface);
+		if (inet_pton(AF_INET, iface_addr, &mreq.imr_interface) <= 0) {
+			JS_FreeCString(ctx, iface_addr);
+			JS_ThrowTypeError(ctx, "invalid interface address");
+			return JS_EXCEPTION;
+		}
 		JS_FreeCString(ctx, iface_addr);
 	} else {
 		mreq.imr_interface.s_addr = htonl(INADDR_ANY);
@@ -335,16 +358,14 @@ static JSValue nx_js_dgram_get_recv_buffer(JSContext *ctx,
 	nx_js_dgram_t *data = nx_js_dgram_get(ctx, this_val);
 	if (!data)
 		return JS_EXCEPTION;
-	// Return an ArrayBuffer that references the recv_buffer (no copy).
-	// The buffer is owned by the dgram struct, so we don't set a free func.
-	return JS_NewArrayBuffer(ctx, data->recv_buffer,
-							 sizeof(data->recv_buffer), NULL, NULL, false);
+	// Return a copy so JS buffer lifetime is decoupled from native memory
+	return JS_NewArrayBufferCopy(ctx, data->recv_buffer,
+								 sizeof(data->recv_buffer));
 }
 
 // Init function: installs prototype methods on the DatagramSocket class
 static JSValue nx_js_udp_init(JSContext *ctx, JSValueConst this_val, int argc,
 							  JSValueConst *argv) {
-	JSAtom atom;
 	JSValue proto = JS_GetPropertyStr(ctx, argv[0], "prototype");
 	NX_DEF_FUNC(proto, "close", nx_js_dgram_close, 0);
 	NX_DEF_FUNC(proto, "setBroadcast", nx_js_dgram_set_broadcast, 1);

@@ -410,8 +410,14 @@ int nx_udp_new(nx_poll_t *p, nx_recvfrom_t *req, const char *ip, int port,
 		.sin_port = htons(port),
 	};
 
-	if (inet_pton(AF_INET, ip, &bind_addr.sin_addr) <= 0) {
+	int inet_ret = inet_pton(AF_INET, ip, &bind_addr.sin_addr);
+	if (inet_ret <= 0) {
 		close(sockfd);
+		if (inet_ret == 0) {
+			// inet_pton returns 0 for invalid IP strings without setting errno
+			errno = EINVAL;
+		}
+		printf("inet_pton() err: %s\n", strerror(errno));
 		return -1;
 	}
 
