@@ -327,6 +327,17 @@ export interface Init {
 	irsSensorStop(s: IRSensor): void;
 	irsSensorUpdate(s: IRSensor): boolean;
 
+	// memory.c
+	memoryUsage(): {
+		rss: number;
+		heapTotal: number;
+		heapUsed: number;
+		totalSystemMemory: number;
+		usedSystemMemory: number;
+		availableMemory: number;
+	};
+	availableMemory(): number;
+
 	// main.c
 	argv: string[];
 	entrypoint: string;

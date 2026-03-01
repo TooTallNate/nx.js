@@ -116,6 +116,53 @@ export interface ListenOptions {
 	accept?: (e: SocketEvent) => void;
 }
 
+export interface MemoryUsage {
+	/**
+	 * Total memory currently allocated by the C heap allocator (`malloc`).
+	 * This includes all native allocations (libraries, buffers, etc.) and
+	 * the QuickJS engine's allocations.
+	 * Similar to Node.js `rss` (Resident Set Size).
+	 */
+	rss: number;
+	/**
+	 * Total memory footprint of the QuickJS JavaScript engine,
+	 * including internal bookkeeping overhead.
+	 * Similar to Node.js `heapTotal`.
+	 */
+	heapTotal: number;
+	/**
+	 * Memory allocated by the QuickJS JavaScript engine for
+	 * JS objects, strings, and other runtime data.
+	 * Similar to Node.js `heapUsed`.
+	 */
+	heapUsed: number;
+	/**
+	 * Total memory budget available to the process, as reported by the Switch kernel
+	 * via `svcGetInfo(InfoType_TotalMemorySize)`.
+	 *
+	 * This value depends on the applet type:
+	 * - In "full-memory mode" (Application): ~3.5 GB
+	 * - In "applet mode" (LibraryApplet): ~400 MB
+	 *
+	 * @see {@link appletType | `Switch.appletType()`}
+	 */
+	totalSystemMemory: number;
+	/**
+	 * Total memory currently mapped by the process, as reported by the Switch kernel
+	 * via `svcGetInfo(InfoType_UsedMemorySize)`. This includes all virtual memory
+	 * pages mapped by the process (code, stack, heap region, etc.).
+	 */
+	usedSystemMemory: number;
+	/**
+	 * Total memory available for the process to allocate. This accounts for both
+	 * free space in the C allocator's free list and unmapped heap space that
+	 * has not yet been claimed by the allocator.
+	 *
+	 * This is the same value returned by {@link availableMemory | `Switch.availableMemory()`}.
+	 */
+	availableMemory: number;
+}
+
 export interface NetworkInfo {
 	ip: string;
 	subnetMask: string;
@@ -330,4 +377,44 @@ export function operationMode(): number {
  */
 export function setMediaPlaybackState(state: boolean) {
 	$.appletSetMediaPlaybackState(state);
+}
+
+/**
+ * Returns an object describing the memory usage of the nx.js process,
+ * including both JavaScript heap statistics from QuickJS and system-level
+ * memory information from the Switch kernel.
+ *
+ * Useful for debugging memory leaks and monitoring memory pressure.
+ *
+ * Similar to Node.js `process.memoryUsage()`.
+ *
+ * @example
+ *
+ * ```typescript
+ * const mem = Switch.memoryUsage();
+ * console.log(`Heap used: ${mem.heapUsed} bytes`);
+ * console.log(`RSS: ${mem.rss} bytes`);
+ * console.log(`System: ${mem.usedSystemMemory} / ${mem.totalSystemMemory} bytes`);
+ * ```
+ */
+export function memoryUsage(): MemoryUsage {
+	return $.memoryUsage();
+}
+
+/**
+ * Returns the number of bytes of memory available for the process to allocate.
+ * Calculated as the total process memory budget minus currently used memory,
+ * as reported by the Switch kernel.
+ *
+ * Similar to Node.js `process.availableMemory()`.
+ *
+ * @example
+ *
+ * ```typescript
+ * const available = Switch.availableMemory();
+ * console.log(`Available memory: ${available} bytes`);
+ * ```
+ */
+export function availableMemory(): number {
+	return $.availableMemory();
 }
