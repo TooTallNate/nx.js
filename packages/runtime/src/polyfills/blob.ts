@@ -118,7 +118,7 @@ export class Blob implements globalThis.Blob {
 
 		const type = options.type === undefined ? '' : String(options.type);
 		if (/^[\x20-\x7E]*$/.test(type)) {
-			internal.type = type;
+			internal.type = type.toLowerCase();
 		}
 	}
 

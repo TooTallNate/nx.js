@@ -18,9 +18,7 @@ export class File extends Blob implements globalThis.File {
 		super(fileParts, options);
 		this.name = name;
 		this.webkitRelativePath = '';
-		this.lastModified = +(options.lastModified
-			? new Date(options.lastModified)
-			: new Date());
+		this.lastModified = options.lastModified ?? Date.now();
 	}
 }
 
