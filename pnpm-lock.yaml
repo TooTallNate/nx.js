@@ -179,6 +179,13 @@ importers:
         version: 0.17.19
 
   apps/hello-world:
+    dependencies:
+      '@nx.js/install-title':
+        specifier: workspace:^
+        version: link:../../packages/install-title
+      '@nx.js/ncm':
+        specifier: workspace:^
+        version: link:../../packages/ncm
     devDependencies:
       '@nx.js/nro':
         specifier: workspace:^
@@ -639,9 +646,15 @@ importers:
       '@nx.js/util':
         specifier: ^1.1.0
         version: link:../util
+      '@tootallnate/ncz':
+        specifier: link:../../../switch-tools/packages/ncz
+        version: link:../../../switch-tools/packages/ncz
       '@tootallnate/nsp':
         specifier: ^0.0.2
         version: 0.0.2
+      '@tootallnate/xci':
+        specifier: ^0.0.1
+        version: 0.0.1
     devDependencies:
       '@nx.js/runtime':
         specifier: workspace:*
@@ -4177,6 +4190,10 @@ packages:
       '@tootallnate/romfs': 0.1.1
     dev: false
 
+  /@tootallnate/hfs0@0.0.1:
+    resolution: {integrity: sha512-Ad67C0DdMgq3WoBxs/tlxRTm8T/kbqEx7KkOnFDvul8ToRJtThRnbmRUeSF8K6iOU+7Z0ZOFtbihGtnRmPN8FA==}
+    dev: false
+
   /@tootallnate/ivfc@0.0.1:
     resolution: {integrity: sha512-ftsCuHRDLQVlCBg2pTAi8aY/vH8G2mB1tFb6urWJyTQ39CUFbwgYOCvCx2xX3rXaNLSqSamQyIpDibcn0D0H+Q==}
     dev: false
@@ -4209,6 +4226,12 @@ packages:
 
   /@tootallnate/romfs@0.1.1:
     resolution: {integrity: sha512-dd0435f0hPfOV5KGKMxS0NAgruaukQ4MoOdLcZr36HQMNee23qVEsEiYZyxvJZ0ixwoXYMr65ZrzdFOjpNp29w==}
+    dev: false
+
+  /@tootallnate/xci@0.0.1:
+    resolution: {integrity: sha512-zANDzwZUVpQipeqOLCkV/Wn313GyIMAIci1L1/e3u3u+cN8KwJziDq7fAb1frN56Fqg/+hEbZ4ESY39hzGGr3w==}
+    dependencies:
+      '@tootallnate/hfs0': 0.0.1
     dev: false
 
   /@types/bytes@3.1.5:

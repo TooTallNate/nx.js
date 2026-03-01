@@ -35,6 +35,11 @@ target_include_directories(nxjs-compression-test PRIVATE
   ${ZSTD_INCLUDE_DIRS}
 )
 
+target_link_directories(nxjs-compression-test PRIVATE
+  ${ZLIB_LIBRARY_DIRS}
+  ${ZSTD_LIBRARY_DIRS}
+)
+
 target_link_libraries(nxjs-compression-test PRIVATE
   qjs
   ${ZLIB_LIBRARIES}

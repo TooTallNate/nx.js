@@ -327,6 +327,16 @@ export interface Init {
 	irsSensorStop(s: IRSensor): void;
 	irsSensorUpdate(s: IRSensor): boolean;
 
+	// memory.c
+	memoryUsage(): {
+		rss: number;
+		heapTotal: number;
+		heapUsed: number;
+		totalSystemMemory: number;
+		usedSystemMemory: number;
+	};
+	availableMemory(): number;
+
 	// main.c
 	argv: string[];
 	entrypoint: string;
@@ -336,6 +346,7 @@ export interface Init {
 	chdir(dir: string): void;
 	print(v: string): void;
 	printErr(v: string): void;
+	gc(): void;
 	getInternalPromiseState(p: Promise<unknown>): [PromiseState, unknown];
 	getenv(name: string): string | undefined;
 	setenv(name: string, value: string): void;
