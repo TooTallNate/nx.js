@@ -901,25 +901,48 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-cleanup:;
-	// Compute exit code before any cleanup — the cleanup can crash
-	// due to thread pool shutdown races (pthread_join on already-exited
-	// threads), so we use _exit() to skip atexit handlers and ensure
-	// we return the correct exit code to the parent process.
-	int exit_code = nx_ctx->had_error ? 1 : 0;
+cleanup:
+	// Destroy the thread pool — signals threads to stop and joins them.
+	// No thpool_wait() here: when the user calls Switch.exit(), the app
+	// should exit promptly without waiting for in-flight jobs to finish.
+	if (nx_ctx->thpool) {
+		thpool_destroy(nx_ctx->thpool);
+	}
 
-	// Call exit handler if set
+	// Call exit handler
 	if (!JS_IsUndefined(nx_ctx->exit_handler)) {
 		JSValue ret_val =
 		    JS_Call(ctx, nx_ctx->exit_handler, JS_NULL, 0, NULL);
 		JS_FreeValue(ctx, ret_val);
 	}
 
-	// Flush stdio before exiting — _exit() does not flush buffers.
-	fflush(stdout);
-	fflush(stderr);
+	// Cleanup QuickJS
+	JS_FreeValue(ctx, global_obj);
+	JS_FreeValue(ctx, nx_ctx->frame_handler);
+	JS_FreeValue(ctx, nx_ctx->exit_handler);
+	JS_FreeValue(ctx, nx_ctx->error_handler);
+	JS_FreeValue(ctx, nx_ctx->unhandled_rejection_handler);
 
-	// Use _exit() to avoid cleanup-related crashes in thpool_destroy.
-	// The OS will clean up all threads, memory, and file descriptors.
-	_exit(exit_code);
+	JS_FreeContext(ctx);
+	JS_FreeRuntime(rt);
+
+	// Cleanup native resources
+	if (nx_ctx->wasm_env) {
+		m3_FreeEnvironment(nx_ctx->wasm_env);
+	}
+	if (nx_ctx->ft_library) {
+		FT_Done_FreeType(nx_ctx->ft_library);
+	}
+	if (nx_ctx->mbedtls_initialized) {
+		mbedtls_ctr_drbg_free(&nx_ctx->ctr_drbg);
+		mbedtls_entropy_free(&nx_ctx->entropy);
+	}
+	if (nx_ctx->ca_certs_loaded) {
+		mbedtls_x509_crt_free(&nx_ctx->ca_chain);
+	}
+
+	int exit_code = nx_ctx->had_error ? 1 : 0;
+	free(nx_ctx);
+
+	return exit_code;
 }
