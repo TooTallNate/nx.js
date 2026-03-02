@@ -67,8 +67,8 @@ async function runWithChrome(
 		});
 		await page.goto('https://localhost/test');
 
-		// Evaluate the fixture
-		await page.addScriptTag({ content: fixtureCode });
+		// Evaluate the fixture as a module (esbuild outputs ESM format)
+		await page.addScriptTag({ content: fixtureCode, type: 'module' });
 
 		// Wait for TAP output to complete (look for the plan line 1..N)
 		await page.waitForFunction(

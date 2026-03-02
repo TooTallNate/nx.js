@@ -201,5 +201,4 @@ set_source_files_properties(${NX_CXX_SOURCES}
 set_property(TARGET nxjs-test PROPERTY C_STANDARD 11)
 set_property(TARGET nxjs-test PROPERTY CXX_STANDARD 17)
 
-# Add .gitignore for build artifacts
-file(WRITE "${CMAKE_SOURCE_DIR}/output/.gitkeep" "")
+

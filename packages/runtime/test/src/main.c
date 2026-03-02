@@ -177,6 +177,8 @@ static JSValue js_chdir(JSContext *ctx, JSValueConst this_val, int argc,
                         JSValueConst *argv) {
 	(void)this_val;
 	const char *dir = JS_ToCString(ctx, argv[0]);
+	if (!dir)
+		return JS_EXCEPTION;
 	if (chdir(dir) != 0) {
 		JS_ThrowTypeError(ctx, "%s: %s", strerror(errno), dir);
 		JS_FreeCString(ctx, dir);
@@ -262,17 +264,13 @@ static JSValue js_getenv(JSContext *ctx, JSValueConst this_val, int argc,
                          JSValueConst *argv) {
 	(void)this_val;
 	const char *name = JS_ToCString(ctx, argv[0]);
+	if (!name)
+		return JS_EXCEPTION;
 	char *value = getenv(name);
+	JS_FreeCString(ctx, name);
 	if (value == NULL) {
-		if (errno) {
-			JS_ThrowTypeError(ctx, "%s: %s", strerror(errno), name);
-			JS_FreeCString(ctx, name);
-			return JS_EXCEPTION;
-		}
-		JS_FreeCString(ctx, name);
 		return JS_UNDEFINED;
 	}
-	JS_FreeCString(ctx, name);
 	return JS_NewString(ctx, value);
 }
 
@@ -280,7 +278,13 @@ static JSValue js_setenv(JSContext *ctx, JSValueConst this_val, int argc,
                          JSValueConst *argv) {
 	(void)this_val;
 	const char *name = JS_ToCString(ctx, argv[0]);
+	if (!name)
+		return JS_EXCEPTION;
 	const char *value = JS_ToCString(ctx, argv[1]);
+	if (!value) {
+		JS_FreeCString(ctx, name);
+		return JS_EXCEPTION;
+	}
 	if (setenv(name, value, 1) != 0) {
 		JS_ThrowTypeError(ctx, "%s: %s=%s", strerror(errno), name, value);
 		JS_FreeCString(ctx, name);
@@ -296,6 +300,8 @@ static JSValue js_unsetenv(JSContext *ctx, JSValueConst this_val, int argc,
                            JSValueConst *argv) {
 	(void)this_val;
 	const char *name = JS_ToCString(ctx, argv[0]);
+	if (!name)
+		return JS_EXCEPTION;
 	if (unsetenv(name) != 0) {
 		JS_ThrowTypeError(ctx, "%s: %s", strerror(errno), name);
 		JS_FreeCString(ctx, name);

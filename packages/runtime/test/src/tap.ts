@@ -52,11 +52,21 @@ function deepEqual(a: unknown, b: unknown): boolean {
 		}
 
 		if (ArrayBuffer.isView(aObj) && ArrayBuffer.isView(bObj)) {
-			const aArr = aObj as unknown as Uint8Array;
-			const bArr = bObj as unknown as Uint8Array;
-			if (aArr.length !== bArr.length) return false;
-			for (let i = 0; i < aArr.length; i++) {
-				if (aArr[i] !== bArr[i]) return false;
+			const aView = aObj as ArrayBufferView;
+			const bView = bObj as ArrayBufferView;
+			if (aView.byteLength !== bView.byteLength) return false;
+			const aBytes = new Uint8Array(
+				aView.buffer,
+				aView.byteOffset,
+				aView.byteLength,
+			);
+			const bBytes = new Uint8Array(
+				bView.buffer,
+				bView.byteOffset,
+				bView.byteLength,
+			);
+			for (let i = 0; i < aBytes.length; i++) {
+				if (aBytes[i] !== bBytes[i]) return false;
 			}
 			return true;
 		}
@@ -86,7 +96,6 @@ function inspect(val: unknown): string {
 		return `[Function: ${val.name || 'anonymous'}]`;
 	if (typeof val === 'symbol') return val.toString();
 	if (typeof val === 'bigint') return `${val}n`;
-	if (Array.isArray(val)) return JSON.stringify(val);
 	if (val instanceof Error) return `${val.name}: ${val.message}`;
 	try {
 		return JSON.stringify(val);
