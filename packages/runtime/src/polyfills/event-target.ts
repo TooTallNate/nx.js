@@ -1,7 +1,6 @@
 import { def } from '../utils';
+import { stopImmediatePropagationFlag } from './event';
 import type { Event } from './event';
-import type { AbortSignal } from './abort-controller';
-
 export interface EventListener<T extends Event> {
 	(evt: T): void;
 }
@@ -21,7 +20,7 @@ export interface EventListenerOptions {
 export interface AddEventListenerOptions extends EventListenerOptions {
 	once?: boolean;
 	passive?: boolean;
-	signal?: AbortSignal;
+	signal?: { aborted: boolean; addEventListener: (type: string, listener: () => void, options?: { once?: boolean }) => void };
 }
 
 interface Callback {
@@ -81,6 +80,16 @@ export class EventTarget implements globalThis.EventTarget {
 		const self = this || globalThis;
 		const cbs = getCbs(self, type);
 		if (cbs.some((cb) => cb.cb === callback)) return;
+		if (options?.signal) {
+			if (options.signal.aborted) return;
+			options.signal.addEventListener(
+				'abort',
+				() => {
+					self.removeEventListener(type, callback);
+				},
+				{ once: true },
+			);
+		}
 		cbs.push({ target: this || globalThis, cb: callback, options });
 	}
 
@@ -95,6 +104,7 @@ export class EventTarget implements globalThis.EventTarget {
 		// @ts-expect-error readonly
 		event.target = event.currentTarget = self;
 		for (const cb of cbs.slice()) {
+			if (stopImmediatePropagationFlag.has(event)) break;
 			if (cb.options?.once) {
 				self.removeEventListener(event.type, cb.cb);
 			}
