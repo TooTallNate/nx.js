@@ -931,9 +931,6 @@ main_loop:
 		}
 	}
 
-	// XXX: Ideally we wouldn't `thpool_wait()` here,
-	// but the app seems to crash without it
-	thpool_wait(nx_ctx->thpool);
 	thpool_destroy(nx_ctx->thpool);
 
 	// Call exit handler
