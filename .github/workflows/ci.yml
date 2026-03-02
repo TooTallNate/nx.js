@@ -172,27 +172,24 @@ jobs:
 
       - name: Smoke test nxjs-test binary under gdb
         run: |
-          # Enable core dumps
           ulimit -c unlimited
           sudo sysctl -w kernel.core_pattern=core.%p
 
-          # Build a test fixture to use
-          echo 'console.log("smoke test ok"); Switch.exit();' > /tmp/smoke.js
-
-          # Run under gdb with the full absolute paths (same as vitest would use)
           BINARY="$PWD/packages/runtime/test/build/nxjs-test"
           RUNTIME="$PWD/packages/runtime/runtime.js"
-
-          # Verify runtime.js exists
           ls -la "$RUNTIME"
 
-          # Run under gdb
+          # Build the test fixtures (same as the test script does)
+          node packages/runtime/test/build-fixtures.mjs
+
+          # Run url.js fixture under gdb (this is one that segfaults in CI)
+          FIXTURE="$PWD/packages/runtime/test/fixtures/build/url.js"
           gdb -batch \
             -ex 'set confirm off' \
             -ex run \
             -ex 'thread apply all bt full' \
             -ex quit \
-            --args "$BINARY" "$RUNTIME" /tmp/smoke.js 2>&1 || true
+            --args "$BINARY" "$RUNTIME" "$FIXTURE" 2>&1 || true
 
       - name: Run Tests
         run: |
