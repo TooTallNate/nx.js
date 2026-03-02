@@ -865,6 +865,16 @@ importers:
         specifier: ^3.0.0
         version: 3.2.4(@types/node@22.19.11)
 
+  test/runtime:
+    dependencies:
+      uvu:
+        specifier: github:TooTallNate/uvu#master
+        version: github.com/TooTallNate/uvu/a19ad72ffe3e5b91b256ddc58b77aac04d056316
+    devDependencies:
+      esbuild:
+        specifier: ^0.17.19
+        version: 0.17.19
+
   test/wasm:
     devDependencies:
       '@types/node':
