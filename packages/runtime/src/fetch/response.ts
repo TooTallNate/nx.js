@@ -100,7 +100,14 @@ export class Response extends Body implements globalThis.Response {
 	 * @returns {Response} - The new redirect response.
 	 */
 	static redirect(url: string | URL, status: number = 302): Response {
-		const parsedUrl = new URL(String(url));
+		let parsedUrl: URL;
+		try {
+			parsedUrl = new URL(String(url));
+		} catch {
+			throw new TypeError(
+				`Failed to execute 'redirect' on 'Response': Invalid URL`,
+			);
+		}
 		if (![301, 302, 303, 307, 308].includes(status)) {
 			throw new RangeError(
 				`Failed to execute 'redirect' on 'Response': Invalid status code`,
