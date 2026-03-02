@@ -130,7 +130,13 @@ export abstract class Body implements globalThis.Body {
 	 * If the body is null, it returns an empty ArrayBuffer.
 	 */
 	async arrayBuffer(): Promise<ArrayBuffer> {
-		if (!this.body) return new ArrayBuffer(0);
+		if (this.bodyUsed) {
+			throw new TypeError('Body has already been consumed.');
+		}
+		if (!this.body) {
+			this.bodyUsed = true;
+			return new ArrayBuffer(0);
+		}
 		let bytes = 0;
 		const chunks: Uint8Array[] = [];
 		const reader = this.body.getReader();
@@ -155,6 +161,9 @@ export abstract class Body implements globalThis.Body {
 	 * The Blob's type will be the value of the 'content-type' header.
 	 */
 	async blob(): Promise<Blob> {
+		if (this.bodyUsed) {
+			throw new TypeError('Body has already been consumed.');
+		}
 		const buf = await this.arrayBuffer();
 		const type = this.headers.get('content-type') ?? undefined;
 		return new Blob([buf], { type });
@@ -165,6 +174,9 @@ export abstract class Body implements globalThis.Body {
 	 * If the body cannot be decoded as form data, it throws a `TypeError`.
 	 */
 	async formData(): Promise<FormData> {
+		if (this.bodyUsed) {
+			throw new TypeError('Body has already been consumed.');
+		}
 		const contentType = this.headers.get('content-type');
 		if (!contentType) {
 			throw new TypeError(
@@ -258,6 +270,9 @@ export abstract class Body implements globalThis.Body {
 	 * If the body cannot be parsed as JSON, it throws a `SyntaxError`.
 	 */
 	async json(): Promise<any> {
+		if (this.bodyUsed) {
+			throw new TypeError('Body has already been consumed.');
+		}
 		const text = await this.text();
 		return JSON.parse(text);
 	}
@@ -266,6 +281,9 @@ export abstract class Body implements globalThis.Body {
 	 * Returns a promise that resolves with a text representation of the body.
 	 */
 	async text(): Promise<string> {
+		if (this.bodyUsed) {
+			throw new TypeError('Body has already been consumed.');
+		}
 		const buf = await this.arrayBuffer();
 		return decoder.decode(buf);
 	}
