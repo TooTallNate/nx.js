@@ -168,7 +168,7 @@ function compareResults(
 
 // ---- Test Suite ----
 
-describe('nxjs-test conformance: nx.js vs Chrome', () => {
+describe('nxjs-test conformance', () => {
 	let browser: Browser;
 
 	beforeAll(async () => {
