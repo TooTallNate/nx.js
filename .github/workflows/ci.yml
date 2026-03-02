@@ -167,17 +167,32 @@ jobs:
         run: cmake -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo && cmake --build build
         working-directory: packages/runtime/test
 
-      - name: Smoke test nxjs-test binary
+      - name: Build runtime.js bundle
+        run: pnpm build --filter @nx.js/runtime && pnpm --filter @nx.js/runtime run bundle
+
+      - name: Smoke test nxjs-test binary under gdb
         run: |
           # Enable core dumps
           ulimit -c unlimited
           sudo sysctl -w kernel.core_pattern=core.%p
 
-          # Quick gdb backtrace test
-          cd packages/runtime/test
+          # Build a test fixture to use
           echo 'console.log("smoke test ok"); Switch.exit();' > /tmp/smoke.js
-          gdb -batch -ex run -ex 'thread apply all bt full' -ex quit \
-            --args ./build/nxjs-test ../runtime.js /tmp/smoke.js 2>&1 || true
+
+          # Run under gdb with the full absolute paths (same as vitest would use)
+          BINARY="$PWD/packages/runtime/test/build/nxjs-test"
+          RUNTIME="$PWD/packages/runtime/runtime.js"
+
+          # Verify runtime.js exists
+          ls -la "$RUNTIME"
+
+          # Run under gdb
+          gdb -batch \
+            -ex 'set confirm off' \
+            -ex run \
+            -ex 'thread apply all bt full' \
+            -ex quit \
+            --args "$BINARY" "$RUNTIME" /tmp/smoke.js 2>&1 || true
 
       - name: Run Tests
         run: |
