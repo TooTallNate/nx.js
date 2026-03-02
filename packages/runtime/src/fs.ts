@@ -1,10 +1,11 @@
 import { $ } from './$';
-import { bufferSourceToArrayBuffer, pathToString } from './utils';
 import { File } from './polyfills/file';
+import { kNativeRead } from './polyfills/streams';
 import { decoder } from './polyfills/text-decoder';
 import { encoder } from './polyfills/text-encoder';
 import type { PathLike } from './switch';
 import type { BufferSource } from './types';
+import { bufferSourceToArrayBuffer, pathToString } from './utils';
 
 export interface ReadFileOptions {
 	/**
@@ -266,39 +267,103 @@ export class FsFile extends File {
 		return JSON.parse(await this.text());
 	}
 
+	/**
+	 * Returns an async iterator that reads the file in chunks using a
+	 * single reusable buffer. This is more memory-efficient than
+	 * `stream()` for large files because it avoids the overhead of
+	 * the ReadableStream internal queue.
+	 *
+	 * **Important:** The yielded `Uint8Array` is a view into a shared
+	 * buffer that is overwritten on each iteration. If you need to
+	 * retain the data, copy it with `slice()` before the next iteration.
+	 */
+	async *[Symbol.asyncIterator](
+		opts?: FsFileStreamOptions,
+	): AsyncGenerator<Uint8Array, void, undefined> {
+		const chunkSize = opts?.chunkSize || 65536;
+		const readBuf = new ArrayBuffer(chunkSize);
+		let offset = this.start ?? 0;
+		const end = this.end;
+		const h = await $.fopen(this.name, 'rb', this.start);
+		try {
+			while (true) {
+				const remaining = end ? end - offset : Infinity;
+				if (remaining <= 0) break;
+				const n = await $.fread(h, readBuf);
+				if (n === null) break;
+				if (n > 0) {
+					const clamped = Math.min(n, remaining);
+					offset += clamped;
+					yield new Uint8Array(readBuf, 0, clamped);
+				}
+			}
+		} finally {
+			await $.fclose(h);
+		}
+	}
+
 	stream(opts?: FsFileStreamOptions): ReadableStream<Uint8Array> {
 		const { name, start, end } = this;
 		let offset = start ?? 0;
 		const chunkSize = opts?.chunkSize || 65536;
 		let h: Awaited<ReturnType<typeof $.fopen>> | undefined | null;
-		return new ReadableStream({
-			type: 'bytes',
+		let closed = false;
+		// Single reusable read buffer — avoids per-read allocations.
+		const readBuf = new ArrayBuffer(chunkSize);
+		const done = { done: true, value: undefined } as const;
+
+		async function nextChunk(): Promise<IteratorResult<Uint8Array, undefined>> {
+			if (closed) return done;
+			if (!h) h = await $.fopen(name, 'rb', start);
+			const remaining = end ? end - offset : Infinity;
+			if (remaining <= 0) {
+				await $.fclose(h);
+				h = null;
+				closed = true;
+				return done;
+			}
+			const n = await $.fread(h, readBuf);
+			if (n === null) {
+				await $.fclose(h);
+				h = null;
+				closed = true;
+				return done;
+			}
+			if (n > 0) {
+				const clamped = Math.min(n, remaining);
+				offset += clamped;
+				return {
+					done: false,
+					value: new Uint8Array(readBuf.slice(0, clamped)),
+				};
+			}
+			return done;
+		}
+
+		// Return a ReadableStream backed by a pull source that uses
+		// the reusable buffer. The stream only pulls when the consumer
+		// reads, providing natural backpressure.
+		const rs = new ReadableStream({
 			async pull(controller) {
-				if (!h) h = await $.fopen(name, 'rb', start);
-				const remaining = end ? end - offset : Infinity;
-				if (remaining <= 0) {
+				const result = await nextChunk();
+				if (result.done) {
 					controller.close();
-					await $.fclose(h);
-					h = null;
-					return;
-				}
-				const b = new Uint8Array(Math.min(chunkSize, remaining));
-				const n = await $.fread(h, b.buffer);
-				if (n === null) {
-					controller.close();
-					await $.fclose(h);
-					h = null;
-				} else if (n > 0) {
-					offset += n;
-					controller.enqueue(n < b.length ? b.subarray(0, n) : b);
+				} else {
+					controller.enqueue(result.value);
 				}
 			},
 			async cancel() {
+				closed = true;
 				if (h) {
 					await $.fclose(h);
+					h = null;
 				}
 			},
 		});
+		// Attach native read function so pipeThrough can bypass
+		// the polyfill's reader.read() Promise chains.
+		(rs as any)[kNativeRead] = nextChunk;
+		return rs;
 	}
 
 	get writable() {

@@ -651,6 +651,19 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
+	// Set JS heap memory limit. Use NXJS_MEMORY_LIMIT env var (in bytes)
+	// to simulate constrained environments like Nintendo Switch hardware.
+	// Default: unlimited. Example: NXJS_MEMORY_LIMIT=268435456 (256 MB)
+	const char *mem_limit_str = getenv("NXJS_MEMORY_LIMIT");
+	if (mem_limit_str) {
+		size_t mem_limit = (size_t)strtoull(mem_limit_str, NULL, 10);
+		if (mem_limit > 0) {
+			JS_SetMemoryLimit(rt, mem_limit);
+			fprintf(stderr, "JS memory limit set to %zu bytes (%.1f MB)\n",
+			        mem_limit, (double)mem_limit / (1024 * 1024));
+		}
+	}
+
 	JSContext *ctx = JS_NewContext(rt);
 	if (!ctx) {
 		fprintf(stderr, "Failed to create JS context\n");
