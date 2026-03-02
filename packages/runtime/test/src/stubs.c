@@ -46,11 +46,6 @@ void nx_init_battery(JSContext *ctx, JSValueConst init_obj) {
 	(void)init_obj;
 }
 
-void nx_init_fs(JSContext *ctx, JSValueConst init_obj) {
-	(void)ctx;
-	(void)init_obj;
-}
-
 void nx_init_fsdev(JSContext *ctx, JSValueConst init_obj) {
 	(void)ctx;
 	(void)init_obj;

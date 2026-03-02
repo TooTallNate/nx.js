@@ -73,6 +73,7 @@ set(NX_SOURCES
   ${NX_SOURCE_DIR}/dommatrix.c
   ${NX_SOURCE_DIR}/error.c
   ${NX_SOURCE_DIR}/font.c
+  ${NX_SOURCE_DIR}/fs.c
   ${NX_SOURCE_DIR}/image.c
   ${NX_SOURCE_DIR}/poll.c
   ${NX_SOURCE_DIR}/tcp.c
@@ -189,7 +190,7 @@ target_link_libraries(nxjs-test PRIVATE
 # libnx headers on Switch but not on the host.
 set_source_files_properties(${NX_SOURCES}
   PROPERTIES COMPILE_FLAGS
-  "-Wno-unused-parameter -Wno-sign-compare -Wno-implicit-fallthrough -Wno-missing-field-initializers -Wno-implicit-function-declaration -Wno-incompatible-pointer-types -Wno-tautological-constant-out-of-range-compare -Wno-absolute-value -Wno-format-security"
+  "-Wno-unused-parameter -Wno-sign-compare -Wno-implicit-fallthrough -Wno-missing-field-initializers -Wno-implicit-function-declaration -Wno-incompatible-pointer-types -Wno-tautological-constant-out-of-range-compare -Wno-absolute-value -Wno-format-security -Wno-int-conversion"
 )
 
 set_source_files_properties(${NX_CXX_SOURCES}

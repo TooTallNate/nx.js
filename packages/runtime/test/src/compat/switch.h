@@ -22,6 +22,16 @@
 #include <mbedtls/sha256.h>
 
 // ============================================================================
+// macOS compat: struct stat uses st_mtimespec instead of st_mtim
+// ============================================================================
+
+#ifdef __APPLE__
+#define st_mtim st_mtimespec
+#define st_atim st_atimespec
+#define st_ctim st_ctimespec
+#endif
+
+// ============================================================================
 // Fundamental types (from libnx <switch/types.h>)
 // ============================================================================
 

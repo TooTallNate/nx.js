@@ -694,6 +694,7 @@ int main(int argc, char *argv[]) {
 	nx_init_wasm(ctx, nx_ctx->init_obj);
 	nx_init_web(ctx, nx_ctx->init_obj);
 	nx_init_window(ctx, nx_ctx->init_obj);
+	nx_init_fs(ctx, nx_ctx->init_obj);
 
 	// Stubbed modules (no-op — defined in stubs.c)
 	nx_init_account(ctx, nx_ctx->init_obj);
@@ -701,7 +702,6 @@ int main(int argc, char *argv[]) {
 	nx_init_applet(ctx, nx_ctx->init_obj);
 	nx_init_audio(ctx, nx_ctx->init_obj);
 	nx_init_battery(ctx, nx_ctx->init_obj);
-	nx_init_fs(ctx, nx_ctx->init_obj);
 	nx_init_fsdev(ctx, nx_ctx->init_obj);
 	nx_init_gamepad(ctx, nx_ctx->init_obj);
 	nx_init_irs(ctx, nx_ctx->init_obj);
