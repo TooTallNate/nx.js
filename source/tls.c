@@ -345,6 +345,11 @@ void nx_tls_do_read(nx_poll_t *p, nx_watcher_t *watcher, int revents) {
 		} else if (ret == 0) {
 			// End of data stream reached
 			break;
+#ifdef MBEDTLS_ERR_SSL_RECEIVED_NEW_SESSION_TICKET
+		} else if (ret == MBEDTLS_ERR_SSL_RECEIVED_NEW_SESSION_TICKET) {
+			// TLS 1.3 NewSessionTicket — not an error, just retry
+			continue;
+#endif
 		} else if (ret == MBEDTLS_ERR_SSL_WANT_READ) {
 			// Need more data, break the loop if we've read anything
 			if (total_read > 0) {
