@@ -2,6 +2,12 @@ import { assertInternalConstructor, createInternal, def } from '../utils';
 import type { EventTarget } from './event-target';
 import type { Gamepad } from '../navigator/gamepad';
 
+/**
+ * @internal WeakSet tracking events whose `stopImmediatePropagation()` was called.
+ * Used by `EventTarget.dispatchEvent()` to halt listener iteration.
+ */
+export const stopImmediatePropagationFlag = new WeakSet<Event>();
+
 export interface EventInit {
 	bubbles?: boolean;
 	cancelable?: boolean;
@@ -32,6 +38,7 @@ export class Event implements globalThis.Event {
 	readonly target: EventTarget | null;
 	readonly timeStamp: number;
 	readonly type: string;
+
 	constructor(type: string, options?: EventInit) {
 		this.type = type;
 		this.bubbles =
@@ -43,24 +50,31 @@ export class Event implements globalThis.Event {
 			this.returnValue =
 				false;
 		this.currentTarget = this.srcElement = this.target = null;
-		this.eventPhase = this.timeStamp = 0;
+		this.eventPhase = 0;
+		this.timeStamp = typeof performance !== 'undefined' ? performance.now() : 0;
 		this.cancelable = false;
 		this.cancelBubble = false;
 		this.composed = false;
 		if (options) {
 			this.bubbles = options.bubbles ?? false;
 			this.cancelable = options.cancelable ?? false;
+			this.composed = options.composed ?? false;
 		}
 	}
-	composedPath(): EventTarget[] {
-		throw new Error('Method not implemented.');
+	composedPath(): globalThis.EventTarget[] {
+		return this.target ? [this.target as globalThis.EventTarget] : [];
 	}
 	initEvent(
 		type: string,
 		bubbles?: boolean | undefined,
 		cancelable?: boolean | undefined,
 	): void {
-		throw new Error('Method not implemented.');
+		// @ts-expect-error - readonly
+		this.type = type;
+		// @ts-expect-error - readonly
+		this.bubbles = bubbles ?? false;
+		// @ts-expect-error - readonly
+		this.cancelable = cancelable ?? false;
 	}
 	preventDefault(): void {
 		if (this.cancelable) {
@@ -69,10 +83,10 @@ export class Event implements globalThis.Event {
 		}
 	}
 	stopImmediatePropagation(): void {
-		throw new Error('Method not implemented.');
+		stopImmediatePropagationFlag.add(this);
 	}
 	stopPropagation(): void {
-		throw new Error('Method not implemented.');
+		// No-op — no DOM tree to propagate through in this environment.
 	}
 }
 
