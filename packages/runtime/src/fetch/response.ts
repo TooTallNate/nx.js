@@ -1,5 +1,5 @@
 import { encoder } from '../polyfills/text-encoder';
-import type { URL } from '../polyfills/url';
+import { URL } from '../polyfills/url';
 import { def } from '../utils';
 import { Body, type BodyInit } from './body';
 import { Headers, type HeadersInit } from './headers';
@@ -100,16 +100,16 @@ export class Response extends Body implements globalThis.Response {
 	 * @returns {Response} - The new redirect response.
 	 */
 	static redirect(url: string | URL, status: number = 302): Response {
+		const parsedUrl = new URL(String(url));
 		if (![301, 302, 303, 307, 308].includes(status)) {
 			throw new RangeError(
 				`Failed to execute 'redirect' on 'Response': Invalid status code`,
 			);
 		}
-		const urlString = String(url);
 		return new Response(null, {
 			status,
 			headers: {
-				location: urlString,
+				location: parsedUrl.href,
 			},
 		});
 	}

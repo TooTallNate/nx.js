@@ -87,23 +87,24 @@ test('Response.clone() preserves default properties', (t) => {
 // --- Response.redirect() ---
 
 test('Response.redirect() with default status', (t) => {
-	const res = Response.redirect('https://example.com/');
+	const res = Response.redirect('https://example.com');
 	t.equal(res.status, 302, 'default redirect status is 302');
+	// URL is normalized — bare origin gets trailing slash
 	t.equal(
 		res.headers.get('location'),
 		'https://example.com/',
-		'location header',
+		'location header normalized',
 	);
 });
 
 test('Response.redirect() with valid statuses', (t) => {
 	const validStatuses = [301, 302, 303, 307, 308];
 	for (const status of validStatuses) {
-		const res = Response.redirect('https://example.com/', status);
+		const res = Response.redirect('https://example.com/path', status);
 		t.equal(res.status, status, `status ${status}`);
 		t.equal(
 			res.headers.get('location'),
-			'https://example.com/',
+			'https://example.com/path',
 			`location for ${status}`,
 		);
 	}
