@@ -3,6 +3,7 @@
   "extends": ["//"],
   "tasks": {
     "bundle": {
+      "dependsOn": ["^build"],
       "inputs": ["src/**", "*.mjs"],
       "outputs": ["runtime.js"]
     },
