@@ -44,9 +44,7 @@ test('URLSearchParams basics', (t) => {
 	t.equal(params.get('a'), '1', 'get a');
 	t.equal(params.get('b'), '2', 'get b');
 	t.equal(params.get('c'), '3', 'get c');
-	// NOTE: params.get() for a missing key should return null per spec,
-	// but nx.js currently returns "". Tracked as a known issue.
-	// t.equal(params.get('d'), null, 'get missing');
+	t.equal(params.get('d'), null, 'get missing returns null');
 	t.equal(params.has('a'), true, 'has a');
 	t.equal(params.has('d'), false, 'has d');
 	t.equal(params.size, 3, 'size');
