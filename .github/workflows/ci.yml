@@ -155,7 +155,7 @@ jobs:
             cmake build-essential pkg-config \
             libcairo2-dev libfreetype-dev libharfbuzz-dev \
             libpng-dev libturbojpeg0-dev libwebp-dev \
-            zlib1g-dev libzstd-dev
+            zlib1g-dev libzstd-dev gdb
 
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
@@ -164,8 +164,32 @@ jobs:
         run: pnpm --filter @nx.js/runtime exec playwright install --with-deps chromium
 
       - name: Build nxjs-test binary
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build
+        run: cmake -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo && cmake --build build
         working-directory: packages/runtime/test
 
+      - name: Smoke test nxjs-test binary
+        run: |
+          # Enable core dumps
+          ulimit -c unlimited
+          sudo sysctl -w kernel.core_pattern=core.%p
+
+          # Quick gdb backtrace test
+          cd packages/runtime/test
+          echo 'console.log("smoke test ok"); Switch.exit();' > /tmp/smoke.js
+          gdb -batch -ex run -ex 'thread apply all bt full' -ex quit \
+            --args ./build/nxjs-test ../runtime.js /tmp/smoke.js 2>&1 || true
+
       - name: Run Tests
-        run: pnpm test
+        run: |
+          ulimit -c unlimited
+          pnpm test
+
+      - name: Upload core dumps (if any)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: core-dumps
+          path: |
+            core.*
+            packages/runtime/test/build/nxjs-test
+          if-no-files-found: ignore
