@@ -204,6 +204,78 @@ The `screen` global is the main display (1280×720). Use `screen.getContext('2d'
 - **Gamepad button mapping** is NOT standard Web Gamepad API order. Use `@nx.js/constants` `Button` enum (e.g. `Button.A`, `Button.B`). The order is: B=0, A=1, Y=2, X=3, L=4, R=5, ZL=6, ZR=7, Minus=8, Plus=9, StickL=10, StickR=11, Up=12, Down=13, Left=14, Right=15
 - **`stub()` does NOT mean unimplemented.** Methods marked with `stub()` in TypeScript (from `./utils`) are placeholders for type generation only. At runtime, the C side overwrites them on the prototype via `NX_DEF_FUNC()` or `NX_DEF_GET()`/`NX_DEF_GETSET()`. If you see `stub()`, check the corresponding C file's `nx_init_*` or `*_init_class` function — the real implementation is there. Only `throw new Error('Method not implemented.')` means actually not implemented.
 
+## Host-Platform Test Binary (`nxjs-test`)
+
+The `packages/runtime/test/` directory contains a **unified host-platform build** of the nx.js runtime (`nxjs-test`) that compiles the real C source files against host system libraries, with libnx stubbed out. This enables running JS/TS tests on macOS/Linux without Switch hardware.
+
+### Architecture
+
+- **20 real source modules** compiled from `source/`: async, canvas, compression, crypto, dns, dommatrix, error, font, image, poll, tcp, thpool, tls, udp, uint8array, url, util, wasm, web, window + ada.cpp
+- **13 stubbed modules** (no-op `nx_init_*` in `src/stubs.c`): account, album, applet, audio, battery, fs, fsdev, gamepad, irs, nifm, ns, service, swkbd
+- **Compat headers** in `src/compat/` provide libnx type/function stubs, real AES/SHA via mbedtls, host system CA certificates for TLS
+- **60 FPS event loop** with real thread pool, networking, and async operations
+
+### When modifying native C code (`source/`)
+
+When you add or change a C source file in `source/`, you MUST update the test binary:
+
+1. **New portable module** (uses standard C libs, not libnx): Add the `.c` file to `NX_SOURCES` in `packages/runtime/test/CMakeLists.txt`. Add the `nx_init_*` call in `packages/runtime/test/src/main.c` under the "Real modules" section.
+
+2. **New Switch-only module** (uses libnx APIs): Add a no-op `nx_init_*` stub in `packages/runtime/test/src/stubs.c`. Add the `nx_init_*` call in `packages/runtime/test/src/main.c` under the "Stubbed modules" section.
+
+3. **New libnx types/functions** referenced by compiled modules: Add stubs to `packages/runtime/test/src/compat/switch.h`.
+
+4. **New linked library**: Add to the `target_link_libraries` and corresponding `pkg_check_modules` in `CMakeLists.txt`.
+
+### TAP Conformance Tests
+
+Test fixtures in `packages/runtime/test/fixtures/*.ts` run in **both** the nxjs-test binary (QuickJS) and Chrome (via Playwright), with TAP output compared assertion-by-assertion to verify conformance.
+
+```
+fixtures/*.ts → esbuild bundle → fixtures/build/*.js
+                                         │
+                         ┌───────────────┴───────────────┐
+                         ▼                               ▼
+                nxjs-test binary                Chrome (Playwright)
+                (TAP on stdout)              (TAP from console.log)
+                         │                               │
+                         └───────────┬───────────────────┘
+                                     ▼
+                     vitest conformance.test.ts
+                     (parse TAP, compare assertion-by-assertion)
+```
+
+**Writing a test fixture:**
+
+```typescript
+import { test } from '../src/tap';
+
+test('my feature', async (t) => {
+    t.equal(1 + 1, 2, 'math works');
+    t.ok(true, 'truthy');
+    t.deepEqual([1, 2], [1, 2], 'arrays match');
+    t.throws(() => { throw new Error('boom'); }, 'boom', 'error message matches');
+});
+```
+
+Available assertions: `t.ok`, `t.notOk`, `t.equal`, `t.notEqual`, `t.deepEqual`, `t.throws`, `t.doesNotThrow`, `t.match`, `t.pass`, `t.fail`.
+
+**Bug fix policy:** When fixing a bug, add a regression test fixture (or add assertions to an existing fixture) that would have caught the bug. The test must pass in both nxjs-test and Chrome.
+
+### Building and running tests locally
+
+```bash
+# Build the test binary (one-time, re-run after source/ changes)
+cd packages/runtime/test
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+
+# Run the conformance tests (from repo root)
+pnpm --filter @nx.js/runtime test
+```
+
+System dependencies needed: `cmake`, `pkg-config`, `libcairo2-dev`, `libfreetype-dev`, `libharfbuzz-dev`, `libpng-dev`, `libturbojpeg0-dev`, `libwebp-dev`, `zlib1g-dev`, `libzstd-dev`, plus Playwright Chromium (`pnpm --filter @nx.js/runtime exec playwright install chromium`).
+
 ## Canvas Test Snapshots
 
 Canvas 2D conformance test snapshots in `test/canvas/__image_snapshots__/` must be **generated locally** and committed to your PR branch. CI will **not** auto-generate new snapshots — it rejects missing ones with `"New snapshot was not written"`.

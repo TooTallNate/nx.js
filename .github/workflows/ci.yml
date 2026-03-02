@@ -148,8 +148,24 @@ jobs:
           node-version: 22.x
           cache: "pnpm"
 
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake build-essential pkg-config \
+            libcairo2-dev libfreetype-dev libharfbuzz-dev \
+            libpng-dev libturbojpeg0-dev libwebp-dev \
+            zlib1g-dev libzstd-dev
+
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: pnpm --filter @nx.js/runtime exec playwright install --with-deps chromium
+
+      - name: Build nxjs-test binary
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build
+        working-directory: packages/runtime/test
 
       - name: Run Tests
         run: pnpm test
