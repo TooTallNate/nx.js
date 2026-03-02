@@ -1,16 +1,20 @@
 /**
- * Conformance Tests — nxjs-test vs Chrome
+ * Conformance Tests — nxjs-test vs Chrome / Bun
  *
  * Discovers bundled fixture .js files, runs each through:
  * 1. The nxjs-test binary (captures TAP from stdout)
- * 2. Chrome via Playwright (captures TAP from console.log)
+ * 2. A reference engine — Chrome via Playwright (default) or Bun
  *
  * Parses both TAP outputs and compares assertion-by-assertion.
+ *
+ * Fixtures whose name matches a pattern in BUN_FIXTURES are tested
+ * against Bun instead of Chrome (e.g. zstd, which Chrome doesn't support).
  */
 
 import { execSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import { basename, join } from 'node:path';
+import { createRequire } from 'node:module';
+import { basename, dirname, join } from 'node:path';
 import { type Browser, chromium } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { parseTap } from './src/tap-parser';
@@ -20,6 +24,21 @@ const BUILD_DIR = join(ROOT, 'build');
 const FIXTURES_BUILD_DIR = join(ROOT, 'fixtures', 'build');
 const BINARY = join(BUILD_DIR, 'nxjs-test');
 const RUNTIME = join(ROOT, '../runtime.js');
+
+// Resolve the `bun` binary from the npm package (devDependency).
+// The package.json "bin" field points to the actual executable name.
+const require = createRequire(import.meta.url);
+const bunPkgDir = dirname(require.resolve('bun/package.json'));
+const bunPkg = JSON.parse(
+	readFileSync(join(bunPkgDir, 'package.json'), 'utf-8'),
+);
+const BUN = join(bunPkgDir, bunPkg.bin.bun);
+
+/**
+ * Fixtures that should be tested against Bun instead of Chrome.
+ * Bun supports non-standard formats like zstd that Chrome does not.
+ */
+const BUN_FIXTURES = ['compression-zstd'];
 
 /**
  * Run a bundled fixture through nxjs-test and return the TAP output.
@@ -34,6 +53,23 @@ function runWithNxjs(fixturePath: string): string {
 		return output;
 	} catch (err: any) {
 		// execSync throws on non-zero exit. The stdout may still have TAP output.
+		if (err.stdout) return err.stdout;
+		throw err;
+	}
+}
+
+/**
+ * Run a bundled fixture through Bun and return the TAP output.
+ */
+function runWithBun(fixturePath: string): string {
+	try {
+		const output = execSync(`"${BUN}" "${fixturePath}"`, {
+			timeout: 30_000,
+			encoding: 'utf-8',
+			stdio: ['pipe', 'pipe', 'pipe'],
+		});
+		return output;
+	} catch (err: any) {
 		if (err.stdout) return err.stdout;
 		throw err;
 	}
@@ -88,6 +124,48 @@ async function runWithChrome(
 	}
 }
 
+/**
+ * Compare TAP results from two engines assertion-by-assertion.
+ */
+function compareResults(
+	nxjsTap: string,
+	referenceTap: string,
+	referenceEngine: string,
+) {
+	const nxjsResult = parseTap(nxjsTap);
+	const referenceResult = parseTap(referenceTap);
+
+	// Both should have produced assertions
+	expect(nxjsResult.assertions.length).toBeGreaterThan(0);
+	expect(referenceResult.assertions.length).toBeGreaterThan(0);
+
+	// Same number of assertions
+	expect(nxjsResult.assertions.length).toBe(referenceResult.assertions.length);
+
+	// Compare each assertion
+	for (let i = 0; i < nxjsResult.assertions.length; i++) {
+		const nxjs = nxjsResult.assertions[i];
+		const ref = referenceResult.assertions[i];
+
+		// Same test name
+		expect(nxjs.name).toBe(ref.name);
+
+		// Same result — if they differ, show which engine failed
+		if (nxjs.ok !== ref.ok) {
+			const failedIn = nxjs.ok ? referenceEngine : 'nxjs-test';
+			const passedIn = nxjs.ok ? 'nxjs-test' : referenceEngine;
+			expect.fail(
+				`Assertion #${nxjs.number} "${nxjs.name}": ` +
+					`passed in ${passedIn} but failed in ${failedIn}`,
+			);
+		}
+	}
+
+	// Both engines should have no failures
+	expect(nxjsResult.summary.fail).toBe(0);
+	expect(referenceResult.summary.fail).toBe(0);
+}
+
 // ---- Test Suite ----
 
 describe('nxjs-test conformance: nx.js vs Chrome', () => {
@@ -131,48 +209,27 @@ describe('nxjs-test conformance: nx.js vs Chrome', () => {
 
 	for (const fixture of fixtures) {
 		const name = basename(fixture, '.js');
+		const useBun = BUN_FIXTURES.includes(name);
 
-		it(`${name}: nxjs-test vs Chrome`, async () => {
-			const fixturePath = join(FIXTURES_BUILD_DIR, fixture);
-			const fixtureCode = readFileSync(fixturePath, 'utf-8');
+		if (useBun) {
+			it(`${name}: nxjs-test vs Bun`, () => {
+				const fixturePath = join(FIXTURES_BUILD_DIR, fixture);
 
-			// Run in both engines
-			const nxjsTap = runWithNxjs(fixturePath);
-			const chromeTap = await runWithChrome(browser, fixtureCode);
+				const nxjsTap = runWithNxjs(fixturePath);
+				const bunTap = runWithBun(fixturePath);
 
-			// Parse TAP output
-			const nxjsResult = parseTap(nxjsTap);
-			const chromeResult = parseTap(chromeTap);
+				compareResults(nxjsTap, bunTap, 'Bun');
+			});
+		} else {
+			it(`${name}: nxjs-test vs Chrome`, async () => {
+				const fixturePath = join(FIXTURES_BUILD_DIR, fixture);
+				const fixtureCode = readFileSync(fixturePath, 'utf-8');
 
-			// Both should have produced assertions
-			expect(nxjsResult.assertions.length).toBeGreaterThan(0);
-			expect(chromeResult.assertions.length).toBeGreaterThan(0);
+				const nxjsTap = runWithNxjs(fixturePath);
+				const chromeTap = await runWithChrome(browser, fixtureCode);
 
-			// Same number of assertions
-			expect(nxjsResult.assertions.length).toBe(chromeResult.assertions.length);
-
-			// Compare each assertion
-			for (let i = 0; i < nxjsResult.assertions.length; i++) {
-				const nxjs = nxjsResult.assertions[i];
-				const chrome = chromeResult.assertions[i];
-
-				// Same test name
-				expect(nxjs.name).toBe(chrome.name);
-
-				// Same result — if they differ, show which engine failed
-				if (nxjs.ok !== chrome.ok) {
-					const failedIn = nxjs.ok ? 'Chrome' : 'nxjs-test';
-					const passedIn = nxjs.ok ? 'nxjs-test' : 'Chrome';
-					expect.fail(
-						`Assertion #${nxjs.number} "${nxjs.name}": ` +
-							`passed in ${passedIn} but failed in ${failedIn}`,
-					);
-				}
-			}
-
-			// Both engines should have no failures
-			expect(nxjsResult.summary.fail).toBe(0);
-			expect(chromeResult.summary.fail).toBe(0);
-		});
+				compareResults(nxjsTap, chromeTap, 'Chrome');
+			});
+		}
 	}
 });

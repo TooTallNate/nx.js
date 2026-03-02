@@ -1,20 +1,16 @@
 import { test } from '../src/tap';
 
-// --- Helpers ---
-
-function toHex(buf: ArrayBuffer): string {
-	return Array.from(new Uint8Array(buf))
-		.map((v) => v.toString(16).padStart(2, '0'))
-		.join('');
-}
-
-function fromHex(hex: string): Uint8Array {
-	const arr = new Uint8Array(hex.length / 2);
-	for (let i = 0; i < hex.length; i += 2) {
-		arr[i / 2] = parseInt(hex.substr(i, 2), 16);
+// Uint8Array hex methods (TC39 stage 4, supported in all target runtimes)
+declare global {
+	interface Uint8Array {
+		toHex(): string;
 	}
-	return arr;
+	interface Uint8ArrayConstructor {
+		fromHex(hex: string): Uint8Array;
+	}
 }
+
+// --- Helpers ---
 
 async function compress(
 	format: CompressionFormat,
@@ -71,7 +67,7 @@ async function decompress(
 async function compressPipeThrough(
 	format: CompressionFormat,
 	input: Uint8Array,
-): Promise<ArrayBuffer> {
+): Promise<Uint8Array> {
 	const r = new ReadableStream({
 		start(controller) {
 			controller.enqueue(input);
@@ -81,7 +77,7 @@ async function compressPipeThrough(
 	const cs = new CompressionStream(format);
 	r.pipeThrough(cs);
 	const res = new Response(cs.readable);
-	return res.arrayBuffer();
+	return new Uint8Array(await res.arrayBuffer());
 }
 
 async function decompressPipeThrough(
@@ -139,11 +135,13 @@ test('deflate-raw roundtrip', async (t) => {
 	);
 });
 
-test('gzip large data roundtrip', async (t) => {
+// --- Large data roundtrip (all standard formats) ---
+
+test('large data roundtrip - gzip', async (t) => {
 	const text = 'The quick brown fox jumps over the lazy dog. '.repeat(1000);
 	const input = new TextEncoder().encode(text);
 	const compressed = await compress('gzip', input);
-	t.ok(compressed.length < input.length, 'compression reduces size');
+	t.ok(compressed.length < input.length, 'gzip compression reduces size');
 	const decompressed = await decompress('gzip', compressed);
 	t.equal(decompressed.length, input.length, 'decompressed length matches');
 	t.equal(
@@ -153,12 +151,41 @@ test('gzip large data roundtrip', async (t) => {
 	);
 });
 
-// --- Decompression from known bytes (migrated from apps/tests) ---
+test('large data roundtrip - deflate', async (t) => {
+	const text = 'The quick brown fox jumps over the lazy dog. '.repeat(1000);
+	const input = new TextEncoder().encode(text);
+	const compressed = await compress('deflate', input);
+	t.ok(compressed.length < input.length, 'deflate compression reduces size');
+	const decompressed = await decompress('deflate', compressed);
+	t.equal(
+		new TextDecoder().decode(decompressed),
+		text,
+		'decompressed content matches',
+	);
+});
+
+test('large data roundtrip - deflate-raw', async (t) => {
+	const text = 'The quick brown fox jumps over the lazy dog. '.repeat(1000);
+	const input = new TextEncoder().encode(text);
+	const compressed = await compress('deflate-raw', input);
+	t.ok(
+		compressed.length < input.length,
+		'deflate-raw compression reduces size',
+	);
+	const decompressed = await decompress('deflate-raw', compressed);
+	t.equal(
+		new TextDecoder().decode(decompressed),
+		text,
+		'decompressed content matches',
+	);
+});
+
+// --- Decompression from known bytes ---
 
 test('DecompressionStream - deflate from known bytes', async (t) => {
 	const text = await decompressPipeThrough(
 		'deflate',
-		fromHex('789cf348cdc9c95708cf2fca490100180b041d'),
+		Uint8Array.fromHex('789cf348cdc9c95708cf2fca490100180b041d'),
 	);
 	t.equal(text, 'Hello World', 'decompressed deflate matches');
 });
@@ -166,7 +193,7 @@ test('DecompressionStream - deflate from known bytes', async (t) => {
 test('DecompressionStream - deflate-raw from known bytes', async (t) => {
 	const text = await decompressPipeThrough(
 		'deflate-raw',
-		fromHex('f348cdc9c95708cf2fca490100'),
+		Uint8Array.fromHex('f348cdc9c95708cf2fca490100'),
 	);
 	t.equal(text, 'Hello World', 'decompressed deflate-raw matches');
 });
@@ -174,18 +201,20 @@ test('DecompressionStream - deflate-raw from known bytes', async (t) => {
 test('DecompressionStream - gzip from known bytes', async (t) => {
 	const text = await decompressPipeThrough(
 		'gzip',
-		fromHex('1f8b0800315272670003f348cdc9c95708cf2fca49010056b1174a0b000000'),
+		Uint8Array.fromHex(
+			'1f8b0800315272670003f348cdc9c95708cf2fca49010056b1174a0b000000',
+		),
 	);
 	t.equal(text, 'Hello World', 'decompressed gzip matches');
 });
 
-// --- CompressionStream with pipeThrough + Response pattern (migrated from apps/tests) ---
+// --- CompressionStream with pipeThrough + Response pattern ---
 
 test('CompressionStream - deflate-raw via pipeThrough', async (t) => {
 	const input = new TextEncoder().encode('Hello World');
 	const data = await compressPipeThrough('deflate-raw', input);
 	t.equal(
-		toHex(data),
+		data.toHex(),
 		'f348cdc9c95708cf2fca490100',
 		'deflate-raw compressed output matches expected bytes',
 	);
@@ -194,17 +223,47 @@ test('CompressionStream - deflate-raw via pipeThrough', async (t) => {
 test('CompressionStream - deflate via pipeThrough', async (t) => {
 	const input = new TextEncoder().encode('Hello World');
 	const data = await compressPipeThrough('deflate', input);
-	t.ok(data.byteLength > 0, 'compressed data is not empty');
+	t.ok(data.length > 0, 'compressed data is not empty');
 	// Verify the compressed data can be decompressed back
-	const text = await decompressPipeThrough('deflate', new Uint8Array(data));
+	const text = await decompressPipeThrough('deflate', data);
 	t.equal(text, 'Hello World', 'deflate pipeThrough roundtrip matches');
 });
 
 test('CompressionStream - gzip via pipeThrough', async (t) => {
 	const input = new TextEncoder().encode('Hello World');
 	const data = await compressPipeThrough('gzip', input);
-	t.ok(data.byteLength > 0, 'compressed data is not empty');
+	t.ok(data.length > 0, 'compressed data is not empty');
 	// Verify the compressed data can be decompressed back
-	const text = await decompressPipeThrough('gzip', new Uint8Array(data));
+	const text = await decompressPipeThrough('gzip', data);
 	t.equal(text, 'Hello World', 'gzip pipeThrough roundtrip matches');
+});
+
+// --- Cross-engine interop (compress here, other engine decompresses) ---
+
+test('interop - deflate compress then decompress', async (t) => {
+	const input = new TextEncoder().encode(
+		'The quick brown fox jumps over the lazy dog',
+	);
+	const compressed = await compress('deflate', input);
+	t.ok(compressed.length > 0, 'compressed has data');
+	const decompressed = await decompress('deflate', compressed);
+	t.equal(
+		new TextDecoder().decode(decompressed),
+		'The quick brown fox jumps over the lazy dog',
+		'deflate interop roundtrip matches',
+	);
+});
+
+test('interop - gzip compress then decompress', async (t) => {
+	const input = new TextEncoder().encode(
+		'The quick brown fox jumps over the lazy dog',
+	);
+	const compressed = await compress('gzip', input);
+	t.ok(compressed.length > 0, 'compressed has data');
+	const decompressed = await decompress('gzip', compressed);
+	t.equal(
+		new TextDecoder().decode(decompressed),
+		'The quick brown fox jumps over the lazy dog',
+		'gzip interop roundtrip matches',
+	);
 });
