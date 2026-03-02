@@ -5,6 +5,9 @@
     "bundle": {
       "inputs": ["src/**", "*.mjs"],
       "outputs": ["runtime.js"]
+    },
+    "test": {
+      "dependsOn": ["^build", "bundle"]
     }
   }
 }
