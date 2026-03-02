@@ -39,6 +39,7 @@
     "to-px": "^1.1.0",
     "web-streams-polyfill": "^4.0.0",
     "vitest": "^3.0.0",
-    "playwright": "^1.40.0"
+    "playwright": "^1.40.0",
+    "bun": "^1.3.0"
   }
 }
