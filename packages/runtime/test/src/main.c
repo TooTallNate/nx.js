@@ -126,6 +126,59 @@ void nx_exit_event_loop(void) {
 }
 
 // ============================================================================
+// Debug / instrumentation functions (test binary only)
+// ============================================================================
+
+static JSValue js_gc(JSContext *ctx, JSValueConst this_val, int argc,
+                     JSValueConst *argv) {
+	(void)this_val;
+	(void)argc;
+	(void)argv;
+	JS_RunGC(JS_GetRuntime(ctx));
+	return JS_UNDEFINED;
+}
+
+static JSValue js_memory_usage(JSContext *ctx, JSValueConst this_val,
+                               int argc, JSValueConst *argv) {
+	(void)this_val;
+	(void)argc;
+	(void)argv;
+	JSMemoryUsage stats;
+	JS_ComputeMemoryUsage(JS_GetRuntime(ctx), &stats);
+
+	JSValue obj = JS_NewObject(ctx);
+	JS_SetPropertyStr(ctx, obj, "mallocSize",
+	                  JS_NewInt64(ctx, stats.malloc_size));
+	JS_SetPropertyStr(ctx, obj, "mallocCount",
+	                  JS_NewInt64(ctx, stats.malloc_count));
+	JS_SetPropertyStr(ctx, obj, "memoryUsedSize",
+	                  JS_NewInt64(ctx, stats.memory_used_size));
+	JS_SetPropertyStr(ctx, obj, "memoryUsedCount",
+	                  JS_NewInt64(ctx, stats.memory_used_count));
+	JS_SetPropertyStr(ctx, obj, "objCount",
+	                  JS_NewInt64(ctx, stats.obj_count));
+	JS_SetPropertyStr(ctx, obj, "objSize",
+	                  JS_NewInt64(ctx, stats.obj_size));
+	JS_SetPropertyStr(ctx, obj, "strCount",
+	                  JS_NewInt64(ctx, stats.str_count));
+	JS_SetPropertyStr(ctx, obj, "strSize",
+	                  JS_NewInt64(ctx, stats.str_size));
+	JS_SetPropertyStr(ctx, obj, "binaryObjectCount",
+	                  JS_NewInt64(ctx, stats.binary_object_count));
+	JS_SetPropertyStr(ctx, obj, "binaryObjectSize",
+	                  JS_NewInt64(ctx, stats.binary_object_size));
+	JS_SetPropertyStr(ctx, obj, "propCount",
+	                  JS_NewInt64(ctx, stats.prop_count));
+	JS_SetPropertyStr(ctx, obj, "shapeCount",
+	                  JS_NewInt64(ctx, stats.shape_count));
+	JS_SetPropertyStr(ctx, obj, "jsFuncCount",
+	                  JS_NewInt64(ctx, stats.js_func_count));
+	JS_SetPropertyStr(ctx, obj, "arrayCount",
+	                  JS_NewInt64(ctx, stats.array_count));
+	return obj;
+}
+
+// ============================================================================
 // Print functions
 // ============================================================================
 
@@ -726,6 +779,8 @@ int main(int argc, char *argv[]) {
 	// Inline functions (from source/main.c — portable on host)
 	const JSCFunctionListEntry init_function_list[] = {
 	    JS_CFUNC_DEF("exit", 0, js_exit),
+	    JS_CFUNC_DEF("gc", 0, js_gc),
+	    JS_CFUNC_DEF("memoryUsage", 0, js_memory_usage),
 	    JS_CFUNC_DEF("cwd", 0, js_cwd),
 	    JS_CFUNC_DEF("chdir", 1, js_chdir),
 	    JS_CFUNC_DEF("print", 1, js_print),
@@ -790,6 +845,16 @@ int main(int argc, char *argv[]) {
 
 	// Expose $ as global
 	JS_SetPropertyStr(ctx, global_obj, "$", nx_ctx->init_obj);
+
+	// Expose debug/instrumentation functions as globals (test binary only).
+	// These survive the `delete globalThis.$` in the runtime and are
+	// available to test scripts for memory leak investigation.
+	JS_SetPropertyStr(
+	    ctx, global_obj, "__gc",
+	    JS_NewCFunction(ctx, js_gc, "__gc", 0));
+	JS_SetPropertyStr(
+	    ctx, global_obj, "__memoryUsage",
+	    JS_NewCFunction(ctx, js_memory_usage, "__memoryUsage", 0));
 
 	// Install the Proxy stub so runtime.js can load without crashing
 	// even for modules whose native bindings are no-ops
