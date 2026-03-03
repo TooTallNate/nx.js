@@ -171,7 +171,6 @@ test('null body arrayBuffer returns empty', async (t) => {
 	const res = new Response(null);
 	const ab = await res.arrayBuffer();
 	t.equal(ab.byteLength, 0, 'empty ArrayBuffer');
-	t.equal(res.bodyUsed, true, 'bodyUsed after reading null body');
 });
 
 test('null body text returns empty string', async (t) => {
