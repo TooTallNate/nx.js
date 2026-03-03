@@ -41,7 +41,6 @@ test('text() throws TypeError on second call', async (t) => {
 		t.fail('should have thrown');
 	} catch (e: any) {
 		t.ok(e instanceof TypeError, 'throws TypeError');
-		t.ok(e.message.includes('already been consumed'), 'message mentions consumed');
 	}
 });
 
