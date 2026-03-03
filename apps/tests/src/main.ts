@@ -12,4 +12,5 @@ import './text-encoder.test';
 import './window.test';
 import './url.test';
 import './uint8array.test';
+import './webcrypto-aes-xts.test';
 import './websocket.test';
