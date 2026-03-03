@@ -13,6 +13,12 @@ const formatters: Record<string, (v: unknown) => string> = {
 	d(v) {
 		return String(Number(v));
 	},
+	i(v) {
+		return String(Math.trunc(Number(v)));
+	},
+	f(v) {
+		return String(Number(v));
+	},
 	j(v) {
 		return JSON.stringify(v);
 	},
@@ -93,7 +99,9 @@ export class Console {
 	 * Logs the formatted `input` to the screen as white text.
 	 */
 	log = (...input: unknown[]) => {
-		this.print(`${format(...input)}\n`);
+		const depth = _(this).groupDepth;
+		const indent = depth > 0 ? '  '.repeat(depth) : '';
+		this.print(`${indent}${format(...input)}\n`);
 	};
 
 	/**
