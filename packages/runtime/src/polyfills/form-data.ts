@@ -18,7 +18,7 @@ export class FormData implements globalThis.FormData {
 		const value =
 			typeof blobValue === 'string' || blobValue instanceof File
 				? blobValue
-				: new File([blobValue], filename ?? 'blob', blobValue);
+				: new File([blobValue], filename ?? 'blob', { type: blobValue.type });
 		_(this).push([name, value]);
 	}
 
@@ -56,7 +56,7 @@ export class FormData implements globalThis.FormData {
 		const value =
 			typeof blobValue === 'string' || blobValue instanceof File
 				? blobValue
-				: new File([blobValue], filename ?? 'blob', blobValue);
+				: new File([blobValue], filename ?? 'blob', { type: blobValue.type });
 		const data = _(this);
 		let firstIndex = -1;
 		for (let i = 0; i < data.length; i++) {
