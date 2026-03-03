@@ -655,6 +655,32 @@ static JSValue nx_crypto_get_random_values(JSContext *ctx,
 	size_t size;
 	void *buf = NX_GetBufferSource(ctx, &size, argv[0]);
 	if (buf) {
+		if (size > 65536) {
+			char msg[256];
+			snprintf(msg, sizeof(msg),
+				"Failed to execute 'getRandomValues' on 'Crypto': "
+				"The ArrayBufferView's byte length (%zu) exceeds the "
+				"number of bytes of entropy available via this API (65536).",
+				size);
+			JSValue global = JS_GetGlobalObject(ctx);
+			JSValue dom_exc_ctor = JS_GetPropertyStr(ctx, global, "DOMException");
+			JS_FreeValue(ctx, global);
+			if (JS_IsUndefined(dom_exc_ctor) || JS_IsException(dom_exc_ctor)) {
+				JS_FreeValue(ctx, dom_exc_ctor);
+				return JS_ThrowTypeError(ctx, "%s", msg);
+			}
+			JSValue args[2];
+			args[0] = JS_NewString(ctx, msg);
+			args[1] = JS_NewString(ctx, "QuotaExceededError");
+			JSValue err = JS_CallConstructor(ctx, dom_exc_ctor, 2, args);
+			JS_FreeValue(ctx, args[0]);
+			JS_FreeValue(ctx, args[1]);
+			JS_FreeValue(ctx, dom_exc_ctor);
+			if (JS_IsException(err)) {
+				return JS_EXCEPTION;
+			}
+			return JS_Throw(ctx, err);
+		}
 		randomGet(buf, size);
 	}
 	return JS_DupValue(ctx, argv[0]);
@@ -1572,7 +1598,7 @@ JSValue nx_crypto_decrypt_cb(JSContext *ctx, nx_work_t *req) {
 							 free_array_buffer, NULL, false);
 }
 
-static JSValue nx_crypto_subtle_decrypt(JSContext *ctx, JSValueConst this_val,
+static JSValue nx_crypto_decrypt(JSContext *ctx, JSValueConst this_val,
 										int argc, JSValueConst *argv) {
 	NX_INIT_WORK_T(nx_crypto_encrypt_async_t);
 
@@ -2899,13 +2925,6 @@ static JSValue nx_crypto_init(JSContext *ctx, JSValueConst this_val, int argc,
 	return JS_UNDEFINED;
 }
 
-static JSValue nx_crypto_subtle_init(JSContext *ctx, JSValueConst this_val,
-									 int argc, JSValueConst *argv) {
-	JSValue proto = JS_GetPropertyStr(ctx, argv[0], "prototype");
-	NX_DEF_FUNC(proto, "decrypt", nx_crypto_subtle_decrypt, 3);
-	JS_FreeValue(ctx, proto);
-	return JS_UNDEFINED;
-}
 
 // --- RSA Generate Key ---
 // Returns array: [n, e, d, p, q, dp, dq, qi] as ArrayBuffers
@@ -3654,9 +3673,9 @@ static const JSCFunctionListEntry function_list[] = {
 	JS_CFUNC_DEF("cryptoInit", 1, nx_crypto_init),
 	JS_CFUNC_DEF("cryptoKeyNew", 1, nx_crypto_key_new),
 	JS_CFUNC_DEF("cryptoKeyInit", 1, nx_crypto_key_init),
-	JS_CFUNC_DEF("cryptoSubtleInit", 1, nx_crypto_subtle_init),
 	JS_CFUNC_DEF("cryptoDigest", 0, nx_crypto_digest),
 	JS_CFUNC_DEF("cryptoEncrypt", 0, nx_crypto_encrypt),
+	JS_CFUNC_DEF("cryptoDecrypt", 0, nx_crypto_decrypt),
 	JS_CFUNC_DEF("cryptoSign", 0, nx_crypto_sign),
 	JS_CFUNC_DEF("cryptoVerify", 0, nx_crypto_verify),
 	JS_CFUNC_DEF("cryptoExportKey", 0, nx_crypto_export_key),

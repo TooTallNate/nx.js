@@ -3,7 +3,7 @@ import type { CanvasRenderingContext2D } from './canvas/canvas-rendering-context
 import type { ImageBitmap } from './canvas/image-bitmap';
 import type { OffscreenCanvas } from './canvas/offscreen-canvas';
 import type { OffscreenCanvasRenderingContext2D } from './canvas/offscreen-canvas-rendering-context-2d';
-import type { Crypto, CryptoKey, SubtleCrypto } from './crypto';
+import type { Crypto, CryptoKey } from './crypto';
 import type { DOMMatrix, DOMMatrixInit, DOMMatrixReadOnly } from './dommatrix';
 import type { DOMPoint, DOMPointInit } from './dompoint';
 import type { FontFace } from './font/font-face';
@@ -191,8 +191,12 @@ export interface Init {
 	): CryptoKey<any>;
 	cryptoInit(c: ClassOf<Crypto>): void;
 	cryptoKeyInit(c: ClassOf<CryptoKey<any>>): void;
-	cryptoSubtleInit(c: ClassOf<SubtleCrypto>): void;
 	cryptoEncrypt(
+		algorithm: Algorithm,
+		key: CryptoKey<any>,
+		data: BufferSource,
+	): Promise<ArrayBuffer>;
+	cryptoDecrypt(
 		algorithm: Algorithm,
 		key: CryptoKey<any>,
 		data: BufferSource,
