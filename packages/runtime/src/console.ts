@@ -60,7 +60,7 @@ export class Console {
 	constructor(opts: ConsoleOptions = {}) {
 		_.set(this, {
 			print: opts.print || $.print,
-			printErr: opts.print || $.printErr,
+			printErr: opts.printErr || $.printErr,
 			counts: new Map(),
 			timers: new Map(),
 			groupDepth: 0,
