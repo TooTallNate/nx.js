@@ -190,15 +190,16 @@ void nx_crypto_digest_do(nx_work_t *req) {
 		sha256CalculateHash(data->result, data->data, data->size);
 		break;
 	case NX_CRYPTO_SHA384:
-	case NX_CRYPTO_SHA512:
-		mbedtls_sha512_context ctx;
-		mbedtls_sha512_init(&ctx);
+	case NX_CRYPTO_SHA512: {
+		mbedtls_sha512_context sha512_ctx;
+		mbedtls_sha512_init(&sha512_ctx);
 		mbedtls_sha512_starts(
-			&ctx, alg == NX_CRYPTO_SHA384); // 0 for SHA-512, 1 for SHA-384
-		mbedtls_sha512_update(&ctx, data->data, data->size);
-		mbedtls_sha512_finish(&ctx, data->result);
-		mbedtls_sha512_free(&ctx);
+			&sha512_ctx, alg == NX_CRYPTO_SHA384); // 0 for SHA-512, 1 for SHA-384
+		mbedtls_sha512_update(&sha512_ctx, data->data, data->size);
+		mbedtls_sha512_finish(&sha512_ctx, data->result);
+		mbedtls_sha512_free(&sha512_ctx);
 		break;
+	}
 	}
 }
 
