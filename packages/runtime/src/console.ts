@@ -269,11 +269,14 @@ export class Console {
 	};
 
 	/**
-	 * Clears the console. No-op in this environment.
+	 * Clears the console by printing the ANSI escape code for clearing the terminal.
 	 *
 	 * @see https://developer.mozilla.org/docs/Web/API/console/clear_static
 	 */
-	clear = () => {};
+	clear = () => {
+		// ESC[2J clears the screen, ESC[H moves cursor to home position
+		this.print('\x1b[2J\x1b[H');
+	};
 
 	/**
 	 * Outputs a message at the "info" log level. Alias for {@link Console.log}.
