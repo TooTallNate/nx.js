@@ -1597,7 +1597,7 @@ JSValue nx_crypto_decrypt_cb(JSContext *ctx, nx_work_t *req) {
 							 free_array_buffer, NULL, false);
 }
 
-static JSValue nx_crypto_subtle_decrypt(JSContext *ctx, JSValueConst this_val,
+static JSValue nx_crypto_decrypt(JSContext *ctx, JSValueConst this_val,
 										int argc, JSValueConst *argv) {
 	NX_INIT_WORK_T(nx_crypto_encrypt_async_t);
 
@@ -2924,10 +2924,6 @@ static JSValue nx_crypto_init(JSContext *ctx, JSValueConst this_val, int argc,
 	return JS_UNDEFINED;
 }
 
-static JSValue nx_crypto_subtle_init(JSContext *ctx, JSValueConst this_val,
-									 int argc, JSValueConst *argv) {
-	return JS_UNDEFINED;
-}
 
 // --- RSA Generate Key ---
 // Returns array: [n, e, d, p, q, dp, dq, qi] as ArrayBuffers
@@ -3676,10 +3672,9 @@ static const JSCFunctionListEntry function_list[] = {
 	JS_CFUNC_DEF("cryptoInit", 1, nx_crypto_init),
 	JS_CFUNC_DEF("cryptoKeyNew", 1, nx_crypto_key_new),
 	JS_CFUNC_DEF("cryptoKeyInit", 1, nx_crypto_key_init),
-	JS_CFUNC_DEF("cryptoSubtleInit", 1, nx_crypto_subtle_init),
 	JS_CFUNC_DEF("cryptoDigest", 0, nx_crypto_digest),
 	JS_CFUNC_DEF("cryptoEncrypt", 0, nx_crypto_encrypt),
-	JS_CFUNC_DEF("cryptoDecrypt", 0, nx_crypto_subtle_decrypt),
+	JS_CFUNC_DEF("cryptoDecrypt", 0, nx_crypto_decrypt),
 	JS_CFUNC_DEF("cryptoSign", 0, nx_crypto_sign),
 	JS_CFUNC_DEF("cryptoVerify", 0, nx_crypto_verify),
 	JS_CFUNC_DEF("cryptoExportKey", 0, nx_crypto_export_key),

@@ -649,7 +649,6 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 		return this.encrypt(wrapAlgorithm as any, wrappingKey as any, data);
 	}
 }
-$.cryptoSubtleInit(SubtleCrypto);
 def(SubtleCrypto);
 
 function normalizeAlgorithm(algorithm: AlgorithmIdentifier): Algorithm {

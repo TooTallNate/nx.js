@@ -191,7 +191,6 @@ export interface Init {
 	): CryptoKey<any>;
 	cryptoInit(c: ClassOf<Crypto>): void;
 	cryptoKeyInit(c: ClassOf<CryptoKey<any>>): void;
-	cryptoSubtleInit(c: ClassOf<SubtleCrypto>): void;
 	cryptoEncrypt(
 		algorithm: Algorithm,
 		key: CryptoKey<any>,
