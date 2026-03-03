@@ -75,6 +75,51 @@ test('TextDecoder - ignoreBOM preserves BOM', (t) => {
 	t.equal(d.decode(bytes), '\uFEFF' + 'Hi', 'BOM preserved');
 });
 
+test('TextDecoder - 3-byte invalid continuation backtrack', (t) => {
+	const d = new TextDecoder();
+	// 3-byte lead (0xe2), then invalid continuation (0x41 = 'A') which is a valid ASCII byte
+	// Should produce U+FFFD for the broken sequence, then 'A' from backtracking
+	const result = d.decode(new Uint8Array([0xe2, 0x41]));
+	t.equal(result, '\uFFFDA', 'backtrack invalid byte2 in 3-byte sequence');
+});
+
+test('TextDecoder - 3-byte invalid third byte backtrack', (t) => {
+	const d = new TextDecoder();
+	// 3-byte lead (0xe2), valid continuation (0x82), then invalid byte3 (0x41 = 'A')
+	// Should produce U+FFFD for the broken sequence, then 'A' from backtracking
+	const result = d.decode(new Uint8Array([0xe2, 0x82, 0x41]));
+	t.equal(result, '\uFFFDA', 'backtrack invalid byte3 in 3-byte sequence');
+});
+
+test('TextDecoder - 4-byte invalid continuation backtrack', (t) => {
+	const d = new TextDecoder();
+	// 4-byte lead (0xf0), then invalid continuation (0x41 = 'A')
+	const result = d.decode(new Uint8Array([0xf0, 0x41]));
+	t.equal(result, '\uFFFDA', 'backtrack invalid byte2 in 4-byte sequence');
+});
+
+test('TextDecoder - 4-byte invalid third byte backtrack', (t) => {
+	const d = new TextDecoder();
+	// 4-byte lead (0xf0), valid byte2 (0x9f), then invalid byte3 (0x41 = 'A')
+	const result = d.decode(new Uint8Array([0xf0, 0x9f, 0x41]));
+	t.equal(result, '\uFFFDA', 'backtrack invalid byte3 in 4-byte sequence');
+});
+
+test('TextDecoder - 4-byte invalid fourth byte backtrack', (t) => {
+	const d = new TextDecoder();
+	// 4-byte lead (0xf0), valid byte2 (0x9f), valid byte3 (0x98), then invalid byte4 (0x41 = 'A')
+	const result = d.decode(new Uint8Array([0xf0, 0x9f, 0x98, 0x41]));
+	t.equal(result, '\uFFFDA', 'backtrack invalid byte4 in 4-byte sequence');
+});
+
+test('TextDecoder - invalid continuation followed by multi-byte sequence', (t) => {
+	const d = new TextDecoder();
+	// 3-byte lead (0xe2), then a 2-byte lead (0xc3, 0xa9 = 'é')
+	// Should produce U+FFFD for broken 3-byte, then 'é' from backtracking
+	const result = d.decode(new Uint8Array([0xe2, 0xc3, 0xa9]));
+	t.equal(result, '\uFFFDé', 'backtrack into valid multi-byte sequence');
+});
+
 test('TextDecoder - ArrayBuffer input', (t) => {
 	const d = new TextDecoder();
 	const buf = new Uint8Array([72, 105]).buffer;

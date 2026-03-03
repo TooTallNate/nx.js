@@ -115,34 +115,51 @@ export class TextDecoder implements globalThis.TextDecoder {
 			} else if ((byte1 & 0xf0) === 0xe0) {
 				// 3-byte
 				var byte2 = bytes[inputIndex++];
-				var byte3 = bytes[inputIndex++];
-				if (byte2 === undefined || (byte2 & 0xc0) !== 0x80 ||
-					byte3 === undefined || (byte3 & 0xc0) !== 0x80) {
+				if (byte2 === undefined || (byte2 & 0xc0) !== 0x80) {
 					if (this.fatal) throw new TypeError('Invalid UTF-8 sequence');
 					pending[pendingIndex++] = 0xfffd;
+					if (byte2 !== undefined) inputIndex--;
 				} else {
-					pending[pendingIndex++] = ((byte1 & 0x0f) << 12) | ((byte2 & 0x3f) << 6) | (byte3 & 0x3f);
+					var byte3 = bytes[inputIndex++];
+					if (byte3 === undefined || (byte3 & 0xc0) !== 0x80) {
+						if (this.fatal) throw new TypeError('Invalid UTF-8 sequence');
+						pending[pendingIndex++] = 0xfffd;
+						if (byte3 !== undefined) inputIndex--;
+					} else {
+						pending[pendingIndex++] = ((byte1 & 0x0f) << 12) | ((byte2 & 0x3f) << 6) | (byte3 & 0x3f);
+					}
 				}
 			} else if ((byte1 & 0xf8) === 0xf0) {
 				// 4-byte
 				var byte2 = bytes[inputIndex++];
-				var byte3 = bytes[inputIndex++];
-				var byte4 = bytes[inputIndex++];
-				if (byte2 === undefined || (byte2 & 0xc0) !== 0x80 ||
-					byte3 === undefined || (byte3 & 0xc0) !== 0x80 ||
-					byte4 === undefined || (byte4 & 0xc0) !== 0x80) {
+				if (byte2 === undefined || (byte2 & 0xc0) !== 0x80) {
 					if (this.fatal) throw new TypeError('Invalid UTF-8 sequence');
 					pending[pendingIndex++] = 0xfffd;
+					if (byte2 !== undefined) inputIndex--;
 				} else {
-					// this can be > 0xffff, so possibly generate surrogates
-					var codepoint =
-						((byte1 & 0x07) << 0x12) | ((byte2 & 0x3f) << 0x0c) | ((byte3 & 0x3f) << 0x06) | (byte4 & 0x3f);
-					if (codepoint > 0xffff) {
-						codepoint -= 0x10000;
-						pending[pendingIndex++] = ((codepoint >>> 10) & 0x3ff) | 0xd800;
-						codepoint = 0xdc00 | (codepoint & 0x3ff);
+					var byte3 = bytes[inputIndex++];
+					if (byte3 === undefined || (byte3 & 0xc0) !== 0x80) {
+						if (this.fatal) throw new TypeError('Invalid UTF-8 sequence');
+						pending[pendingIndex++] = 0xfffd;
+						if (byte3 !== undefined) inputIndex--;
+					} else {
+						var byte4 = bytes[inputIndex++];
+						if (byte4 === undefined || (byte4 & 0xc0) !== 0x80) {
+							if (this.fatal) throw new TypeError('Invalid UTF-8 sequence');
+							pending[pendingIndex++] = 0xfffd;
+							if (byte4 !== undefined) inputIndex--;
+						} else {
+							// this can be > 0xffff, so possibly generate surrogates
+							var codepoint =
+								((byte1 & 0x07) << 0x12) | ((byte2 & 0x3f) << 0x0c) | ((byte3 & 0x3f) << 0x06) | (byte4 & 0x3f);
+							if (codepoint > 0xffff) {
+								codepoint -= 0x10000;
+								pending[pendingIndex++] = ((codepoint >>> 10) & 0x3ff) | 0xd800;
+								codepoint = 0xdc00 | (codepoint & 0x3ff);
+							}
+							pending[pendingIndex++] = codepoint;
+						}
 					}
-					pending[pendingIndex++] = codepoint;
 				}
 			} else {
 				// invalid initial byte
