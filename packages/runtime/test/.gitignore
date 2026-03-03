@@ -1,3 +1,4 @@
-build/
-output/
-fixtures/build/
+/build/
+/build-sdl/
+/output/
+/fixtures/build/

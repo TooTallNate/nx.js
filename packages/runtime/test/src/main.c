@@ -28,6 +28,10 @@
 #include <time.h>
 #include <unistd.h>
 
+#ifdef NXJS_HAS_SDL
+#include <SDL.h>
+#endif
+
 // Include all module headers — compat/ directory provides stubs for
 // <switch.h>, <wasm3.h>, <mbedtls/*.h> that source/types.h pulls in.
 #include "account.h"
@@ -71,6 +75,16 @@
 static int is_running = 1;
 static volatile sig_atomic_t got_sigint = 0;
 
+#ifdef NXJS_HAS_SDL
+// SDL2 display state for canvas rendering mode
+static SDL_Window *sdl_window = NULL;
+static SDL_Renderer *sdl_renderer = NULL;
+static SDL_Texture *sdl_texture = NULL;
+static uint8_t *sdl_framebuffer = NULL;
+static uint32_t sdl_fb_width = 0;
+static uint32_t sdl_fb_height = 0;
+#endif
+
 // Console rendering stubs — on host, print/printErr go to stdout/stderr
 static PrintConsole *print_console = NULL;
 
@@ -84,7 +98,23 @@ void nx_console_exit(void) {
 }
 
 void nx_framebuffer_exit(void) {
-	// No-op on host — no display hardware
+#ifdef NXJS_HAS_SDL
+	if (sdl_texture) {
+		SDL_DestroyTexture(sdl_texture);
+		sdl_texture = NULL;
+	}
+	if (sdl_renderer) {
+		SDL_DestroyRenderer(sdl_renderer);
+		sdl_renderer = NULL;
+	}
+	if (sdl_window) {
+		SDL_DestroyWindow(sdl_window);
+		sdl_window = NULL;
+	}
+	sdl_framebuffer = NULL;
+	sdl_fb_width = 0;
+	sdl_fb_height = 0;
+#endif
 }
 
 void nx_render_loading_image(nx_context_t *nx_ctx, const char *nro_path) {
@@ -101,8 +131,68 @@ static JSValue nx_framebuffer_init(JSContext *ctx, JSValueConst this_val,
                                    int argc, JSValueConst *argv) {
 	(void)this_val;
 	(void)argc;
-	(void)argv;
 	nx_context_t *nx_ctx = JS_GetContextOpaque(ctx);
+
+#ifdef NXJS_HAS_SDL
+	// Clean up any previous SDL state (e.g. if framebufferInit called twice)
+	nx_framebuffer_exit();
+
+	// Get canvas pixel buffer — mirrors source/main.c behavior
+	nx_canvas_t *canvas = nx_get_canvas(ctx, argv[0]);
+	if (!canvas)
+		return JS_EXCEPTION;
+
+	uint32_t width = canvas->width;
+	uint32_t height = canvas->height;
+	sdl_framebuffer = canvas->data;
+	sdl_fb_width = width;
+	sdl_fb_height = height;
+
+	if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+		return JS_ThrowInternalError(ctx, "SDL_Init failed: %s",
+		                             SDL_GetError());
+	}
+
+	sdl_window = SDL_CreateWindow("nxjs-test", SDL_WINDOWPOS_CENTERED,
+	                              SDL_WINDOWPOS_CENTERED, width, height,
+	                              SDL_WINDOW_SHOWN);
+	if (!sdl_window) {
+		return JS_ThrowInternalError(ctx, "SDL_CreateWindow failed: %s",
+		                             SDL_GetError());
+	}
+
+	sdl_renderer = SDL_CreateRenderer(
+	    sdl_window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+	if (!sdl_renderer) {
+		// Fall back to software renderer
+		sdl_renderer = SDL_CreateRenderer(sdl_window, -1,
+		                                  SDL_RENDERER_SOFTWARE);
+	}
+	if (!sdl_renderer) {
+		SDL_DestroyWindow(sdl_window);
+		sdl_window = NULL;
+		return JS_ThrowInternalError(ctx, "SDL_CreateRenderer failed: %s",
+		                             SDL_GetError());
+	}
+
+	sdl_texture =
+	    SDL_CreateTexture(sdl_renderer, SDL_PIXELFORMAT_ARGB8888,
+	                      SDL_TEXTUREACCESS_STREAMING, width, height);
+	if (!sdl_texture) {
+		SDL_DestroyRenderer(sdl_renderer);
+		sdl_renderer = NULL;
+		SDL_DestroyWindow(sdl_window);
+		sdl_window = NULL;
+		return JS_ThrowInternalError(ctx, "SDL_CreateTexture failed: %s",
+		                             SDL_GetError());
+	}
+
+	// Disable alpha blending — copy pixels directly to the render target
+	SDL_SetTextureBlendMode(sdl_texture, SDL_BLENDMODE_NONE);
+#else
+	(void)argv;
+#endif
+
 	nx_ctx->rendering_mode = NX_RENDERING_MODE_CANVAS;
 	return JS_UNDEFINED;
 }
@@ -858,6 +948,20 @@ int main(int argc, char *argv[]) {
 			struct timespec frame_start;
 			clock_gettime(CLOCK_MONOTONIC, &frame_start);
 
+#ifdef NXJS_HAS_SDL
+			// Process SDL events (window close, etc.)
+			if (sdl_window) {
+				SDL_Event event;
+				while (SDL_PollEvent(&event)) {
+					if (event.type == SDL_QUIT) {
+						is_running = 0;
+					}
+				}
+				if (!is_running)
+					break;
+			}
+#endif
+
 			if (!nx_ctx->had_error) {
 				// Check if any file descriptors have reported activity
 				nx_poll(&nx_ctx->poll);
@@ -892,6 +996,30 @@ int main(int argc, char *argv[]) {
 				if (!is_running)
 					break;
 			}
+
+#ifdef NXJS_HAS_SDL
+			// Copy canvas pixel buffer to SDL texture and present
+			if (sdl_texture && sdl_framebuffer &&
+			    nx_ctx->rendering_mode == NX_RENDERING_MODE_CANVAS) {
+				void *pixels;
+				int pitch;
+				if (SDL_LockTexture(sdl_texture, NULL, &pixels, &pitch) ==
+				    0) {
+					uint8_t *src = sdl_framebuffer;
+					uint8_t *dst = (uint8_t *)pixels;
+					uint32_t row_bytes = sdl_fb_width * 4;
+					for (uint32_t y = 0; y < sdl_fb_height; y++) {
+						memcpy(dst, src, row_bytes);
+						src += row_bytes;
+						dst += pitch;
+					}
+					SDL_UnlockTexture(sdl_texture);
+				}
+				SDL_RenderClear(sdl_renderer);
+				SDL_RenderCopy(sdl_renderer, sdl_texture, NULL, NULL);
+				SDL_RenderPresent(sdl_renderer);
+			}
+#endif
 
 			// Sleep to maintain ~60 FPS
 			struct timespec frame_end;
@@ -946,6 +1074,12 @@ cleanup:
 	if (nx_ctx->ca_certs_loaded) {
 		mbedtls_x509_crt_free(&nx_ctx->ca_chain);
 	}
+
+	// Cleanup SDL
+#ifdef NXJS_HAS_SDL
+	nx_framebuffer_exit();
+	SDL_Quit();
+#endif
 
 	int exit_code = nx_ctx->had_error ? 1 : 0;
 	free(nx_ctx);

@@ -51,6 +51,12 @@ pkg_check_modules(WEBP REQUIRED libwebp)
 pkg_check_modules(ZLIB REQUIRED zlib)
 pkg_check_modules(ZSTD REQUIRED libzstd)
 
+# Optional: SDL2 for visual canvas output (disabled by default for CI)
+option(NXJS_SDL "Enable SDL2 window for canvas rendering" OFF)
+if(NXJS_SDL)
+  pkg_check_modules(SDL2 REQUIRED sdl2)
+endif()
+
 # ============================================================================
 # Source file lists
 # ============================================================================
@@ -136,6 +142,9 @@ target_include_directories(nxjs-test PRIVATE
   ${ZSTD_INCLUDE_DIRS}
   ${mbedtls_SOURCE_DIR}/include
 )
+if(NXJS_SDL)
+  target_include_directories(nxjs-test PRIVATE ${SDL2_INCLUDE_DIRS})
+endif()
 
 # ============================================================================
 # Link directories
@@ -152,6 +161,9 @@ target_link_directories(nxjs-test PRIVATE
   ${ZLIB_LIBRARY_DIRS}
   ${ZSTD_LIBRARY_DIRS}
 )
+if(NXJS_SDL)
+  target_link_directories(nxjs-test PRIVATE ${SDL2_LIBRARY_DIRS})
+endif()
 
 # ============================================================================
 # Link libraries
@@ -179,6 +191,10 @@ target_link_libraries(nxjs-test PRIVATE
   m
   pthread
 )
+if(NXJS_SDL)
+  target_link_libraries(nxjs-test PRIVATE ${SDL2_LIBRARIES})
+  target_compile_definitions(nxjs-test PRIVATE NXJS_HAS_SDL=1)
+endif()
 
 # ============================================================================
 # Compiler flags
