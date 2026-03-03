@@ -19,7 +19,7 @@ export class TextDecoder implements globalThis.TextDecoder {
 	encoding: string;
 	fatal: boolean;
 	ignoreBOM: boolean;
-	constructor(encoding?: string) {
+	constructor(encoding?: string, options?: { fatal?: boolean; ignoreBOM?: boolean }) {
 		if (
 			typeof encoding === 'string' &&
 			encoding !== 'utf-8' &&
@@ -28,8 +28,8 @@ export class TextDecoder implements globalThis.TextDecoder {
 			throw new TypeError('Only "utf-8" decoding is supported');
 		}
 		this.encoding = 'utf-8';
-		this.fatal = false;
-		this.ignoreBOM = false;
+		this.fatal = options?.fatal ?? false;
+		this.ignoreBOM = options?.ignoreBOM ?? false;
 	}
 
 	/**
@@ -37,6 +37,7 @@ export class TextDecoder implements globalThis.TextDecoder {
 	 * If no input is provided, an empty string is returned.
 	 *
 	 * **Note:** Currently the `stream` option is not supported.
+	 * // TODO: Implement `stream` option to preserve incomplete multi-byte sequences across calls.
 	 *
 	 * @param input The BufferSource to decode.
 	 * @param options The options for decoding.
@@ -61,6 +62,7 @@ export class TextDecoder implements globalThis.TextDecoder {
 		var pending = new Uint16Array(pendingSize);
 		var chunks = [];
 		var pendingIndex = 0;
+		var isFirstChunk = true;
 
 		for (;;) {
 			var more = inputIndex < bytes.length;
@@ -76,7 +78,15 @@ export class TextDecoder implements globalThis.TextDecoder {
 				// Turns out you can pass an ArrayLike to .apply().
 				var subarray = pending.subarray(0, pendingIndex);
 				// @ts-expect-error
-				chunks.push(String.fromCharCode.apply(null, subarray));
+				var chunk = String.fromCharCode.apply(null, subarray);
+
+				// Strip BOM from the beginning of the output if ignoreBOM is false (default)
+				if (isFirstChunk && !this.ignoreBOM && chunk.length > 0 && chunk.charCodeAt(0) === 0xfeff) {
+					chunk = chunk.slice(1);
+				}
+				isFirstChunk = false;
+
+				chunks.push(chunk);
 
 				if (!more) {
 					return chunks.join('');
@@ -88,41 +98,72 @@ export class TextDecoder implements globalThis.TextDecoder {
 				pendingIndex = 0;
 			}
 
-			// The native TextDecoder will generate "REPLACEMENT CHARACTER" where the
-			// input data is invalid. Here, we blindly parse the data even if it's
-			// wrong: e.g., if a 3-byte sequence doesn't have two valid continuations.
-
 			var byte1 = bytes[inputIndex++];
 			if ((byte1 & 0x80) === 0) {
 				// 1-byte or null
 				pending[pendingIndex++] = byte1;
 			} else if ((byte1 & 0xe0) === 0xc0) {
 				// 2-byte
-				var byte2 = bytes[inputIndex++] & 0x3f;
-				pending[pendingIndex++] = ((byte1 & 0x1f) << 6) | byte2;
+				var byte2 = bytes[inputIndex++];
+				if (byte2 === undefined || (byte2 & 0xc0) !== 0x80) {
+					if (this.fatal) throw new TypeError('Invalid UTF-8 sequence');
+					pending[pendingIndex++] = 0xfffd;
+					if (byte2 !== undefined) inputIndex--;
+				} else {
+					pending[pendingIndex++] = ((byte1 & 0x1f) << 6) | (byte2 & 0x3f);
+				}
 			} else if ((byte1 & 0xf0) === 0xe0) {
 				// 3-byte
-				var byte2 = bytes[inputIndex++] & 0x3f;
-				var byte3 = bytes[inputIndex++] & 0x3f;
-				pending[pendingIndex++] = ((byte1 & 0x1f) << 12) | (byte2 << 6) | byte3;
+				var byte2 = bytes[inputIndex++];
+				if (byte2 === undefined || (byte2 & 0xc0) !== 0x80) {
+					if (this.fatal) throw new TypeError('Invalid UTF-8 sequence');
+					pending[pendingIndex++] = 0xfffd;
+					if (byte2 !== undefined) inputIndex--;
+				} else {
+					var byte3 = bytes[inputIndex++];
+					if (byte3 === undefined || (byte3 & 0xc0) !== 0x80) {
+						if (this.fatal) throw new TypeError('Invalid UTF-8 sequence');
+						pending[pendingIndex++] = 0xfffd;
+						if (byte3 !== undefined) inputIndex--;
+					} else {
+						pending[pendingIndex++] = ((byte1 & 0x0f) << 12) | ((byte2 & 0x3f) << 6) | (byte3 & 0x3f);
+					}
+				}
 			} else if ((byte1 & 0xf8) === 0xf0) {
 				// 4-byte
-				var byte2 = bytes[inputIndex++] & 0x3f;
-				var byte3 = bytes[inputIndex++] & 0x3f;
-				var byte4 = bytes[inputIndex++] & 0x3f;
-
-				// this can be > 0xffff, so possibly generate surrogates
-				var codepoint =
-					((byte1 & 0x07) << 0x12) | (byte2 << 0x0c) | (byte3 << 0x06) | byte4;
-				if (codepoint > 0xffff) {
-					// codepoint &= ~0x10000;
-					codepoint -= 0x10000;
-					pending[pendingIndex++] = ((codepoint >>> 10) & 0x3ff) | 0xd800;
-					codepoint = 0xdc00 | (codepoint & 0x3ff);
+				var byte2 = bytes[inputIndex++];
+				if (byte2 === undefined || (byte2 & 0xc0) !== 0x80) {
+					if (this.fatal) throw new TypeError('Invalid UTF-8 sequence');
+					pending[pendingIndex++] = 0xfffd;
+					if (byte2 !== undefined) inputIndex--;
+				} else {
+					var byte3 = bytes[inputIndex++];
+					if (byte3 === undefined || (byte3 & 0xc0) !== 0x80) {
+						if (this.fatal) throw new TypeError('Invalid UTF-8 sequence');
+						pending[pendingIndex++] = 0xfffd;
+						if (byte3 !== undefined) inputIndex--;
+					} else {
+						var byte4 = bytes[inputIndex++];
+						if (byte4 === undefined || (byte4 & 0xc0) !== 0x80) {
+							if (this.fatal) throw new TypeError('Invalid UTF-8 sequence');
+							pending[pendingIndex++] = 0xfffd;
+							if (byte4 !== undefined) inputIndex--;
+						} else {
+							// this can be > 0xffff, so possibly generate surrogates
+							var codepoint =
+								((byte1 & 0x07) << 0x12) | ((byte2 & 0x3f) << 0x0c) | ((byte3 & 0x3f) << 0x06) | (byte4 & 0x3f);
+							if (codepoint > 0xffff) {
+								codepoint -= 0x10000;
+								pending[pendingIndex++] = ((codepoint >>> 10) & 0x3ff) | 0xd800;
+								codepoint = 0xdc00 | (codepoint & 0x3ff);
+							}
+							pending[pendingIndex++] = codepoint;
+						}
+					}
 				}
-				pending[pendingIndex++] = codepoint;
 			} else {
 				// invalid initial byte
+				if (this.fatal) throw new TypeError('Invalid UTF-8 sequence');
 				pending[pendingIndex++] = 0xfffd;
 			}
 		}
