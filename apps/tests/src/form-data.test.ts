@@ -45,4 +45,83 @@ test('FormData multipart', async () => {
 	assert.equal(await file2.text(), 'contents');
 });
 
+test('FormData append Blob gets default filename "blob"', () => {
+	const form = new FormData();
+	const blob = new Blob(['hello'], { type: 'text/plain' });
+
+	form.append('file', blob);
+	const entry = form.get('file');
+	assert.ok(entry && typeof entry !== 'string');
+	assert.instance(entry, File);
+	assert.equal(entry.name, 'blob');
+	assert.equal(entry.type, 'text/plain');
+});
+
+test('FormData append Blob with custom filename', () => {
+	const form = new FormData();
+	const blob = new Blob(['hello'], { type: 'text/plain' });
+
+	form.append('file', blob, 'custom.txt');
+	const entry = form.get('file');
+	assert.ok(entry && typeof entry !== 'string');
+	assert.instance(entry, File);
+	assert.equal(entry.name, 'custom.txt');
+});
+
+test('FormData set Blob gets default filename "blob"', () => {
+	const form = new FormData();
+	const blob = new Blob(['hello'], { type: 'application/octet-stream' });
+
+	form.set('file', blob);
+	const entry = form.get('file');
+	assert.ok(entry && typeof entry !== 'string');
+	assert.instance(entry, File);
+	assert.equal(entry.name, 'blob');
+});
+
+test('FormData set() removes duplicate entries', () => {
+	const form = new FormData();
+	form.append('key', 'first');
+	form.append('key', 'second');
+	form.append('key', 'third');
+	form.append('other', 'keep');
+
+	assert.equal(form.getAll('key').length, 3);
+
+	form.set('key', 'replaced');
+
+	assert.equal(form.getAll('key'), ['replaced']);
+	assert.equal(form.get('key'), 'replaced');
+	assert.equal(form.get('other'), 'keep');
+});
+
+test('FormData set() replaces at first occurrence position', () => {
+	const form = new FormData();
+	form.append('a', '1');
+	form.append('key', 'first');
+	form.append('b', '2');
+	form.append('key', 'second');
+	form.append('c', '3');
+
+	form.set('key', 'replaced');
+
+	// Verify order: a, key(replaced), b, c — 'second' entry removed
+	const entries = [...form.entries()];
+	assert.equal(entries.length, 4);
+	assert.equal(entries[0], ['a', '1']);
+	assert.equal(entries[1], ['key', 'replaced']);
+	assert.equal(entries[2], ['b', '2']);
+	assert.equal(entries[3], ['c', '3']);
+});
+
+test('FormData set() adds entry if name does not exist', () => {
+	const form = new FormData();
+	form.append('existing', 'value');
+
+	form.set('newkey', 'newvalue');
+
+	assert.equal(form.get('newkey'), 'newvalue');
+	assert.equal(form.getAll('newkey'), ['newvalue']);
+});
+
 test.run();
