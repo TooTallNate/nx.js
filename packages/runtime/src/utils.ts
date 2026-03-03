@@ -42,7 +42,7 @@ export const def = <T extends any>(value: T, key?: string) => {
 export function bufferSourceToArrayBuffer(input: BufferSource): ArrayBuffer {
 	return input instanceof ArrayBuffer
 		? input
-		: input.buffer.slice(input.byteOffset, input.byteLength);
+		: input.buffer.slice(input.byteOffset, input.byteOffset + input.byteLength);
 }
 
 export function asyncIteratorToStream<T>(it: AsyncIterableIterator<T>) {
