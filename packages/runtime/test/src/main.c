@@ -83,6 +83,8 @@ static SDL_Texture *sdl_texture = NULL;
 static uint8_t *sdl_framebuffer = NULL;
 static uint32_t sdl_fb_width = 0;
 static uint32_t sdl_fb_height = 0;
+static bool sdl_initialized = false;
+static bool sdl_has_vsync = false;
 #endif
 
 // Console rendering stubs — on host, print/printErr go to stdout/stderr
@@ -111,9 +113,14 @@ void nx_framebuffer_exit(void) {
 		SDL_DestroyWindow(sdl_window);
 		sdl_window = NULL;
 	}
+	if (sdl_initialized) {
+		SDL_Quit();
+		sdl_initialized = false;
+	}
 	sdl_framebuffer = NULL;
 	sdl_fb_width = 0;
 	sdl_fb_height = 0;
+	sdl_has_vsync = false;
 #endif
 }
 
@@ -152,39 +159,42 @@ static JSValue nx_framebuffer_init(JSContext *ctx, JSValueConst this_val,
 		return JS_ThrowInternalError(ctx, "SDL_Init failed: %s",
 		                             SDL_GetError());
 	}
+	sdl_initialized = true;
 
 	sdl_window = SDL_CreateWindow("nxjs-test", SDL_WINDOWPOS_CENTERED,
 	                              SDL_WINDOWPOS_CENTERED, width, height,
 	                              SDL_WINDOW_SHOWN);
 	if (!sdl_window) {
-		return JS_ThrowInternalError(ctx, "SDL_CreateWindow failed: %s",
-		                             SDL_GetError());
+		JSValue err = JS_ThrowInternalError(
+		    ctx, "SDL_CreateWindow failed: %s", SDL_GetError());
+		nx_framebuffer_exit();
+		return err;
 	}
 
 	sdl_renderer = SDL_CreateRenderer(
 	    sdl_window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-	if (!sdl_renderer) {
-		// Fall back to software renderer
+	if (sdl_renderer) {
+		sdl_has_vsync = true;
+	} else {
+		// Fall back to software renderer (no vsync)
 		sdl_renderer = SDL_CreateRenderer(sdl_window, -1,
 		                                  SDL_RENDERER_SOFTWARE);
 	}
 	if (!sdl_renderer) {
-		SDL_DestroyWindow(sdl_window);
-		sdl_window = NULL;
-		return JS_ThrowInternalError(ctx, "SDL_CreateRenderer failed: %s",
-		                             SDL_GetError());
+		JSValue err = JS_ThrowInternalError(
+		    ctx, "SDL_CreateRenderer failed: %s", SDL_GetError());
+		nx_framebuffer_exit();
+		return err;
 	}
 
 	sdl_texture =
 	    SDL_CreateTexture(sdl_renderer, SDL_PIXELFORMAT_ARGB8888,
 	                      SDL_TEXTUREACCESS_STREAMING, width, height);
 	if (!sdl_texture) {
-		SDL_DestroyRenderer(sdl_renderer);
-		sdl_renderer = NULL;
-		SDL_DestroyWindow(sdl_window);
-		sdl_window = NULL;
-		return JS_ThrowInternalError(ctx, "SDL_CreateTexture failed: %s",
-		                             SDL_GetError());
+		JSValue err = JS_ThrowInternalError(
+		    ctx, "SDL_CreateTexture failed: %s", SDL_GetError());
+		nx_framebuffer_exit();
+		return err;
 	}
 
 	// Disable alpha blending — copy pixels directly to the render target
@@ -1021,16 +1031,22 @@ int main(int argc, char *argv[]) {
 			}
 #endif
 
-			// Sleep to maintain ~60 FPS
-			struct timespec frame_end;
-			clock_gettime(CLOCK_MONOTONIC, &frame_end);
-			long elapsed_ns = (frame_end.tv_sec - frame_start.tv_sec) *
-			                      1000000000L +
-			                  (frame_end.tv_nsec - frame_start.tv_nsec);
-			if (elapsed_ns < frame_ns) {
-				struct timespec sleep_time = {
-				    .tv_sec = 0, .tv_nsec = frame_ns - elapsed_ns};
-				nanosleep(&sleep_time, NULL);
+			// Sleep to maintain ~60 FPS (skip when SDL vsync is
+			// active — SDL_RenderPresent already blocks to vblank)
+#ifdef NXJS_HAS_SDL
+			if (!sdl_has_vsync)
+#endif
+			{
+				struct timespec frame_end;
+				clock_gettime(CLOCK_MONOTONIC, &frame_end);
+				long elapsed_ns =
+				    (frame_end.tv_sec - frame_start.tv_sec) * 1000000000L +
+				    (frame_end.tv_nsec - frame_start.tv_nsec);
+				if (elapsed_ns < frame_ns) {
+					struct timespec sleep_time = {
+					    .tv_sec = 0, .tv_nsec = frame_ns - elapsed_ns};
+					nanosleep(&sleep_time, NULL);
+				}
 			}
 		}
 	}
@@ -1075,10 +1091,9 @@ cleanup:
 		mbedtls_x509_crt_free(&nx_ctx->ca_chain);
 	}
 
-	// Cleanup SDL
+	// Cleanup SDL (nx_framebuffer_exit calls SDL_Quit if initialized)
 #ifdef NXJS_HAS_SDL
 	nx_framebuffer_exit();
-	SDL_Quit();
 #endif
 
 	int exit_code = nx_ctx->had_error ? 1 : 0;
