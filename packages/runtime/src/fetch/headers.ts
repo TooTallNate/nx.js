@@ -70,7 +70,7 @@ export class Headers implements globalThis.Headers {
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Headers/getSetCookie) */
 	getSetCookie(): string[] {
 		const map = _(this);
-		return map.get('set-cookie') || [];
+		return [...(map.get('set-cookie') || [])];
 	}
 
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Headers/has) */
@@ -82,23 +82,25 @@ export class Headers implements globalThis.Headers {
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Headers/set) */
 	set(name: string, value: string): void {
 		const map = _(this);
-		map.set(normalizeName(name), [value]);
+		map.set(normalizeName(name), [normalizeValue(value)]);
 	}
 
 	forEach(
 		callbackfn: (value: string, key: string, parent: Headers) => void,
 		thisArg?: any,
 	): void {
-		const map = _(this);
-		for (const [name, values] of map) {
-			callbackfn.call(thisArg, getValues(values), name, this);
+		for (const [name, value] of this.entries()) {
+			callbackfn.call(thisArg, value, name, this);
 		}
 	}
 
 	/** Returns an iterator allowing to go through all key/value pairs contained in this object. */
 	*entries(): HeadersIterator<[string, string]> {
 		const map = _(this);
-		for (const [name, values] of map.entries()) {
+		const sorted = [...map.entries()].sort((a, b) =>
+			a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0,
+		);
+		for (const [name, values] of sorted) {
 			if (name === 'set-cookie') {
 				for (const value of values) {
 					yield [name, value];
@@ -141,7 +143,8 @@ function normalizeName(v: unknown) {
 }
 
 function normalizeValue(v: unknown) {
-	return typeof v === 'string' ? v : String(v);
+	const s = typeof v === 'string' ? v : String(v);
+	return s.replace(/^[\t ]+|[\t ]+$/g, '');
 }
 
 const getValues = (v: string[]) => v.join(', ');
