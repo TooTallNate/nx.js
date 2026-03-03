@@ -80,6 +80,18 @@ test('AES-CTR-256 encrypt/decrypt', async (t) => {
 	);
 });
 
+test('AES-CTR importKey rejects invalid key length', async (t) => {
+	let threw = false;
+	try {
+		await crypto.subtle.importKey('raw', new Uint8Array(7), 'AES-CTR', true, [
+			'encrypt',
+		]);
+	} catch {
+		threw = true;
+	}
+	t.ok(threw, 'invalid key length throws');
+});
+
 test('AES-CTR key properties', async (t) => {
 	const key = await crypto.subtle.importKey(
 		'raw',

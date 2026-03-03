@@ -77,6 +77,18 @@ test('AES-CBC-256 encrypt/decrypt with known key', async (t) => {
 	);
 });
 
+test('AES-CBC importKey rejects invalid key length', async (t) => {
+	let threw = false;
+	try {
+		await crypto.subtle.importKey('raw', new Uint8Array(7), 'AES-CBC', true, [
+			'encrypt',
+		]);
+	} catch {
+		threw = true;
+	}
+	t.ok(threw, 'invalid key length throws');
+});
+
 test('AES-CBC key properties', async (t) => {
 	const key = await crypto.subtle.importKey(
 		'raw',

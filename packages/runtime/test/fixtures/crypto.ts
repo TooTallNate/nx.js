@@ -40,6 +40,17 @@ test('crypto.getRandomValues', (t) => {
 	t.notOk(allZero, 'buffer is not all zeros');
 });
 
+test('crypto.getRandomValues with no arguments throws', (t) => {
+	let threw = false;
+	try {
+		// @ts-expect-error intentionally passing no arguments
+		crypto.getRandomValues();
+	} catch {
+		threw = true;
+	}
+	t.ok(threw, 'throws when called with no arguments');
+});
+
 test('crypto.subtle.digest SHA-256', async (t) => {
 	const data = new TextEncoder().encode('abc');
 	const hash = await crypto.subtle.digest('SHA-256', data);
@@ -62,10 +73,26 @@ test('crypto.subtle.digest SHA-1', async (t) => {
 	);
 });
 
+test('crypto.subtle.digest SHA-384', async (t) => {
+	const data = new TextEncoder().encode('abc');
+	const hash = await crypto.subtle.digest('SHA-384', data);
+	t.equal(hash.byteLength, 48, 'SHA-384 produces 48 bytes');
+	t.equal(
+		toHex(hash),
+		'cb00753f45a35e8bb5a03d699ac65007272c32ab0eded1631a8b605a43ff5bed8086072ba1e7cc2358baeca134c825a7',
+		'SHA-384 of "abc"',
+	);
+});
+
 test('crypto.subtle.digest SHA-512', async (t) => {
 	const data = new TextEncoder().encode('abc');
 	const hash = await crypto.subtle.digest('SHA-512', data);
 	t.equal(hash.byteLength, 64, 'SHA-512 produces 64 bytes');
+	t.equal(
+		toHex(hash),
+		'ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a2192992a274fc1a836ba3c23a3feebbd454d4423643ce80e2a9ac94fa54ca49f',
+		'SHA-512 of "abc"',
+	);
 });
 
 test('crypto.subtle.digest empty input', async (t) => {
