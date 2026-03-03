@@ -1,24 +1,10 @@
 import { test } from '../src/tap';
-
-// Inline .wasm bytes so tests work in both QuickJS and Chrome environments
-
-// prettier-ignore
-const ADD_WASM = new Uint8Array([0,97,115,109,1,0,0,0,1,7,1,96,2,127,127,1,127,3,2,1,0,7,7,1,3,97,100,100,0,0,10,9,1,7,0,32,0,32,1,106,11]);
-
-// prettier-ignore
-const FIBONACCI_WASM = new Uint8Array([0,97,115,109,1,0,0,0,1,6,1,96,1,127,1,127,3,2,1,0,7,7,1,3,102,105,98,0,0,10,30,1,28,0,32,0,65,2,72,4,127,32,0,5,32,0,65,1,107,16,0,32,0,65,2,107,16,0,106,11,11]);
-
-// prettier-ignore
-const GLOBALS_WASM = new Uint8Array([0,97,115,109,1,0,0,0,1,5,1,96,0,1,127,3,2,1,0,6,6,1,127,1,65,0,11,7,23,2,7,99,111,117,110,116,101,114,3,0,9,105,110,99,114,101,109,101,110,116,0,0,10,13,1,11,0,35,0,65,1,106,36,0,35,0,11]);
-
-// prettier-ignore
-const IMPORTS_WASM = new Uint8Array([0,97,115,109,1,0,0,0,1,5,1,96,1,127,0,2,11,1,3,101,110,118,3,108,111,103,0,0,3,2,1,0,7,11,1,7,99,97,108,108,76,111,103,0,1,10,8,1,6,0,32,0,16,0,11]);
-
-// prettier-ignore
-const MEMORY_WASM = new Uint8Array([0,97,115,109,1,0,0,0,1,11,2,96,2,127,127,0,96,1,127,1,127,3,3,2,0,1,5,3,1,0,1,7,25,3,6,109,101,109,111,114,121,2,0,5,115,116,111,114,101,0,0,4,108,111,97,100,0,1,10,19,2,9,0,32,0,32,1,54,2,0,11,7,0,32,0,40,2,0,11]);
-
-// prettier-ignore
-const TABLE_WASM = new Uint8Array([0,97,115,109,1,0,0,0,1,14,2,96,2,127,127,1,127,96,3,127,127,127,1,127,3,4,3,0,0,1,4,4,1,112,0,2,7,24,2,5,116,97,98,108,101,1,0,12,99,97,108,108,73,110,100,105,114,101,99,116,0,2,9,8,1,0,65,0,11,2,0,1,10,29,3,7,0,32,0,32,1,106,11,7,0,32,0,32,1,107,11,11,0,32,0,32,1,32,2,17,0,0,11]);
+import ADD_WASM from './wasm/add.wasm';
+import FIBONACCI_WASM from './wasm/fibonacci.wasm';
+import GLOBALS_WASM from './wasm/globals.wasm';
+import IMPORTS_WASM from './wasm/imports.wasm';
+import MEMORY_WASM from './wasm/memory.wasm';
+import TABLE_WASM from './wasm/table.wasm';
 
 test('WebAssembly.Module and Instance - add', (t) => {
 	const module = new WebAssembly.Module(ADD_WASM);

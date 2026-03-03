@@ -41,6 +41,7 @@ await build({
 	outExtension: { '.js': '.js' },
 	// No external dependencies — everything is inlined
 	platform: 'neutral',
+	loader: { '.wasm': 'binary' },
 	// Suppress banner/footer for clean output
 	logLevel: 'warning',
 });
