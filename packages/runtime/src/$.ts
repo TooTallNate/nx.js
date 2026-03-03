@@ -3,7 +3,7 @@ import type { CanvasRenderingContext2D } from './canvas/canvas-rendering-context
 import type { ImageBitmap } from './canvas/image-bitmap';
 import type { OffscreenCanvas } from './canvas/offscreen-canvas';
 import type { OffscreenCanvasRenderingContext2D } from './canvas/offscreen-canvas-rendering-context-2d';
-import type { Crypto, CryptoKey, SubtleCrypto } from './crypto';
+import type { Crypto, CryptoKey } from './crypto';
 import type { DOMMatrix, DOMMatrixInit, DOMMatrixReadOnly } from './dommatrix';
 import type { DOMPoint, DOMPointInit } from './dompoint';
 import type { FontFace } from './font/font-face';
