@@ -104,6 +104,9 @@ export class Request extends Body implements globalThis.Request {
 		let headers = init.headers;
 		let method = normalizeMethod(init.method);
 		if (input instanceof Request) {
+			if (input.bodyUsed) {
+				throw new TypeError('Already read');
+			}
 			if (!body) body = input;
 			if (!headers) headers = input.headers;
 			if (!method) method = input.method;
@@ -116,9 +119,6 @@ export class Request extends Body implements globalThis.Request {
 		super(body, headers);
 
 		if (input instanceof Request) {
-			if (input.bodyUsed) {
-				throw new TypeError('Already read');
-			}
 			this.url = input.url;
 			this.cache = init.cache || input.cache;
 			this.credentials = input.credentials;
