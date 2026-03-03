@@ -92,6 +92,14 @@ export class Crypto implements globalThis.Crypto {
 	 * @see https://developer.mozilla.org/docs/Web/API/Crypto/getRandomValues
 	 */
 	getRandomValues<T extends ArrayBufferView | null>(array: T): T {
+		if (array && (array as ArrayBufferView).byteLength > 65536) {
+			throw new DOMException(
+				"Failed to execute 'getRandomValues' on 'Crypto': The ArrayBufferView's byte length ("+
+					(array as ArrayBufferView).byteLength +
+					') exceeds the number of bytes of entropy available via this API (65536).',
+				'QuotaExceededError',
+			);
+		}
 		stub();
 	}
 
@@ -150,12 +158,16 @@ export class SubtleCrypto implements globalThis.SubtleCrypto {
 	 * @returns A Promise which will be fulfilled with the decrypted data (also known as "plaintext") as an `ArrayBuffer`.
 	 * @see https://developer.mozilla.org/docs/Web/API/SubtleCrypto/decrypt
 	 */
-	decrypt<Cipher extends KeyAlgorithmIdentifier>(
+	async decrypt<Cipher extends KeyAlgorithmIdentifier>(
 		algorithm: EncryptionAlgorithm<Cipher>,
 		key: CryptoKey<Cipher>,
 		data: BufferSource,
 	): Promise<ArrayBuffer> {
-		stub();
+		return $.cryptoDecrypt(
+			normalizeAlgorithm(algorithm as AlgorithmIdentifier),
+			key,
+			data,
+		);
 	}
 
 	async deriveBits(

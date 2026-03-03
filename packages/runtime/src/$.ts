@@ -197,6 +197,11 @@ export interface Init {
 		key: CryptoKey<any>,
 		data: BufferSource,
 	): Promise<ArrayBuffer>;
+	cryptoDecrypt(
+		algorithm: Algorithm,
+		key: CryptoKey<any>,
+		data: BufferSource,
+	): Promise<ArrayBuffer>;
 	cryptoSign(
 		algorithm: Algorithm,
 		key: CryptoKey<any>,

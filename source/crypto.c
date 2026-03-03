@@ -2900,9 +2900,6 @@ static JSValue nx_crypto_init(JSContext *ctx, JSValueConst this_val, int argc,
 
 static JSValue nx_crypto_subtle_init(JSContext *ctx, JSValueConst this_val,
 									 int argc, JSValueConst *argv) {
-	JSValue proto = JS_GetPropertyStr(ctx, argv[0], "prototype");
-	NX_DEF_FUNC(proto, "decrypt", nx_crypto_subtle_decrypt, 3);
-	JS_FreeValue(ctx, proto);
 	return JS_UNDEFINED;
 }
 
@@ -3656,6 +3653,7 @@ static const JSCFunctionListEntry function_list[] = {
 	JS_CFUNC_DEF("cryptoSubtleInit", 1, nx_crypto_subtle_init),
 	JS_CFUNC_DEF("cryptoDigest", 0, nx_crypto_digest),
 	JS_CFUNC_DEF("cryptoEncrypt", 0, nx_crypto_encrypt),
+	JS_CFUNC_DEF("cryptoDecrypt", 0, nx_crypto_subtle_decrypt),
 	JS_CFUNC_DEF("cryptoSign", 0, nx_crypto_sign),
 	JS_CFUNC_DEF("cryptoVerify", 0, nx_crypto_verify),
 	JS_CFUNC_DEF("cryptoExportKey", 0, nx_crypto_export_key),
