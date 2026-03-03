@@ -1,15 +1,5 @@
 import { test } from '../src/tap';
 
-// Uint8Array hex methods (TC39 stage 4, supported in all target runtimes)
-declare global {
-	interface Uint8Array {
-		toHex(): string;
-	}
-	interface Uint8ArrayConstructor {
-		fromHex(hex: string): Uint8Array;
-	}
-}
-
 test('AES-GCM-128 encrypt/decrypt round trip', async (t) => {
 	const keyData = new Uint8Array(16);
 	const iv = new Uint8Array(12);

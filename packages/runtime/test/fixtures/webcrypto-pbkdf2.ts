@@ -1,15 +1,5 @@
 import { test } from '../src/tap';
 
-// Uint8Array hex methods (TC39 stage 4, supported in all target runtimes)
-declare global {
-	interface Uint8Array {
-		toHex(): string;
-	}
-	interface Uint8ArrayConstructor {
-		fromHex(hex: string): Uint8Array;
-	}
-}
-
 test('PBKDF2 RFC 6070 test vector (SHA-1)', async (t) => {
 	const password = new TextEncoder().encode('password');
 	const salt = new TextEncoder().encode('salt');

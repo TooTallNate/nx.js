@@ -1,15 +1,5 @@
 import { test } from '../src/tap';
 
-// Uint8Array hex methods (TC39 stage 4, supported in all target runtimes)
-declare global {
-	interface Uint8Array {
-		toHex(): string;
-	}
-	interface Uint8ArrayConstructor {
-		fromHex(hex: string): Uint8Array;
-	}
-}
-
 function hexToBytes(hex: string): Uint8Array {
 	const bytes = new Uint8Array(hex.length / 2);
 	for (let i = 0; i < hex.length; i += 2) {
