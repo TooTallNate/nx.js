@@ -349,6 +349,9 @@ static JSValue nx_url_search_params_get(JSContext *ctx, JSValueConst this_val,
 	STR(key, 0);
 	ada_string val = ada_search_params_get(data->params, key, key_length);
 	JS_FreeCString(ctx, key);
+	if (val.data == NULL) {
+		return JS_NULL;
+	}
 	return JS_NewStringLen(ctx, val.data, val.length);
 }
 

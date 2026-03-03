@@ -8,7 +8,11 @@ import { File, Folder, Files } from 'fumadocs-ui/components/files';
 nx.js can launch the Nintendo Switch's built-in web browser as a Library Applet, with support for bidirectional messaging between your app and the browser via `window.nx`.
 
 <Callout type="warn">
-Web browser applets require **Application mode**. Your app must be running as an installed NSP, or launched from hbmenu while holding R over a game (title override).
+Web browser applets require **Application mode**. Your app must be running as an installed NSP, or launched from hbmenu while holding <Icon></Icon> over a game (title override).
+</Callout>
+
+<Callout type="error">
+**Firmware 19.0.0+:** Web browser applets currently **do not work** on firmware version 19 and later when using Atmosphère. This is a limitation of Atmosphère's compatibility with the web applet on newer firmware — not a nx.js issue. If you need web applet functionality, stay on firmware 18.x or earlier until Atmosphère adds support.
 </Callout>
 
 ## Online Mode
@@ -101,7 +105,7 @@ For the full list of available options, see the [`WebAppletOptions`](/runtime/ap
 
 A common pattern is to use JSON-based RPC between your app and the browser UI:
 
-```typescript
+```typescript title="romfs/main.ts"
 // nx.js side
 const applet = new Switch.WebApplet('htmldoc:/index.html');
 
@@ -129,8 +133,8 @@ applet.addEventListener('message', (e) => {
 await applet.start({ jsExtension: true });
 ```
 
-```javascript
-// Browser side (in htmldoc/index.html)
+```javascript title="htmldoc/app.js"
+// Browser side
 let msgId = 0;
 const pending = {};
 
