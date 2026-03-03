@@ -105,7 +105,7 @@ For the full list of available options, see the [`WebAppletOptions`](/runtime/ap
 
 A common pattern is to use JSON-based RPC between your app and the browser UI:
 
-```typescript
+```typescript title="romfs/main.ts"
 // nx.js side
 const applet = new Switch.WebApplet('htmldoc:/index.html');
 
@@ -133,8 +133,8 @@ applet.addEventListener('message', (e) => {
 await applet.start({ jsExtension: true });
 ```
 
-```javascript
-// Browser side (in htmldoc/index.html)
+```javascript title="htmldoc/app.js"
+// Browser side
 let msgId = 0;
 const pending = {};
 
