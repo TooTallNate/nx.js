@@ -34,14 +34,17 @@ test('crypto.getRandomValues', (t) => {
 test('crypto.getRandomValues QuotaExceededError for large arrays', (t) => {
 	let threw = false;
 	let errorName = '';
+	let isDOMException = false;
 	try {
 		crypto.getRandomValues(new Uint8Array(65537));
 	} catch (e: any) {
 		threw = true;
 		errorName = e.name;
+		isDOMException = e instanceof DOMException;
 	}
 	t.ok(threw, 'throws for >65536 bytes');
 	t.equal(errorName, 'QuotaExceededError', 'error name is QuotaExceededError');
+	t.ok(isDOMException, 'error is instanceof DOMException');
 });
 
 test('crypto.getRandomValues allows exactly 65536 bytes', (t) => {
