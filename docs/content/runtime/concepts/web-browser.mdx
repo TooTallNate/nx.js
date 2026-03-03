@@ -11,6 +11,10 @@ nx.js can launch the Nintendo Switch's built-in web browser as a Library Applet,
 Web browser applets require **Application mode**. Your app must be running as an installed NSP, or launched from hbmenu while holding <Icon></Icon> over a game (title override).
 </Callout>
 
+<Callout type="error">
+**Firmware 19.0.0+:** Web browser applets currently **do not work** on firmware version 19 and later when using Atmosphère. This is a limitation of Atmosphère's compatibility with the web applet on newer firmware — not a nx.js issue. If you need web applet functionality, stay on firmware 18.x or earlier until Atmosphère adds support.
+</Callout>
+
 ## Online Mode
 
 Pass an HTTP or HTTPS URL to open a web page in the browser. The nx.js event loop continues running, so your app can send and receive messages while the browser is open.
