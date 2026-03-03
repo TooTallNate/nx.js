@@ -79,10 +79,11 @@ test('blob() after arrayBuffer() throws TypeError', async (t) => {
 
 // --- bodyUsed reflects stream disturbance ---
 
-test('bodyUsed is true when body stream is locked', (t) => {
+test('bodyUsed is true after reading from stream', async (t) => {
 	const res = new Response('hello');
 	const reader = res.body!.getReader();
-	t.equal(res.bodyUsed, true, 'bodyUsed is true when stream is locked');
+	await reader.read();
+	t.equal(res.bodyUsed, true, 'bodyUsed is true after reading');
 	reader.releaseLock();
 });
 
