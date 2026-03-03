@@ -1,12 +1,13 @@
 import { test } from '../src/tap';
 
-function toHex(buf: ArrayBuffer): string {
-	const bytes = new Uint8Array(buf);
-	let hex = '';
-	for (let i = 0; i < bytes.length; i++) {
-		hex += bytes[i].toString(16).padStart(2, '0');
+// Uint8Array hex methods (TC39 stage 4, supported in all target runtimes)
+declare global {
+	interface Uint8Array {
+		toHex(): string;
 	}
-	return hex;
+	interface Uint8ArrayConstructor {
+		fromHex(hex: string): Uint8Array;
+	}
 }
 
 test('AES-GCM-128 encrypt/decrypt round trip', async (t) => {
@@ -245,5 +246,5 @@ test('AES-GCM exportKey round trip', async (t) => {
 	);
 
 	const enc2 = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, reimported, plaintext);
-	t.equal(toHex(enc1), toHex(enc2), 'exported/reimported key produces same ciphertext');
+	t.equal(new Uint8Array(enc1).toHex(), new Uint8Array(enc2).toHex(), 'exported/reimported key produces same ciphertext');
 });

@@ -1,12 +1,13 @@
 import { test } from '../src/tap';
 
-function toHex(buf: ArrayBuffer): string {
-	const bytes = new Uint8Array(buf);
-	let hex = '';
-	for (let i = 0; i < bytes.length; i++) {
-		hex += bytes[i].toString(16).padStart(2, '0');
+// Uint8Array hex methods (TC39 stage 4, supported in all target runtimes)
+declare global {
+	interface Uint8Array {
+		toHex(): string;
 	}
-	return hex;
+	interface Uint8ArrayConstructor {
+		fromHex(hex: string): Uint8Array;
+	}
 }
 
 test('AES-CBC-128 encrypt/decrypt with known key', async (t) => {

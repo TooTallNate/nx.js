@@ -1,12 +1,13 @@
 import { test } from '../src/tap';
 
-function toHex(buf: ArrayBuffer): string {
-	const bytes = new Uint8Array(buf);
-	let hex = '';
-	for (let i = 0; i < bytes.length; i++) {
-		hex += bytes[i].toString(16).padStart(2, '0');
+// Uint8Array hex methods (TC39 stage 4, supported in all target runtimes)
+declare global {
+	interface Uint8Array {
+		toHex(): string;
 	}
-	return hex;
+	interface Uint8ArrayConstructor {
+		fromHex(hex: string): Uint8Array;
+	}
 }
 
 test('HMAC sign/verify with SHA-256', async (t) => {
@@ -120,5 +121,5 @@ test('HMAC exportKey round trip', async (t) => {
 
 	const exported = await crypto.subtle.exportKey('raw', key);
 	t.equal(exported.byteLength, 32, 'exported key is 32 bytes');
-	t.equal(toHex(exported), toHex(keyData.buffer), 'exported key matches original');
+	t.equal(new Uint8Array(exported).toHex(), new Uint8Array(keyData.buffer).toHex(), 'exported key matches original');
 });

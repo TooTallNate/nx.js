@@ -1,12 +1,13 @@
 import { test } from '../src/tap';
 
-function toHex(buf: ArrayBuffer): string {
-	const bytes = new Uint8Array(buf);
-	let hex = '';
-	for (let i = 0; i < bytes.length; i++) {
-		hex += bytes[i].toString(16).padStart(2, '0');
+// Uint8Array hex methods (TC39 stage 4, supported in all target runtimes)
+declare global {
+	interface Uint8Array {
+		toHex(): string;
 	}
-	return hex;
+	interface Uint8ArrayConstructor {
+		fromHex(hex: string): Uint8Array;
+	}
 }
 
 function hexToBytes(hex: string): Uint8Array {
@@ -38,7 +39,7 @@ test('HKDF RFC 5869 Test Case 1', async (t) => {
 
 	t.equal(derived.byteLength, 42, 'derived 42 bytes');
 	t.equal(
-		toHex(derived),
+		new Uint8Array(derived).toHex(),
 		'3cb25f25faacd57a90434f64d0362f2a2d2d0a90cf1a5a4c5db02d56ecc4c5bf34007208d5b887185865',
 		'matches RFC 5869 TC1 expected output',
 	);
@@ -67,7 +68,7 @@ test('HKDF RFC 5869 Test Case 3 (empty salt/info)', async (t) => {
 	);
 
 	t.equal(
-		toHex(derived),
+		new Uint8Array(derived).toHex(),
 		'8da4e775a563c18f715f802a063c5a31b8a11f5c5ee1879ec3454e5f3c738d2d9d201395faa4b61a96c8',
 		'matches RFC 5869 TC3 expected output',
 	);

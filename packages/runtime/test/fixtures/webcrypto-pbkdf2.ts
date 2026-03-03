@@ -1,12 +1,13 @@
 import { test } from '../src/tap';
 
-function toHex(buf: ArrayBuffer): string {
-	const bytes = new Uint8Array(buf);
-	let hex = '';
-	for (let i = 0; i < bytes.length; i++) {
-		hex += bytes[i].toString(16).padStart(2, '0');
+// Uint8Array hex methods (TC39 stage 4, supported in all target runtimes)
+declare global {
+	interface Uint8Array {
+		toHex(): string;
 	}
-	return hex;
+	interface Uint8ArrayConstructor {
+		fromHex(hex: string): Uint8Array;
+	}
 }
 
 test('PBKDF2 RFC 6070 test vector (SHA-1)', async (t) => {
@@ -28,7 +29,7 @@ test('PBKDF2 RFC 6070 test vector (SHA-1)', async (t) => {
 	);
 
 	t.equal(
-		toHex(derived),
+		new Uint8Array(derived).toHex(),
 		'4b007901b765489abead49d926f721d065a429c1',
 		'matches RFC 6070 expected output',
 	);
@@ -54,7 +55,7 @@ test('PBKDF2 with SHA-256', async (t) => {
 
 	t.equal(derived.byteLength, 32, 'derived 32 bytes');
 	t.equal(
-		toHex(derived),
+		new Uint8Array(derived).toHex(),
 		'120fb6cffcf8b32c43e7225256c4f837a86548c92ccc35480805987cb70be17b',
 		'PBKDF2-SHA256 known output',
 	);

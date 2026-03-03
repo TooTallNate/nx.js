@@ -1,12 +1,13 @@
 import { test } from '../src/tap';
 
-function toHex(buf: ArrayBuffer): string {
-	const bytes = new Uint8Array(buf);
-	let hex = '';
-	for (let i = 0; i < bytes.length; i++) {
-		hex += bytes[i].toString(16).padStart(2, '0');
+// Uint8Array hex methods (TC39 stage 4, supported in all target runtimes)
+declare global {
+	interface Uint8Array {
+		toHex(): string;
 	}
-	return hex;
+	interface Uint8ArrayConstructor {
+		fromHex(hex: string): Uint8Array;
+	}
 }
 
 test('ECDH P-256 shared secret derivation', async (t) => {
@@ -33,7 +34,7 @@ test('ECDH P-256 shared secret derivation', async (t) => {
 	);
 
 	t.equal(aliceShared.byteLength, 32, 'P-256 shared secret is 32 bytes');
-	t.equal(toHex(aliceShared), toHex(bobShared), 'both sides derive same secret');
+	t.equal(new Uint8Array(aliceShared).toHex(), new Uint8Array(bobShared).toHex(), 'both sides derive same secret');
 });
 
 test('ECDH P-384 shared secret derivation', async (t) => {
@@ -60,7 +61,7 @@ test('ECDH P-384 shared secret derivation', async (t) => {
 	);
 
 	t.equal(aliceShared.byteLength, 48, 'P-384 shared secret is 48 bytes');
-	t.equal(toHex(aliceShared), toHex(bobShared), 'P-384 both sides match');
+	t.equal(new Uint8Array(aliceShared).toHex(), new Uint8Array(bobShared).toHex(), 'P-384 both sides match');
 });
 
 test('ECDH key properties', async (t) => {
@@ -115,8 +116,8 @@ test('ECDH export/reimport public key derivation', async (t) => {
 		256,
 	);
 	t.equal(
-		toHex(reimportShared),
-		toHex(aliceShared),
+		new Uint8Array(reimportShared).toHex(),
+		new Uint8Array(aliceShared).toHex(),
 		'reimported public key derives same secret',
 	);
 });
