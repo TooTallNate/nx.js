@@ -23,3 +23,5 @@ node_modules
 /?.*
 .vercel
 /.vscode/cache.db*
+test/runtime/build/
+test/runtime/dist/

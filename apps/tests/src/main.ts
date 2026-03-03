@@ -1,5 +1,4 @@
 import './canvas.test';
-import './crypto.test';
 import './dommatrix.test';
 import './error.test';
 import './event-target.test';
@@ -13,4 +12,5 @@ import './text-encoder.test';
 import './window.test';
 import './url.test';
 import './uint8array.test';
+import './webcrypto-aes-xts.test';
 import './websocket.test';
