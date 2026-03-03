@@ -654,6 +654,32 @@ static JSValue nx_crypto_get_random_values(JSContext *ctx,
 	size_t size;
 	void *buf = NX_GetBufferSource(ctx, &size, argv[0]);
 	if (buf) {
+		if (size > 65536) {
+			char msg[256];
+			snprintf(msg, sizeof(msg),
+				"Failed to execute 'getRandomValues' on 'Crypto': "
+				"The ArrayBufferView's byte length (%zu) exceeds the "
+				"number of bytes of entropy available via this API (65536).",
+				size);
+			JSValue global = JS_GetGlobalObject(ctx);
+			JSValue dom_exc_ctor = JS_GetPropertyStr(ctx, global, "DOMException");
+			JS_FreeValue(ctx, global);
+			if (JS_IsUndefined(dom_exc_ctor) || JS_IsException(dom_exc_ctor)) {
+				JS_FreeValue(ctx, dom_exc_ctor);
+				return JS_ThrowTypeError(ctx, "%s", msg);
+			}
+			JSValue args[2];
+			args[0] = JS_NewString(ctx, msg);
+			args[1] = JS_NewString(ctx, "QuotaExceededError");
+			JSValue err = JS_CallConstructor(ctx, dom_exc_ctor, 2, args);
+			JS_FreeValue(ctx, args[0]);
+			JS_FreeValue(ctx, args[1]);
+			JS_FreeValue(ctx, dom_exc_ctor);
+			if (JS_IsException(err)) {
+				return JS_EXCEPTION;
+			}
+			return JS_Throw(ctx, err);
+		}
 		randomGet(buf, size);
 	}
 	return JS_DupValue(ctx, argv[0]);
