@@ -89,6 +89,39 @@ test('RSA-OAEP wrong key fails', async (t) => {
 	t.ok(failed, 'wrong key causes decrypt failure');
 });
 
+test('RSA-OAEP decrypt normalizes string algorithm', async (t) => {
+	const pair = await crypto.subtle.generateKey(
+		{
+			name: 'RSA-OAEP',
+			modulusLength: 2048,
+			publicExponent: new Uint8Array([1, 0, 1]),
+			hash: 'SHA-256',
+		},
+		true,
+		['encrypt', 'decrypt'],
+	);
+
+	const plaintext = new TextEncoder().encode('normalize test');
+	const encrypted = await crypto.subtle.encrypt(
+		'RSA-OAEP',
+		pair.publicKey,
+		plaintext,
+	);
+
+	// Pass algorithm as a plain string to decrypt — normalizeAlgorithm
+	// should convert it to { name: 'RSA-OAEP' } internally
+	const decrypted = await crypto.subtle.decrypt(
+		'RSA-OAEP',
+		pair.privateKey,
+		encrypted,
+	);
+	t.equal(
+		new TextDecoder().decode(decrypted),
+		'normalize test',
+		'decrypt works with string algorithm (normalized)',
+	);
+});
+
 test('RSA-OAEP key usages', async (t) => {
 	const pair = await crypto.subtle.generateKey(
 		{
