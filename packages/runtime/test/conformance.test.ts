@@ -140,6 +140,12 @@ function compareResults(
 	expect(referenceResult.assertions.length).toBeGreaterThan(0);
 
 	// Same number of assertions
+	if (nxjsResult.assertions.length !== referenceResult.assertions.length) {
+		console.log('=== nxjs-test TAP ===');
+		console.log(nxjsTap);
+		console.log('=== reference TAP ===');
+		console.log(referenceTap);
+	}
 	expect(nxjsResult.assertions.length).toBe(referenceResult.assertions.length);
 
 	// Compare each assertion
