@@ -42,7 +42,7 @@ async function* arrayBufferIterator(b: ArrayBuffer) {
 
 async function* formDataIterator(f: FormData, boundary: string) {
 	for (const [name, value] of f) {
-		let header = `${boundary}\r\nContent-Disposition: form-data; name="${name}"`;
+		let header = `--${boundary}\r\nContent-Disposition: form-data; name="${name}"`;
 		if (value instanceof File && value.name) {
 			header += `; filename="${value.name}"\r\n`;
 		} else {
@@ -58,7 +58,7 @@ async function* formDataIterator(f: FormData, boundary: string) {
 			: new Uint8Array(await value.arrayBuffer());
 		yield encoder.encode('\r\n');
 	}
-	yield encoder.encode(`${boundary}--`);
+	yield encoder.encode(`--${boundary}--`);
 }
 
 export type BodyInit =
@@ -71,12 +71,22 @@ export type BodyInit =
 
 export abstract class Body implements globalThis.Body {
 	body: ReadableStream<Uint8Array> | null;
-	bodyUsed: boolean;
+	#bodyUsed: boolean;
 	headers: Headers;
+
+	get bodyUsed(): boolean {
+		if (this.#bodyUsed) return true;
+		if (this.body && this.body.locked) return true;
+		return false;
+	}
+
+	set bodyUsed(value: boolean) {
+		this.#bodyUsed = value;
+	}
 
 	constructor(init?: Body | BodyInit | null, headers?: HeadersInit) {
 		this.body = null;
-		this.bodyUsed = false;
+		this.#bodyUsed = false;
 		this.headers = new Headers(headers);
 		let contentType: string | undefined;
 		let contentLength: number | undefined;
@@ -202,7 +212,7 @@ export abstract class Body implements globalThis.Body {
 					'Could not parse content as FormData (missing "boundary" in "content-type" header)',
 				);
 			}
-			const boundaryBytes = encoder.encode(boundary);
+			const boundaryBytes = encoder.encode(`--${boundary}`);
 			const data = new Uint8Array(await this.arrayBuffer());
 			let pos = 0;
 			let start;
