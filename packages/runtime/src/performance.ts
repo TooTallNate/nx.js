@@ -12,9 +12,17 @@ export class PerformanceEntry {
 	readonly duration: DOMHighResTimeStamp;
 
 	/** @ignore */
-	constructor() {
+	constructor(
+		...args: [
+			typeof INTERNAL_SYMBOL,
+			string,
+			string,
+			DOMHighResTimeStamp,
+			DOMHighResTimeStamp,
+		]
+	) {
 		assertInternalConstructor(arguments);
-		const [, name, entryType, startTime, duration] = arguments;
+		const [, name, entryType, startTime, duration] = args;
 		this.name = name;
 		this.entryType = entryType;
 		this.startTime = startTime;
@@ -39,10 +47,16 @@ export class PerformanceMark extends PerformanceEntry {
 	readonly detail: unknown;
 
 	/** @ignore */
-	constructor() {
+	constructor(
+		...args: [
+			typeof INTERNAL_SYMBOL,
+			string,
+			DOMHighResTimeStamp,
+			unknown?,
+		]
+	) {
 		assertInternalConstructor(arguments);
-		const [, name, startTime, detail] = arguments;
-		// @ts-expect-error Internal constructor
+		const [, name, startTime, detail] = args;
 		super(INTERNAL_SYMBOL, name, 'mark', startTime, 0);
 		this.detail = detail ?? null;
 	}
@@ -63,10 +77,17 @@ export class PerformanceMeasure extends PerformanceEntry {
 	readonly detail: unknown;
 
 	/** @ignore */
-	constructor() {
+	constructor(
+		...args: [
+			typeof INTERNAL_SYMBOL,
+			string,
+			DOMHighResTimeStamp,
+			DOMHighResTimeStamp,
+			unknown?,
+		]
+	) {
 		assertInternalConstructor(arguments);
-		const [, name, startTime, duration, detail] = arguments;
-		// @ts-expect-error Internal constructor
+		const [, name, startTime, duration, detail] = args;
 		super(INTERNAL_SYMBOL, name, 'measure', startTime, duration);
 		this.detail = detail ?? null;
 	}
@@ -99,7 +120,7 @@ export class Performance {
 	/**
 	 * @ignore
 	 */
-	constructor() {
+	constructor(...args: [typeof INTERNAL_SYMBOL]) {
 		assertInternalConstructor(arguments);
 		this.timeOrigin = Date.now();
 	}
@@ -123,7 +144,6 @@ export class Performance {
 		markOptions?: { startTime?: DOMHighResTimeStamp; detail?: unknown }
 	): PerformanceMark {
 		const startTime = markOptions?.startTime ?? this.now();
-		// @ts-expect-error Internal constructor
 		const mark = new PerformanceMark(
 			INTERNAL_SYMBOL,
 			markName,
@@ -179,7 +199,6 @@ export class Performance {
 		}
 
 		const duration = endTime - startTime;
-		// @ts-expect-error Internal constructor
 		const measure = new PerformanceMeasure(
 			INTERNAL_SYMBOL,
 			measureName,
@@ -267,6 +286,5 @@ export class Performance {
 }
 def(Performance);
 
-// @ts-expect-error Internal constructor
 export var performance = new Performance(INTERNAL_SYMBOL);
 def(performance, 'performance');
