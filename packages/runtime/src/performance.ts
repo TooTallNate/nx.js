@@ -1,3 +1,4 @@
+import { DOMException } from './dom-exception';
 import { INTERNAL_SYMBOL } from './internal';
 import { assertInternalConstructor, def } from './utils';
 import type { DOMHighResTimeStamp } from './types';
