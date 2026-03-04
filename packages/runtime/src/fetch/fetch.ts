@@ -140,7 +140,21 @@ function createContentLengthStream(contentLength: number) {
 const ACCEPT_ENCODINGS = new Set(['zstd', 'gzip', 'deflate']);
 const ACCEPT_ENCODING_HEADER = [...ACCEPT_ENCODINGS].join(', ');
 
-async function fetchHttp(req: Request, url: URL): Promise<Response> {
+const MAX_REDIRECTS = 20;
+
+function isSameOrigin(a: URL, b: URL): boolean {
+	return a.protocol === b.protocol && a.hostname === b.hostname && a.port === b.port;
+}
+
+async function fetchHttp(
+	req: Request,
+	url: URL,
+	redirectCount = 0,
+): Promise<Response> {
+	if (redirectCount > MAX_REDIRECTS) {
+		throw new TypeError('Failed to fetch: too many redirects');
+	}
+
 	const isHttps = url.protocol === 'https:';
 	const { hostname } = url;
 	const port = +url.port || (isHttps ? 443 : 80);
@@ -151,6 +165,17 @@ async function fetchHttp(req: Request, url: URL): Promise<Response> {
 		{ hostname, port },
 		{ secureTransport: isHttps ? 'on' : 'off', connect },
 	);
+
+	// Wire AbortSignal to socket
+	if (req.signal) {
+		if (req.signal.aborted) {
+			socket.close();
+			throw new DOMException('The operation was aborted.', 'AbortError');
+		}
+		req.signal.addEventListener('abort', () => {
+			socket.close();
+		}, { once: true });
+	}
 
 	if (!req.headers.has('host')) {
 		req.headers.set('host', url.host);
@@ -207,22 +232,30 @@ async function fetchHttp(req: Request, url: URL): Promise<Response> {
 
 	const hi = headersIterator(r);
 
-	// Parse response status
+	// Parse response status line — use indexOf to preserve multi-word status text
 	const firstLine = await hi.next();
 	if (firstLine.done || !firstLine.value.line) {
 		throw new Error('Failed to read response header');
 	}
-	const [_, statusStr, statusText] = firstLine.value.line.split(' ');
+	const statusLine = firstLine.value.line;
+	const firstSpace = statusLine.indexOf(' ');
+	const secondSpace = statusLine.indexOf(' ', firstSpace + 1);
+	const statusStr = secondSpace === -1
+		? statusLine.slice(firstSpace + 1)
+		: statusLine.slice(firstSpace + 1, secondSpace);
+	const statusText = secondSpace === -1
+		? ''
+		: statusLine.slice(secondSpace + 1);
 	const status = +statusStr;
 
-	// Parse response headers
+	// Parse response headers — use append() to support multi-value headers (e.g. Set-Cookie)
 	let leftover: Uint8Array | undefined;
 	for await (const v of hi) {
 		if (typeof v.line === 'string') {
 			const col = v.line.indexOf(':');
 			const name = v.line.slice(0, col);
 			const value = v.line.slice(col + 1).trim();
-			resHeaders.set(name, value);
+			resHeaders.append(name, value);
 		} else {
 			leftover = v.leftover;
 		}
@@ -230,6 +263,14 @@ async function fetchHttp(req: Request, url: URL): Promise<Response> {
 
 	// Redirect
 	if (((status / 100) | 0) === 3) {
+		if (req.redirect === 'error') {
+			socket.readable.cancel();
+			w.close();
+			throw new TypeError(
+				`URI requested responds with a redirect, redirect mode is set to error: ${url}`,
+			);
+		}
+
 		if (req.redirect === 'follow') {
 			socket.readable.cancel();
 			w.close();
@@ -246,13 +287,24 @@ async function fetchHttp(req: Request, url: URL): Promise<Response> {
 				method = req.method;
 				body = req.body;
 			}
-			const redirect = new Request(redirectUrl, { method, body });
-			const res = await fetchHttp(redirect, redirectUrl);
+
+			// Forward headers, but strip Authorization on cross-origin redirects
+			const redirectHeaders = new Headers(req.headers);
+			redirectHeaders.delete('host');
+			if (!isSameOrigin(url, redirectUrl)) {
+				redirectHeaders.delete('authorization');
+			}
+
+			const redirect = new Request(redirectUrl, {
+				method,
+				body,
+				headers: redirectHeaders,
+				redirect: req.redirect,
+				signal: req.signal,
+			});
+			const res = await fetchHttp(redirect, redirectUrl, redirectCount + 1);
 			res.redirected = true;
 			return res;
-		}
-
-		if (req.redirect === 'error') {
 		}
 
 		// For "manual", just continue with the regular logic
