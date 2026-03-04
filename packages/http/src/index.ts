@@ -32,13 +32,24 @@ export function createServerHandler(handler: ServerHandler) {
 	return async (event: Switch.SocketEvent) => {
 		const s = event.socket;
 		const unshiftable = new UnshiftableStream(s.readable);
-		while (true) {
-			const req = await readRequest(unshiftable);
-			if (!req) break;
-			const res = await handler(req);
-			writeResponse(s.writable, res, 'HTTP/1.1');
+		try {
+			while (true) {
+				const req = await readRequest(unshiftable);
+				if (!req) break;
+				let res: Response;
+				try {
+					res = await handler(req);
+				} catch (err) {
+					res = new Response('Internal Server Error', {
+						status: 500,
+						headers: { connection: 'close' },
+					});
+				}
+				await writeResponse(s.writable, res, 'HTTP/1.1');
+			}
+		} finally {
+			s.close();
 		}
-		s.close();
 	};
 }
 
