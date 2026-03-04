@@ -178,9 +178,7 @@ import './ambientlightsensor';
 
 export type * from './ambientlightsensor';
 
-import './dom-exception';
 
-export type * from './dom-exception';
 
 import './compression-streams';
 
