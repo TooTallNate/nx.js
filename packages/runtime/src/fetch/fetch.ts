@@ -1,4 +1,5 @@
 import { dataUriToBuffer } from 'data-uri-to-buffer';
+import { DOMException } from '../dom-exception';
 import { def } from '../utils';
 import { readFile } from '../fs';
 import { objectUrls } from '../polyfills/url';
