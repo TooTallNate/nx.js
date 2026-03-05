@@ -1,5 +1,4 @@
 import { dataUriToBuffer } from 'data-uri-to-buffer';
-import { DOMException } from '../dom-exception';
 import { def } from '../utils';
 import { readFile } from '../fs';
 import { objectUrls } from '../polyfills/url';
@@ -151,6 +150,7 @@ async function fetchHttp(
 	req: Request,
 	url: URL,
 	redirectCount = 0,
+	bodyBytes?: Uint8Array | null,
 ): Promise<Response> {
 	if (redirectCount > MAX_REDIRECTS) {
 		throw new TypeError('Failed to fetch: too many redirects');
@@ -167,13 +167,16 @@ async function fetchHttp(
 		{ secureTransport: isHttps ? 'on' : 'off', connect },
 	);
 
-	// Wire AbortSignal to socket
+	// Wire AbortSignal to socket — propagate AbortError so pending I/O rejects
 	if (req.signal) {
 		if (req.signal.aborted) {
 			socket.close();
 			throw new DOMException('The operation was aborted.', 'AbortError');
 		}
 		req.signal.addEventListener('abort', () => {
+			const err = req.signal.reason ?? new DOMException('The operation was aborted.', 'AbortError');
+			socket.readable.cancel(err);
+			socket.writable.abort(err);
 			socket.close();
 		}, { once: true });
 	}
@@ -211,21 +214,34 @@ async function fetchHttp(
 	const w = socket.writable.getWriter();
 	await w.write(encoder.encode(header));
 
-	// Flush the request body
-	// TODO: flush async?
-	if (req.body) {
-		if (hasContentLength) {
-			w.releaseLock();
-			await req.body.pipeTo(socket.writable);
-		} else {
-			for await (const chunk of req.body) {
-				await w.write(encoder.encode(`${chunk.byteLength.toString(16)}\r\n`));
-				await w.write(chunk);
-				await w.write(encoder.encode(`\r\n`));
-			}
-			await w.write(encoder.encode('0\r\n\r\n'));
-			w.releaseLock();
+	// Buffer the request body on the first call so it can be replayed on 307/308 redirects.
+	// On subsequent redirects, `bodyBytes` is passed in directly.
+	if (req.body && bodyBytes === undefined) {
+		const chunks: Uint8Array[] = [];
+		for await (const chunk of req.body) {
+			chunks.push(chunk);
 		}
+		const totalLength = chunks.reduce((sum, c) => sum + c.byteLength, 0);
+		bodyBytes = new Uint8Array(totalLength);
+		let offset = 0;
+		for (const c of chunks) {
+			bodyBytes.set(c, offset);
+			offset += c.byteLength;
+		}
+	}
+
+	// Flush the request body
+	if (bodyBytes && bodyBytes.byteLength > 0) {
+		if (hasContentLength) {
+			await w.write(bodyBytes);
+		} else {
+			await w.write(encoder.encode(`${bodyBytes.byteLength.toString(16)}\r\n`));
+			await w.write(bodyBytes);
+			await w.write(encoder.encode('\r\n0\r\n\r\n'));
+		}
+		w.releaseLock();
+	} else {
+		w.releaseLock();
 	}
 
 	const resHeaders = new Headers();
@@ -240,6 +256,9 @@ async function fetchHttp(
 	}
 	const statusLine = firstLine.value.line;
 	const firstSpace = statusLine.indexOf(' ');
+	if (firstSpace === -1) {
+		throw new Error(`Invalid HTTP response status line: ${statusLine}`);
+	}
 	const secondSpace = statusLine.indexOf(' ', firstSpace + 1);
 	const statusStr = secondSpace === -1
 		? statusLine.slice(firstSpace + 1)
@@ -248,6 +267,9 @@ async function fetchHttp(
 		? ''
 		: statusLine.slice(secondSpace + 1);
 	const status = +statusStr;
+	if (isNaN(status)) {
+		throw new Error(`Invalid HTTP status code: ${statusStr}`);
+	}
 
 	// Parse response headers — use append() to support multi-value headers (e.g. Set-Cookie)
 	let leftover: Uint8Array | undefined;
@@ -283,10 +305,10 @@ async function fetchHttp(
 			}
 			const redirectUrl = new URL(loc, req.url);
 			let method: RequestInit['method'] = 'GET';
-			let body: RequestInit['body'] = null;
+			let redirectBody: Uint8Array | null = null;
 			if (status === 307 || status === 308) {
 				method = req.method;
-				body = req.body;
+				redirectBody = bodyBytes ?? null;
 			}
 
 			// Forward headers, but strip Authorization on cross-origin redirects
@@ -298,12 +320,12 @@ async function fetchHttp(
 
 			const redirect = new Request(redirectUrl, {
 				method,
-				body,
+				body: redirectBody,
 				headers: redirectHeaders,
 				redirect: req.redirect,
 				signal: req.signal,
 			});
-			const res = await fetchHttp(redirect, redirectUrl, redirectCount + 1);
+			const res = await fetchHttp(redirect, redirectUrl, redirectCount + 1, redirectBody);
 			res.redirected = true;
 			return res;
 		}
