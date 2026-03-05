@@ -2,7 +2,6 @@
 // By @mo - MIT License
 
 import { def } from '../utils';
-import { DOMException } from '../dom-exception';
 import { Event } from './event';
 import { EventTarget } from './event-target';
 import { setTimeout } from '../timers';
