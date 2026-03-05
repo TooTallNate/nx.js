@@ -237,6 +237,12 @@ function handleInput(gamepad?: Gamepad | null) {
 		}
 	}
 
+	if (state === State.Paused) {
+		if (gamepad.buttons[Button.A].pressed) {
+			state = State.Playing;
+		}
+	}
+
 	if (state === State.GameOver || state === State.Won) {
 		if (gamepad.buttons[Button.A].pressed) {
 			start();
@@ -244,13 +250,13 @@ function handleInput(gamepad?: Gamepad | null) {
 	}
 }
 
-// Touch support
-addEventListener('touchstart', (e: TouchEvent) => {
+// Touch support — use screen canvas as event target
+screen.addEventListener('touchstart', (e: TouchEvent) => {
 	if (e.touches.length > 0) {
 		touchX = e.touches[0].clientX;
 	}
 });
-addEventListener('touchmove', (e: TouchEvent) => {
+screen.addEventListener('touchmove', (e: TouchEvent) => {
 	if (e.touches.length > 0 && state === State.Playing) {
 		const newX = e.touches[0].clientX;
 		if (touchX !== null) {
@@ -259,31 +265,27 @@ addEventListener('touchmove', (e: TouchEvent) => {
 		touchX = newX;
 	}
 });
-addEventListener('touchend', () => {
+screen.addEventListener('touchend', () => {
 	touchX = null;
 });
 
-// Pause with +
+// Pause with + (Playing → Paused); exit with + from Paused/GameOver/Won
 addEventListener('beforeunload', (event) => {
 	if (state === State.Playing) {
 		event.preventDefault();
 		state = State.Paused;
-	} else if (state === State.Paused) {
-		event.preventDefault();
-		state = State.Playing;
 	}
+	// In Paused / GameOver / Won — allow the app to exit (don't preventDefault)
 });
 
 // ── FPS ──────────────────────────────────────────────────────────────
 const fps = new FPS();
 
-fps.addEventListener('update', () => {
-	ctx.fillStyle = '#1a1a2e';
-	ctx.fillRect(W - 110, 0, 110, 40);
+function drawFPS() {
 	ctx.fillStyle = '#ecf0f1';
 	ctx.font = '20px system-ui';
 	ctx.fillText(`FPS: ${Math.round(fps.rate)}`, W - 104, 28);
-});
+}
 
 // ── Main loop ────────────────────────────────────────────────────────
 function step() {
@@ -297,23 +299,26 @@ function step() {
 		drawBall();
 		drawPaddle();
 		drawHUD();
+		drawFPS();
 	} else if (state === State.Paused) {
-		// Draw once then overlay
 		drawBackground();
 		drawBricks();
 		drawBall();
 		drawPaddle();
 		drawHUD();
-		drawOverlay('Paused', 'Press + to resume', '#ecf0f1');
+		drawFPS();
+		drawOverlay('Paused', 'Press A to resume', '#ecf0f1');
 	} else if (state === State.GameOver) {
 		drawBackground();
 		drawBricks();
 		drawPaddle();
 		drawHUD();
+		drawFPS();
 		drawOverlay('Game Over!', 'Press A to play again', '#e74c3c');
 	} else if (state === State.Won) {
 		drawBackground();
 		drawHUD();
+		drawFPS();
 		drawOverlay('You Win!', 'Press A to play again', '#2ecc71');
 	}
 
