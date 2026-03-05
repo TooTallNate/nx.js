@@ -19,7 +19,6 @@ import {
 	type WebSocketInit,
 	INTERNAL_SYMBOL as WS_INTERNAL,
 } from '../../ws/src/frame';
-import { DOMException } from './dom-exception';
 import { INTERNAL_SYMBOL } from './internal';
 import { Blob } from './polyfills/blob';
 import { Event } from './polyfills/event';
