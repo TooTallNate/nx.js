@@ -143,7 +143,9 @@ const ACCEPT_ENCODING_HEADER = [...ACCEPT_ENCODINGS].join(', ');
 const MAX_REDIRECTS = 20;
 
 function isSameOrigin(a: URL, b: URL): boolean {
-	return a.protocol === b.protocol && a.hostname === b.hostname && a.port === b.port;
+	return (
+		a.protocol === b.protocol && a.hostname === b.hostname && a.port === b.port
+	);
 }
 
 async function fetchHttp(
@@ -173,12 +175,18 @@ async function fetchHttp(
 			socket.close();
 			throw new DOMException('The operation was aborted.', 'AbortError');
 		}
-		req.signal.addEventListener('abort', () => {
-			const err = req.signal.reason ?? new DOMException('The operation was aborted.', 'AbortError');
-			socket.readable.cancel(err);
-			socket.writable.abort(err);
-			socket.close();
-		}, { once: true });
+		req.signal.addEventListener(
+			'abort',
+			() => {
+				const err =
+					req.signal.reason ??
+					new DOMException('The operation was aborted.', 'AbortError');
+				socket.readable.cancel(err);
+				socket.writable.abort(err);
+				socket.close();
+			},
+			{ once: true },
+		);
 	}
 
 	if (!req.headers.has('host')) {
@@ -260,12 +268,12 @@ async function fetchHttp(
 		throw new Error(`Invalid HTTP response status line: ${statusLine}`);
 	}
 	const secondSpace = statusLine.indexOf(' ', firstSpace + 1);
-	const statusStr = secondSpace === -1
-		? statusLine.slice(firstSpace + 1)
-		: statusLine.slice(firstSpace + 1, secondSpace);
-	const statusText = secondSpace === -1
-		? ''
-		: statusLine.slice(secondSpace + 1);
+	const statusStr =
+		secondSpace === -1
+			? statusLine.slice(firstSpace + 1)
+			: statusLine.slice(firstSpace + 1, secondSpace);
+	const statusText =
+		secondSpace === -1 ? '' : statusLine.slice(secondSpace + 1);
 	const status = +statusStr;
 	if (isNaN(status)) {
 		throw new Error(`Invalid HTTP status code: ${statusStr}`);
@@ -325,7 +333,12 @@ async function fetchHttp(
 				redirect: req.redirect,
 				signal: req.signal,
 			});
-			const res = await fetchHttp(redirect, redirectUrl, redirectCount + 1, redirectBody);
+			const res = await fetchHttp(
+				redirect,
+				redirectUrl,
+				redirectCount + 1,
+				redirectBody,
+			);
 			res.redirected = true;
 			return res;
 		}

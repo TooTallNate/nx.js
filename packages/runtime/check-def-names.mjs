@@ -63,7 +63,7 @@ if (errors.length > 0) {
 		'\nFix: import the class/function directly from its source definition module.',
 	);
 	console.error(
-		'     e.g. `import { TextEncoder } from \'./polyfills/text-encoder\';`',
+		"     e.g. `import { TextEncoder } from './polyfills/text-encoder';`",
 	);
 	console.error(
 		'\nNote: Adding an explicit name string (e.g. `def(Foo2, "Foo")`) is a last resort —',
@@ -71,9 +71,7 @@ if (errors.length > 0) {
 	console.error(
 		'      it masks the underlying import issue and should only be used when the conflict',
 	);
-	console.error(
-		'      is unavoidable.\n',
-	);
+	console.error('      is unavoidable.\n');
 	process.exit(1);
 } else {
 	console.log(

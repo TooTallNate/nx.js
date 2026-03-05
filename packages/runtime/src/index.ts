@@ -179,8 +179,6 @@ import './ambientlightsensor';
 
 export type * from './ambientlightsensor';
 
-
-
 import './compression-streams';
 
 export type * from './compression-streams';

@@ -57,10 +57,7 @@ export class AbortSignal extends EventTarget implements globalThis.AbortSignal {
 			value:
 				reason !== undefined
 					? reason
-					: new DOMException(
-							'The operation was aborted.',
-							'AbortError',
-						),
+					: new DOMException('The operation was aborted.', 'AbortError'),
 		});
 		return signal;
 	}

@@ -19,7 +19,10 @@ export class TextDecoder implements globalThis.TextDecoder {
 	encoding: string;
 	fatal: boolean;
 	ignoreBOM: boolean;
-	constructor(encoding?: string, options?: { fatal?: boolean; ignoreBOM?: boolean }) {
+	constructor(
+		encoding?: string,
+		options?: { fatal?: boolean; ignoreBOM?: boolean },
+	) {
 		if (
 			typeof encoding === 'string' &&
 			encoding !== 'utf-8' &&
@@ -81,7 +84,12 @@ export class TextDecoder implements globalThis.TextDecoder {
 				var chunk = String.fromCharCode.apply(null, subarray);
 
 				// Strip BOM from the beginning of the output if ignoreBOM is false (default)
-				if (isFirstChunk && !this.ignoreBOM && chunk.length > 0 && chunk.charCodeAt(0) === 0xfeff) {
+				if (
+					isFirstChunk &&
+					!this.ignoreBOM &&
+					chunk.length > 0 &&
+					chunk.charCodeAt(0) === 0xfeff
+				) {
 					chunk = chunk.slice(1);
 				}
 				isFirstChunk = false;
@@ -126,7 +134,8 @@ export class TextDecoder implements globalThis.TextDecoder {
 						pending[pendingIndex++] = 0xfffd;
 						if (byte3 !== undefined) inputIndex--;
 					} else {
-						pending[pendingIndex++] = ((byte1 & 0x0f) << 12) | ((byte2 & 0x3f) << 6) | (byte3 & 0x3f);
+						pending[pendingIndex++] =
+							((byte1 & 0x0f) << 12) | ((byte2 & 0x3f) << 6) | (byte3 & 0x3f);
 					}
 				}
 			} else if ((byte1 & 0xf8) === 0xf0) {
@@ -151,7 +160,10 @@ export class TextDecoder implements globalThis.TextDecoder {
 						} else {
 							// this can be > 0xffff, so possibly generate surrogates
 							var codepoint =
-								((byte1 & 0x07) << 0x12) | ((byte2 & 0x3f) << 0x0c) | ((byte3 & 0x3f) << 0x06) | (byte4 & 0x3f);
+								((byte1 & 0x07) << 0x12) |
+								((byte2 & 0x3f) << 0x0c) |
+								((byte3 & 0x3f) << 0x06) |
+								(byte4 & 0x3f);
 							if (codepoint > 0xffff) {
 								codepoint -= 0x10000;
 								pending[pendingIndex++] = ((codepoint >>> 10) & 0x3ff) | 0xd800;

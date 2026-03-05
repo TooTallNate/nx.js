@@ -20,7 +20,14 @@ export interface EventListenerOptions {
 export interface AddEventListenerOptions extends EventListenerOptions {
 	once?: boolean;
 	passive?: boolean;
-	signal?: { aborted: boolean; addEventListener: (type: string, listener: () => void, options?: { once?: boolean }) => void };
+	signal?: {
+		aborted: boolean;
+		addEventListener: (
+			type: string,
+			listener: () => void,
+			options?: { once?: boolean },
+		) => void;
+	};
 }
 
 interface Callback {

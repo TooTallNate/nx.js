@@ -34,7 +34,11 @@ test('RSA-OAEP encrypt/decrypt round trip', async (t) => {
 		plaintext,
 	);
 
-	t.equal(encrypted.byteLength, 256, 'ciphertext is 256 bytes for 2048-bit key');
+	t.equal(
+		encrypted.byteLength,
+		256,
+		'ciphertext is 256 bytes for 2048-bit key',
+	);
 
 	const decrypted = await crypto.subtle.decrypt(
 		{ name: 'RSA-OAEP' },

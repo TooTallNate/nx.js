@@ -94,7 +94,11 @@ test('PBKDF2 deriveKey to AES-CBC round trip', async (t) => {
 
 	t.equal(aesKey.type, 'secret', 'derived key type');
 	t.equal(aesKey.algorithm.name, 'AES-CBC', 'derived key algorithm');
-	t.equal((aesKey.algorithm as AesKeyAlgorithm).length, 256, 'derived key length');
+	t.equal(
+		(aesKey.algorithm as AesKeyAlgorithm).length,
+		256,
+		'derived key length',
+	);
 
 	const iv = new Uint8Array(16);
 	const plaintext = new TextEncoder().encode('Hello, PBKDF2!');

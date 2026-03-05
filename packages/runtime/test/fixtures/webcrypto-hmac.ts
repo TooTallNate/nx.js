@@ -111,5 +111,9 @@ test('HMAC exportKey round trip', async (t) => {
 
 	const exported = await crypto.subtle.exportKey('raw', key);
 	t.equal(exported.byteLength, 32, 'exported key is 32 bytes');
-	t.equal(new Uint8Array(exported).toHex(), new Uint8Array(keyData.buffer).toHex(), 'exported key matches original');
+	t.equal(
+		new Uint8Array(exported).toHex(),
+		new Uint8Array(keyData.buffer).toHex(),
+		'exported key matches original',
+	);
 });

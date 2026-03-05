@@ -24,7 +24,11 @@ test('ECDH P-256 shared secret derivation', async (t) => {
 	);
 
 	t.equal(aliceShared.byteLength, 32, 'P-256 shared secret is 32 bytes');
-	t.equal(new Uint8Array(aliceShared).toHex(), new Uint8Array(bobShared).toHex(), 'both sides derive same secret');
+	t.equal(
+		new Uint8Array(aliceShared).toHex(),
+		new Uint8Array(bobShared).toHex(),
+		'both sides derive same secret',
+	);
 });
 
 test('ECDH P-384 shared secret derivation', async (t) => {
@@ -51,7 +55,11 @@ test('ECDH P-384 shared secret derivation', async (t) => {
 	);
 
 	t.equal(aliceShared.byteLength, 48, 'P-384 shared secret is 48 bytes');
-	t.equal(new Uint8Array(aliceShared).toHex(), new Uint8Array(bobShared).toHex(), 'P-384 both sides match');
+	t.equal(
+		new Uint8Array(aliceShared).toHex(),
+		new Uint8Array(bobShared).toHex(),
+		'P-384 both sides match',
+	);
 });
 
 test('ECDH key properties', async (t) => {
@@ -90,7 +98,11 @@ test('ECDH export/reimport public key derivation', async (t) => {
 	);
 
 	const exportedBob = await crypto.subtle.exportKey('raw', bob.publicKey);
-	t.equal(exportedBob.byteLength, 65, 'P-256 uncompressed public key is 65 bytes');
+	t.equal(
+		exportedBob.byteLength,
+		65,
+		'P-256 uncompressed public key is 65 bytes',
+	);
 
 	const reimportedBob = await crypto.subtle.importKey(
 		'raw',

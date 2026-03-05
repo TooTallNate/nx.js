@@ -91,9 +91,5 @@ test('AES-CBC key properties', async (t) => {
 	t.equal(key.type, 'secret', 'key type is secret');
 	t.equal(key.algorithm.name, 'AES-CBC', 'algorithm name');
 	t.equal(key.extractable, true, 'extractable');
-	t.deepEqual(
-		Array.from(key.usages).sort(),
-		['decrypt', 'encrypt'],
-		'usages',
-	);
+	t.deepEqual(Array.from(key.usages).sort(), ['decrypt', 'encrypt'], 'usages');
 });

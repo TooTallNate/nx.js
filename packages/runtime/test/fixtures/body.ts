@@ -90,14 +90,20 @@ test('bodyUsed is true after reading from stream', async (t) => {
 // --- Request bodyUsed ---
 
 test('Request bodyUsed after text()', async (t) => {
-	const req = new Request('http://example.com', { method: 'POST', body: 'data' });
+	const req = new Request('http://example.com', {
+		method: 'POST',
+		body: 'data',
+	});
 	t.equal(req.bodyUsed, false, 'bodyUsed starts false');
 	await req.text();
 	t.equal(req.bodyUsed, true, 'bodyUsed after text()');
 });
 
 test('Request body transferred on construction', async (t) => {
-	const req1 = new Request('http://example.com', { method: 'POST', body: 'data' });
+	const req1 = new Request('http://example.com', {
+		method: 'POST',
+		body: 'data',
+	});
 	const req2 = new Request(req1);
 	t.equal(req1.bodyUsed, true, 'original request bodyUsed after transfer');
 	const text = await req2.text();
@@ -143,7 +149,10 @@ test('FormData round-trip via multipart', async (t) => {
 	fd.append('role', 'bot');
 	const res = new Response(fd);
 	const contentType = res.headers.get('content-type');
-	t.ok(contentType?.startsWith('multipart/form-data;'), 'content-type is multipart');
+	t.ok(
+		contentType?.startsWith('multipart/form-data;'),
+		'content-type is multipart',
+	);
 	// Parse it back
 	const parsed = await res.formData();
 	t.equal(parsed.get('name'), 'Clutz', 'name field');

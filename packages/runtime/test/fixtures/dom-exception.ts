@@ -31,7 +31,11 @@ test('DOMException.prototype has error code constants', (t) => {
 	t.equal(DOMException.prototype.INDEX_SIZE_ERR, 1, 'INDEX_SIZE_ERR is 1');
 	t.equal(DOMException.prototype.NOT_FOUND_ERR, 8, 'NOT_FOUND_ERR is 8');
 	t.equal(DOMException.prototype.SYNTAX_ERR, 12, 'SYNTAX_ERR is 12');
-	t.equal(DOMException.prototype.INVALID_STATE_ERR, 11, 'INVALID_STATE_ERR is 11');
+	t.equal(
+		DOMException.prototype.INVALID_STATE_ERR,
+		11,
+		'INVALID_STATE_ERR is 11',
+	);
 	t.equal(DOMException.prototype.ABORT_ERR, 20, 'ABORT_ERR is 20');
 });
 
@@ -61,5 +65,8 @@ test('Unknown name gives code 0', (t) => {
 
 test('toString includes the name', (t) => {
 	const e = new DOMException('msg', 'NotFoundError');
-	t.ok(e.toString().includes('NotFoundError'), 'toString includes NotFoundError');
+	t.ok(
+		e.toString().includes('NotFoundError'),
+		'toString includes NotFoundError',
+	);
 });

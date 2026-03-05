@@ -106,7 +106,11 @@ test('HKDF deriveKey to AES-CBC', async (t) => {
 
 	t.equal(aesKey.type, 'secret', 'derived key type');
 	t.equal(aesKey.algorithm.name, 'AES-CBC', 'derived key algorithm');
-	t.equal((aesKey.algorithm as AesKeyAlgorithm).length, 256, 'derived key length');
+	t.equal(
+		(aesKey.algorithm as AesKeyAlgorithm).length,
+		256,
+		'derived key length',
+	);
 
 	// Round trip with derived key
 	const iv = new Uint8Array(16);

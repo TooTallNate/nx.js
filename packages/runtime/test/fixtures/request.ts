@@ -16,7 +16,8 @@ test('Request constructor with init overriding credentials', (t) => {
 
 test('Request constructor copies referrer from input Request', (t) => {
 	// Use same-origin referrer (Chrome enforces same-origin policy for referrer)
-	const origin = typeof location !== 'undefined' ? location.origin : 'https://localhost';
+	const origin =
+		typeof location !== 'undefined' ? location.origin : 'https://localhost';
 	const original = new Request('https://example.com', {
 		method: 'POST',
 		referrer: origin + '/page',
@@ -26,7 +27,8 @@ test('Request constructor copies referrer from input Request', (t) => {
 });
 
 test('Request constructor with init overriding referrer', (t) => {
-	const origin = typeof location !== 'undefined' ? location.origin : 'https://localhost';
+	const origin =
+		typeof location !== 'undefined' ? location.origin : 'https://localhost';
 	const original = new Request('https://example.com', {
 		method: 'POST',
 		referrer: origin + '/page',
@@ -35,11 +37,7 @@ test('Request constructor with init overriding referrer', (t) => {
 		referrer: origin + '/other',
 	});
 	t.equal(derived.referrer, origin + '/other', 'init overrides referrer');
-	t.equal(
-		original.referrer,
-		origin + '/page',
-		'original referrer unchanged',
-	);
+	t.equal(original.referrer, origin + '/page', 'original referrer unchanged');
 });
 
 // --- Request.clone() ---

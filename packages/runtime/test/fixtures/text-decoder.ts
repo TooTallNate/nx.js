@@ -50,15 +50,23 @@ test('TextDecoder - replacement character for invalid bytes', (t) => {
 test('TextDecoder - fatal mode throws on invalid', (t) => {
 	const d = new TextDecoder('utf-8', { fatal: true });
 	t.equal(d.fatal, true, 'fatal is true');
-	t.throws(() => {
-		d.decode(new Uint8Array([0xff]));
-	}, undefined, 'throws on invalid byte');
+	t.throws(
+		() => {
+			d.decode(new Uint8Array([0xff]));
+		},
+		undefined,
+		'throws on invalid byte',
+	);
 });
 
 test('TextDecoder - fatal mode valid input', (t) => {
 	const d = new TextDecoder('utf-8', { fatal: true });
 	const encoded = new TextEncoder().encode('Hello 你好 😀');
-	t.equal(d.decode(encoded), 'Hello 你好 😀', 'valid input works in fatal mode');
+	t.equal(
+		d.decode(encoded),
+		'Hello 你好 😀',
+		'valid input works in fatal mode',
+	);
 });
 
 test('TextDecoder - strips BOM by default', (t) => {

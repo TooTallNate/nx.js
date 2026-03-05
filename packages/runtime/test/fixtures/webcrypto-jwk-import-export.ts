@@ -32,7 +32,11 @@ test('AES-GCM JWK round trip', async (t) => {
 		reimported,
 		enc,
 	);
-	t.equal(new TextDecoder().decode(dec), 'JWK test', 'AES JWK round trip works');
+	t.equal(
+		new TextDecoder().decode(dec),
+		'JWK test',
+		'AES JWK round trip works',
+	);
 });
 
 test('HMAC JWK round trip', async (t) => {

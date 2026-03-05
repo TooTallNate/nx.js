@@ -11,7 +11,9 @@ test('performance.now() returns a number > 0', (t) => {
 test('performance.now() is monotonically increasing', (t) => {
 	const a = performance.now();
 	// Busy-wait briefly to ensure time passes
-	for (let i = 0; i < 10000; i++) { /* noop */ }
+	for (let i = 0; i < 10000; i++) {
+		/* noop */
+	}
 	const b = performance.now();
 	t.ok(b >= a, 'second call >= first call');
 });
@@ -43,7 +45,9 @@ test('performance.measure() between two marks', (t) => {
 	performance.clearMarks();
 	performance.clearMeasures();
 	performance.mark('m-start');
-	for (let i = 0; i < 10000; i++) { /* noop */ }
+	for (let i = 0; i < 10000; i++) {
+		/* noop */
+	}
 	performance.mark('m-end');
 	const measure = performance.measure('my-measure', 'm-start', 'm-end');
 	t.equal(measure.name, 'my-measure', 'measure name matches');
@@ -160,7 +164,9 @@ test('PerformanceMeasure has correct entryType and duration', (t) => {
 	performance.clearMarks();
 	performance.clearMeasures();
 	performance.mark('dur-start');
-	for (let i = 0; i < 10000; i++) { /* noop */ }
+	for (let i = 0; i < 10000; i++) {
+		/* noop */
+	}
 	performance.mark('dur-end');
 	const measure = performance.measure('dur-measure', 'dur-start', 'dur-end');
 	t.equal(measure.entryType, 'measure', 'entryType is "measure"');

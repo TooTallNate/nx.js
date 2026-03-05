@@ -117,15 +117,14 @@ export class Performance {
 	 */
 	mark(
 		markName: string,
-		markOptions?: { startTime?: DOMHighResTimeStamp; detail?: unknown }
+		markOptions?: { startTime?: DOMHighResTimeStamp; detail?: unknown },
 	): PerformanceMark {
 		const startTime = markOptions?.startTime ?? this.now();
-		const mark = new (PerformanceMark as new (...args: unknown[]) => PerformanceMark)(
-			INTERNAL_SYMBOL,
-			markName,
-			startTime,
-			markOptions?.detail
-		);
+		const mark = new (
+			PerformanceMark as new (
+				...args: unknown[]
+			) => PerformanceMark
+		)(INTERNAL_SYMBOL, markName, startTime, markOptions?.detail);
 		this._entries.push(mark);
 		return mark;
 	}
@@ -145,20 +144,23 @@ export class Performance {
 					duration?: DOMHighResTimeStamp;
 					detail?: unknown;
 			  },
-		endMark?: string
+		endMark?: string,
 	): PerformanceMeasure {
 		let startTime: DOMHighResTimeStamp;
 		let endTime: DOMHighResTimeStamp;
 		let detail: unknown;
 
-		if (typeof startOrMeasureOptions === 'object' && startOrMeasureOptions !== null) {
+		if (
+			typeof startOrMeasureOptions === 'object' &&
+			startOrMeasureOptions !== null
+		) {
 			const opts = startOrMeasureOptions;
 			detail = opts.detail;
 			startTime = this._resolveTimestamp(opts.start ?? 0);
 			if (opts.duration !== undefined) {
 				if (opts.end !== undefined) {
 					throw new TypeError(
-						"Cannot specify both 'duration' and 'end' in measure options."
+						"Cannot specify both 'duration' and 'end' in measure options.",
 					);
 				}
 				endTime = startTime + opts.duration;
@@ -166,22 +168,20 @@ export class Performance {
 				endTime = this._resolveTimestamp(opts.end ?? this.now());
 			}
 		} else {
-			startTime = startOrMeasureOptions !== undefined
-				? this._resolveTimestamp(startOrMeasureOptions)
-				: 0;
-			endTime = endMark !== undefined
-				? this._resolveTimestamp(endMark)
-				: this.now();
+			startTime =
+				startOrMeasureOptions !== undefined
+					? this._resolveTimestamp(startOrMeasureOptions)
+					: 0;
+			endTime =
+				endMark !== undefined ? this._resolveTimestamp(endMark) : this.now();
 		}
 
 		const duration = endTime - startTime;
-		const measure = new (PerformanceMeasure as new (...args: unknown[]) => PerformanceMeasure)(
-			INTERNAL_SYMBOL,
-			measureName,
-			startTime,
-			duration,
-			detail
-		);
+		const measure = new (
+			PerformanceMeasure as new (
+				...args: unknown[]
+			) => PerformanceMeasure
+		)(INTERNAL_SYMBOL, measureName, startTime, duration, detail);
 		this._entries.push(measure);
 		return measure;
 	}
@@ -198,7 +198,7 @@ export class Performance {
 	 */
 	getEntriesByName(name: string, type?: string): PerformanceEntry[] {
 		return this.getEntries().filter(
-			(e) => e.name === name && (type === undefined || e.entryType === type)
+			(e) => e.name === name && (type === undefined || e.entryType === type),
 		);
 	}
 
@@ -216,7 +216,7 @@ export class Performance {
 		this._entries = this._entries.filter(
 			(e) =>
 				e.entryType !== 'mark' ||
-				(markName !== undefined && e.name !== markName)
+				(markName !== undefined && e.name !== markName),
 		);
 	}
 
@@ -227,7 +227,7 @@ export class Performance {
 		this._entries = this._entries.filter(
 			(e) =>
 				e.entryType !== 'measure' ||
-				(measureName !== undefined && e.name !== measureName)
+				(measureName !== undefined && e.name !== measureName),
 		);
 	}
 
@@ -242,19 +242,19 @@ export class Performance {
 
 	/** @internal */
 	private _resolveTimestamp(
-		value: string | DOMHighResTimeStamp
+		value: string | DOMHighResTimeStamp,
 	): DOMHighResTimeStamp {
 		if (typeof value === 'number') {
 			return value;
 		}
 		// Look up mark by name
 		const entries = this._entries.filter(
-			(e) => e.entryType === 'mark' && e.name === value
+			(e) => e.entryType === 'mark' && e.name === value,
 		);
 		if (entries.length === 0) {
 			throw new DOMException(
 				`Failed to execute 'measure' on 'Performance': The mark '${value}' does not exist.`,
-				'SyntaxError'
+				'SyntaxError',
 			);
 		}
 		return entries[entries.length - 1].startTime;

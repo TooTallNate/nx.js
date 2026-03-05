@@ -25,7 +25,11 @@ test('RSA SPKI/PKCS8 export and reimport round trip', async (t) => {
 		['verify'],
 	);
 	t.equal(reimportedPub.type, 'public', 'reimported pub type');
-	t.equal(reimportedPub.algorithm.name, 'RSASSA-PKCS1-v1_5', 'reimported pub algo');
+	t.equal(
+		reimportedPub.algorithm.name,
+		'RSASSA-PKCS1-v1_5',
+		'reimported pub algo',
+	);
 
 	// Export PKCS8
 	const pkcs8 = await crypto.subtle.exportKey('pkcs8', pair.privateKey);
@@ -40,7 +44,11 @@ test('RSA SPKI/PKCS8 export and reimport round trip', async (t) => {
 		['sign'],
 	);
 	t.equal(reimportedPriv.type, 'private', 'reimported priv type');
-	t.equal(reimportedPriv.algorithm.name, 'RSASSA-PKCS1-v1_5', 'reimported priv algo');
+	t.equal(
+		reimportedPriv.algorithm.name,
+		'RSASSA-PKCS1-v1_5',
+		'reimported priv algo',
+	);
 
 	// Sign with reimported private, verify with reimported public
 	const data = new TextEncoder().encode('PKCS8/SPKI test');
@@ -110,7 +118,10 @@ test('ECDSA PKCS8/SPKI cross-verification', async (t) => {
 
 	// Export and reimport both keys
 	const ecPkcs8 = await crypto.subtle.exportKey('pkcs8', pair.privateKey);
-	t.ok(ecPkcs8 instanceof ArrayBuffer && ecPkcs8.byteLength > 0, 'EC PKCS8 has data');
+	t.ok(
+		ecPkcs8 instanceof ArrayBuffer && ecPkcs8.byteLength > 0,
+		'EC PKCS8 has data',
+	);
 
 	const reimportedPriv = await crypto.subtle.importKey(
 		'pkcs8',
@@ -123,7 +134,10 @@ test('ECDSA PKCS8/SPKI cross-verification', async (t) => {
 	t.equal(reimportedPriv.algorithm.name, 'ECDSA', 'EC reimported priv algo');
 
 	const ecSpki = await crypto.subtle.exportKey('spki', pair.publicKey);
-	t.ok(ecSpki instanceof ArrayBuffer && ecSpki.byteLength > 0, 'EC SPKI has data');
+	t.ok(
+		ecSpki instanceof ArrayBuffer && ecSpki.byteLength > 0,
+		'EC SPKI has data',
+	);
 
 	const reimportedPub = await crypto.subtle.importKey(
 		'spki',

@@ -14,7 +14,11 @@ test('Headers - append combines values', (t) => {
 	const h = new Headers();
 	h.append('Accept', 'text/html');
 	h.append('Accept', 'application/json');
-	t.equal(h.get('accept'), 'text/html, application/json', 'append combines with comma');
+	t.equal(
+		h.get('accept'),
+		'text/html, application/json',
+		'append combines with comma',
+	);
 });
 
 test('Headers - iteration is sorted by name', (t) => {
@@ -102,7 +106,10 @@ test('Headers - value normalization strips whitespace', (t) => {
 });
 
 test('Headers - constructor with init pairs', (t) => {
-	const h = new Headers([['X-Foo', 'bar'], ['X-Baz', 'qux']]);
+	const h = new Headers([
+		['X-Foo', 'bar'],
+		['X-Baz', 'qux'],
+	]);
 	t.equal(h.get('x-foo'), 'bar', 'init pair 1');
 	t.equal(h.get('x-baz'), 'qux', 'init pair 2');
 });

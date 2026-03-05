@@ -91,7 +91,11 @@ test('AES-GCM with additionalData (AAD)', async (t) => {
 		key,
 		encrypted,
 	);
-	t.equal(new TextDecoder().decode(decrypted), 'Hello AES-GCM!', 'AAD round trip');
+	t.equal(
+		new TextDecoder().decode(decrypted),
+		'Hello AES-GCM!',
+		'AAD round trip',
+	);
 
 	// Wrong AAD should fail
 	const wrongAAD = new TextEncoder().encode('wrong header');
@@ -169,7 +173,11 @@ test('AES-GCM custom tagLength (96 bits)', async (t) => {
 		key,
 		encrypted,
 	);
-	t.equal(new TextDecoder().decode(decrypted), 'Hello AES-GCM!', 'round trip with 96-bit tag');
+	t.equal(
+		new TextDecoder().decode(decrypted),
+		'Hello AES-GCM!',
+		'round trip with 96-bit tag',
+	);
 });
 
 test('AES-GCM key properties', async (t) => {
@@ -207,7 +215,11 @@ test('AES-GCM generateKey round trip', async (t) => {
 		key,
 		encrypted,
 	);
-	t.equal(new TextDecoder().decode(decrypted), 'Hello AES-GCM!', 'generateKey round trip');
+	t.equal(
+		new TextDecoder().decode(decrypted),
+		'Hello AES-GCM!',
+		'generateKey round trip',
+	);
 	t.equal(key.algorithm.name, 'AES-GCM', 'generated key algorithm');
 });
 
@@ -224,7 +236,11 @@ test('AES-GCM exportKey round trip', async (t) => {
 		['encrypt', 'decrypt'],
 	);
 
-	const enc1 = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, plaintext);
+	const enc1 = await crypto.subtle.encrypt(
+		{ name: 'AES-GCM', iv },
+		key,
+		plaintext,
+	);
 
 	const exported = await crypto.subtle.exportKey('raw', key);
 	const reimported = await crypto.subtle.importKey(
@@ -235,6 +251,14 @@ test('AES-GCM exportKey round trip', async (t) => {
 		['encrypt', 'decrypt'],
 	);
 
-	const enc2 = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, reimported, plaintext);
-	t.equal(new Uint8Array(enc1).toHex(), new Uint8Array(enc2).toHex(), 'exported/reimported key produces same ciphertext');
+	const enc2 = await crypto.subtle.encrypt(
+		{ name: 'AES-GCM', iv },
+		reimported,
+		plaintext,
+	);
+	t.equal(
+		new Uint8Array(enc1).toHex(),
+		new Uint8Array(enc2).toHex(),
+		'exported/reimported key produces same ciphertext',
+	);
 });

@@ -136,7 +136,11 @@ test('WebAssembly - table indirect calls', (t) => {
 
 test('WebAssembly.validate', (t) => {
 	t.equal(WebAssembly.validate(ADD_WASM), true, 'valid module');
-	t.equal(WebAssembly.validate(new ArrayBuffer(4)), false, 'invalid 4 zero bytes');
+	t.equal(
+		WebAssembly.validate(new ArrayBuffer(4)),
+		false,
+		'invalid 4 zero bytes',
+	);
 	t.equal(WebAssembly.validate(new ArrayBuffer(0)), false, 'empty buffer');
 
 	const garbage = new Uint8Array([0x01, 0x02, 0x03, 0x04, 0x05]);
@@ -145,13 +149,23 @@ test('WebAssembly.validate', (t) => {
 	const magicOnly = new Uint8Array([0x00, 0x61, 0x73, 0x6d]);
 	t.equal(WebAssembly.validate(magicOnly.buffer), false, 'magic number only');
 
-	const magicAndVersion = new Uint8Array([0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00]);
-	t.equal(WebAssembly.validate(magicAndVersion.buffer), true, 'magic + version (minimal valid)');
+	const magicAndVersion = new Uint8Array([
+		0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00,
+	]);
+	t.equal(
+		WebAssembly.validate(magicAndVersion.buffer),
+		true,
+		'magic + version (minimal valid)',
+	);
 
 	const validView = new Uint8Array(ADD_WASM);
 	t.equal(WebAssembly.validate(validView), true, 'Uint8Array view of valid');
 
-	t.equal(typeof WebAssembly.validate(ADD_WASM), 'boolean', 'return type is boolean');
+	t.equal(
+		typeof WebAssembly.validate(ADD_WASM),
+		'boolean',
+		'return type is boolean',
+	);
 });
 
 test('WebAssembly namespace descriptor', (t) => {
@@ -169,13 +183,17 @@ test('WebAssembly namespace descriptor', (t) => {
 test('WebAssembly - simple.wasm (import/export)', (t) => {
 	const mod = new WebAssembly.Module(SIMPLE_WASM);
 
-	t.deepEqual(WebAssembly.Module.imports(mod), [
-		{ module: 'imports', name: 'imported_func', kind: 'function' },
-	], 'imports');
+	t.deepEqual(
+		WebAssembly.Module.imports(mod),
+		[{ module: 'imports', name: 'imported_func', kind: 'function' }],
+		'imports',
+	);
 
-	t.deepEqual(WebAssembly.Module.exports(mod), [
-		{ name: 'exported_func', kind: 'function' },
-	], 'exports');
+	t.deepEqual(
+		WebAssembly.Module.exports(mod),
+		[{ name: 'exported_func', kind: 'function' }],
+		'exports',
+	);
 
 	let ifArg = -1;
 	const instance = new WebAssembly.Instance(mod, {
@@ -194,9 +212,11 @@ test('WebAssembly - simple.wasm (import/export)', (t) => {
 test('WebAssembly - fail.wasm (RuntimeError)', (t) => {
 	const mod = new WebAssembly.Module(FAIL_WASM);
 
-	t.deepEqual(WebAssembly.Module.exports(mod), [
-		{ name: 'fail_me', kind: 'function' },
-	], 'exports');
+	t.deepEqual(
+		WebAssembly.Module.exports(mod),
+		[{ name: 'fail_me', kind: 'function' }],
+		'exports',
+	);
 
 	const instance = new WebAssembly.Instance(mod);
 	const fail_me = instance.exports.fail_me as Function;
@@ -223,13 +243,19 @@ test('WebAssembly.Global - imported mutable global', (t) => {
 	const mod = new WebAssembly.Module(GLOBAL_WASM);
 	const instance = new WebAssembly.Instance(mod, { js: { global: g } });
 
-	t.deepEqual(WebAssembly.Module.imports(mod), [
-		{ module: 'js', name: 'global', kind: 'global' },
-	], 'imports');
-	t.deepEqual(WebAssembly.Module.exports(mod), [
-		{ name: 'getGlobal', kind: 'function' },
-		{ name: 'incGlobal', kind: 'function' },
-	], 'exports');
+	t.deepEqual(
+		WebAssembly.Module.imports(mod),
+		[{ module: 'js', name: 'global', kind: 'global' }],
+		'imports',
+	);
+	t.deepEqual(
+		WebAssembly.Module.exports(mod),
+		[
+			{ name: 'getGlobal', kind: 'function' },
+			{ name: 'incGlobal', kind: 'function' },
+		],
+		'exports',
+	);
 
 	const getGlobal = instance.exports.getGlobal as () => number;
 	const incGlobal = instance.exports.incGlobal as () => void;
@@ -248,17 +274,24 @@ test('WebAssembly.Global - exported global', (t) => {
 	const mod = new WebAssembly.Module(GLOBAL_EXPORT_WASM);
 	const instance = new WebAssembly.Instance(mod);
 
-	t.deepEqual(WebAssembly.Module.exports(mod), [
-		{ name: 'incGlobal', kind: 'function' },
-		{ name: 'getGlobal', kind: 'function' },
-		{ name: 'myGlobal', kind: 'global' },
-	], 'exports');
+	t.deepEqual(
+		WebAssembly.Module.exports(mod),
+		[
+			{ name: 'incGlobal', kind: 'function' },
+			{ name: 'getGlobal', kind: 'function' },
+			{ name: 'myGlobal', kind: 'global' },
+		],
+		'exports',
+	);
 
 	const getGlobal = instance.exports.getGlobal as () => number;
 	const incGlobal = instance.exports.incGlobal as () => void;
 	const myGlobal = instance.exports.myGlobal as WebAssembly.Global;
 
-	t.ok(myGlobal instanceof WebAssembly.Global, 'myGlobal is WebAssembly.Global');
+	t.ok(
+		myGlobal instanceof WebAssembly.Global,
+		'myGlobal is WebAssembly.Global',
+	);
 	t.equal(myGlobal.value, 42, 'initial value from JS');
 	t.equal(getGlobal(), 42, 'initial value from wasm');
 
@@ -285,12 +318,17 @@ test('WebAssembly.Memory - imported memory (accumulate)', (t) => {
 	// Actually, let's just verify memory-export.wasm exports
 	const instance = new WebAssembly.Instance(mod);
 
-	t.deepEqual(WebAssembly.Module.exports(mod), [
-		{ name: 'memory', kind: 'memory' },
-	], 'exports');
+	t.deepEqual(
+		WebAssembly.Module.exports(mod),
+		[{ name: 'memory', kind: 'memory' }],
+		'exports',
+	);
 
 	const memory = instance.exports.memory as WebAssembly.Memory;
-	t.ok(memory instanceof WebAssembly.Memory, 'exported memory is WebAssembly.Memory');
+	t.ok(
+		memory instanceof WebAssembly.Memory,
+		'exported memory is WebAssembly.Memory',
+	);
 
 	let sum = 0;
 	const view = new Uint32Array(memory.buffer);
@@ -305,11 +343,15 @@ test('WebAssembly.Memory - grow from wasm and JS', (t) => {
 	const mod = new WebAssembly.Module(GROW_WASM);
 	const instance = new WebAssembly.Instance(mod);
 
-	t.deepEqual(WebAssembly.Module.exports(mod), [
-		{ name: 'grow', kind: 'function' },
-		{ name: 'getPageCount', kind: 'function' },
-		{ name: 'mem', kind: 'memory' },
-	], 'exports');
+	t.deepEqual(
+		WebAssembly.Module.exports(mod),
+		[
+			{ name: 'grow', kind: 'function' },
+			{ name: 'getPageCount', kind: 'function' },
+			{ name: 'mem', kind: 'memory' },
+		],
+		'exports',
+	);
 
 	const grow = instance.exports.grow as () => void;
 	const getPageCount = instance.exports.getPageCount as () => number;
@@ -345,14 +387,20 @@ test('WebAssembly - compute.wasm (imported function with params)', (t) => {
 		},
 	});
 
-	t.deepEqual(WebAssembly.Module.imports(mod), [
-		{ module: 'env', name: 'compute', kind: 'function' },
-	], 'imports');
+	t.deepEqual(
+		WebAssembly.Module.imports(mod),
+		[{ module: 'env', name: 'compute', kind: 'function' }],
+		'imports',
+	);
 
-	t.deepEqual(WebAssembly.Module.exports(mod), [
-		{ name: 'invoke', kind: 'function' },
-		{ name: 'val', kind: 'global' },
-	], 'exports');
+	t.deepEqual(
+		WebAssembly.Module.exports(mod),
+		[
+			{ name: 'invoke', kind: 'function' },
+			{ name: 'val', kind: 'global' },
+		],
+		'exports',
+	);
 
 	const invoke = instance.exports.invoke as (a: number, b: number) => void;
 	const val = instance.exports.val as WebAssembly.Global;
