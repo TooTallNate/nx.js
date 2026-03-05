@@ -264,5 +264,3 @@ const game = new Phaser.Game(config);
 
 // Setup touch → pointer adapter
 setupTouchAdapter();
-
-console.log('Breakout Phaser started');

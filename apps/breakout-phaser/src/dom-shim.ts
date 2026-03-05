@@ -44,43 +44,63 @@ function makeStyleProxy(): any {
 // Patch OffscreenCanvas instances to look like HTMLCanvasElement
 // ---------------------------------------------------------------------------
 
+/** Safely set a property, skipping if it's read-only (getter without setter) */
+function safeProp(obj: any, key: string, value: any) {
+	const desc = Object.getOwnPropertyDescriptor(obj, key) ??
+		Object.getOwnPropertyDescriptor(Object.getPrototypeOf(obj) ?? {}, key);
+	if (desc && desc.get && !desc.set) return; // read-only getter, skip
+	try { obj[key] = value; } catch {}
+}
+
 function patchCanvas(c: OffscreenCanvas): any {
 	const obj = c as any;
 	if (!obj.__patched) {
 		obj.__patched = true;
-		obj.style = makeStyleProxy();
-		obj.parentNode = null;
-		obj.parentElement = null;
-		obj.classList = { add() {}, remove() {}, contains() { return false; } };
+		safeProp(obj, 'style', makeStyleProxy());
+		safeProp(obj, 'parentNode', null);
+		safeProp(obj, 'parentElement', null);
+		safeProp(obj, 'classList', { add() {}, remove() {}, contains() { return false; } });
 
 		const attrs: Record<string, string> = {};
-		obj.setAttribute = (k: string, v: string) => { attrs[k] = v; };
-		obj.getAttribute = (k: string) => attrs[k] ?? null;
-		obj.removeAttribute = () => {};
-		obj.hasAttribute = (k: string) => k in attrs;
+		safeProp(obj, 'setAttribute', (k: string, v: string) => { attrs[k] = v; });
+		safeProp(obj, 'getAttribute', (k: string) => attrs[k] ?? null);
+		safeProp(obj, 'removeAttribute', () => {});
+		safeProp(obj, 'hasAttribute', (k: string) => k in attrs);
 
-		obj.getBoundingClientRect = () => ({
+		safeProp(obj, 'getBoundingClientRect', () => ({
 			x: 0, y: 0, top: 0, left: 0,
 			width: c.width, height: c.height,
 			right: c.width, bottom: c.height,
 			toJSON() {},
-		});
+		}));
 
-		obj.focus = () => {};
-		obj.blur = () => {};
+		safeProp(obj, 'focus', () => {});
+		safeProp(obj, 'blur', () => {});
+
+		// Save original addEventListener/removeEventListener if present (e.g. on screen)
+		const origAddEventListener = obj.addEventListener?.bind(obj);
+		const origRemoveEventListener = obj.removeEventListener?.bind(obj);
+
 		obj.addEventListener = (type: string, fn: any, opts?: any) => {
-			// Proxy pointer/mouse/touch/key events to window
-			(globalThis as any).addEventListener(type, fn, opts);
+			// Forward to the original if it exists (screen has real touch events)
+			if (origAddEventListener) {
+				try { origAddEventListener(type, fn, opts); } catch {}
+			}
+			// Also forward to window for Phaser's global event handling
+			try { (globalThis as any).addEventListener(type, fn, opts); } catch {}
 		};
 		obj.removeEventListener = (type: string, fn: any, opts?: any) => {
-			(globalThis as any).removeEventListener(type, fn, opts);
+			if (origRemoveEventListener) {
+				try { origRemoveEventListener(type, fn, opts); } catch {}
+			}
+			try { (globalThis as any).removeEventListener(type, fn, opts); } catch {}
 		};
-		obj.dispatchEvent = (e: Event) => (globalThis as any).dispatchEvent(e);
+		safeProp(obj, 'dispatchEvent', (e: Event) => (globalThis as any).dispatchEvent(e));
 
-		// Phaser checks instanceof HTMLCanvasElement
-		obj.nodeName = 'CANVAS';
-		obj.tagName = 'CANVAS';
-		obj.nodeType = 1;
+		// Phaser checks these — only set if not already defined as getters
+		safeProp(obj, 'nodeName', 'CANVAS');
+		safeProp(obj, 'tagName', 'CANVAS');
+		safeProp(obj, 'nodeType', 1);
 
 		// Phaser's CanvasPool.remove calls .parentNode.removeChild
 		// Already null parentNode so that path is skipped.
@@ -90,10 +110,10 @@ function patchCanvas(c: OffscreenCanvas): any {
 		obj.getContext = (type: string, attrs?: any) => {
 			const ctx = origGetContext(type as any, attrs);
 			if (ctx) {
-				(ctx as any).canvas = obj;
+				safeProp(ctx, 'canvas', obj);
 				// Ensure imageSmoothingEnabled exists
 				if (!('imageSmoothingEnabled' in (ctx as any))) {
-					(ctx as any).imageSmoothingEnabled = true;
+					safeProp(ctx, 'imageSmoothingEnabled', true);
 				}
 			}
 			return ctx;
@@ -101,6 +121,22 @@ function patchCanvas(c: OffscreenCanvas): any {
 	}
 	return obj;
 }
+
+// Patch screen.orientation before Phaser accesses it (nx.js throws "not implemented")
+try {
+	Object.defineProperty(screen, 'orientation', {
+		value: {
+			type: 'landscape-primary',
+			angle: 0,
+			addEventListener() {},
+			removeEventListener() {},
+			dispatchEvent() { return false; },
+			lock() { return Promise.resolve(); },
+			unlock() {},
+		},
+		configurable: true,
+	});
+} catch {}
 
 // Patch the global `screen` canvas too
 patchCanvas(screen as any);
@@ -300,8 +336,13 @@ if (typeof navigator !== 'undefined') {
 		Object.defineProperty(navigator, 'userAgent', {
 			value: 'Mozilla/5.0 (Linux; nx.js) AppleWebKit/537.36 Chrome/120.0.0.0',
 			configurable: true,
+			writable: true,
+			enumerable: true,
 		});
-	} catch {}
+	} catch {
+		// If defineProperty fails, try direct assignment
+		try { (navigator as any).userAgent = 'Mozilla/5.0 (Linux; nx.js) AppleWebKit/537.36 Chrome/120.0.0.0'; } catch {}
+	}
 }
 
 // Phaser uses window.XMLHttpRequest for loader – stub if missing
