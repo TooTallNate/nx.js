@@ -15,6 +15,9 @@
 #include <webp/encode.h>
 #include "async.h"
 
+// Forward declaration (defined below ensure_surface, but called from it)
+static void set_font_size(nx_canvas_context_2d_t *context, double font_size);
+
 /**
  * Lazily recreates the canvas surface and resets the 2D context state after
  * the canvas has been resized. Per the HTML spec, setting width or height
@@ -161,6 +164,21 @@ reset_state:
 	// Reset cairo state (only if we have a context)
 	if (context->ctx) {
 		cairo_set_line_width(context->ctx, 1.);
+	}
+
+	// Restore the default font face (captured during the initial
+	// "10px sans-serif" assignment in the TS constructor) so that
+	// text methods work immediately after a resize without requiring
+	// the user to re-set ctx.font.
+	if (context->default_font_face) {
+		nx_font_face_t *face = context->default_font_face;
+		state->ft_face = face->ft_face;
+		state->hb_font = face->hb_font;
+		state->font_string = strdup("10px sans-serif");
+		if (context->ctx) {
+			cairo_set_font_face(context->ctx, face->cairo_font);
+			set_font_size(context, 10.);
+		}
 	}
 }
 
@@ -489,6 +507,8 @@ static void stroke(nx_canvas_context_2d_t *context, bool preserve) {
 }
 
 static void set_font_size(nx_canvas_context_2d_t *context, double font_size) {
+	if (!context->state->ft_face || !context->state->hb_font)
+		return;
 	FT_Set_Char_Size(context->state->ft_face, 0, font_size * 64.0, 0, 0);
 	cairo_set_font_size(context->ctx, font_size);
 	hb_font_set_scale(context->state->hb_font, font_size * 64, font_size * 64);
@@ -1137,6 +1157,13 @@ static JSValue nx_canvas_context_2d_set_font(JSContext *ctx,
 	cairo_set_font_face(cr, face->cairo_font);
 	set_font_size(context, font_size);
 	JS_FreeCString(ctx, font_string);
+
+	// Remember the first font face set (the TS constructor always sets
+	// "10px sans-serif" immediately after creation).  ensure_surface()
+	// restores this face when a canvas resize resets the context state.
+	if (!context->default_font_face)
+		context->default_font_face = face;
+
 	return JS_UNDEFINED;
 }
 
@@ -1190,6 +1217,9 @@ static JSValue nx_canvas_context_2d_clear_rect(JSContext *ctx,
 
 double get_text_scale(nx_canvas_context_2d_t *context, const char *text,
 					  double max_width) {
+	if (!context->state->hb_font)
+		return 1.;
+
 	// Create HarfBuzz buffer
 	hb_buffer_t *buf = hb_buffer_create();
 
@@ -1220,6 +1250,11 @@ static JSValue nx_canvas_context_2d_fill_text(JSContext *ctx,
 											  JSValueConst this_val, int argc,
 											  JSValueConst *argv) {
 	CANVAS_CONTEXT_THIS;
+
+	// No font loaded (e.g. context was reset by canvas resize) — no-op
+	if (!context->state->hb_font || !context->state->ft_face)
+		return JS_UNDEFINED;
+
 	double args[2];
 	if (js_validate_doubles_args(ctx, argv, args, 2, 1))
 		return JS_EXCEPTION;
@@ -1337,6 +1372,11 @@ static JSValue nx_canvas_context_2d_stroke_text(JSContext *ctx,
 												JSValueConst this_val, int argc,
 												JSValueConst *argv) {
 	CANVAS_CONTEXT_THIS;
+
+	// No font loaded (e.g. context was reset by canvas resize) — no-op
+	if (!context->state->hb_font || !context->state->ft_face)
+		return JS_UNDEFINED;
+
 	double args[2];
 	if (js_validate_doubles_args(ctx, argv, args, 2, 1))
 		return JS_EXCEPTION;
@@ -1451,6 +1491,37 @@ static JSValue nx_canvas_context_2d_measure_text(JSContext *ctx,
 												 JSValueConst this_val,
 												 int argc, JSValueConst *argv) {
 	CANVAS_CONTEXT_THIS;
+
+	// No font loaded (e.g. context was reset by canvas resize) — return
+	// zero-width metrics rather than crashing.
+	if (!context->state->hb_font) {
+		JSValue metrics = JS_NewObject(ctx);
+		JS_SetPropertyStr(ctx, metrics, "width", JS_NewFloat64(ctx, 0));
+		JS_SetPropertyStr(ctx, metrics, "actualBoundingBoxLeft",
+						  JS_NewFloat64(ctx, 0));
+		JS_SetPropertyStr(ctx, metrics, "actualBoundingBoxRight",
+						  JS_NewFloat64(ctx, 0));
+		JS_SetPropertyStr(ctx, metrics, "fontBoundingBoxAscent",
+						  JS_NewFloat64(ctx, 0));
+		JS_SetPropertyStr(ctx, metrics, "fontBoundingBoxDescent",
+						  JS_NewFloat64(ctx, 0));
+		JS_SetPropertyStr(ctx, metrics, "actualBoundingBoxAscent",
+						  JS_NewFloat64(ctx, 0));
+		JS_SetPropertyStr(ctx, metrics, "actualBoundingBoxDescent",
+						  JS_NewFloat64(ctx, 0));
+		JS_SetPropertyStr(ctx, metrics, "emHeightAscent",
+						  JS_NewFloat64(ctx, 0));
+		JS_SetPropertyStr(ctx, metrics, "emHeightDescent",
+						  JS_NewFloat64(ctx, 0));
+		JS_SetPropertyStr(ctx, metrics, "hangingBaseline",
+						  JS_NewFloat64(ctx, 0));
+		JS_SetPropertyStr(ctx, metrics, "alphabeticBaseline",
+						  JS_NewFloat64(ctx, 0));
+		JS_SetPropertyStr(ctx, metrics, "ideographicBaseline",
+						  JS_NewFloat64(ctx, 0));
+		return metrics;
+	}
+
 	const char *text = JS_ToCString(ctx, argv[0]);
 
 	// Create HarfBuzz buffer

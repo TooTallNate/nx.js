@@ -1,5 +1,6 @@
 #pragma once
 #include "types.h"
+#include "font.h"
 #include <cairo.h>
 #include <harfbuzz/hb.h>
 
@@ -85,6 +86,11 @@ typedef struct nx_canvas_context_2d_s {
 	cairo_t *ctx;
 	cairo_path_t *path;
 	nx_canvas_context_2d_state_t *state;
+	// The font face set by the initial "10px sans-serif" assignment in
+	// the TS constructor. Stored so that ensure_surface can restore a
+	// valid default font after a canvas resize (instead of leaving
+	// ft_face / hb_font as NULL).
+	nx_font_face_t *default_font_face;
 } nx_canvas_context_2d_t;
 
 nx_canvas_context_2d_t *nx_get_canvas_context_2d(JSContext *ctx,
