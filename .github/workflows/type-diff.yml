@@ -59,7 +59,7 @@ jobs:
             let diff = '';
             try {
               diff = execSync(
-                'diff -u /tmp/base-types.d.ts /tmp/pr-types.d.ts --label "base: index.d.ts" --label "pr: index.d.ts"',
+                'diff -u --label "base: index.d.ts" /tmp/base-types.d.ts --label "pr: index.d.ts" /tmp/pr-types.d.ts',
                 { encoding: 'utf8' }
               );
             } catch (e) {
