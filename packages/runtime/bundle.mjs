@@ -6,6 +6,7 @@ await build({
 	mainFields: ['module', 'main'],
 	//conditions: ['nxjs', 'import', 'browser', 'require', 'default'],
 	target: 'es2022',
+	keepNames: true,
 	entryPoints: ['src/index.ts'],
 	sourcemap: true,
 	sourcesContent: false,
