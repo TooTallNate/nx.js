@@ -119,7 +119,7 @@ export async function writeResponse(
 	if (!res.headers.has('date')) {
 		res.headers.set('date', new Date().toUTCString());
 	}
-	if (!res.headers.has('content-type')) {
+	if (!res.headers.has('content-type') && res.body) {
 		res.headers.set('content-type', 'text/plain');
 	}
 	if (chunked) {
@@ -134,7 +134,7 @@ export async function writeResponse(
 	const statusText = res.statusText || STATUS_CODES[res.status];
 	const header = `${httpVersion} ${res.status} ${statusText}\r\n${headersStr}\r\n`;
 	const w = writable.getWriter();
-	w.write(encoder.encode(header));
+	await w.write(encoder.encode(header));
 	w.releaseLock();
 
 	let body = res.body;

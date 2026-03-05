@@ -42,7 +42,7 @@ export function toHeaders(input: string[]) {
 		const col = line.indexOf(':');
 		const name = line.slice(0, col);
 		const value = line.slice(col + 1).trim();
-		headers.set(name, value);
+		headers.append(name, value);
 	}
 	return headers;
 }
