@@ -14,18 +14,43 @@ const SCREEN_H = 720;
 
 const keyState: Record<string, boolean> = {};
 
+/**
+ * Create a keyboard event object that Phaser can read.
+ * We can't use nx.js's native KeyboardEvent constructor because it has a bug
+ * where 0n (falsy BigInt) modifier value causes "Failed to get internal state".
+ * Instead, create a plain Event and bolt on the KeyboardEvent properties.
+ */
+function makeKeyEvent(type: string, code: string, key: string): Event {
+	const e = new Event(type, { bubbles: true, cancelable: true });
+	Object.defineProperties(e, {
+		code:      { value: code, enumerable: true },
+		key:       { value: key, enumerable: true },
+		keyCode:   { value: keyCodeMap[code] ?? 0, enumerable: true },
+		which:     { value: keyCodeMap[code] ?? 0, enumerable: true },
+		altKey:    { value: false, enumerable: true },
+		ctrlKey:   { value: false, enumerable: true },
+		shiftKey:  { value: false, enumerable: true },
+		metaKey:   { value: false, enumerable: true },
+		repeat:    { value: false, enumerable: true },
+		location:  { value: 0, enumerable: true },
+		charCode:  { value: 0, enumerable: true },
+		isComposing: { value: false, enumerable: true },
+		getModifierState: { value: () => false, enumerable: true },
+		preventDefault: { value: () => {}, writable: true },
+	});
+	return e;
+}
+
+const keyCodeMap: Record<string, number> = {
+	ArrowLeft: 37, ArrowUp: 38, ArrowRight: 39, ArrowDown: 40,
+	Space: 32, Enter: 13, Escape: 27,
+};
+
 function dispatchKey(type: 'keydown' | 'keyup', code: string, key: string) {
 	const already = keyState[code] ?? false;
 	if (type === 'keydown' && already) return; // no repeats
 	keyState[code] = type === 'keydown';
-	globalThis.dispatchEvent(
-		new KeyboardEvent(type, {
-			code,
-			key,
-			bubbles: true,
-			cancelable: true,
-		}),
-	);
+	globalThis.dispatchEvent(makeKeyEvent(type, code, key));
 }
 
 const buttonMap: [number, string, string][] = [
