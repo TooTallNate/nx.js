@@ -108,14 +108,18 @@ export class Console {
 	 * Logs the formatted `input` to the screen as yellow text.
 	 */
 	warn = (...input: unknown[]) => {
-		this.print(`${bold(bgYellowDim(yellow(format(...input))))}\n`);
+		const depth = _(this).groupDepth;
+		const indent = depth > 0 ? '  '.repeat(depth) : '';
+		this.print(`${indent}${bold(bgYellowDim(yellow(format(...input))))}\n`);
 	};
 
 	/**
 	 * Logs the formatted `input` to the screen as red text.
 	 */
 	error = (...input: unknown[]) => {
-		this.print(`${bold(bgRedDim(red(format(...input))))}\n`);
+		const depth = _(this).groupDepth;
+		const indent = depth > 0 ? '  '.repeat(depth) : '';
+		this.print(`${indent}${bold(bgRedDim(red(format(...input))))}\n`);
 	};
 
 	/**
@@ -124,7 +128,9 @@ export class Console {
 	 * > TIP: This function **does not** invoke _text rendering mode_, so it can safely be used when rendering with the Canvas API.
 	 */
 	debug = (...input: unknown[]) => {
-		this.printErr(`${format(...input)}\n`);
+		const depth = _(this).groupDepth;
+		const indent = depth > 0 ? '  '.repeat(depth) : '';
+		this.printErr(`${indent}${format(...input)}\n`);
 	};
 
 	/**
@@ -132,10 +138,12 @@ export class Console {
 	 * including a stack trace of where the function was invoked.
 	 */
 	trace = (...input: unknown[]) => {
+		const depth = _(this).groupDepth;
+		const indent = depth > 0 ? '  '.repeat(depth) : '';
 		const f = format(...input);
 		let s = new Error().stack!.split('\n').slice(1).join('\n');
 		if (!s.endsWith('\n')) s += '\n';
-		this.print(`Trace${f ? `: ${f}` : ''}\n${s}`);
+		this.print(`${indent}Trace${f ? `: ${f}` : ''}\n${s}`);
 	};
 
 	/**

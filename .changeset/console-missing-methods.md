@@ -2,4 +2,4 @@
 '@nx.js/runtime': patch
 ---
 
-Add remaining Console API methods: `assert`, `count`, `countReset`, `dir`, `dirxml`, `info`, `debug`, `group`, `groupCollapsed`, `groupEnd`, `table`, `time`, `timeEnd`, `timeLog`, and format specifiers `%i` (integer) and `%f` (float)
+Add `%i` (integer) and `%f` (float) format specifiers to console, and apply group indentation to `log`, `warn`, `error`, `debug`, and `trace` methods
