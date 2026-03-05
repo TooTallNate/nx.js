@@ -1,20 +1,19 @@
 import { dataUriToBuffer } from 'data-uri-to-buffer';
-import { def } from '../utils';
+import {
+	type CompressionFormat,
+	DecompressionStream,
+} from '../compression-streams';
 import { readFile } from '../fs';
-import { objectUrls } from '../polyfills/url';
-import { URL } from '../polyfills/url';
+import { INTERNAL_SYMBOL } from '../internal';
+import { navigator } from '../navigator';
 import { decoder } from '../polyfills/text-decoder';
 import { encoder } from '../polyfills/text-encoder';
+import { objectUrls, URL } from '../polyfills/url';
+import { connect, Socket } from '../tcp';
+import { def } from '../utils';
+import { Headers } from './headers';
 import { Request, type RequestInit } from './request';
 import { Response } from './response';
-import { Headers } from './headers';
-import { navigator } from '../navigator';
-import { Socket, connect } from '../tcp';
-import { INTERNAL_SYMBOL } from '../internal';
-import {
-	DecompressionStream,
-	type CompressionFormat,
-} from '../compression-streams';
 
 function indexOfEol(arr: ArrayLike<number>, offset: number): number {
 	for (let i = offset; i < arr.length - 1; i++) {
@@ -295,16 +294,14 @@ async function fetchHttp(
 	// Redirect
 	if (((status / 100) | 0) === 3) {
 		if (req.redirect === 'error') {
-			socket.readable.cancel();
-			w.close();
+			socket.close();
 			throw new TypeError(
 				`URI requested responds with a redirect, redirect mode is set to error: ${url}`,
 			);
 		}
 
 		if (req.redirect === 'follow') {
-			socket.readable.cancel();
-			w.close();
+			socket.close();
 			const loc = resHeaders.get('location');
 			if (!loc) {
 				throw new Error(
