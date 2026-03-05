@@ -2,8 +2,8 @@ import { $ } from './$';
 import { INTERNAL_SYMBOL } from './internal';
 import { Event } from './polyfills/event';
 import { Sensor } from './sensor';
-import { setInterval, clearInterval } from './timers';
-import { createInternal, def } from './utils';
+import { clearInterval, setInterval } from './timers';
+import { def } from './utils';
 
 export interface AmbientLightSensorOptions {
 	/**
@@ -15,15 +15,6 @@ export interface AmbientLightSensorOptions {
 	frequency?: number;
 }
 
-interface AmbientLightSensorInternal {
-	frequency: number;
-	timeout?: number;
-	illuminance: number | null;
-	timestamp: number | null;
-}
-
-const _ = createInternal<AmbientLightSensor, AmbientLightSensorInternal>();
-
 /**
  * `Sensor` implementation which returns the current light level or
  * illuminance of the ambient light around the hosting device.
@@ -31,17 +22,20 @@ const _ = createInternal<AmbientLightSensor, AmbientLightSensorInternal>();
  * @see https://developer.mozilla.org/docs/Web/API/AmbientLightSensor
  */
 export class AmbientLightSensor extends Sensor {
+	#frequency: number;
+	#timeout?: number;
+	#illuminance: number | null;
+	#timestamp: number | null;
+
 	/**
 	 * @see https://developer.mozilla.org/docs/Web/API/AmbientLightSensor/AmbientLightSensor
 	 */
 	constructor(opts: AmbientLightSensorOptions = {}) {
 		// @ts-expect-error Internal constructor
 		super(INTERNAL_SYMBOL);
-		_.set(this, {
-			frequency: opts.frequency ?? 1,
-			illuminance: null,
-			timestamp: null,
-		});
+		this.#frequency = opts.frequency ?? 1;
+		this.#illuminance = null;
+		this.#timestamp = null;
 	}
 
 	/**
@@ -50,35 +44,34 @@ export class AmbientLightSensor extends Sensor {
 	 * @see https://developer.mozilla.org/docs/Web/API/AmbientLightSensor/illuminance
 	 */
 	get illuminance() {
-		return _(this).illuminance;
+		return this.#illuminance;
 	}
 
 	get activated(): boolean {
-		return typeof _(this).timeout === 'number';
+		return typeof this.#timeout === 'number';
 	}
 
 	get hasReading(): boolean {
-		return typeof _(this).illuminance === 'number';
+		return typeof this.#illuminance === 'number';
 	}
 
 	get timestamp() {
-		return _(this).timestamp;
+		return this.#timestamp;
 	}
 
 	start(): void {
-		const i = _(this);
-		i.timeout = setInterval(() => {
-			const prev = i.illuminance;
-			i.illuminance = $.appletIlluminance();
-			if (i.illuminance !== prev) {
-				i.timestamp = Date.now();
+		this.#timeout = setInterval(() => {
+			const prev = this.#illuminance;
+			this.#illuminance = $.appletIlluminance();
+			if (this.#illuminance !== prev) {
+				this.#timestamp = Date.now();
 				this.dispatchEvent(new Event('reading'));
 			}
-		}, 1000 / i.frequency);
+		}, 1000 / this.#frequency);
 	}
 
 	stop(): void {
-		clearInterval(_(this).timeout);
+		clearInterval(this.#timeout);
 	}
 }
 def(AmbientLightSensor);
