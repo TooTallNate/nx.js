@@ -1,6 +1,4 @@
-import { createInternal, def } from '../utils';
-
-const _ = createInternal<Headers, Map<string, string[]>>();
+import { def } from '../utils';
 
 export type HeadersInit = [string, string][] | Record<string, string> | Headers;
 
@@ -17,9 +15,9 @@ export type HeadersInit = [string, string][] | Record<string, string> | Headers;
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Headers)
  */
 export class Headers implements globalThis.Headers {
-	constructor(init?: HeadersInit) {
-		_.set(this, new Map());
+	#map = new Map<string, string[]>();
 
+	constructor(init?: HeadersInit) {
 		if (init instanceof Headers) {
 			for (const [name, value] of init) {
 				this.append(name, value);
@@ -44,7 +42,7 @@ export class Headers implements globalThis.Headers {
 	append(name: string, value: string): void {
 		name = normalizeName(name);
 		value = normalizeValue(value);
-		const map = _(this);
+		const map = this.#map;
 		let values = map.get(name);
 		if (!values) {
 			values = [];
@@ -55,33 +53,33 @@ export class Headers implements globalThis.Headers {
 
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Headers/delete) */
 	delete(name: string): void {
-		const map = _(this);
+		const map = this.#map;
 		map.delete(normalizeName(name));
 	}
 
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Headers/get) */
 	get(name: string): string | null {
 		name = normalizeName(name);
-		const map = _(this);
+		const map = this.#map;
 		const values = map.get(name);
 		return values ? getValues(values) : null;
 	}
 
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Headers/getSetCookie) */
 	getSetCookie(): string[] {
-		const map = _(this);
+		const map = this.#map;
 		return [...(map.get('set-cookie') || [])];
 	}
 
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Headers/has) */
 	has(name: string): boolean {
-		const map = _(this);
+		const map = this.#map;
 		return map.has(normalizeName(name));
 	}
 
 	/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Headers/set) */
 	set(name: string, value: string): void {
-		const map = _(this);
+		const map = this.#map;
 		map.set(normalizeName(name), [normalizeValue(value)]);
 	}
 
@@ -96,7 +94,7 @@ export class Headers implements globalThis.Headers {
 
 	/** Returns an iterator allowing to go through all key/value pairs contained in this object. */
 	*entries(): HeadersIterator<[string, string]> {
-		const map = _(this);
+		const map = this.#map;
 		const sorted = [...map.entries()].sort((a, b) =>
 			a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0,
 		);

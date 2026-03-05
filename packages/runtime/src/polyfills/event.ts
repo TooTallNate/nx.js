@@ -1,5 +1,5 @@
 import type { Gamepad } from '../navigator/gamepad';
-import { assertInternalConstructor, createInternal, def } from '../utils';
+import { assertInternalConstructor, def } from '../utils';
 import type { EventTarget } from './event-target';
 
 /**
@@ -350,15 +350,11 @@ export interface KeyboardEventInit extends EventModifierInit {
 	repeat?: boolean;
 }
 
-const _ = createInternal<KeyboardEvent, KeyboardEventInternal>();
-
-interface KeyboardEventInternal {
-	modifiers: bigint;
-	code: string | undefined;
-	key: string | undefined;
-}
-
 export class KeyboardEvent extends UIEvent implements globalThis.KeyboardEvent {
+	#modifiers: bigint = 0n;
+	#code: string | undefined;
+	#key: string | undefined;
+
 	readonly DOM_KEY_LOCATION_STANDARD = 0 as const;
 	readonly DOM_KEY_LOCATION_LEFT = 1 as const;
 	readonly DOM_KEY_LOCATION_RIGHT = 2 as const;
@@ -397,7 +393,9 @@ export class KeyboardEvent extends UIEvent implements globalThis.KeyboardEvent {
 			this.charCode = this.keyCode = this.location = 0;
 			this.isComposing = this.repeat = false;
 		}
-		_.set(this, { modifiers, code, key });
+		this.#modifiers = modifiers;
+		this.#code = code;
+		this.#key = key;
 	}
 
 	getModifierState(): boolean {
@@ -409,27 +407,27 @@ export class KeyboardEvent extends UIEvent implements globalThis.KeyboardEvent {
 	}
 
 	get ctrlKey(): boolean {
-		return (_(this).modifiers & CTRL) !== 0n;
+		return (this.#modifiers & CTRL) !== 0n;
 	}
 
 	get shiftKey(): boolean {
-		return (_(this).modifiers & SHIFT) !== 0n;
+		return (this.#modifiers & SHIFT) !== 0n;
 	}
 
 	get altKey(): boolean {
-		return (_(this).modifiers & ALT) !== 0n;
+		return (this.#modifiers & ALT) !== 0n;
 	}
 
 	get metaKey(): boolean {
-		return (_(this).modifiers & META) !== 0n;
+		return (this.#modifiers & META) !== 0n;
 	}
 
 	get code(): string {
-		return _(this).code ?? KeyboardKey[this.keyCode] ?? '';
+		return this.#code ?? KeyboardKey[this.keyCode] ?? '';
 	}
 
 	get key(): string {
-		const initKey = _(this).key;
+		const initKey = this.#key;
 		if (initKey != null) return initKey;
 
 		const { code } = this;

@@ -1,17 +1,17 @@
 import { $ } from './$';
 import { readFileSync, removeSync, writeFileSync } from './fs';
-import { URL } from './polyfills/url';
-import { Profile } from './switch/profile';
-import { Application } from './switch/ns';
 import { INTERNAL_SYMBOL } from './internal';
+import { decoder } from './polyfills/text-decoder';
+import { URL } from './polyfills/url';
+import { Application } from './switch/ns';
+import { Profile } from './switch/profile';
 import {
-	def,
 	assertInternalConstructor,
 	createInternal,
 	decodeUTF16,
+	def,
 	encodeUTF16,
 } from './utils';
-import { decoder } from './polyfills/text-decoder';
 
 interface StorageImpl {
 	clear(): void;
@@ -22,6 +22,7 @@ interface StorageImpl {
 	length(): number;
 }
 
+// Cannot use #private fields because Storage instances are wrapped in a Proxy for localStorage
 const _ = createInternal<Storage, StorageImpl>();
 
 /**

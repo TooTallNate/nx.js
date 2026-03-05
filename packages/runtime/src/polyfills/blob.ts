@@ -3,19 +3,11 @@
  * MIT License.
  * Jimmy Wärting <https://jimmy.warting.se/opensource>
  */
-import { createInternal, def } from '../utils';
-import { encoder } from './text-encoder';
-import { TextDecoder } from './text-decoder';
+
 import type { BufferSource } from '../types';
-
-interface BlobInternal {
-	parts: (Blob | Uint8Array)[];
-	type: string;
-	size: number;
-	endings: 'native' | 'transparent';
-}
-
-const _ = createInternal<Blob, BlobInternal>();
+import { def } from '../utils';
+import { TextDecoder } from './text-decoder';
+import { encoder } from './text-encoder';
 
 // 64 KiB (same size chrome slice theirs blob into Uint8array's)
 const POOL_SIZE = 65536;
@@ -56,6 +48,10 @@ export interface BlobPropertyBag {
  * necessarily in a JavaScript-native format.
  */
 export class Blob implements globalThis.Blob {
+	#parts: (Blob | Uint8Array)[] = [];
+	#type: string = '';
+	#size: number = 0;
+
 	/**
 	 * @param blobParts - An array of BlobPart values that will be concatenated into a single Blob.
 	 * @param options - An optional object that specifies the `Content-Type` and endings of the Blob.
@@ -79,14 +75,6 @@ export class Blob implements globalThis.Blob {
 			);
 		}
 
-		const internal: BlobInternal = {
-			parts: [],
-			size: 0,
-			type: '',
-			endings: 'transparent',
-		};
-		_.set(this, internal);
-
 		for (const element of blobParts) {
 			let part;
 			if (ArrayBuffer.isView(element)) {
@@ -107,18 +95,15 @@ export class Blob implements globalThis.Blob {
 			const size = ArrayBuffer.isView(part) ? part.byteLength : part.size;
 			// Avoid pushing empty parts into the array to better GC them
 			if (size) {
-				internal.size += size;
-				internal.parts.push(part);
+				this.#size += size;
+				this.#parts.push(part);
 			}
 		}
 
-		if (options.endings) {
-			internal.endings = options.endings;
-		}
 
 		const type = options.type === undefined ? '' : String(options.type);
 		if (/^[\x20-\x7E]*$/.test(type)) {
-			internal.type = type.toLowerCase();
+			this.#type = type.toLowerCase();
 		}
 	}
 
@@ -126,14 +111,14 @@ export class Blob implements globalThis.Blob {
 	 * Returns the size of the Blob object, in bytes.
 	 */
 	get size() {
-		return _(this).size;
+		return this.#size;
 	}
 
 	/**
 	 * Returns the MIME type of the Blob object.
 	 */
 	get type() {
-		return _(this).type;
+		return this.#type;
 	}
 
 	/**
@@ -144,8 +129,7 @@ export class Blob implements globalThis.Blob {
 		// that requires twice as much ram
 		const decoder = new TextDecoder();
 		let str = '';
-		const parts = _(this).parts;
-		for await (const part of toIterator(parts, false)) {
+		for await (const part of toIterator(this.#parts, false)) {
 			str += decoder.decode(part, { stream: true });
 		}
 		// Remaining
@@ -159,8 +143,7 @@ export class Blob implements globalThis.Blob {
 	async arrayBuffer(): Promise<ArrayBuffer> {
 		const data = new Uint8Array(this.size);
 		let offset = 0;
-		const parts = _(this).parts;
-		for await (const chunk of toIterator(parts, false)) {
+		for await (const chunk of toIterator(this.#parts, false)) {
 			data.set(chunk, offset);
 			offset += chunk.length;
 		}
@@ -172,8 +155,7 @@ export class Blob implements globalThis.Blob {
 	 * Returns a stream that can be used to read the contents of the Blob.
 	 */
 	stream() {
-		const parts = _(this).parts;
-		const it = toIterator(parts, true);
+		const it = toIterator(this.#parts, true);
 
 		return new ReadableStream({
 			type: 'bytes',
@@ -202,7 +184,7 @@ export class Blob implements globalThis.Blob {
 		let relativeEnd = end < 0 ? Math.max(size + end, 0) : Math.min(end, size);
 
 		const span = Math.max(relativeEnd - relativeStart, 0);
-		const parts = _(this).parts;
+		const parts = this.#parts;
 		const blobParts = [];
 		let added = 0;
 
@@ -234,9 +216,8 @@ export class Blob implements globalThis.Blob {
 		}
 
 		const blob = new Blob([], { type: `${type}` });
-		const internal = _(blob);
-		internal.size = span;
-		internal.parts = blobParts;
+		blob.#size = span;
+		blob.#parts = blobParts;
 
 		return blob;
 	}

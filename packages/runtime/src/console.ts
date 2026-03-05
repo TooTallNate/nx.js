@@ -1,7 +1,6 @@
 import { bgRgb, bold, red, yellow } from 'kleur/colors';
 import { $ } from './$';
 import { inspect } from './switch/inspect';
-import { createInternal } from './utils';
 
 const bgRedDim = bgRgb(60, 0, 0);
 const bgYellowDim = bgRgb(60, 60, 0);
@@ -54,23 +53,19 @@ export interface ConsoleOptions {
 	printErr?(s: string): void;
 }
 
-interface ConsoleInternal extends Required<ConsoleOptions> {
-	counts: Map<string, number>;
-	timers: Map<string, number>;
-	groupDepth: number;
-}
-
-const _ = createInternal<Console, ConsoleInternal>();
-
 export class Console {
+	#print: (s: string) => void;
+	#printErr: (s: string) => void;
+	#counts: Map<string, number>;
+	#timers: Map<string, number>;
+	#groupDepth: number;
+
 	constructor(opts: ConsoleOptions = {}) {
-		_.set(this, {
-			print: opts.print || $.print,
-			printErr: opts.printErr || $.printErr,
-			counts: new Map(),
-			timers: new Map(),
-			groupDepth: 0,
-		});
+		this.#print = opts.print || $.print;
+		this.#printErr = opts.printErr || $.printErr;
+		this.#counts = new Map();
+		this.#timers = new Map();
+		this.#groupDepth = 0;
 	}
 
 	/**
@@ -80,7 +75,7 @@ export class Console {
 	 * @param s The text to print to the console.
 	 */
 	print = (s: string) => {
-		_(this).print.call(this, s);
+		this.#print.call(this, s);
 	};
 
 	/**
@@ -92,14 +87,14 @@ export class Console {
 	 * @param s The text to print to the log file.
 	 */
 	printErr = (s: string) => {
-		_(this).printErr.call(this, s);
+		this.#printErr.call(this, s);
 	};
 
 	/**
 	 * Logs the formatted `input` to the screen as white text.
 	 */
 	log = (...input: unknown[]) => {
-		const depth = _(this).groupDepth;
+		const depth = this.#groupDepth;
 		const indent = depth > 0 ? '  '.repeat(depth) : '';
 		this.print(`${indent}${format(...input)}\n`);
 	};
@@ -108,7 +103,7 @@ export class Console {
 	 * Logs the formatted `input` to the screen as yellow text.
 	 */
 	warn = (...input: unknown[]) => {
-		const depth = _(this).groupDepth;
+		const depth = this.#groupDepth;
 		const indent = depth > 0 ? '  '.repeat(depth) : '';
 		this.print(`${indent}${bold(bgYellowDim(yellow(format(...input))))}\n`);
 	};
@@ -117,7 +112,7 @@ export class Console {
 	 * Logs the formatted `input` to the screen as red text.
 	 */
 	error = (...input: unknown[]) => {
-		const depth = _(this).groupDepth;
+		const depth = this.#groupDepth;
 		const indent = depth > 0 ? '  '.repeat(depth) : '';
 		this.print(`${indent}${bold(bgRedDim(red(format(...input))))}\n`);
 	};
@@ -128,7 +123,7 @@ export class Console {
 	 * > TIP: This function **does not** invoke _text rendering mode_, so it can safely be used when rendering with the Canvas API.
 	 */
 	debug = (...input: unknown[]) => {
-		const depth = _(this).groupDepth;
+		const depth = this.#groupDepth;
 		const indent = depth > 0 ? '  '.repeat(depth) : '';
 		this.printErr(`${indent}${format(...input)}\n`);
 	};
@@ -138,7 +133,7 @@ export class Console {
 	 * including a stack trace of where the function was invoked.
 	 */
 	trace = (...input: unknown[]) => {
-		const depth = _(this).groupDepth;
+		const depth = this.#groupDepth;
 		const indent = depth > 0 ? '  '.repeat(depth) : '';
 		const f = format(...input);
 		let s = new Error().stack!.split('\n').slice(1).join('\n');
@@ -167,9 +162,8 @@ export class Console {
 	 * @see https://developer.mozilla.org/docs/Web/API/console/count_static
 	 */
 	count = (label = 'default') => {
-		const i = _(this);
-		const count = (i.counts.get(label) || 0) + 1;
-		i.counts.set(label, count);
+		const count = (this.#counts.get(label) || 0) + 1;
+		this.#counts.set(label, count);
 		this.log(`${label}: ${count}`);
 	};
 
@@ -179,7 +173,7 @@ export class Console {
 	 * @see https://developer.mozilla.org/docs/Web/API/console/countReset_static
 	 */
 	countReset = (label = 'default') => {
-		_(this).counts.delete(label);
+		this.#counts.delete(label);
 	};
 
 	/**
@@ -209,7 +203,7 @@ export class Console {
 		if (label.length > 0) {
 			this.log(...label);
 		}
-		_(this).groupDepth++;
+		this.#groupDepth++;
 	};
 
 	/**
@@ -227,8 +221,7 @@ export class Console {
 	 * @see https://developer.mozilla.org/docs/Web/API/console/groupEnd_static
 	 */
 	groupEnd = () => {
-		const i = _(this);
-		if (i.groupDepth > 0) i.groupDepth--;
+		if (this.#groupDepth > 0) this.#groupDepth--;
 	};
 
 	/**
@@ -246,7 +239,7 @@ export class Console {
 	 * @see https://developer.mozilla.org/docs/Web/API/console/time_static
 	 */
 	time = (label = 'default') => {
-		_(this).timers.set(label, performance.now());
+		this.#timers.set(label, performance.now());
 	};
 
 	/**
@@ -255,13 +248,12 @@ export class Console {
 	 * @see https://developer.mozilla.org/docs/Web/API/console/timeEnd_static
 	 */
 	timeEnd = (label = 'default') => {
-		const i = _(this);
-		const start = i.timers.get(label);
+		const start = this.#timers.get(label);
 		if (start === undefined) {
 			this.warn(`Timer '${label}' does not exist`);
 			return;
 		}
-		i.timers.delete(label);
+		this.#timers.delete(label);
 		this.log(`${label}: ${(performance.now() - start).toFixed(3)}ms`);
 	};
 
@@ -271,7 +263,7 @@ export class Console {
 	 * @see https://developer.mozilla.org/docs/Web/API/console/timeLog_static
 	 */
 	timeLog = (label = 'default', ...args: unknown[]) => {
-		const start = _(this).timers.get(label);
+		const start = this.#timers.get(label);
 		if (start === undefined) {
 			this.warn(`Timer '${label}' does not exist`);
 			return;

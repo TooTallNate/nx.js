@@ -1,15 +1,13 @@
-import { createInternal, def } from '../utils';
-import { File } from './file';
+import { def } from '../utils';
 import type { Blob } from './blob';
-
-const _ = createInternal<FormData, [string, FormDataEntryValue][]>();
+import { File } from './file';
 
 export type FormDataEntryValue = string | File;
 
 export class FormData implements globalThis.FormData {
-	constructor() {
-		_.set(this, []);
-	}
+	#entries: [string, FormDataEntryValue][] = [];
+
+	constructor() {}
 
 	append(name: string, value: string | Blob): void;
 	append(name: string, value: string): void;
@@ -19,16 +17,15 @@ export class FormData implements globalThis.FormData {
 			typeof blobValue === 'string' || blobValue instanceof File
 				? blobValue
 				: new File([blobValue], filename ?? 'blob', { type: blobValue.type });
-		_(this).push([name, value]);
+		this.#entries.push([name, value]);
 	}
 
 	delete(name: string): void {
-		const updated = _(this).filter((entry) => entry[0] !== name);
-		_.set(this, updated);
+		this.#entries = this.#entries.filter((entry) => entry[0] !== name);
 	}
 
 	get(name: string): FormDataEntryValue | null {
-		for (const [key, value] of _(this)) {
+		for (const [key, value] of this.#entries) {
 			if (key === name) return value;
 		}
 		return null;
@@ -36,14 +33,14 @@ export class FormData implements globalThis.FormData {
 
 	getAll(name: string): FormDataEntryValue[] {
 		const values: FormDataEntryValue[] = [];
-		for (const [key, value] of _(this)) {
+		for (const [key, value] of this.#entries) {
 			if (key === name) values.push(value);
 		}
 		return values;
 	}
 
 	has(name: string): boolean {
-		for (const [key] of _(this)) {
+		for (const [key] of this.#entries) {
 			if (key === name) return true;
 		}
 		return false;
@@ -57,7 +54,7 @@ export class FormData implements globalThis.FormData {
 			typeof blobValue === 'string' || blobValue instanceof File
 				? blobValue
 				: new File([blobValue], filename ?? 'blob', { type: blobValue.type });
-		const data = _(this);
+		const data = this.#entries;
 		let firstIndex = -1;
 		for (let i = 0; i < data.length; i++) {
 			if (data[i][0] === name) {
@@ -89,19 +86,19 @@ export class FormData implements globalThis.FormData {
 	}
 
 	*entries(): FormDataIterator<[string, FormDataEntryValue]> {
-		for (const entry of _(this)) {
+		for (const entry of this.#entries) {
 			yield entry;
 		}
 	}
 
 	*keys(): FormDataIterator<string> {
-		for (const [key] of _(this)) {
+		for (const [key] of this.#entries) {
 			yield key;
 		}
 	}
 
 	*values(): FormDataIterator<FormDataEntryValue> {
-		for (const [_k, value] of _(this)) {
+		for (const [_k, value] of this.#entries) {
 			yield value;
 		}
 	}

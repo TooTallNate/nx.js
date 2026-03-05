@@ -1,13 +1,11 @@
+import type { IFont } from 'parse-css-font';
 import { $ } from '../$';
 import { INTERNAL_SYMBOL } from '../internal';
 import { EventTarget } from '../polyfills/event-target';
-import { assertInternalConstructor, createInternal, def } from '../utils';
-import { FontFace } from './font-face';
 import type { screen } from '../screen';
-import type { IFont } from 'parse-css-font';
 import type { FontFaceSetLoadStatus } from '../types';
-
-const _ = createInternal<FontFaceSet, Set<FontFace>>();
+import { assertInternalConstructor, def } from '../utils';
+import { FontFace } from './font-face';
 
 /**
  * Manages the loading of font-faces and querying of their download status.
@@ -15,13 +13,14 @@ const _ = createInternal<FontFaceSet, Set<FontFace>>();
  * @see https://developer.mozilla.org/docs/Web/API/FontFaceSet
  */
 export class FontFaceSet extends EventTarget {
+	#set = new Set<FontFace>();
+
 	/**
 	 * @ignore
 	 */
 	constructor() {
 		assertInternalConstructor(arguments);
 		super();
-		_.set(this, new Set());
 		this.ready = Promise.resolve(this);
 		this.status = 'loaded';
 	}
@@ -40,40 +39,40 @@ export class FontFaceSet extends EventTarget {
 
 	// Set interface
 	get size() {
-		return _(this).size;
+		return this.#set.size;
 	}
 	add(font: FontFace) {
-		_(this).add(font);
+		this.#set.add(font);
 		return this;
 	}
 	clear(): void {
-		_(this).clear();
+		this.#set.clear();
 	}
 	delete(font: FontFace): boolean {
-		return _(this).delete(font);
+		return this.#set.delete(font);
 	}
 	has(font: FontFace): boolean {
-		return _(this).has(font);
+		return this.#set.has(font);
 	}
 	keys(): IterableIterator<FontFace> {
-		return _(this).keys();
+		return this.#set.keys();
 	}
 	values(): IterableIterator<FontFace> {
-		return _(this).values();
+		return this.#set.values();
 	}
 	entries(): IterableIterator<[FontFace, FontFace]> {
-		return _(this).entries();
+		return this.#set.entries();
 	}
 	forEach(
 		callbackfn: (value: FontFace, key: FontFace, parent: FontFaceSet) => void,
 		thisArg: any = this,
 	): void {
-		for (const font of _(this)) {
+		for (const font of this.#set) {
 			callbackfn.call(thisArg, font, font, this);
 		}
 	}
 	[Symbol.iterator](): IterableIterator<FontFace> {
-		return _(this)[Symbol.iterator]();
+		return this.#set[Symbol.iterator]();
 	}
 }
 def(FontFaceSet);
