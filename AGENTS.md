@@ -187,6 +187,8 @@ Package.json template:
 
 The `screen` global is the main display (1280×720). Use `screen.getContext('2d')` for drawing.
 
+**When creating a new example app**, use `apps/hello-world/` as a template. Copy the entire directory and modify it — this ensures you include all necessary structure and config files (`.gitignore`, `tsconfig.json`, `package.json`, `romfs/`, etc.).
+
 ## Git Workflow
 
 - Branch from `main`
