@@ -29,13 +29,7 @@ test("`crypto.subtle.importKey()` with 'raw' format and 'AES-XTS' algorithm, two
 test("`crypto.subtle.importKey()` with 'raw' format and 'AES-XTS' algorithm, invalid key length", async () => {
 	let err: Error | undefined;
 	try {
-		await crypto.subtle.importKey(
-			'raw',
-			new Uint8Array(),
-			'AES-XTS',
-			true,
-			[],
-		);
+		await crypto.subtle.importKey('raw', new Uint8Array(), 'AES-XTS', true, []);
 	} catch (_err: any) {
 		err = _err;
 	}
