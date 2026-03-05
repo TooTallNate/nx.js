@@ -13,7 +13,7 @@ test('performance.now() is monotonically increasing', (t) => {
 	// Busy-wait briefly to ensure time passes
 	for (let i = 0; i < 10000; i++) { /* noop */ }
 	const b = performance.now();
-	t.ok(b >= a, `second call (${b}) >= first call (${a})`);
+	t.ok(b >= a, 'second call >= first call');
 });
 
 // --- performance.mark() ---
