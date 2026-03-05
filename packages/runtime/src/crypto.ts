@@ -1,6 +1,5 @@
 import { $ } from './$';
 import { CryptoKey, type CryptoKeyPair } from './crypto/crypto-key';
-import { DOMException } from './dom-exception';
 import { INTERNAL_SYMBOL } from './internal';
 import { TextDecoder } from './polyfills/text-decoder';
 import { TextEncoder } from './polyfills/text-encoder';
