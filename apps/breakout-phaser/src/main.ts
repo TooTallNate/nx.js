@@ -4,6 +4,18 @@
  *
  * DOM shim MUST be imported before Phaser.
  */
+// Global error handler to catch crashes before they bring down the Switch
+addEventListener('error', (event: any) => {
+	console.error('GLOBAL ERROR:', event?.error?.message ?? event?.message ?? event);
+	console.error('Stack:', event?.error?.stack ?? 'no stack');
+	event.preventDefault();
+});
+addEventListener('unhandledrejection', (event: any) => {
+	console.error('UNHANDLED REJECTION:', event?.reason?.message ?? event?.reason ?? event);
+	console.error('Stack:', event?.reason?.stack ?? 'no stack');
+	event.preventDefault();
+});
+
 import './dom-shim';
 import Phaser from 'phaser';
 import { patchCanvas, SCREEN_W, SCREEN_H } from './dom-shim';

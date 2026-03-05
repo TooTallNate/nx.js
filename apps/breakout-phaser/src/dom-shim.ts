@@ -374,5 +374,66 @@ if (!(globalThis as any).WebGLRenderingContext) {
 	(globalThis as any).WebGLRenderingContext = class WebGLRenderingContext {};
 }
 
+// Pointer/Mouse events — Phaser dispatches these and nx.js doesn't have them
+if (!(globalThis as any).MouseEvent) {
+	(globalThis as any).MouseEvent = class MouseEvent extends Event {
+		clientX = 0; clientY = 0; pageX = 0; pageY = 0;
+		screenX = 0; screenY = 0; offsetX = 0; offsetY = 0;
+		movementX = 0; movementY = 0;
+		button = 0; buttons = 0;
+		ctrlKey = false; shiftKey = false; altKey = false; metaKey = false;
+		constructor(type: string, init?: any) {
+			super(type, init);
+			if (init) {
+				for (const k of Object.keys(init)) {
+					if (k in this) (this as any)[k] = init[k];
+				}
+			}
+		}
+	};
+}
+if (!(globalThis as any).PointerEvent) {
+	(globalThis as any).PointerEvent = class PointerEvent extends (globalThis as any).MouseEvent {
+		pointerId = 0; pointerType = 'mouse';
+		width = 1; height = 1; pressure = 0;
+		tiltX = 0; tiltY = 0; twist = 0;
+		isPrimary = true;
+		constructor(type: string, init?: any) {
+			super(type, init);
+			if (init) {
+				for (const k of Object.keys(init)) {
+					if (k in this) (this as any)[k] = init[k];
+				}
+			}
+		}
+	};
+}
+if (!(globalThis as any).WheelEvent) {
+	(globalThis as any).WheelEvent = class WheelEvent extends (globalThis as any).MouseEvent {
+		deltaX = 0; deltaY = 0; deltaZ = 0; deltaMode = 0;
+		constructor(type: string, init?: any) {
+			super(type, init);
+			if (init) {
+				for (const k of Object.keys(init)) {
+					if (k in this) (this as any)[k] = init[k];
+				}
+			}
+		}
+	};
+}
+if (!(globalThis as any).TouchEvent) {
+	(globalThis as any).TouchEvent = class TouchEvent extends Event {
+		touches: any[] = []; changedTouches: any[] = []; targetTouches: any[] = [];
+		constructor(type: string, init?: any) {
+			super(type, init);
+			if (init) {
+				if (init.touches) this.touches = init.touches;
+				if (init.changedTouches) this.changedTouches = init.changedTouches;
+				if (init.targetTouches) this.targetTouches = init.targetTouches;
+			}
+		}
+	};
+}
+
 // Export patchCanvas for use in main
 export { patchCanvas, SCREEN_W, SCREEN_H };
