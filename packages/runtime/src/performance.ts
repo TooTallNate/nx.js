@@ -121,8 +121,7 @@ export class Performance {
 		markOptions?: { startTime?: DOMHighResTimeStamp; detail?: unknown }
 	): PerformanceMark {
 		const startTime = markOptions?.startTime ?? this.now();
-		// @ts-expect-error Internal constructor
-		const mark = new PerformanceMark(
+		const mark = new (PerformanceMark as new (...args: unknown[]) => PerformanceMark)(
 			INTERNAL_SYMBOL,
 			markName,
 			startTime,
@@ -177,8 +176,7 @@ export class Performance {
 		}
 
 		const duration = endTime - startTime;
-		// @ts-expect-error Internal constructor
-		const measure = new PerformanceMeasure(
+		const measure = new (PerformanceMeasure as new (...args: unknown[]) => PerformanceMeasure)(
 			INTERNAL_SYMBOL,
 			measureName,
 			startTime,
