@@ -1,7 +1,7 @@
 import { $ } from '../$';
 import { def } from '../utils';
 import { Body, type BodyInit } from './body';
-import { AbortController, AbortSignal } from '../polyfills/abort-controller';
+import { AbortSignal } from '../polyfills/abort-controller';
 import { URL } from '../polyfills/url';
 import type { HeadersInit } from './headers';
 
@@ -17,6 +17,9 @@ const methods = [
 	'PUT',
 	'TRACE',
 ];
+
+// Shared "never abort" signal — avoids creating a new AbortController per Request
+const neverAbortSignal = Object.freeze(new AbortSignal());
 
 function normalizeMethod(method?: string) {
 	if (!method) return;
@@ -121,12 +124,13 @@ export class Request extends Body implements globalThis.Request {
 		if (input instanceof Request) {
 			this.url = input.url;
 			this.cache = init.cache || input.cache;
-			this.credentials = input.credentials;
+			this.credentials = init.credentials ?? input.credentials;
 			this.destination = input.destination;
 			this.integrity = init.integrity ?? input.integrity;
 			this.keepalive = init.keepalive ?? input.keepalive;
 			this.mode = init.mode ?? input.mode;
 			this.redirect = init.redirect ?? input.redirect;
+			this.referrer = init.referrer ?? input.referrer;
 			this.referrerPolicy = init.referrerPolicy ?? input.referrerPolicy;
 			this.signal = init.signal ?? input.signal;
 		} else {
@@ -140,15 +144,41 @@ export class Request extends Body implements globalThis.Request {
 			this.keepalive = init.keepalive ?? false;
 			this.mode = init.mode ?? 'cors';
 			this.redirect = init.redirect ?? 'follow';
+			this.referrer = init.referrer ?? '';
 			this.referrerPolicy = init.referrerPolicy ?? '';
-			this.signal = init.signal ?? new AbortController().signal;
+			this.signal = init.signal ?? neverAbortSignal;
 		}
 		this.method = method;
-		this.referrer = '';
 	}
 
 	clone(): Request {
-		return new Request(this);
+		if (this.bodyUsed) {
+			throw new TypeError('Already read');
+		}
+		// Tee the body stream so both the original and clone can be read
+		let cloneBody: BodyInit | null = null;
+		if (this.body instanceof ReadableStream) {
+			const [branch1, branch2] = this.body.tee();
+			this.body = branch1;
+			cloneBody = branch2;
+		} else {
+			cloneBody = this.body;
+		}
+		const cloned = new Request(this.url, {
+			method: this.method,
+			headers: this.headers,
+			body: cloneBody,
+			cache: this.cache,
+			credentials: this.credentials,
+			integrity: this.integrity,
+			keepalive: this.keepalive,
+			mode: this.mode,
+			redirect: this.redirect,
+			referrer: this.referrer,
+			referrerPolicy: this.referrerPolicy,
+			signal: this.signal,
+		});
+		return cloned;
 	}
 }
 
