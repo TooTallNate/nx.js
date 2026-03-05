@@ -140,7 +140,22 @@ function createContentLengthStream(contentLength: number) {
 const ACCEPT_ENCODINGS = new Set(['zstd', 'gzip', 'deflate']);
 const ACCEPT_ENCODING_HEADER = [...ACCEPT_ENCODINGS].join(', ');
 
-async function fetchHttp(req: Request, url: URL): Promise<Response> {
+const MAX_REDIRECTS = 20;
+
+function isSameOrigin(a: URL, b: URL): boolean {
+	return a.protocol === b.protocol && a.hostname === b.hostname && a.port === b.port;
+}
+
+async function fetchHttp(
+	req: Request,
+	url: URL,
+	redirectCount = 0,
+	bodyBytes?: Uint8Array | null,
+): Promise<Response> {
+	if (redirectCount > MAX_REDIRECTS) {
+		throw new TypeError('Failed to fetch: too many redirects');
+	}
+
 	const isHttps = url.protocol === 'https:';
 	const { hostname } = url;
 	const port = +url.port || (isHttps ? 443 : 80);
@@ -151,6 +166,20 @@ async function fetchHttp(req: Request, url: URL): Promise<Response> {
 		{ hostname, port },
 		{ secureTransport: isHttps ? 'on' : 'off', connect },
 	);
+
+	// Wire AbortSignal to socket — propagate AbortError so pending I/O rejects
+	if (req.signal) {
+		if (req.signal.aborted) {
+			socket.close();
+			throw new DOMException('The operation was aborted.', 'AbortError');
+		}
+		req.signal.addEventListener('abort', () => {
+			const err = req.signal.reason ?? new DOMException('The operation was aborted.', 'AbortError');
+			socket.readable.cancel(err);
+			socket.writable.abort(err);
+			socket.close();
+		}, { once: true });
+	}
 
 	if (!req.headers.has('host')) {
 		req.headers.set('host', url.host);
@@ -185,21 +214,34 @@ async function fetchHttp(req: Request, url: URL): Promise<Response> {
 	const w = socket.writable.getWriter();
 	await w.write(encoder.encode(header));
 
-	// Flush the request body
-	// TODO: flush async?
-	if (req.body) {
-		if (hasContentLength) {
-			w.releaseLock();
-			await req.body.pipeTo(socket.writable);
-		} else {
-			for await (const chunk of req.body) {
-				await w.write(encoder.encode(`${chunk.byteLength.toString(16)}\r\n`));
-				await w.write(chunk);
-				await w.write(encoder.encode(`\r\n`));
-			}
-			await w.write(encoder.encode('0\r\n\r\n'));
-			w.releaseLock();
+	// Buffer the request body on the first call so it can be replayed on 307/308 redirects.
+	// On subsequent redirects, `bodyBytes` is passed in directly.
+	if (req.body && bodyBytes === undefined) {
+		const chunks: Uint8Array[] = [];
+		for await (const chunk of req.body) {
+			chunks.push(chunk);
 		}
+		const totalLength = chunks.reduce((sum, c) => sum + c.byteLength, 0);
+		bodyBytes = new Uint8Array(totalLength);
+		let offset = 0;
+		for (const c of chunks) {
+			bodyBytes.set(c, offset);
+			offset += c.byteLength;
+		}
+	}
+
+	// Flush the request body
+	if (bodyBytes && bodyBytes.byteLength > 0) {
+		if (hasContentLength) {
+			await w.write(bodyBytes);
+		} else {
+			await w.write(encoder.encode(`${bodyBytes.byteLength.toString(16)}\r\n`));
+			await w.write(bodyBytes);
+			await w.write(encoder.encode('\r\n0\r\n\r\n'));
+		}
+		w.releaseLock();
+	} else {
+		w.releaseLock();
 	}
 
 	const resHeaders = new Headers();
@@ -207,22 +249,36 @@ async function fetchHttp(req: Request, url: URL): Promise<Response> {
 
 	const hi = headersIterator(r);
 
-	// Parse response status
+	// Parse response status line — use indexOf to preserve multi-word status text
 	const firstLine = await hi.next();
 	if (firstLine.done || !firstLine.value.line) {
 		throw new Error('Failed to read response header');
 	}
-	const [_, statusStr, statusText] = firstLine.value.line.split(' ');
+	const statusLine = firstLine.value.line;
+	const firstSpace = statusLine.indexOf(' ');
+	if (firstSpace === -1) {
+		throw new Error(`Invalid HTTP response status line: ${statusLine}`);
+	}
+	const secondSpace = statusLine.indexOf(' ', firstSpace + 1);
+	const statusStr = secondSpace === -1
+		? statusLine.slice(firstSpace + 1)
+		: statusLine.slice(firstSpace + 1, secondSpace);
+	const statusText = secondSpace === -1
+		? ''
+		: statusLine.slice(secondSpace + 1);
 	const status = +statusStr;
+	if (isNaN(status)) {
+		throw new Error(`Invalid HTTP status code: ${statusStr}`);
+	}
 
-	// Parse response headers
+	// Parse response headers — use append() to support multi-value headers (e.g. Set-Cookie)
 	let leftover: Uint8Array | undefined;
 	for await (const v of hi) {
 		if (typeof v.line === 'string') {
 			const col = v.line.indexOf(':');
 			const name = v.line.slice(0, col);
 			const value = v.line.slice(col + 1).trim();
-			resHeaders.set(name, value);
+			resHeaders.append(name, value);
 		} else {
 			leftover = v.leftover;
 		}
@@ -230,6 +286,14 @@ async function fetchHttp(req: Request, url: URL): Promise<Response> {
 
 	// Redirect
 	if (((status / 100) | 0) === 3) {
+		if (req.redirect === 'error') {
+			socket.readable.cancel();
+			w.close();
+			throw new TypeError(
+				`URI requested responds with a redirect, redirect mode is set to error: ${url}`,
+			);
+		}
+
 		if (req.redirect === 'follow') {
 			socket.readable.cancel();
 			w.close();
@@ -241,18 +305,29 @@ async function fetchHttp(req: Request, url: URL): Promise<Response> {
 			}
 			const redirectUrl = new URL(loc, req.url);
 			let method: RequestInit['method'] = 'GET';
-			let body: RequestInit['body'] = null;
+			let redirectBody: Uint8Array | null = null;
 			if (status === 307 || status === 308) {
 				method = req.method;
-				body = req.body;
+				redirectBody = bodyBytes ?? null;
 			}
-			const redirect = new Request(redirectUrl, { method, body });
-			const res = await fetchHttp(redirect, redirectUrl);
+
+			// Forward headers, but strip Authorization on cross-origin redirects
+			const redirectHeaders = new Headers(req.headers);
+			redirectHeaders.delete('host');
+			if (!isSameOrigin(url, redirectUrl)) {
+				redirectHeaders.delete('authorization');
+			}
+
+			const redirect = new Request(redirectUrl, {
+				method,
+				body: redirectBody,
+				headers: redirectHeaders,
+				redirect: req.redirect,
+				signal: req.signal,
+			});
+			const res = await fetchHttp(redirect, redirectUrl, redirectCount + 1, redirectBody);
 			res.redirected = true;
 			return res;
-		}
-
-		if (req.redirect === 'error') {
 		}
 
 		// For "manual", just continue with the regular logic
