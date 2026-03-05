@@ -30,14 +30,14 @@
   "dependencies": {
     "@nx.js/patch-nacp": "2.0.0",
     "@tootallnate/hacbrewpack": "^0.0.1",
-    "@tootallnate/nacp": "^0.2.0",
-    "bytes": "^3.1.2",
-    "chalk": "^5.3.0",
+    "@tootallnate/nacp": "catalog:",
+    "bytes": "catalog:",
+    "chalk": "catalog:",
     "jimp": "^1.6.0",
-    "terminal-image": "^3.0.0"
+    "terminal-image": "catalog:"
   },
   "devDependencies": {
-    "@types/bytes": "^3.1.4",
-    "@types/node": "^20.10.3"
+    "@types/bytes": "catalog:",
+    "@types/node": "catalog:"
   }
 }

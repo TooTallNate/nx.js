@@ -1,19 +1,20 @@
 #!/usr/bin/env node
+import * as clack from '@clack/prompts';
+import slugify from '@sindresorhus/slugify';
 import chalk from 'chalk';
+import { SpawnOptions, spawn } from 'child_process';
 import degit from 'degit';
-import which from 'which';
 import { once } from 'events';
 import { promises as fs } from 'fs';
-import { fileURLToPath, pathToFileURL } from 'url';
-import { SpawnOptions, spawn } from 'child_process';
-import slugify from '@sindresorhus/slugify';
 import terminalLink from 'terminal-link';
-import * as clack from '@clack/prompts';
 import type { PackageJson } from 'types-package-json';
+import { fileURLToPath, pathToFileURL } from 'url';
+import which from 'which';
 
 interface Data {
 	apps: { name: string; value: string; description: string }[];
 	packages: { [name: string]: { version: string } };
+	catalog: { [name: string]: string };
 }
 
 function generateRandomID() {
@@ -30,15 +31,25 @@ async function hasPackageManager(name: string) {
 	return p ? name : null;
 }
 
-function removeWorkspace(
+function resolveProtocols(
 	deps: Record<string, string> = {},
 	packages: Data['packages'],
+	catalog: Data['catalog'],
 ) {
 	for (const [name, value] of Object.entries(deps)) {
+		// Resolve workspace: protocol → actual version from packages
 		const noWorkspace = value.replace(/^workspace:\*?/, '');
 		if (noWorkspace !== value) {
 			const { version } = packages[name];
 			deps[name] = `${noWorkspace}${version}`;
+			continue;
+		}
+		// Resolve catalog: protocol → version from pnpm catalog
+		if (value === 'catalog:' || value.startsWith('catalog:')) {
+			const catalogVersion = catalog[name];
+			if (catalogVersion) {
+				deps[name] = catalogVersion;
+			}
 		}
 	}
 }
@@ -187,8 +198,8 @@ try {
 		};
 	}
 
-	removeWorkspace(packageJson.dependencies, data.packages);
-	removeWorkspace(packageJson.devDependencies, data.packages);
+	resolveProtocols(packageJson.dependencies, data.packages, data.catalog);
+	resolveProtocols(packageJson.devDependencies, data.packages, data.catalog);
 	await fs.writeFile(
 		packageJsonUrl,
 		`${JSON.stringify(

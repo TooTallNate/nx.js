@@ -8,11 +8,11 @@
     "test:watch": "vitest"
   },
   "devDependencies": {
-    "vitest": "^3.0.0",
-    "playwright": "^1.50.0",
+    "vitest": "catalog:",
+    "playwright": "catalog:",
     "pixelmatch": "^6.0.0",
     "pngjs": "^7.0.0",
-    "@types/node": "^22.0.0",
+    "@types/node": "catalog:",
     "jest-image-snapshot": "^6.4.0",
     "@types/jest-image-snapshot": "^6.4.0"
   }

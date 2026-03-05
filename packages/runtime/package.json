@@ -34,12 +34,12 @@
     "color-rgba": "^2.4.0",
     "data-uri-to-buffer": "^6.0.1",
     "dts-bundle-generator": "^8.1.2",
-    "esbuild": "^0.27.3",
+    "esbuild": "catalog:",
     "kleur": "github:TooTallNate/kleur#rgb",
     "parse-css-font": "^4.0.0",
-    "playwright": "^1.40.0",
+    "playwright": "catalog:",
     "to-px": "^1.1.0",
-    "vitest": "^3.0.0",
+    "vitest": "catalog:",
     "web-streams-polyfill": "^4.0.0"
   }
 }

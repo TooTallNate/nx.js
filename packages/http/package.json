@@ -22,8 +22,8 @@
   },
   "devDependencies": {
     "@nx.js/runtime": "workspace:*",
-    "vite": "^5.4.2",
-    "vitest": "^2.0.5"
+    "vite": "catalog:",
+    "vitest": "catalog:"
   },
   "keywords": [
     "nx.js",
