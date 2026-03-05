@@ -16,6 +16,7 @@ export type * from './console';
 import './uint8array';
 
 export type * from './crypto';
+export type { DOMException } from './dom-exception';
 export type * from './dommatrix';
 export type { DOMPoint, DOMPointInit, DOMPointReadOnly } from './dompoint';
 export type * from './domrect';
