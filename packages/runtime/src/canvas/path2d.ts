@@ -209,11 +209,6 @@ function scalePoint(point: Point, s: number) {
 export class Path2D implements globalThis.Path2D {
 	#commands: PathCommand[];
 
-	/** @internal */
-	get _commands(): PathCommand[] {
-		return this.#commands;
-	}
-
 	constructor(path?: Path2D | string) {
 		let commands: PathCommand[] | undefined;
 		if (path && path instanceof Path2D) {
@@ -302,358 +297,365 @@ export class Path2D implements globalThis.Path2D {
 			this.#commands.push(['RR', x, y, width, height, radii]);
 		}
 	}
-}
 
-$.applyPath = (ctx: CanvasRenderingContext2D, path: Path2D) => {
-	const commands = path._commands;
-	let x = 0;
-	let y = 0;
-	let endAngle: number;
-	let startAngle: number;
-	let largeArcFlag: boolean;
-	let sweepFlag: boolean;
-	let endPoint: Point;
-	let midPoint: Point;
-	let angle: number;
-	let lambda: number;
-	let t1: number;
-	let t2: number;
-	let x1: number;
-	let y1: number;
-	let r: number;
-	let rx: number;
-	let ry: number;
-	let w: number;
-	let h: number;
-	let pathType: Command;
-	let centerPoint: Point;
-	let ccw: boolean;
-	let radii: number | number[];
-	let cpx: null | number = null;
-	let cpy: null | number = null;
-	let qcpx: null | number = null;
-	let qcpy: null | number = null;
-	let startPoint: null | Point = null;
-	let currentPoint: null | Point = null;
+	static #applyPath(ctx: CanvasRenderingContext2D, path: Path2D) {
+		const commands = path.#commands;
+		let x = 0;
+		let y = 0;
+		let endAngle: number;
+		let startAngle: number;
+		let largeArcFlag: boolean;
+		let sweepFlag: boolean;
+		let endPoint: Point;
+		let midPoint: Point;
+		let angle: number;
+		let lambda: number;
+		let t1: number;
+		let t2: number;
+		let x1: number;
+		let y1: number;
+		let r: number;
+		let rx: number;
+		let ry: number;
+		let w: number;
+		let h: number;
+		let pathType: Command;
+		let centerPoint: Point;
+		let ccw: boolean;
+		let radii: number | number[];
+		let cpx: null | number = null;
+		let cpy: null | number = null;
+		let qcpx: null | number = null;
+		let qcpy: null | number = null;
+		let startPoint: null | Point = null;
+		let currentPoint: null | Point = null;
 
-	ctx.beginPath();
-	for (let i = 0; i < commands.length; ++i) {
-		pathType = commands[i][0];
+		ctx.beginPath();
+		for (let i = 0; i < commands.length; ++i) {
+			pathType = commands[i][0];
 
-		// Reset control point if command is not cubic
-		if (
-			pathType !== 'S' &&
-			pathType !== 's' &&
-			pathType !== 'C' &&
-			pathType !== 'c'
-		) {
-			cpx = null;
-			cpy = null;
-		}
+			// Reset control point if command is not cubic
+			if (
+				pathType !== 'S' &&
+				pathType !== 's' &&
+				pathType !== 'C' &&
+				pathType !== 'c'
+			) {
+				cpx = null;
+				cpy = null;
+			}
 
-		if (
-			pathType !== 'T' &&
-			pathType !== 't' &&
-			pathType !== 'Q' &&
-			pathType !== 'q'
-		) {
-			qcpx = null;
-			qcpy = null;
-		}
-		let c;
-		switch (pathType) {
-			case 'm':
-			case 'M':
-				c = commands[i] as MovePathCommand;
-				if (pathType === 'm') {
+			if (
+				pathType !== 'T' &&
+				pathType !== 't' &&
+				pathType !== 'Q' &&
+				pathType !== 'q'
+			) {
+				qcpx = null;
+				qcpy = null;
+			}
+			let c;
+			switch (pathType) {
+				case 'm':
+				case 'M':
+					c = commands[i] as MovePathCommand;
+					if (pathType === 'm') {
+						x += c[1];
+						y += c[2];
+					} else {
+						x = c[1];
+						y = c[2];
+					}
+
+					if (pathType === 'M' || !startPoint) {
+						startPoint = { x, y };
+					}
+
+					ctx.moveTo(x, y);
+					break;
+				case 'l':
+					c = commands[i] as LinePathCommand;
 					x += c[1];
 					y += c[2];
-				} else {
+					ctx.lineTo(x, y);
+					break;
+				case 'L':
+					c = commands[i] as LinePathCommand;
 					x = c[1];
 					y = c[2];
-				}
+					ctx.lineTo(x, y);
+					break;
+				case 'H':
+					c = commands[i] as HorizontalPathCommand;
+					x = c[1];
+					ctx.lineTo(x, y);
+					break;
+				case 'h':
+					c = commands[i] as HorizontalPathCommand;
+					x += c[1];
+					ctx.lineTo(x, y);
+					break;
+				case 'V':
+					c = commands[i] as VerticalPathCommand;
+					y = c[1];
+					ctx.lineTo(x, y);
+					break;
+				case 'v':
+					c = commands[i] as VerticalPathCommand;
+					y += c[1];
+					ctx.lineTo(x, y);
+					break;
+				case 'a':
+				case 'A':
+					c = commands[i] as ArcPathCommand;
+					if (currentPoint === null) {
+						throw new Error('This should never happen');
+					}
+					if (pathType === 'a') {
+						x += c[6];
+						y += c[7];
+					} else {
+						x = c[6];
+						y = c[7];
+					}
 
-				if (pathType === 'M' || !startPoint) {
+					rx = c[1]; // rx
+					ry = c[2]; // ry
+					angle = (c[3] * Math.PI) / 180;
+					largeArcFlag = !!c[4];
+					sweepFlag = !!c[5];
+					endPoint = { x, y };
+
+					// https://www.w3.org/TR/SVG/implnote.html#ArcImplementationNotes
+
+					midPoint = {
+						x: (currentPoint.x - endPoint.x) / 2,
+						y: (currentPoint.y - endPoint.y) / 2,
+					};
+					rotatePoint(midPoint, -angle);
+
+					// radius correction
+					lambda =
+						(midPoint.x * midPoint.x) / (rx * rx) +
+						(midPoint.y * midPoint.y) / (ry * ry);
+					if (lambda > 1) {
+						lambda = Math.sqrt(lambda);
+						rx *= lambda;
+						ry *= lambda;
+					}
+
+					centerPoint = {
+						x: (rx * midPoint.y) / ry,
+						y: -(ry * midPoint.x) / rx,
+					};
+					t1 = rx * rx * ry * ry;
+					t2 =
+						rx * rx * midPoint.y * midPoint.y +
+						ry * ry * midPoint.x * midPoint.x;
+					if (sweepFlag !== largeArcFlag) {
+						scalePoint(centerPoint, Math.sqrt((t1 - t2) / t2) || 0);
+					} else {
+						scalePoint(centerPoint, -Math.sqrt((t1 - t2) / t2) || 0);
+					}
+
+					startAngle = Math.atan2(
+						(midPoint.y - centerPoint.y) / ry,
+						(midPoint.x - centerPoint.x) / rx,
+					);
+					endAngle = Math.atan2(
+						-(midPoint.y + centerPoint.y) / ry,
+						-(midPoint.x + centerPoint.x) / rx,
+					);
+
+					rotatePoint(centerPoint, angle);
+					translatePoint(
+						centerPoint,
+						(endPoint.x + currentPoint.x) / 2,
+						(endPoint.y + currentPoint.y) / 2,
+					);
+
+					ctx.save();
+					ctx.translate(centerPoint.x, centerPoint.y);
+					ctx.rotate(angle);
+					ctx.scale(rx, ry);
+					ctx.arc(0, 0, 1, startAngle, endAngle, !sweepFlag);
+					ctx.restore();
+					break;
+				case 'C':
+					c = commands[i] as CurvePathCommand;
+					cpx = c[3]; // Last control point
+					cpy = c[4];
+					x = c[5];
+					y = c[6];
+					ctx.bezierCurveTo(c[1], c[2], cpx, cpy, x, y);
+					break;
+				case 'c':
+					c = commands[i] as CurvePathCommand;
+					ctx.bezierCurveTo(
+						c[1] + x,
+						c[2] + y,
+						c[3] + x,
+						c[4] + y,
+						c[5] + x,
+						c[6] + y,
+					);
+					cpx = c[3] + x; // Last control point
+					cpy = c[4] + y;
+					x += c[5];
+					y += c[6];
+					break;
+				case 'S':
+					c = commands[i] as ShortCurvePathCommand;
+					if (cpx === null || cpy === null) {
+						cpx = x;
+						cpy = y;
+					}
+
+					ctx.bezierCurveTo(2 * x - cpx, 2 * y - cpy, c[1], c[2], c[3], c[4]);
+					cpx = c[1]; // last control point
+					cpy = c[2];
+					x = c[3];
+					y = c[4];
+					break;
+				case 's':
+					c = commands[i] as ShortCurvePathCommand;
+					if (cpx === null || cpy === null) {
+						cpx = x;
+						cpy = y;
+					}
+
+					ctx.bezierCurveTo(
+						2 * x - cpx,
+						2 * y - cpy,
+						c[1] + x,
+						c[2] + y,
+						c[3] + x,
+						c[4] + y,
+					);
+					cpx = c[1] + x; // last control point
+					cpy = c[2] + y;
+					x += c[3];
+					y += c[4];
+					break;
+				case 'Q':
+					c = commands[i] as QuadraticCurvePathCommand;
+					qcpx = c[1]; // last control point
+					qcpy = c[2];
+					x = c[3];
+					y = c[4];
+					ctx.quadraticCurveTo(qcpx, qcpy, x, y);
+					break;
+				case 'q':
+					c = commands[i] as QuadraticCurvePathCommand;
+					qcpx = c[1] + x; // last control point
+					qcpy = c[2] + y;
+					x += c[3];
+					y += c[4];
+					ctx.quadraticCurveTo(qcpx, qcpy, x, y);
+					break;
+				case 'T':
+					c = commands[i] as ShortQuadraticCurvePathCommand;
+					if (qcpx === null || qcpy === null) {
+						qcpx = x;
+						qcpy = y;
+					}
+					qcpx = 2 * x - qcpx; // last control point
+					qcpy = 2 * y - qcpy;
+					x = c[1];
+					y = c[2];
+					ctx.quadraticCurveTo(qcpx, qcpy, x, y);
+					break;
+				case 't':
+					c = commands[i] as ShortQuadraticCurvePathCommand;
+					if (qcpx === null || qcpy === null) {
+						qcpx = x;
+						qcpy = y;
+					}
+					qcpx = 2 * x - qcpx; // last control point
+					qcpy = 2 * y - qcpy;
+					x += c[1];
+					y += c[2];
+					ctx.quadraticCurveTo(qcpx, qcpy, x, y);
+					break;
+				case 'z':
+				case 'Z':
+					if (startPoint) {
+						x = startPoint.x;
+						y = startPoint.y;
+					}
+					startPoint = null;
+					ctx.closePath();
+					break;
+				case 'AC': // arc
+					c = commands[i] as ArcCommand;
+					x = c[1];
+					y = c[2];
+					r = c[3];
+					startAngle = c[4];
+					endAngle = c[5];
+					ccw = c[6];
+					ctx.arc(x, y, r, startAngle, endAngle, ccw);
+					break;
+				case 'AT': // arcTo
+					c = commands[i] as ArcToCommand;
+					x1 = c[1];
+					y1 = c[2];
+					x = c[3];
+					y = c[4];
+					r = c[5];
+					ctx.arcTo(x1, y1, x, y, r);
+					break;
+				case 'E': // ellipse
+					c = commands[i] as EllipseCommand;
+					x = c[1];
+					y = c[2];
+					rx = c[3];
+					ry = c[4];
+					angle = c[5];
+					startAngle = c[6];
+					endAngle = c[7];
+					ccw = c[8];
+					ctx.save();
+					ctx.translate(x, y);
+					ctx.rotate(angle);
+					ctx.scale(rx, ry);
+					ctx.arc(0, 0, 1, startAngle, endAngle, ccw);
+					ctx.restore();
+					break;
+				case 'R': // rect
+					c = commands[i] as RectCommand;
+					x = c[1];
+					y = c[2];
+					w = c[3];
+					h = c[4];
 					startPoint = { x, y };
-				}
+					ctx.rect(x, y, w, h);
+					break;
+				case 'RR': // roundedRect
+					c = commands[i] as RoundRectCommand;
+					x = c[1];
+					y = c[2];
+					w = c[3];
+					h = c[4];
+					radii = c[5];
+					startPoint = { x, y };
+					ctx.roundRect(x, y, w, h, radii);
+					break;
+			}
 
-				ctx.moveTo(x, y);
-				break;
-			case 'l':
-				c = commands[i] as LinePathCommand;
-				x += c[1];
-				y += c[2];
-				ctx.lineTo(x, y);
-				break;
-			case 'L':
-				c = commands[i] as LinePathCommand;
-				x = c[1];
-				y = c[2];
-				ctx.lineTo(x, y);
-				break;
-			case 'H':
-				c = commands[i] as HorizontalPathCommand;
-				x = c[1];
-				ctx.lineTo(x, y);
-				break;
-			case 'h':
-				c = commands[i] as HorizontalPathCommand;
-				x += c[1];
-				ctx.lineTo(x, y);
-				break;
-			case 'V':
-				c = commands[i] as VerticalPathCommand;
-				y = c[1];
-				ctx.lineTo(x, y);
-				break;
-			case 'v':
-				c = commands[i] as VerticalPathCommand;
-				y += c[1];
-				ctx.lineTo(x, y);
-				break;
-			case 'a':
-			case 'A':
-				c = commands[i] as ArcPathCommand;
-				if (currentPoint === null) {
-					throw new Error('This should never happen');
-				}
-				if (pathType === 'a') {
-					x += c[6];
-					y += c[7];
-				} else {
-					x = c[6];
-					y = c[7];
-				}
-
-				rx = c[1]; // rx
-				ry = c[2]; // ry
-				angle = (c[3] * Math.PI) / 180;
-				largeArcFlag = !!c[4];
-				sweepFlag = !!c[5];
-				endPoint = { x, y };
-
-				// https://www.w3.org/TR/SVG/implnote.html#ArcImplementationNotes
-
-				midPoint = {
-					x: (currentPoint.x - endPoint.x) / 2,
-					y: (currentPoint.y - endPoint.y) / 2,
-				};
-				rotatePoint(midPoint, -angle);
-
-				// radius correction
-				lambda =
-					(midPoint.x * midPoint.x) / (rx * rx) +
-					(midPoint.y * midPoint.y) / (ry * ry);
-				if (lambda > 1) {
-					lambda = Math.sqrt(lambda);
-					rx *= lambda;
-					ry *= lambda;
-				}
-
-				centerPoint = {
-					x: (rx * midPoint.y) / ry,
-					y: -(ry * midPoint.x) / rx,
-				};
-				t1 = rx * rx * ry * ry;
-				t2 =
-					rx * rx * midPoint.y * midPoint.y + ry * ry * midPoint.x * midPoint.x;
-				if (sweepFlag !== largeArcFlag) {
-					scalePoint(centerPoint, Math.sqrt((t1 - t2) / t2) || 0);
-				} else {
-					scalePoint(centerPoint, -Math.sqrt((t1 - t2) / t2) || 0);
-				}
-
-				startAngle = Math.atan2(
-					(midPoint.y - centerPoint.y) / ry,
-					(midPoint.x - centerPoint.x) / rx,
-				);
-				endAngle = Math.atan2(
-					-(midPoint.y + centerPoint.y) / ry,
-					-(midPoint.x + centerPoint.x) / rx,
-				);
-
-				rotatePoint(centerPoint, angle);
-				translatePoint(
-					centerPoint,
-					(endPoint.x + currentPoint.x) / 2,
-					(endPoint.y + currentPoint.y) / 2,
-				);
-
-				ctx.save();
-				ctx.translate(centerPoint.x, centerPoint.y);
-				ctx.rotate(angle);
-				ctx.scale(rx, ry);
-				ctx.arc(0, 0, 1, startAngle, endAngle, !sweepFlag);
-				ctx.restore();
-				break;
-			case 'C':
-				c = commands[i] as CurvePathCommand;
-				cpx = c[3]; // Last control point
-				cpy = c[4];
-				x = c[5];
-				y = c[6];
-				ctx.bezierCurveTo(c[1], c[2], cpx, cpy, x, y);
-				break;
-			case 'c':
-				c = commands[i] as CurvePathCommand;
-				ctx.bezierCurveTo(
-					c[1] + x,
-					c[2] + y,
-					c[3] + x,
-					c[4] + y,
-					c[5] + x,
-					c[6] + y,
-				);
-				cpx = c[3] + x; // Last control point
-				cpy = c[4] + y;
-				x += c[5];
-				y += c[6];
-				break;
-			case 'S':
-				c = commands[i] as ShortCurvePathCommand;
-				if (cpx === null || cpy === null) {
-					cpx = x;
-					cpy = y;
-				}
-
-				ctx.bezierCurveTo(2 * x - cpx, 2 * y - cpy, c[1], c[2], c[3], c[4]);
-				cpx = c[1]; // last control point
-				cpy = c[2];
-				x = c[3];
-				y = c[4];
-				break;
-			case 's':
-				c = commands[i] as ShortCurvePathCommand;
-				if (cpx === null || cpy === null) {
-					cpx = x;
-					cpy = y;
-				}
-
-				ctx.bezierCurveTo(
-					2 * x - cpx,
-					2 * y - cpy,
-					c[1] + x,
-					c[2] + y,
-					c[3] + x,
-					c[4] + y,
-				);
-				cpx = c[1] + x; // last control point
-				cpy = c[2] + y;
-				x += c[3];
-				y += c[4];
-				break;
-			case 'Q':
-				c = commands[i] as QuadraticCurvePathCommand;
-				qcpx = c[1]; // last control point
-				qcpy = c[2];
-				x = c[3];
-				y = c[4];
-				ctx.quadraticCurveTo(qcpx, qcpy, x, y);
-				break;
-			case 'q':
-				c = commands[i] as QuadraticCurvePathCommand;
-				qcpx = c[1] + x; // last control point
-				qcpy = c[2] + y;
-				x += c[3];
-				y += c[4];
-				ctx.quadraticCurveTo(qcpx, qcpy, x, y);
-				break;
-			case 'T':
-				c = commands[i] as ShortQuadraticCurvePathCommand;
-				if (qcpx === null || qcpy === null) {
-					qcpx = x;
-					qcpy = y;
-				}
-				qcpx = 2 * x - qcpx; // last control point
-				qcpy = 2 * y - qcpy;
-				x = c[1];
-				y = c[2];
-				ctx.quadraticCurveTo(qcpx, qcpy, x, y);
-				break;
-			case 't':
-				c = commands[i] as ShortQuadraticCurvePathCommand;
-				if (qcpx === null || qcpy === null) {
-					qcpx = x;
-					qcpy = y;
-				}
-				qcpx = 2 * x - qcpx; // last control point
-				qcpy = 2 * y - qcpy;
-				x += c[1];
-				y += c[2];
-				ctx.quadraticCurveTo(qcpx, qcpy, x, y);
-				break;
-			case 'z':
-			case 'Z':
-				if (startPoint) {
-					x = startPoint.x;
-					y = startPoint.y;
-				}
-				startPoint = null;
-				ctx.closePath();
-				break;
-			case 'AC': // arc
-				c = commands[i] as ArcCommand;
-				x = c[1];
-				y = c[2];
-				r = c[3];
-				startAngle = c[4];
-				endAngle = c[5];
-				ccw = c[6];
-				ctx.arc(x, y, r, startAngle, endAngle, ccw);
-				break;
-			case 'AT': // arcTo
-				c = commands[i] as ArcToCommand;
-				x1 = c[1];
-				y1 = c[2];
-				x = c[3];
-				y = c[4];
-				r = c[5];
-				ctx.arcTo(x1, y1, x, y, r);
-				break;
-			case 'E': // ellipse
-				c = commands[i] as EllipseCommand;
-				x = c[1];
-				y = c[2];
-				rx = c[3];
-				ry = c[4];
-				angle = c[5];
-				startAngle = c[6];
-				endAngle = c[7];
-				ccw = c[8];
-				ctx.save();
-				ctx.translate(x, y);
-				ctx.rotate(angle);
-				ctx.scale(rx, ry);
-				ctx.arc(0, 0, 1, startAngle, endAngle, ccw);
-				ctx.restore();
-				break;
-			case 'R': // rect
-				c = commands[i] as RectCommand;
-				x = c[1];
-				y = c[2];
-				w = c[3];
-				h = c[4];
-				startPoint = { x, y };
-				ctx.rect(x, y, w, h);
-				break;
-			case 'RR': // roundedRect
-				c = commands[i] as RoundRectCommand;
-				x = c[1];
-				y = c[2];
-				w = c[3];
-				h = c[4];
-				radii = c[5];
-				startPoint = { x, y };
-				ctx.roundRect(x, y, w, h, radii);
-				break;
-		}
-
-		if (!currentPoint) {
-			currentPoint = { x, y };
-		} else {
-			currentPoint.x = x;
-			currentPoint.y = y;
+			if (!currentPoint) {
+				currentPoint = { x, y };
+			} else {
+				currentPoint.x = x;
+				currentPoint.y = y;
+			}
 		}
 	}
-};
+
+	static {
+		$.applyPath = (ctx: CanvasRenderingContext2D, path: Path2D) => {
+			Path2D.#applyPath(ctx, path);
+		};
+	}
+}
 def(Path2D);
