@@ -1,12 +1,12 @@
-import type { PathLike } from './switch';
-import type { BufferSource } from './types';
 import {
-	INTERNAL_SYMBOL,
 	type Callback,
 	type CallbackArguments,
 	type CallbackReturnType,
+	INTERNAL_SYMBOL,
 	type RGBA,
 } from './internal';
+import type { PathLike } from './switch';
+import type { BufferSource } from './types';
 
 export const proto = <T extends new (...args: any) => any>(
 	o: any,
@@ -87,10 +87,9 @@ export function pathToString(p: PathLike): string {
 export const createInternal = <K extends object, V>() => {
 	const wm = new WeakMap<K, V>();
 	const _ = (k: K): V => {
-		const v = wm.get(k);
-		if (!v)
+		if (!wm.has(k))
 			throw new Error(`Failed to get \`${k.constructor.name}\` internal state`);
-		return v;
+		return wm.get(k) as V;
 	};
 	_.set = (k: K, v: V) => {
 		wm.set(k, v);
