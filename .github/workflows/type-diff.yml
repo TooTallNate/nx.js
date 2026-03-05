@@ -1,0 +1,128 @@
+name: Type Diff
+
+on:
+  pull_request:
+
+permissions:
+  pull-requests: write
+
+jobs:
+  type-diff:
+    name: Runtime Type Diff
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v4
+        with:
+          path: pr
+
+      - name: Checkout base branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8.15.8
+
+      - name: Setup Node.js 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: pnpm
+          cache-dependency-path: pr/pnpm-lock.yaml
+
+      - name: Build base types
+        run: |
+          cd base
+          pnpm install --frozen-lockfile
+          pnpm build --filter @nx.js/runtime
+          cp packages/runtime/dist/index.d.ts /tmp/base-types.d.ts
+
+      - name: Build PR types
+        run: |
+          cd pr
+          pnpm install --frozen-lockfile
+          pnpm build --filter @nx.js/runtime
+          cp packages/runtime/dist/index.d.ts /tmp/pr-types.d.ts
+
+      - name: Generate diff and post comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const { execSync } = require('child_process');
+
+            // Generate diff
+            let diff = '';
+            try {
+              diff = execSync(
+                'diff -u --label "base: index.d.ts" /tmp/base-types.d.ts --label "pr: index.d.ts" /tmp/pr-types.d.ts',
+                { encoding: 'utf8' }
+              );
+            } catch (e) {
+              // diff exits 1 when files differ
+              diff = e.stdout || '';
+            }
+
+            const changed = diff.length > 0;
+            const marker = '<!-- type-diff-report -->';
+
+            // Find existing comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body.includes(marker));
+
+            let body;
+            if (changed) {
+              // Truncate if extremely large (GitHub comment limit is 65536 chars)
+              let diffBlock = diff;
+              if (diffBlock.length > 60000) {
+                diffBlock = diffBlock.slice(0, 60000) + '\n... (truncated)';
+              }
+              body = [
+                marker,
+                '## 📝 Runtime Type Changes',
+                '',
+                'This PR modifies the public TypeScript API surface (`packages/runtime/dist/index.d.ts`):',
+                '',
+                '<details>',
+                '<summary>View type diff</summary>',
+                '',
+                '```diff',
+                diffBlock,
+                '```',
+                '',
+                '</details>',
+              ].join('\n');
+            } else {
+              body = [
+                marker,
+                '## 📝 Runtime Type Changes',
+                '',
+                '✅ No changes to the public TypeScript API surface.',
+              ].join('\n');
+            }
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+              core.info(`Updated comment ${existing.id}`);
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+              core.info('Created new comment');
+            }
