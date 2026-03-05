@@ -51,7 +51,6 @@ export class Blob implements globalThis.Blob {
 	#parts: (Blob | Uint8Array)[] = [];
 	#type: string = '';
 	#size: number = 0;
-	#endings: 'native' | 'transparent' = 'transparent';
 
 	/**
 	 * @param blobParts - An array of BlobPart values that will be concatenated into a single Blob.
@@ -101,9 +100,6 @@ export class Blob implements globalThis.Blob {
 			}
 		}
 
-		if (options.endings) {
-			this.#endings = options.endings;
-		}
 
 		const type = options.type === undefined ? '' : String(options.type);
 		if (/^[\x20-\x7E]*$/.test(type)) {
