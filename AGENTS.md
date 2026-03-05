@@ -14,11 +14,11 @@ packages/
   runtime/       — TypeScript runtime (bundled via QuickJS bytecode compiler)
     src/$.ts     — Native binding types (the `$` object bridges JS↔C)
     src/index.ts — Entry point, registers all globals
+    test/        — Host-platform test binary & TAP conformance tests
   nro/           — .nro builder (Switch homebrew executable format)
   nsp/           — .nsp builder
   create-nxjs-app/ — Scaffolding tool
 apps/            — Example apps (each is a standalone pnpm workspace package)
-test/canvas/     — Canvas 2D conformance tests (host-platform, not Switch)
 Makefile         — Cross-compiles C code via devkitPro toolchain
 ```
 
@@ -131,7 +131,7 @@ The `$.entrypoint` gives the base URL for resolving relative paths.
 - **C code**: `Makefile` using devkitPro/libnx toolchain (aarch64, cross-compiled)
 - **JS/TS**: pnpm workspaces, esbuild for app bundling
 - **Package manager**: pnpm 8.x
-- **CI**: GitHub Actions — builds, tests, canvas conformance
+- **CI**: GitHub Actions — builds, tests
 - **Cannot build locally** unless you have devkitPro installed. Don't try to `make` in CI or sandboxes.
 
 ### Adding C libraries
@@ -278,20 +278,3 @@ pnpm --filter @nx.js/runtime test
 
 System dependencies needed: `cmake`, `pkg-config`, `libcairo2-dev`, `libfreetype-dev`, `libharfbuzz-dev`, `libpng-dev`, `libturbojpeg0-dev`, `libwebp-dev`, `zlib1g-dev`, `libzstd-dev`, plus Playwright Chromium (`pnpm --filter @nx.js/runtime exec playwright install chromium`).
 
-## Canvas Test Snapshots
-
-Canvas 2D conformance test snapshots in `test/canvas/__image_snapshots__/` must be **generated locally** and committed to your PR branch. CI will **not** auto-generate new snapshots — it rejects missing ones with `"New snapshot was not written"`.
-
-### Generating Snapshots
-
-1. Build the runtime: `pnpm -w build:runtime` (or build the `inspect` + `runtime` packages individually)
-2. Build the native test binary:
-   ```
-   cd test/canvas
-   cmake -B build -DCMAKE_BUILD_TYPE=Release
-   cmake --build build
-   ```
-3. Install Playwright: `npx playwright install chromium`
-4. Run the tests: `npx vitest run` (from `test/canvas/`)
-
-Any new or updated snapshots will be written to `test/canvas/__image_snapshots__/`. Commit them to your branch — CI will fail until they're present.
