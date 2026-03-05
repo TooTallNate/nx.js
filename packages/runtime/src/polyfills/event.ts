@@ -1,6 +1,6 @@
+import type { Gamepad } from '../navigator/gamepad';
 import { assertInternalConstructor, createInternal, def } from '../utils';
 import type { EventTarget } from './event-target';
-import type { Gamepad } from '../navigator/gamepad';
 
 /**
  * @internal WeakSet tracking events whose `stopImmediatePropagation()` was called.
@@ -350,7 +350,13 @@ export interface KeyboardEventInit extends EventModifierInit {
 	repeat?: boolean;
 }
 
-const _ = createInternal<KeyboardEvent, bigint>();
+const _ = createInternal<KeyboardEvent, KeyboardEventInternal>();
+
+interface KeyboardEventInternal {
+	modifiers: bigint;
+	code: string | undefined;
+	key: string | undefined;
+}
 
 export class KeyboardEvent extends UIEvent implements globalThis.KeyboardEvent {
 	readonly DOM_KEY_LOCATION_STANDARD = 0 as const;
@@ -366,19 +372,32 @@ export class KeyboardEvent extends UIEvent implements globalThis.KeyboardEvent {
 	constructor(type: string, options?: KeyboardEventInit) {
 		super(type, options);
 		let modifiers = 0n;
+		let code: string | undefined;
+		let key: string | undefined;
 		if (options) {
-			this.charCode = options.charCode ?? -1;
+			this.charCode = options.charCode ?? 0;
 			this.isComposing = options.isComposing ?? false;
-			this.keyCode = options.keyCode ?? -1;
-			this.location = options.location ?? -1;
+			this.keyCode = options.keyCode ?? 0;
+			this.location = options.location ?? 0;
 			this.repeat = options.repeat ?? false;
-			// @ts-expect-error
-			modifiers = options.modifiers;
+			code = options.code;
+			key = options.key;
+			// @ts-expect-error - internal nx.js extension for C→JS bridge
+			if (options.modifiers != null) {
+				// @ts-expect-error
+				modifiers = options.modifiers;
+			} else {
+				// Standard KeyboardEventInit boolean modifier properties
+				if (options.ctrlKey) modifiers |= CTRL;
+				if (options.shiftKey) modifiers |= SHIFT;
+				if (options.altKey) modifiers |= ALT;
+				if (options.metaKey) modifiers |= META;
+			}
 		} else {
-			this.charCode = this.keyCode = this.location = -1;
+			this.charCode = this.keyCode = this.location = 0;
 			this.isComposing = this.repeat = false;
 		}
-		_.set(this, modifiers);
+		_.set(this, { modifiers, code, key });
 	}
 
 	getModifierState(): boolean {
@@ -390,26 +409,29 @@ export class KeyboardEvent extends UIEvent implements globalThis.KeyboardEvent {
 	}
 
 	get ctrlKey(): boolean {
-		return (_(this) & CTRL) !== 0n;
+		return (_(this).modifiers & CTRL) !== 0n;
 	}
 
 	get shiftKey(): boolean {
-		return (_(this) & SHIFT) !== 0n;
+		return (_(this).modifiers & SHIFT) !== 0n;
 	}
 
 	get altKey(): boolean {
-		return (_(this) & ALT) !== 0n;
+		return (_(this).modifiers & ALT) !== 0n;
 	}
 
 	get metaKey(): boolean {
-		return (_(this) & META) !== 0n;
+		return (_(this).modifiers & META) !== 0n;
 	}
 
 	get code(): string {
-		return KeyboardKey[this.keyCode];
+		return _(this).code ?? KeyboardKey[this.keyCode] ?? '';
 	}
 
 	get key(): string {
+		const initKey = _(this).key;
+		if (initKey != null) return initKey;
+
 		const { code } = this;
 		let key = keyboardKeyMap.get(this.keyCode);
 		if (typeof key === 'string') {

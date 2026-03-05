@@ -161,3 +161,28 @@ test('multiple listeners same event', (t) => {
 	target.dispatchEvent(new Event('test'));
 	t.deepEqual(calls, ['a', 'b', 'c'], 'all listeners called in order');
 });
+
+test('KeyboardEvent modifier keys default to false (issue #320)', (t) => {
+	const e = new KeyboardEvent('keydown', { code: 'Space', key: ' ' });
+	t.equal(e.altKey, false, 'altKey should be false by default');
+	t.equal(e.ctrlKey, false, 'ctrlKey should be false by default');
+	t.equal(e.shiftKey, false, 'shiftKey should be false by default');
+	t.equal(e.metaKey, false, 'metaKey should be false by default');
+	t.equal(e.code, 'Space', 'code should be Space');
+	t.equal(e.key, ' ', 'key should be space');
+});
+
+test('KeyboardEvent modifier keys can be set to true', (t) => {
+	const e = new KeyboardEvent('keydown', {
+		code: 'KeyA',
+		key: 'a',
+		altKey: true,
+		ctrlKey: true,
+		shiftKey: true,
+		metaKey: true,
+	});
+	t.equal(e.altKey, true, 'altKey should be true');
+	t.equal(e.ctrlKey, true, 'ctrlKey should be true');
+	t.equal(e.shiftKey, true, 'shiftKey should be true');
+	t.equal(e.metaKey, true, 'metaKey should be true');
+});
