@@ -205,7 +205,7 @@ Object.defineProperty(globalThis, 'localStorage', {
 		const proxy = new Proxy(storage, {
 			has(_, p) {
 				if (typeof p !== 'string') return false;
-				return !!Object.values(keyMap).find((k) => k === p);
+				return Object.values(keyMap).includes(p);
 			},
 			get(target, p) {
 				if (typeof p !== 'string') return undefined;
