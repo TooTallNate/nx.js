@@ -7,57 +7,57 @@ static JSValue nx_memory_usage(JSContext *ctx, JSValueConst this_val, int argc,
 	JS_ComputeMemoryUsage(rt, &stats);
 
 	JSValue obj = JS_NewObject(ctx);
-	JS_SetPropertyStr(ctx, obj, "malloc_size",
+	JS_SetPropertyStr(ctx, obj, "mallocSize",
 					  JS_NewInt64(ctx, stats.malloc_size));
-	JS_SetPropertyStr(ctx, obj, "malloc_limit",
+	JS_SetPropertyStr(ctx, obj, "mallocLimit",
 					  JS_NewInt64(ctx, stats.malloc_limit));
-	JS_SetPropertyStr(ctx, obj, "memory_used_size",
+	JS_SetPropertyStr(ctx, obj, "memoryUsedSize",
 					  JS_NewInt64(ctx, stats.memory_used_size));
-	JS_SetPropertyStr(ctx, obj, "malloc_count",
+	JS_SetPropertyStr(ctx, obj, "mallocCount",
 					  JS_NewInt64(ctx, stats.malloc_count));
-	JS_SetPropertyStr(ctx, obj, "memory_used_count",
+	JS_SetPropertyStr(ctx, obj, "memoryUsedCount",
 					  JS_NewInt64(ctx, stats.memory_used_count));
-	JS_SetPropertyStr(ctx, obj, "atom_count",
+	JS_SetPropertyStr(ctx, obj, "atomCount",
 					  JS_NewInt64(ctx, stats.atom_count));
-	JS_SetPropertyStr(ctx, obj, "atom_size",
+	JS_SetPropertyStr(ctx, obj, "atomSize",
 					  JS_NewInt64(ctx, stats.atom_size));
-	JS_SetPropertyStr(ctx, obj, "str_count",
+	JS_SetPropertyStr(ctx, obj, "strCount",
 					  JS_NewInt64(ctx, stats.str_count));
-	JS_SetPropertyStr(ctx, obj, "str_size",
+	JS_SetPropertyStr(ctx, obj, "strSize",
 					  JS_NewInt64(ctx, stats.str_size));
-	JS_SetPropertyStr(ctx, obj, "obj_count",
+	JS_SetPropertyStr(ctx, obj, "objCount",
 					  JS_NewInt64(ctx, stats.obj_count));
-	JS_SetPropertyStr(ctx, obj, "obj_size",
+	JS_SetPropertyStr(ctx, obj, "objSize",
 					  JS_NewInt64(ctx, stats.obj_size));
-	JS_SetPropertyStr(ctx, obj, "prop_count",
+	JS_SetPropertyStr(ctx, obj, "propCount",
 					  JS_NewInt64(ctx, stats.prop_count));
-	JS_SetPropertyStr(ctx, obj, "prop_size",
+	JS_SetPropertyStr(ctx, obj, "propSize",
 					  JS_NewInt64(ctx, stats.prop_size));
-	JS_SetPropertyStr(ctx, obj, "shape_count",
+	JS_SetPropertyStr(ctx, obj, "shapeCount",
 					  JS_NewInt64(ctx, stats.shape_count));
-	JS_SetPropertyStr(ctx, obj, "shape_size",
+	JS_SetPropertyStr(ctx, obj, "shapeSize",
 					  JS_NewInt64(ctx, stats.shape_size));
-	JS_SetPropertyStr(ctx, obj, "js_func_count",
+	JS_SetPropertyStr(ctx, obj, "jsFuncCount",
 					  JS_NewInt64(ctx, stats.js_func_count));
-	JS_SetPropertyStr(ctx, obj, "js_func_size",
+	JS_SetPropertyStr(ctx, obj, "jsFuncSize",
 					  JS_NewInt64(ctx, stats.js_func_size));
-	JS_SetPropertyStr(ctx, obj, "js_func_code_size",
+	JS_SetPropertyStr(ctx, obj, "jsFuncCodeSize",
 					  JS_NewInt64(ctx, stats.js_func_code_size));
-	JS_SetPropertyStr(ctx, obj, "js_func_pc2line_count",
+	JS_SetPropertyStr(ctx, obj, "jsFuncPc2lineCount",
 					  JS_NewInt64(ctx, stats.js_func_pc2line_count));
-	JS_SetPropertyStr(ctx, obj, "js_func_pc2line_size",
+	JS_SetPropertyStr(ctx, obj, "jsFuncPc2lineSize",
 					  JS_NewInt64(ctx, stats.js_func_pc2line_size));
-	JS_SetPropertyStr(ctx, obj, "c_func_count",
+	JS_SetPropertyStr(ctx, obj, "cFuncCount",
 					  JS_NewInt64(ctx, stats.c_func_count));
-	JS_SetPropertyStr(ctx, obj, "array_count",
+	JS_SetPropertyStr(ctx, obj, "arrayCount",
 					  JS_NewInt64(ctx, stats.array_count));
-	JS_SetPropertyStr(ctx, obj, "fast_array_count",
+	JS_SetPropertyStr(ctx, obj, "fastArrayCount",
 					  JS_NewInt64(ctx, stats.fast_array_count));
-	JS_SetPropertyStr(ctx, obj, "fast_array_elements",
+	JS_SetPropertyStr(ctx, obj, "fastArrayElements",
 					  JS_NewInt64(ctx, stats.fast_array_elements));
-	JS_SetPropertyStr(ctx, obj, "binary_object_count",
+	JS_SetPropertyStr(ctx, obj, "binaryObjectCount",
 					  JS_NewInt64(ctx, stats.binary_object_count));
-	JS_SetPropertyStr(ctx, obj, "binary_object_size",
+	JS_SetPropertyStr(ctx, obj, "binaryObjectSize",
 					  JS_NewInt64(ctx, stats.binary_object_size));
 	return obj;
 }

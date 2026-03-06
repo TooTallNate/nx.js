@@ -124,57 +124,57 @@ export interface ListenOptions {
  */
 export interface MemoryUsage {
 	/** Total bytes allocated by the JS engine's malloc. */
-	malloc_size: number;
+	mallocSize: number;
 	/** Maximum malloc allocation limit (0 = unlimited). */
-	malloc_limit: number;
+	mallocLimit: number;
 	/** Total memory used by the JS engine, including internal bookkeeping. */
-	memory_used_size: number;
+	memoryUsedSize: number;
 	/** Number of active malloc allocations. */
-	malloc_count: number;
+	mallocCount: number;
 	/** Number of memory usage entries tracked internally. */
-	memory_used_count: number;
+	memoryUsedCount: number;
 	/** Number of interned atoms (identifiers/strings). */
-	atom_count: number;
+	atomCount: number;
 	/** Total bytes used by atoms. */
-	atom_size: number;
+	atomSize: number;
 	/** Number of JS strings. */
-	str_count: number;
+	strCount: number;
 	/** Total bytes used by strings. */
-	str_size: number;
+	strSize: number;
 	/** Number of JS objects. */
-	obj_count: number;
+	objCount: number;
 	/** Total bytes used by objects. */
-	obj_size: number;
+	objSize: number;
 	/** Number of object properties. */
-	prop_count: number;
+	propCount: number;
 	/** Total bytes used by properties. */
-	prop_size: number;
+	propSize: number;
 	/** Number of object shapes. */
-	shape_count: number;
+	shapeCount: number;
 	/** Total bytes used by shapes. */
-	shape_size: number;
+	shapeSize: number;
 	/** Number of JS functions. */
-	js_func_count: number;
+	jsFuncCount: number;
 	/** Total bytes used by JS functions. */
-	js_func_size: number;
+	jsFuncSize: number;
 	/** Total bytes of JS function bytecode. */
-	js_func_code_size: number;
+	jsFuncCodeSize: number;
 	/** Number of pc-to-line debug entries. */
-	js_func_pc2line_count: number;
+	jsFuncPc2lineCount: number;
 	/** Total bytes used by pc-to-line debug data. */
-	js_func_pc2line_size: number;
+	jsFuncPc2lineSize: number;
 	/** Number of C functions registered in the engine. */
-	c_func_count: number;
+	cFuncCount: number;
 	/** Number of JS arrays. */
-	array_count: number;
+	arrayCount: number;
 	/** Number of fast (dense) arrays. */
-	fast_array_count: number;
+	fastArrayCount: number;
 	/** Total number of elements in fast arrays. */
-	fast_array_elements: number;
+	fastArrayElements: number;
 	/** Number of binary (ArrayBuffer/SharedArrayBuffer) objects. */
-	binary_object_count: number;
+	binaryObjectCount: number;
 	/** Total bytes used by binary objects. */
-	binary_object_size: number;
+	binaryObjectSize: number;
 }
 
 export interface NetworkInfo {
@@ -403,9 +403,9 @@ export function setMediaPlaybackState(state: boolean) {
  *
  * ```typescript
  * const mem = Switch.memoryUsage();
- * console.log(`JS malloc: ${mem.malloc_size} bytes`);
- * console.log(`JS memory used: ${mem.memory_used_size} bytes`);
- * console.log(`Objects: ${mem.obj_count} (${mem.obj_size} bytes)`);
+ * console.log(`JS malloc: ${mem.mallocSize} bytes`);
+ * console.log(`JS memory used: ${mem.memoryUsedSize} bytes`);
+ * console.log(`Objects: ${mem.objCount} (${mem.objSize} bytes)`);
  * ```
  */
 export function memoryUsage(): MemoryUsage {
