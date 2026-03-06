@@ -1,12 +1,4 @@
-#include <malloc.h>
-#include <unistd.h>
-
-#include "error.h"
 #include "memory.h"
-
-// Defined by libsysbase (devkitPro) — the upper bound of the heap region.
-// Set by libnx's __libnx_initheap() to (heap_base + heap_size).
-extern char *fake_heap_end;
 
 static JSValue nx_memory_usage(JSContext *ctx, JSValueConst this_val, int argc,
 							   JSValueConst *argv) {
@@ -14,64 +6,64 @@ static JSValue nx_memory_usage(JSContext *ctx, JSValueConst this_val, int argc,
 	JSMemoryUsage stats;
 	JS_ComputeMemoryUsage(rt, &stats);
 
-	struct mallinfo mi = mallinfo();
-
-	// Available memory = free space in malloc's free list
-	//                   + unsbrk'd space between current break and heap end
-	char *brk = sbrk(0);
-	size_t unsbrked = (brk != (char *)-1 && fake_heap_end > brk)
-						  ? (size_t)(fake_heap_end - brk)
-						  : 0;
-	size_t available = (size_t)mi.fordblks + unsbrked;
-
-	u64 total_memory = 0;
-	u64 used_memory = 0;
-
-	Result rc = svcGetInfo(&total_memory, InfoType_TotalMemorySize,
-						   CUR_PROCESS_HANDLE, 0);
-	if (R_FAILED(rc)) {
-		return nx_throw_libnx_error(ctx, rc, "svcGetInfo(TotalMemorySize)");
-	}
-
-	rc = svcGetInfo(&used_memory, InfoType_UsedMemorySize, CUR_PROCESS_HANDLE,
-					0);
-	if (R_FAILED(rc)) {
-		return nx_throw_libnx_error(ctx, rc, "svcGetInfo(UsedMemorySize)");
-	}
-
 	JSValue obj = JS_NewObject(ctx);
-	JS_SetPropertyStr(ctx, obj, "rss",
-					  JS_NewFloat64(ctx, (double)mi.uordblks));
-	JS_SetPropertyStr(ctx, obj, "heapTotal",
-					  JS_NewFloat64(ctx, (double)stats.memory_used_size));
-	JS_SetPropertyStr(ctx, obj, "heapUsed",
-					  JS_NewFloat64(ctx, (double)stats.malloc_size));
-	JS_SetPropertyStr(ctx, obj, "totalSystemMemory",
-					  JS_NewFloat64(ctx, (double)total_memory));
-	JS_SetPropertyStr(ctx, obj, "usedSystemMemory",
-					  JS_NewFloat64(ctx, (double)used_memory));
-	JS_SetPropertyStr(ctx, obj, "availableMemory",
-					  JS_NewFloat64(ctx, (double)available));
+	JS_SetPropertyStr(ctx, obj, "malloc_size",
+					  JS_NewInt64(ctx, stats.malloc_size));
+	JS_SetPropertyStr(ctx, obj, "malloc_limit",
+					  JS_NewInt64(ctx, stats.malloc_limit));
+	JS_SetPropertyStr(ctx, obj, "memory_used_size",
+					  JS_NewInt64(ctx, stats.memory_used_size));
+	JS_SetPropertyStr(ctx, obj, "malloc_count",
+					  JS_NewInt64(ctx, stats.malloc_count));
+	JS_SetPropertyStr(ctx, obj, "memory_used_count",
+					  JS_NewInt64(ctx, stats.memory_used_count));
+	JS_SetPropertyStr(ctx, obj, "atom_count",
+					  JS_NewInt64(ctx, stats.atom_count));
+	JS_SetPropertyStr(ctx, obj, "atom_size",
+					  JS_NewInt64(ctx, stats.atom_size));
+	JS_SetPropertyStr(ctx, obj, "str_count",
+					  JS_NewInt64(ctx, stats.str_count));
+	JS_SetPropertyStr(ctx, obj, "str_size",
+					  JS_NewInt64(ctx, stats.str_size));
+	JS_SetPropertyStr(ctx, obj, "obj_count",
+					  JS_NewInt64(ctx, stats.obj_count));
+	JS_SetPropertyStr(ctx, obj, "obj_size",
+					  JS_NewInt64(ctx, stats.obj_size));
+	JS_SetPropertyStr(ctx, obj, "prop_count",
+					  JS_NewInt64(ctx, stats.prop_count));
+	JS_SetPropertyStr(ctx, obj, "prop_size",
+					  JS_NewInt64(ctx, stats.prop_size));
+	JS_SetPropertyStr(ctx, obj, "shape_count",
+					  JS_NewInt64(ctx, stats.shape_count));
+	JS_SetPropertyStr(ctx, obj, "shape_size",
+					  JS_NewInt64(ctx, stats.shape_size));
+	JS_SetPropertyStr(ctx, obj, "js_func_count",
+					  JS_NewInt64(ctx, stats.js_func_count));
+	JS_SetPropertyStr(ctx, obj, "js_func_size",
+					  JS_NewInt64(ctx, stats.js_func_size));
+	JS_SetPropertyStr(ctx, obj, "js_func_code_size",
+					  JS_NewInt64(ctx, stats.js_func_code_size));
+	JS_SetPropertyStr(ctx, obj, "js_func_pc2line_count",
+					  JS_NewInt64(ctx, stats.js_func_pc2line_count));
+	JS_SetPropertyStr(ctx, obj, "js_func_pc2line_size",
+					  JS_NewInt64(ctx, stats.js_func_pc2line_size));
+	JS_SetPropertyStr(ctx, obj, "c_func_count",
+					  JS_NewInt64(ctx, stats.c_func_count));
+	JS_SetPropertyStr(ctx, obj, "array_count",
+					  JS_NewInt64(ctx, stats.array_count));
+	JS_SetPropertyStr(ctx, obj, "fast_array_count",
+					  JS_NewInt64(ctx, stats.fast_array_count));
+	JS_SetPropertyStr(ctx, obj, "fast_array_elements",
+					  JS_NewInt64(ctx, stats.fast_array_elements));
+	JS_SetPropertyStr(ctx, obj, "binary_object_count",
+					  JS_NewInt64(ctx, stats.binary_object_count));
+	JS_SetPropertyStr(ctx, obj, "binary_object_size",
+					  JS_NewInt64(ctx, stats.binary_object_size));
 	return obj;
-}
-
-static JSValue nx_available_memory(JSContext *ctx, JSValueConst this_val,
-								   int argc, JSValueConst *argv) {
-	struct mallinfo mi = mallinfo();
-
-	// Available memory = free space in malloc's free list
-	//                   + unsbrk'd space between current break and heap end
-	char *brk = sbrk(0);
-	size_t unsbrked = (brk != (char *)-1 && fake_heap_end > brk)
-						  ? (size_t)(fake_heap_end - brk)
-						  : 0;
-
-	return JS_NewFloat64(ctx, (double)((size_t)mi.fordblks + unsbrked));
 }
 
 static const JSCFunctionListEntry function_list[] = {
 	JS_CFUNC_DEF("memoryUsage", 0, nx_memory_usage),
-	JS_CFUNC_DEF("availableMemory", 0, nx_available_memory),
 };
 
 void nx_init_memory(JSContext *ctx, JSValueConst init_obj) {

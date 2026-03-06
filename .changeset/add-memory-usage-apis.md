@@ -2,4 +2,4 @@
 "@nx.js/runtime": patch
 ---
 
-feat: add `Switch.memoryUsage()` and `Switch.availableMemory()` for memory debugging
+feat: add `Switch.memoryUsage()` — thin passthrough of QuickJS `JS_ComputeMemoryUsage()`

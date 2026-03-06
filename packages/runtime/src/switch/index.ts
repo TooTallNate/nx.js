@@ -116,51 +116,65 @@ export interface ListenOptions {
 	accept?: (e: SocketEvent) => void;
 }
 
+/**
+ * Memory usage statistics from the QuickJS JavaScript engine,
+ * as reported by `JS_ComputeMemoryUsage()`.
+ *
+ * All `*_size` fields are in bytes. All `*_count` fields are counts.
+ */
 export interface MemoryUsage {
-	/**
-	 * Total memory currently allocated by the C heap allocator (`malloc`).
-	 * This includes all native allocations (libraries, buffers, etc.) and
-	 * the QuickJS engine's allocations.
-	 * Similar to Node.js `rss` (Resident Set Size).
-	 */
-	rss: number;
-	/**
-	 * Total memory footprint of the QuickJS JavaScript engine,
-	 * including internal bookkeeping overhead.
-	 * Similar to Node.js `heapTotal`.
-	 */
-	heapTotal: number;
-	/**
-	 * Memory allocated by the QuickJS JavaScript engine for
-	 * JS objects, strings, and other runtime data.
-	 * Similar to Node.js `heapUsed`.
-	 */
-	heapUsed: number;
-	/**
-	 * Total memory budget available to the process, as reported by the Switch kernel
-	 * via `svcGetInfo(InfoType_TotalMemorySize)`.
-	 *
-	 * This value depends on the applet type:
-	 * - In "full-memory mode" (Application): ~3.5 GB
-	 * - In "applet mode" (LibraryApplet): ~400 MB
-	 *
-	 * @see {@link appletType | `Switch.appletType()`}
-	 */
-	totalSystemMemory: number;
-	/**
-	 * Total memory currently mapped by the process, as reported by the Switch kernel
-	 * via `svcGetInfo(InfoType_UsedMemorySize)`. This includes all virtual memory
-	 * pages mapped by the process (code, stack, heap region, etc.).
-	 */
-	usedSystemMemory: number;
-	/**
-	 * Total memory available for the process to allocate. This accounts for both
-	 * free space in the C allocator's free list and unmapped heap space that
-	 * has not yet been claimed by the allocator.
-	 *
-	 * This is the same value returned by {@link availableMemory | `Switch.availableMemory()`}.
-	 */
-	availableMemory: number;
+	/** Total bytes allocated by the JS engine's malloc. */
+	malloc_size: number;
+	/** Maximum malloc allocation limit (0 = unlimited). */
+	malloc_limit: number;
+	/** Total memory used by the JS engine, including internal bookkeeping. */
+	memory_used_size: number;
+	/** Number of active malloc allocations. */
+	malloc_count: number;
+	/** Number of memory usage entries tracked internally. */
+	memory_used_count: number;
+	/** Number of interned atoms (identifiers/strings). */
+	atom_count: number;
+	/** Total bytes used by atoms. */
+	atom_size: number;
+	/** Number of JS strings. */
+	str_count: number;
+	/** Total bytes used by strings. */
+	str_size: number;
+	/** Number of JS objects. */
+	obj_count: number;
+	/** Total bytes used by objects. */
+	obj_size: number;
+	/** Number of object properties. */
+	prop_count: number;
+	/** Total bytes used by properties. */
+	prop_size: number;
+	/** Number of object shapes. */
+	shape_count: number;
+	/** Total bytes used by shapes. */
+	shape_size: number;
+	/** Number of JS functions. */
+	js_func_count: number;
+	/** Total bytes used by JS functions. */
+	js_func_size: number;
+	/** Total bytes of JS function bytecode. */
+	js_func_code_size: number;
+	/** Number of pc-to-line debug entries. */
+	js_func_pc2line_count: number;
+	/** Total bytes used by pc-to-line debug data. */
+	js_func_pc2line_size: number;
+	/** Number of C functions registered in the engine. */
+	c_func_count: number;
+	/** Number of JS arrays. */
+	array_count: number;
+	/** Number of fast (dense) arrays. */
+	fast_array_count: number;
+	/** Total number of elements in fast arrays. */
+	fast_array_elements: number;
+	/** Number of binary (ArrayBuffer/SharedArrayBuffer) objects. */
+	binary_object_count: number;
+	/** Total bytes used by binary objects. */
+	binary_object_size: number;
 }
 
 export interface NetworkInfo {
@@ -380,41 +394,20 @@ export function setMediaPlaybackState(state: boolean) {
 }
 
 /**
- * Returns an object describing the memory usage of the nx.js process,
- * including both JavaScript heap statistics from QuickJS and system-level
- * memory information from the Switch kernel.
+ * Returns memory usage statistics from the QuickJS JavaScript engine
+ * via `JS_ComputeMemoryUsage()`.
  *
  * Useful for debugging memory leaks and monitoring memory pressure.
- *
- * Similar to Node.js `process.memoryUsage()`.
  *
  * @example
  *
  * ```typescript
  * const mem = Switch.memoryUsage();
- * console.log(`Heap used: ${mem.heapUsed} bytes`);
- * console.log(`RSS: ${mem.rss} bytes`);
- * console.log(`System: ${mem.usedSystemMemory} / ${mem.totalSystemMemory} bytes`);
+ * console.log(`JS malloc: ${mem.malloc_size} bytes`);
+ * console.log(`JS memory used: ${mem.memory_used_size} bytes`);
+ * console.log(`Objects: ${mem.obj_count} (${mem.obj_size} bytes)`);
  * ```
  */
 export function memoryUsage(): MemoryUsage {
 	return $.memoryUsage();
-}
-
-/**
- * Returns the number of bytes of memory available for the process to allocate.
- * Calculated as the total process memory budget minus currently used memory,
- * as reported by the Switch kernel.
- *
- * Similar to Node.js `process.availableMemory()`.
- *
- * @example
- *
- * ```typescript
- * const available = Switch.availableMemory();
- * console.log(`Available memory: ${available} bytes`);
- * ```
- */
-export function availableMemory(): number {
-	return $.availableMemory();
 }
