@@ -25,14 +25,23 @@ typedef struct {
 	size_t result_size;
 } nx_compress_flush_async_t;
 
+#define DECOMPRESS_OUT_SIZE 131072 // ZSTD_DStreamOutSize() = 128KB
+
 typedef struct {
 	int err;
+	const char *err_msg; // ZSTD error name (static string, do not free)
 	nx_decompress_t *context;
+	JSValue handle_val; // reference to the handle JS object
 	JSValue data_val;
 	uint8_t *data;
 	size_t size;
-	uint8_t *result;
-	size_t result_size;
+	// zlib path: heap-allocated result via realloc (caller must free)
+	uint8_t *zlib_result;
+	size_t zlib_result_size;
+	// zstd path: fixed output buffer, no malloc needed
+	size_t input_consumed;
+	uint8_t zstd_result[DECOMPRESS_OUT_SIZE];
+	size_t zstd_result_size;
 } nx_decompress_write_async_t;
 
 typedef struct {
@@ -236,34 +245,43 @@ void nx_compress_write_do(nx_work_t *req) {
 	} else if (data->context->format == NX_COMPRESSION_FORMAT_ZSTD) {
 		ZSTD_inBuffer input = {.src = data->data, .size = data->size, .pos = 0};
 
-		// compress chunks until done
+		size_t capacity = ZSTD_CStreamOutSize();
+		data->result = malloc(capacity);
+		if (!data->result) {
+			ZSTD_freeCCtx(data->context->cctx);
+			data->context->cctx = NULL;
+			data->err = ENOMEM;
+			return;
+		}
+
+		// Compress chunks until done
 		while (input.pos < input.size) {
-			// Allocate or expand result buffer
-			size_t size = ZSTD_CStreamOutSize();
-			void *new_result = realloc(data->result, data->result_size + size);
-			if (!new_result) {
-				if (data->result) {
+			if (data->result_size >= capacity) {
+				size_t new_capacity = capacity * 2;
+				void *new_result = realloc(data->result, new_capacity);
+				if (!new_result) {
 					free(data->result);
+					data->result = NULL;
+					ZSTD_freeCCtx(data->context->cctx);
+					data->context->cctx = NULL;
+					data->err = ENOMEM;
+					return;
 				}
-				ZSTD_freeCCtx(data->context->cctx);
-				data->context->cctx = NULL;
-				data->err = ENOMEM;
-				return;
+				data->result = new_result;
+				capacity = new_capacity;
 			}
-			data->result = new_result;
 
 			ZSTD_outBuffer output = {.dst = (char *)data->result +
 											data->result_size,
-									 .size = size,
+									 .size = capacity - data->result_size,
 									 .pos = 0};
 
 			size_t ret =
 				ZSTD_compressStream(data->context->cctx, &output, &input);
 
 			if (ZSTD_isError(ret)) {
-				if (data->result) {
-					free(data->result);
-				}
+				free(data->result);
+				data->result = NULL;
 				ZSTD_freeCCtx(data->context->cctx);
 				data->context->cctx = NULL;
 				data->err = -4;
@@ -273,13 +291,15 @@ void nx_compress_write_do(nx_work_t *req) {
 			data->result_size += output.pos;
 		}
 
-		// Shrink buffer to actual size
-		// TODO: remove?
-		if (data->result_size > 0) {
+		// Shrink buffer to actual size to free unused capacity
+		if (data->result_size > 0 && data->result_size < capacity) {
 			void *final_result = realloc(data->result, data->result_size);
 			if (final_result) {
 				data->result = final_result;
 			}
+		} else if (data->result_size == 0) {
+			free(data->result);
+			data->result = NULL;
 		}
 	}
 }
@@ -528,8 +548,10 @@ static JSValue nx_decompress_new(JSContext *ctx, JSValueConst this_val,
 void nx_decompress_write_do(nx_work_t *req) {
 	nx_decompress_write_async_t *data =
 		(nx_decompress_write_async_t *)req->data;
-	data->result = NULL;
-	data->result_size = 0;
+	data->zlib_result = NULL;
+	data->zlib_result_size = 0;
+	data->zstd_result_size = 0;
+	data->input_consumed = 0;
 
 	if (data->context->format == NX_COMPRESSION_FORMAT_GZIP ||
 		data->context->format == NX_COMPRESSION_FORMAT_DEFLATE ||
@@ -541,91 +563,62 @@ void nx_decompress_write_do(nx_work_t *req) {
 		stream->avail_in = data->size;
 		stream->next_in = data->data;
 
-		// Decompress until deflate stream ends
 		do {
 			stream->avail_out = CHUNK;
 			stream->next_out = out;
 
 			ret = inflate(stream, Z_NO_FLUSH);
 
-			// Z_BUF_ERROR (-5) means we need more input data
-			// This is not a fatal error, just break the loop
 			if (ret == Z_BUF_ERROR) {
 				break;
 			}
 
 			if (ret != Z_OK && ret != Z_STREAM_END) {
-				if (data->result) {
-					free(data->result);
+				if (data->zlib_result) {
+					free(data->zlib_result);
 				}
 				data->err = ret;
 				return;
 			}
 
-			// Calculate how many bytes we got
 			int have = CHUNK - stream->avail_out;
 
-			// Reallocate our result buffer and append new data
-			unsigned char *new_result =
-				realloc(data->result, data->result_size + have);
-			if (new_result == NULL) {
-				free(data->result);
-				inflateEnd(stream);
-				data->err = Z_MEM_ERROR;
-				return;
+			if (have > 0) {
+				unsigned char *new_result =
+					realloc(data->zlib_result, data->zlib_result_size + have);
+				if (new_result == NULL) {
+					free(data->zlib_result);
+					inflateEnd(stream);
+					data->err = Z_MEM_ERROR;
+					return;
+				}
+				data->zlib_result = new_result;
+				memcpy(data->zlib_result + data->zlib_result_size, out, have);
+				data->zlib_result_size += have;
 			}
-			data->result = new_result;
-			memcpy(data->result + data->result_size, out, have);
-			data->result_size += have;
 		} while (ret != Z_STREAM_END);
 	} else if (data->context->format == NX_COMPRESSION_FORMAT_ZSTD) {
+		// Single ZSTD_decompressStream call into the fixed output buffer.
+		// No malloc/realloc — output is bounded to DECOMPRESS_OUT_SIZE.
+		// The JS side loops calling decompressWrite until all input is
+		// consumed, keeping memory usage constant.
 		ZSTD_inBuffer input = {.src = data->data, .size = data->size, .pos = 0};
+		ZSTD_outBuffer output = {
+			.dst = data->zstd_result, .size = DECOMPRESS_OUT_SIZE, .pos = 0};
 
-		// Decompress chunks until done
-		while (input.pos < input.size) {
-			// Allocate or expand result buffer
-			size_t size = ZSTD_DStreamOutSize();
-			void *new_result = realloc(data->result, data->result_size + size);
-			if (!new_result) {
-				if (data->result) {
-					free(data->result);
-				}
-				ZSTD_freeDCtx(data->context->dctx);
-				data->context->dctx = NULL;
-				data->err = ENOMEM;
-				return;
-			}
-			data->result = new_result;
+		size_t ret =
+			ZSTD_decompressStream(data->context->dctx, &output, &input);
 
-			ZSTD_outBuffer output = {.dst = (char *)data->result +
-											data->result_size,
-									 .size = size,
-									 .pos = 0};
-
-			size_t ret =
-				ZSTD_decompressStream(data->context->dctx, &output, &input);
-
-			if (ZSTD_isError(ret)) {
-				if (data->result) {
-					free(data->result);
-				}
-				ZSTD_freeDCtx(data->context->dctx);
-				data->context->dctx = NULL;
-				data->err = -4;
-				return;
-			}
-
-			data->result_size += output.pos;
+		if (ZSTD_isError(ret)) {
+			data->err_msg = ZSTD_getErrorName(ret);
+			ZSTD_freeDCtx(data->context->dctx);
+			data->context->dctx = NULL;
+			data->err = -1;
+			return;
 		}
 
-		// Shrink buffer to actual size
-		// TODO: remove?
-		if (data->result_size > 0) {
-			void *final_result = realloc(data->result, data->result_size);
-			if (final_result) {
-				data->result = final_result;
-			}
-		}
+		data->zstd_result_size = output.pos;
+		data->input_consumed = input.pos;
 	}
 }
 
@@ -635,15 +628,35 @@ JSValue nx_decompress_write_cb(JSContext *ctx, nx_work_t *req) {
 	JS_FreeValue(ctx, data->data_val);
 
 	if (data->err) {
+		JS_FreeValue(ctx, data->handle_val);
+		if (data->zlib_result) {
+			free(data->zlib_result);
+		}
+		const char *msg =
+			data->err_msg ? data->err_msg : strerror(data->err);
 		JSValue err = JS_NewError(ctx);
 		JS_DefinePropertyValueStr(ctx, err, "message",
-								  JS_NewString(ctx, strerror(data->err)),
+								  JS_NewString(ctx, msg),
 								  JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
 		return JS_Throw(ctx, err);
 	}
 
-	return JS_NewArrayBuffer(ctx, data->result, data->result_size,
-							 free_array_buffer, NULL, false);
+	if (data->context->format == NX_COMPRESSION_FORMAT_ZSTD) {
+		// Store inputConsumed on the handle object — avoids allocating
+		// a wrapper array per call, which adds GC pressure.
+		JS_SetPropertyStr(ctx, data->handle_val, "inputConsumed",
+						  JS_NewInt64(ctx, data->input_consumed));
+		JS_FreeValue(ctx, data->handle_val);
+		return JS_NewArrayBufferCopy(
+			ctx, data->zstd_result, data->zstd_result_size);
+	}
+
+	JS_FreeValue(ctx, data->handle_val);
+	// zlib: all input consumed in one call, heap-allocated result
+	JSValue ab = JS_NewArrayBufferCopy(
+		ctx, data->zlib_result, data->zlib_result_size);
+	free(data->zlib_result);
+	return ab;
 }
 
 static JSValue nx_decompress_write(JSContext *ctx, JSValueConst this_val,
@@ -659,6 +672,7 @@ static JSValue nx_decompress_write(JSContext *ctx, JSValueConst this_val,
 		js_free(ctx, data);
 		return JS_EXCEPTION;
 	}
+	data->handle_val = JS_DupValue(ctx, argv[0]);
 	data->data_val = JS_DupValue(ctx, argv[1]);
 	return nx_queue_async(ctx, req, nx_decompress_write_do,
 						  nx_decompress_write_cb);

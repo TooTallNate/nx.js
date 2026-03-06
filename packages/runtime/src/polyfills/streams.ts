@@ -1,10 +1,45 @@
-import { def } from '../utils';
 import * as streams from 'web-streams-polyfill';
+import { def } from '../utils';
 import type { AbortSignal } from './abort-controller';
 
 for (const k of Object.keys(streams)) {
 	def(streams[k as keyof typeof streams], k);
 }
+
+// Override pipeThrough to bypass TransformStream internals when piping
+// through a CompressionStream or DecompressionStream. The polyfill's
+// pipeTo creates ~10 Promise objects per chunk forming reference cycles
+// that QuickJS's reference-counting GC cannot collect, causing OOM.
+// When a native stream is detected via kNativeSetup, we bypass pipeTo
+// entirely and connect the source directly to the native C API.
+// The kNativeSetup symbol is defined here (not in compression-streams.ts)
+// to avoid a circular dependency. compression-streams.ts imports it from here.
+export const kNativeSetup = Symbol('nativeSetup');
+// Symbol for native read function on ReadableStreams backed by file I/O.
+// When present, pipeThrough uses it instead of reader.read() to avoid
+// the polyfill's Promise chains that leak on QuickJS.
+export const kNativeRead = Symbol('nativeRead');
+
+const origPipeThrough = streams.ReadableStream.prototype.pipeThrough;
+(streams.ReadableStream.prototype as any).pipeThrough = function pipeThrough(
+	this: ReadableStream,
+	transform: { readable: ReadableStream; writable: WritableStream },
+	options?: StreamPipeOptions,
+): ReadableStream {
+	const setup = (transform as any)[kNativeSetup];
+	if (typeof setup === 'function' && !options?.signal) {
+		const nativeReadable = setup(this);
+		// Override the `readable` property on the transform instance.
+		// TransformStream defines `readable` as a getter on the prototype,
+		// so a simple assignment would fail. Use defineProperty to shadow it.
+		Object.defineProperty(transform, 'readable', {
+			value: nativeReadable,
+			configurable: true,
+		});
+		return nativeReadable;
+	}
+	return (origPipeThrough as any).call(this, transform, options);
+};
 
 export type ReadableStreamController<T> =
 	| ReadableStreamDefaultController<T>
