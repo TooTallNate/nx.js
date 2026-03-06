@@ -16,13 +16,13 @@
   "author": "Nathan Rajlich <n@n8.io>",
   "license": "MIT",
   "dependencies": {
-    "@tootallnate/nacp": "^0.2.0",
+    "@tootallnate/nacp": "catalog:",
     "parse-author": "^2.0.0",
     "title-case": "^4.3.2",
-    "types-package-json": "^2.0.39"
+    "types-package-json": "catalog:"
   },
   "devDependencies": {
-    "@types/node": "^20.10.3",
+    "@types/node": "catalog:",
     "@types/parse-author": "^2.0.3"
   }
 }

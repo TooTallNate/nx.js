@@ -23,9 +23,9 @@ jobs:
           path: base
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v3
+        uses: pnpm/action-setup@v4
         with:
-          version: 8.15.8
+          package_json_file: pr/package.json
 
       - name: Setup Node.js 22.x
         uses: actions/setup-node@v4
@@ -37,7 +37,7 @@ jobs:
       - name: Build base types
         run: |
           cd base
-          pnpm install --frozen-lockfile
+          pnpm install --no-frozen-lockfile
           pnpm build --filter @nx.js/runtime
           cp packages/runtime/dist/index.d.ts /tmp/base-types.d.ts
 

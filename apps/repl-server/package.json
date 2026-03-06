@@ -11,12 +11,12 @@
   "license": "MIT",
   "dependencies": {
     "@nx.js/repl": "workspace:^",
-    "sisteransi": "^1.0.5"
+    "sisteransi": "catalog:"
   },
   "devDependencies": {
     "@nx.js/nro": "workspace:^",
     "@nx.js/nsp": "workspace:^",
     "@nx.js/runtime": "workspace:^",
-    "esbuild": "^0.17.19"
+    "esbuild": "catalog:"
   }
 }
