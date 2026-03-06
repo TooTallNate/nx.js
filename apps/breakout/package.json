@@ -1,21 +1,21 @@
 {
-	"name": "breakout",
-	"version": "0.0.0",
-	"private": true,
-	"description": "Classic Breakout game using nx.js",
-	"scripts": {
-		"build": "esbuild --bundle --sourcemap --sources-content=false --target=es2022 --format=esm --outdir=romfs src/main.ts",
-		"nro": "nxjs-nro",
-		"nsp": "nxjs-nsp"
-	},
-	"license": "MIT",
-	"dependencies": {
-		"@nx.js/constants": "workspace:*"
-	},
-	"devDependencies": {
-		"@nx.js/nro": "workspace:^",
-		"@nx.js/nsp": "workspace:^",
-		"@nx.js/runtime": "workspace:^",
-		"esbuild": "catalog:"
-	}
+  "name": "breakout",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Classic Breakout game using nx.js",
+  "scripts": {
+    "build": "esbuild --bundle --sourcemap --sources-content=false --target=es2022 --format=esm --outdir=romfs src/main.ts",
+    "nro": "nxjs-nro",
+    "nsp": "nxjs-nsp"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@nx.js/constants": "workspace:*"
+  },
+  "devDependencies": {
+    "@nx.js/nro": "workspace:^",
+    "@nx.js/nsp": "workspace:^",
+    "@nx.js/runtime": "workspace:^",
+    "esbuild": "catalog:"
+  }
 }

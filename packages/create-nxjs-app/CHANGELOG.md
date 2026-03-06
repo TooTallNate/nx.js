@@ -1,5 +1,11 @@
 # create-nxjs-app
 
+## 0.0.69
+
+### Patch Changes
+
+- chore: upgrade pnpm from 8 to 10, use pnpm catalog for shared dependencies (esbuild, vitest, etc.), and resolve `catalog:` protocol in scaffolded projects ([#325](https://github.com/TooTallNate/nx.js/pull/325))
+
 ## 0.0.68
 
 ## 0.0.67
