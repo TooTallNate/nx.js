@@ -414,7 +414,7 @@ importers:
     dependencies:
       uvu:
         specifier: github:TooTallNate/uvu#master
-        version: https://codeload.github.com/TooTallNate/uvu/tar.gz/a19ad72ffe3e5b91b256ddc58b77aac04d056316
+        version: https://codeload.github.com/TooTallNate/uvu/tar.gz/9f292195f4f442c5eb53631711fff4c141dfe4d1
     devDependencies:
       '@nx.js/constants':
         specifier: workspace:^
@@ -4991,8 +4991,8 @@ packages:
   util-deprecate@1.0.2:
     resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}
 
-  uvu@https://codeload.github.com/TooTallNate/uvu/tar.gz/a19ad72ffe3e5b91b256ddc58b77aac04d056316:
-    resolution: {tarball: https://codeload.github.com/TooTallNate/uvu/tar.gz/a19ad72ffe3e5b91b256ddc58b77aac04d056316}
+  uvu@https://codeload.github.com/TooTallNate/uvu/tar.gz/9f292195f4f442c5eb53631711fff4c141dfe4d1:
+    resolution: {tarball: https://codeload.github.com/TooTallNate/uvu/tar.gz/9f292195f4f442c5eb53631711fff4c141dfe4d1}
     version: 0.5.6
     engines: {node: '>=8'}
     hasBin: true
@@ -9536,7 +9536,7 @@ snapshots:
 
   util-deprecate@1.0.2: {}
 
-  uvu@https://codeload.github.com/TooTallNate/uvu/tar.gz/a19ad72ffe3e5b91b256ddc58b77aac04d056316:
+  uvu@https://codeload.github.com/TooTallNate/uvu/tar.gz/9f292195f4f442c5eb53631711fff4c141dfe4d1:
     dependencies:
       dequal: 2.0.3
       diff: 5.2.2
