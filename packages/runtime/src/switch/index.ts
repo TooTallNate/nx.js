@@ -117,10 +117,9 @@ export interface ListenOptions {
 }
 
 /**
- * Memory usage statistics from the QuickJS JavaScript engine,
- * as reported by `JS_ComputeMemoryUsage()`.
+ * Memory usage statistics from the QuickJS JavaScript engine.
  *
- * All `*_size` fields are in bytes. All `*_count` fields are counts.
+ * @see {@link memoryUsage}
  */
 export interface MemoryUsage {
 	/** Total bytes allocated by the JS engine's malloc. */
