@@ -30,6 +30,7 @@ import type {
 	Application,
 	FileSystem,
 	IRSensor,
+	MemoryUsage,
 	NetworkInfo,
 	Profile,
 	ProfileUid,
@@ -330,6 +331,9 @@ export interface Init {
 	irsSensorStart(s: IRSensor): void;
 	irsSensorStop(s: IRSensor): void;
 	irsSensorUpdate(s: IRSensor): boolean;
+
+	// memory.c
+	memoryUsage(): MemoryUsage;
 
 	// main.c
 	argv: string[];
