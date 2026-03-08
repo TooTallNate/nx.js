@@ -116,6 +116,66 @@ export interface ListenOptions {
 	accept?: (e: SocketEvent) => void;
 }
 
+/**
+ * Memory usage statistics from the QuickJS JavaScript engine.
+ *
+ * @see {@link memoryUsage}
+ */
+export interface MemoryUsage {
+	/** Total bytes allocated by the JS engine's malloc. */
+	mallocSize: number;
+	/** Maximum malloc allocation limit (0 = unlimited). */
+	mallocLimit: number;
+	/** Total memory used by the JS engine, including internal bookkeeping. */
+	memoryUsedSize: number;
+	/** Number of active malloc allocations. */
+	mallocCount: number;
+	/** Number of memory usage entries tracked internally. */
+	memoryUsedCount: number;
+	/** Number of interned atoms (identifiers/strings). */
+	atomCount: number;
+	/** Total bytes used by atoms. */
+	atomSize: number;
+	/** Number of JS strings. */
+	strCount: number;
+	/** Total bytes used by strings. */
+	strSize: number;
+	/** Number of JS objects. */
+	objCount: number;
+	/** Total bytes used by objects. */
+	objSize: number;
+	/** Number of object properties. */
+	propCount: number;
+	/** Total bytes used by properties. */
+	propSize: number;
+	/** Number of object shapes. */
+	shapeCount: number;
+	/** Total bytes used by shapes. */
+	shapeSize: number;
+	/** Number of JS functions. */
+	jsFuncCount: number;
+	/** Total bytes used by JS functions. */
+	jsFuncSize: number;
+	/** Total bytes of JS function bytecode. */
+	jsFuncCodeSize: number;
+	/** Number of pc-to-line debug entries. */
+	jsFuncPc2lineCount: number;
+	/** Total bytes used by pc-to-line debug data. */
+	jsFuncPc2lineSize: number;
+	/** Number of C functions registered in the engine. */
+	cFuncCount: number;
+	/** Number of JS arrays. */
+	arrayCount: number;
+	/** Number of fast (dense) arrays. */
+	fastArrayCount: number;
+	/** Total number of elements in fast arrays. */
+	fastArrayElements: number;
+	/** Number of binary (ArrayBuffer/SharedArrayBuffer) objects. */
+	binaryObjectCount: number;
+	/** Total bytes used by binary objects. */
+	binaryObjectSize: number;
+}
+
 export interface NetworkInfo {
 	ip: string;
 	subnetMask: string;
@@ -330,4 +390,23 @@ export function operationMode(): number {
  */
 export function setMediaPlaybackState(state: boolean) {
 	$.appletSetMediaPlaybackState(state);
+}
+
+/**
+ * Returns memory usage statistics from the QuickJS JavaScript engine
+ * via `JS_ComputeMemoryUsage()`.
+ *
+ * Useful for debugging memory leaks and monitoring memory pressure.
+ *
+ * @example
+ *
+ * ```typescript
+ * const mem = Switch.memoryUsage();
+ * console.log(`JS malloc: ${mem.mallocSize} bytes`);
+ * console.log(`JS memory used: ${mem.memoryUsedSize} bytes`);
+ * console.log(`Objects: ${mem.objCount} (${mem.objSize} bytes)`);
+ * ```
+ */
+export function memoryUsage(): MemoryUsage {
+	return $.memoryUsage();
 }

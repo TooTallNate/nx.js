@@ -27,6 +27,7 @@
 #include "gamepad.h"
 #include "image.h"
 #include "irs.h"
+#include "memory.h"
 #include "nifm.h"
 #include "ns.h"
 #include "poll.h"
@@ -708,6 +709,7 @@ int main(int argc, char *argv[]) {
 	nx_init_gamepad(ctx, nx_ctx->init_obj);
 	nx_init_image(ctx, nx_ctx->init_obj);
 	nx_init_irs(ctx, nx_ctx->init_obj);
+	nx_init_memory(ctx, nx_ctx->init_obj);
 	nx_init_nifm(ctx, nx_ctx->init_obj);
 	nx_init_ns(ctx, nx_ctx->init_obj);
 	nx_init_service(ctx, nx_ctx->init_obj);
