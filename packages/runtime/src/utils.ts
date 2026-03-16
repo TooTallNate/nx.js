@@ -87,9 +87,10 @@ export function pathToString(p: PathLike): string {
 export const createInternal = <K extends object, V>() => {
 	const wm = new WeakMap<K, V>();
 	const _ = (k: K): V => {
-		if (!wm.has(k))
+		const v = wm.get(k);
+		if (typeof v === 'undefined' && !wm.has(k))
 			throw new Error(`Failed to get \`${k.constructor.name}\` internal state`);
-		return wm.get(k) as V;
+		return v as V;
 	};
 	_.set = (k: K, v: V) => {
 		wm.set(k, v);
