@@ -1,0 +1,167 @@
+---
+title: Audio
+description: Playing audio files in your nx.js application
+---
+
+nx.js provides audio playback through the [`Audio`](/runtime/api/classes/Audio) class,
+which implements a subset of the web
+[`HTMLAudioElement`](https://developer.mozilla.org/docs/Web/API/HTMLAudioElement) API.
+
+## Supported Formats
+
+| Format | Library | MIME Type |
+|--------|---------|-----------|
+| MP3 | [dr_mp3](https://github.com/mackron/dr_libs) | `audio/mpeg` |
+| WAV | [dr_wav](https://github.com/mackron/dr_libs) | `audio/wav` |
+| OGG Vorbis | [stb_vorbis](https://github.com/nothings/stb) | `audio/ogg` |
+
+## Basic Playback
+
+Create an `Audio` instance and wait for the audio data to load before playing:
+
+```typescript title="src/main.ts"
+const audio = new Audio('romfs:/music.mp3');
+
+audio.addEventListener('canplaythrough', () => {
+  audio.play();
+});
+```
+
+> [!IMPORTANT]
+> Audio data is loaded and decoded asynchronously. Always wait for the
+> `canplaythrough` event (or `loadedmetadata`) before calling `play()`.
+
+## Loading Audio
+
+The `src` property accepts any URL supported by [`fetch()`](/runtime/api/functions/fetch),
+including `romfs:/` paths for bundled assets and `http://` / `https://` URLs:
+
+```typescript title="src/main.ts"
+// From the ROM filesystem
+const sfx = new Audio('romfs:/sounds/jump.wav');
+
+// From the SD card
+const music = new Audio('sdmc:/switch/my-app/soundtrack.ogg');
+
+// From a remote server
+const stream = new Audio('https://example.com/audio.mp3');
+```
+
+Setting `src` automatically calls `load()`, which fetches and decodes the audio data.
+
+## Playback Controls
+
+### Play and Pause
+
+```typescript
+await audio.play();
+audio.pause();
+```
+
+### Volume
+
+Volume ranges from `0` (silent) to `1` (full volume):
+
+```typescript
+audio.volume = 0.5; // 50% volume
+```
+
+### Looping
+
+```typescript
+audio.loop = true;
+audio.play();
+```
+
+### Seeking
+
+Use `currentTime` to seek to a specific position (in seconds):
+
+```typescript
+audio.currentTime = 30; // Jump to 30 seconds
+console.log(audio.duration); // Total duration in seconds
+```
+
+### Playback Rate
+
+Adjust the playback speed:
+
+```typescript
+audio.playbackRate = 1.5; // 1.5x speed
+audio.playbackRate = 0.5; // Half speed
+```
+
+## Events
+
+The `Audio` class dispatches standard media events:
+
+| Event | Description |
+|-------|-------------|
+| `loadedmetadata` | Audio metadata has been loaded and decoded |
+| `canplaythrough` | Enough data is available to begin playback |
+| `play` | Playback has started |
+| `pause` | Playback has been paused |
+| `ended` | Playback has reached the end (when not looping) |
+| `timeupdate` | The current playback position has changed |
+| `error` | An error occurred during loading or decoding |
+
+```typescript title="src/main.ts"
+const audio = new Audio('romfs:/music.mp3');
+
+audio.onended = () => {
+  console.log('Track finished!');
+};
+
+audio.onerror = (e) => {
+  console.error('Audio error:', e.error);
+};
+
+audio.addEventListener('canplaythrough', () => {
+  audio.play();
+});
+```
+
+## Ready States
+
+You can check `readyState` to determine the loading status:
+
+| Constant | Value | Meaning |
+|----------|-------|---------|
+| `Audio.HAVE_NOTHING` | `0` | No data loaded |
+| `Audio.HAVE_METADATA` | `1` | Metadata decoded |
+| `Audio.HAVE_ENOUGH_DATA` | `4` | Ready to play |
+
+## Example: Background Music with Sound Effects
+
+```typescript title="src/main.ts"
+import { Button } from '@nx.js/constants';
+
+// Background music (looping)
+const bgm = new Audio('romfs:/music/background.mp3');
+bgm.loop = true;
+bgm.volume = 0.3;
+
+// Sound effect
+const sfx = new Audio('romfs:/sounds/select.wav');
+
+bgm.addEventListener('canplaythrough', () => {
+  bgm.play();
+});
+
+function update() {
+  requestAnimationFrame(update);
+
+  const [pad] = navigator.getGamepads();
+  if (pad?.buttons[Button.A].pressed) {
+    // Play sound effect (reload to restart if already playing)
+    sfx.load();
+    sfx.addEventListener('canplaythrough', () => sfx.play(), { once: true });
+  }
+}
+
+update();
+```
+
+> [!TIP]
+> For sound effects that need to be played rapidly or overlapping, create
+> multiple `Audio` instances from the same source.
