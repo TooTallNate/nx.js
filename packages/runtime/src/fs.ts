@@ -28,6 +28,25 @@ export interface ReadFileOptions {
  * @example
  *
  * ```typescript
+ * const count = await Switch.mkdir('sdmc:/foo/bar/baz');
+ * console.log(`Created ${count} directories`);
+ * // Created 3 directories
+ * ```
+ *
+ * @param path Path of the directory to create.
+ * @param mode The file mode to set for the directories. Default: `0o777`.
+ * @returns A Promise which resolves to the number of directories created. If the directory already exists, resolves to `0`.
+ */
+export function mkdir(path: PathLike, mode = 0o777) {
+	return $.mkdir(pathToString(path), mode);
+}
+
+/**
+ * Creates the directory at the provided `path`, as well as any necessary parent directories.
+ *
+ * @example
+ *
+ * ```typescript
  * const count = Switch.mkdirSync('sdmc:/foo/bar/baz');
  * console.log(`Created ${count} directories`);
  * // Created 3 directories

@@ -65,6 +65,13 @@ typedef struct {
 
 typedef struct {
 	int err;
+	const char *path;
+	mode_t mode;
+	int created;
+} nx_fs_mkdir_async_t;
+
+typedef struct {
+	int err;
 	const char *filename;
 } nx_fs_remove_async_t;
 
@@ -315,6 +322,47 @@ JSValue nx_fwrite(JSContext *ctx, JSValueConst this_val, int argc,
 	data->buf_size = size;
 	data->buf_val = JS_DupValue(ctx, argv[1]);
 	return nx_queue_async(ctx, req, nx_fwrite_do, nx_fwrite_cb);
+}
+
+void nx_mkdir_do(nx_work_t *req) {
+	nx_fs_mkdir_async_t *data = (nx_fs_mkdir_async_t *)req->data;
+	int created = createDirectoryRecursively((char *)data->path, data->mode);
+	if (created == -1) {
+		data->err = errno;
+	} else {
+		data->created = created;
+	}
+}
+
+JSValue nx_mkdir_cb(JSContext *ctx, nx_work_t *req) {
+	nx_fs_mkdir_async_t *data = (nx_fs_mkdir_async_t *)req->data;
+	JS_FreeCString(ctx, data->path);
+
+	if (data->err) {
+		return nx_throw_errno_error(ctx, data->err, "mkdir");
+	}
+
+	return JS_NewInt32(ctx, data->created);
+}
+
+JSValue nx_mkdir(JSContext *ctx, JSValueConst this_val, int argc,
+				 JSValueConst *argv) {
+	NX_INIT_WORK_T(nx_fs_mkdir_async_t);
+
+	if (JS_ToUint32(ctx, &data->mode, argv[1])) {
+		free(req);
+		free(data);
+		return JS_EXCEPTION;
+	}
+
+	data->path = JS_ToCString(ctx, argv[0]);
+	if (!data->path) {
+		free(req);
+		free(data);
+		return JS_EXCEPTION;
+	}
+
+	return nx_queue_async(ctx, req, nx_mkdir_do, nx_mkdir_cb);
 }
 
 JSValue nx_mkdir_sync(JSContext *ctx, JSValueConst this_val, int argc,
@@ -871,6 +919,7 @@ static const JSCFunctionListEntry function_list[] = {
 	JS_CFUNC_DEF("fread", 2, nx_fread),
 	JS_CFUNC_DEF("fwrite", 2, nx_fwrite),
 	JS_CFUNC_DEF("fsCreateBigFile", 1, nx_fs_create_big_file),
+	JS_CFUNC_DEF("mkdir", 2, nx_mkdir),
 	JS_CFUNC_DEF("mkdirSync", 2, nx_mkdir_sync),
 	JS_CFUNC_DEF("readDirSync", 1, nx_readdir_sync),
 	JS_CFUNC_DEF("readFile", 1, nx_read_file),
