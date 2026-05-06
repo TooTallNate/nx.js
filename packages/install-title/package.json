@@ -20,10 +20,10 @@
     "access": "public"
   },
   "dependencies": {
-    "@nx.js/constants": "^0.4.0",
-    "@nx.js/ncm": "^1.2.0",
-    "@nx.js/ns": "^1.0.0",
-    "@nx.js/util": "^1.1.0",
+    "@nx.js/constants": "workspace:^",
+    "@nx.js/ncm": "workspace:^",
+    "@nx.js/ns": "workspace:^",
+    "@nx.js/util": "workspace:^",
     "@tootallnate/nsp": "^0.0.2"
   },
   "devDependencies": {

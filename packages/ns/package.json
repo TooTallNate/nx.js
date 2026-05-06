@@ -20,7 +20,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@nx.js/constants": "^0.4.0"
+    "@nx.js/constants": "workspace:^"
   },
   "devDependencies": {
     "@nx.js/runtime": "workspace:*"

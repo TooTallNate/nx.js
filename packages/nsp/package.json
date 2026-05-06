@@ -28,7 +28,7 @@
   "author": "Nathan Rajlich <n@n8.io>",
   "license": "MIT",
   "dependencies": {
-    "@nx.js/patch-nacp": "2.0.0",
+    "@nx.js/patch-nacp": "workspace:^",
     "@tootallnate/hacbrewpack": "^0.0.1",
     "@tootallnate/nacp": "catalog:",
     "bytes": "catalog:",
