@@ -86,14 +86,53 @@ export class SaveData {
 	 */
 	declare url: URL | null;
 
+	/**
+	 * Unique identifier for this save data store.
+	 * Assigned by the system when the save data is created.
+	 */
 	declare readonly id: bigint;
+	/**
+	 * The save data space (storage location) that this save data lives in.
+	 * Compare against members of [`FsSaveDataSpaceId`](/constants/api/enumerations/FsSaveDataSpaceId)
+	 * (e.g. `User = 1`, `System = 0`, `SdUser = 4`).
+	 */
 	declare readonly spaceId: number;
+	/**
+	 * The kind of save data this represents (per-user account save, system save,
+	 * BCAT, device, temporary, cache, etc.).
+	 * Compare against members of [`FsSaveDataType`](/constants/api/enumerations/FsSaveDataType).
+	 */
 	declare readonly type: number;
+	/**
+	 * The user account that this save data is associated with, as a tuple of two
+	 * `bigint`s (`[lo, hi]`) matching the layout of {@link Profile.uid | `Profile.uid`}.
+	 * Set to `[0n, 0n]` for save data not tied to a user (e.g. system or device saves).
+	 */
 	declare readonly uid: ProfileUid;
+	/**
+	 * The system data ID, used for system-type save data.
+	 * `0n` for application save data.
+	 */
 	declare readonly systemId: bigint;
+	/**
+	 * The title (program) ID of the application that owns this save data.
+	 * `0n` for system saves not tied to an application.
+	 */
 	declare readonly applicationId: bigint;
+	/**
+	 * Total size of the save data store, in bytes.
+	 */
 	declare readonly size: bigint;
+	/**
+	 * Index used to disambiguate multiple save data stores that share the same
+	 * `applicationId` / `uid` / `type`. Typically `0` unless the application
+	 * uses indexed save data.
+	 */
 	declare readonly index: number;
+	/**
+	 * Save data rank — `0` for the primary save data, non-zero for secondary
+	 * (BCAT-style) ranks. Most application saves are rank `0`.
+	 */
 	declare readonly rank: number;
 
 	/**

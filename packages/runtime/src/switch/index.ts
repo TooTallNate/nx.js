@@ -35,32 +35,48 @@ export { WebApplet, type WebAppletOptions } from '../web-applet';
 export type PathLike = string | URL;
 
 export interface Versions {
-	/**
-	 * The version of the ada URL parsing library.
-	 */
+	/** The version of the [ada](https://github.com/ada-url/ada) URL parsing library. */
 	readonly ada: string;
 	/**
-	 * The version of the Atmosphère custom firmware running on the Switch, or `undefined` if not running Atmosphère.
+	 * The version of the [Atmosphère](https://github.com/Atmosphere-NX/Atmosphere)
+	 * custom firmware running on the Switch, or `undefined` if not running
+	 * Atmosphère.
 	 */
 	readonly ams: string | undefined;
+	/** The version of the [cairo](https://www.cairographics.org/) 2D graphics library used for canvas rendering. */
 	readonly cairo: string;
 	/**
-	 * `true` if the Switch is running Atmosphère from emuMMC, `false` if running sysMMC, or `undefined` if not running Atmosphère.
+	 * `true` if the Switch is running Atmosphère from emuMMC, `false` if
+	 * running sysMMC, or `undefined` if not running Atmosphère.
 	 */
 	readonly emummc: boolean | undefined;
+	/** The version of the [FreeType 2](https://freetype.org/) font rendering library. */
 	readonly freetype2: string;
+	/** The version of the [HarfBuzz](https://harfbuzz.github.io/) text shaping library. */
 	readonly harfbuzz: string;
+	/** The Horizon OS (Switch system software) version (e.g. `"18.1.0"`). */
 	readonly hos: string;
+	/** The version of [libnx](https://github.com/switchbrew/libnx) the runtime was built against. */
 	readonly libnx: string;
+	/** The version of [mbedTLS](https://www.trustedfirmware.org/projects/mbed-tls/) used for TLS / cryptography. */
 	readonly mbedtls: string;
+	/** The semver version of the nx.js runtime itself. */
 	readonly nxjs: string;
+	/** The version of the [pixman](https://pixman.org/) low-level pixel manipulation library. */
 	readonly pixman: string;
+	/** The version of [libpng](http://www.libpng.org/pub/png/libpng.html) used for PNG decoding. */
 	readonly png: string;
+	/** The version of the [QuickJS](https://bellard.org/quickjs/) JavaScript engine. */
 	readonly quickjs: string;
+	/** The version of [libjpeg-turbo](https://libjpeg-turbo.org/) used for JPEG decoding. */
 	readonly turbojpeg: string;
+	/** The version of [wasm3](https://github.com/wasm3/wasm3) used for `WebAssembly` execution. */
 	readonly wasm3: string;
+	/** The version of [libwebp](https://developers.google.com/speed/webp/) used for WebP decoding. */
 	readonly webp: string;
+	/** The version of [zlib](https://zlib.net/) used for deflate / gzip compression. */
 	readonly zlib: string;
+	/** The version of [Zstandard](https://github.com/facebook/zstd) (zstd) used for zstd compression. */
 	readonly zstd: string;
 }
 

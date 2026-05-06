@@ -59,32 +59,65 @@ export type RequestDestination =
 export type RequestMode = 'cors' | 'navigate' | 'no-cors' | 'same-origin';
 export type RequestRedirect = 'error' | 'follow' | 'manual';
 
+/**
+ * Options accepted by {@link fetch | `fetch()`} and the `Request` constructor.
+ *
+ * The shape mirrors the Web Fetch standard, but **not every field has an
+ * equivalent on the Switch runtime**. There is no Window, no same-origin
+ * policy, no CORS enforcement, and no shared HTTP cache. The notes on each
+ * field below describe how nx.js actually treats them.
+ *
+ * @see {@link fetch}
+ */
 export interface RequestInit {
-	/** A BodyInit object or null to set request's body. */
+	/** Honored — the request body. May be a `BodyInit` (string, `ArrayBuffer`, `FormData`, `URLSearchParams`, `Blob`, or `ReadableStream`) or `null`. */
 	body?: BodyInit | null;
-	/** A string indicating how the request will interact with the local cache to set request's cache. */
+	/**
+	 * **Ignored on Switch.** nx.js does not maintain an HTTP cache; every
+	 * `fetch()` performs a fresh network request. The value is stored on the
+	 * resulting `Request` object for spec compatibility but has no effect on
+	 * networking behavior.
+	 */
 	cache?: RequestCache;
-	/** A string indicating whether credentials will be sent with the request always, never, or only when sent to a same-origin URL. Sets request's credentials. */
+	/**
+	 * **Ignored on Switch.** There is no shared cookie jar or credential
+	 * store, and there is no same-origin policy to gate. The value is
+	 * preserved on the `Request` for spec compatibility only.
+	 */
 	credentials?: RequestCredentials;
-	/** A Headers object, an object literal, or an array of two-item arrays to set request's headers. */
+	/** Honored — request headers (`Headers`, an object literal, or an array of `[name, value]` pairs). */
 	headers?: HeadersInit;
-	/** A cryptographic hash of the resource to be fetched by request. Sets request's integrity. */
+	/**
+	 * **Not enforced on Switch.** Subresource integrity is not validated by
+	 * the runtime; the value is stored on the `Request` but no hash check is
+	 * performed.
+	 */
 	integrity?: string;
-	/** A boolean to set request's keepalive. */
+	/**
+	 * **Ignored on Switch.** There is no concept of a page lifetime that
+	 * `keepalive` would extend a request beyond.
+	 */
 	keepalive?: boolean;
-	/** A string to set request's method. */
+	/** Honored — HTTP method (`'GET'`, `'POST'`, etc.). Defaults to `'GET'`. */
 	method?: string;
-	/** A string to indicate whether the request will use CORS, or will be restricted to same-origin URLs. Sets request's mode. */
+	/**
+	 * **Ignored on Switch.** There is no browser to enforce CORS / same-origin
+	 * checks. All cross-origin requests are simply performed. The value is
+	 * preserved on the `Request` for spec compatibility.
+	 */
 	mode?: RequestMode;
-	/** A string indicating whether request follows redirects, results in an error upon encountering a redirect, or returns the redirect (in an opaque fashion). Sets request's redirect. */
+	/**
+	 * Honored — controls how 3xx redirects are handled (`'follow'` (default),
+	 * `'error'`, or `'manual'`).
+	 */
 	redirect?: RequestRedirect;
-	/** A string whose value is a same-origin URL, "about:client", or the empty string, to set request's referrer. */
+	/** **Ignored on Switch.** No `Referer` header is set automatically; supply one via `headers` if needed. */
 	referrer?: string;
-	/** A referrer policy to set request's referrerPolicy. */
+	/** **Ignored on Switch.** Referrer policy is a browser concept and has no effect here. */
 	referrerPolicy?: ReferrerPolicy;
-	/** An AbortSignal to set request's signal. */
+	/** Honored — an `AbortSignal` that aborts the in-flight request when triggered. */
 	signal?: AbortSignal | null;
-	/** Can only be null. Used to disassociate request from any Window. */
+	/** **Ignored on Switch** — there is no `Window` to disassociate from. Kept only for spec compatibility. */
 	window?: null;
 }
 

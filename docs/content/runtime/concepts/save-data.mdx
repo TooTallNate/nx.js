@@ -73,11 +73,11 @@ if (!saveData) {
 const url = saveData.mount();
 
 // Read from save data filesystem.
-const data = await Switch.readFile(new URL('state.json', url));
+const data = Switch.readFileSync(new URL('state.json', url));
 
 // Write to save data filesystem.
 // (Be sure to `commit()` changes after a write!)
-await Switch.writeFile(
+Switch.writeFileSync(
     new URL('state.json', url),
     JSON.stringify({ count: 123 })
 );
