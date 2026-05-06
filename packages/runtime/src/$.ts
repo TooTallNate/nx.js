@@ -34,6 +34,7 @@ import type {
 	NetworkInfo,
 	Profile,
 	ProfileUid,
+	DirEntry,
 	ReadFileOptions,
 	SaveData,
 	SaveDataCreationInfo,
@@ -287,7 +288,7 @@ export interface Init {
 	mkdir(path: string, mode: number): Promise<number>;
 	mkdirSync(path: string, mode: number): number;
 	openDir(path: string): Promise<object>;
-	readDirNext(handle: object): Promise<string | null>;
+	readDirNext(handle: object): Promise<DirEntry | null>;
 	closeDir(handle: object): Promise<void>;
 	readDirSync(path: string): string[] | null;
 	readFile(path: string, opts?: ReadFileOptions): Promise<ArrayBuffer | null>;

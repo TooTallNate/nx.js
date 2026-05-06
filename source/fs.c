@@ -96,6 +96,7 @@ typedef struct {
 	int err;
 	DIR *dir;
 	char *name;
+	unsigned char d_type;
 	bool eof;
 } nx_fs_readdir_next_async_t;
 
@@ -837,6 +838,8 @@ void nx_readdir_next_do(nx_work_t *req) {
 		data->name = strdup(entry->d_name);
 		if (!data->name) {
 			data->err = ENOMEM;
+		} else {
+			data->d_type = entry->d_type;
 		}
 	} else if (errno) {
 		data->err = errno;
@@ -855,9 +858,16 @@ JSValue nx_readdir_next_cb(JSContext *ctx, nx_work_t *req) {
 	if (data->eof) {
 		return JS_NULL;
 	}
-	JSValue str = JS_NewString(ctx, data->name);
+	JSValue obj = JS_NewObject(ctx);
+	JS_SetPropertyStr(ctx, obj, "name", JS_NewString(ctx, data->name));
+	JS_SetPropertyStr(ctx, obj, "isFile",
+					  JS_NewBool(ctx, data->d_type == DT_REG));
+	JS_SetPropertyStr(ctx, obj, "isDirectory",
+					  JS_NewBool(ctx, data->d_type == DT_DIR));
+	JS_SetPropertyStr(ctx, obj, "isSymlink",
+					  JS_NewBool(ctx, data->d_type == DT_LNK));
 	free(data->name);
-	return str;
+	return obj;
 }
 
 JSValue nx_readdir_next(JSContext *ctx, JSValueConst this_val, int argc,
