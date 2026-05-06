@@ -294,6 +294,7 @@ export interface Init {
 	renameSync(path: string, dest: string): void;
 	stat(path: string): Promise<Stats | null>;
 	statSync(path: string): Stats | null;
+	writeFile(path: string, data: ArrayBuffer): Promise<void>;
 	writeFileSync(path: string, data: ArrayBuffer): void;
 
 	// fsdev.c

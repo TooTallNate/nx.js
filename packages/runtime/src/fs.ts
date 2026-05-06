@@ -87,6 +87,26 @@ export function readFileSync(path: PathLike, opts?: ReadFileOptions) {
 }
 
 /**
+ * Returns a Promise which resolves after writing the contents of `data`
+ * to the file at `path`. Parent directories are created automatically.
+ *
+ * @example
+ *
+ * ```typescript
+ * const appStateJson = JSON.stringify(appState);
+ * await Switch.writeFile('sdmc:/switch/awesome-app/state.json', appStateJson);
+ * ```
+ */
+export function writeFile(
+	path: PathLike,
+	data: string | BufferSource,
+): Promise<void> {
+	const d = typeof data === 'string' ? encoder.encode(data) : data;
+	const ab = bufferSourceToArrayBuffer(d);
+	return $.writeFile(pathToString(path), ab);
+}
+
+/**
  * Synchronously writes the contents of `data` to the file at `path`.
  *
  * @example

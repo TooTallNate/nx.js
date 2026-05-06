@@ -60,6 +60,14 @@ typedef struct {
 typedef struct {
 	int err;
 	const char *filename;
+	uint8_t *buf;
+	size_t size;
+	JSValue buf_val;
+} nx_fs_write_file_async_t;
+
+typedef struct {
+	int err;
+	const char *filename;
 	struct stat st;
 } nx_fs_stat_async_t;
 
@@ -629,6 +637,70 @@ JSValue nx_write_file_sync(JSContext *ctx, JSValueConst this_val, int argc,
 	return JS_UNDEFINED;
 }
 
+void nx_write_file_do(nx_work_t *req) {
+	nx_fs_write_file_async_t *data = (nx_fs_write_file_async_t *)req->data;
+
+	// Create any parent directories
+	char *dir = dirname(data->filename);
+	if (dir) {
+		if (createDirectoryRecursively(dir, 0777) == -1) {
+			data->err = errno;
+			free(dir);
+			return;
+		}
+		free(dir);
+	}
+
+	FILE *file = fopen(data->filename, "w");
+	if (file == NULL) {
+		data->err = errno;
+		return;
+	}
+
+	size_t result = fwrite(data->buf, 1, data->size, file);
+	fclose(file);
+
+	if (result != data->size) {
+		data->err = -1;
+	}
+}
+
+JSValue nx_write_file_cb(JSContext *ctx, nx_work_t *req) {
+	nx_fs_write_file_async_t *data = (nx_fs_write_file_async_t *)req->data;
+	JS_FreeCString(ctx, data->filename);
+	JS_FreeValue(ctx, data->buf_val);
+
+	if (data->err) {
+		return nx_throw_errno_error(ctx, data->err, "fwrite");
+	}
+	return JS_UNDEFINED;
+}
+
+JSValue nx_write_file(JSContext *ctx, JSValueConst this_val, int argc,
+					  JSValueConst *argv) {
+	NX_INIT_WORK_T(nx_fs_write_file_async_t);
+
+	data->filename = JS_ToCString(ctx, argv[0]);
+	if (!data->filename) {
+		free(req);
+		free(data);
+		return JS_EXCEPTION;
+	}
+
+	data->buf = JS_GetArrayBuffer(ctx, &data->size, argv[1]);
+	if (!data->buf) {
+		JS_FreeCString(ctx, data->filename);
+		free(req);
+		free(data);
+		return JS_EXCEPTION;
+	}
+
+	// Keep a reference to the ArrayBuffer so it's not GC'd during async work
+	data->buf_val = JS_DupValue(ctx, argv[1]);
+
+	return nx_queue_async(ctx, req, nx_write_file_do, nx_write_file_cb);
+}
+
 JSValue statToObject(JSContext *ctx, struct stat *st) {
 	JSValue obj = JS_NewObject(ctx);
 	JS_SetPropertyStr(ctx, obj, "size", JS_NewInt32(ctx, st->st_size));
@@ -881,6 +953,7 @@ static const JSCFunctionListEntry function_list[] = {
 	JS_CFUNC_DEF("renameSync", 2, nx_rename_sync),
 	JS_CFUNC_DEF("stat", 1, nx_stat),
 	JS_CFUNC_DEF("statSync", 1, nx_stat_sync),
+	JS_CFUNC_DEF("writeFile", 2, nx_write_file),
 	JS_CFUNC_DEF("writeFileSync", 1, nx_write_file_sync),
 };
 
