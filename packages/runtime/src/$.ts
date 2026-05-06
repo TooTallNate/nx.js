@@ -286,6 +286,9 @@ export interface Init {
 	fsCreateBigFile(path: string): void;
 	mkdir(path: string, mode: number): Promise<number>;
 	mkdirSync(path: string, mode: number): number;
+	openDir(path: string): Promise<object>;
+	readDirNext(handle: object): Promise<string | null>;
+	closeDir(handle: object): Promise<void>;
 	readDirSync(path: string): string[] | null;
 	readFile(path: string, opts?: ReadFileOptions): Promise<ArrayBuffer | null>;
 	readFileSync(path: string, opts?: ReadFileOptions): ArrayBuffer | null;

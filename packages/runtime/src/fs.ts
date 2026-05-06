@@ -76,6 +76,67 @@ export function readFile(path: PathLike, opts?: ReadFileOptions) {
 }
 
 /**
+ * Returns an `AsyncIterable` that yields the file names within `path`,
+ * one entry at a time. The directory handle is automatically closed
+ * when iteration completes or the loop is exited early.
+ *
+ * @example
+ *
+ * ```typescript
+ * for await (const file of Switch.readDir('sdmc:/')) {
+ *   // … do something with `file` …
+ * }
+ * ```
+ *
+ * @example
+ *
+ * To collect all entries into an array:
+ *
+ * ```typescript
+ * const files = await Array.fromAsync(Switch.readDir('sdmc:/'));
+ * ```
+ *
+ * @param path Path of the directory to read.
+ */
+export function readDir(path: PathLike): AsyncIterable<string> {
+	const p = pathToString(path);
+	return {
+		[Symbol.asyncIterator]() {
+			let handle: object | null = null;
+			let started = false;
+			let done = false;
+			return {
+				async next(): Promise<IteratorResult<string>> {
+					if (!started) {
+						started = true;
+						handle = await $.openDir(p);
+					}
+					if (done) {
+						return { value: undefined, done: true };
+					}
+					const name = await $.readDirNext(handle!);
+					if (name === null) {
+						done = true;
+						await $.closeDir(handle!);
+						handle = null;
+						return { value: undefined, done: true };
+					}
+					return { value: name, done: false };
+				},
+				async return(): Promise<IteratorResult<string>> {
+					if (handle && !done) {
+						done = true;
+						await $.closeDir(handle);
+						handle = null;
+					}
+					return { value: undefined, done: true };
+				},
+			};
+		},
+	};
+}
+
+/**
  * Synchronously returns an array of the file names within `path`.
  *
  * @example
