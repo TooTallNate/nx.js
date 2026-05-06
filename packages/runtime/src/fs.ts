@@ -57,6 +57,24 @@ export function readFile(path: PathLike, opts?: ReadFileOptions) {
 }
 
 /**
+ * Asynchronously returns an array of the file names within `path`.
+ *
+ * @example
+ *
+ * ```typescript
+ * const files = await Switch.readDir('sdmc:/');
+ * if (files) {
+ *   for (const file of files) {
+ *     // … do something with `file` …
+ *   }
+ * }
+ * ```
+ */
+export function readDir(path: PathLike) {
+	return $.readDir(pathToString(path));
+}
+
+/**
  * Synchronously returns an array of the file names within `path`.
  *
  * @example

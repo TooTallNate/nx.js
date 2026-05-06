@@ -70,6 +70,13 @@ typedef struct {
 
 typedef struct {
 	int err;
+	const char *path;
+	char **entries;
+	int count;
+} nx_fs_readdir_async_t;
+
+typedef struct {
+	int err;
 	const char *src;
 	const char *dest;
 } nx_fs_rename_async_t;
@@ -391,6 +398,112 @@ void free_array_buffer(JSRuntime *rt, void *opaque, void *ptr) { free(ptr); }
 
 void free_js_array_buffer(JSRuntime *rt, void *opaque, void *ptr) {
 	js_free_rt(rt, ptr);
+}
+
+void nx_readdir_do(nx_work_t *req) {
+	nx_fs_readdir_async_t *data = (nx_fs_readdir_async_t *)req->data;
+	DIR *dir = opendir(data->path);
+	if (dir == NULL) {
+		data->err = errno;
+		return;
+	}
+
+	int capacity = 16;
+	data->entries = malloc(capacity * sizeof(char *));
+	if (!data->entries) {
+		data->err = errno;
+		closedir(dir);
+		return;
+	}
+	data->count = 0;
+
+	struct dirent *entry;
+	errno = 0;
+	while ((entry = readdir(dir)) != NULL) {
+		if (!strcmp(".", entry->d_name) || !strcmp("..", entry->d_name)) {
+			continue;
+		}
+		if (data->count >= capacity) {
+			capacity *= 2;
+			char **new_entries = realloc(data->entries, capacity * sizeof(char *));
+			if (!new_entries) {
+				data->err = errno;
+				closedir(dir);
+				return;
+			}
+			data->entries = new_entries;
+		}
+		data->entries[data->count] = strdup(entry->d_name);
+		if (!data->entries[data->count]) {
+			data->err = errno;
+			closedir(dir);
+			return;
+		}
+		data->count++;
+	}
+	if (errno) {
+		data->err = errno;
+	}
+	closedir(dir);
+}
+
+JSValue nx_readdir_cb(JSContext *ctx, nx_work_t *req) {
+	nx_fs_readdir_async_t *data = (nx_fs_readdir_async_t *)req->data;
+	JS_FreeCString(ctx, data->path);
+
+	if (data->err == ENOENT) {
+		free(data->entries);
+		return JS_NULL;
+	}
+
+	if (data->err) {
+		for (int i = 0; i < data->count; i++) {
+			free(data->entries[i]);
+		}
+		free(data->entries);
+		return nx_throw_errno_error(ctx, data->err, "readdir");
+	}
+
+	JSValue arr = JS_NewArray(ctx);
+	if (JS_IsException(arr)) {
+		for (int i = 0; i < data->count; i++) {
+			free(data->entries[i]);
+		}
+		free(data->entries);
+		return arr;
+	}
+
+	for (int i = 0; i < data->count; i++) {
+		JSValue str = JS_NewString(ctx, data->entries[i]);
+		free(data->entries[i]);
+		if (JS_IsException(str) || JS_SetPropertyUint32(ctx, arr, i, str) < 0) {
+			JS_FreeValue(ctx, str);
+			JS_FreeValue(ctx, arr);
+			for (int j = i + 1; j < data->count; j++) {
+				free(data->entries[j]);
+			}
+			free(data->entries);
+			return JS_EXCEPTION;
+		}
+	}
+	free(data->entries);
+	return arr;
+}
+
+JSValue nx_readdir(JSContext *ctx, JSValueConst this_val, int argc,
+				   JSValueConst *argv) {
+	NX_INIT_WORK_T(nx_fs_readdir_async_t);
+	data->entries = NULL;
+	data->count = 0;
+
+	data->path = JS_ToCString(ctx, argv[0]);
+	if (!data->path) {
+		free(req);
+		free(data);
+		return JS_EXCEPTION;
+	}
+
+	return nx_queue_async(ctx, req, nx_readdir_do, nx_readdir_cb);
 }
 
 void nx_read_file_do(nx_work_t *req) {
@@ -872,6 +985,7 @@ static const JSCFunctionListEntry function_list[] = {
 	JS_CFUNC_DEF("fwrite", 2, nx_fwrite),
 	JS_CFUNC_DEF("fsCreateBigFile", 1, nx_fs_create_big_file),
 	JS_CFUNC_DEF("mkdirSync", 2, nx_mkdir_sync),
+	JS_CFUNC_DEF("readDir", 1, nx_readdir),
 	JS_CFUNC_DEF("readDirSync", 1, nx_readdir_sync),
 	JS_CFUNC_DEF("readFile", 1, nx_read_file),
 	JS_CFUNC_DEF("readFileSync", 1, nx_read_file_sync),
