@@ -99,7 +99,7 @@ export class AlbumFile extends File {
 	/**
 	 * Unique ID for when there's multiple album files with the same timestamp.
 	 *
-	 * @note The value is usually `0`.
+	 * > **Note:** The value is usually `0`.
 	 */
 	declare id: number;
 

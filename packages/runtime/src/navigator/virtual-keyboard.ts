@@ -41,7 +41,8 @@ export class VirtualKeyboard extends EventTarget {
 	 * Single character to use for the left-side button.
 	 *
 	 * @example "-"
-	 * @note Only for "NumPad" keyboard type.
+	 *
+	 * > **Note:** Only for "NumPad" keyboard type.
 	 */
 	leftButtonText?: string;
 
@@ -49,7 +50,8 @@ export class VirtualKeyboard extends EventTarget {
 	 * Single character to use for the right-side button.
 	 *
 	 * @example "+"
-	 * @note Only for "NumPad" keyboard type.
+	 *
+	 * > **Note:** Only for "NumPad" keyboard type.
 	 */
 	rightButtonText?: string;
 
