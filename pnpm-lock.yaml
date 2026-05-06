@@ -611,8 +611,8 @@ importers:
   packages/clkrst:
     dependencies:
       '@nx.js/constants':
-        specifier: ^0.4.0
-        version: 0.4.0
+        specifier: workspace:^
+        version: link:../constants
     devDependencies:
       '@nx.js/runtime':
         specifier: workspace:*
@@ -686,17 +686,17 @@ importers:
   packages/install-title:
     dependencies:
       '@nx.js/constants':
-        specifier: ^0.4.0
-        version: 0.4.0
+        specifier: workspace:^
+        version: link:../constants
       '@nx.js/ncm':
-        specifier: ^1.2.0
-        version: 1.2.0
+        specifier: workspace:^
+        version: link:../ncm
       '@nx.js/ns':
-        specifier: ^1.0.0
-        version: 1.0.0
+        specifier: workspace:^
+        version: link:../ns
       '@nx.js/util':
-        specifier: ^1.1.0
-        version: 1.1.0
+        specifier: workspace:^
+        version: link:../util
       '@tootallnate/nsp':
         specifier: ^0.0.2
         version: 0.0.2
@@ -708,11 +708,11 @@ importers:
   packages/ncm:
     dependencies:
       '@nx.js/constants':
-        specifier: ^0.4.0
-        version: 0.4.0
+        specifier: workspace:^
+        version: link:../constants
       '@nx.js/util':
-        specifier: ^1.1.0
-        version: 1.1.0
+        specifier: workspace:^
+        version: link:../util
     devDependencies:
       '@nx.js/runtime':
         specifier: workspace:*
@@ -721,8 +721,8 @@ importers:
   packages/nro:
     dependencies:
       '@nx.js/patch-nacp':
-        specifier: 2.0.0
-        version: 2.0.0
+        specifier: workspace:^
+        version: link:../patch-nacp
       '@tootallnate/nacp':
         specifier: 'catalog:'
         version: 0.2.1
@@ -752,8 +752,8 @@ importers:
   packages/ns:
     dependencies:
       '@nx.js/constants':
-        specifier: ^0.4.0
-        version: 0.4.0
+        specifier: workspace:^
+        version: link:../constants
     devDependencies:
       '@nx.js/runtime':
         specifier: workspace:*
@@ -762,8 +762,8 @@ importers:
   packages/nsp:
     dependencies:
       '@nx.js/patch-nacp':
-        specifier: 2.0.0
-        version: 2.0.0
+        specifier: workspace:^
+        version: link:../patch-nacp
       '@tootallnate/hacbrewpack':
         specifier: ^0.0.1
         version: 0.0.1
@@ -1939,21 +1939,6 @@ packages:
   '@nodelib/fs.walk@1.2.8':
     resolution: {integrity: sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg==}
     engines: {node: '>= 8'}
-
-  '@nx.js/constants@0.4.0':
-    resolution: {integrity: sha512-bUs7P7Mu5+hQmgzcfdp8bNzmwxPJtI+B8+5zuWYm66empjO7WCFk9j9/G0TJ8Kb935gOqO58+RG3HVCMri36IQ==}
-
-  '@nx.js/ncm@1.2.0':
-    resolution: {integrity: sha512-azxdrFxu6BnRcpydU2aoipwGHONnLtk4q8kg44aZ+GKe3fHsiEqNYvG5f/Y80OTFScTiLor5d53t7l0gbb65Nw==}
-
-  '@nx.js/ns@1.0.0':
-    resolution: {integrity: sha512-9l9OM/VP9jfnp8zJ78SDKVqRbD4nOGXvFgfmex5B8njM+9CZy6+R0R8KXrRnkShI/+8zeZYjgPjzDFyg4YUeoA==}
-
-  '@nx.js/patch-nacp@2.0.0':
-    resolution: {integrity: sha512-px4mL57q5g167kvo3wguxe2i/Ky5By9i5SBN3dmdGr6Mlo3JwHRGILegFLux0sjClU0LEwJWMWdoFShinOuwqw==}
-
-  '@nx.js/util@1.1.0':
-    resolution: {integrity: sha512-UUWJCFpFSKHhp3HYrKk+BVmUpS2JxD55Dqhw6TJTmOaTI3HKOqQJJlIOwK/GRRW3VTXAOO13x+k4BHxFy7jnPg==}
 
   '@orama/orama@3.1.18':
     resolution: {integrity: sha512-a61ljmRVVyG5MC/698C8/FfFDw5a8LOIvyOLW5fztgUXqUpc1jOfQzOitSCbge657OgXXThmY3Tk8fpiDb4UcA==}
@@ -6222,26 +6207,6 @@ snapshots:
     dependencies:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.20.1
-
-  '@nx.js/constants@0.4.0': {}
-
-  '@nx.js/ncm@1.2.0':
-    dependencies:
-      '@nx.js/constants': 0.4.0
-      '@nx.js/util': 1.1.0
-
-  '@nx.js/ns@1.0.0':
-    dependencies:
-      '@nx.js/constants': 0.4.0
-
-  '@nx.js/patch-nacp@2.0.0':
-    dependencies:
-      '@tootallnate/nacp': 0.2.1
-      parse-author: 2.0.0
-      title-case: 4.3.2
-      types-package-json: 2.0.39
-
-  '@nx.js/util@1.1.0': {}
 
   '@orama/orama@3.1.18': {}
 
