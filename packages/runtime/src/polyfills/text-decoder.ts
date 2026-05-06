@@ -11,7 +11,7 @@ export interface TextDecodeOptions {
  * If you need to decode binary data of a different encoding, consider importing
  * a more full-featured polyfill, such as [`@kayahr/text-encoding`](https://www.npmjs.com/package/@kayahr/text-encoding).
  *
- * @copyright Apache License 2.0
+ * Copyright: Apache License 2.0
  * @author Sam Thorogood
  * @see https://github.com/samthor/fast-text-encoding/blob/master/src/lowlevel.js
  */

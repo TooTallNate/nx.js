@@ -278,7 +278,7 @@ export class OffscreenCanvasRenderingContext2D {
 	 * Determines the quality of image smoothing.
 	 *
 	 * @default "low"
-	 * @note For this property to have an effect, {@link OffscreenCanvasRenderingContext2D.imageSmoothingEnabled | `imageSmoothingEnabled`} must be true.
+	 * > **Note:** For this property to have an effect, {@link OffscreenCanvasRenderingContext2D.imageSmoothingEnabled | `imageSmoothingEnabled`} must be true.
 	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/imageSmoothingQuality
 	 */
 	declare imageSmoothingQuality: ImageSmoothingQuality;
@@ -353,8 +353,8 @@ export class OffscreenCanvasRenderingContext2D {
 	 * Starts a new path by emptying the list of sub-paths.
 	 * Call this method when you want to create a new path.
 	 *
-	 * @note To create a new sub-path (i.e. one matching the current canvas state),
-	 * you can use `CanvasRenderingContext2D.moveTo()`.
+	 * > **Note:** To create a new sub-path (i.e. one matching the current canvas state),
+	 * > you can use `CanvasRenderingContext2D.moveTo()`.
 	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/beginPath
 	 */
 	beginPath(): void {
@@ -599,7 +599,7 @@ export class OffscreenCanvasRenderingContext2D {
 	/**
 	 * Sets the line dash pattern used when stroking lines. It uses an array of values that specify alternating lengths of lines and gaps which describe the pattern.
 	 *
-	 * @note To return to using solid lines, set the line dash list to an empty array.
+	 * > **Note:** To return to using solid lines, set the line dash list to an empty array.
 	 * @param segments An `Array` of numbers that specify distances to alternately draw a line and a gap (in coordinate space units). If the number of elements in the array is odd, the elements of the array get copied and concatenated. For example, `[5, 15, 25]` will become `[5, 15, 25, 5, 15, 25]`. If the array is empty, the line dash list is cleared and line strokes return to being solid.
 	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/setLineDash
 	 */

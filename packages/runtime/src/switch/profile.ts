@@ -85,7 +85,7 @@ export class Profile {
 	 * Shows the user selection interface and returns a {@link Profile}
 	 * instance representing the user that was selected.
 	 *
-	 * @note This function blocks the event loop until the user has made their selection.
+	 * > **Note:** This function blocks the event loop until the user has made their selection.
 	 */
 	static select() {
 		_init();
