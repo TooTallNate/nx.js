@@ -1,5 +1,34 @@
 # @nx.js/runtime
 
+## 0.0.70
+
+### Patch Changes
+
+- feat: add `Switch.memoryUsage()` — thin passthrough of QuickJS `JS_ComputeMemoryUsage()` ([#294](https://github.com/TooTallNate/nx.js/pull/294))
+
+- docs: address documentation audit findings ([`8ccae5e`](https://github.com/TooTallNate/nx.js/commit/8ccae5eb220c490b590be41c15747676efbe88be))
+
+  - Fix Save Data concept example to use the synchronous `Switch.readFileSync` /
+    `Switch.writeFileSync` APIs (the previous example referenced a non-existent
+    `Switch.writeFile`).
+  - Add a `/runtime/concepts` index page so the Concepts section header in the
+    sidebar no longer 404s.
+  - Backfill TSDoc descriptions on `SaveData` properties, `RequestInit` fields
+    (with explicit honored / ignored notes for the Switch runtime), and the
+    `Versions` interface.
+  - Convert the libnx-style `///<` and `/* … */` comments throughout
+    `@nx.js/constants` (`FsSaveDataType`, `FsSaveDataSpaceId`, `Button`,
+    `HidNpadButton`, `AppletType`, `OperationMode`, errno constants, etc.) to
+    TSDoc so the auto-generated reference renders meaningful descriptions
+    instead of `-`.
+  - Fix `kluer` → `kleur` typo on the Console rendering page.
+
+- Add async `Switch.mkdir()` function for non-blocking directory creation ([#333](https://github.com/TooTallNate/nx.js/pull/333))
+
+- Add async `Switch.readDir()` returning an `AsyncIterable<Switch.DirEntry>` for streaming directory listing ([#337](https://github.com/TooTallNate/nx.js/pull/337))
+
+- Add async `Switch.writeFile()` function for non-blocking file writes ([#332](https://github.com/TooTallNate/nx.js/pull/332))
+
 ## 0.0.69
 
 ### Patch Changes
