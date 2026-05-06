@@ -6,6 +6,20 @@ import { encoder } from './polyfills/text-encoder';
 import type { PathLike } from './switch';
 import type { BufferSource } from './types';
 
+/**
+ * Information about a directory entry returned from {@link readDir | `Switch.readDir()`}.
+ */
+export interface DirEntry {
+	/** The file name of the entry (not the full path). */
+	name: string;
+	/** `true` if this is a regular file. */
+	isFile: boolean;
+	/** `true` if this is a directory. */
+	isDirectory: boolean;
+	/** `true` if this is a symbolic link. */
+	isSymlink: boolean;
+}
+
 export interface ReadFileOptions {
 	/**
 	 * Byte offset to start reading the file from.
@@ -73,6 +87,67 @@ export function mkdirSync(path: PathLike, mode = 0o777) {
  */
 export function readFile(path: PathLike, opts?: ReadFileOptions) {
 	return $.readFile(pathToString(path), opts);
+}
+
+/**
+ * Returns an `AsyncIterable` that yields {@link DirEntry} objects for each
+ * entry within `path`, one at a time. The directory handle is automatically
+ * closed when iteration completes or the loop is exited early.
+ *
+ * @example
+ *
+ * ```typescript
+ * for await (const entry of Switch.readDir('sdmc:/')) {
+ *   console.log(entry.name, entry.isFile ? 'file' : 'dir');
+ * }
+ * ```
+ *
+ * @example
+ *
+ * To collect all entries into an array:
+ *
+ * ```typescript
+ * const entries = await Array.fromAsync(Switch.readDir('sdmc:/'));
+ * ```
+ *
+ * @param path Path of the directory to read.
+ */
+export function readDir(path: PathLike): AsyncIterable<DirEntry> {
+	const p = pathToString(path);
+	return {
+		[Symbol.asyncIterator]() {
+			let handle: object | null = null;
+			let started = false;
+			let done = false;
+			return {
+				async next(): Promise<IteratorResult<DirEntry>> {
+					if (!started) {
+						started = true;
+						handle = await $.openDir(p);
+					}
+					if (done) {
+						return { value: undefined, done: true };
+					}
+					const entry = await $.readDirNext(handle!);
+					if (entry === null) {
+						done = true;
+						await $.closeDir(handle!);
+						handle = null;
+						return { value: undefined, done: true };
+					}
+					return { value: entry, done: false };
+				},
+				async return(): Promise<IteratorResult<DirEntry>> {
+					if (handle && !done) {
+						done = true;
+						await $.closeDir(handle);
+						handle = null;
+					}
+					return { value: undefined, done: true };
+				},
+			};
+		},
+	};
 }
 
 /**

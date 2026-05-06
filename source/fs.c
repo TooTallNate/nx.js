@@ -10,10 +10,15 @@
 #include <sys/stat.h>
 
 static JSClassID nx_file_class_id;
+static JSClassID nx_dir_class_id;
 
 typedef struct {
 	FILE *file;
 } nx_file_t;
+
+typedef struct {
+	DIR *dir;
+} nx_dir_t;
 
 static void finalizer_file(JSRuntime *rt, JSValue val) {
 	nx_file_t *file = JS_GetOpaque(val, nx_file_class_id);
@@ -22,6 +27,16 @@ static void finalizer_file(JSRuntime *rt, JSValue val) {
 			fclose(file->file);
 		}
 		js_free_rt(rt, file);
+	}
+}
+
+static void finalizer_dir(JSRuntime *rt, JSValue val) {
+	nx_dir_t *dir = JS_GetOpaque(val, nx_dir_class_id);
+	if (dir) {
+		if (dir->dir) {
+			closedir(dir->dir);
+		}
+		js_free_rt(rt, dir);
 	}
 }
 
@@ -70,6 +85,25 @@ typedef struct {
 	const char *filename;
 	struct stat st;
 } nx_fs_stat_async_t;
+
+typedef struct {
+	int err;
+	const char *path;
+	DIR *dir;
+} nx_fs_opendir_async_t;
+
+typedef struct {
+	int err;
+	DIR *dir;
+	char *name;
+	unsigned char d_type;
+	bool eof;
+} nx_fs_readdir_next_async_t;
+
+typedef struct {
+	int err;
+	DIR *dir;
+} nx_fs_closedir_async_t;
 
 typedef struct {
 	int err;
@@ -749,6 +783,133 @@ JSValue nx_write_file(JSContext *ctx, JSValueConst this_val, int argc,
 	return nx_queue_async(ctx, req, nx_write_file_do, nx_write_file_cb);
 }
 
+// --- openDir ---
+
+void nx_opendir_do(nx_work_t *req) {
+	nx_fs_opendir_async_t *data = (nx_fs_opendir_async_t *)req->data;
+	data->dir = opendir(data->path);
+	if (!data->dir) {
+		data->err = errno;
+	}
+}
+
+JSValue nx_opendir_cb(JSContext *ctx, nx_work_t *req) {
+	nx_fs_opendir_async_t *data = (nx_fs_opendir_async_t *)req->data;
+	JS_FreeCString(ctx, data->path);
+
+	if (data->err) {
+		return nx_throw_errno_error(ctx, data->err, "opendir");
+	}
+
+	JSValue d = JS_NewObjectClass(ctx, nx_dir_class_id);
+	nx_dir_t *dir = js_mallocz(ctx, sizeof(nx_dir_t));
+	dir->dir = data->dir;
+	JS_SetOpaque(d, dir);
+	return d;
+}
+
+JSValue nx_opendir(JSContext *ctx, JSValueConst this_val, int argc,
+				   JSValueConst *argv) {
+	NX_INIT_WORK_T(nx_fs_opendir_async_t);
+	data->path = JS_ToCString(ctx, argv[0]);
+	if (!data->path) {
+		free(data);
+		free(req);
+		return JS_EXCEPTION;
+	}
+	return nx_queue_async(ctx, req, nx_opendir_do, nx_opendir_cb);
+}
+
+// --- readDirNext ---
+
+void nx_readdir_next_do(nx_work_t *req) {
+	nx_fs_readdir_next_async_t *data =
+		(nx_fs_readdir_next_async_t *)req->data;
+	errno = 0;
+	struct dirent *entry = readdir(data->dir);
+	if (entry) {
+		// Skip . and ..
+		while (entry &&
+			   (!strcmp(".", entry->d_name) || !strcmp("..", entry->d_name))) {
+			entry = readdir(data->dir);
+		}
+	}
+	if (entry) {
+		data->name = strdup(entry->d_name);
+		if (!data->name) {
+			data->err = ENOMEM;
+		} else {
+			data->d_type = entry->d_type;
+		}
+	} else if (errno) {
+		data->err = errno;
+	} else {
+		data->eof = true;
+	}
+}
+
+JSValue nx_readdir_next_cb(JSContext *ctx, nx_work_t *req) {
+	nx_fs_readdir_next_async_t *data =
+		(nx_fs_readdir_next_async_t *)req->data;
+
+	if (data->err) {
+		return nx_throw_errno_error(ctx, data->err, "readdir");
+	}
+	if (data->eof) {
+		return JS_NULL;
+	}
+	JSValue obj = JS_NewObject(ctx);
+	JS_SetPropertyStr(ctx, obj, "name", JS_NewString(ctx, data->name));
+	JS_SetPropertyStr(ctx, obj, "isFile",
+					  JS_NewBool(ctx, data->d_type == DT_REG));
+	JS_SetPropertyStr(ctx, obj, "isDirectory",
+					  JS_NewBool(ctx, data->d_type == DT_DIR));
+	JS_SetPropertyStr(ctx, obj, "isSymlink",
+					  JS_NewBool(ctx, data->d_type == DT_LNK));
+	free(data->name);
+	return obj;
+}
+
+JSValue nx_readdir_next(JSContext *ctx, JSValueConst this_val, int argc,
+						JSValueConst *argv) {
+	nx_dir_t *dir = JS_GetOpaque2(ctx, argv[0], nx_dir_class_id);
+	if (!dir) {
+		return JS_EXCEPTION;
+	}
+	NX_INIT_WORK_T(nx_fs_readdir_next_async_t);
+	data->dir = dir->dir;
+	return nx_queue_async(ctx, req, nx_readdir_next_do, nx_readdir_next_cb);
+}
+
+// --- closeDir ---
+
+void nx_closedir_do(nx_work_t *req) {
+	nx_fs_closedir_async_t *data = (nx_fs_closedir_async_t *)req->data;
+	if (closedir(data->dir) != 0) {
+		data->err = errno;
+	}
+}
+
+JSValue nx_closedir_cb(JSContext *ctx, nx_work_t *req) {
+	nx_fs_closedir_async_t *data = (nx_fs_closedir_async_t *)req->data;
+	if (data->err) {
+		return nx_throw_errno_error(ctx, data->err, "closedir");
+	}
+	return JS_UNDEFINED;
+}
+
+JSValue nx_closedir(JSContext *ctx, JSValueConst this_val, int argc,
+					JSValueConst *argv) {
+	nx_dir_t *dir = JS_GetOpaque2(ctx, argv[0], nx_dir_class_id);
+	if (!dir) {
+		return JS_EXCEPTION;
+	}
+	NX_INIT_WORK_T(nx_fs_closedir_async_t);
+	data->dir = dir->dir;
+	dir->dir = NULL; // Prevent finalizer from double-closing
+	return nx_queue_async(ctx, req, nx_closedir_do, nx_closedir_cb);
+}
+
 JSValue statToObject(JSContext *ctx, struct stat *st) {
 	JSValue obj = JS_NewObject(ctx);
 	JS_SetPropertyStr(ctx, obj, "size", JS_NewInt32(ctx, st->st_size));
@@ -990,10 +1151,13 @@ static const JSCFunctionListEntry function_list[] = {
 	JS_CFUNC_DEF("fopen", 2, nx_fopen),
 	JS_CFUNC_DEF("fread", 2, nx_fread),
 	JS_CFUNC_DEF("fwrite", 2, nx_fwrite),
+	JS_CFUNC_DEF("closeDir", 1, nx_closedir),
 	JS_CFUNC_DEF("fsCreateBigFile", 1, nx_fs_create_big_file),
 	JS_CFUNC_DEF("mkdir", 2, nx_mkdir),
+	JS_CFUNC_DEF("openDir", 1, nx_opendir),
 	JS_CFUNC_DEF("mkdirSync", 2, nx_mkdir_sync),
 	JS_CFUNC_DEF("readDirSync", 1, nx_readdir_sync),
+	JS_CFUNC_DEF("readDirNext", 1, nx_readdir_next),
 	JS_CFUNC_DEF("readFile", 1, nx_read_file),
 	JS_CFUNC_DEF("readFileSync", 1, nx_read_file_sync),
 	JS_CFUNC_DEF("remove", 1, nx_remove),
@@ -1015,6 +1179,13 @@ void nx_init_fs(JSContext *ctx, JSValueConst init_obj) {
 		.finalizer = finalizer_file,
 	};
 	JS_NewClass(rt, nx_file_class_id, &file_class);
+
+	JS_NewClassID(rt, &nx_dir_class_id);
+	JSClassDef dir_class = {
+		"Dir",
+		.finalizer = finalizer_dir,
+	};
+	JS_NewClass(rt, nx_dir_class_id, &dir_class);
 
 	JS_SetPropertyFunctionList(ctx, init_obj, function_list,
 							   countof(function_list));
