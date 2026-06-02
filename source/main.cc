@@ -668,6 +668,8 @@ static void build_init_object(Isolate *iso, Local<Context> context,
 	init_obj->Set(context, nx_str(iso, "argv"), argv_array).Check();
 }
 
+// BsdServiceType_Auto (tries bsd:s first) is intentional: bsd:s is required to
+// bind privileged ports (e.g. a TCP server on port 80).
 static SocketInitConfig const s_socketInitConfig = {
     .tcp_tx_buf_size = 1 * 1024 * 1024,
     .tcp_rx_buf_size = 1 * 1024 * 1024,
@@ -978,6 +980,13 @@ int main(int argc, char *argv[]) {
 		splExit();
 	}
 	free(nx_ctx);
+
+	// Must run while the socket layer is still up: libuv's async self-wakeup
+	// pipe is a loopback TCP socket pair (libnx has no anonymous pipes), and
+	// uv_library_shutdown() closes those socket fds. The switch-libuv port
+	// disables the destructor that would otherwise call it at libc teardown
+	// (which runs after socketExit), so the embedder must call it here.
+	uv_library_shutdown();
 
 	// Close libnx services in reverse init order, while memory is still valid.
 	plExit();

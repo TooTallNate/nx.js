@@ -690,3 +690,39 @@ source-map "not a valid URL" masking + assert.not.equal were test-harness fixes.
 
 apps/net-debug is a kept diagnostic (DNS / TCP / TLS verify / fetch / decompress
 probes writing to sdmc:/switch/net-debug.log).
+
+## 2nd-launch crash after socket use — libuv self-pipe leak (FIXED)
+
+Symptom: a socket-using app (fetch/DNS/TCP/TLS) ran + exited cleanly, but
+launching ANY homebrew afterward crashed with a bsdsocket User Break
+(bsdsocket + 0xe7064) + an hbmenu malloc free-list fault. A non-socket app
+(hello-world) relaunched fine.
+
+Root cause: libuv's async/signal self-wakeup "pipe" is a loopback TCP socket
+pair on Horizon (libnx has no anonymous pipes — see switch-libuv
+`horizon-port.c` pipe() emulation). Those self-pipe socket fds are closed by
+`uv_library_shutdown()`. The switch-libuv port disables the usual
+`__attribute__((destructor))` that would call it at libc teardown (it runs
+AFTER socketExit and faults), and REQUIRES the embedder to call
+`uv_library_shutdown()` explicitly while the socket layer is still up. We never
+did → the self-pipe bsd sockets leaked → `socketExit()` tore down bsdsocket
+with live sessions → the sysmodule faulted on the NEXT launch. Only socket-using
+apps created the self-pipe (via the async watcher / threadpool), which is why
+hello-world was unaffected.
+
+Fix: call `uv_library_shutdown()` in main.cc teardown, immediately before
+`plExit`/`romfsExit`/`socketExit` (i.e. while the socket layer is up).
+
+Debugging notes / dead ends ruled out along the way (all NOT the cause):
+- TLS GC-finalizer use-after-free (freeing the ctx while a uv_close was pending)
+  — was a real latent bug, fixed (want_free deferral), but not THIS crash.
+- TCP closing the fd synchronously before the poll's async uv_close — real bug,
+  fixed (close the fd inside the uv_close callback), but not THIS crash.
+- Socket config (BsdServiceType_Auto + large buffers) — NOT the cause; kept
+  Auto (bsd:s is needed to bind privileged ports e.g. 80).
+- Worker-thread DNS racing libnx's global `sm` session — plausible in theory,
+  but empirically DNS on the threadpool relaunches cleanly once the self-pipe
+  leak is fixed, so DNS stays async on the threadpool.
+
+The V8 mman arena leak (separate, earlier) was fixed in the switch-v8 package;
+this self-pipe leak is the socket-specific complement on the libuv side.

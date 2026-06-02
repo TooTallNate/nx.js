@@ -23,17 +23,15 @@ typedef struct {
 	mbedtls_net_context server_fd;
 	mbedtls_ssl_context ssl;
 	mbedtls_ssl_config conf;
-	// A TLS connection is exactly one fd. libuv allows only ONE uv_poll_t per
-	// fd, and ops (handshake/read/write) are sequential, so we keep a SINGLE
-	// persistent poll handle on the connection and reuse it across ops rather
-	// than creating one per op (which caused uv_poll_init_socket EEXIST ->
-	// uv_poll_start null-deref when the next op started before the previous
-	// handle finished its async uv_close).
+	// A TLS connection is exactly one fd, and libuv allows only ONE uv_poll_t
+	// per fd, so we keep a single persistent poll handle and reuse it across
+	// ops (handshake/read/write).
 	uv_poll_t poll;
 	bool poll_init;    // poll handle has been uv_poll_init_socket'd
 	bool fd_closed;    // the underlying fd has been closed
 	bool torn_down;    // connection resources released (idempotent guard)
 	bool poll_closing; // uv_close(&poll) issued, awaiting its callback
+	bool want_free;    // struct should be free()'d by the poll-close callback
 	// A read and a write can be in flight CONCURRENTLY on the same connection
 	// (fetch writes the request while the response readable stream is already
 	// pulling). The single shared poll must therefore track BOTH; the poll
@@ -102,24 +100,41 @@ int nx_tls_load_ca_certs(nx_context_t *nx_ctx) {
 	return 0;
 }
 
-// Eagerly release a TLS connection's RUNTIME resources (poll handle, fd,
-// mbedtls state) without freeing the struct. Idempotent. The fd is closed
-// EXACTLY ONCE and only AFTER its uv_poll_t has been uv_close()d — closing an
-// fd while a uv_poll_t still references it corrupts the bsdsocket sysmodule
-// (User Break). A TLS connection owns its fd; the TS layer must NOT also
-// $.close it.
+// Free the struct + its mbedtls net context. The single place that frees.
+static void tls_free_struct(nx_tls_context_t *data) {
+	mbedtls_net_free(&data->server_fd);
+	free(data);
+}
+
+// Release a TLS connection's runtime resources. Idempotent (torn_down guard).
 //
-// The struct itself is freed ONLY by the GC finalizer (free_tls_context),
-// never here — so there is no double-free with the wrap WeakRef that retains
-// the pointer. By GC time any async uv_close issued here has long completed.
-static void tls_teardown(nx_tls_context_t *data) {
-	if (data->torn_down)
+// OWNERSHIP OF free(data): the async uv_close poll-close callback holds a
+// pointer to `data`, so whoever issues the uv_close must NOT free the struct —
+// the close callback is the LAST user and frees it (if `want_free`). When there
+// is no poll handle, the caller frees inline via tls_free_struct. `want_free`
+// is set when the GC finalizer wants the struct gone; an explicit $.tlsClose
+// passes want_free=false (the GC finalizer will free later, or the close
+// callback will if the finalizer already ran).
+static void tls_teardown(nx_tls_context_t *data, bool want_free) {
+	if (data->torn_down) {
+		// Resources already released by a prior call. If THIS caller wants the
+		// struct freed and no async close is still pending, free it now;
+		// otherwise the pending close callback owns the free.
+		if (want_free) {
+			if (data->poll_closing)
+				data->want_free = true; // close callback will free
+			else
+				tls_free_struct(data);
+		}
 		return;
+	}
 	data->torn_down = true;
+	data->want_free = want_free;
 	mbedtls_ssl_free(&data->ssl);
 	mbedtls_ssl_config_free(&data->conf);
 	if (data->poll_init) {
 		data->poll_init = false;
+		data->poll_closing = true;
 		uv_poll_stop(&data->poll);
 		uv_close((uv_handle_t *)&data->poll, [](uv_handle_t *h) {
 			nx_tls_context_t *d = static_cast<nx_tls_context_t *>(h->data);
@@ -128,23 +143,30 @@ static void tls_teardown(nx_tls_context_t *data) {
 				d->fd_closed = true;
 			}
 			d->server_fd.fd = -1; // mbedtls_net_free() must not touch the fd
+			d->poll_closing = false;
+			// The close callback is the last user of `data`; free if anyone
+			// (the GC finalizer, now or earlier) asked for it.
+			if (d->want_free)
+				tls_free_struct(d);
 		});
-		return;
+		return; // struct freed by the close callback (iff want_free)
 	}
+	// No poll handle: close the fd inline, free now if requested.
 	if (!data->fd_closed && data->server_fd.fd >= 0) {
 		close(data->server_fd.fd);
 		data->fd_closed = true;
 	}
 	data->server_fd.fd = -1;
+	if (want_free)
+		tls_free_struct(data);
 }
 
-// GC finalizer: ensure resources are released, then free the struct. (If the
-// poll was already uv_close()d via an explicit $.tlsClose, fd_closed is set and
-// mbedtls_net_free below is a no-op on fd -1.)
+// GC finalizer: tear down (if needed) and free the struct. If an async poll
+// close issued by an earlier $.tlsClose is still pending, the close callback
+// frees it instead (we just flag want_free) — preventing a use-after-free where
+// the struct is freed while libuv still references it via the poll handle.
 void free_tls_context(nx_tls_context_t *data) {
-	tls_teardown(data);
-	mbedtls_net_free(&data->server_fd);
-	free(data);
+	tls_teardown(data, /*want_free=*/true);
 }
 
 void tls_op_finish(tls_op_t *op, Local<Value> err, Local<Value> value);
@@ -169,7 +191,7 @@ void nx_tls_close(const FunctionCallbackInfo<Value> &info) {
 		data->read_op = nullptr;
 		tls_op_finish(op, Undefined(iso), Integer::NewFromUnsigned(iso, 0));
 	}
-	tls_teardown(data);
+	tls_teardown(data, /*want_free=*/false);
 }
 
 Local<Value> mbedtls_error(Isolate *iso, int err) {
@@ -313,8 +335,10 @@ void tls_drive_op(Isolate *iso, tls_op_t *op, int status) {
 				tls_op_finish(op, mbedtls_error(iso, err), Undefined(iso));
 			}
 			// Handshake failed: JS never got a TlsContext handle, so it can't
-			// $.tlsClose it — tear the connection down natively.
-			tls_teardown(data);
+			// $.tlsClose it — tear the connection down natively. The struct is
+			// still wrap-tracked, so let the GC finalizer free it (want_free
+			// false here avoids a double-free / premature free).
+			tls_teardown(data, /*want_free=*/false);
 		} else {
 			tls_op_finish(op, Undefined(iso), op->ctx_obj.Get(iso));
 		}

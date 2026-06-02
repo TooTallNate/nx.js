@@ -11,6 +11,7 @@ using namespace v8;
 
 namespace {
 
+// getaddrinfo runs on the libuv threadpool (worker thread).
 typedef struct {
 	int err;
 	char *hostname; // owned copy (worker thread can't hold a v8 string)
@@ -18,7 +19,6 @@ typedef struct {
 	size_t num_entries;
 } nx_dns_resolve_t;
 
-// Worker thread: blocking getaddrinfo. No V8 API.
 void nx_dns_resolve_do(nx_work_t *req) {
 	nx_dns_resolve_t *data = (nx_dns_resolve_t *)req->data;
 
@@ -35,9 +35,8 @@ void nx_dns_resolve_do(nx_work_t *req) {
 	}
 
 	size_t count = 0;
-	for (struct addrinfo *rp = result; rp != NULL; rp = rp->ai_next) {
+	for (struct addrinfo *rp = result; rp != NULL; rp = rp->ai_next)
 		count++;
-	}
 	data->num_entries = count;
 	if (!count) {
 		freeaddrinfo(result);
@@ -49,18 +48,16 @@ void nx_dns_resolve_do(nx_work_t *req) {
 	int i = 0;
 	for (struct addrinfo *rp = result; rp != NULL; rp = rp->ai_next) {
 		void *addr;
-		if (rp->ai_family == AF_INET) {
+		if (rp->ai_family == AF_INET)
 			addr = &((struct sockaddr_in *)rp->ai_addr)->sin_addr;
-		} else {
+		else
 			addr = &((struct sockaddr_in6 *)rp->ai_addr)->sin6_addr;
-		}
 		inet_ntop(rp->ai_family, addr, ip, sizeof(ip));
 		data->entries[i++] = strdup(ip);
 	}
 	freeaddrinfo(result);
 }
 
-// Loop thread: build the result array or throw.
 MaybeLocal<Value> nx_dns_resolve_cb(Isolate *iso, nx_work_t *req) {
 	Local<Context> context = iso->GetCurrentContext();
 	nx_dns_resolve_t *data = (nx_dns_resolve_t *)req->data;

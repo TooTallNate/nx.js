@@ -55,9 +55,10 @@ struct fd_poll_t {
 	uv_poll_t poll;
 	Isolate *iso;
 	int fd;
-	op_t *ops;       // singly-linked list of pending ops
-	bool closing;    // poll handle is being uv_close()d
+	op_t *ops;        // singly-linked list of pending ops
+	bool closing;     // poll handle is being uv_close()d
 	bool dispatching; // inside poll_dispatch_cb (defer teardown until it ends)
+	bool close_fd;    // close(fd) in the uv_close callback (JS asked to close)
 };
 
 // fd -> fd_poll_t registry. Kept tiny and simple (linked list); socket counts
@@ -92,14 +93,21 @@ void registry_remove(fd_poll_t *fp) {
 void poll_dispatch_cb(uv_poll_t *handle, int status, int events);
 
 // Tear down a per-fd poll entry (stop + async-close the handle, drop registry).
+// If fp->close_fd is set, the underlying socket fd is close()d INSIDE the
+// uv_close callback — i.e. only AFTER libuv has released the fd. Closing the fd
+// while a uv_poll_t still references it corrupts the bsdsocket sysmodule.
 void fd_poll_destroy(fd_poll_t *fp) {
 	if (fp->closing)
 		return;
 	fp->closing = true;
 	uv_poll_stop(&fp->poll);
 	registry_remove(fp);
-	uv_close((uv_handle_t *)&fp->poll,
-	         [](uv_handle_t *h) { delete static_cast<fd_poll_t *>(h->data); });
+	uv_close((uv_handle_t *)&fp->poll, [](uv_handle_t *h) {
+		fd_poll_t *p = static_cast<fd_poll_t *>(h->data);
+		if (p->close_fd && p->fd >= 0)
+			close(p->fd);
+		delete p;
+	});
 }
 
 // Compute the union of interest across all ops and (re)start or stop the poll.
@@ -131,6 +139,7 @@ fd_poll_t *fd_poll_get(Isolate *iso, int fd) {
 	fp->ops = nullptr;
 	fp->closing = false;
 	fp->dispatching = false;
+	fp->close_fd = false;
 	if (uv_poll_init_socket(nx_ctx(iso)->loop, &fp->poll, fd) != 0) {
 		delete fp;
 		return nullptr;
@@ -416,9 +425,11 @@ void nx_tcp_close(const FunctionCallbackInfo<Value> &info) {
 		nx_throw(iso, "invalid input");
 		return;
 	}
-	// If a shared poll handle is still registered for this fd (e.g. JS closes
-	// the socket while ops are pending), stop + close it and drop any pending
-	// ops before closing the fd, so libuv never polls a closed descriptor.
+	// If a shared poll handle is still registered for this fd (JS closes the
+	// socket while ops/poll are live), drop pending ops and tear the poll down,
+	// closing the fd INSIDE the uv_close callback (after libuv releases it).
+	// Closing the fd while the uv_poll_t still references it corrupts the
+	// bsdsocket sysmodule.
 	fd_poll_t *fp = registry_find(fd);
 	if (fp && !fp->closing) {
 		op_t *o = fp->ops;
@@ -430,12 +441,11 @@ void nx_tcp_close(const FunctionCallbackInfo<Value> &info) {
 			o = next;
 		}
 		fp->ops = nullptr;
-		fp->closing = true;
-		uv_poll_stop(&fp->poll);
-		registry_remove(fp);
-		uv_close((uv_handle_t *)&fp->poll,
-		         [](uv_handle_t *h) { delete static_cast<fd_poll_t *>(h->data); });
+		fp->close_fd = true; // the destroy callback closes the fd
+		fd_poll_destroy(fp);
+		return;
 	}
+	// No poll registered on this fd — safe to close directly.
 	if (close(fd)) {
 		nx_throw_errno_error(iso, errno, "close");
 	}
