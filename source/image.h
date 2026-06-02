@@ -9,14 +9,16 @@ typedef struct {
 	u32 width;
 	u32 height;
 	u8 *data;
-	bool data_needs_js_free;
+	bool data_needs_js_free; // (legacy flag; now always malloc/free or tjFree)
 	cairo_surface_t *surface;
 	enum ImageFormat format;
 } nx_image_t;
 
-nx_image_t *nx_get_image(JSContext *ctx, JSValueConst obj);
+// Retrieve the native image wrapped by a JS object (or nullptr). Shared with
+// canvas.cc / irs.cc.
+nx_image_t *nx_get_image(v8::Isolate *iso, v8::Local<v8::Value> obj);
 
 int decode_jpeg(uint8_t *jpegBuf, size_t jpegSize, uint8_t **output, int *width,
-				int *height);
+                int *height);
 
-void nx_init_image(JSContext *ctx, JSValueConst init_obj);
+void nx_init_image(v8::Isolate *iso, v8::Local<v8::Object> init_obj);

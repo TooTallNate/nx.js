@@ -13,10 +13,10 @@ import { def } from './utils';
 
 export type * from './console';
 
-import './uint8array';
-
 export type * from './crypto';
-export type { DOMException } from './dom-exception';
+import { DOMException } from './dom-exception';
+export { DOMException } from './dom-exception';
+def(DOMException);
 export type * from './dommatrix';
 export type { DOMPoint, DOMPointInit, DOMPointReadOnly } from './dompoint';
 export type * from './domrect';
@@ -77,11 +77,8 @@ export type * from './storage';
  *
  * @see https://developer.mozilla.org/docs/WebAssembly
  */
-export type * as WebAssembly from './wasm';
-
-import * as WebAssembly from './wasm';
-
-def(WebAssembly, 'WebAssembly');
+// WebAssembly is provided NATIVELY by V8 (the wasm3-backed `./wasm` shim was
+// removed in the V8 migration). Do not override the native global.
 
 /**
  * The `Switch` global object contains native interfaces to interact with the Switch hardware.

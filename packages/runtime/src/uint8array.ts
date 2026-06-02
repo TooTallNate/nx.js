@@ -1,8 +1,7 @@
-import { $ } from './$';
-
-// Registers toBase64(), toHex(), setFromBase64(), setFromHex() on
-// Uint8Array.prototype and fromBase64(), fromHex() on Uint8Array — all in C.
-$.uint8arrayInit(Uint8Array);
+// The Uint8Array <-> base64/hex methods (toBase64/toHex/fromBase64/fromHex/
+// setFromBase64/setFromHex) are provided NATIVELY by V8 (TC39 "Uint8Array to/
+// from base64" proposal, shipped unflagged). No native binding is needed; this
+// module only contributes the TypeScript type declarations below.
 
 export interface Uint8ArrayToBase64Options {
 	alphabet?: 'base64' | 'base64url';

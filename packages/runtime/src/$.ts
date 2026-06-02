@@ -14,9 +14,6 @@ import type {
 	Opaque,
 	RGBA,
 	VibrationValues,
-	WasmGlobalOpaque,
-	WasmInstanceOpaque,
-	WasmModuleOpaque,
 } from './internal';
 import type { BatteryManager } from './navigator/battery';
 import type { Gamepad, GamepadButton } from './navigator/gamepad';
@@ -45,7 +42,6 @@ import type {
 import type { Server, TlsContextOpaque } from './tcp';
 import type { Algorithm, BufferSource } from './types';
 import type { DatagramSocket } from './udp';
-import type { Memory, MemoryDescriptor } from './wasm';
 import type { Window } from './window';
 
 type ClassOf<T> = {
@@ -474,24 +470,6 @@ export interface Init {
 	): URLSearchParamsIterator;
 	urlSearchIteratorNext(it: URLSearchParamsIterator): any;
 
-	// wasm.c
-	wasmCallFunc(f: any, ...args: unknown[]): unknown;
-	wasmMemNew(descriptor: MemoryDescriptor): Memory;
-	wasmTableGet(t: any, i: number): Memory;
-	wasmInitMemory(c: any): void;
-	wasmInitTable(c: any): void;
-	wasmNewModule(b: ArrayBuffer): WasmModuleOpaque;
-	wasmNewInstance(
-		m: WasmModuleOpaque,
-		imports: any[],
-	): [WasmInstanceOpaque, any[]];
-	wasmNewGlobal(): WasmGlobalOpaque;
-	wasmModuleExports(m: WasmModuleOpaque): any[];
-	wasmModuleImports(m: WasmModuleOpaque): any[];
-	wasmGlobalGet(g: WasmGlobalOpaque): any;
-	wasmGlobalSet(g: WasmGlobalOpaque, v: any): void;
-	wasmValidate(bytes: ArrayBuffer): boolean;
-
 	// audio.c
 	audioInit(): void;
 	audioExit(): void;
@@ -524,8 +502,7 @@ export interface Init {
 	audioFreeVoice(voiceId: number): void;
 	audioIsPlaying(voiceId: number): boolean;
 
-	// uint8array.c
-	uint8arrayInit(c: typeof Uint8Array): void;
+	// (Uint8Array base64/hex methods are provided natively by V8 — no binding.)
 
 	// window.c
 	windowInit(c: Window): void;

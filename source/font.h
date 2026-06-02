@@ -1,9 +1,9 @@
 #pragma once
+#include "types.h"
 #include <cairo.h>
 #include <ft2build.h>
 #include <harfbuzz/hb-ft.h>
 #include <harfbuzz/hb.h>
-#include <quickjs.h>
 
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
@@ -17,5 +17,5 @@ typedef struct {
 	FT_Byte *font_buffer;
 } nx_font_face_t;
 
-nx_font_face_t *nx_get_font_face(JSContext *ctx, JSValueConst obj);
-void nx_init_font(JSContext *ctx, JSValueConst init_obj);
+nx_font_face_t *nx_get_font_face(v8::Isolate *iso, v8::Local<v8::Value> obj);
+void nx_init_font(v8::Isolate *iso, v8::Local<v8::Object> init_obj);

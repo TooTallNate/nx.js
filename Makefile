@@ -6,6 +6,17 @@ ifeq ($(strip $(DEVKITPRO)),)
 $(error "Please set DEVKITPRO in your environment. export DEVKITPRO=<path to>/devkitpro")
 endif
 
+# Ensure the devkitPro toolchain dirs are on PATH so callers only need to set
+# DEVKITPRO. Covers aarch64-none-elf-pkg-config (portlibs), the devkitA64
+# compilers, and tools like elf2nro. Exported so it applies to every recipe
+# shell (e.g. the backtick pkg-config calls in CFLAGS/LIBS) below.
+#
+# NOTE: GNU Make's parse-time $(shell ...) does NOT see this exported PATH, so
+# parse-time tool lookups (UV_CFLAGS/UV_LIBS) use $(PKG_CONFIG) with an explicit
+# path instead.
+export PATH := $(DEVKITPRO)/portlibs/switch/bin:$(DEVKITPRO)/devkitA64/bin:$(DEVKITPRO)/tools/bin:$(PATH)
+PKG_CONFIG := $(DEVKITPRO)/portlibs/switch/bin/aarch64-none-elf-pkg-config
+
 TOPDIR ?= $(CURDIR)
 include $(DEVKITPRO)/libnx/switch_rules
 
@@ -52,19 +63,35 @@ CONFIG_JSON	:=	npdm.json
 #---------------------------------------------------------------------------------
 ARCH	:=	-march=armv8-a+crc+crypto -mtune=cortex-a57 -mtp=soft -fPIE
 
+# V8 must NOT see V8_COMPRESS_POINTERS defined (checked by presence). libuv's
+# pkg-config force-includes nx-prelude.h and adds _GNU_SOURCE / SSIZE_MAX.
+UV_CFLAGS	:=	$(shell $(PKG_CONFIG) --cflags libuv)
+UV_LIBS		:=	$(shell $(PKG_CONFIG) --libs libuv)
+
 CFLAGS	:=	-g -Wall -O2 -ffunction-sections \
 			$(ARCH) $(DEFINES) -DNXJS_VERSION="\"${APP_VERSION}\"" \
 			-DLIBNX_VERSION="\"$(LIBNX_VERSION)\"" \
 			-DLIBTURBOJPEG_VERSION="\"$(LIBTURBOJPEG_VERSION)\""
 
-CFLAGS	+=	$(INCLUDE) -D__SWITCH__ `aarch64-none-elf-pkg-config freetype2 cairo --cflags`
+CFLAGS	+=	$(INCLUDE) -D__SWITCH__ -D_DEFAULT_SOURCE $(UV_CFLAGS) \
+			`$(PKG_CONFIG) freetype2 cairo --cflags`
 
-CXXFLAGS	:=	$(CFLAGS) -fno-rtti -fno-exceptions
+# V8's API is C++; nx.js native modules are C++ (.cc), no exceptions/RTTI, C++20.
+# -Wno-comment: V8 headers (v8-internal.h) contain ASCII-art block comments.
+CXXFLAGS	:=	$(CFLAGS) -fno-rtti -fno-exceptions -std=c++20 -Wno-comment
 
 ASFLAGS	:=	-g $(ARCH)
 LDFLAGS	=	-specs=${DEVKITPRO}/libnx/switch.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
 
-LIBS	:=  -pthread -lmbedtls -lmbedx509 -lmbedcrypto -lharfbuzz `aarch64-none-elf-pkg-config freetype2 cairo --libs` -lturbojpeg -lwebp -lqjs -lm3 -lm -lzstd
+# V8 static libs must be linked in a --start-group (circular refs). The patched
+# archive in $(BUILD) (libc-horizon symbols weakened) takes precedence via -L.
+# Skia is added in Phase 2.
+V8_LIBS	:=	-Wl,--start-group -lv8_monolith -labsl -lchrome_zlib -lcompression_utils_portable -Wl,--end-group
+
+LIBS	:=  -lmbedtls -lmbedx509 -lmbedcrypto -lharfbuzz \
+			`$(PKG_CONFIG) freetype2 cairo --libs` \
+			-lturbojpeg -lwebp $(V8_LIBS) $(UV_LIBS) -lm -lzstd \
+			-L$(DEVKITPRO)/libnx/lib -lnx
 
 #---------------------------------------------------------------------------------
 # list of directories containing libraries, this must be the top level containing
@@ -90,18 +117,19 @@ export DEPSDIR	:=	$(CURDIR)/$(BUILD)
 
 CFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
 CPPFILES	:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp)))
+CCFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cc)))
 SFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
 BINFILES	:=	$(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.*)))
 
-# Add `runtime.c` to CFILES if necessary (i.e. on CI)
-ifneq ($(filter runtime.c,$(CFILES)),runtime.c)
-	CFILES := $(CFILES) runtime.c
+# Add `runtime_js.c` (embedded runtime.js) to CFILES if necessary (i.e. on CI)
+ifneq ($(filter runtime_js.c,$(CFILES)),runtime_js.c)
+	CFILES := $(CFILES) runtime_js.c
 endif
 
 #---------------------------------------------------------------------------------
 # use CXX for linking C++ projects, CC for standard C
 #---------------------------------------------------------------------------------
-ifeq ($(strip $(CPPFILES)),)
+ifeq ($(strip $(CPPFILES)$(CCFILES)),)
 #---------------------------------------------------------------------------------
 	export LD	:=	$(CC)
 #---------------------------------------------------------------------------------
@@ -113,7 +141,7 @@ endif
 #---------------------------------------------------------------------------------
 
 export OFILES_BIN	:=	$(addsuffix .o,$(BINFILES))
-export OFILES_SRC	:=	$(CPPFILES:.cpp=.o) $(CFILES:.c=.o) $(SFILES:.s=.o)
+export OFILES_SRC	:=	$(CPPFILES:.cpp=.o) $(CCFILES:.cc=.o) $(CFILES:.c=.o) $(SFILES:.s=.o)
 export OFILES 	:=	$(OFILES_BIN) $(OFILES_SRC)
 export HFILES_BIN	:=	$(addsuffix .h,$(subst .,_,$(BINFILES)))
 
@@ -172,22 +200,24 @@ endif
 #---------------------------------------------------------------------------------
 all: $(BUILD)
 
-$(SOURCES)/runtime.c: packages/runtime/runtime.js
-	@qjsc -o $(SOURCES)/runtime.c -n "romfs:/runtime.js" packages/runtime/runtime.js
-	@echo "compiled '$(SOURCES)/runtime.c' with qjsc"
+# Embed runtime.js as a C byte array (replaces the old qjsc bytecode step).
+# V8 evaluates the runtime from source at boot.
+$(SOURCES)/runtime_js.c: packages/runtime/runtime.js tools/embed-runtime.mjs
+	@node tools/embed-runtime.mjs packages/runtime/runtime.js $(SOURCES)/runtime_js.c
+	@echo "embedded 'packages/runtime/runtime.js' -> '$(SOURCES)/runtime_js.c'"
 
 $(ROMFS)/runtime.js.map: packages/runtime/runtime.js.map
 	@mkdir -p $(ROMFS)
 	@cp -v packages/runtime/runtime.js.map $(ROMFS)
 
-$(BUILD): source/runtime.c romfs/runtime.js.map
+$(BUILD): source/runtime_js.c romfs/runtime.js.map
 	@[ -d $@ ] || mkdir -p $@
 	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
 
 #---------------------------------------------------------------------------------
 clean:
 	@echo clean ...
-	@rm -fr $(BUILD) $(TARGET).pfs0 $(TARGET).nso $(TARGET).nro $(TARGET).nacp $(TARGET).elf $(TARGET).npdm
+	@rm -fr $(BUILD) $(SOURCES)/runtime_js.c $(TARGET).pfs0 $(TARGET).nso $(TARGET).nro $(TARGET).nacp $(TARGET).elf $(TARGET).npdm
 
 
 #---------------------------------------------------------------------------------
@@ -218,6 +248,13 @@ endif
 $(OUTPUT).elf	:	$(OFILES)
 
 $(OFILES_SRC)	: $(HFILES_BIN)
+
+#---------------------------------------------------------------------------------
+# devkitA64 base_rules only defines %.o: %.cpp; nx.js native modules are .cc.
+#---------------------------------------------------------------------------------
+%.o: %.cc
+	@echo $(notdir $<)
+	$(SILENTCMD)$(CXX) -MMD -MP -MF $(DEPSDIR)/$*.d $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@ $(ERROR_FILTER)
 
 #---------------------------------------------------------------------------------
 # you need a rule like this for each extension you use as binary data

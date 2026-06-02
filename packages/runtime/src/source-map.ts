@@ -10,7 +10,7 @@ import { readFileSync } from './fs';
 
 interface CallSite {
 	/**
-	 * Is this call in native quickjs code?
+	 * Is this call in native (V8 / C++) code?
 	 */
 	isNative(): boolean;
 
@@ -95,7 +95,9 @@ function filenameToTracer(filename: string) {
 				let loc = callsite.isNative() ? 'native' : 'unknown';
 				let name = callsite.getFunctionName() || '<anonymous>';
 				let filename = callsite.getFileName();
-				if (filename === '<input>') {
+				// V8 uses `<anonymous>` for eval/REPL frames (QuickJS used
+				// `<input>`); neither has a source map to resolve.
+				if (filename === '<anonymous>' || filename === '<input>') {
 					return `    at ${filename}:${callsite.getLineNumber()}:${callsite.getColumnNumber()}`;
 				}
 				if (filename) {

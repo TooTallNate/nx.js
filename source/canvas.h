@@ -7,21 +7,23 @@
 /**
  * `Screen` / `OffscreenCanvas` / `Image` / `ImageBitmap`
  */
-typedef struct {
+typedef struct nx_canvas_s {
 	uint32_t width;
 	uint32_t height;
 	uint8_t *data;
 	cairo_surface_t *surface;
-	bool surface_dirty; // set by width/height setters, cleared by ensure_surface
+	bool surface_dirty;
 } nx_canvas_t;
 
-nx_canvas_t *nx_get_canvas(JSContext *ctx, JSValueConst obj);
+nx_canvas_t *nx_get_canvas(v8::Isolate *iso, v8::Local<v8::Value> obj);
+
+// Accessors used by main.cc's framebuffer present path.
+uint8_t *nx_canvas_pixels(nx_canvas_t *c);
+uint32_t nx_canvas_width(nx_canvas_t *c);
+uint32_t nx_canvas_height(nx_canvas_t *c);
 
 typedef struct nx_rgba_s {
-	double r;
-	double g;
-	double b;
-	double a;
+	double r, g, b, a;
 } nx_rgba_t;
 
 typedef enum {
@@ -47,14 +49,7 @@ typedef enum {
 	TEXT_ALIGN_END
 } text_align_t;
 
-/*
- * State struct.
- *
- * Used in conjunction with `ctx.save()` / `ctx.restore()` since
- * cairo's gstate maintains only a single source pattern at a time.
- */
 typedef struct nx_canvas_context_2d_state_s {
-
 	nx_rgba_t fill;
 	nx_rgba_t stroke;
 	source_type_t fill_source_type;
@@ -62,7 +57,10 @@ typedef struct nx_canvas_context_2d_state_s {
 	cairo_pattern_t *fill_gradient;
 	cairo_pattern_t *stroke_gradient;
 	cairo_filter_t image_smoothing_quality;
-	JSValue font;
+	// The font face currently selected (replaces the old `JSValue font`; the
+	// native font face pointer is sufficient for save/restore to re-select the
+	// cairo font without holding a JS handle).
+	nx_font_face_t *font_face;
 	double font_size;
 	const char *font_string;
 	text_baseline_t text_baseline;
@@ -78,22 +76,15 @@ typedef struct nx_canvas_context_2d_state_s {
 	struct nx_canvas_context_2d_state_s *next;
 } nx_canvas_context_2d_state_t;
 
-/**
- * `CanvasRenderingContext2D` / `OffscreenCanvasRenderingContext2D`
- */
 typedef struct nx_canvas_context_2d_s {
 	nx_canvas_t *canvas;
 	cairo_t *ctx;
 	cairo_path_t *path;
 	nx_canvas_context_2d_state_t *state;
-	// The font face set by the initial "10px sans-serif" assignment in
-	// the TS constructor. Stored so that ensure_surface can restore a
-	// valid default font after a canvas resize (instead of leaving
-	// ft_face / hb_font as NULL).
 	nx_font_face_t *default_font_face;
 } nx_canvas_context_2d_t;
 
-nx_canvas_context_2d_t *nx_get_canvas_context_2d(JSContext *ctx,
-												 JSValueConst obj);
+nx_canvas_context_2d_t *nx_get_canvas_context_2d(v8::Isolate *iso,
+                                                 v8::Local<v8::Value> obj);
 
-void nx_init_canvas(JSContext *ctx, JSValueConst init_obj);
+void nx_init_canvas(v8::Isolate *iso, v8::Local<v8::Object> init_obj);
