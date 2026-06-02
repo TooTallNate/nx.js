@@ -506,10 +506,27 @@ static MaybeLocal<Module> resolve_module_callback(
 	return MaybeLocal<Module>();
 }
 
+// The entrypoint module's URL, used to populate import.meta.url. Single-file
+// app for now, so one global suffices.
+static const char *g_entrypoint_url = "";
+
+// Populates import.meta for the (single) entrypoint module: `url` (the module's
+// resource name) and `main` (true — the entrypoint is always the main module).
+static void init_import_meta(Local<Context> context, Local<Module> module,
+                             Local<Object> meta) {
+	Isolate *iso = Isolate::GetCurrent();
+	(void)module;
+	meta->CreateDataProperty(context, nx_str(iso, "url"),
+	                         nx_str(iso, g_entrypoint_url))
+	    .Check();
+	meta->CreateDataProperty(context, nx_str(iso, "main"), True(iso)).Check();
+}
+
 static bool run_module(Isolate *iso, Local<Context> context, const char *src,
                        size_t len, const char *name) {
 	HandleScope scope(iso);
 	TryCatch try_catch(iso);
+	g_entrypoint_url = name;
 	Local<String> source =
 	    String::NewFromUtf8(iso, src, NewStringType::kNormal, (int)len)
 	        .ToLocalChecked();
@@ -724,7 +741,36 @@ int main(int argc, char *argv[]) {
 	Isolate::CreateParams create_params;
 	create_params.array_buffer_allocator =
 	    ArrayBuffer::Allocator::NewDefaultAllocator();
-	if (!can_jit) {
+
+	// Size V8's heap for the device. Without this V8 uses desktop defaults
+	// (assuming GBs of RAM) and only discovers it's out of memory by fatally
+	// aborting ("JavaScript OOM: CALL_AND_RETRY_LAST") instead of GCing harder.
+	//
+	// IMPORTANT: use ConfigureDefaultsFromHeapSize(initial, max) (explicit heap
+	// bounds), NOT ConfigureDefaults(physical_memory, ...) — the latter derives
+	// a large semi-space + heap from the "physical memory" figure, which makes
+	// V8 reserve/commit oversized arenas that the horizon mman can't satisfy
+	// (crash in Arena::CommitRange -> _malloc_r). This matches the hello-v8
+	// reference. ConfigureDefaultsFromHeapSize also RESETS the code range size,
+	// so (re)apply it AFTER. Budget the max heap from memory free at startup,
+	// reserving headroom for the JIT code arena, GPU/Cairo, and native allocs.
+	{
+		u64 reserve = (can_jit ? 180ull : 48ull) * 1024 * 1024;
+		u64 max_heap = mem_free > reserve ? mem_free - reserve : 0;
+		if (max_heap < 32ull * 1024 * 1024)
+			max_heap = 32ull * 1024 * 1024;
+		if (max_heap > 192ull * 1024 * 1024)
+			max_heap = 192ull * 1024 * 1024;
+		create_params.constraints.ConfigureDefaultsFromHeapSize(
+		    8ull * 1024 * 1024 /* initial */, max_heap /* max */);
+	}
+
+	if (can_jit) {
+		// Pin the JIT code range to the 64 MiB minimum (V8 defaults to 256 MiB,
+		// which libnx jitCreate double-maps and starves the data arena).
+		create_params.constraints.set_code_range_size_in_bytes(64ull * 1024 *
+		                                                        1024);
+	} else {
 		// Jitless: no code range -> no jitCreate -> frees ~128 MiB.
 		create_params.constraints.set_code_range_size_in_bytes(0);
 	}
@@ -732,6 +778,7 @@ int main(int argc, char *argv[]) {
 	nx_ctx->iso = iso;
 	iso->SetData(0, nx_ctx);
 	iso->SetPromiseRejectCallback(nx_promise_rejection_handler);
+	iso->SetHostInitializeImportMetaObjectCallback(init_import_meta);
 	// Microtasks are pumped explicitly from the loop.
 	iso->SetMicrotasksPolicy(MicrotasksPolicy::kExplicit);
 
@@ -814,6 +861,11 @@ int main(int argc, char *argv[]) {
 			u64 kDown = padGetButtonsDown(&nx_ctx->pads[0]);
 			bool plusDown = kDown & HidNpadButton_Plus;
 
+			// Script called Switch.exit(): break from any state so we always
+			// reach teardown (incl. horizon_mman_teardown()).
+			if (!is_running)
+				break;
+
 			if (nx_ctx->had_error) {
 				if (plusDown)
 					break;
@@ -828,6 +880,14 @@ int main(int argc, char *argv[]) {
 				}
 				if (!is_running)
 					break;
+			} else if (plusDown) {
+				// No frame handler registered (e.g. a script that finished its
+				// work, like the test runner): + must still exit cleanly so we
+				// reach teardown (incl. horizon_mman_teardown()). Without this
+				// the loop ran forever and the only way out was a force-quit,
+				// which skips teardown and leaks V8's svcMapMemory arenas ->
+				// the NEXT launch crashes in Arena::CommitRange/_malloc_r.
+				break;
 			}
 
 			if (nx_ctx->rendering_mode == NX_RENDERING_MODE_CONSOLE) {
@@ -866,8 +926,30 @@ int main(int argc, char *argv[]) {
 	nx_ctx->unhandled_rejected_promise.Reset();
 	nx_ctx->init_obj.Reset();
 
-	// Drain any remaining libuv handles, then tear down.
-	uv_run(&loop, UV_RUN_NOWAIT);
+	// Force-close any libuv handles still on the loop (e.g. socket poll handles
+	// left over from an app that was exited mid-flight). uv_poll_t does NOT own
+	// its fd, so for poll handles we ALSO close the underlying BSD fd here --
+	// otherwise socketExit() below would tear down the bsdsocket session with
+	// live sessions still open, which faults the bsdsocket sysmodule (User
+	// Break) and corrupts the next launch. Then run the loop until all close
+	// callbacks fire so uv_loop_close() succeeds (it returns EBUSY otherwise).
+	uv_walk(
+	    &loop,
+	    [](uv_handle_t *handle, void *) {
+		    if (uv_is_closing(handle))
+			    return;
+		    if (handle->type == UV_POLL) {
+			    uv_os_fd_t fd = -1;
+			    if (uv_fileno(handle, &fd) == 0 && fd >= 0) {
+				    close(fd);
+			    }
+		    }
+		    uv_close(handle, nullptr);
+	    },
+	    nullptr);
+	// Pump until no active/closing handles remain (bounded to avoid a hang).
+	for (int i = 0; i < 1000 && uv_run(&loop, UV_RUN_NOWAIT) != 0; i++) {
+	}
 	uv_loop_close(&loop);
 
 	iso->Dispose();

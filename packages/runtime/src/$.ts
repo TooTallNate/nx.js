@@ -297,6 +297,7 @@ export interface Init {
 	statSync(path: string): Stats | null;
 	writeFile(path: string, data: ArrayBuffer): Promise<void>;
 	writeFileSync(path: string, data: ArrayBuffer): void;
+	appendFileSync(path: string, data: ArrayBuffer): void;
 
 	// fsdev.c
 	fsInit(c: ClassOf<FileSystem>): void;
@@ -458,6 +459,7 @@ export interface Init {
 		ctx: TlsContextOpaque,
 		buffer: ArrayBuffer,
 	): void;
+	tlsClose(ctx: TlsContextOpaque): void;
 
 	// url.c
 	urlInit(c: ClassOf<URL>): void;

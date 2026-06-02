@@ -17,10 +17,30 @@ using namespace v8;
 
 namespace {
 
+struct tls_op_t; // forward
+
 typedef struct {
 	mbedtls_net_context server_fd;
 	mbedtls_ssl_context ssl;
 	mbedtls_ssl_config conf;
+	// A TLS connection is exactly one fd. libuv allows only ONE uv_poll_t per
+	// fd, and ops (handshake/read/write) are sequential, so we keep a SINGLE
+	// persistent poll handle on the connection and reuse it across ops rather
+	// than creating one per op (which caused uv_poll_init_socket EEXIST ->
+	// uv_poll_start null-deref when the next op started before the previous
+	// handle finished its async uv_close).
+	uv_poll_t poll;
+	bool poll_init;    // poll handle has been uv_poll_init_socket'd
+	bool fd_closed;    // the underlying fd has been closed
+	bool torn_down;    // connection resources released (idempotent guard)
+	bool poll_closing; // uv_close(&poll) issued, awaiting its callback
+	// A read and a write can be in flight CONCURRENTLY on the same connection
+	// (fetch writes the request while the response readable stream is already
+	// pulling). The single shared poll must therefore track BOTH; the poll
+	// callback dispatches to each based on the fired events. The handshake uses
+	// read_op (only one op exists during the handshake).
+	tls_op_t *read_op;  // pending OP_HANDSHAKE or OP_READ (or null)
+	tls_op_t *write_op; // pending OP_WRITE (or null)
 } nx_tls_context_t;
 
 // Built-in CA cert IDs to load individually (one-at-a-time works around a
@@ -77,15 +97,79 @@ int nx_tls_load_ca_certs(nx_context_t *nx_ctx) {
 	}
 	sslExit();
 	fprintf(stderr, "Loaded %d system CA certificates\n", loaded);
+	nx_ctx->ca_cert_count = loaded;
 	nx_ctx->ca_certs_loaded = true;
 	return 0;
 }
 
-void free_tls_context(nx_tls_context_t *data) {
-	mbedtls_net_free(&data->server_fd);
+// Eagerly release a TLS connection's RUNTIME resources (poll handle, fd,
+// mbedtls state) without freeing the struct. Idempotent. The fd is closed
+// EXACTLY ONCE and only AFTER its uv_poll_t has been uv_close()d — closing an
+// fd while a uv_poll_t still references it corrupts the bsdsocket sysmodule
+// (User Break). A TLS connection owns its fd; the TS layer must NOT also
+// $.close it.
+//
+// The struct itself is freed ONLY by the GC finalizer (free_tls_context),
+// never here — so there is no double-free with the wrap WeakRef that retains
+// the pointer. By GC time any async uv_close issued here has long completed.
+static void tls_teardown(nx_tls_context_t *data) {
+	if (data->torn_down)
+		return;
+	data->torn_down = true;
 	mbedtls_ssl_free(&data->ssl);
 	mbedtls_ssl_config_free(&data->conf);
+	if (data->poll_init) {
+		data->poll_init = false;
+		uv_poll_stop(&data->poll);
+		uv_close((uv_handle_t *)&data->poll, [](uv_handle_t *h) {
+			nx_tls_context_t *d = static_cast<nx_tls_context_t *>(h->data);
+			if (!d->fd_closed && d->server_fd.fd >= 0) {
+				close(d->server_fd.fd);
+				d->fd_closed = true;
+			}
+			d->server_fd.fd = -1; // mbedtls_net_free() must not touch the fd
+		});
+		return;
+	}
+	if (!data->fd_closed && data->server_fd.fd >= 0) {
+		close(data->server_fd.fd);
+		data->fd_closed = true;
+	}
+	data->server_fd.fd = -1;
+}
+
+// GC finalizer: ensure resources are released, then free the struct. (If the
+// poll was already uv_close()d via an explicit $.tlsClose, fd_closed is set and
+// mbedtls_net_free below is a no-op on fd -1.)
+void free_tls_context(nx_tls_context_t *data) {
+	tls_teardown(data);
+	mbedtls_net_free(&data->server_fd);
 	free(data);
+}
+
+void tls_op_finish(tls_op_t *op, Local<Value> err, Local<Value> value);
+
+// $.tlsClose(ctx): deterministic eager teardown of a TLS connection's runtime
+// resources. The struct is reclaimed later by the GC finalizer.
+void nx_tls_close(const FunctionCallbackInfo<Value> &info) {
+	Isolate *iso = info.GetIsolate();
+	nx_tls_context_t *data = nx::Unwrap<nx_tls_context_t>(info[0]);
+	if (!data)
+		return;
+	// Settle any in-flight ops (read and/or write) so their awaiting JS
+	// promises don't hang (e.g. the body stream was cancelled while a tlsRead
+	// is pending on a keep-alive connection). Resolve with 0 (EOF / 0 bytes).
+	if (data->write_op) {
+		tls_op_t *op = data->write_op;
+		data->write_op = nullptr;
+		tls_op_finish(op, Undefined(iso), Integer::NewFromUnsigned(iso, 0));
+	}
+	if (data->read_op) {
+		tls_op_t *op = data->read_op;
+		data->read_op = nullptr;
+		tls_op_finish(op, Undefined(iso), Integer::NewFromUnsigned(iso, 0));
+	}
+	tls_teardown(data);
 }
 
 Local<Value> mbedtls_error(Isolate *iso, int err) {
@@ -98,7 +182,6 @@ Local<Value> mbedtls_error(Isolate *iso, int err) {
 enum op_kind { OP_HANDSHAKE, OP_READ, OP_WRITE };
 
 struct tls_op_t {
-	uv_poll_t poll;
 	Isolate *iso;
 	op_kind kind;
 	nx_tls_context_t *data;
@@ -110,78 +193,72 @@ struct tls_op_t {
 	size_t done; // bytes read/written so far
 };
 
+void tls_poll_refresh(nx_tls_context_t *data); // defined below
+
 void tls_op_finish(tls_op_t *op, Local<Value> err, Local<Value> value) {
 	Isolate *iso = op->iso;
 	Local<Context> context = iso->GetCurrentContext();
+	nx_tls_context_t *data = op->data;
+
+	// Detach THIS op (read or write) before the callback (which may start a new
+	// op on the same connection), then recompute the shared poll's interest —
+	// the OTHER direction may still be pending and must keep polling.
+	if (data->write_op == op)
+		data->write_op = nullptr;
+	if (data->read_op == op)
+		data->read_op = nullptr;
+	tls_poll_refresh(data);
+
 	Local<Function> cb = op->callback.Get(iso);
 	Local<Value> args[] = {err, value};
-	uv_poll_stop(&op->poll);
+	op->callback.Reset();
+	op->ctx_obj.Reset();
+	op->buffer.Reset();
+	delete op;
+
 	TryCatch try_catch(iso);
 	Local<Value> ret;
 	if (!cb->Call(context, Null(iso), 2, args).ToLocal(&ret)) {
 		nx_emit_error_event(iso, &try_catch);
 	}
-	op->callback.Reset();
-	op->ctx_obj.Reset();
-	op->buffer.Reset();
-	uv_close((uv_handle_t *)&op->poll,
-	         [](uv_handle_t *h) { delete static_cast<tls_op_t *>(h->data); });
 }
 
-void tls_poll_cb(uv_poll_t *handle, int status, int events) {
-	tls_op_t *op = static_cast<tls_op_t *>(handle->data);
-	Isolate *iso = op->iso;
-	HandleScope scope(iso);
-	Context::Scope cs(iso->GetCurrentContext());
-
-	if (status < 0) {
-		tls_op_finish(op, Exception::Error(nx_str(iso, uv_strerror(status))),
-		              Undefined(iso));
-		return;
-	}
-
-	if (op->kind == OP_HANDSHAKE) {
-		int err = mbedtls_ssl_handshake(&op->data->ssl);
-		if (err == MBEDTLS_ERR_SSL_WANT_READ ||
-		    err == MBEDTLS_ERR_SSL_WANT_WRITE)
-			return; // keep polling
-		if (err != 0) {
-			tls_op_finish(op, mbedtls_error(iso, err), Undefined(iso));
-		} else {
-			tls_op_finish(op, Undefined(iso), op->ctx_obj.Get(iso));
-		}
-		return;
-	}
-
-	if (op->kind == OP_READ) {
-		while (op->done < op->buf_size) {
-			int ret = mbedtls_ssl_read(&op->data->ssl, op->buf + op->done,
-			                           op->buf_size - op->done);
-			if (ret > 0) {
-				op->done += ret;
-			} else if (ret == 0) {
-				break;
+// Drain decrypted data into op->buf. Finishes the op when it has bytes (or EOF
+// / close-notify); returns without finishing (keep polling) on WANT_READ with
+// nothing yet. Safe to call both from the poll callback AND once immediately
+// after a read is queued — mbedtls may already hold decrypted bytes in its
+// internal buffer (read while completing the handshake / a prior record), in
+// which case the socket fd never becomes readable again and the poll would
+// otherwise never fire (the cause of the TLS read hang).
+void tls_do_read(Isolate *iso, tls_op_t *op) {
+	while (op->done < op->buf_size) {
+		int ret = mbedtls_ssl_read(&op->data->ssl, op->buf + op->done,
+		                           op->buf_size - op->done);
+		if (ret > 0) {
+			op->done += ret;
+		} else if (ret == 0) {
+			break;
 #ifdef MBEDTLS_ERR_SSL_RECEIVED_NEW_SESSION_TICKET
-			} else if (ret == MBEDTLS_ERR_SSL_RECEIVED_NEW_SESSION_TICKET) {
-				continue;
+		} else if (ret == MBEDTLS_ERR_SSL_RECEIVED_NEW_SESSION_TICKET) {
+			continue;
 #endif
-			} else if (ret == MBEDTLS_ERR_SSL_WANT_READ) {
-				if (op->done > 0)
-					break;
-				return; // keep polling
-			} else if (ret == MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY) {
+		} else if (ret == MBEDTLS_ERR_SSL_WANT_READ ||
+		           ret == MBEDTLS_ERR_SSL_WANT_WRITE) {
+			if (op->done > 0)
 				break;
-			} else {
-				tls_op_finish(op, mbedtls_error(iso, ret), Undefined(iso));
-				return;
-			}
+			return; // keep polling
+		} else if (ret == MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY) {
+			break;
+		} else {
+			tls_op_finish(op, mbedtls_error(iso, ret), Undefined(iso));
+			return;
 		}
-		tls_op_finish(op, Undefined(iso),
-		              Integer::NewFromUnsigned(iso, (uint32_t)op->done));
-		return;
 	}
+	tls_op_finish(op, Undefined(iso),
+	              Integer::NewFromUnsigned(iso, (uint32_t)op->done));
+}
 
-	// OP_WRITE
+void tls_do_write(Isolate *iso, tls_op_t *op) {
 	int ret = mbedtls_ssl_write(&op->data->ssl, op->buf + op->done,
 	                            op->buf_size - op->done);
 	if (ret == MBEDTLS_ERR_SSL_WANT_READ || ret == MBEDTLS_ERR_SSL_WANT_WRITE)
@@ -197,6 +274,97 @@ void tls_poll_cb(uv_poll_t *handle, int status, int events) {
 	              Integer::NewFromUnsigned(iso, (uint32_t)op->done));
 }
 
+// Drive a single op (handshake/read/write) one step. Used by the poll callback
+// and by the immediate-attempt paths.
+void tls_drive_op(Isolate *iso, tls_op_t *op, int status) {
+	if (status < 0) {
+		tls_op_finish(op, Exception::Error(nx_str(iso, uv_strerror(status))),
+		              Undefined(iso));
+		return;
+	}
+	if (op->kind == OP_HANDSHAKE) {
+		nx_tls_context_t *data = op->data;
+		int err = mbedtls_ssl_handshake(&data->ssl);
+		if (err == MBEDTLS_ERR_SSL_WANT_READ ||
+		    err == MBEDTLS_ERR_SSL_WANT_WRITE)
+			return; // keep polling
+		if (err != 0) {
+			if (err == MBEDTLS_ERR_X509_CERT_VERIFY_FAILED) {
+				uint32_t flags = mbedtls_ssl_get_verify_result(&data->ssl);
+				char info[512];
+				mbedtls_x509_crt_verify_info(info, sizeof(info), "", flags);
+				char peer[512] = "";
+				const mbedtls_x509_crt *pc =
+				    mbedtls_ssl_get_peer_cert(&data->ssl);
+				if (pc) {
+					char subj[256] = "", iss[256] = "";
+					mbedtls_x509_dn_gets(subj, sizeof(subj), &pc->subject);
+					mbedtls_x509_dn_gets(iss, sizeof(iss), &pc->issuer);
+					snprintf(peer, sizeof(peer),
+					         " | leaf subject=[%s] issuer=[%s]", subj, iss);
+				}
+				char msg[1200];
+				snprintf(msg, sizeof(msg),
+				         "X509 verification failed (flags=0x%08x): %s%s", flags,
+				         info, peer);
+				tls_op_finish(op, Exception::Error(nx_str(iso, msg)),
+				              Undefined(iso));
+			} else {
+				tls_op_finish(op, mbedtls_error(iso, err), Undefined(iso));
+			}
+			// Handshake failed: JS never got a TlsContext handle, so it can't
+			// $.tlsClose it — tear the connection down natively.
+			tls_teardown(data);
+		} else {
+			tls_op_finish(op, Undefined(iso), op->ctx_obj.Get(iso));
+		}
+		return;
+	}
+	if (op->kind == OP_READ) {
+		tls_do_read(iso, op);
+		return;
+	}
+	tls_do_write(iso, op);
+}
+
+void tls_poll_cb(uv_poll_t *handle, int status, int events) {
+	nx_tls_context_t *data = static_cast<nx_tls_context_t *>(handle->data);
+	if (!data->read_op && !data->write_op)
+		return;
+	Isolate *iso =
+	    data->read_op ? data->read_op->iso : data->write_op->iso;
+	HandleScope scope(iso);
+	Context::Scope cs(iso->GetCurrentContext());
+
+	// Drive the WRITE first (so a request is flushed before we try to read the
+	// response), then the READ. Either may finish + detach itself; capture the
+	// pointers up front since tls_op_finish nulls them. mbedtls is happy to be
+	// driven on any readiness (it manages its own WANT_READ/WANT_WRITE).
+	tls_op_t *wop = data->write_op;
+	tls_op_t *rop = data->read_op;
+	if (wop)
+		tls_drive_op(iso, wop, status);
+	// `data` may have been torn down if a handshake (read_op) failed; but a
+	// handshake never coexists with a write_op, so if we drove a write the
+	// read_op (if any) is a real read and `data` is still valid.
+	if (rop && (data->read_op == rop))
+		tls_drive_op(iso, rop, status);
+}
+
+// Recompute the shared poll's interest from the pending read/write ops and
+// (re)start or stop it. Both read and write ask for R|W: mbedtls reads can
+// require writability and writes can require readability (WANT_READ /
+// WANT_WRITE, renegotiation), and we must drain on either readiness.
+void tls_poll_refresh(nx_tls_context_t *data) {
+	if (!data->poll_init || data->poll_closing)
+		return;
+	if (data->read_op || data->write_op) {
+		uv_poll_start(&data->poll, UV_READABLE | UV_WRITABLE, tls_poll_cb);
+	} else {
+		uv_poll_stop(&data->poll);
+	}
+}
+
 tls_op_t *tls_op_new(Isolate *iso, op_kind kind, nx_tls_context_t *data,
                      int fd, Local<Function> cb) {
 	tls_op_t *op = new tls_op_t();
@@ -205,11 +373,25 @@ tls_op_t *tls_op_new(Isolate *iso, op_kind kind, nx_tls_context_t *data,
 	op->data = data;
 	op->callback.Reset(iso, cb);
 	op->done = 0;
-	uv_poll_init_socket(nx_ctx(iso)->loop, &op->poll, fd);
-	op->poll.data = op;
-	int evts =
-	    (kind == OP_WRITE) ? UV_WRITABLE : (UV_READABLE | UV_WRITABLE);
-	uv_poll_start(&op->poll, evts, tls_poll_cb);
+
+	// Lazily init the connection's single shared poll handle; reuse it for
+	// every op. data->poll.data points at the CONTEXT; the op(s) are found via
+	// data->read_op / data->write_op.
+	if (!data->poll_init) {
+		if (uv_poll_init_socket(nx_ctx(iso)->loop, &data->poll, fd) != 0) {
+			nx_throw(iso, "failed to poll TLS socket");
+			op->callback.Reset();
+			delete op;
+			return nullptr;
+		}
+		data->poll.data = data;
+		data->poll_init = true;
+	}
+	if (kind == OP_WRITE)
+		data->write_op = op;
+	else
+		data->read_op = op; // OP_HANDSHAKE or OP_READ
+	tls_poll_refresh(data);
 	return op;
 }
 
@@ -285,6 +467,8 @@ void nx_tls_handshake(const FunctionCallbackInfo<Value> &info) {
 	}
 
 	tls_op_t *op = tls_op_new(iso, OP_HANDSHAKE, data, fd, cb);
+	if (!op)
+		return;
 	op->ctx_obj.Reset(iso, obj);
 }
 
@@ -301,9 +485,17 @@ void nx_tls_read(const FunctionCallbackInfo<Value> &info) {
 		return;
 	}
 	tls_op_t *op = tls_op_new(iso, OP_READ, data, data->server_fd.fd, cb);
+	if (!op)
+		return;
 	op->buf = buf;
 	op->buf_size = size;
 	op->buffer.Reset(iso, info[2]);
+	// Attempt the read immediately: mbedtls may already hold decrypted bytes
+	// in its internal buffer (read off the socket during the handshake or a
+	// previous record), in which case the fd will NOT become readable and the
+	// poll would never fire. tls_do_read finishes the op now if data is ready,
+	// or returns to keep polling on WANT_READ.
+	tls_do_read(iso, op);
 }
 
 void nx_tls_write(const FunctionCallbackInfo<Value> &info) {
@@ -319,6 +511,8 @@ void nx_tls_write(const FunctionCallbackInfo<Value> &info) {
 		return;
 	}
 	tls_op_t *op = tls_op_new(iso, OP_WRITE, data, data->server_fd.fd, cb);
+	if (!op)
+		return;
 	op->buf = buf;
 	op->buf_size = size;
 	op->buffer.Reset(iso, info[2]);
@@ -330,4 +524,5 @@ void nx_init_tls(Isolate *iso, Local<Object> init_obj) {
 	NX_SET_FUNC(init_obj, "tlsHandshake", nx_tls_handshake);
 	NX_SET_FUNC(init_obj, "tlsRead", nx_tls_read);
 	NX_SET_FUNC(init_obj, "tlsWrite", nx_tls_write);
+	NX_SET_FUNC(init_obj, "tlsClose", nx_tls_close);
 }

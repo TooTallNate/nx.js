@@ -163,6 +163,7 @@ typedef struct nx_context_s {
 
 	// System CA certificate chain (loaded lazily from Switch SSL service)
 	bool ca_certs_loaded;
+	int ca_cert_count; // number of system CA certs parsed into ca_chain
 	mbedtls_x509_crt ca_chain;
 
 	bool spl_initialized;

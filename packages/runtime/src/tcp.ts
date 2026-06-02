@@ -65,6 +65,7 @@ function tlsWrite(ctx: TlsContextOpaque, data: BufferSource) {
 
 interface SocketInternal {
 	fd: number;
+	tlsFd?: number; // fd transferred to the native TLS context (it owns/closes it)
 	tls?: TlsContextOpaque;
 	opened: PromiseWithResolvers<SocketInfo>;
 	closed: PromiseWithResolvers<void>;
@@ -127,6 +128,15 @@ export class Socket {
 				}
 				controller.enqueue(new Uint8Array(readBuffer.slice(0, bytesRead)));
 			},
+			// When a downstream consumer is done with the body (e.g. fetch's
+			// Content-Length transform calls terminate() after the declared
+			// number of bytes), the pipe cancels this source. Close the socket
+			// so the underlying connection (and any in-flight read poll) is torn
+			// down — otherwise a keep-alive server never sends EOF and the
+			// pending read would hang forever.
+			cancel() {
+				socket.close();
+			},
 		});
 
 		this.writable = new WritableStream({
@@ -143,6 +153,13 @@ export class Socket {
 			.then((fd) => {
 				i.fd = fd;
 				if (secureTransport === 'on') {
+					// Once we hand the fd to the TLS layer, the native TLS
+					// context OWNS the fd (and a uv_poll_t on it). The fd must
+					// then be closed only via `$.tlsClose` — never `$.close` —
+					// otherwise closing it out from under the poll corrupts the
+					// bsdsocket sysmodule. Mark our fd as transferred.
+					i.tlsFd = fd;
+					i.fd = -1;
 					return tlsHandshake(fd, address.hostname, rejectUnauthorized);
 				}
 			})
@@ -170,10 +187,21 @@ export class Socket {
 		}
 		const i = _(this);
 		i.opened.reject(reason);
-		if (i.fd !== -1) {
+		if (i.tls) {
+			// TLS context owns its fd; tear it down natively (closes the
+			// uv_poll_t then the fd). Never $.close the fd directly.
+			$.tlsClose(i.tls);
+			i.tls = undefined;
+			i.tlsFd = undefined;
+		} else if (typeof i.tlsFd === 'number') {
+			// Handshake was attempted but never produced a TLS context handle
+			// (e.g. it failed). The native TLS context already owns + tears
+			// down this fd on failure, so do NOT $.close it here.
+			i.tlsFd = undefined;
+		} else if (i.fd !== -1) {
 			$.close(i.fd);
-			i.fd = -1;
 		}
+		i.fd = -1;
 		i.closed.resolve();
 		return this.closed;
 	}

@@ -618,3 +618,75 @@ ordering. Verified on hardware: repeated launches now succeed.
 
 Rule of thumb: `horizon_mman_teardown()` must be dead last. Nothing that touches
 the heap or a libnx service may run after it.
+
+## Second-launch crash on CLEAN exit — hbloader heap corruption (V8 mman bug)
+
+Symptom: launch an nx.js app, exit cleanly with `+`, then launch ANY homebrew →
+hbmenu crashes (until a full console restart). NOT a force-quit; the app reaches
+full teardown.
+
+Symbolized the hbmenu crash from `sdmc:/hbmenu.nro` (raw aarch64 disasm at the
+crash PC `nx-hbmenu + 0xf6b34`): it's **newlib malloc/free free-list block
+splitting** (`str x1, [x2, #8]` writing a block header at a ~null split point).
+hbmenu faults walking a **corrupted free list** — its heap was corrupted before
+it even started, by the previous V8 process.
+
+Root cause is in the **switch-v8 package** (`horizon-src/mman-horizon.cc`): V8's
+data arena slabs are `memalign`'d from the shared (hbloader) heap and aliased
+into a stack-region reservation via `svcMapMemory`; at teardown they're
+`svcUnmapMemory`'d and `free()`'d back into the heap. That map/unmap/free
+lifecycle leaves the hbloader heap's allocator metadata inconsistent, so the
+next process crashes in malloc. nx.js already reaches `horizon_mman_teardown()`
+on clean exit — the corruption is inside the arena lifecycle, not a missing
+teardown. Full write-up handed to the V8 package:
+`devkitPro/pacman-packages/V8-RELAUNCH-HEAP-CORRUPTION.md`.
+
+nx.js-side hardening kept regardless (these are correct independent of the mman
+fix): teardown closes all libuv handles + their socket fds before
+`socketExit()`; the main loop breaks to teardown on `Switch.exit()`
+(`is_running`) and on `+` even when no frame handler is registered (so
+finished scripts like the test runner exit cleanly instead of force-quit).
+
+## Networking bugs fixed → full test suite GREEN (1091/1093, 0 failed)
+
+Debugging the on-device test app (apps/tests) + an isolated diagnostic app
+(apps/net-debug) surfaced and fixed several real runtime bugs. Final result:
+**1091 passed, 0 failed, 2 skipped** (the 2 are intentional test.skip), clean
+exit, no crash.
+
+Bugs fixed:
+- **`NX_GetBufferSource` rejected valid EMPTY buffers** (util.cc): V8 backs a
+  zero-length ArrayBuffer/view with a null data pointer, which callers read as
+  "not a buffer". Return a non-null sentinel (size 0) for empty-but-valid
+  buffers. Fixed the `http://` gzip+chunked path ("expected ArrayBuffer" in the
+  DecompressionStream transform on the chunked terminal 0-length chunk).
+- **TLS fd double-close** (tls.cc + tcp.ts): the TS layer `$.close`d the raw fd
+  while the native TLS context still had a uv_poll_t on it → bsdsocket User
+  Break (and on TLS-failure paths the GC finalizer closed it again). Now the
+  native TLS context SOLELY owns its fd: added `$.tlsClose(ctx)` that uv_close's
+  the poll FIRST then closes the fd; handshake-failure tears down natively; TS
+  transfers fd ownership (i.fd=-1, tracks tlsFd) and never $.close's a TLS fd.
+- **TLS read gated on socket-readability** (tls.cc): mbedtls reads whole TLS
+  records and buffers decrypted bytes internally, so the fd often is NOT
+  readable when app data is available → the poll never fired → read hang. Now
+  attempt mbedtls_ssl_read immediately when a read is queued, polling only on
+  WANT_READ.
+- **TLS single `active_op` → concurrent read+write hang** (tls.cc): fetch writes
+  the request while the response readable stream is already pulling, so a READ
+  and a WRITE are in flight on the same connection. The single active_op was
+  overwritten (write clobbered read) → the read's promise never settled → all
+  HTTPS body reads hung. The connection now tracks read_op + write_op
+  separately; the shared poll drives BOTH (write first to flush, then read) and
+  recomputes interest as each finishes. (Same class of bug the per-fd registry
+  fixed for plain TCP.)
+- **socket.readable cancel()** (tcp.ts): added a cancel handler that closes the
+  socket so a terminated body stream (Content-Length reached) tears down the
+  connection instead of leaving a keep-alive read pending.
+
+Also confirmed NOT nx.js bugs: `example.com`'s cert chain doesn't validate
+against the Switch's built-in CA set (54 CAs load fine; letsencrypt/digicert/
+github/google all verify) — it was just a bad test target. The earlier
+source-map "not a valid URL" masking + assert.not.equal were test-harness fixes.
+
+apps/net-debug is a kept diagnostic (DNS / TCP / TLS verify / fetch / decompress
+probes writing to sdmc:/switch/net-debug.log).

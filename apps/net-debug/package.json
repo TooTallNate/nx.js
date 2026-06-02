@@ -1,17 +1,15 @@
 {
-  "name": "tests",
+  "name": "net-debug",
   "version": "0.0.0",
   "private": true,
-  "type": "module",
-  "description": "nx.js API tests",
+  "description": "Isolated network diagnostics for nx.js (DNS / TCP / fetch / decompress)",
   "scripts": {
-    "build": "esbuild --bundle --sourcemap --sources-content=false --target=es2022 --format=esm --outdir=romfs --define:process.env.NXJS=\\\"1\\\" src/main.ts",
+    "build": "esbuild --bundle --sourcemap --sources-content=false --target=es2022 --format=esm --outdir=romfs src/main.ts",
     "nro": "nxjs-nro",
     "nsp": "nxjs-nsp"
   },
   "license": "MIT",
   "devDependencies": {
-    "@nx.js/constants": "workspace:^",
     "@nx.js/nro": "workspace:^",
     "@nx.js/nsp": "workspace:^",
     "@nx.js/runtime": "workspace:^",

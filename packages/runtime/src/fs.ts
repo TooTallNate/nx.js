@@ -217,6 +217,25 @@ export function writeFileSync(path: PathLike, data: string | BufferSource) {
 }
 
 /**
+ * Synchronously appends `data` to the end of the file at `path`, creating the
+ * file (and any parent directories) if it does not exist.
+ *
+ * @param path The path of the file to append to.
+ * @param data The data to append (string is UTF-8 encoded).
+ *
+ * @example
+ *
+ * ```typescript
+ * Switch.appendFileSync('sdmc:/switch/awesome-app/log.txt', `${line}\n`);
+ * ```
+ */
+export function appendFileSync(path: PathLike, data: string | BufferSource) {
+	const d = typeof data === 'string' ? encoder.encode(data) : data;
+	const ab = bufferSourceToArrayBuffer(d);
+	return $.appendFileSync(pathToString(path), ab);
+}
+
+/**
  * Removes the file or directory recursively specified by `path`.
  *
  * @param path File path to remove.

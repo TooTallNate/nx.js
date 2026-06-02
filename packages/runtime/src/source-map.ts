@@ -49,42 +49,60 @@ function filenameToTracer(filename: string) {
 	let tracer = sourceMapCache.get(filename);
 	if (typeof tracer !== 'undefined') return tracer;
 
-	// `null` means the source map could not be retrieved for this file
+	// `null` means the source map could not be retrieved for this file.
 	tracer = null;
 
-	// Check for the `.map` file based on the filename as a shortcut / default
-	let sourceMappingURL: string | URL = new URL(`${filename}.map`, filename);
-	let sourceMapBuffer = readFileSync(sourceMappingURL);
+	try {
+		// `filename` may not be a valid absolute URL (e.g. V8 reports frames
+		// with synthetic scheme names like `app:...` for bundled code). In that
+		// case URL construction throws — treat it as "no source map" rather than
+		// letting the throw escape and mask the real error being formatted.
+		let base: string | undefined = filename;
+		try {
+			void new URL(filename);
+		} catch {
+			base = undefined;
+		}
 
-	if (!sourceMapBuffer) {
-		// When the `.map` file is not found, try to find it based on the
-		// `sourceMappingURL` embedded in the source code, which handles
-		// source maps embedded in as data URIs or in a non-standard location
-		const contentsBuffer = readFileSync(filename);
-		if (contentsBuffer) {
-			const contents = decoder.decode(contentsBuffer).trimEnd();
-			const lastNewline = contents.lastIndexOf('\n');
-			const lastLine = contents.slice(lastNewline + 1);
-			if (lastLine.startsWith(SOURCE_MAPPING_URL_PREFIX)) {
-				sourceMappingURL = lastLine.slice(SOURCE_MAPPING_URL_PREFIX.length);
-				if (sourceMappingURL.startsWith('data:')) {
-					sourceMapBuffer = dataUriToBuffer(sourceMappingURL).buffer;
-				} else {
-					sourceMapBuffer = readFileSync(new URL(sourceMappingURL, filename));
+		let sourceMapBuffer: ArrayBuffer | null | undefined;
+		let sourceMappingURL: string | URL;
+		if (base) {
+			// Check for the `.map` file based on the filename as a shortcut.
+			sourceMappingURL = new URL(`${filename}.map`, base);
+			sourceMapBuffer = readFileSync(sourceMappingURL);
+		}
+
+		if (!sourceMapBuffer && base) {
+			// When the `.map` file is not found, try the `sourceMappingURL`
+			// embedded in the source (data URI or non-standard location).
+			const contentsBuffer = readFileSync(filename);
+			if (contentsBuffer) {
+				const contents = decoder.decode(contentsBuffer).trimEnd();
+				const lastNewline = contents.lastIndexOf('\n');
+				const lastLine = contents.slice(lastNewline + 1);
+				if (lastLine.startsWith(SOURCE_MAPPING_URL_PREFIX)) {
+					const url = lastLine.slice(SOURCE_MAPPING_URL_PREFIX.length);
+					if (url.startsWith('data:')) {
+						sourceMapBuffer = dataUriToBuffer(url).buffer;
+					} else {
+						sourceMapBuffer = readFileSync(new URL(url, base));
+					}
 				}
 			}
 		}
-	}
 
-	if (sourceMapBuffer) {
-		const sourceMap: EncodedSourceMap = JSON.parse(
-			decoder.decode(sourceMapBuffer),
-		);
-		tracer = new TraceMap(sourceMap);
+		if (sourceMapBuffer) {
+			const sourceMap: EncodedSourceMap = JSON.parse(
+				decoder.decode(sourceMapBuffer),
+			);
+			tracer = new TraceMap(sourceMap);
+		}
+	} catch {
+		// Any failure resolving/parsing the source map: fall back to no map.
+		tracer = null;
 	}
 
 	sourceMapCache.set(filename, tracer);
-
 	return tracer;
 }
 

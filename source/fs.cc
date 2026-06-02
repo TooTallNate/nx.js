@@ -623,7 +623,10 @@ void nx_write_file(const FunctionCallbackInfo<Value> &info) {
 	info.GetReturnValue().Set(
 	    nx_queue_async(iso, req, write_file_do, write_file_cb));
 }
-void nx_write_file_sync(const FunctionCallbackInfo<Value> &info) {
+// Shared impl for writeFileSync (truncate) and appendFileSync. The optional
+// 3rd argument selects append mode ("a" vs "w").
+static void nx_write_file_sync_impl(const FunctionCallbackInfo<Value> &info,
+                                    bool append) {
 	Isolate *iso = info.GetIsolate();
 	errno = 0;
 	String::Utf8Value filename(iso, info[0]);
@@ -638,7 +641,7 @@ void nx_write_file_sync(const FunctionCallbackInfo<Value> &info) {
 		}
 		free(dir);
 	}
-	FILE *file = fopen(*filename, "w");
+	FILE *file = fopen(*filename, append ? "a" : "w");
 	if (file == NULL) {
 		nx_throw_errno_error(iso, errno, "fopen");
 		return;
@@ -655,6 +658,14 @@ void nx_write_file_sync(const FunctionCallbackInfo<Value> &info) {
 	if (result != size) {
 		nx_throw(iso, "Failed to write entire file");
 	}
+}
+
+void nx_write_file_sync(const FunctionCallbackInfo<Value> &info) {
+	nx_write_file_sync_impl(info, false);
+}
+
+void nx_append_file_sync(const FunctionCallbackInfo<Value> &info) {
+	nx_write_file_sync_impl(info, true);
 }
 
 // ===================== openDir / readDirNext / closeDir =====================
@@ -926,4 +937,5 @@ void nx_init_fs(Isolate *iso, Local<Object> init_obj) {
 	NX_SET_FUNC(init_obj, "statSync", nx_stat_sync);
 	NX_SET_FUNC(init_obj, "writeFile", nx_write_file);
 	NX_SET_FUNC(init_obj, "writeFileSync", nx_write_file_sync);
+	NX_SET_FUNC(init_obj, "appendFileSync", nx_append_file_sync);
 }
