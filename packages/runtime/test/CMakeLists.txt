@@ -148,6 +148,11 @@ target_link_libraries(nxjs-test PRIVATE
 # ============================================================================
 # Use the system libstdc++ (the default), matching host V8 + Skia which are
 # built against libstdc++ too — one consistent std:: ABI across all three.
+#
+# Link with lld: V8/Skia archives are produced by LLVM tooling, and GNU bfd ld
+# chokes on them ("unknown architecture of input file ... incompatible with
+# i386:x86-64"). lld reads them fine.
+target_link_options(nxjs-test PRIVATE -fuse-ld=lld)
 
 # Quiet warnings in the ported nx.js source (compiled with libnx stubbed).
 set_source_files_properties(${NX_SOURCES}
