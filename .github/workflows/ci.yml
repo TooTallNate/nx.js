@@ -14,7 +14,7 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
-    container: ghcr.io/tootallnate/pacman-packages@sha256:8bebf0a3052985ca919563def3685b0e7f3b5644d6b82db11c7475e8601eedc3
+    container: ghcr.io/tootallnate/pacman-packages@sha256:667d2b78eaac3f52996fe60b6ac45cf4b546726ac640b279669aa79aeff195ee
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
