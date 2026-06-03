@@ -71,27 +71,23 @@ set(TEST_SOURCES
 
 # Real nx.js source files (portable modules)
 set(NX_SOURCES
-  ${NX_SOURCE_DIR}/async.c
-  ${NX_SOURCE_DIR}/canvas.c
-  ${NX_SOURCE_DIR}/compression.c
-  ${NX_SOURCE_DIR}/crypto.c
-  ${NX_SOURCE_DIR}/dns.c
-  ${NX_SOURCE_DIR}/dommatrix.c
-  ${NX_SOURCE_DIR}/error.c
-  ${NX_SOURCE_DIR}/font.c
-  ${NX_SOURCE_DIR}/fs.c
-  ${NX_SOURCE_DIR}/image.c
-  ${NX_SOURCE_DIR}/poll.c
-  ${NX_SOURCE_DIR}/tcp.c
-  ${NX_SOURCE_DIR}/thpool.c
-  ${NX_SOURCE_DIR}/tls.c
-  ${NX_SOURCE_DIR}/udp.c
-  ${NX_SOURCE_DIR}/uint8array.c
-  ${NX_SOURCE_DIR}/url.c
-  ${NX_SOURCE_DIR}/util.c
-  ${NX_SOURCE_DIR}/wasm.c
-  ${NX_SOURCE_DIR}/web.c
-  ${NX_SOURCE_DIR}/window.c
+  ${NX_SOURCE_DIR}/async.cc
+  ${NX_SOURCE_DIR}/canvas.cc
+  ${NX_SOURCE_DIR}/compression.cc
+  ${NX_SOURCE_DIR}/crypto.cc
+  ${NX_SOURCE_DIR}/dns.cc
+  ${NX_SOURCE_DIR}/dommatrix.cc
+  ${NX_SOURCE_DIR}/error.cc
+  ${NX_SOURCE_DIR}/font.cc
+  ${NX_SOURCE_DIR}/fs.cc
+  ${NX_SOURCE_DIR}/image.cc
+  ${NX_SOURCE_DIR}/tcp.cc
+  ${NX_SOURCE_DIR}/tls.cc
+  ${NX_SOURCE_DIR}/udp.cc
+  ${NX_SOURCE_DIR}/url.cc
+  ${NX_SOURCE_DIR}/util.cc
+  ${NX_SOURCE_DIR}/web.cc
+  ${NX_SOURCE_DIR}/window.cc
 )
 
 # ada URL parser (C++ — single-header library)

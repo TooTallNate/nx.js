@@ -24,6 +24,7 @@ import { INTERNAL_SYMBOL } from './internal';
 import { Blob } from './polyfills/blob';
 import { Event } from './polyfills/event';
 import { EventTarget } from './polyfills/event-target';
+import { DOMException } from './dom-exception';
 import { decoder } from './polyfills/text-decoder';
 import { encoder } from './polyfills/text-encoder';
 import { URL } from './polyfills/url';
