@@ -101,6 +101,31 @@ static sk_sp<SkSurface> make_raster_surface(uint8_t *data, uint32_t w,
 	return SkSurfaces::WrapPixels(info, data, (size_t)w * 4, nullptr);
 }
 
+// Return a readable premultiplied-BGRA buffer for the whole canvas (stride =
+// width*4). For a raster canvas this is `data` directly (no copy: *owned set
+// false). For a GPU canvas it reads the surface back into a freshly malloc'd
+// buffer (*owned set true; caller must free). Returns nullptr on failure.
+static uint8_t *canvas_readable_pixels(nx_canvas_t *canvas, bool *owned) {
+	*owned = false;
+	if (!canvas->gpu)
+		return canvas->data;
+	if (!canvas->surface || canvas->width == 0 || canvas->height == 0)
+		return nullptr;
+	size_t stride = (size_t)canvas->width * 4;
+	uint8_t *buf = (uint8_t *)malloc(stride * canvas->height);
+	if (!buf)
+		return nullptr;
+	SkImageInfo info =
+	    SkImageInfo::Make(canvas->width, canvas->height,
+	                      kBGRA_8888_SkColorType, kPremul_SkAlphaType);
+	if (!canvas->surface->readPixels(info, buf, stride, 0, 0)) {
+		free(buf);
+		return nullptr;
+	}
+	*owned = true;
+	return buf;
+}
+
 // ---------------------------------------------------------------------------
 // Gradient lifecycle
 // ---------------------------------------------------------------------------
@@ -228,6 +253,14 @@ bool get_doubles(const FunctionCallbackInfo<Value> &info, double *args, int n,
 static void nx_canvas_ensure_surface(Isolate *iso,
                                      nx_canvas_context_2d_t *context) {
 	nx_canvas_t *canvas = context->canvas;
+	// GPU-backed (screen) canvas: the surface + ctx are owned/managed by the
+	// GPU module (FBO 0), not recreated here. Just ensure ctx is wired.
+	if (canvas->gpu) {
+		if (canvas->surface)
+			context->ctx = canvas->surface->getCanvas();
+		canvas->surface_dirty = false;
+		return;
+	}
 	if (!canvas->surface_dirty)
 		return;
 
@@ -2139,8 +2172,7 @@ void nx_canvas_context_2d_put_image_data(
 	    !info[1]->Int32Value(jsctx).To(&dx) ||
 	    !info[2]->Int32Value(jsctx).To(&dy))
 		return;
-	uint8_t *dst = context->canvas->data;
-	int dstStride = context->canvas->width * 4;
+	bool gpu = context->canvas->gpu;
 	int srcStride = image_data_width * 4;
 	int argc = info.Length();
 	if (argc == 3) {
@@ -2171,7 +2203,22 @@ void nx_canvas_context_2d_put_image_data(
 	if (cols <= 0 || rows <= 0)
 		return;
 	src += sy * srcStride + sx * 4;
-	dst += dstStride * dy + 4 * dx;
+
+	// Destination: for a raster canvas, blit straight into canvas->data. For a
+	// GPU canvas, premultiply+swizzle into a tight cols*rows scratch buffer and
+	// upload it to the sub-rect via SkSurface::writePixels.
+	int dstStride = gpu ? cols * 4 : (int)context->canvas->width * 4;
+	uint8_t *dstBase;
+	uint8_t *scratch = nullptr;
+	if (gpu) {
+		scratch = (uint8_t *)malloc((size_t)dstStride * rows);
+		if (!scratch)
+			return;
+		dstBase = scratch;
+	} else {
+		dstBase = context->canvas->data + dstStride * dy + 4 * dx;
+	}
+	uint8_t *dst = dstBase;
 	for (int y = 0; y < rows; ++y) {
 		uint8_t *dstRow = dst;
 		uint8_t *srcRow = src;
@@ -2189,6 +2236,13 @@ void nx_canvas_context_2d_put_image_data(
 		}
 		dst += dstStride;
 		src += srcStride;
+	}
+	if (gpu) {
+		SkImageInfo ii = SkImageInfo::Make(cols, rows, kBGRA_8888_SkColorType,
+		                                   kPremul_SkAlphaType);
+		SkPixmap pm(ii, scratch, (size_t)dstStride);
+		context->canvas->surface->writePixels(pm, dx, dy);
+		free(scratch);
 	}
 }
 
@@ -2217,7 +2271,10 @@ void nx_canvas_context_2d_get_image_data(
 	int bpp = 4;
 	size_t size = (size_t)sw * sh * bpp;
 	int dstStride = sw * bpp;
-	uint8_t *src = context->canvas->data;
+	bool src_owned = false;
+	uint8_t *src = canvas_readable_pixels(context->canvas, &src_owned);
+	if (!src)
+		return;
 	Local<ArrayBuffer> ab = ArrayBuffer::New(iso, size);
 	uint8_t *dst = (uint8_t *)ab->Data();
 	for (int y = 0; y < sh; ++y) {
@@ -2239,6 +2296,8 @@ void nx_canvas_context_2d_get_image_data(
 		}
 		dst += dstStride;
 	}
+	if (src_owned)
+		free(src);
 	info.GetReturnValue().Set(ab);
 }
 
@@ -2541,8 +2600,15 @@ static uint8_t *snapshot_pixels(nx_canvas_t *canvas, int *w, int *h,
 	int ch = canvas->height ? (int)canvas->height : 1;
 	int st = cw * 4;
 	uint8_t *copy = (uint8_t *)calloc(1, (size_t)st * ch);
-	if (copy && canvas->data && canvas->width && canvas->height)
-		memcpy(copy, canvas->data, (size_t)st * ch);
+	if (copy && canvas->width && canvas->height) {
+		bool owned = false;
+		uint8_t *src = canvas_readable_pixels(canvas, &owned);
+		if (src) {
+			memcpy(copy, src, (size_t)st * ch);
+			if (owned)
+				free(src);
+		}
+	}
 	*w = cw;
 	*h = ch;
 	*stride = st;
@@ -2662,6 +2728,20 @@ nx_canvas_context_2d_t *nx_get_canvas_context_2d(Isolate *iso,
 uint8_t *nx_canvas_pixels(nx_canvas_t *c) { return c ? c->data : nullptr; }
 uint32_t nx_canvas_width(nx_canvas_t *c) { return c ? c->width : 0; }
 uint32_t nx_canvas_height(nx_canvas_t *c) { return c ? c->height : 0; }
+
+void nx_canvas_set_gpu_surface(nx_canvas_t *c, sk_sp<SkSurface> surface) {
+	if (!c)
+		return;
+	// Release the raster backing; adopt the GPU surface.
+	c->surface.reset();
+	if (c->data) {
+		free(c->data);
+		c->data = nullptr;
+	}
+	c->surface = std::move(surface);
+	c->gpu = true;
+	c->surface_dirty = true;  // ensure_surface() will (re)wire context->ctx
+}
 
 void nx_init_canvas(Isolate *iso, Local<Object> init_obj) {
 	NX_SET_FUNC(init_obj, "canvasNew", nx_canvas_new);

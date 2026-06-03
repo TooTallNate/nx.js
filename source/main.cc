@@ -19,16 +19,19 @@
 #include FT_FREETYPE_H
 
 #include "error.h"
+#include "skia_gpu.h"
 #include "types.h"
 #include "util.h"
 
 #include "include/core/SkMilestone.h"
+#include "include/core/SkSurface.h"
 
-// Phase 2.1: the canvas renders to a raster SkSurface over its own pixel
-// buffer; the screen is presented by blitting those pixels into the libnx
-// framebuffer (the path below). The Phase 2.0 GPU spike (NX_SKIA_GPU_SPIKE) is
-// retired; GPU-backed surfaces + eglSwapBuffers return in Phase 2.2.
-#define NX_SKIA_GPU_SPIKE 0
+// Phase 2.2: the screen canvas is backed by a GPU SkSurface (EGL FBO 0) and
+// presented via eglSwapBuffers when GPU bringup succeeds. If it fails (e.g.
+// Mesa starved for memory in applet mode), we fall back to a raster SkSurface
+// presented by blitting into the libnx framebuffer (the proven Phase 2.1
+// path). `screen_is_gpu` records which path is active for the present loop.
+static bool screen_is_gpu = false;
 
 // Module init declarations (each defined in its own .cc). Signature per
 // BINDINGS.md: void nx_init_foo(v8::Isolate*, v8::Local<v8::Object> init_obj).
@@ -118,6 +121,7 @@ nx_canvas_s *nx_get_canvas(Isolate *iso, Local<Value> obj);
 uint8_t *nx_canvas_pixels(nx_canvas_s *c);
 u32 nx_canvas_width(nx_canvas_s *c);
 u32 nx_canvas_height(nx_canvas_s *c);
+void nx_canvas_set_gpu_surface(nx_canvas_s *c, sk_sp<SkSurface> surface);
 
 // ---------------------------------------------------------------------------
 // Core `$` functions implemented here in main.cc.
@@ -267,29 +271,27 @@ static void nx_framebuffer_init(const FunctionCallbackInfo<Value> &info) {
 	}
 	u32 width = nx_canvas_width(canvas);
 	u32 height = nx_canvas_height(canvas);
-	js_framebuffer = nx_canvas_pixels(canvas);
-	js_fb_width = width;
-	js_fb_height = height;
-#if NX_SKIA_GPU_SPIKE
-	// EGL owns the NWindow; no libnx framebuffer in GPU mode. If GPU bringup
-	// fails (e.g. Mesa starved for memory in applet mode when JIT also claimed
-	// its arena), do NOT enter CANVAS mode: that would loop drawing nothing
-	// (black screen) and leave partially-initialized EGL/Mesa state to corrupt
-	// the next launch. Surface the failure and stay in console mode instead.
-	if (!nx_skia_gpu_init(width, height)) {
-		fprintf(stderr, "[skia] GPU init failed; staying in console mode\n");
+
+	// Phase 2.2: try to back the screen canvas with a GPU SkSurface (EGL FBO 0)
+	// presented via eglSwapBuffers. On any failure (e.g. Mesa OOM in applet
+	// mode), fall back to the proven raster + libnx-framebuffer path.
+	sk_sp<SkSurface> gpu = nx_skia_gpu_screen_init(width, height);
+	if (gpu) {
+		nx_canvas_set_gpu_surface(canvas, gpu);
+		screen_is_gpu = true;
+		js_framebuffer = nullptr;
+	} else {
+		fprintf(stderr, "[skia] GPU screen unavailable; using raster path\n");
 		fflush(stderr);
-		nx_console_init(ctx);
-		printf("Skia GPU init failed (see nxjs-debug.log)\n");
-		ctx->had_error = 1;
-		return;
+		screen_is_gpu = false;
+		js_framebuffer = nx_canvas_pixels(canvas);
+		js_fb_width = width;
+		js_fb_height = height;
+		framebuffer = (Framebuffer *)malloc(sizeof(Framebuffer));
+		framebufferCreate(framebuffer, win, width, height,
+		                  PIXEL_FORMAT_BGRA_8888, 2);
+		framebufferMakeLinear(framebuffer);
 	}
-#else
-	framebuffer = (Framebuffer *)malloc(sizeof(Framebuffer));
-	framebufferCreate(framebuffer, win, width, height, PIXEL_FORMAT_BGRA_8888,
-	                  2);
-	framebufferMakeLinear(framebuffer);
-#endif
 	ctx->rendering_mode = NX_RENDERING_MODE_CANVAS;
 }
 
@@ -744,15 +746,24 @@ int main(int argc, char *argv[]) {
 	if (R_FAILED(rc))
 		diagAbortWithResult(rc);
 
-	// Probe free memory up front: it gates BOTH the socket buffer config (here)
-	// and the V8 JIT/heap policy (below). In applet mode (~137 MiB) the lean
+	// Probe the process memory grant up front: it gates BOTH the socket buffer
+	// config (here) and the V8 JIT/heap policy (below). In applet mode the lean
 	// socket config avoids a ~64 MiB transfer-memory reservation that would
 	// otherwise starve the GPU/V8 stack and fault bsdsocket.
+	//
+	// IMPORTANT: gate on InfoType_TotalMemorySize (the size of the memory grant
+	// for the process), NOT (total - used). Applet mode grants a small total
+	// (~512 MiB); application mode grants several GiB. "total - used" looks like
+	// only a few MiB free in application mode (the large grant is reported as
+	// reserved/used), which would wrongly pick the tight-memory path and run
+	// jitless even though there is plenty of room for full JIT + GPU.
 	u64 mem_total = 0, mem_used = 0;
 	svcGetInfo(&mem_total, InfoType_TotalMemorySize, CUR_PROCESS_HANDLE, 0);
 	svcGetInfo(&mem_used, InfoType_UsedMemorySize, CUR_PROCESS_HANDLE, 0);
 	u64 mem_free = mem_total > mem_used ? mem_total - mem_used : 0;
-	bool tight_memory = mem_free <= (300ull * 1024 * 1024);
+	// >1 GiB total => application/full-memory regime (full JIT + GPU coexist).
+	// <=1 GiB total => applet regime (~512 MiB grant): jitless + lean sockets.
+	bool tight_memory = mem_total <= (1024ull * 1024 * 1024);
 
 	rc = socketInitialize(tight_memory ? &s_socketInitConfigLean
 	                                    : &s_socketInitConfigFull);
@@ -799,8 +810,10 @@ int main(int argc, char *argv[]) {
 	// tiers up Ignition -> Sparkplug -> Maglev -> TurboFan; jitless is Ignition
 	// only.
 	fprintf(stderr,
-	        "[v8] mem_free=%llu MiB -> mode=%s (%s)\n",
+	        "[v8] mem_total=%llu MiB free=%llu MiB regime=%s -> mode=%s (%s)\n",
+	        (unsigned long long)(mem_total / (1024 * 1024)),
 	        (unsigned long long)(mem_free / (1024 * 1024)),
+	        tight_memory ? "applet" : "application",
 	        can_jit ? "jit" : "jitless",
 	        can_jit ? "Ignition+Sparkplug+Maglev+TurboFan" : "Ignition only");
 	// stderr is fully buffered when redirected to a file (not a TTY), so an
@@ -922,28 +935,16 @@ int main(int argc, char *argv[]) {
 		// loop for applet message processing; its return value is only honored as
 		// an exit signal when NOT driving a GPU surface (legacy framebuffer apps
 		// rely on it to detect an OS-initiated close).
-#if NX_SKIA_GPU_SPIKE
-		fprintf(stderr, "[loop] entering main loop\n");
-		fflush(stderr);
-		unsigned long long loop_frames = 0;
-#endif
 		while (is_running) {
 			bool applet_active = appletMainLoop();
-#if NX_SKIA_GPU_SPIKE
-			loop_frames++;
-			if (loop_frames <= 3 || loop_frames % 60 == 0) {
-				fprintf(stderr,
-				        "[loop] frame=%llu mode=%d had_error=%d applet=%d\n",
-				        loop_frames, (int)nx_ctx->rendering_mode,
-				        nx_ctx->had_error, (int)applet_active);
-				fflush(stderr);
-			}
-#else
-			// Legacy framebuffer path: an OS-initiated applet close surfaces as
-			// appletMainLoop()==false; honor it so the app exits cleanly.
-			if (!applet_active)
+			// When the screen is GPU-backed, EGL owns the NWindow and
+			// appletMainLoop() can return false immediately, which would end the
+			// loop at frame 1 before a clean exit (leaking V8's svcMapMemory
+			// arenas and corrupting the next launch). So only honor its false
+			// return as an exit signal on the raster framebuffer path; GPU mode
+			// exits via + / Switch.exit() (handled below).
+			if (!screen_is_gpu && !applet_active)
 				break;
-#endif
 			if (!nx_ctx->had_error) {
 				// libuv: sockets, fs, dns, threadpool afters, timers.
 				uv_run(&loop, UV_RUN_NOWAIT);
@@ -961,13 +962,11 @@ int main(int argc, char *argv[]) {
 			u64 kDown = padGetButtonsDown(&nx_ctx->pads[0]);
 			bool plusDown = kDown & HidNpadButton_Plus;
 
-#if NX_SKIA_GPU_SPIKE
-			// Spike: the rAF frame handler never exits on +, and we no longer
-			// gate on appletMainLoop(), so make + an unconditional clean exit
-			// (mirrors trifecta's "+ to quit") that always reaches teardown.
-			if (plusDown)
+			// GPU mode does not gate on appletMainLoop(), so guarantee a clean
+			// exit path: + always breaks (reaching teardown). On the raster
+			// path the normal frame-handler/no-handler logic below handles +.
+			if (screen_is_gpu && plusDown)
 				break;
-#endif
 
 			// Script called Switch.exit(): break from any state so we always
 			// reach teardown (incl. horizon_mman_teardown()).
@@ -1001,24 +1000,19 @@ int main(int argc, char *argv[]) {
 			if (nx_ctx->rendering_mode == NX_RENDERING_MODE_CONSOLE) {
 				consoleUpdate(print_console);
 			} else if (nx_ctx->rendering_mode == NX_RENDERING_MODE_CANVAS) {
-#if NX_SKIA_GPU_SPIKE
-				static int spike_frame = 0;
-				nx_skia_gpu_test_frame(spike_frame++);
-#else
-				u32 stride;
-				u8 *fb = (u8 *)framebufferBegin(framebuffer, &stride);
-				memcpy(fb, js_framebuffer, js_fb_width * js_fb_height * 4);
-				framebufferEnd(framebuffer);
-#endif
+				if (screen_is_gpu) {
+					// The screen canvas drew straight into the GPU FBO; flush +
+					// submit + eglSwapBuffers presents it.
+					nx_skia_gpu_present();
+				} else {
+					u32 stride;
+					u8 *fb = (u8 *)framebufferBegin(framebuffer, &stride);
+					memcpy(fb, js_framebuffer,
+					       js_fb_width * js_fb_height * 4);
+					framebufferEnd(framebuffer);
+				}
 			}
 		}
-#if NX_SKIA_GPU_SPIKE
-		fprintf(stderr,
-		        "[loop] exited after %llu frame(s) (is_running=%d "
-		        "had_error=%d)\n",
-		        loop_frames, (int)is_running, nx_ctx->had_error);
-		fflush(stderr);
-#endif
 
 		// ---- Exit handler ------------------------------------------------
 		if (!nx_ctx->exit_handler.IsEmpty()) {
@@ -1035,11 +1029,11 @@ int main(int argc, char *argv[]) {
 	if (nx_ctx->rendering_mode == NX_RENDERING_MODE_CONSOLE) {
 		nx_console_exit();
 	} else if (nx_ctx->rendering_mode == NX_RENDERING_MODE_CANVAS) {
-#if NX_SKIA_GPU_SPIKE
-		nx_skia_gpu_exit();
-#else
-		nx_framebuffer_exit();
-#endif
+		if (screen_is_gpu) {
+			nx_skia_gpu_screen_exit();
+		} else {
+			nx_framebuffer_exit();
+		}
 	}
 
 	// Release retained handles before disposing the isolate.

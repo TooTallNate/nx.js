@@ -31,6 +31,11 @@ typedef struct nx_canvas_s {
 	uint8_t *data;
 	sk_sp<SkSurface> surface;
 	bool surface_dirty;
+	// Phase 2.2: when true, `surface` is a GPU-backed SkSurface (the screen's
+	// EGL FBO 0) rather than a raster surface over `data`. getImageData/encode
+	// read it back via GrDirectContext::readPixels; ensure_surface must not
+	// recreate it as raster. `data` may be null in this mode.
+	bool gpu;
 } nx_canvas_t;
 
 nx_canvas_t *nx_get_canvas(v8::Isolate *iso, v8::Local<v8::Value> obj);
@@ -39,6 +44,12 @@ nx_canvas_t *nx_get_canvas(v8::Isolate *iso, v8::Local<v8::Value> obj);
 uint8_t *nx_canvas_pixels(nx_canvas_t *c);
 uint32_t nx_canvas_width(nx_canvas_t *c);
 uint32_t nx_canvas_height(nx_canvas_t *c);
+
+// Phase 2.2: make `c` GPU-backed by adopting `surface` (the screen's EGL FBO 0
+// SkSurface). The canvas's raster `data`/surface are released; subsequent draws
+// target the GPU surface and getImageData reads it back. Used by main.cc for
+// the screen canvas only.
+void nx_canvas_set_gpu_surface(nx_canvas_t *c, sk_sp<SkSurface> surface);
 
 typedef struct nx_rgba_s {
 	double r, g, b, a;

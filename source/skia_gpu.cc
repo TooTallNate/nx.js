@@ -6,15 +6,9 @@
 #include <stdio.h>
 
 #include "include/core/SkCanvas.h"
-#include "include/core/SkColor.h"
 #include "include/core/SkColorSpace.h"
-#include "include/core/SkData.h"
-#include "include/core/SkFont.h"
-#include "include/core/SkFontMgr.h"
 #include "include/core/SkGraphics.h"
-#include "include/core/SkPaint.h"
 #include "include/core/SkSurface.h"
-#include "include/core/SkTypeface.h"
 #include "include/gpu/ganesh/GrBackendSurface.h"
 #include "include/gpu/ganesh/GrDirectContext.h"
 #include "include/gpu/ganesh/SkSurfaceGanesh.h"
@@ -22,7 +16,6 @@
 #include "include/gpu/ganesh/gl/GrGLDirectContext.h"
 #include "include/gpu/ganesh/gl/GrGLInterface.h"
 #include "include/gpu/ganesh/gl/egl/GrGLMakeEGLInterface.h"
-#include "include/ports/SkFontMgr_empty.h"
 
 namespace {
 
@@ -32,9 +25,6 @@ EGLContext s_ctx = nullptr;
 
 sk_sp<GrDirectContext> s_gr;
 sk_sp<SkSurface> s_surface;
-sk_sp<SkTypeface> s_typeface;
-SkFont s_font;
-u32 s_w = 0, s_h = 0;
 
 bool init_egl(NWindow *win) {
 	s_dpy = eglGetDisplay(EGL_DEFAULT_DISPLAY);
@@ -64,14 +54,12 @@ bool init_egl(NWindow *win) {
 
 } // namespace
 
-bool nx_skia_gpu_init(u32 width, u32 height) {
-	s_w = width;
-	s_h = height;
+sk_sp<SkSurface> nx_skia_gpu_screen_init(u32 width, u32 height) {
 	if (!init_egl(nwindowGetDefault())) {
 		fprintf(stderr, "[skia] EGL init failed\n");
 		fflush(stderr);
-		nx_skia_gpu_exit();
-		return false;
+		nx_skia_gpu_screen_exit();
+		return nullptr;
 	}
 	SkGraphics::Init();
 	auto iface = GrGLInterfaces::MakeEGL();
@@ -79,8 +67,8 @@ bool nx_skia_gpu_init(u32 width, u32 height) {
 	if (!s_gr) {
 		fprintf(stderr, "[skia] GrDirectContext failed\n");
 		fflush(stderr);
-		nx_skia_gpu_exit();
-		return false;
+		nx_skia_gpu_screen_exit();
+		return nullptr;
 	}
 	GrGLFramebufferInfo fbi;
 	fbi.fFBOID = 0;
@@ -92,72 +80,32 @@ bool nx_skia_gpu_init(u32 width, u32 height) {
 	if (!s_surface) {
 		fprintf(stderr, "[skia] WrapBackendRenderTarget failed\n");
 		fflush(stderr);
-		nx_skia_gpu_exit();
-		return false;
+		nx_skia_gpu_screen_exit();
+		return nullptr;
 	}
-
-	// Load a system font for the HUD (best-effort). The pl session is owned by
-	// main() (plInitialize at startup, plExit at teardown), so don't init/exit
-	// it here -- doing so would unbalance main's refcount on the failure path.
-	PlFontData fd;
-	if (R_SUCCEEDED(plGetSharedFontByType(&fd, PlSharedFontType_Standard))) {
-		auto data = SkData::MakeWithoutCopy(fd.address, fd.size);
-		auto mgr = SkFontMgr_New_Custom_Empty();
-		s_typeface = mgr->makeFromData(data);
-		if (s_typeface)
-			s_font = SkFont(s_typeface, 36);
-	}
-
-	fprintf(stderr, "[skia] GPU surface %ux%u ready\n", width, height);
+	fprintf(stderr, "[skia] GPU screen surface %ux%u ready\n", width, height);
 	fflush(stderr);
-	return true;
+	return s_surface;
 }
 
-void nx_skia_gpu_test_frame(int frame) {
-	if (!s_surface)
+GrDirectContext *nx_skia_gpu_context(void) { return s_gr.get(); }
+
+void nx_skia_gpu_present(void) {
+	if (!s_surface || !s_gr)
 		return;
-	SkCanvas *c = s_surface->getCanvas();
-	c->clear(SkColorSetARGB(255, 20, 24, 40));
-
-	// Moving red rect (mirrors the old Cairo smoke test).
-	SkPaint p;
-	p.setAntiAlias(true);
-	float x = (float)((frame * 3) % (int)(s_w - 200));
-	p.setColor(SkColorSetARGB(255, 220, 60, 60));
-	c->drawRect(SkRect::MakeXYWH(x, 300, 200, 120), p);
-
-	// Stroked green circle.
-	p.setColor(SkColorSetARGB(255, 120, 220, 120));
-	p.setStyle(SkPaint::kStroke_Style);
-	p.setStrokeWidth(6);
-	c->drawCircle(640, 200, 80, p);
-
-	if (s_typeface) {
-		SkPaint tp;
-		tp.setAntiAlias(true);
-		tp.setColor(SK_ColorWHITE);
-		c->drawString("nx.js on V8 + Skia (GPU)", 360, 120, s_font, tp);
-		char buf[64];
-		snprintf(buf, sizeof(buf), "frame %d", frame);
-		SkFont small(s_typeface, 24);
-		c->drawString(buf, 360, 480, small, tp);
-	}
-
 	s_gr->flush(s_surface.get());
 	s_gr->submit();
 	eglSwapBuffers(s_dpy, s_surf);
 }
 
-void nx_skia_gpu_exit(void) {
+void nx_skia_gpu_screen_exit(void) {
 	s_surface.reset();
-	s_typeface.reset();
 	if (s_gr) {
 		SkGraphics::PurgeAllCaches();
 		s_gr.reset();
 	}
-	// Idempotent: this also serves as the cleanup path for a failed
-	// nx_skia_gpu_init, and main() calls it again at teardown. Null each handle
-	// after destroying it so a second call doesn't double-free stale handles.
+	// Idempotent: also serves as the cleanup path for a failed init, and main()
+	// calls it again at teardown. Null each handle after destroying it.
 	if (s_dpy) {
 		eglMakeCurrent(s_dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
 		if (s_ctx) {

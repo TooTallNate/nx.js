@@ -1,26 +1,31 @@
 #pragma once
 #include <switch.h>
 
-// Phase 2 spike: EGL + Skia Ganesh GL on the default NWindow. This is the seed
-// of the GPU rendering backend that replaces Cairo. For the spike it just
-// initializes a GPU surface and draws a trivial test scene each frame to prove
-// the EGL/Ganesh integration works inside nx.js's present loop.
+#include "include/core/SkRefCnt.h"
+#include "include/core/SkSurface.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+class GrDirectContext;
 
-// Initialize EGL + Skia Ganesh GL over the default NWindow at width x height.
-// Returns true on success. Must be called on the render (main) thread.
-bool nx_skia_gpu_init(u32 width, u32 height);
+// Phase 2.2 GPU backend: EGL + Skia Ganesh GL over the default NWindow. The
+// screen canvas is backed by a GPU SkSurface wrapping the EGL window's FBO 0
+// and presented via eglSwapBuffers. Offscreen canvases remain raster. If GPU
+// bringup fails (e.g. Mesa starved for memory in applet mode), the caller falls
+// back to the raster + libnx-framebuffer present path.
+//
+// All functions must be called on the render (main) thread.
 
-// Spike: clear + draw a moving rect + HUD text, then flush/submit/swap.
-// `frame` is a monotonically increasing frame counter.
-void nx_skia_gpu_test_frame(int frame);
+// Initialize EGL + a shared GrDirectContext + a GPU SkSurface over FBO 0 at
+// width x height. Returns the SkSurface on success, or nullptr on failure
+// (with all partial EGL/Mesa state torn down). The returned surface is owned by
+// this module; do not outlive nx_skia_gpu_screen_exit().
+sk_sp<SkSurface> nx_skia_gpu_screen_init(u32 width, u32 height);
 
-// Tear down Skia + EGL.
-void nx_skia_gpu_exit(void);
+// The shared GrDirectContext (for readPixels / GPU resource management), or
+// nullptr if the GPU screen is not initialized.
+GrDirectContext *nx_skia_gpu_context(void);
 
-#ifdef __cplusplus
-}
-#endif
+// Flush + submit the GPU surface and eglSwapBuffers (present one frame).
+void nx_skia_gpu_present(void);
+
+// Tear down the GPU surface, GrDirectContext, and EGL. Idempotent.
+void nx_skia_gpu_screen_exit(void);
