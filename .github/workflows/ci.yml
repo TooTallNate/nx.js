@@ -130,29 +130,35 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    # Run in the pacman-packages image: it provides the host-native V8, Skia,
+    # and libuv (under /opt/host) that the nxjs-test conformance harness links
+    # against (the Switch portlibs are target_os=horizon and can't link into a
+    # host ELF). The harness + Skia + V8 are all built against the system
+    # libstdc++, so compile the harness with clang-16/lld against /opt/host.
+    container: ghcr.io/tootallnate/pacman-packages@sha256:ab26d09e381328e61d6e786d147d4a719905cb566bdd8bb77cec5d65c4230ea7
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          package_json_file: package.json
+      - name: Install build + host toolchain deps
+        run: |
+          apt-get update
+          apt-get install -y \
+            cmake clang-16 lld-16 pkg-config \
+            libmbedtls-dev libfreetype-dev libharfbuzz-dev \
+            libpng-dev libturbojpeg0-dev libjpeg62-turbo-dev libwebp-dev \
+            zlib1g-dev libzstd-dev
+          ln -sf /usr/bin/ld.lld-16 /usr/bin/ld.lld
 
       - name: Setup Node.js 22.x
         uses: actions/setup-node@v4
         with:
           node-version: 22.x
-          cache: "pnpm"
 
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            cmake build-essential pkg-config \
-            libcairo2-dev libfreetype-dev libharfbuzz-dev \
-            libpng-dev libturbojpeg0-dev libwebp-dev \
-            zlib1g-dev libzstd-dev
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          package_json_file: package.json
 
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
@@ -161,7 +167,9 @@ jobs:
         run: pnpm --filter @nx.js/runtime exec playwright install --with-deps chromium
 
       - name: Build nxjs-test binary
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=clang-16 -DCMAKE_CXX_COMPILER=clang++-16
+          cmake --build build -j"$(nproc)"
         working-directory: packages/runtime/test
 
       - name: Run Tests
