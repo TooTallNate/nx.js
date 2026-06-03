@@ -14,11 +14,14 @@ class GrDirectContext;
 //
 // All functions must be called on the render (main) thread.
 
-// Initialize EGL + a shared GrDirectContext + a GPU SkSurface over FBO 0 at
-// width x height. Returns the SkSurface on success, or nullptr on failure
-// (with all partial EGL/Mesa state torn down). The returned surface is owned by
-// this module; do not outlive nx_skia_gpu_screen_exit().
-sk_sp<SkSurface> nx_skia_gpu_screen_init(u32 width, u32 height);
+// Initialize EGL + a shared GrDirectContext + a persistent GPU canvas surface
+// at width x height. `samples` is the desired MSAA sample count (e.g. 4 in
+// application mode, 2 in applet mode); if the multisampled surface can't be
+// allocated it automatically retries with no MSAA. Returns the canvas surface
+// on success, or nullptr on failure (with all partial EGL/Mesa state torn
+// down). The returned surface is owned by this module; do not outlive
+// nx_skia_gpu_screen_exit().
+sk_sp<SkSurface> nx_skia_gpu_screen_init(u32 width, u32 height, int samples);
 
 // The shared GrDirectContext (for readPixels / GPU resource management), or
 // nullptr if the GPU screen is not initialized.

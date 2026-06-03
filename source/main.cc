@@ -32,6 +32,9 @@
 // presented by blitting into the libnx framebuffer (the proven Phase 2.1
 // path). `screen_is_gpu` records which path is active for the present loop.
 static bool screen_is_gpu = false;
+// Memory regime, set in main() before the loop: true in applet mode (~512 MiB
+// grant). Gates GPU MSAA sample count (applet can't afford 4x MSAA).
+static bool g_tight_memory = false;
 
 // Module init declarations (each defined in its own .cc). Signature per
 // BINDINGS.md: void nx_init_foo(v8::Isolate*, v8::Local<v8::Object> init_obj).
@@ -272,16 +275,39 @@ static void nx_framebuffer_init(const FunctionCallbackInfo<Value> &info) {
 	u32 width = nx_canvas_width(canvas);
 	u32 height = nx_canvas_height(canvas);
 
-	// Phase 2.2: try to back the screen canvas with a GPU SkSurface (EGL FBO 0)
-	// presented via eglSwapBuffers. On any failure (e.g. Mesa OOM in applet
-	// mode), fall back to the proven raster + libnx-framebuffer path.
-	sk_sp<SkSurface> gpu = nx_skia_gpu_screen_init(width, height);
+	// Phase 2.2: renderer choice is per memory regime, using whichever is both
+	// correct AND fits:
+	//   - application mode (GiBs free): GPU (EGL FBO 0) with 4x MSAA. MSAA is
+	//     required because Ganesh's coverage-AA path renderer drops some large
+	//     concave fills without it; 4x fits easily here.
+	//   - applet mode (~137 MiB): raster. No MSAA level fits in applet memory,
+	//     and non-MSAA GPU drops those complex fills, so GPU there would be
+	//     incorrect. Raster is fully correct and fits. (This also avoids the
+	//     EGL-mid-loop HID issue that only affected applet+GPU.)
+	// A failed GPU init in application mode still falls back to raster below.
+	sk_sp<SkSurface> gpu =
+	    g_tight_memory ? nullptr
+	                   : nx_skia_gpu_screen_init(width, height, /*samples=*/4);
 	if (gpu) {
 		nx_canvas_set_gpu_surface(canvas, gpu);
 		screen_is_gpu = true;
 		js_framebuffer = nullptr;
+		// Bringing up EGL/Mesa (which claims the NWindow + nvidia driver
+		// resources) can leave HID not delivering input when it runs AFTER the
+		// pads were configured — notably for async entry modules (top-level
+		// await), where getContext()/GPU init runs mid-loop rather than before
+		// it. Re-configure + re-initialize the pads here so button input flows
+		// regardless of when GPU init happened.
+		padConfigureInput(8, HidNpadStyleSet_NpadStandard |
+		                         HidNpadStyleTag_NpadGc);
+		padInitializeDefault(&ctx->pads[0]);
+		for (int i = 1; i < 8; i++) {
+			padInitialize(&ctx->pads[i], (HidNpadIdType)(HidNpadIdType_No1 + i));
+		}
 	} else {
-		fprintf(stderr, "[skia] GPU screen unavailable; using raster path\n");
+		fprintf(stderr, "[skia] using raster path (%s)\n",
+		        g_tight_memory ? "applet regime"
+		                       : "GPU init failed, falling back");
 		fflush(stderr);
 		screen_is_gpu = false;
 		js_framebuffer = nx_canvas_pixels(canvas);
@@ -764,6 +790,7 @@ int main(int argc, char *argv[]) {
 	// >1 GiB total => application/full-memory regime (full JIT + GPU coexist).
 	// <=1 GiB total => applet regime (~512 MiB grant): jitless + lean sockets.
 	bool tight_memory = mem_total <= (1024ull * 1024 * 1024);
+	g_tight_memory = tight_memory;
 
 	rc = socketInitialize(tight_memory ? &s_socketInitConfigLean
 	                                    : &s_socketInitConfigFull);
@@ -962,11 +989,12 @@ int main(int argc, char *argv[]) {
 			u64 kDown = padGetButtonsDown(&nx_ctx->pads[0]);
 			bool plusDown = kDown & HidNpadButton_Plus;
 
-			// GPU mode does not gate on appletMainLoop(), so guarantee a clean
-			// exit path: + always breaks (reaching teardown). On the raster
-			// path the normal frame-handler/no-handler logic below handles +.
-			if (screen_is_gpu && plusDown)
-				break;
+			// `+` is handled by the JS frame handler below ($.onFrame dispatches
+			// a cancelable "beforeunload" and calls $.exit() unless prevented),
+			// exactly as on the raster path. Do NOT short-circuit it here: a
+			// native break would bypass preventDefault() (e.g. snake pausing on
+			// + during gameplay instead of exiting). The no-frame-handler case
+			// still exits on + via the branch further down.
 
 			// Script called Switch.exit(): break from any state so we always
 			// reach teardown (incl. horizon_mman_teardown()).
@@ -1001,8 +1029,11 @@ int main(int argc, char *argv[]) {
 				consoleUpdate(print_console);
 			} else if (nx_ctx->rendering_mode == NX_RENDERING_MODE_CANVAS) {
 				if (screen_is_gpu) {
-					// The screen canvas drew straight into the GPU FBO; flush +
-					// submit + eglSwapBuffers presents it.
+					// Composite the persistent canvas surface into the EGL back
+					// buffer + swap. Presenting every frame is correct because
+					// the persistent surface always holds full current content
+					// (see nx_skia_gpu_present); double buffering no longer
+					// causes flicker.
 					nx_skia_gpu_present();
 				} else {
 					u32 stride;

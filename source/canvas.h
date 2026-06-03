@@ -33,8 +33,8 @@ typedef struct nx_canvas_s {
 	bool surface_dirty;
 	// Phase 2.2: when true, `surface` is a GPU-backed SkSurface (the screen's
 	// EGL FBO 0) rather than a raster surface over `data`. getImageData/encode
-	// read it back via GrDirectContext::readPixels; ensure_surface must not
-	// recreate it as raster. `data` may be null in this mode.
+	// read it back via SkSurface::readPixels; ensure_surface must not recreate
+	// it as raster. `data` may be null in this mode.
 	bool gpu;
 } nx_canvas_t;
 
