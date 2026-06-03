@@ -738,6 +738,14 @@ int main(int argc, char *argv[]) {
 		                       "--single-threaded-gc "
 		                       "--no-concurrent-recompilation --predictable");
 	}
+	// Report the memory gate + JIT mode. When JIT is on, the linked monolith
+	// tiers up Ignition -> Sparkplug -> Maglev -> TurboFan; jitless is Ignition
+	// only.
+	fprintf(stderr,
+	        "[v8] mem_free=%llu MiB -> mode=%s (%s)\n",
+	        (unsigned long long)(mem_free / (1024 * 1024)),
+	        can_jit ? "jit" : "jitless",
+	        can_jit ? "Ignition+Sparkplug+Maglev+TurboFan" : "Ignition only");
 	V8::Initialize();
 
 	Isolate::CreateParams create_params;
