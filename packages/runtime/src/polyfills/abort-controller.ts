@@ -1,6 +1,7 @@
 // Based on https://github.com/mo/abortcontroller-polyfill
 // By @mo - MIT License
 
+import { DOMException } from '../dom-exception';
 import { def } from '../utils';
 import { Event } from './event';
 import { EventTarget } from './event-target';

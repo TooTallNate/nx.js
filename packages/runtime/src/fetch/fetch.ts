@@ -3,6 +3,7 @@ import {
 	type CompressionFormat,
 	DecompressionStream,
 } from '../compression-streams';
+import { DOMException } from '../dom-exception';
 import { readFile } from '../fs';
 import { INTERNAL_SYMBOL } from '../internal';
 import { navigator } from '../navigator';

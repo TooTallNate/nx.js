@@ -1,4 +1,5 @@
 import { $ } from './$';
+import { DOMException } from './dom-exception';
 import { fetch } from './fetch/fetch';
 import { ErrorEvent, Event } from './polyfills/event';
 import { EventTarget } from './polyfills/event-target';
