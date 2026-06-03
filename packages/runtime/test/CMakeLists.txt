@@ -9,11 +9,10 @@ project(nxjs-test CXX)
 # Switch (target_os=horizon) portlibs cannot link into a host ELF, so a
 # dedicated host toolchain is required.
 #
-# Toolchain: clang + libc++. Host V8 and Skia are built with libc++, and V8's
-# public headers use std:: types whose ABI must match the archives — so the
-# whole harness MUST compile/link with -stdlib=libc++ (NOT libstdc++). The
-# image provides clang-16 + libc++-16 (newer clang needed for <source_location>
-# used by V8 m15 headers).
+# Toolchain: the host V8 and Skia in the image are built against the system
+# libstdc++ (g++ 12), so the harness must use libstdc++ too — V8's public
+# headers pass std:: types across the ABI boundary, which must match the
+# archives. A C++20-capable compiler is required (g++ 12 or clang-16+).
 # ============================================================================
 
 # /opt/host layout from the pacman-packages image.
@@ -147,9 +146,8 @@ target_link_libraries(nxjs-test PRIVATE
 # ============================================================================
 # Compiler / linker flags
 # ============================================================================
-# Everything must be libc++ to match host V8/Skia.
-target_compile_options(nxjs-test PRIVATE -stdlib=libc++)
-target_link_options(nxjs-test PRIVATE -stdlib=libc++)
+# Use the system libstdc++ (the default), matching host V8 + Skia which are
+# built against libstdc++ too — one consistent std:: ABI across all three.
 
 # Quiet warnings in the ported nx.js source (compiled with libnx stubbed).
 set_source_files_properties(${NX_SOURCES}
