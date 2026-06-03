@@ -1,75 +1,51 @@
 cmake_minimum_required(VERSION 3.20)
-project(nxjs-test C CXX)
-
-include(FetchContent)
+project(nxjs-test CXX)
 
 # ============================================================================
-# Fetch third-party dependencies
+# nxjs-test — host-platform conformance test binary (V8 + libuv + Skia era).
+#
+# Links against the HOST-native V8, Skia, and libuv built into the
+# pacman-packages image under /opt/host (see that repo's Dockerfile). The
+# Switch (target_os=horizon) portlibs cannot link into a host ELF, so a
+# dedicated host toolchain is required.
+#
+# Toolchain: clang + libc++. Host V8 and Skia are built with libc++, and V8's
+# public headers use std:: types whose ABI must match the archives — so the
+# whole harness MUST compile/link with -stdlib=libc++ (NOT libstdc++). The
+# image provides clang-16 + libc++-16 (newer clang needed for <source_location>
+# used by V8 m15 headers).
 # ============================================================================
 
-# QuickJS-ng — JavaScript engine
-FetchContent_Declare(
-  quickjs
-  GIT_REPOSITORY https://github.com/quickjs-ng/quickjs.git
-  GIT_TAG        v0.12.1
-)
-set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
-set(QJS_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(quickjs)
-
-# mbedtls — TLS, crypto, and certificate handling
-FetchContent_Declare(
-  mbedtls
-  GIT_REPOSITORY https://github.com/Mbed-TLS/mbedtls.git
-  GIT_TAG        v3.6.0
-)
-set(ENABLE_TESTING OFF CACHE BOOL "" FORCE)
-set(ENABLE_PROGRAMS OFF CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(mbedtls)
-
-# wasm3 — WebAssembly interpreter
-FetchContent_Declare(
-  wasm3
-  GIT_REPOSITORY https://github.com/wasm3/wasm3.git
-  GIT_TAG        7ed176d98586bf22aaa6db3b2d379af4c3cb0655
-)
-set(BUILD_WASI "none" CACHE STRING "WASI implementation" FORCE)
-FetchContent_MakeAvailable(wasm3)
-
-# ============================================================================
-# Find system libraries via pkg-config
-# ============================================================================
+# /opt/host layout from the pacman-packages image.
+set(HOST_PREFIX "/opt/host" CACHE PATH "Host-native V8/Skia/libuv prefix")
+set(V8_DIR    "${HOST_PREFIX}/v8")
+set(SKIA_DIR  "${HOST_PREFIX}/skia")
+set(LIBUV_DIR "${HOST_PREFIX}/libuv")
 
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(CAIRO REQUIRED cairo)
+# Leaf deps come from apt (host ABI); only the engine/renderer/loop are pinned.
 pkg_check_modules(FREETYPE REQUIRED freetype2)
 pkg_check_modules(HARFBUZZ REQUIRED harfbuzz)
-pkg_check_modules(CAIRO_FT REQUIRED cairo-ft)
 pkg_check_modules(PNG REQUIRED libpng)
 pkg_check_modules(TURBOJPEG REQUIRED libturbojpeg)
 pkg_check_modules(WEBP REQUIRED libwebp)
 pkg_check_modules(ZLIB REQUIRED zlib)
 pkg_check_modules(ZSTD REQUIRED libzstd)
 
-# Optional: SDL2 for visual canvas output (disabled by default for CI)
-option(NXJS_SDL "Enable SDL2 window for canvas rendering" OFF)
-if(NXJS_SDL)
-  pkg_check_modules(SDL2 REQUIRED sdl2)
-endif()
-
 # ============================================================================
-# Source file lists
+# Source files
 # ============================================================================
 
 set(NX_SOURCE_DIR "${CMAKE_SOURCE_DIR}/../../../source")
 
-# Test harness sources
 set(TEST_SOURCES
-  src/main.c
-  src/stubs.c
+  src/main.cc
+  src/stubs.cc
 )
 
-# Real nx.js source files (portable modules)
+# Real nx.js source modules that are portable (compiled from source/*.cc, with
+# libnx stubbed by compat/). skia_gpu.cc is EXCLUDED — it's the GPU (EGL/Ganesh)
+# screen provider, which the host raster harness does not use.
 set(NX_SOURCES
   ${NX_SOURCE_DIR}/async.cc
   ${NX_SOURCE_DIR}/canvas.cc
@@ -86,32 +62,19 @@ set(NX_SOURCES
   ${NX_SOURCE_DIR}/udp.cc
   ${NX_SOURCE_DIR}/url.cc
   ${NX_SOURCE_DIR}/util.cc
-  ${NX_SOURCE_DIR}/web.cc
   ${NX_SOURCE_DIR}/window.cc
-)
-
-# ada URL parser (C++ — single-header library)
-set(NX_CXX_SOURCES
+  ${NX_SOURCE_DIR}/wrap.cc
   ${NX_SOURCE_DIR}/ada.cpp
 )
 
-# ============================================================================
-# Build the test binary
-# ============================================================================
-
-add_executable(nxjs-test
-  ${TEST_SOURCES}
-  ${NX_SOURCES}
-  ${NX_CXX_SOURCES}
-)
+add_executable(nxjs-test ${TEST_SOURCES} ${NX_SOURCES})
 
 # ============================================================================
-# Include directories
+# Includes
 # ============================================================================
 
-# canvas.h does #include <harfbuzz/hb.h> so we need the parent of the
-# harfbuzz include directory (pkg-config gives us .../include/harfbuzz,
-# but we need .../include so that harfbuzz/hb.h resolves correctly)
+# harfbuzz: canvas.h does #include <harfbuzz/hb.h>; pkg-config points at
+# .../include/harfbuzz, so add its parent too.
 set(HARFBUZZ_PARENT_INCLUDE "")
 foreach(dir ${HARFBUZZ_INCLUDE_DIRS})
   get_filename_component(parent "${dir}" DIRECTORY)
@@ -119,99 +82,80 @@ foreach(dir ${HARFBUZZ_INCLUDE_DIRS})
 endforeach()
 list(REMOVE_DUPLICATES HARFBUZZ_PARENT_INCLUDE)
 
-# CRITICAL: Compat headers FIRST for angle-bracket includes (<switch.h>, etc.)
-# Then source/ for the real nx.js headers (types.h, canvas.h, etc.)
-# Then src/ so main.c and stubs.c can find the source/ headers via include path
+# Order matters: compat/ first (provides <switch.h> + libnx stubs), then the
+# real source/ headers, then src/.
 target_include_directories(nxjs-test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/src/compat
   ${NX_SOURCE_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}/src
-  ${CAIRO_INCLUDE_DIRS}
+  ${V8_DIR}/include
+  ${SKIA_DIR}
+  ${LIBUV_DIR}/include
   ${FREETYPE_INCLUDE_DIRS}
   ${HARFBUZZ_INCLUDE_DIRS}
   ${HARFBUZZ_PARENT_INCLUDE}
-  ${CAIRO_FT_INCLUDE_DIRS}
   ${PNG_INCLUDE_DIRS}
   ${TURBOJPEG_INCLUDE_DIRS}
   ${WEBP_INCLUDE_DIRS}
   ${ZLIB_INCLUDE_DIRS}
   ${ZSTD_INCLUDE_DIRS}
-  ${mbedtls_SOURCE_DIR}/include
 )
-if(NXJS_SDL)
-  target_include_directories(nxjs-test PRIVATE ${SDL2_INCLUDE_DIRS})
-endif()
-
-# ============================================================================
-# Link directories
-# ============================================================================
 
 target_link_directories(nxjs-test PRIVATE
-  ${CAIRO_LIBRARY_DIRS}
   ${FREETYPE_LIBRARY_DIRS}
   ${HARFBUZZ_LIBRARY_DIRS}
-  ${CAIRO_FT_LIBRARY_DIRS}
   ${PNG_LIBRARY_DIRS}
   ${TURBOJPEG_LIBRARY_DIRS}
   ${WEBP_LIBRARY_DIRS}
   ${ZLIB_LIBRARY_DIRS}
   ${ZSTD_LIBRARY_DIRS}
 )
-if(NXJS_SDL)
-  target_link_directories(nxjs-test PRIVATE ${SDL2_LIBRARY_DIRS})
-endif()
 
 # ============================================================================
 # Link libraries
 # ============================================================================
-
-# Mirrors the production Makefile LIBS line, minus libnx:
-# -pthread -lmbedtls -lmbedx509 -lmbedcrypto -lharfbuzz
-# freetype2 cairo (via pkg-config)
-# -lturbojpeg -lwebp -lqjs -lm3 -lm -lzstd
+# V8 monolith links in a group (circular refs), like the device Makefile.
 target_link_libraries(nxjs-test PRIVATE
-  qjs
-  m3
-  mbedtls
-  mbedx509
-  mbedcrypto
-  ${CAIRO_LIBRARIES}
+  -Wl,--start-group
+  ${V8_DIR}/lib/libv8_monolith.a
+  ${V8_DIR}/lib/libabsl.a
+  ${V8_DIR}/lib/libchrome_zlib.a
+  ${V8_DIR}/lib/libcompression_utils_portable.a
+  -Wl,--end-group
+  ${SKIA_DIR}/lib/libskia.a
+  ${SKIA_DIR}/lib/libskshaper.a
+  ${SKIA_DIR}/lib/libskunicode_core.a
+  ${SKIA_DIR}/lib/libskunicode_libgrapheme.a
+  ${SKIA_DIR}/lib/libskcms.a
+  ${LIBUV_DIR}/lib/libuv.a
+  mbedtls mbedx509 mbedcrypto
   ${FREETYPE_LIBRARIES}
   ${HARFBUZZ_LIBRARIES}
-  ${CAIRO_FT_LIBRARIES}
-  ${PNG_LIBRARIES}
   ${TURBOJPEG_LIBRARIES}
+  # Skia's codecs need the full libjpeg API (jpeg_std_error etc., distinct from
+  # turbojpeg's tj*) and libwebpdemux (animated/demux), beyond what nx.js's own
+  # decoders use.
+  jpeg
   ${WEBP_LIBRARIES}
+  webpdemux
+  ${PNG_LIBRARIES}
   ${ZLIB_LIBRARIES}
   ${ZSTD_LIBRARIES}
-  m
-  pthread
+  m pthread dl
 )
-if(NXJS_SDL)
-  target_link_libraries(nxjs-test PRIVATE ${SDL2_LIBRARIES})
-  target_compile_definitions(nxjs-test PRIVATE NXJS_HAS_SDL=1)
-endif()
 
 # ============================================================================
-# Compiler flags
+# Compiler / linker flags
 # ============================================================================
+# Everything must be libc++ to match host V8/Skia.
+target_compile_options(nxjs-test PRIVATE -stdlib=libc++)
+target_link_options(nxjs-test PRIVATE -stdlib=libc++)
 
-# Suppress warnings from nx.js source files (they're not ours to fix)
-# -Wno-implicit-function-declaration is needed because some source files
-# (e.g. tcp.c) don't include <unistd.h> for close() — it's provided by
-# libnx headers on Switch but not on the host.
+# Quiet warnings in the ported nx.js source (compiled with libnx stubbed).
 set_source_files_properties(${NX_SOURCES}
   PROPERTIES COMPILE_FLAGS
-  "-Wno-unused-parameter -Wno-sign-compare -Wno-implicit-fallthrough -Wno-missing-field-initializers -Wno-implicit-function-declaration -Wno-incompatible-pointer-types -Wno-tautological-constant-out-of-range-compare -Wno-absolute-value -Wno-format-security -Wno-int-conversion"
+  "-Wno-unused-parameter -Wno-sign-compare -Wno-implicit-fallthrough -Wno-missing-field-initializers"
 )
 
-set_source_files_properties(${NX_CXX_SOURCES}
-  PROPERTIES COMPILE_FLAGS
-  "-Wno-unused-parameter -Wno-sign-compare"
-)
-
-# C standard
-set_property(TARGET nxjs-test PROPERTY C_STANDARD 11)
-set_property(TARGET nxjs-test PROPERTY CXX_STANDARD 17)
-
-
+set_property(TARGET nxjs-test PROPERTY CXX_STANDARD 20)
+set_property(TARGET nxjs-test PROPERTY CXX_STANDARD_REQUIRED ON)

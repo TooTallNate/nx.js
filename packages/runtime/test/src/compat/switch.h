@@ -457,12 +457,12 @@ static inline bool eventWait(Event *event, u64 timeout) {
 #define AES_BLOCK_SIZE 16
 
 static inline void sha1CalculateHash(void *dst, const void *src, size_t size) {
-	mbedtls_sha1(src, size, dst);
+	mbedtls_sha1((const unsigned char *)src, size, (unsigned char *)dst);
 }
 
 static inline void sha256CalculateHash(void *dst, const void *src,
                                        size_t size) {
-	mbedtls_sha256(src, size, dst, 0);
+	mbedtls_sha256((const unsigned char *)src, size, (unsigned char *)dst, 0);
 }
 
 // ============================================================================
@@ -493,9 +493,11 @@ typedef struct {
 	    bool encrypt) {                                                        \
 		mbedtls_aes_init(&ctx->aes);                                           \
 		if (encrypt)                                                           \
-			mbedtls_aes_setkey_enc(&ctx->aes, key, bits);                      \
+			mbedtls_aes_setkey_enc(&ctx->aes, (const unsigned char *)key,      \
+			                       bits);                                      \
 		else                                                                   \
-			mbedtls_aes_setkey_dec(&ctx->aes, key, bits);                      \
+			mbedtls_aes_setkey_dec(&ctx->aes, (const unsigned char *)key,      \
+			                       bits);                                      \
 		memcpy(ctx->iv, iv, 16);                                               \
 		ctx->encrypt = encrypt;                                                \
 	}                                                                          \
@@ -509,7 +511,8 @@ typedef struct {
 		uint8_t iv_copy[16];                                                   \
 		memcpy(iv_copy, ctx->iv, 16);                                          \
 		mbedtls_aes_crypt_cbc(&ctx->aes, MBEDTLS_AES_ENCRYPT, size, iv_copy,  \
-		                      src, dst);                                        \
+		                      (const unsigned char *)src,                      \
+		                      (unsigned char *)dst);                           \
 	}                                                                          \
 	static inline void aes##bits##CbcDecrypt(Aes##bits##CbcContext *ctx,       \
 	                                         void *dst, const void *src,       \
@@ -517,7 +520,8 @@ typedef struct {
 		uint8_t iv_copy[16];                                                   \
 		memcpy(iv_copy, ctx->iv, 16);                                          \
 		mbedtls_aes_crypt_cbc(&ctx->aes, MBEDTLS_AES_DECRYPT, size, iv_copy,  \
-		                      src, dst);                                        \
+		                      (const unsigned char *)src,                      \
+		                      (unsigned char *)dst);                           \
 	}
 
 IMPL_AES_CBC(128)
@@ -539,7 +543,7 @@ typedef struct {
 	static inline void aes##bits##CtrContextCreate(                            \
 	    Aes##bits##CtrContext *ctx, const void *key, const void *ctr) {        \
 		mbedtls_aes_init(&ctx->aes);                                           \
-		mbedtls_aes_setkey_enc(&ctx->aes, key, bits);                          \
+		mbedtls_aes_setkey_enc(&ctx->aes, (const unsigned char *)key, bits);   \
 		memcpy(ctx->ctr, ctr, 16);                                             \
 		memset(ctx->stream_block, 0, 16);                                      \
 		ctx->nc_off = 0;                                                       \
@@ -558,7 +562,9 @@ typedef struct {
 		uint8_t sb[16];                                                        \
 		memcpy(sb, ctx->stream_block, 16);                                     \
 		size_t nc = ctx->nc_off;                                               \
-		mbedtls_aes_crypt_ctr(&ctx->aes, size, &nc, ctr_copy, sb, src, dst);  \
+		mbedtls_aes_crypt_ctr(&ctx->aes, size, &nc, ctr_copy, sb,             \
+		                      (const unsigned char *)src,                      \
+		                      (unsigned char *)dst);                           \
 	}
 
 IMPL_AES_CTR(128)
@@ -793,3 +799,4 @@ typedef struct {
 
 // TurboJPEG decode helper (used by main.c nx_render_loading_image)
 // The actual decode_jpeg function is defined in util.c
+
