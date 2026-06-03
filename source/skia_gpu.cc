@@ -137,8 +137,6 @@ sk_sp<SkSurface> nx_skia_gpu_screen_init(u32 width, u32 height, int samples) {
 	return s_canvas;
 }
 
-GrDirectContext *nx_skia_gpu_context(void) { return s_gr.get(); }
-
 void nx_skia_gpu_present(void) {
 	if (!s_canvas || !s_fbo || !s_gr)
 		return;

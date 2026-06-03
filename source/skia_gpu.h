@@ -4,8 +4,6 @@
 #include "include/core/SkRefCnt.h"
 #include "include/core/SkSurface.h"
 
-class GrDirectContext;
-
 // Phase 2.2 GPU backend: EGL + Skia Ganesh GL over the default NWindow. The
 // screen canvas is backed by a GPU SkSurface wrapping the EGL window's FBO 0
 // and presented via eglSwapBuffers. Offscreen canvases remain raster. If GPU
@@ -22,10 +20,6 @@ class GrDirectContext;
 // down). The returned surface is owned by this module; do not outlive
 // nx_skia_gpu_screen_exit().
 sk_sp<SkSurface> nx_skia_gpu_screen_init(u32 width, u32 height, int samples);
-
-// The shared GrDirectContext (for readPixels / GPU resource management), or
-// nullptr if the GPU screen is not initialized.
-GrDirectContext *nx_skia_gpu_context(void);
 
 // Flush + submit the GPU surface and eglSwapBuffers (present one frame).
 void nx_skia_gpu_present(void);
