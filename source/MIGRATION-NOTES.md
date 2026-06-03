@@ -299,6 +299,10 @@ archive. Superseded by the package-source fix.
 
 ## On-hardware runtime findings (V8 + Skia + libuv "trifecta" demo)
 
+> For the resulting **JIT-vs-canvas memory policy recommendation** (when to use
+> full JIT vs. jitless, keyed on CPU vs. GPU canvas + memory regime), see
+> **`JIT-CANVAS-POLICY.md`**.
+
 The link-time PoC above proves the three packages *build* together. This
 section captures what it took to make them actually *run* at 60 fps on real
 hardware (FW 18.1.0), discovered building a standalone demo

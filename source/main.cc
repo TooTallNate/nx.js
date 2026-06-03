@@ -20,8 +20,15 @@
 #include FT_FREETYPE_H
 
 #include "error.h"
+#include "skia_gpu.h"
 #include "types.h"
 #include "util.h"
+
+// Phase 2.0 spike: when set, the canvas present path uses the Skia Ganesh GL
+// surface (EGL on the default NWindow) instead of the Cairo->framebuffer
+// memcpy. Draws a trivial test scene (ignores the JS canvas) to validate the
+// GPU integration in the real present loop before porting canvas.cc.
+#define NX_SKIA_GPU_SPIKE 1
 
 // Module init declarations (each defined in its own .cc). Signature per
 // BINDINGS.md: void nx_init_foo(v8::Isolate*, v8::Local<v8::Object> init_obj).
@@ -263,10 +270,26 @@ static void nx_framebuffer_init(const FunctionCallbackInfo<Value> &info) {
 	js_framebuffer = nx_canvas_pixels(canvas);
 	js_fb_width = width;
 	js_fb_height = height;
+#if NX_SKIA_GPU_SPIKE
+	// EGL owns the NWindow; no libnx framebuffer in GPU mode. If GPU bringup
+	// fails (e.g. Mesa starved for memory in applet mode when JIT also claimed
+	// its arena), do NOT enter CANVAS mode: that would loop drawing nothing
+	// (black screen) and leave partially-initialized EGL/Mesa state to corrupt
+	// the next launch. Surface the failure and stay in console mode instead.
+	if (!nx_skia_gpu_init(width, height)) {
+		fprintf(stderr, "[skia] GPU init failed; staying in console mode\n");
+		fflush(stderr);
+		nx_console_init(ctx);
+		printf("Skia GPU init failed (see nxjs-debug.log)\n");
+		ctx->had_error = 1;
+		return;
+	}
+#else
 	framebuffer = (Framebuffer *)malloc(sizeof(Framebuffer));
 	framebufferCreate(framebuffer, win, width, height, PIXEL_FORMAT_BGRA_8888,
 	                  2);
 	framebufferMakeLinear(framebuffer);
+#endif
 	ctx->rendering_mode = NX_RENDERING_MODE_CANVAS;
 }
 
@@ -670,7 +693,15 @@ static void build_init_object(Isolate *iso, Local<Context> context,
 
 // BsdServiceType_Auto (tries bsd:s first) is intentional: bsd:s is required to
 // bind privileged ports (e.g. a TCP server on port 80).
-static SocketInitConfig const s_socketInitConfig = {
+//
+// The socket layer reserves a transfer-memory region sized roughly as
+// (tcp_tx_max + tcp_rx_max + udp_tx + udp_rx) * sb_efficiency. The full config
+// below is ~(4+4)MiB * 8 = ~64 MiB. That is fine in application/full-memory
+// mode (GiBs free) but is catastrophic in applet mode (~137 MiB total): the
+// reservation starves Mesa/V8 and bsdsocket faults the first time libuv touches
+// its loopback self-wake socketpair (User Break at bsdsocket+0xe7064, observed
+// at frame 1). So pick a lean config when free memory is tight.
+static SocketInitConfig const s_socketInitConfigFull = {
     .tcp_tx_buf_size = 1 * 1024 * 1024,
     .tcp_rx_buf_size = 1 * 1024 * 1024,
     .tcp_tx_buf_max_size = 4 * 1024 * 1024,
@@ -678,6 +709,21 @@ static SocketInitConfig const s_socketInitConfig = {
     .udp_tx_buf_size = 0x2400,
     .udp_rx_buf_size = 0xA500,
     .sb_efficiency = 8,
+    .num_bsd_sessions = 3,
+    .bsd_service_type = BsdServiceType_Auto,
+};
+
+// Lean config for tight-memory (applet) mode: ~(256+256)KiB * 4 = ~2 MiB of
+// transfer memory. Enough for libuv's self-wake socketpair, DNS, and modest
+// fetch/TLS, while leaving room for the GPU/Mesa + V8 stack.
+static SocketInitConfig const s_socketInitConfigLean = {
+    .tcp_tx_buf_size = 128 * 1024,
+    .tcp_rx_buf_size = 128 * 1024,
+    .tcp_tx_buf_max_size = 256 * 1024,
+    .tcp_rx_buf_max_size = 256 * 1024,
+    .udp_tx_buf_size = 0x2400,
+    .udp_rx_buf_size = 0xA500,
+    .sb_efficiency = 4,
     .num_bsd_sessions = 3,
     .bsd_service_type = BsdServiceType_Auto,
 };
@@ -695,7 +741,18 @@ int main(int argc, char *argv[]) {
 	if (R_FAILED(rc))
 		diagAbortWithResult(rc);
 
-	rc = socketInitialize(&s_socketInitConfig);
+	// Probe free memory up front: it gates BOTH the socket buffer config (here)
+	// and the V8 JIT/heap policy (below). In applet mode (~137 MiB) the lean
+	// socket config avoids a ~64 MiB transfer-memory reservation that would
+	// otherwise starve the GPU/V8 stack and fault bsdsocket.
+	u64 mem_total = 0, mem_used = 0;
+	svcGetInfo(&mem_total, InfoType_TotalMemorySize, CUR_PROCESS_HANDLE, 0);
+	svcGetInfo(&mem_used, InfoType_UsedMemorySize, CUR_PROCESS_HANDLE, 0);
+	u64 mem_free = mem_total > mem_used ? mem_total - mem_used : 0;
+	bool tight_memory = mem_free <= (300ull * 1024 * 1024);
+
+	rc = socketInitialize(tight_memory ? &s_socketInitConfigLean
+	                                    : &s_socketInitConfigFull);
 	if (R_FAILED(rc))
 		diagAbortWithResult(rc);
 
@@ -723,12 +780,9 @@ int main(int argc, char *argv[]) {
 	// when free memory is tight we fall back to jitless (interpreter). Phase 1
 	// uses a CPU (Cairo) canvas with no Mesa contention, so this will normally
 	// pick full JIT in both regimes; the gate matters once a GPU canvas lands.
-	u64 mem_total = 0, mem_used = 0;
-	svcGetInfo(&mem_total, InfoType_TotalMemorySize, CUR_PROCESS_HANDLE, 0);
-	svcGetInfo(&mem_used, InfoType_UsedMemorySize, CUR_PROCESS_HANDLE, 0);
-	u64 mem_free = mem_total > mem_used ? mem_total - mem_used : 0;
+	// mem_free / tight_memory were probed before socketInitialize above.
 	// ~300 MiB headroom: code arena (128 MiB real) + GPU/Mesa + JS heap.
-	bool can_jit = mem_free > (300ull * 1024 * 1024);
+	bool can_jit = !tight_memory;
 
 	if (can_jit) {
 		V8::SetFlagsFromString("--single-threaded --single-threaded-gc "
@@ -746,6 +800,10 @@ int main(int argc, char *argv[]) {
 	        (unsigned long long)(mem_free / (1024 * 1024)),
 	        can_jit ? "jit" : "jitless",
 	        can_jit ? "Ignition+Sparkplug+Maglev+TurboFan" : "Ignition only");
+	// stderr is fully buffered when redirected to a file (not a TTY), so an
+	// early abnormal exit would lose this line. Flush each init milestone so the
+	// log reflects how far startup actually got.
+	fflush(stderr);
 	V8::Initialize();
 
 	Isolate::CreateParams create_params;
@@ -853,7 +911,36 @@ int main(int argc, char *argv[]) {
 		}
 
 		// ---- Main event loop ---------------------------------------------
-		while (appletMainLoop()) {
+		// Gate on is_running (set false by Switch.exit / + / exit syscall), NOT
+		// on appletMainLoop(): once EGL owns the default NWindow (GPU canvas),
+		// appletMainLoop() can return false immediately and tear the applet down
+		// at frame 1 before any clean exit -> leaked V8 svcMapMemory arenas ->
+		// corrupted hbmenu on return. appletMainLoop() is still pumped inside the
+		// loop for applet message processing; its return value is only honored as
+		// an exit signal when NOT driving a GPU surface (legacy framebuffer apps
+		// rely on it to detect an OS-initiated close).
+#if NX_SKIA_GPU_SPIKE
+		fprintf(stderr, "[loop] entering main loop\n");
+		fflush(stderr);
+		unsigned long long loop_frames = 0;
+#endif
+		while (is_running) {
+			bool applet_active = appletMainLoop();
+#if NX_SKIA_GPU_SPIKE
+			loop_frames++;
+			if (loop_frames <= 3 || loop_frames % 60 == 0) {
+				fprintf(stderr,
+				        "[loop] frame=%llu mode=%d had_error=%d applet=%d\n",
+				        loop_frames, (int)nx_ctx->rendering_mode,
+				        nx_ctx->had_error, (int)applet_active);
+				fflush(stderr);
+			}
+#else
+			// Legacy framebuffer path: an OS-initiated applet close surfaces as
+			// appletMainLoop()==false; honor it so the app exits cleanly.
+			if (!applet_active)
+				break;
+#endif
 			if (!nx_ctx->had_error) {
 				// libuv: sockets, fs, dns, threadpool afters, timers.
 				uv_run(&loop, UV_RUN_NOWAIT);
@@ -870,6 +957,14 @@ int main(int argc, char *argv[]) {
 			}
 			u64 kDown = padGetButtonsDown(&nx_ctx->pads[0]);
 			bool plusDown = kDown & HidNpadButton_Plus;
+
+#if NX_SKIA_GPU_SPIKE
+			// Spike: the rAF frame handler never exits on +, and we no longer
+			// gate on appletMainLoop(), so make + an unconditional clean exit
+			// (mirrors trifecta's "+ to quit") that always reaches teardown.
+			if (plusDown)
+				break;
+#endif
 
 			// Script called Switch.exit(): break from any state so we always
 			// reach teardown (incl. horizon_mman_teardown()).
@@ -903,12 +998,24 @@ int main(int argc, char *argv[]) {
 			if (nx_ctx->rendering_mode == NX_RENDERING_MODE_CONSOLE) {
 				consoleUpdate(print_console);
 			} else if (nx_ctx->rendering_mode == NX_RENDERING_MODE_CANVAS) {
+#if NX_SKIA_GPU_SPIKE
+				static int spike_frame = 0;
+				nx_skia_gpu_test_frame(spike_frame++);
+#else
 				u32 stride;
 				u8 *fb = (u8 *)framebufferBegin(framebuffer, &stride);
 				memcpy(fb, js_framebuffer, js_fb_width * js_fb_height * 4);
 				framebufferEnd(framebuffer);
+#endif
 			}
 		}
+#if NX_SKIA_GPU_SPIKE
+		fprintf(stderr,
+		        "[loop] exited after %llu frame(s) (is_running=%d "
+		        "had_error=%d)\n",
+		        loop_frames, (int)is_running, nx_ctx->had_error);
+		fflush(stderr);
+#endif
 
 		// ---- Exit handler ------------------------------------------------
 		if (!nx_ctx->exit_handler.IsEmpty()) {
@@ -925,7 +1032,11 @@ int main(int argc, char *argv[]) {
 	if (nx_ctx->rendering_mode == NX_RENDERING_MODE_CONSOLE) {
 		nx_console_exit();
 	} else if (nx_ctx->rendering_mode == NX_RENDERING_MODE_CANVAS) {
+#if NX_SKIA_GPU_SPIKE
+		nx_skia_gpu_exit();
+#else
 		nx_framebuffer_exit();
+#endif
 	}
 
 	// Release retained handles before disposing the isolate.

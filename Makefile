@@ -76,21 +76,37 @@ CFLAGS	:=	-g -Wall -O2 -ffunction-sections \
 CFLAGS	+=	$(INCLUDE) -D__SWITCH__ -D_DEFAULT_SOURCE $(UV_CFLAGS) \
 			`$(PKG_CONFIG) freetype2 cairo --cflags`
 
+# Skia (Ganesh GL). Source-root include dir; SK_GL selects the GL backend.
+SKIA_CFLAGS	:=	-DSK_GL -DSK_BUILD_FOR_UNIX -I$(PORTLIBS)/include/skia
+
 # V8's API is C++; nx.js native modules are C++ (.cc), no exceptions/RTTI, C++20.
 # -Wno-comment: V8 headers (v8-internal.h) contain ASCII-art block comments.
-CXXFLAGS	:=	$(CFLAGS) -fno-rtti -fno-exceptions -std=c++20 -Wno-comment
+CXXFLAGS	:=	$(CFLAGS) $(SKIA_CFLAGS) -fno-rtti -fno-exceptions -std=c++20 -Wno-comment
 
 ASFLAGS	:=	-g $(ARCH)
 LDFLAGS	=	-specs=${DEVKITPRO}/libnx/switch.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
 
 # V8 static libs must be linked in a --start-group (circular refs). The patched
 # archive in $(BUILD) (libc-horizon symbols weakened) takes precedence via -L.
-# Skia is added in Phase 2.
 V8_LIBS	:=	-Wl,--start-group -lv8_monolith -labsl -lchrome_zlib -lcompression_utils_portable -Wl,--end-group
 
-LIBS	:=  -lmbedtls -lmbedx509 -lmbedcrypto -lharfbuzz \
-			`$(PKG_CONFIG) freetype2 cairo --libs` \
-			-lturbojpeg -lwebp $(V8_LIBS) $(UV_LIBS) -lm -lzstd \
+# Skia (Ganesh GL) link stack: the horizon port object, then the GL-suffixed
+# Skia archives in a group, then the EGL/GLES/Mesa stack. Matches the validated
+# trifecta link recipe (MIGRATION-NOTES §269-438).
+SKIA_LIBS	:=	$(PORTLIBS)/lib/skia-horizon-port.o \
+			-Wl,--start-group -lskia-gl -lskcms-gl -lskshaper-gl \
+			-lskunicode_core-gl -lskunicode_libgrapheme-gl -Wl,--end-group
+GL_LIBS		:=	-lEGL -lGLESv2 -lglapi -ldrm_nouveau
+
+# Link order (proven): Skia -> V8 -> libuv -> GL -> freetype/harfbuzz -> codecs.
+# -lharfbuzz (system) satisfies switch-freetype's autohinter; Skia bundles its
+# own ICU-free HarfBuzz internally. png/z are now explicit (were pulled via
+# cairo). cairo/mbedtls retained alongside during the Skia migration.
+LIBS	:=  $(SKIA_LIBS) $(V8_LIBS) $(UV_LIBS) $(GL_LIBS) \
+			-lmbedtls -lmbedx509 -lmbedcrypto \
+			-Wl,--start-group -lfreetype -lharfbuzz -Wl,--end-group \
+			`$(PKG_CONFIG) cairo --libs` \
+			-lturbojpeg -lwebp -lwebpdemux -ljpeg -lpng -lbz2 -lz -lm -lzstd \
 			-L$(DEVKITPRO)/libnx/lib -lnx
 
 #---------------------------------------------------------------------------------
