@@ -3,7 +3,6 @@
 #include "error.h"
 #include "util.h"
 #include "wrap.h"
-#include <cairo.h>
 #include <png.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -21,10 +20,6 @@ struct buffer_state {
 };
 
 void close_image(nx_image_t *image) {
-	if (image->surface) {
-		cairo_surface_destroy(image->surface);
-		image->surface = NULL;
-	}
 	if (image->data) {
 		if (image->format == FORMAT_JPEG) {
 			tjFree(image->data);
@@ -148,9 +143,8 @@ void nx_decode_image_do(nx_work_t *req) {
 		data->err_str = "Image decode was not initialized";
 		return;
 	}
-	data->image->surface = cairo_image_surface_create_for_data(
-	    data->image->data, CAIRO_FORMAT_ARGB32, data->image->width,
-	    data->image->height, data->image->width * 4);
+	// `data->image->data` holds premultiplied BGRA; canvas.cc wraps it in an
+	// SkImage at draw time. No persistent surface object needed.
 }
 
 MaybeLocal<Value> nx_decode_image_cb(Isolate *iso, nx_work_t *req) {
@@ -213,8 +207,6 @@ void nx_image_new(const FunctionCallbackInfo<Value> &info) {
 			return;
 		}
 		data->data = (uint8_t *)calloc(1, (size_t)w * h * 4);
-		data->surface = cairo_image_surface_create_for_data(
-		    data->data, CAIRO_FORMAT_ARGB32, w, h, w * 4);
 	}
 	info.GetReturnValue().Set(img);
 }

@@ -41,8 +41,6 @@ export interface Versions {
 	 * Atmosphère.
 	 */
 	readonly ams: string | undefined;
-	/** The version of the [cairo](https://www.cairographics.org/) 2D graphics library used for canvas rendering. */
-	readonly cairo: string;
 	/**
 	 * `true` if the Switch is running Atmosphère from emuMMC, `false` if
 	 * running sysMMC, or `undefined` if not running Atmosphère.
@@ -60,8 +58,8 @@ export interface Versions {
 	readonly mbedtls: string;
 	/** The semver version of the nx.js runtime itself. */
 	readonly nxjs: string;
-	/** The version of the [pixman](https://pixman.org/) low-level pixel manipulation library. */
-	readonly pixman: string;
+	/** The version of the [Skia](https://skia.org/) 2D graphics library used for canvas rendering (milestone number, e.g. `"149"`). */
+	readonly skia: string;
 	/** The version of [libpng](http://www.libpng.org/pub/png/libpng.html) used for PNG decoding. */
 	readonly png: string;
 	/** The version of [libjpeg-turbo](https://libjpeg-turbo.org/) used for JPEG decoding. */

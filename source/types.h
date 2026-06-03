@@ -6,10 +6,11 @@
 //   - The engine is V8 (C++); every native module is compiled as C++ (.cc).
 //   - The event loop + threadpool + async I/O are libuv (uv_loop_t / uv_work_t).
 //   - QuickJS, wasm3, the hand-rolled poll.c/thpool.c are gone.
-//   - Phase 1 keeps Cairo for rendering (swapped to Skia in Phase 2).
+//   - Rendering is Skia (raster in Phase 2.1; GPU in Phase 2.2). FreeType +
+//     HarfBuzz remain for font face loading + shaping.
 
-#include <cairo-ft.h>
 #include <ft2build.h>
+#include FT_FREETYPE_H
 #include <mbedtls/ctr_drbg.h>
 #include <mbedtls/entropy.h>
 #include <mbedtls/x509_crt.h>

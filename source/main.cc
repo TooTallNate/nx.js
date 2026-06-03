@@ -8,7 +8,6 @@
 #include <hb.h>
 #include <libplatform/libplatform.h>
 #include <mbedtls/version.h>
-#include <pixman.h>
 #include <png.h>
 #include <switch.h>
 #include <turbojpeg.h>
@@ -20,15 +19,16 @@
 #include FT_FREETYPE_H
 
 #include "error.h"
-#include "skia_gpu.h"
 #include "types.h"
 #include "util.h"
 
-// Phase 2.0 spike: when set, the canvas present path uses the Skia Ganesh GL
-// surface (EGL on the default NWindow) instead of the Cairo->framebuffer
-// memcpy. Draws a trivial test scene (ignores the JS canvas) to validate the
-// GPU integration in the real present loop before porting canvas.cc.
-#define NX_SKIA_GPU_SPIKE 1
+#include "include/core/SkMilestone.h"
+
+// Phase 2.1: the canvas renders to a raster SkSurface over its own pixel
+// buffer; the screen is presented by blitting those pixels into the libnx
+// framebuffer (the path below). The Phase 2.0 GPU spike (NX_SKIA_GPU_SPIKE) is
+// retired; GPU-backed surfaces + eglSwapBuffers return in Phase 2.2.
+#define NX_SKIA_GPU_SPIKE 0
 
 // Module init declarations (each defined in its own .cc). Signature per
 // BINDINGS.md: void nx_init_foo(v8::Isolate*, v8::Local<v8::Object> init_obj).
@@ -644,7 +644,6 @@ static void build_init_object(Isolate *iso, Local<Context> context,
 	    ->SetNativeDataProperty(context, nx_str(iso, "ams"),
 	                            nx_version_get_ams)
 	    .Check();
-	set_ver("cairo", cairo_version_string());
 	version
 	    ->SetNativeDataProperty(context, nx_str(iso, "emummc"),
 	                            nx_version_get_emummc)
@@ -664,7 +663,11 @@ static void build_init_object(Isolate *iso, Local<Context> context,
 	set_ver("libnx", LIBNX_VERSION);
 	set_ver("mbedtls", MBEDTLS_VERSION_STRING);
 	set_ver("nxjs", NXJS_VERSION);
-	set_ver("pixman", pixman_version_string());
+	{
+		char skia[8];
+		snprintf(skia, sizeof(skia), "%d", SK_MILESTONE);
+		set_ver("skia", skia);
+	}
 	set_ver("png", PNG_LIBPNG_VER_STRING);
 	set_ver("turbojpeg", LIBTURBOJPEG_VERSION);
 	set_ver("v8", V8::GetVersion());

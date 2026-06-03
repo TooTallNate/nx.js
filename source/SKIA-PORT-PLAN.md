@@ -59,15 +59,48 @@ Per JIT-CANVAS-POLICY: GPU canvas → full JIT in application mode, **jitless in
 applet mode** (the existing `mem_free > 300 MiB` gate already does this).
 
 ## Order of work
-1. **Spike (2.0):** EGL + Ganesh GL Screen surface in nx.js's present loop; a
-   trivial Skia draw (clear + rect + text) each frame; verify on hardware in
-   both regimes. De-risks integration before touching canvas.cc.
-2. Port `canvas.cc` (the `SkCanvas`/`SkPaint`/`SkPath` body) — backing-agnostic.
-3. Surface creation (GPU default + raster fallback) + `getImageData`/
-   `putImageData`/`toDataURL` (readPixels/upload).
-4. Rewire `font.cc`, `image.cc`, `irs.cc`, drop the `dommatrix` Cairo union.
-5. Makefile: link the skia-gl stack (`-DSK_GL`, `-I .../include/skia`,
-   `skia-horizon-port.o` + skia libs + EGL/GLESv2/glapi/drm_nouveau + decode
-   libs + explicit `-lpng -lz`), drop `cairo`/`pixman`. Update the `version`
+1. **Spike (2.0): DONE.** EGL + Ganesh GL Screen surface in nx.js's present loop;
+   trivial Skia draw each frame; verified on hardware in both regimes (commit
+   bc7ccd1). De-risked integration before touching canvas.cc.
+
+### Staging decision (Phase 2.1): raster-first, GPU later
+
+`SkCanvas` is backing-agnostic, so we port the drawing body against a **raster**
+`SkSurface` first — for ALL canvases (screen, OffscreenCanvas, Image). This keeps
+`nx_canvas_t`'s `data` buffer (kBGRA_8888 / premul, byte layout identical to
+today's CAIRO_FORMAT_ARGB32), so:
+- `getImageData`/`putImageData` stay cheap CPU ops (`readPixels`/`writePixels`
+  over the raster pixmap), no `GrDirectContext` readback.
+- The screen present path stays the existing pixel `memcpy` into the framebuffer
+  (the 2.0 spike's native-draw present is retired; the screen canvas is a normal
+  raster `SkSurface` whose pixels are blitted each frame).
+- Drawing logic is **pixel-parity** with the Cairo body, verifiable against the
+  existing canvas/svg/snake/animated-gif apps + conformance tests.
+
+GPU-backing (default GPU `SkSurface`, `readPixels`-based `getImageData`,
+`willReadFrequently` + readback-counter demotion, `eglSwapBuffers` present) is a
+**follow-up (Phase 2.2)** layered on top once raster parity is proven. The
+canvas.cc body written now does not change for GPU; only surface creation + the
+three pixel-transfer methods + the present path branch on backing.
+
+### Phase 2.1 slices (each build-verified before the next)
+2. **Struct + lifecycle:** `canvas.h`/`types.h` Skia state (`sk_sp<SkSurface>`,
+   `SkPath`, expanded `nx_canvas_context_2d_state_t` holding everything Cairo
+   tracked implicitly: line width/cap/join/miter, dash, blend mode, fill rule,
+   shadow, font, gradients as `sk_sp<SkShader>`/stop buffers); `ensure_surface`,
+   `new`/`free`, `save`/`restore`.
+3. **Primitives + paint + transforms:** path building, fill/stroke/clip/rect,
+   arc/ellipse/roundRect, gradients, line styling, globalAlpha, blend modes.
+4. **Text:** HarfBuzz shaping (kept) → `SkTextBlob`/`drawGlyphs`; strokeText via
+   `SkFont::getPath`; measureText.
+5. **Images + ImageData:** `drawImage`→`drawImageRect`; get/put ImageData via
+   raster pixmap; encode (PNG via `SkPngEncoder`, JPEG/WebP unchanged); toDataURL.
+6. Rewire `font.cc`, `image.cc`, `irs.cc`, drop the `dommatrix` Cairo union.
+7. Makefile: link the skia-gl stack, drop `cairo`/`pixman`. Update the `version`
    object (drop cairo/pixman, add skia).
-6. Build + hardware test (applet jitless + application JIT). Update notes.
+8. Build + hardware test (applet jitless + application JIT). Update notes.
+
+### Phase 2.2 (follow-up): GPU backing + Chromium readback model
+GPU-backed default `SkSurface`, `getImageData` via `GrDirectContext` `readPixels`,
+`willReadFrequently` + readback counter → raster demotion, screen present via
+`eglSwapBuffers`.

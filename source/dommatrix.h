@@ -1,18 +1,13 @@
 #pragma once
 #include "types.h"
-#include <cairo.h>
 
 typedef struct {
-	// Same order as cairo_matrix_t for the 2D subset.
 	double m11, m12, m21, m22, m41, m42;
 	double m13, m14, m23, m24, m31, m32, m33, m34, m43, m44;
 } nx_dommatrix_values_t;
 
 typedef struct {
-	union {
-		nx_dommatrix_values_t values;
-		cairo_matrix_t cr_matrix;
-	};
+	nx_dommatrix_values_t values;
 	bool is_2d;
 } nx_dommatrix_t;
 

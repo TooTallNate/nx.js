@@ -8,6 +8,10 @@
 #include <string.h>
 #include <switch.h>
 
+#include "include/core/SkData.h"
+#include "include/core/SkFontMgr.h"
+#include "include/ports/SkFontMgr_empty.h"
+
 using namespace v8;
 
 namespace {
@@ -15,8 +19,8 @@ namespace {
 void free_font_face(nx_font_face_t *context) {
 	if (context->hb_font)
 		hb_font_destroy(context->hb_font);
-	if (context->cairo_font)
-		cairo_font_face_destroy(context->cairo_font);
+	// Drop the SkTypeface ref before free() (which won't run the sk_sp dtor).
+	context->sk_typeface.reset();
 	if (context->ft_face)
 		FT_Done_Face(context->ft_face);
 	if (context->font_buffer)
@@ -53,8 +57,22 @@ void nx_new_font_face(const FunctionCallbackInfo<Value> &info) {
 		return;
 	}
 
-	context->cairo_font =
-	    cairo_ft_font_face_create_for_ft_face(context->ft_face, 0);
+	// Build the Skia typeface from the same font bytes. SkFontMgr_New_Custom_Empty
+	// is a self-contained (no system fontconfig) FreeType-backed manager; the
+	// resulting typeface's glyph IDs match HarfBuzz shaping over the same face.
+	{
+		sk_sp<SkData> data =
+		    SkData::MakeWithoutCopy(context->font_buffer, bytes);
+		sk_sp<SkFontMgr> mgr = SkFontMgr_New_Custom_Empty();
+		context->sk_typeface = mgr->makeFromData(data);
+	}
+	if (!context->sk_typeface) {
+		FT_Done_Face(context->ft_face);
+		free(context->font_buffer);
+		free(context);
+		nx_throw(iso, "Skia: failed to create typeface");
+		return;
+	}
 
 	hb_blob_t *blob = hb_blob_create((const char *)context->font_buffer, bytes,
 	                                 HB_MEMORY_MODE_READONLY, NULL, NULL);
@@ -65,7 +83,7 @@ void nx_new_font_face(const FunctionCallbackInfo<Value> &info) {
 	if (blob)
 		hb_blob_destroy(blob);
 	if (!context->hb_font) {
-		cairo_font_face_destroy(context->cairo_font);
+		context->sk_typeface.reset();
 		FT_Done_Face(context->ft_face);
 		free(context->font_buffer);
 		free(context);

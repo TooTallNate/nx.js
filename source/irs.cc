@@ -2,7 +2,6 @@
 #include "image.h"
 #include "types.h"
 #include "wrap.h"
-#include <cairo.h>
 
 using namespace v8;
 
@@ -138,9 +137,8 @@ void nx_irs_sensor_update(const FunctionCallbackInfo<Value> &info) {
 				          (data->color.b * alpha) / 255, alpha);
 			}
 		}
-		cairo_surface_mark_dirty_rectangle(data->image->surface, 0, 0,
-		                                   data->image->width,
-		                                   data->image->height);
+		// data->image->data is written in place; canvas.cc wraps it in an
+		// SkImage at draw time, so there is no surface to mark dirty.
 		data->sampling_number = state.sampling_number;
 		updated = true;
 	}

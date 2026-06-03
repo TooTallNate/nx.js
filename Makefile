@@ -74,7 +74,7 @@ CFLAGS	:=	-g -Wall -O2 -ffunction-sections \
 			-DLIBTURBOJPEG_VERSION="\"$(LIBTURBOJPEG_VERSION)\""
 
 CFLAGS	+=	$(INCLUDE) -D__SWITCH__ -D_DEFAULT_SOURCE $(UV_CFLAGS) \
-			`$(PKG_CONFIG) freetype2 cairo --cflags`
+			`$(PKG_CONFIG) freetype2 --cflags`
 
 # Skia (Ganesh GL). Source-root include dir; SK_GL selects the GL backend.
 SKIA_CFLAGS	:=	-DSK_GL -DSK_BUILD_FOR_UNIX -I$(PORTLIBS)/include/skia
@@ -100,12 +100,12 @@ GL_LIBS		:=	-lEGL -lGLESv2 -lglapi -ldrm_nouveau
 
 # Link order (proven): Skia -> V8 -> libuv -> GL -> freetype/harfbuzz -> codecs.
 # -lharfbuzz (system) satisfies switch-freetype's autohinter; Skia bundles its
-# own ICU-free HarfBuzz internally. png/z are now explicit (were pulled via
-# cairo). cairo/mbedtls retained alongside during the Skia migration.
+# own ICU-free HarfBuzz internally. png/z are explicit (were formerly pulled via
+# cairo). Cairo and pixman are fully removed in Phase 2.1 (Skia is the sole
+# rendering backend).
 LIBS	:=  $(SKIA_LIBS) $(V8_LIBS) $(UV_LIBS) $(GL_LIBS) \
 			-lmbedtls -lmbedx509 -lmbedcrypto \
 			-Wl,--start-group -lfreetype -lharfbuzz -Wl,--end-group \
-			`$(PKG_CONFIG) cairo --libs` \
 			-lturbojpeg -lwebp -lwebpdemux -ljpeg -lpng -lbz2 -lz -lm -lzstd \
 			-L$(DEVKITPRO)/libnx/lib -lnx
 

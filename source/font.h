@@ -1,9 +1,11 @@
 #pragma once
 #include "types.h"
-#include <cairo.h>
 #include <ft2build.h>
 #include <harfbuzz/hb-ft.h>
 #include <harfbuzz/hb.h>
+
+#include "include/core/SkRefCnt.h"
+#include "include/core/SkTypeface.h"
 
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
@@ -13,7 +15,10 @@
 typedef struct {
 	FT_Face ft_face;
 	hb_font_t *hb_font;
-	cairo_font_face_t *cairo_font;
+	// Skia typeface built from the same font bytes (font_buffer). Replaces the
+	// former cairo_font_face_t. Glyph IDs from HarfBuzz shaping (which uses the
+	// same FT_Face) index into this typeface for SkCanvas text drawing.
+	sk_sp<SkTypeface> sk_typeface;
 	FT_Byte *font_buffer;
 } nx_font_face_t;
 
