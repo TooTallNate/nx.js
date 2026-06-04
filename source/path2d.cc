@@ -36,12 +36,15 @@ nx_path2d_t *self(const FunctionCallbackInfo<Value> &info) {
 	return nx::Unwrap<nx_path2d_t>(info.This());
 }
 
+// Coerce argument `i` to a number via ToNumber (matching canvas.cc's
+// get_doubles and normal JS behavior, e.g. lineTo('10','20')). `def` is used
+// only when the argument is absent.
 double arg(const FunctionCallbackInfo<Value> &info, int i, double def) {
-	if (info.Length() > i && info[i]->IsNumber()) {
-		double d;
-		if (info[i]->NumberValue(info.GetIsolate()->GetCurrentContext()).To(&d))
-			return d;
-	}
+	if (info.Length() <= i)
+		return def;
+	double d;
+	if (info[i]->NumberValue(info.GetIsolate()->GetCurrentContext()).To(&d))
+		return d;
 	return def;
 }
 
@@ -130,8 +133,12 @@ void nx_path2d_arc(const FunctionCallbackInfo<Value> &info) {
 	       sa = arg(info, 3, 0), ea = arg(info, 4, 0);
 	bool ccw = info.Length() > 5 ? info[5]->BooleanValue(info.GetIsolate())
 	                             : false;
-	if (r < 0)
+	if (r < 0) {
+		// Match CanvasRenderingContext2D.arc().
+		info.GetIsolate()->ThrowException(Exception::RangeError(
+		    nx_str(info.GetIsolate(), "The radius provided is negative.")));
 		return;
+	}
 	nxcp_arc(p->builder, x, y, r, sa, ea, ccw);
 }
 
@@ -178,13 +185,11 @@ void nx_path2d_round_rect(const FunctionCallbackInfo<Value> &info) {
 	double x = arg(info, 0, 0), y = arg(info, 1, 0), w = arg(info, 2, 0),
 	       h = arg(info, 3, 0);
 	// radii: number | [number|{x,y}, ...] (1..4). Resolve to 4 (x,y) corners.
+	// The shared helper throws the specific RangeError/message on bad input.
 	SkVector radii[4] = {{0, 0}, {0, 0}, {0, 0}, {0, 0}};
-	if (!nx_resolve_round_rect_radii(iso, info.Length() > 4 ? info[4]
-	                                                        : Local<Value>(),
-	                                 radii)) {
-		nx_throw(iso, "Invalid radii for roundRect");
+	if (!nx_resolve_round_rect_radii(
+	        iso, info.Length() > 4 ? info[4] : Local<Value>(), radii))
 		return;
-	}
 	bool clockwise = true;
 	if (w < 0) {
 		clockwise = !clockwise;
@@ -219,7 +224,11 @@ void nx_path2d_add_path(const FunctionCallbackInfo<Value> &info) {
 		return;
 	SkMatrix m = SkMatrix::I();
 	if (info.Length() > 1 && info[1]->IsObject()) {
-		nx_dommatrix_t dm;
+		// nx_dommatrix_init uses the struct's existing fields as defaults for
+		// any missing DOMMatrixInit property, so start from identity.
+		nx_dommatrix_t dm = {};
+		dm.is_2d = true;
+		dm.values.m11 = dm.values.m22 = dm.values.m33 = dm.values.m44 = 1.0;
 		if (nx_dommatrix_init(iso, info[1], &dm) == 0) {
 			// DOMMatrix (a c e / b d f) -> SkMatrix row-major.
 			m.setAll((SkScalar)dm.values.m11, (SkScalar)dm.values.m21,

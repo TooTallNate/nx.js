@@ -7,7 +7,9 @@
 typedef struct nx_path2d_s nx_path2d_t;
 
 // Return the user-space SkPath backing a Path2D JS object, or nullptr if `obj`
-// is not a Path2D. The returned path is owned by the Path2D; copy if retaining.
+// is not a Path2D. The returned pointer refers to a thread-local snapshot that
+// is overwritten by the next nx_path2d_get() call on the same thread — use it
+// immediately (e.g. copy/addPath); do not retain it.
 const SkPath *nx_path2d_get(v8::Isolate *iso, v8::Local<v8::Value> obj);
 
 void nx_init_path2d(v8::Isolate *iso, v8::Local<v8::Object> init_obj);

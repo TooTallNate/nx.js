@@ -20,11 +20,6 @@ typedef struct Point {
 } Point;
 
 static inline float minf(float a, float b) { return a < b ? a : b; }
-static inline void point_swap(Point *a, Point *b) {
-	Point t = *a;
-	*a = *b;
-	*b = t;
-}
 
 // Whether the path has a current point (an open contour to continue from).
 static bool path_has_current(const SkPathBuilder &p, SkPoint *out) {
