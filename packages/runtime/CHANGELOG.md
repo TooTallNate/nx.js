@@ -1,5 +1,62 @@
 # @nx.js/runtime
 
+## 1.0.0-beta.0
+
+### Major Changes
+
+- nx.js v1: re-platform the runtime onto V8 + libuv and Skia. ([#340](https://github.com/TooTallNate/nx.js/pull/340))
+
+  This is the first v1 (beta) release. The JavaScript engine moves from QuickJS to
+  **V8** (full JIT, driven by **libuv**), and the Canvas 2D backend moves from
+  Cairo to **Skia**. These are deep, breaking changes to the runtime internals and
+  native ABI, hence the major bump.
+
+  Highlights:
+
+  - **Engine: QuickJS → V8 + libuv.** Full JIT in application mode; jitless in
+    applet mode. Memory is gated on the process memory grant (`TotalMemorySize`)
+    so application mode correctly runs full JIT and applet mode runs jitless.
+
+  - **Canvas 2D: Cairo → Skia.** The entire `CanvasRenderingContext2D`
+    implementation — paths, transforms, paint state, text (HarfBuzz + Skia),
+    shadows, gradients, images, `ImageData`, `isPointIn*`, and PNG/JPEG/WebP
+    encode — now renders on Skia. Cairo and pixman are fully removed.
+    `Switch.version` drops `cairo`/`pixman` and adds `skia` (the Skia milestone).
+
+  - **GPU-accelerated screen.** The screen canvas is backed by a GPU `SkSurface`
+    over the EGL window (Skia Ganesh GL), presented with `eglSwapBuffers`, with a
+    raster + libnx-framebuffer fallback. The renderer is chosen per memory regime:
+    GPU + 4× MSAA in application mode, raster in applet mode. Compositing uses a
+    persistent surface (no double-buffer flicker), and the `+` button is routed
+    through the JS frame handler so `preventDefault()` is honored.
+
+  - **Correctness fixes** surfaced by the new V8 + Skia conformance harnesses:
+    - `DOMException` is imported from the polyfill instead of the global, so
+      esbuild no longer renames it to `DOMException2` and registers it under the
+      wrong name (affected crypto, websocket, fetch, audio, performance,
+      canvas-gradient, abort-controller).
+    - `ctx.ellipse()` / `Path2D.ellipse()` fill correctly (the non-uniform scale
+      was previously applied twice, collapsing the ellipse interior).
+    - `roundRect()` renders all corners correctly via Skia's native `SkRRect`
+      (a corner arc previously swept ~270° backwards, carving out a wedge).
+
+  Validated on hardware in both memory regimes, and against Chrome via the
+  TAP and pixel-diff canvas conformance test suites.
+
+### Patch Changes
+
+- fix: canvas paths now bake in the current transform at build time. Per the HTML Canvas spec, each path segment (`moveTo`, `lineTo`, `arc`, `arcTo`, `ellipse`, `rect`, `roundRect`, bezier/quadratic curves) captures the transform (CTM) in effect when it is added, independent of the transform when the path is later filled, stroked, clipped, or hit-tested. Previously the path was stored in user space and the CTM was applied only at draw time, so building a path under one transform and using it under another (e.g. `rect(); translate(); fill()`) drew in the wrong place and `isPointInPath`/`isPointInStroke` returned wrong results. Paths are now stored in device space; fill/clip draw under identity and stroke maps back through the transform so the pen still scales (matching Chrome). Adds `path-transform` conformance + image fixtures verified against Chrome. ([#344](https://github.com/TooTallNate/nx.js/pull/344))
+
+- fix: reimplement `Path2D` natively on a Skia `SkPath`, which fixes `addPath(path, transform)` ignoring the `DOMMatrix` argument. ([#346](https://github.com/TooTallNate/nx.js/pull/346))
+
+- fix: restore the global `queueMicrotask()` function (a native QuickJS builtin that was missing under V8), implemented via `Isolate::EnqueueMicrotask` with callback exceptions reported through the global `error` event. ([#348](https://github.com/TooTallNate/nx.js/pull/348))
+
+- fix: right-size the socket transfer-memory pool and plug fd leaks on failed connects, `Socket.close()`, and failed WebSocket handshakes so concurrent `fetch()`/redirect/WebSocket workloads no longer fail with "No buffer space available" (ENOBUFS). ([#347](https://github.com/TooTallNate/nx.js/pull/347))
+
+- fix: size each socket's read buffer to the configured `tcp_rx_buf_size` (and release it eagerly on close) so opening many sockets no longer exhausts the native ArrayBuffer pool in applet mode. ([#347](https://github.com/TooTallNate/nx.js/pull/347))
+
+- fix: link the [ada](https://github.com/ada-url/ada) URL parser from the `switch-ada` portlib instead of vendoring its amalgamation, upgrading it from 2.9.2 to **3.4.4**. `Switch.version.ada` is now reported dynamically from ada's `ADA_VERSION` (was hard-coded). The upgrade fixes a URL parsing bug with surrogate / noncharacter code points in the path and query (a previously-skipped WHATWG URL test now passes). ([#342](https://github.com/TooTallNate/nx.js/pull/342))
+
 ## 0.0.70
 
 ### Patch Changes
