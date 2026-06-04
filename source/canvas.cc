@@ -419,11 +419,38 @@ static SkFont current_font(nx_canvas_context_2d_t *context, double size) {
 }
 
 // ---------------------------------------------------------------------------
-// Path helpers — build context->path in user space; SkCanvas applies the CTM
-// at draw time (matches Cairo's path model). The "current point" is SkPath's
-// last point.
+// Path helpers — context->path is stored in DEVICE space: each segment is
+// transformed by the current transformation matrix (CTM) at the time it is
+// added, per the HTML Canvas spec ("the current path ... in the coordinate
+// space described by the current transformation matrix at the time the points
+// were added"). Fill/clip then draw the device-space path under an identity
+// matrix; stroke maps it back through the stroke-time CTM so the pen scales
+// (Chrome behavior, verified). The "current point" is SkPath's last point
+// (already in device space).
 // ---------------------------------------------------------------------------
 static const double kTwoPi = M_PI * 2.;
+
+// Current transformation matrix (device <- user).
+static inline SkMatrix cur_ctm(nx_canvas_context_2d_t *context) {
+	return context->ctx->getTotalMatrix();
+}
+
+// Map a single user-space point to device space via the current CTM.
+static inline SkPoint ctm_pt(nx_canvas_context_2d_t *context, double x,
+                             double y) {
+	return cur_ctm(context).mapPoint(
+	    SkPoint::Make((SkScalar)x, (SkScalar)y));
+}
+
+// Append a user-space sub-path to context->path, transformed into device space
+// by the current CTM. kExtend connects it to the current point (also device
+// space); kAppend starts a new contour.
+static inline void add_user_subpath(nx_canvas_context_2d_t *context,
+                                    const SkPath &user_sub, bool extend) {
+	context->path.addPath(user_sub, cur_ctm(context),
+	                      extend ? SkPath::kExtend_AddPathMode
+	                             : SkPath::kAppend_AddPathMode);
+}
 
 // HTML-canvas arc angle canonicalization (defined below, used by arc/ellipse).
 static void canonicalizeAngle(double *startAngle, double *endAngle);
@@ -564,15 +591,42 @@ static SkPaint make_stroke_paint(nx_canvas_context_2d_t *context) {
 	return p;
 }
 
-// fill_op / stroke_op: draw context->path. (Shadow added in slice 4.)
+// fill_op / stroke_op: context->path is in DEVICE space (the CTM was baked in
+// at build time), so draw it under an identity matrix.
+//
+// Fill: just reset the matrix around the draw.
+//
+// Stroke: the pen must still be scaled/sheared by the stroke-time CTM (a
+// horizontal line under scale(1,3) is 3x thicker — verified against Chrome).
+// So map the device path back into user space via the inverse CTM and stroke
+// it under the CTM, which applies the pen in user space and transforms the
+// result — reproducing the elliptical pen.
 static void fill_op(nx_canvas_context_2d_t *context, bool /*preserve*/) {
 	context->path.setFillType(context->state->fill_rule);
 	SkPaint p = make_fill_paint(context);
-	context->ctx->drawPath(context->path.snapshot(), p);
+	SkCanvas *cr = context->ctx;
+	SkM44 saved = cr->getLocalToDevice();
+	cr->resetMatrix();
+	cr->drawPath(context->path.snapshot(), p);
+	cr->setMatrix(saved);
 }
 static void stroke_op(nx_canvas_context_2d_t *context, bool /*preserve*/) {
 	SkPaint p = make_stroke_paint(context);
-	context->ctx->drawPath(context->path.snapshot(), p);
+	SkCanvas *cr = context->ctx;
+	SkMatrix ctm = cr->getTotalMatrix();
+	SkMatrix inv;
+	if (ctm.invert(&inv)) {
+		// Path back to user space; stroke under the existing CTM so the pen is
+		// transformed by it.
+		SkPath user = context->path.snapshot().makeTransform(inv);
+		cr->drawPath(user, p);
+	} else {
+		// Degenerate CTM: fall back to stroking the device path under identity.
+		SkM44 saved = cr->getLocalToDevice();
+		cr->resetMatrix();
+		cr->drawPath(context->path.snapshot(), p);
+		cr->setMatrix(saved);
+	}
 }
 
 // Set the path fill rule from a JS string ("evenodd" -> EvenOdd).
@@ -646,7 +700,8 @@ void nx_canvas_context_2d_move_to(const FunctionCallbackInfo<Value> &info) {
 	double a[2];
 	if (!get_doubles(info, a, 2, 0))
 		return;
-	context->path.moveTo((SkScalar)a[0], (SkScalar)a[1]);
+	SkPoint p = ctm_pt(context, a[0], a[1]);
+	context->path.moveTo(p);
 }
 
 void nx_canvas_context_2d_line_to(const FunctionCallbackInfo<Value> &info) {
@@ -654,10 +709,11 @@ void nx_canvas_context_2d_line_to(const FunctionCallbackInfo<Value> &info) {
 	double a[2];
 	if (!get_doubles(info, a, 2, 0))
 		return;
+	SkPoint p = ctm_pt(context, a[0], a[1]);
 	if (!path_has_current(context->path, nullptr))
-		context->path.moveTo((SkScalar)a[0], (SkScalar)a[1]);
+		context->path.moveTo(p);
 	else
-		context->path.lineTo((SkScalar)a[0], (SkScalar)a[1]);
+		context->path.lineTo(p);
 }
 
 void nx_canvas_context_2d_bezier_curve_to(
@@ -666,10 +722,12 @@ void nx_canvas_context_2d_bezier_curve_to(
 	double a[6];
 	if (!get_doubles(info, a, 6, 0))
 		return;
+	SkPoint c1 = ctm_pt(context, a[0], a[1]);
+	SkPoint c2 = ctm_pt(context, a[2], a[3]);
+	SkPoint end = ctm_pt(context, a[4], a[5]);
 	if (!path_has_current(context->path, nullptr))
-		context->path.moveTo((SkScalar)a[0], (SkScalar)a[1]);
-	context->path.cubicTo((SkScalar)a[0], (SkScalar)a[1], (SkScalar)a[2],
-	                      (SkScalar)a[3], (SkScalar)a[4], (SkScalar)a[5]);
+		context->path.moveTo(c1);
+	context->path.cubicTo(c1, c2, end);
 }
 
 void nx_canvas_context_2d_quadratic_curve_to(
@@ -678,14 +736,11 @@ void nx_canvas_context_2d_quadratic_curve_to(
 	double a[4];
 	if (!get_doubles(info, a, 4, 0))
 		return;
-	double x1 = a[0], y1 = a[1], x2 = a[2], y2 = a[3];
-	SkPoint cur;
-	if (!path_has_current(context->path, &cur)) {
-		context->path.moveTo((SkScalar)x1, (SkScalar)y1);
-		cur = SkPoint::Make((SkScalar)x1, (SkScalar)y1);
-	}
-	context->path.quadTo((SkScalar)x1, (SkScalar)y1, (SkScalar)x2,
-	                     (SkScalar)y2);
+	SkPoint cp = ctm_pt(context, a[0], a[1]);
+	SkPoint end = ctm_pt(context, a[2], a[3]);
+	if (!path_has_current(context->path, nullptr))
+		context->path.moveTo(cp);
+	context->path.quadTo(cp, end);
 }
 
 // HTML-canvas arc angle canonicalization (ported from the Cairo path). Maps
@@ -735,7 +790,19 @@ void nx_canvas_context_2d_arc(const FunctionCallbackInfo<Value> &info) {
 	bool ccw = info.Length() > 5 ? info[5]->BooleanValue(iso) : false;
 	canonicalizeAngle(&startAngle, &endAngle);
 	endAngle = adjustEndAngle(startAngle, endAngle, ccw);
-	path_arc(context->path, x, y, radius, startAngle, endAngle, ccw);
+	// Build the arc in user space (seeded with the current point mapped back
+	// into user space so the connecting line lands correctly), then bake the
+	// CTM into device space.
+	SkPathBuilder sub;
+	SkPoint cur;
+	bool had_current = path_has_current(context->path, &cur);
+	if (had_current) {
+		SkMatrix inv;
+		if (cur_ctm(context).invert(&inv))
+			sub.moveTo(inv.mapPoint(cur));
+	}
+	path_arc(sub, x, y, radius, startAngle, endAngle, ccw);
+	add_user_subpath(context, sub.detach(), had_current);
 }
 
 void nx_canvas_context_2d_arc_to(const FunctionCallbackInfo<Value> &info) {
@@ -743,16 +810,28 @@ void nx_canvas_context_2d_arc_to(const FunctionCallbackInfo<Value> &info) {
 	double a[5];
 	if (!get_doubles(info, a, 5, 0))
 		return;
-	SkPoint p0pt;
-	if (!path_has_current(context->path, &p0pt))
-		p0pt = SkPoint::Make(0, 0);
+	// arcTo math runs in user space; the current point (device space) is mapped
+	// back through the CTM. The resulting sub-path is then baked to device
+	// space via add_user_subpath. `sub` is seeded with the user-space current
+	// point so path_arc's connecting line lands correctly.
+	SkMatrix ctm = cur_ctm(context);
+	SkMatrix inv;
+	bool have_inv = ctm.invert(&inv);
+	SkPoint p0pt_dev;
+	bool had_current = path_has_current(context->path, &p0pt_dev);
+	SkPoint p0pt = (had_current && have_inv) ? inv.mapPoint(p0pt_dev)
+	                                         : SkPoint::Make(0, 0);
+	SkPathBuilder sub;
+	if (had_current)
+		sub.moveTo(p0pt);
 	Point p0 = {p0pt.x(), p0pt.y()};
 	Point p1 = {(float)a[0], (float)a[1]};
 	Point p2 = {(float)a[2], (float)a[3]};
 	float radius = (float)a[4];
 	if ((p1.x == p0.x && p1.y == p0.y) || (p1.x == p2.x && p1.y == p2.y) ||
 	    radius == 0.f) {
-		context->path.lineTo(p1.x, p1.y);
+		sub.lineTo(p1.x, p1.y);
+		add_user_subpath(context, sub.detach(), had_current);
 		return;
 	}
 	Point p1p0 = {(p0.x - p1.x), (p0.y - p1.y)};
@@ -762,7 +841,8 @@ void nx_canvas_context_2d_arc_to(const FunctionCallbackInfo<Value> &info) {
 	double cos_phi =
 	    (p1p0.x * p1p2.x + p1p0.y * p1p2.y) / (p1p0_length * p1p2_length);
 	if (-1 == cos_phi) {
-		context->path.lineTo(p1.x, p1.y);
+		sub.lineTo(p1.x, p1.y);
+		add_user_subpath(context, sub.detach(), had_current);
 		return;
 	}
 	if (1 == cos_phi) {
@@ -770,7 +850,8 @@ void nx_canvas_context_2d_arc_to(const FunctionCallbackInfo<Value> &info) {
 		double factor_max = max_length / p1p0_length;
 		Point ep = {(float)(p0.x + factor_max * p1p0.x),
 		            (float)(p0.y + factor_max * p1p0.y)};
-		context->path.lineTo(ep.x, ep.y);
+		sub.lineTo(ep.x, ep.y);
+		add_user_subpath(context, sub.detach(), had_current);
 		return;
 	}
 	float tangent = radius / tan(acos(cos_phi) / 2);
@@ -808,8 +889,9 @@ void nx_canvas_context_2d_arc_to(const FunctionCallbackInfo<Value> &info) {
 		anticlockwise = 1;
 	if ((sa < ea) && ((ea - sa) > M_PI))
 		anticlockwise = 1;
-	context->path.lineTo(t_p1p0.x, t_p1p0.y);
-	path_arc(context->path, p.x, p.y, radius, sa, ea, anticlockwise != 0);
+	sub.lineTo(t_p1p0.x, t_p1p0.y);
+	path_arc(sub, p.x, p.y, radius, sa, ea, anticlockwise != 0);
+	add_user_subpath(context, sub.detach(), had_current);
 }
 
 void nx_canvas_context_2d_ellipse(const FunctionCallbackInfo<Value> &info) {
@@ -832,13 +914,18 @@ void nx_canvas_context_2d_ellipse(const FunctionCallbackInfo<Value> &info) {
 	// collapses/offsets the ellipse (leaving the interior unfilled).
 	SkPoint cur;
 	bool had_current = path_has_current(context->path, &cur);
+	// Ellipse-space -> user-space matrix, then compose the CTM on the left so
+	// the unit arc lands in device space (CTM * translate*rotate*scale).
 	SkMatrix m = SkMatrix::Translate((SkScalar)x, (SkScalar)y);
 	m.preRotate((SkScalar)(rotation * 180.0 / M_PI));
 	m.preScale((SkScalar)radiusX, (SkScalar)radiusY);
+	SkMatrix dev = SkMatrix::Concat(cur_ctm(context), m);
 	SkPathBuilder unit;
 	if (had_current) {
+		// Seed with the current (device-space) point mapped back into ellipse
+		// space so the connecting line is correct after transform.
 		SkMatrix inv;
-		if (m.invert(&inv))
+		if (dev.invert(&inv))
 			unit.moveTo(inv.mapPoint(cur));
 	}
 	// Canonicalize like arc() so a full-circle ellipse (0..2pi) is preserved.
@@ -846,7 +933,7 @@ void nx_canvas_context_2d_ellipse(const FunctionCallbackInfo<Value> &info) {
 	endAngle = adjustEndAngle(startAngle, endAngle, anticlockwise);
 	path_arc(unit, 0., 0., 1., startAngle, endAngle, anticlockwise);
 	SkPath unit_path = unit.detach();
-	context->path.addPath(unit_path, m,
+	context->path.addPath(unit_path, dev,
 	                      had_current ? SkPath::kExtend_AddPathMode
 	                                  : SkPath::kAppend_AddPathMode);
 }
@@ -857,19 +944,22 @@ void nx_canvas_context_2d_rect(const FunctionCallbackInfo<Value> &info) {
 	if (!get_doubles(info, a, 4, 0))
 		return;
 	double x = a[0], y = a[1], width = a[2], height = a[3];
+	// Build in user space, then bake the CTM into the points (device space).
+	// rect() always starts a new subpath, so append (don't extend).
+	SkPathBuilder sub;
 	if (width == 0) {
-		context->path.moveTo((SkScalar)x, (SkScalar)y);
-		context->path.lineTo((SkScalar)x, (SkScalar)(y + height));
+		sub.moveTo((SkScalar)x, (SkScalar)y);
+		sub.lineTo((SkScalar)x, (SkScalar)(y + height));
 	} else if (height == 0) {
-		context->path.moveTo((SkScalar)x, (SkScalar)y);
-		context->path.lineTo((SkScalar)(x + width), (SkScalar)y);
+		sub.moveTo((SkScalar)x, (SkScalar)y);
+		sub.lineTo((SkScalar)(x + width), (SkScalar)y);
 	} else {
 		// CSS rect() starts a new subpath: addRect moves to the corner and
 		// closes, matching cairo_rectangle.
-		context->path.addRect(SkRect::MakeXYWH((SkScalar)x, (SkScalar)y,
-		                                       (SkScalar)width,
-		                                       (SkScalar)height));
+		sub.addRect(SkRect::MakeXYWH((SkScalar)x, (SkScalar)y,
+		                             (SkScalar)width, (SkScalar)height));
 	}
+	add_user_subpath(context, sub.detach(), /*extend=*/false);
 }
 
 // Returns true (throwing) on error.
@@ -1026,9 +1116,12 @@ void nx_canvas_context_2d_round_rect(const FunctionCallbackInfo<Value> &info) {
 	    radii);
 	// Canvas roundRect starts the subpath at (x + topLeftRadius, y) and winds
 	// clockwise (CW) by default; the negative-dimension handling above flips
-	// `clockwise`. SkPathDirection::kCW matches the canvas default.
-	context->path.addRRect(rrect, clockwise ? SkPathDirection::kCW
-	                                         : SkPathDirection::kCCW);
+	// `clockwise`. SkPathDirection::kCW matches the canvas default. Build in
+	// user space, then bake the CTM into device space (new subpath).
+	SkPathBuilder sub;
+	sub.addRRect(rrect, clockwise ? SkPathDirection::kCW
+	                              : SkPathDirection::kCCW);
+	add_user_subpath(context, sub.detach(), /*extend=*/false);
 }
 
 void nx_canvas_context_2d_begin_path(const FunctionCallbackInfo<Value> &info) {
@@ -1044,7 +1137,13 @@ void nx_canvas_context_2d_close_path(const FunctionCallbackInfo<Value> &info) {
 void nx_canvas_context_2d_clip(const FunctionCallbackInfo<Value> &info) {
 	ENTER_THIS;
 	set_fill_rule_v(iso, info[0], context);
+	// context->path is in device space; clip under identity so clipPath does
+	// not re-apply the CTM. Toggle the matrix directly (NOT via save/restore,
+	// which would also pop the clip we are adding).
+	SkM44 saved = cr->getLocalToDevice();
+	cr->resetMatrix();
 	cr->clipPath(context->path.snapshot(), true);
+	cr->setMatrix(saved);
 }
 
 void nx_canvas_context_2d_fill(const FunctionCallbackInfo<Value> &info) {
@@ -2078,20 +2177,29 @@ static bool point_in_common(const FunctionCallbackInfo<Value> &info,
 		context->path.reset();
 		apply_path(iso, info.This(), path);
 	}
-	// Inverse-transform the query point by the current matrix (the path is in
-	// user space).
+	// context->path is in DEVICE space (CTM baked in at build time). Per spec
+	// the query point is given in the SAME (already-transformed) space — it is
+	// NOT re-transformed by the current CTM — so test it raw against the path.
 	SkMatrix m = cr->getTotalMatrix();
-	SkMatrix inv;
-	SkPoint pt = SkPoint::Make((SkScalar)args[0], (SkScalar)args[1]);
-	if (m.invert(&inv))
-		pt = inv.mapPoint(pt);
-	bool is_in;
 	SkPath shape = context->path.snapshot();
+	SkPoint pt = SkPoint::Make((SkScalar)args[0], (SkScalar)args[1]);
+	bool is_in;
 	if (stroke) {
+		// The stroke pen is applied in user space and scaled by the CTM. Map
+		// the device path back to user space, stroke it with the user pen, then
+		// map the filled outline forward to device space and test the raw
+		// query point against it.
+		SkMatrix inv;
 		SkPaint sp = make_stroke_paint(context);
 		sp.setImageFilter(nullptr);
-		SkPath filled = skpathutils::FillPathWithPaint(shape, sp);
-		is_in = filled.contains(pt.x(), pt.y());
+		if (m.invert(&inv)) {
+			SkPath user = shape.makeTransform(inv);
+			SkPath filled = skpathutils::FillPathWithPaint(user, sp);
+			is_in = filled.makeTransform(m).contains(pt.x(), pt.y());
+		} else {
+			SkPath filled = skpathutils::FillPathWithPaint(shape, sp);
+			is_in = filled.contains(pt.x(), pt.y());
+		}
 	} else {
 		shape.setFillType(context->state->fill_rule);
 		is_in = shape.contains(pt.x(), pt.y());
