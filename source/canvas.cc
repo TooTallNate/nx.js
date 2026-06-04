@@ -854,26 +854,27 @@ void nx_canvas_context_2d_ellipse(const FunctionCallbackInfo<Value> &info) {
 	       endAngle = a[6];
 	bool anticlockwise =
 	    info.Length() >= 8 ? info[7]->BooleanValue(iso) : false;
-	// Build the arc on the ellipse by transforming a unit-circle arc: the
-	// stored path points are translate(x,y)*rotate*scale(rx,ry) applied to a
-	// unit arc, matching the Cairo scale-trick.
+	// Build the arc on the ellipse by transforming a true unit-circle arc
+	// (radius 1, centered at the origin) by translate(x,y)*rotate*scale(rx,ry),
+	// matching the Cairo scale-trick (and elli_arc() above). The unit arc must
+	// use radius 1 at the origin so the scale maps it to radii (rx,ry); using
+	// a non-unit radius or off-origin center double-applies the scale and
+	// collapses/offsets the ellipse (leaving the interior unfilled).
 	SkPoint cur;
 	bool had_current = path_has_current(context->path, &cur);
 	SkMatrix m = SkMatrix::Translate((SkScalar)x, (SkScalar)y);
 	m.preRotate((SkScalar)(rotation * 180.0 / M_PI));
 	m.preScale((SkScalar)radiusX, (SkScalar)radiusY);
-	m.preTranslate((SkScalar)(-x), (SkScalar)(-y));
 	SkPathBuilder unit;
 	if (had_current) {
 		SkMatrix inv;
 		if (m.invert(&inv))
 			unit.moveTo(inv.mapPoint(cur));
 	}
-	// Unit circle centered at (x,y), radius radiusY (the scale maps x by ratio).
 	// Canonicalize like arc() so a full-circle ellipse (0..2pi) is preserved.
 	canonicalizeAngle(&startAngle, &endAngle);
 	endAngle = adjustEndAngle(startAngle, endAngle, anticlockwise);
-	path_arc(unit, x, y, radiusY, startAngle, endAngle, anticlockwise);
+	path_arc(unit, 0., 0., 1., startAngle, endAngle, anticlockwise);
 	SkPath unit_path = unit.detach();
 	context->path.addPath(unit_path, m,
 	                      had_current ? SkPath::kExtend_AddPathMode
