@@ -69,6 +69,10 @@ interface SocketInternal {
 	tls?: TlsContextOpaque;
 	opened: PromiseWithResolvers<SocketInfo>;
 	closed: PromiseWithResolvers<void>;
+	// Large per-socket read scratch buffer; released eagerly when the socket
+	// finishes/closes (see the readable stream) to avoid exhausting the native
+	// ArrayBuffer pool across many sockets.
+	readBuffer?: ArrayBuffer;
 }
 
 const _ = createInternal<Socket, SocketInternal>();
@@ -108,25 +112,36 @@ export class Socket {
 		this.opened = i.opened.promise;
 		this.closed = i.closed.promise;
 
-		let readBuffer: ArrayBuffer | undefined;
+		// Per-socket read scratch buffer. It is large (matches the native
+		// `tcp_rx_buf_size` in `main.c`), and on Switch these ArrayBuffers are
+		// backed by a limited native pool, so we MUST release it promptly when
+		// the socket is done reading rather than waiting for GC — otherwise
+		// opening many sockets (e.g. a long test run or redirect chains)
+		// exhausts the pool with `RangeError: Array buffer allocation failed`.
 		this.readable = new ReadableStream({
 			async pull(controller) {
 				await socket.opened;
-				if (!readBuffer) {
-					// Matches the configured `tcp_rx_buf_size` in `main.c`
-					readBuffer = new ArrayBuffer(1024 * 1024);
+				if (!i.readBuffer) {
+					// Size to the native bsdsocket tcp_rx_buf_size configured
+					// for this memory regime (1 MiB application / 128 KiB
+					// applet), so applet mode does not over-allocate the
+					// limited ArrayBuffer pool. Fall back to 1 MiB if unset.
+					i.readBuffer = new ArrayBuffer($.tcpRxBufSize || 1024 * 1024);
 				}
 				const bytesRead = await (i.tls
-					? tlsRead(i.tls, readBuffer)
-					: read(i.fd, readBuffer));
+					? tlsRead(i.tls, i.readBuffer)
+					: read(i.fd, i.readBuffer));
 				if (bytesRead === 0) {
+					i.readBuffer = undefined; // EOF: free the buffer
 					controller.close();
 					if (!allowHalfOpen) {
 						socket.close();
 					}
 					return;
 				}
-				controller.enqueue(new Uint8Array(readBuffer.slice(0, bytesRead)));
+				controller.enqueue(
+					new Uint8Array(i.readBuffer.slice(0, bytesRead)),
+				);
 			},
 			// When a downstream consumer is done with the body (e.g. fetch's
 			// Content-Length transform calls terminate() after the declared
@@ -135,6 +150,7 @@ export class Socket {
 			// down — otherwise a keep-alive server never sends EOF and the
 			// pending read would hang forever.
 			cancel() {
+				i.readBuffer = undefined; // free the buffer
 				socket.close();
 			},
 		});
@@ -186,6 +202,7 @@ export class Socket {
 			this.writable.abort(reason);
 		}
 		const i = _(this);
+		i.readBuffer = undefined; // release the large read buffer promptly
 		i.opened.reject(reason);
 		if (i.tls) {
 			// TLS context owns its fd; tear it down natively (closes the

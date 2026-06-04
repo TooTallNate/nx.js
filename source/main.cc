@@ -607,6 +607,13 @@ static bool run_module(Isolate *iso, Local<Context> context, const char *src,
 // ---------------------------------------------------------------------------
 // `$` bridge construction.
 // ---------------------------------------------------------------------------
+// Defined below (after the socket configs); reports the tcp_rx_buf_size of the
+// SocketInitConfig actually selected for the current memory regime, so the JS
+// socket layer can size its read buffer to match the native configuration
+// (1 MiB in application mode, 128 KiB in the lean applet config) instead of
+// hard-coding 1 MiB and over-allocating the limited ArrayBuffer pool.
+static u32 nx_selected_tcp_rx_buf_size(void);
+
 static void build_init_object(Isolate *iso, Local<Context> context,
                               Local<Object> init_obj, const char *entrypoint,
                               int argc, char *argv[]) {
@@ -724,6 +731,14 @@ static void build_init_object(Isolate *iso, Local<Context> context,
 		argv_array->Set(context, i, nx_str(iso, argv[i])).Check();
 	}
 	init_obj->Set(context, nx_str(iso, "argv"), argv_array).Check();
+
+	// The configured bsdsocket TCP receive buffer size (regime-dependent). The
+	// JS socket layer sizes its per-socket read buffer to this instead of a
+	// hard-coded 1 MiB, so applet mode (128 KiB) does not over-allocate.
+	init_obj
+	    ->Set(context, nx_str(iso, "tcpRxBufSize"),
+	          Integer::NewFromUnsigned(iso, nx_selected_tcp_rx_buf_size()))
+	    .Check();
 }
 
 // BsdServiceType_Auto (tries bsd:s first) is intentional: bsd:s is required to
@@ -762,6 +777,13 @@ static SocketInitConfig const s_socketInitConfigLean = {
     .num_bsd_sessions = 3,
     .bsd_service_type = BsdServiceType_Auto,
 };
+
+// tcp_rx_buf_size of whichever config socketInitialize() selected for this
+// memory regime (gated on g_tight_memory, set before socketInitialize).
+static u32 nx_selected_tcp_rx_buf_size(void) {
+	return (g_tight_memory ? s_socketInitConfigLean : s_socketInitConfigFull)
+	    .tcp_rx_buf_size;
+}
 
 // ---------------------------------------------------------------------------
 // main

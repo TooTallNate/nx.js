@@ -392,6 +392,13 @@ static void build_init_object(Isolate *iso, Local<Context> context,
 	set_ver("zlib", ZLIB_VERSION);
 	init_obj->Set(context, nx_str(iso, "version"), version).Check();
 
+	// Host harness has no applet regime; report a 1 MiB rx buffer (matches the
+	// device application config) so the JS socket layer sizes its read buffer.
+	init_obj
+	    ->Set(context, nx_str(iso, "tcpRxBufSize"),
+	          Integer::NewFromUnsigned(iso, 1024u * 1024u))
+	    .Check();
+
 	Local<Object> argv = Object::New(iso);  // not used by fixtures
 	(void)argv;
 }
