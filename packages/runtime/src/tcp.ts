@@ -130,9 +130,19 @@ export class Socket {
 					// limited ArrayBuffer pool. Fall back to 1 MiB if unset.
 					i.readBuffer = new ArrayBuffer($.tcpRxBufSize || 1024 * 1024);
 				}
-				const bytesRead = await (i.tls
-					? tlsRead(i.tls, i.readBuffer)
-					: read(i.fd, i.readBuffer));
+				let bytesRead: number;
+				try {
+					bytesRead = await (i.tls
+						? tlsRead(i.tls, i.readBuffer)
+						: read(i.fd, i.readBuffer));
+				} catch (err) {
+					// On a read error (e.g. ECONNRESET) the stream errors; free
+					// the large read buffer back to the native pool rather than
+					// holding it referenced until GC. Re-throw to preserve the
+					// existing error-propagation behavior.
+					i.readBuffer = undefined;
+					throw err;
+				}
 				if (bytesRead === 0) {
 					i.readBuffer = undefined; // EOF: free the buffer
 					controller.close();
