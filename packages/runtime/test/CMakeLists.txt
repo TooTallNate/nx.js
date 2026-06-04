@@ -49,6 +49,7 @@ set(TEST_SOURCES
 set(NX_SOURCES
   ${NX_SOURCE_DIR}/async.cc
   ${NX_SOURCE_DIR}/canvas.cc
+  ${NX_SOURCE_DIR}/canvas_path.cc
   ${NX_SOURCE_DIR}/compression.cc
   ${NX_SOURCE_DIR}/crypto.cc
   ${NX_SOURCE_DIR}/dns.cc
