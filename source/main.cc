@@ -136,6 +136,47 @@ static void js_exit(const FunctionCallbackInfo<Value> &info) {
 	is_running = 0;
 }
 
+// queueMicrotask(callback): schedule `callback` to run as a V8 microtask (i.e.
+// before control returns to the event loop, after the current task). Raw V8
+// does not install a `queueMicrotask` global (it's a Blink/Node binding), so we
+// provide it here to match the WHATWG `queueMicrotask()` and restore the
+// QuickJS-era global. The retained callback is stored in a heap Global<Function>
+// that the microtask frees after invocation.
+static void nx_microtask_run(void *data) {
+	Isolate *iso = Isolate::GetCurrent();
+	HandleScope scope(iso);
+	Local<Context> context = iso->GetCurrentContext();
+	Context::Scope ctx_scope(context);
+
+	Global<Function> *gfn = static_cast<Global<Function> *>(data);
+	Local<Function> fn = gfn->Get(iso);
+
+	TryCatch try_catch(iso);
+	Local<Value> ret;
+	if (!fn->Call(context, Undefined(iso), 0, nullptr).ToLocal(&ret)) {
+		// WHATWG: "If the callback throws an exception, report the exception."
+		// nx_emit_error_event dispatches the global `error` event (and falls
+		// back to printing + flagging had_error if no handler prevents it).
+		nx_emit_error_event(iso, &try_catch);
+	}
+
+	gfn->Reset();
+	delete gfn;
+}
+
+static void js_queue_microtask(const FunctionCallbackInfo<Value> &info) {
+	Isolate *iso = info.GetIsolate();
+	if (info.Length() < 1 || !info[0]->IsFunction()) {
+		nx_throw(iso,
+		         "Failed to execute 'queueMicrotask': parameter 1 is not of "
+		         "type 'Function'.");
+		return;
+	}
+	Global<Function> *gfn =
+	    new Global<Function>(iso, info[0].As<Function>());
+	iso->EnqueueMicrotask(nx_microtask_run, gfn);
+}
+
 static void js_print(const FunctionCallbackInfo<Value> &info) {
 	Isolate *iso = info.GetIsolate();
 	nx_context_t *ctx = nx_ctx(iso);
@@ -648,6 +689,7 @@ static void build_init_object(Isolate *iso, Local<Context> context,
 	nx_init_window(iso, init_obj);
 
 	NX_SET_FUNC(init_obj, "exit", js_exit);
+	NX_SET_FUNC(init_obj, "queueMicrotask", js_queue_microtask);
 	NX_SET_FUNC(init_obj, "cwd", js_cwd);
 	NX_SET_FUNC(init_obj, "chdir", js_chdir);
 	NX_SET_FUNC(init_obj, "print", js_print);

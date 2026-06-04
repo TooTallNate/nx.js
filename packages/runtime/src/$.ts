@@ -345,6 +345,7 @@ export interface Init {
 	/** Configured bsdsocket TCP receive buffer size (bytes) for this memory regime. */
 	tcpRxBufSize: number;
 	exit(): never;
+	queueMicrotask(callback: () => void): void;
 	cwd(): string;
 	chdir(dir: string): void;
 	print(v: string): void;

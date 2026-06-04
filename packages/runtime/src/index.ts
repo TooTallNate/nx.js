@@ -94,6 +94,7 @@ def(setTimeout);
 def(setInterval);
 def(clearTimeout);
 def(clearInterval);
+def($.queueMicrotask, 'queueMicrotask');
 
 import './navigator';
 
