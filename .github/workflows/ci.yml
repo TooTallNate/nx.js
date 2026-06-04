@@ -160,6 +160,27 @@ jobs:
           fi
           ln -sf /usr/bin/ld.lld-19 /usr/bin/ld.lld
 
+      # TEMPORARY: build the host-native Ada lib if the image doesn't ship it
+      # yet. The pacman-packages image now has a host-ada-build stage providing
+      # /opt/host/ada; remove this step once the pinned image SHA is bumped to a
+      # build that includes it.
+      - name: Build host Ada (fallback until image ships /opt/host/ada)
+        run: |
+          if [ ! -f /opt/host/ada/lib/libada.a ]; then
+            apt-get install -y clang binutils
+            ADA_VER=3.4.4
+            base="https://github.com/ada-url/ada/releases/download/v${ADA_VER}"
+            tmp="$(mktemp -d)"
+            wget -q "${base}/ada.cpp" -O "$tmp/ada.cpp"
+            wget -q "${base}/ada.h"   -O "$tmp/ada.h"
+            wget -q "${base}/ada_c.h" -O "$tmp/ada_c.h"
+            ( cd "$tmp" && clang++ -std=c++20 -O2 -fno-exceptions -fno-rtti -fPIC \
+                -c ada.cpp -o ada.o && ar rcs libada.a ada.o )
+            mkdir -p /opt/host/ada/lib /opt/host/ada/include
+            cp "$tmp/libada.a" /opt/host/ada/lib/
+            cp "$tmp/ada.h" "$tmp/ada_c.h" /opt/host/ada/include/
+          fi
+
       - name: Setup Node.js 22.x
         uses: actions/setup-node@v4
         with:
