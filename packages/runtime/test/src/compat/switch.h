@@ -247,12 +247,49 @@ typedef struct {
 	uint32_t size;
 } PlFontData;
 
-// Stub — always fails on host
+// Host implementation: load a real TTF from the system so the canvas/text
+// code paths work (the Switch shared font is unavailable off-device). The
+// font bytes are read once into a leaked heap buffer and reused; all shared
+// font types map to the same host font (good enough for conformance).
 static inline Result plGetSharedFontByType(PlFontData *font,
                                            PlSharedFontType type) {
-	(void)font;
 	(void)type;
-	return 1; // R_FAILED
+	static void *cached_addr = NULL;
+	static uint32_t cached_size = 0;
+	if (!cached_addr) {
+		static const char *const candidates[] = {
+		    "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+		    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+		    "/usr/share/fonts/truetype/freefont/FreeSans.ttf",
+		    "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
+		    "/usr/share/fonts/truetype/lato/Lato-Regular.ttf",
+		    "/System/Library/Fonts/Supplemental/Arial.ttf",
+		};
+		for (size_t i = 0; i < sizeof(candidates) / sizeof(candidates[0]); i++) {
+			FILE *f = fopen(candidates[i], "rb");
+			if (!f)
+				continue;
+			fseek(f, 0, SEEK_END);
+			long len = ftell(f);
+			fseek(f, 0, SEEK_SET);
+			if (len > 0) {
+				void *buf = malloc((size_t)len);
+				if (buf && fread(buf, 1, (size_t)len, f) == (size_t)len) {
+					cached_addr = buf;
+					cached_size = (uint32_t)len;
+					fclose(f);
+					break;
+				}
+				free(buf);
+			}
+			fclose(f);
+		}
+		if (!cached_addr)
+			return 1; // R_FAILED — no host font found
+	}
+	font->address = cached_addr;
+	font->size = cached_size;
+	return 0; // success
 }
 
 // ============================================================================

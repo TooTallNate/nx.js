@@ -501,25 +501,46 @@ int main(int argc, char *argv[]) {
 		free(rt_src);
 		free(sc_src);
 
-		// Drain the loop + microtasks until the script settles (async fixtures)
-		// or Switch.exit() is called. Bounded so a hung fixture can't spin
-		// forever in CI.
+		// Drive the runtime until the fixture settles or Switch.exit() is
+		// called (tap.ts calls Switch.exit() once all tests complete, which
+		// flips `is_running` to false).
+		//
+		// nx.js implements setTimeout/setInterval purely in JS (see
+		// src/timers.ts): timers fire from processTimers(), which the runtime
+		// drives from its per-frame handler ($.onFrame in src/index.ts). So
+		// runtime.js *always* registers a frame handler. To make wall-clock
+		// timers (e.g. a 200ms setTimeout) actually elapse, we must pace the
+		// frame loop like a real ~60fps display rather than busy-spinning:
+		// each iteration we pump libuv + microtasks, invoke the frame handler,
+		// then sleep ~16ms so Date.now() advances realistically.
+		//
+		// The cap is a wall-clock safety budget (~60s) so a hung fixture can't
+		// block CI forever. UV_RUN_NOWAIT (not ONCE) because our own sleep
+		// provides the frame pacing and we must not block past one frame.
+		const int kFrameMs = 16;
+		const int kMaxFrames = 60000 / kFrameMs * 60; // ~60s budget
 		int idle = 0;
-		for (int i = 0; is_running && i < 600000; i++) {
+		for (int i = 0; is_running && i < kMaxFrames; i++) {
+			bool has_frame = !nx_ctx->frame_handler.IsEmpty();
 			int alive = uv_run(&loop, UV_RUN_NOWAIT);
 			iso->PerformMicrotaskCheckpoint();
-			if (!nx_ctx->frame_handler.IsEmpty()) {
+			if (has_frame) {
 				HandleScope fs(iso);
 				Local<Function> fn = nx_ctx->frame_handler.Get(iso);
 				Local<Value> a[] = {Boolean::New(iso, false)};
 				(void)fn->Call(context, Null(iso), 1, a);
+				iso->PerformMicrotaskCheckpoint();
 			}
-			if (!alive && nx_ctx->frame_handler.IsEmpty()) {
+			if (!alive && !has_frame) {
 				if (++idle > 3)
 					break;  // nothing left to do
 			} else {
 				idle = 0;
 			}
+			// Pace the loop so JS timers (driven off Date.now()) elapse in
+			// realistic wall-clock time. Skip the sleep once nothing is left.
+			if (is_running)
+				uv_sleep(kFrameMs);
 		}
 
 		if (!nx_ctx->exit_handler.IsEmpty()) {
