@@ -108,10 +108,10 @@ void nx_service_dispatch_in_out(const FunctionCallbackInfo<Value> &info) {
 		if (opts->Get(c, nx_str(iso, "buffers")).ToLocal(&v) && v->IsArray()) {
 			Local<Object> a = v.As<Object>();
 			uint32_t length = 0;
-			(void)a->Get(c, nx_str(iso, "length"))
-			    .ToLocalChecked()
-			    ->Uint32Value(c)
-			    .To(&length);
+			Local<Value> len_v;
+			if (!a->Get(c, nx_str(iso, "length")).ToLocal(&len_v))
+				return;
+			(void)len_v->Uint32Value(c).To(&length);
 			for (uint32_t i = 0; i < length && i < 8; i++) {
 				Local<Value> e;
 				if (a->Get(c, i).ToLocal(&e)) {
@@ -126,13 +126,15 @@ void nx_service_dispatch_in_out(const FunctionCallbackInfo<Value> &info) {
 		if (opts->Get(c, nx_str(iso, "inObjects")).ToLocal(&v) &&
 		    v->IsArray()) {
 			Local<Object> a = v.As<Object>();
-			(void)a->Get(c, nx_str(iso, "length"))
-			    .ToLocalChecked()
-			    ->Uint32Value(c)
-			    .To(&disp.in_num_objects);
+			Local<Value> len_v;
+			if (!a->Get(c, nx_str(iso, "length")).ToLocal(&len_v))
+				return;
+			(void)len_v->Uint32Value(c).To(&disp.in_num_objects);
 			for (uint32_t i = 0; i < disp.in_num_objects && i < 8; i++) {
-				nx_service_t *vd =
-				    get_service(a->Get(c, i).ToLocalChecked());
+				Local<Value> e;
+				if (!a->Get(c, i).ToLocal(&e))
+					return;
+				nx_service_t *vd = get_service(e);
 				if (!vd) {
 					nx_throw(iso, "invalid inObjects entry");
 					return;
@@ -144,13 +146,15 @@ void nx_service_dispatch_in_out(const FunctionCallbackInfo<Value> &info) {
 		if (opts->Get(c, nx_str(iso, "outObjects")).ToLocal(&v) &&
 		    v->IsArray()) {
 			Local<Object> a = v.As<Object>();
-			(void)a->Get(c, nx_str(iso, "length"))
-			    .ToLocalChecked()
-			    ->Uint32Value(c)
-			    .To(&disp.out_num_objects);
+			Local<Value> len_v;
+			if (!a->Get(c, nx_str(iso, "length")).ToLocal(&len_v))
+				return;
+			(void)len_v->Uint32Value(c).To(&disp.out_num_objects);
 			for (uint32_t i = 0; i < disp.out_num_objects && i < 8; i++) {
-				nx_service_t *vd =
-				    get_service(a->Get(c, i).ToLocalChecked());
+				Local<Value> e;
+				if (!a->Get(c, i).ToLocal(&e))
+					return;
+				nx_service_t *vd = get_service(e);
 				if (!vd) {
 					nx_throw(iso, "invalid outObjects entry");
 					return;

@@ -111,10 +111,16 @@ void nx_account_select_profile(const FunctionCallbackInfo<Value> &info) {
 void nx_account_profile_new(const FunctionCallbackInfo<Value> &info) {
 	Isolate *iso = info.GetIsolate();
 	Local<Context> context = iso->GetCurrentContext();
+	if (!info[0]->IsObject()) {
+		nx_throw(iso, "invalid uid");
+		return;
+	}
 	Local<Object> arr = info[0].As<Object>();
 	AccountUid uid;
-	Local<Value> v0 = arr->Get(context, 0).ToLocalChecked();
-	Local<Value> v1 = arr->Get(context, 1).ToLocalChecked();
+	Local<Value> v0, v1;
+	if (!arr->Get(context, 0).ToLocal(&v0) ||
+	    !arr->Get(context, 1).ToLocal(&v1))
+		return;
 	if (!v0->IsBigInt() || !v1->IsBigInt()) {
 		nx_throw(iso, "invalid uid");
 		return;
@@ -134,7 +140,10 @@ void nx_account_profiles(const FunctionCallbackInfo<Value> &info) {
 		nx_throw_libnx_error(iso, rc, "accountGetUserCount");
 		return;
 	}
-	AccountUid *uids = (AccountUid *)malloc(sizeof(AccountUid) * user_count);
+	AccountUid *uids =
+	    (AccountUid *)nx_alloc(iso, sizeof(AccountUid) * user_count);
+	if (!uids)
+		return;
 	rc = accountListAllUsers(uids, user_count, &user_count);
 	if (R_FAILED(rc)) {
 		free(uids);
@@ -157,9 +166,7 @@ void nx_account_nickname(const FunctionCallbackInfo<Value> &info) {
 	size_t len = strnlen(profile->profilebase.nickname,
 	                     sizeof(profile->profilebase.nickname));
 	info.GetReturnValue().Set(
-	    String::NewFromUtf8(iso, profile->profilebase.nickname,
-	                        NewStringType::kNormal, (int)len)
-	        .ToLocalChecked());
+	    nx_str_lossy(iso, profile->profilebase.nickname, (int)len));
 }
 
 void nx_account_image(const FunctionCallbackInfo<Value> &info) {
@@ -182,7 +189,9 @@ void nx_account_image(const FunctionCallbackInfo<Value> &info) {
 		nx_throw_libnx_error(iso, rc, "accountProfileGetImageSize");
 		return;
 	}
-	void *buf = malloc(image_size);
+	void *buf = nx_alloc(iso, image_size);
+	if (!buf)
+		return;
 	rc = accountProfileLoadImage(&profile->profile, buf, image_size,
 	                             &image_size);
 	if (R_FAILED(rc)) {

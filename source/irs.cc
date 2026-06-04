@@ -2,6 +2,7 @@
 #include "image.h"
 #include "types.h"
 #include "wrap.h"
+#include <string.h>
 
 using namespace v8;
 
@@ -53,7 +54,10 @@ void nx_irs_sensor_new(const FunctionCallbackInfo<Value> &info) {
 	Isolate *iso = info.GetIsolate();
 	Local<Context> context = iso->GetCurrentContext();
 	nx_ir_sensor_t *data =
-	    (nx_ir_sensor_t *)calloc(1, sizeof(nx_ir_sensor_t));
+	    (nx_ir_sensor_t *)nx_alloc(iso, sizeof(nx_ir_sensor_t));
+	if (!data)
+		return;
+	memset(data, 0, sizeof(nx_ir_sensor_t));
 	data->sampling_number = (u64)-1;
 	data->image = nx_get_image(iso, info[0]);
 	if (!data->image) {
@@ -61,19 +65,37 @@ void nx_irs_sensor_new(const FunctionCallbackInfo<Value> &info) {
 		nx_throw(iso, "invalid image");
 		return;
 	}
+	if (!info[1]->IsObject()) {
+		free(data);
+		nx_throw(iso, "invalid colors");
+		return;
+	}
 	data->sensor_buf_size = data->image->width * data->image->height;
-	data->sensor_buf = (u8 *)calloc(1, data->sensor_buf_size);
+	data->sensor_buf = (u8 *)nx_alloc(iso, data->sensor_buf_size);
+	if (!data->sensor_buf) {
+		free(data);
+		return;
+	}
 
 	Local<Object> colors = info[1].As<Object>();
 	uint32_t r = 0, g = 0, b = 0;
 	double a = 0;
-	if (!colors->Get(context, 0).ToLocalChecked()->Uint32Value(context).To(&r))
+	Local<Value> c0, c1, c2, c3;
+	if (!colors->Get(context, 0).ToLocal(&c0) ||
+	    !colors->Get(context, 1).ToLocal(&c1) ||
+	    !colors->Get(context, 2).ToLocal(&c2) ||
+	    !colors->Get(context, 3).ToLocal(&c3)) {
+		free(data->sensor_buf);
+		free(data);
+		return;
+	}
+	if (!c0->Uint32Value(context).To(&r))
 		r = 0;
-	if (!colors->Get(context, 1).ToLocalChecked()->Uint32Value(context).To(&g))
+	if (!c1->Uint32Value(context).To(&g))
 		g = 0;
-	if (!colors->Get(context, 2).ToLocalChecked()->Uint32Value(context).To(&b))
+	if (!c2->Uint32Value(context).To(&b))
 		b = 0;
-	if (!colors->Get(context, 3).ToLocalChecked()->NumberValue(context).To(&a))
+	if (!c3->NumberValue(context).To(&a))
 		a = 0;
 	data->color.r = r;
 	data->color.g = g;

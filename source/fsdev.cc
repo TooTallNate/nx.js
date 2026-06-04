@@ -474,8 +474,9 @@ void nx_save_data_create_sync(const FunctionCallbackInfo<Value> &info) {
 		Local<Value> v;
 		if (o->Get(c, nx_str(iso, "uid")).ToLocal(&v) && v->IsArray()) {
 			Local<Object> a = v.As<Object>();
-			Local<Value> u0 = a->Get(c, 0).ToLocalChecked();
-			Local<Value> u1 = a->Get(c, 1).ToLocalChecked();
+			Local<Value> u0, u1;
+			if (!a->Get(c, 0).ToLocal(&u0) || !a->Get(c, 1).ToLocal(&u1))
+				return;
 			if (u0->IsBigInt())
 				attr.uid.uid[0] = u0.As<BigInt>()->Uint64Value();
 			if (u1->IsBigInt())

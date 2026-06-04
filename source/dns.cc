@@ -43,7 +43,15 @@ void nx_dns_resolve_do(nx_work_t *req) {
 		return;
 	}
 
-	data->entries = (char **)malloc(count * sizeof(char *));
+	data->entries = (char **)calloc(count, sizeof(char *));
+	if (!data->entries) {
+		// Worker thread: cannot touch V8. Signal OOM via err; the after-work
+		// callback turns a non-zero err into a thrown JS error.
+		data->num_entries = 0;
+		data->err = EAI_MEMORY;
+		freeaddrinfo(result);
+		return;
+	}
 	char ip[INET6_ADDRSTRLEN];
 	int i = 0;
 	for (struct addrinfo *rp = result; rp != NULL; rp = rp->ai_next) {

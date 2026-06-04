@@ -30,6 +30,33 @@ table. Read it fully before touching a module.
   API.
 - **Headers**: V8 headers are flat — `#include <v8.h>`,
   `#include <libplatform/libplatform.h>`. libuv is `#include <uv.h>`.
+- **Never hard-crash the console.** On a Switch a process abort forces the user
+  to restart the whole console, so a binding must NEVER abort on bad/large input
+  or allocation failure — it must surface a *catchable JS error* (or, for an
+  unrecoverable VM state, set `nx_ctx->had_error` so the loop stops the VM and
+  waits for `+`). Concretely:
+  - **`.ToLocalChecked()` / `.Check()` / `.FromJust()` abort** if the
+    Maybe/MaybeLocal is empty/Nothing. Only use them on values that are an
+    internal invariant (a fresh `Object`/`Array`, a string *literal*, an
+    init-time template). For anything derived from **user input or external
+    data** — `obj->Get(...)` on a user object (a getter can throw), number
+    coercions, `String::NewFromUtf8` on runtime bytes — use `.ToLocal(&out)` /
+    `.To(&out)` and `return` on failure (the pending exception then surfaces as
+    a normal throw).
+  - For **UTF-8 from untrusted sources** (filenames, account nicknames, IPC
+    payloads, URL components) use `nx_str_lossy()` — it falls back to a
+    byte-for-byte string instead of aborting on malformed UTF-8. `nx_str()`
+    (which is `NewFromUtf8(...).ToLocalChecked()`) is only for **string
+    literals**.
+  - For **allocations** use `nx_alloc(iso, size)` — it throws a `RangeError` and
+    returns `NULL` on failure (caller must check + `return`). Never deref a bare
+    `malloc`/`calloc` result without a NULL check. In a `uv_work_t` work
+    callback (no V8 allowed) signal the failure via the request struct's error
+    field and throw in the after-work callback instead.
+  - KNOWN FOLLOW-UP: bare `new T()` (e.g. the `NX_INIT_WORK_T` macros) calls
+    `std::terminate` on OOM under `-fno-exceptions`. These are tiny structs so
+    failure is unlikely, but they should migrate to `new (std::nothrow)` +
+    NULL-check. Tracked separately.
 
 ---
 
@@ -324,19 +351,19 @@ Always have `Isolate *iso` and `Local<Context> ctx` in scope.
 | `JS_NewBool(ctx, b)` | `Boolean::New(iso, b)` |
 | `JS_NewInt32/NewInt64` | `Integer::New(iso, n)` / `BigInt::New` |
 | `JS_NewFloat64(ctx, d)` | `Number::New(iso, d)` |
-| `JS_NewString(ctx, s)` | `nx_str(iso, s)` → `String::NewFromUtf8(...).ToLocalChecked()` |
-| `JS_NewStringLen` | `String::NewFromUtf8(iso, p, kNormal, len)` |
+| `JS_NewString(ctx, s)` | `nx_str(iso, s)` (literals only — aborts on bad UTF-8); for untrusted bytes use `nx_str_lossy(iso, s)` |
+| `JS_NewStringLen` | `String::NewFromUtf8(iso, p, kNormal, len)` + `.ToLocal()`; for untrusted bytes `nx_str_lossy(iso, p, len)` |
 | `JS_ToInt32(ctx,&i,v)` | `v->Int32Value(ctx).To(&i)` (check bool) |
 | `JS_ToFloat64` | `v->NumberValue(ctx).To(&d)` |
 | `JS_ToCStringLen` | `String::Utf8Value u(iso, v);` → `*u`, `u.length()` |
 | `JS_IsException` / `JS_EXCEPTION` | a `MaybeLocal`/`Maybe` came back empty; or check `TryCatch` |
 | `JS_ThrowTypeError(ctx,...)` | `iso->ThrowException(Exception::TypeError(nx_str(iso,msg)))` then `return` |
 | `JS_ThrowInternalError` | `iso->ThrowException(Exception::Error(...))` (no "internal" variant) |
-| `JS_GetPropertyStr(ctx,o,"k")` | `o->Get(ctx, nx_str(iso,"k")).ToLocalChecked()` |
+| `JS_GetPropertyStr(ctx,o,"k")` | `o->Get(ctx, nx_str(iso,"k")).ToLocal(&out)` then `return` on false (a user getter can throw; never `.ToLocalChecked()` on a user object) |
 | `JS_SetPropertyStr` | `o->Set(ctx, nx_str(iso,"k"), v).Check()` |
 | `JS_Call(ctx,fn,this,n,argv)` | `fn->Call(ctx, recv, n, argv)` (returns `MaybeLocal`) |
 | `JS_GetContextOpaque(ctx)` | `nx_ctx(iso)` → `static_cast<nx_context_t*>(iso->GetData(0))` |
-| `js_malloc`/`js_free` | `malloc`/`free` (no engine allocator; V8 has none exposed) |
+| `js_malloc`/`js_free` | `nx_alloc(iso, size)` (throws RangeError + returns NULL on failure) / `free`; bare `malloc` only if you NULL-check |
 
 ### C++ strictness vs the old C modules
 

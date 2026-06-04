@@ -1,5 +1,6 @@
 #include "error.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 using namespace v8;
@@ -36,6 +37,43 @@ void print_js_error(Isolate *iso, TryCatch *try_catch) {
 
 void nx_throw(Isolate *iso, const char *message) {
 	iso->ThrowException(Exception::Error(nx_str(iso, message)));
+}
+
+void nx_throw_oom(Isolate *iso, size_t size) {
+	char message[96];
+	snprintf(message, sizeof(message),
+	         "Out of memory (failed to allocate %zu bytes)", size);
+	iso->ThrowException(Exception::RangeError(nx_str(iso, message)));
+}
+
+void *nx_alloc(Isolate *iso, size_t size) {
+	void *p = malloc(size);
+	if (!p && size != 0) {
+		nx_throw_oom(iso, size);
+	}
+	return p;
+}
+
+Local<String> nx_str_lossy(Isolate *iso, const char *s, int len) {
+	if (!s)
+		return String::Empty(iso);
+	Local<String> out;
+	if (String::NewFromUtf8(iso, s, NewStringType::kNormal, len)
+	        .ToLocal(&out)) {
+		return out;
+	}
+	// Not well-formed UTF-8 (NewFromUtf8 returned empty). Fall back to a
+	// byte-for-byte (Latin-1) string so a malformed name/payload can never
+	// abort the process. NewFromOneByte only returns empty when the length
+	// exceeds String::kMaxLength; if even that fails, return an empty string
+	// rather than aborting.
+	size_t n = len < 0 ? strlen(s) : (size_t)len;
+	if (String::NewFromOneByte(iso, (const uint8_t *)s, NewStringType::kNormal,
+	                           (int)n)
+	        .ToLocal(&out)) {
+		return out;
+	}
+	return String::Empty(iso);
 }
 
 void nx_throw_libnx_error(Isolate *iso, Result rc, const char *name) {

@@ -113,7 +113,9 @@ void nx_album_file_list(const FunctionCallbackInfo<Value> &info) {
 		return;
 	}
 	CapsAlbumEntry *entry =
-	    (CapsAlbumEntry *)malloc(sizeof(CapsAlbumEntry) * count);
+	    (CapsAlbumEntry *)nx_alloc(iso, sizeof(CapsAlbumEntry) * count);
+	if (!entry)
+		return;
 	u64 out;
 	rc = capsaGetAlbumFileList(CapsAlbumStorage_Sd, &out, entry, count);
 	if (R_FAILED(rc)) {
@@ -218,6 +220,12 @@ void thumbnail_work(nx_work_t *req) {
 	album_async_t *d = (album_async_t *)req->data;
 	u64 buf_size = 100 * 1024;
 	d->data = (uint8_t *)malloc(buf_size);
+	if (!d->data) {
+		// Worker thread: cannot touch V8. Signal failure via err; the
+		// after-work callback turns R_FAILED(err) into a thrown JS error.
+		d->err = MAKERESULT(Module_Libnx, LibnxError_HeapAllocFailed);
+		return;
+	}
 	d->err =
 	    capsaLoadAlbumFileThumbnail(&d->id, &d->size, d->data, buf_size);
 }
@@ -229,6 +237,10 @@ void array_buffer_work(nx_work_t *req) {
 	d->err = capsaGetAlbumFileSize(&d->id, &size);
 	if (R_SUCCEEDED(d->err)) {
 		d->data = (uint8_t *)malloc(size);
+		if (!d->data) {
+			d->err = MAKERESULT(Module_Libnx, LibnxError_HeapAllocFailed);
+			return;
+		}
 		d->err = capsaLoadAlbumFile(&d->id, &d->size, d->data, size);
 	}
 }

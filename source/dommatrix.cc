@@ -112,9 +112,10 @@ void nx_dommatrix_new(const FunctionCallbackInfo<Value> &info) {
 	if (info.Length() > 0 && info[0]->IsArray()) {
 		Local<Object> a = info[0].As<Object>();
 		Local<Context> c = iso->GetCurrentContext();
-		uint32_t length =
-		    a->Get(c, nx_str(iso, "length")).ToLocalChecked()->Uint32Value(c)
-		        .FromMaybe(0);
+		Local<Value> len_v;
+		if (!a->Get(c, nx_str(iso, "length")).ToLocal(&len_v))
+			return;
+		uint32_t length = len_v->Uint32Value(c).FromMaybe(0);
 		if (length != 6 && length != 16) {
 			nx_throw(iso, "Matrix init sequence must have a length of 6 or 16");
 			return;

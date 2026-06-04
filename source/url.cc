@@ -103,11 +103,10 @@ void nx_url_new(const FunctionCallbackInfo<Value> &info) {
 	info.GetReturnValue().Set(obj);
 }
 
-// String getter from an ada_string accessor.
+// String getter from an ada_string accessor. Uses the lossy helper so a
+// malformed URL component (non-UTF-8 edge case from ada) can never abort.
 Local<String> ada_str(Isolate *iso, ada_string val) {
-	return String::NewFromUtf8(iso, val.data, NewStringType::kNormal,
-	                           (int)val.length)
-	    .ToLocalChecked();
+	return nx_str_lossy(iso, val.data, (int)val.length);
 }
 
 #define DEFINE_GETTER_SETTER(NAME)                                             \
@@ -147,12 +146,14 @@ void nx_url_get_search(const FunctionCallbackInfo<Value> &info) {
 		if (val.length == 0) {
 			str = nx_str(iso, "");
 		} else {
-			char *tmp = (char *)malloc(val.length + 1);
+			char *tmp = (char *)nx_alloc(iso, val.length + 1);
+			if (!tmp) {
+				ada_free_owned_string(val);
+				return;
+			}
 			tmp[0] = '?';
 			memcpy(tmp + 1, val.data, val.length);
-			str = String::NewFromUtf8(iso, tmp, NewStringType::kNormal,
-			                          (int)val.length + 1)
-			          .ToLocalChecked();
+			str = nx_str_lossy(iso, tmp, (int)val.length + 1);
 			free(tmp);
 		}
 		ada_free_owned_string(val);
@@ -211,10 +212,7 @@ void nx_url_get_origin(const FunctionCallbackInfo<Value> &info) {
 	if (!data)
 		return;
 	ada_owned_string val = ada_get_origin(data->url);
-	info.GetReturnValue().Set(
-	    String::NewFromUtf8(iso, val.data, NewStringType::kNormal,
-	                        (int)val.length)
-	        .ToLocalChecked());
+	info.GetReturnValue().Set(nx_str_lossy(iso, val.data, (int)val.length));
 	ada_free_owned_string(val);
 }
 
@@ -376,10 +374,7 @@ void nx_url_search_params_to_string(const FunctionCallbackInfo<Value> &info) {
 	if (!data)
 		return;
 	ada_owned_string val = ada_search_params_to_string(data->params);
-	info.GetReturnValue().Set(
-	    String::NewFromUtf8(iso, val.data, NewStringType::kNormal,
-	                        (int)val.length)
-	        .ToLocalChecked());
+	info.GetReturnValue().Set(nx_str_lossy(iso, val.data, (int)val.length));
 	ada_free_owned_string(val);
 }
 
