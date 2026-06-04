@@ -44,5 +44,13 @@
     "@nx.js/util": "1.1.0",
     "@nx.js/ws": "0.0.2"
   },
-  "changesets": []
+  "changesets": [
+    "canvas-path-ctm",
+    "path2d-skpath",
+    "queue-microtask",
+    "socket-buffer-exhaustion",
+    "socket-read-buffer-leak",
+    "switch-ada-portlib",
+    "v1-beta"
+  ]
 }
