@@ -40,6 +40,13 @@ typedef struct nx_canvas_s {
 
 nx_canvas_t *nx_get_canvas(v8::Isolate *iso, v8::Local<v8::Value> obj);
 
+// Resolve a CanvasPathDrawingStyles `radii` argument (number | DOMPoint |
+// (number|DOMPoint)[] of length 1..4, or undefined) into four corner radii in
+// TL, TR, BR, BL order. Returns false (after throwing) on invalid input.
+// Shared by ctx.roundRect (canvas.cc) and Path2D.roundRect (path2d.cc).
+bool nx_resolve_round_rect_radii(v8::Isolate *iso, v8::Local<v8::Value> radii,
+                                 SkVector out[4]);
+
 // Accessors used by main.cc's framebuffer present path.
 uint8_t *nx_canvas_pixels(nx_canvas_t *c);
 uint32_t nx_canvas_width(nx_canvas_t *c);

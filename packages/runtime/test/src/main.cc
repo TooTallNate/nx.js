@@ -54,8 +54,8 @@ NX_MOD(account); NX_MOD(album); NX_MOD(applet); NX_MOD(audio); NX_MOD(battery);
 NX_MOD(canvas); NX_MOD(compression); NX_MOD(crypto); NX_MOD(dns);
 NX_MOD(dommatrix); NX_MOD(error); NX_MOD(font); NX_MOD(fs); NX_MOD(fsdev);
 NX_MOD(gamepad); NX_MOD(image); NX_MOD(irs); NX_MOD(memory); NX_MOD(nifm);
-NX_MOD(ns); NX_MOD(service); NX_MOD(swkbd); NX_MOD(tcp); NX_MOD(tls);
-NX_MOD(udp); NX_MOD(url); NX_MOD(web); NX_MOD(window);
+NX_MOD(ns); NX_MOD(path2d); NX_MOD(service); NX_MOD(swkbd); NX_MOD(tcp);
+NX_MOD(tls); NX_MOD(udp); NX_MOD(url); NX_MOD(web); NX_MOD(window);
 #undef NX_MOD
 
 // canvas raster present accessor (provided by canvas.cc).
@@ -322,6 +322,7 @@ static void build_init_object(Isolate *iso, Local<Context> context,
 	nx_init_memory(iso, init_obj);
 	nx_init_nifm(iso, init_obj);
 	nx_init_ns(iso, init_obj);
+	nx_init_path2d(iso, init_obj);
 	nx_init_service(iso, init_obj);
 	nx_init_swkbd(iso, init_obj);
 	nx_init_tcp(iso, init_obj);

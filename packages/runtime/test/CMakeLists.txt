@@ -58,6 +58,7 @@ set(NX_SOURCES
   ${NX_SOURCE_DIR}/font.cc
   ${NX_SOURCE_DIR}/fs.cc
   ${NX_SOURCE_DIR}/image.cc
+  ${NX_SOURCE_DIR}/path2d.cc
   ${NX_SOURCE_DIR}/tcp.cc
   ${NX_SOURCE_DIR}/tls.cc
   ${NX_SOURCE_DIR}/udp.cc

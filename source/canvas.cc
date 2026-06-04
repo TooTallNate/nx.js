@@ -14,6 +14,7 @@
 #include "dommatrix.h"
 #include "error.h"
 #include "font.h"
+#include "path2d.h"
 #include "image.h"
 #include "util.h"
 #include "wrap.h"
@@ -48,6 +49,7 @@
 #include "include/encode/SkPngEncoder.h"
 
 #include <harfbuzz/hb.h>
+#include <utility>
 #include <vector>
 
 using namespace v8;
@@ -59,7 +61,7 @@ typedef struct Point {
 } Point;
 
 static inline int imin(int a, int b) { return a < b ? a : b; }
-static inline void point_swap(Point *a, Point *b) {
+[[maybe_unused]] static inline void point_swap(Point *a, Point *b) {
 	Point t = *a;
 	*a = *b;
 	*b = t;
@@ -592,20 +594,19 @@ static void set_fill_rule_v(Isolate *iso, Local<Value> fill_rule,
 	context->path.setFillType(rule);
 }
 
-// Apply the user's Path2D onto context->path by calling $.applyPath(this,path).
+// Apply a user Path2D onto context->path. Path2D is backed by an SkPath in
+// USER space (source/path2d.cc); bake the current CTM into it so context->path
+// stays in device space (consistent with the inline path builders).
 void apply_path(Isolate *iso, Local<Value> recv, Local<Value> path) {
-	Local<Context> ctx = iso->GetCurrentContext();
-	Local<Object> init_obj = nx_ctx(iso)->init_obj.Get(iso);
-	Local<Value> fn_v;
-	if (!init_obj->Get(ctx, nx_str(iso, "applyPath")).ToLocal(&fn_v) ||
-	    !fn_v->IsFunction())
+	(void)recv;
+	const SkPath *user = nx_path2d_get(iso, path);
+	if (!user)
 		return;
-	Local<Function> fn = fn_v.As<Function>();
-	Local<Value> args[] = {recv, path};
-	TryCatch tc(iso);
-	Local<Value> ret;
-	if (!fn->Call(ctx, Null(iso), 2, args).ToLocal(&ret)) { /* ignore */
-	}
+	nx_canvas_context_2d_t *context = nx_get_canvas_context_2d(iso, recv);
+	if (!context)
+		return;
+	context->path.addPath(*user, context->ctx->getTotalMatrix(),
+	                      SkPath::kAppend_AddPathMode);
 }
 
 // ===========================================================================
@@ -837,88 +838,92 @@ static bool get_radius(Isolate *iso, Local<Value> v, Point *p) {
 	return true;
 }
 
+// Shared by ctx.roundRect and Path2D.roundRect (definition is at global scope
+// below, outside this anonymous namespace, so path2d.cc can link to it).
+bool resolve_round_rect_radii_impl(Isolate *iso, Local<Value> radii,
+                                   SkVector out[4]) {
+	Local<Context> jsctx = iso->GetCurrentContext();
+	Point r[4];
+	uint32_t nRadii = 4;
+	if (radii.IsEmpty() || radii->IsUndefined()) {
+		for (int i = 0; i < 4; i++)
+			r[i].x = r[i].y = 0.;
+	} else if (radii->IsArray()) {
+		Local<Object> arr = radii.As<Object>();
+		if (!arr->Get(jsctx, nx_str(iso, "length"))
+		         .ToLocalChecked()
+		         ->Uint32Value(jsctx)
+		         .To(&nRadii))
+			return false;
+		if (!(nRadii >= 1 && nRadii <= 4)) {
+			iso->ThrowException(Exception::RangeError(nx_str(
+			    iso,
+			    "radii must be a list of one, two, three or four radii.")));
+			return false;
+		}
+		for (uint32_t i = 0; i < nRadii; i++) {
+			Local<Value> v = arr->Get(jsctx, i).ToLocalChecked();
+			if (get_radius(iso, v, &r[i]))
+				return false;
+		}
+	} else {
+		if (get_radius(iso, radii, &r[0]))
+			return false;
+		for (int i = 1; i < 4; i++) {
+			r[i].x = r[0].x;
+			r[i].y = r[0].y;
+		}
+	}
+	Point ul, ur, lr, ll;
+	if (nRadii == 4) {
+		ul = r[0]; ur = r[1]; lr = r[2]; ll = r[3];
+	} else if (nRadii == 3) {
+		ul = r[0]; ur = r[1]; ll = r[1]; lr = r[2];
+	} else if (nRadii == 2) {
+		ul = r[0]; lr = r[0]; ur = r[1]; ll = r[1];
+	} else {
+		ul = ur = lr = ll = r[0];
+	}
+	out[0] = {(SkScalar)ul.x, (SkScalar)ul.y};
+	out[1] = {(SkScalar)ur.x, (SkScalar)ur.y};
+	out[2] = {(SkScalar)lr.x, (SkScalar)lr.y};
+	out[3] = {(SkScalar)ll.x, (SkScalar)ll.y};
+	return true;
+}
+
 void nx_canvas_context_2d_round_rect(const FunctionCallbackInfo<Value> &info) {
 	ENTER_THIS;
 	Local<Context> jsctx = iso->GetCurrentContext();
 	double rargs[4];
 	if (!get_doubles(info, rargs, 4, 0))
 		return;
+	(void)jsctx;
 	double x = rargs[0], y = rargs[1], width = rargs[2], height = rargs[3];
-	Point normalizedRadii[4];
-	uint32_t nRadii = 4;
-	if (info.Length() < 5 || info[4]->IsUndefined()) {
-		for (int i = 0; i < 4; i++)
-			normalizedRadii[i].x = normalizedRadii[i].y = 0.;
-	} else if (info[4]->IsArray()) {
-		Local<Object> arr = info[4].As<Object>();
-		if (!arr->Get(jsctx, nx_str(iso, "length"))
-		         .ToLocalChecked()
-		         ->Uint32Value(jsctx)
-		         .To(&nRadii))
-			return;
-		if (!(nRadii >= 1 && nRadii <= 4)) {
-			iso->ThrowException(Exception::RangeError(nx_str(
-			    iso,
-			    "radii must be a list of one, two, three or four radii.")));
-			return;
-		}
-		for (uint32_t i = 0; i < nRadii; i++) {
-			Local<Value> v = arr->Get(jsctx, i).ToLocalChecked();
-			if (get_radius(iso, v, &normalizedRadii[i]))
-				return;
-		}
-	} else {
-		if (get_radius(iso, info[4], &normalizedRadii[0]))
-			return;
-		for (int i = 1; i < 4; i++) {
-			normalizedRadii[i].x = normalizedRadii[0].x;
-			normalizedRadii[i].y = normalizedRadii[0].y;
-		}
-	}
-	Point upperLeft, upperRight, lowerRight, lowerLeft;
-	if (nRadii == 4) {
-		upperLeft = normalizedRadii[0];
-		upperRight = normalizedRadii[1];
-		lowerRight = normalizedRadii[2];
-		lowerLeft = normalizedRadii[3];
-	} else if (nRadii == 3) {
-		upperLeft = normalizedRadii[0];
-		upperRight = normalizedRadii[1];
-		lowerLeft = normalizedRadii[1];
-		lowerRight = normalizedRadii[2];
-	} else if (nRadii == 2) {
-		upperLeft = normalizedRadii[0];
-		lowerRight = normalizedRadii[0];
-		upperRight = normalizedRadii[1];
-		lowerLeft = normalizedRadii[1];
-	} else {
-		upperLeft = upperRight = lowerRight = lowerLeft = normalizedRadii[0];
-	}
+	// Radii in SkRRect order (TL, TR, BR, BL).
+	SkVector radii[4];
+	if (!nx_resolve_round_rect_radii(
+	        iso, info.Length() > 4 ? info[4] : Local<Value>(), radii))
+		return;
 	bool clockwise = true;
+	// Match the prior behavior exactly: each negative dimension swaps the two
+	// left radii with the two right radii (TL<->TR, BL<->BR).
 	if (width < 0) {
 		clockwise = false;
 		x += width;
 		width = -width;
-		point_swap(&upperLeft, &upperRight);
-		point_swap(&lowerLeft, &lowerRight);
+		std::swap(radii[0], radii[1]);
+		std::swap(radii[3], radii[2]);
 	}
 	if (height < 0) {
 		clockwise = !clockwise;
 		y += height;
 		height = -height;
-		point_swap(&upperLeft, &upperRight);
-		point_swap(&lowerLeft, &lowerRight);
+		std::swap(radii[0], radii[1]);
+		std::swap(radii[3], radii[2]);
 	}
-	// Radii in SkRRect order (TL, TR, BR, BL), matching the canvas spec corners
-	// after the negative-width/height swaps above. The spec radii down-scale
-	// (clamp) and the rrect build happen in nxcp_round_rect (LOCAL space); the
-	// resulting sub-path is then baked into device space (new subpath).
-	SkVector radii[4] = {
-	    {(SkScalar)upperLeft.x, (SkScalar)upperLeft.y},
-	    {(SkScalar)upperRight.x, (SkScalar)upperRight.y},
-	    {(SkScalar)lowerRight.x, (SkScalar)lowerRight.y},
-	    {(SkScalar)lowerLeft.x, (SkScalar)lowerLeft.y},
-	};
+	// The spec radii down-scale (clamp) and the rrect build happen in
+	// nxcp_round_rect (LOCAL space); the resulting sub-path is then baked into
+	// device space (new subpath).
 	SkPathBuilder sub;
 	nxcp_round_rect(sub, x, y, width, height, radii, clockwise);
 	add_user_subpath(context, sub.detach(), /*extend=*/false);
@@ -2588,6 +2593,11 @@ void nx_canvas_proto_to_data_url(const FunctionCallbackInfo<Value> &info) {
 } // namespace
 
 // ---- shared (non-namespace) symbols ----
+bool nx_resolve_round_rect_radii(Isolate *iso, Local<Value> radii,
+                                 SkVector out[4]) {
+	return resolve_round_rect_radii_impl(iso, radii, out);
+}
+
 nx_canvas_t *nx_get_canvas(Isolate *iso, Local<Value> obj) {
 	(void)iso;
 	return nx::Unwrap<nx_canvas_t>(obj);
