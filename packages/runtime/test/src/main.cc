@@ -416,6 +416,102 @@ static char *read_file(const char *path, size_t *out_len) {
 	return buf;
 }
 
+// Decode a base64 data: URL payload (no whitespace) into a malloc'd buffer.
+static uint8_t *base64_decode(const char *b64, size_t b64_len, size_t *out_len) {
+	static const int8_t T[256] = {
+	    /* fully initialized below */
+	};
+	(void)T;
+	int8_t tbl[256];
+	for (int i = 0; i < 256; i++)
+		tbl[i] = -1;
+	const char *alpha =
+	    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+	for (int i = 0; i < 64; i++)
+		tbl[(unsigned char)alpha[i]] = (int8_t)i;
+	uint8_t *out = (uint8_t *)malloc(b64_len / 4 * 3 + 4);
+	if (!out)
+		return nullptr;
+	size_t o = 0;
+	int val = 0, bits = 0;
+	for (size_t i = 0; i < b64_len; i++) {
+		char c = b64[i];
+		if (c == '=' || c == '\n' || c == '\r')
+			continue;
+		int8_t d = tbl[(unsigned char)c];
+		if (d < 0)
+			continue;
+		val = (val << 6) | d;
+		bits += 6;
+		if (bits >= 8) {
+			bits -= 8;
+			out[o++] = (uint8_t)((val >> bits) & 0xFF);
+		}
+	}
+	*out_len = o;
+	return out;
+}
+
+// PNG render mode: after the fixture has drawn into the canvas stashed at
+// globalThis.__nxjs_canvas__, encode it to PNG via the runtime's synchronous
+// toDataURL() (Skia) and write the bytes to `out_path`. Returns 0 on success.
+static int write_canvas_png(Isolate *iso, Local<Context> context,
+                            const char *out_path) {
+	HandleScope scope(iso);
+	TryCatch try_catch(iso);
+	Local<Object> global = context->Global();
+	Local<Value> canvas_v;
+	if (!global->Get(context, nx_str(iso, "__nxjs_canvas__")).ToLocal(&canvas_v) ||
+	    !canvas_v->IsObject()) {
+		fprintf(stderr,
+		        "no canvas found — did the fixture call createCanvas()?\n");
+		return 1;
+	}
+	Local<Object> canvas = canvas_v.As<Object>();
+	Local<Value> to_data_url_v;
+	if (!canvas->Get(context, nx_str(iso, "toDataURL")).ToLocal(&to_data_url_v) ||
+	    !to_data_url_v->IsFunction()) {
+		fprintf(stderr, "canvas.toDataURL is not a function\n");
+		return 1;
+	}
+	Local<Value> arg = nx_str(iso, "image/png");
+	Local<Value> result;
+	if (!to_data_url_v.As<Function>()
+	         ->Call(context, canvas, 1, &arg)
+	         .ToLocal(&result)) {
+		print_js_error(iso, &try_catch);
+		return 1;
+	}
+	String::Utf8Value data_url(iso, result);
+	if (!*data_url) {
+		fprintf(stderr, "toDataURL returned empty\n");
+		return 1;
+	}
+	const char *comma = strchr(*data_url, ',');
+	if (!comma) {
+		fprintf(stderr, "malformed data URL\n");
+		return 1;
+	}
+	const char *b64 = comma + 1;
+	size_t b64_len = data_url.length() - (b64 - *data_url);
+	size_t png_len = 0;
+	uint8_t *png = base64_decode(b64, b64_len, &png_len);
+	if (!png) {
+		fprintf(stderr, "base64 decode failed\n");
+		return 1;
+	}
+	FILE *f = fopen(out_path, "wb");
+	if (!f) {
+		fprintf(stderr, "cannot open output: %s\n", out_path);
+		free(png);
+		return 1;
+	}
+	fwrite(png, 1, png_len, f);
+	fclose(f);
+	free(png);
+	return 0;
+}
+
 static void load_host_ca_certs(nx_context_t *nx) {
 	mbedtls_x509_crt_init(&nx->ca_chain);
 	const char *paths[] = {"/etc/ssl/cert.pem",
@@ -442,6 +538,20 @@ int main(int argc, char *argv[]) {
 	}
 	const char *runtime_path = argv[1];
 	const char *script_path = argv[2];
+
+	// Optional PNG render mode: "--png <output.png> <width> <height>".
+	// Renders the fixture's canvas to a PNG instead of running the TAP loop,
+	// used by the canvas image-conformance tests (test/canvas).
+	const char *png_out = nullptr;
+	int png_w = 200, png_h = 200;
+	for (int i = 3; i < argc; i++) {
+		if (strcmp(argv[i], "--png") == 0 && i + 3 < argc) {
+			png_out = argv[i + 1];
+			png_w = atoi(argv[i + 2]);
+			png_h = atoi(argv[i + 3]);
+			i += 3;
+		}
+	}
 
 	if (psa_crypto_init() != PSA_SUCCESS) {
 		fprintf(stderr, "psa_crypto_init failed\n");
@@ -493,6 +603,31 @@ int main(int argc, char *argv[]) {
 			exit_code = 1;
 		} else if (!run_script(iso, context, rt_src, rt_len, "runtime.js")) {
 			exit_code = 1;
+		} else if (png_out) {
+			// Canvas image mode: expose createCanvas() (backed by the runtime's
+			// OffscreenCanvas), run the fixture as a classic script, then encode
+			// the resulting canvas to PNG. The fixtures are shared verbatim with
+			// Chrome, which gets createCanvas() from the test harness page.
+			char cc[512];
+			snprintf(cc, sizeof(cc),
+			         "globalThis.createCanvas = function(w, h) {\n"
+			         "  if (w === undefined) w = %d;\n"
+			         "  if (h === undefined) h = %d;\n"
+			         "  var canvas = new OffscreenCanvas(w, h);\n"
+			         "  var ctx = canvas.getContext('2d');\n"
+			         "  globalThis.__nxjs_canvas__ = canvas;\n"
+			         "  return { canvas: canvas, ctx: ctx };\n"
+			         "};\n",
+			         png_w, png_h);
+			if (!run_script(iso, context, cc, strlen(cc), "<createCanvas>")) {
+				exit_code = 1;
+			} else if (!run_script(iso, context, sc_src, sc_len,
+			                       script_path)) {
+				exit_code = 1;
+			} else {
+				iso->PerformMicrotaskCheckpoint();
+				exit_code = write_canvas_png(iso, context, png_out);
+			}
 		} else {
 			char url[4096];
 			snprintf(url, sizeof(url), "file://%s", script_path);
@@ -520,7 +655,9 @@ int main(int argc, char *argv[]) {
 		const int kFrameMs = 16;
 		const int kMaxFrames = 60000 / kFrameMs * 60; // ~60s budget
 		int idle = 0;
-		for (int i = 0; is_running && i < kMaxFrames; i++) {
+		// PNG render mode is synchronous and already produced its output, so
+		// skip the TAP frame loop entirely.
+		for (int i = 0; !png_out && is_running && i < kMaxFrames; i++) {
 			bool has_frame = !nx_ctx->frame_handler.IsEmpty();
 			int alive = uv_run(&loop, UV_RUN_NOWAIT);
 			iso->PerformMicrotaskCheckpoint();

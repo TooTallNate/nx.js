@@ -184,3 +184,10 @@ jobs:
 
       - name: Run Tests
         run: pnpm test
+
+      - name: Run Canvas 2D image tests
+        # Pixel-compares nx.js (Skia) canvas rendering against Chrome (Skia)
+        # for each fixture, reusing the nxjs-test binary in --png mode. Runs
+        # after `pnpm test` so runtime.js (built by turbo's runtime#bundle) and
+        # the nxjs-test binary both exist.
+        run: pnpm --filter @nxjs/canvas-test test:canvas
