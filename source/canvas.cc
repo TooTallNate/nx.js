@@ -33,6 +33,7 @@
 #include "include/core/SkImageFilter.h"
 #include "include/core/SkImageInfo.h"
 #include "include/core/SkPixmap.h"
+#include "include/core/SkRRect.h"
 #include "include/core/SkRect.h"
 #include "include/core/SkSurface.h"
 #include "include/core/SkPathUtils.h"
@@ -485,37 +486,6 @@ static void path_arc(SkPathBuilder &path, double xc, double yc, double radius,
 	}
 }
 
-// elli_arc: arc on an ellipse centered (xc,yc) with radii (rx,ry). Implemented
-// by building a unit-circle arc and transforming it (translate*scale), matching
-// the Cairo scale-trick which stored transformed points into the path.
-static void elli_arc(SkPathBuilder &path, double xc, double yc, double rx,
-                     double ry, double a1, double a2, bool clockwise) {
-	if (rx == 0. || ry == 0.) {
-		path.lineTo((SkScalar)(xc + rx), (SkScalar)(yc + ry));
-		return;
-	}
-	SkPoint cur;
-	bool had_current = path_has_current(path, &cur);
-	SkMatrix m = SkMatrix::Translate((SkScalar)xc, (SkScalar)yc);
-	m.preScale((SkScalar)rx, (SkScalar)ry);
-	SkPathBuilder unit;
-	// Seed the temp builder with the current point mapped into unit space, so
-	// that after transform the connecting line lands correctly.
-	if (had_current) {
-		SkMatrix inv;
-		if (m.invert(&inv))
-			unit.moveTo(inv.mapPoint(cur));
-	}
-	if (clockwise)
-		path_arc(unit, 0., 0., 1., a1, a2, false);
-	else
-		path_arc(unit, 0., 0., 1., a2, a1, true);
-	SkPath unit_path = unit.detach();
-	path.addPath(unit_path, m,
-	             had_current ? SkPath::kExtend_AddPathMode
-	                         : SkPath::kAppend_AddPathMode);
-}
-
 // ---------------------------------------------------------------------------
 // save_path / restore_path — temporarily stash the user's current path while a
 // rect/Path2D primitive is drawn, then restore it.
@@ -856,7 +826,7 @@ void nx_canvas_context_2d_ellipse(const FunctionCallbackInfo<Value> &info) {
 	    info.Length() >= 8 ? info[7]->BooleanValue(iso) : false;
 	// Build the arc on the ellipse by transforming a true unit-circle arc
 	// (radius 1, centered at the origin) by translate(x,y)*rotate*scale(rx,ry),
-	// matching the Cairo scale-trick (and elli_arc() above). The unit arc must
+	// matching the Cairo scale-trick. The unit arc must
 	// use radius 1 at the origin so the scale maps it to radii (rx,ry); using
 	// a non-unit radius or off-origin center double-applies the scale and
 	// collapses/offsets the ellipse (leaving the interior unfilled).
@@ -1036,36 +1006,29 @@ void nx_canvas_context_2d_round_rect(const FunctionCallbackInfo<Value> &info) {
 			lowerRight.y *= scale;
 		}
 	}
-	SkPathBuilder &P = context->path;
-	P.moveTo((SkScalar)(x + upperLeft.x), (SkScalar)y);
-	if (clockwise) {
-		P.lineTo((SkScalar)(x + width - upperRight.x), (SkScalar)y);
-		elli_arc(P, x + width - upperRight.x, y + upperRight.y, upperRight.x,
-		         upperRight.y, 3. * M_PI / 2., 0., true);
-		P.lineTo((SkScalar)(x + width), (SkScalar)(y + height - lowerRight.y));
-		elli_arc(P, x + width - lowerRight.x, y + height - lowerRight.y,
-		         lowerRight.x, lowerRight.y, 0, M_PI / 2., true);
-		P.lineTo((SkScalar)(x + lowerLeft.x), (SkScalar)(y + height));
-		elli_arc(P, x + lowerLeft.x, y + height - lowerLeft.y, lowerLeft.x,
-		         lowerLeft.y, M_PI / 2., M_PI, true);
-		P.lineTo((SkScalar)x, (SkScalar)(y + upperLeft.y));
-		elli_arc(P, x + upperLeft.x, y + upperLeft.y, upperLeft.x, upperLeft.y,
-		         M_PI, 3. * M_PI / 2., true);
-	} else {
-		elli_arc(P, x + upperLeft.x, y + upperLeft.y, upperLeft.x, upperLeft.y,
-		         M_PI, 3. * M_PI / 2., false);
-		P.lineTo((SkScalar)x, (SkScalar)(y + upperLeft.y));
-		elli_arc(P, x + lowerLeft.x, y + height - lowerLeft.y, lowerLeft.x,
-		         lowerLeft.y, M_PI / 2., M_PI, false);
-		P.lineTo((SkScalar)(x + lowerLeft.x), (SkScalar)(y + height));
-		elli_arc(P, x + width - lowerRight.x, y + height - lowerRight.y,
-		         lowerRight.x, lowerRight.y, 0, M_PI / 2., false);
-		P.lineTo((SkScalar)(x + width), (SkScalar)(y + height - lowerRight.y));
-		elli_arc(P, x + width - upperRight.x, y + upperRight.y, upperRight.x,
-		         upperRight.y, 3. * M_PI / 2., 0., false);
-		P.lineTo((SkScalar)(x + width - upperRight.x), (SkScalar)y);
-	}
-	P.close();
+	// Build the rounded rectangle with Skia's native rounded-rect primitive,
+	// which draws each (possibly elliptical, possibly per-corner) radius
+	// correctly. Hand-rolling the four corner arcs is error-prone: the
+	// quarter-sweep angles wrap around 0/2pi, and getting one wrong draws a
+	// 3/4 arc backwards (which carved a circular wedge out of a corner).
+	// SkRRect takes radii in the order TL, TR, BR, BL — matching the canvas
+	// spec corners after the negative-width/height swaps above.
+	SkVector radii[4] = {
+	    {(SkScalar)upperLeft.x, (SkScalar)upperLeft.y},
+	    {(SkScalar)upperRight.x, (SkScalar)upperRight.y},
+	    {(SkScalar)lowerRight.x, (SkScalar)lowerRight.y},
+	    {(SkScalar)lowerLeft.x, (SkScalar)lowerLeft.y},
+	};
+	SkRRect rrect;
+	rrect.setRectRadii(
+	    SkRect::MakeXYWH((SkScalar)x, (SkScalar)y, (SkScalar)width,
+	                     (SkScalar)height),
+	    radii);
+	// Canvas roundRect starts the subpath at (x + topLeftRadius, y) and winds
+	// clockwise (CW) by default; the negative-dimension handling above flips
+	// `clockwise`. SkPathDirection::kCW matches the canvas default.
+	context->path.addRRect(rrect, clockwise ? SkPathDirection::kCW
+	                                         : SkPathDirection::kCCW);
 }
 
 void nx_canvas_context_2d_begin_path(const FunctionCallbackInfo<Value> &info) {
