@@ -509,71 +509,11 @@ export interface Init {
 	// window.c
 	windowInit(c: Window): void;
 
-	// path2d.c — Path2D backed by a native SkPath (user space).
+	// path2d.c — Path2D backed by a native SkPath (user space). The methods
+	// are installed on the prototype by path2dInitClass; only the constructor
+	// backing + class installer are exposed on `$`.
 	path2dNew(path?: unknown): unknown;
-	path2dMoveTo(p: unknown, x: number, y: number): void;
-	path2dLineTo(p: unknown, x: number, y: number): void;
-	path2dBezierCurveTo(
-		p: unknown,
-		cp1x: number,
-		cp1y: number,
-		cp2x: number,
-		cp2y: number,
-		x: number,
-		y: number,
-	): void;
-	path2dQuadraticCurveTo(
-		p: unknown,
-		cpx: number,
-		cpy: number,
-		x: number,
-		y: number,
-	): void;
-	path2dArc(
-		p: unknown,
-		x: number,
-		y: number,
-		r: number,
-		start: number,
-		end: number,
-		ccw: boolean,
-	): void;
-	path2dArcTo(
-		p: unknown,
-		x1: number,
-		y1: number,
-		x2: number,
-		y2: number,
-		r: number,
-	): void;
-	path2dEllipse(
-		p: unknown,
-		x: number,
-		y: number,
-		rx: number,
-		ry: number,
-		rotation: number,
-		start: number,
-		end: number,
-		ccw: boolean,
-	): void;
-	path2dRect(
-		p: unknown,
-		x: number,
-		y: number,
-		w: number,
-		h: number,
-	): void;
-	path2dRoundRect(
-		p: unknown,
-		x: number,
-		y: number,
-		w: number,
-		h: number,
-		radii?: number | DOMPointInit | (number | DOMPointInit)[],
-	): void;
-	path2dClosePath(p: unknown): void;
-	path2dAddPath(dst: unknown, src: unknown, transform?: DOMMatrixInit): void;
+	path2dInitClass(Path2D: Function): void;
 }
 
 export const $: Init = (globalThis as any).$;

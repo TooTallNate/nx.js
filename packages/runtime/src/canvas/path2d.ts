@@ -1,5 +1,7 @@
 import { $ } from '../$';
-import { def, proto } from '../utils';
+import type { DOMMatrix2DInit } from '../dommatrix';
+import type { DOMPointInit } from '../dompoint';
+import { def, proto, stub } from '../utils';
 
 /**
  * Declares a path that can then be used on a {@link CanvasRenderingContext2D | `CanvasRenderingContext2D`} object.
@@ -8,7 +10,10 @@ import { def, proto } from '../utils';
  *
  * Backed by a native Skia `SkPath` (built in user space); the canvas transform
  * is applied when the path is used via `ctx.fill()` / `stroke()` / `clip()` /
- * `isPointInPath()`.
+ * `isPointInPath()`. The method implementations live in the native layer
+ * (`source/path2d.cc`); the bodies below are `stub()` placeholders that the
+ * native `path2dInitClass` overwrites on the prototype — they exist only to
+ * carry the TypeScript types and the TSDoc.
  *
  * @see https://developer.mozilla.org/docs/Web/API/Path2D
  */
@@ -24,21 +29,43 @@ export class Path2D implements globalThis.Path2D {
 	 * @see https://developer.mozilla.org/docs/Web/API/Path2D/addPath
 	 */
 	addPath(path: Path2D, transform?: DOMMatrix2DInit): void {
-		$.path2dAddPath(this, path, transform);
+		stub();
 	}
 
+	/**
+	 * Causes the point of the pen to move back to the start of the current
+	 * sub-path.
+	 *
+	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/closePath
+	 */
 	closePath(): void {
-		$.path2dClosePath(this);
+		stub();
 	}
 
+	/**
+	 * Moves the starting point of a new sub-path to the `(x, y)` coordinates.
+	 *
+	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/moveTo
+	 */
 	moveTo(x: number, y: number): void {
-		$.path2dMoveTo(this, x, y);
+		stub();
 	}
 
+	/**
+	 * Connects the last point in the current sub-path to the `(x, y)`
+	 * coordinates with a straight line.
+	 *
+	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/lineTo
+	 */
 	lineTo(x: number, y: number): void {
-		$.path2dLineTo(this, x, y);
+		stub();
 	}
 
+	/**
+	 * Adds a cubic Bézier curve to the current sub-path.
+	 *
+	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/bezierCurveTo
+	 */
 	bezierCurveTo(
 		cp1x: number,
 		cp1y: number,
@@ -47,28 +74,49 @@ export class Path2D implements globalThis.Path2D {
 		x: number,
 		y: number,
 	): void {
-		$.path2dBezierCurveTo(this, cp1x, cp1y, cp2x, cp2y, x, y);
+		stub();
 	}
 
+	/**
+	 * Adds a quadratic Bézier curve to the current sub-path.
+	 *
+	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/quadraticCurveTo
+	 */
 	quadraticCurveTo(cpx: number, cpy: number, x: number, y: number): void {
-		$.path2dQuadraticCurveTo(this, cpx, cpy, x, y);
+		stub();
 	}
 
+	/**
+	 * Adds a circular arc to the current sub-path.
+	 *
+	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/arc
+	 */
 	arc(
 		x: number,
 		y: number,
 		radius: number,
 		startAngle: number,
 		endAngle: number,
-		counterclockwise = false,
+		counterclockwise?: boolean,
 	): void {
-		$.path2dArc(this, x, y, radius, startAngle, endAngle, counterclockwise);
+		stub();
 	}
 
+	/**
+	 * Adds a circular arc to the current sub-path, using the given control
+	 * points and radius.
+	 *
+	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/arcTo
+	 */
 	arcTo(x1: number, y1: number, x2: number, y2: number, radius: number): void {
-		$.path2dArcTo(this, x1, y1, x2, y2, radius);
+		stub();
 	}
 
+	/**
+	 * Adds an elliptical arc to the current sub-path.
+	 *
+	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/ellipse
+	 */
 	ellipse(
 		x: number,
 		y: number,
@@ -77,25 +125,25 @@ export class Path2D implements globalThis.Path2D {
 		rotation: number,
 		startAngle: number,
 		endAngle: number,
-		counterclockwise = false,
+		counterclockwise?: boolean,
 	): void {
-		$.path2dEllipse(
-			this,
-			x,
-			y,
-			radiusX,
-			radiusY,
-			rotation,
-			startAngle,
-			endAngle,
-			counterclockwise,
-		);
+		stub();
 	}
 
+	/**
+	 * Adds a rectangle to the current path.
+	 *
+	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/rect
+	 */
 	rect(x: number, y: number, w: number, h: number): void {
-		$.path2dRect(this, x, y, w, h);
+		stub();
 	}
 
+	/**
+	 * Adds a rounded rectangle to the current path.
+	 *
+	 * @see https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/roundRect
+	 */
 	roundRect(
 		x: number,
 		y: number,
@@ -103,7 +151,8 @@ export class Path2D implements globalThis.Path2D {
 		h: number,
 		radii?: number | DOMPointInit | (number | DOMPointInit)[],
 	): void {
-		$.path2dRoundRect(this, x, y, w, h, radii);
+		stub();
 	}
 }
+$.path2dInitClass(Path2D);
 def(Path2D);

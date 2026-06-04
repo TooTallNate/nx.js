@@ -30,8 +30,10 @@ namespace {
 
 void free_path2d(nx_path2d_t *p) { delete p; }
 
+// Methods are installed on the Path2D prototype (see nx_path2d_init_class), so
+// the receiver is `this` and args start at index 0.
 nx_path2d_t *self(const FunctionCallbackInfo<Value> &info) {
-	return nx::Unwrap<nx_path2d_t>(info[0]);
+	return nx::Unwrap<nx_path2d_t>(info.This());
 }
 
 double arg(const FunctionCallbackInfo<Value> &info, int i, double def) {
@@ -83,14 +85,14 @@ void nx_path2d_new(const FunctionCallbackInfo<Value> &info) {
 void nx_path2d_move_to(const FunctionCallbackInfo<Value> &info) {
 	nx_path2d_t *p = self(info);
 	if (p)
-		p->builder.moveTo((SkScalar)arg(info, 1, 0), (SkScalar)arg(info, 2, 0));
+		p->builder.moveTo((SkScalar)arg(info, 0, 0), (SkScalar)arg(info, 1, 0));
 }
 
 void nx_path2d_line_to(const FunctionCallbackInfo<Value> &info) {
 	nx_path2d_t *p = self(info);
 	if (!p)
 		return;
-	SkScalar x = (SkScalar)arg(info, 1, 0), y = (SkScalar)arg(info, 2, 0);
+	SkScalar x = (SkScalar)arg(info, 0, 0), y = (SkScalar)arg(info, 1, 0);
 	if (has_current(p->builder, nullptr))
 		p->builder.lineTo(x, y);
 	else
@@ -101,9 +103,9 @@ void nx_path2d_bezier_curve_to(const FunctionCallbackInfo<Value> &info) {
 	nx_path2d_t *p = self(info);
 	if (!p)
 		return;
-	SkPoint c1 = {(SkScalar)arg(info, 1, 0), (SkScalar)arg(info, 2, 0)};
-	SkPoint c2 = {(SkScalar)arg(info, 3, 0), (SkScalar)arg(info, 4, 0)};
-	SkPoint end = {(SkScalar)arg(info, 5, 0), (SkScalar)arg(info, 6, 0)};
+	SkPoint c1 = {(SkScalar)arg(info, 0, 0), (SkScalar)arg(info, 1, 0)};
+	SkPoint c2 = {(SkScalar)arg(info, 2, 0), (SkScalar)arg(info, 3, 0)};
+	SkPoint end = {(SkScalar)arg(info, 4, 0), (SkScalar)arg(info, 5, 0)};
 	if (!has_current(p->builder, nullptr))
 		p->builder.moveTo(c1);
 	p->builder.cubicTo(c1, c2, end);
@@ -113,8 +115,8 @@ void nx_path2d_quadratic_curve_to(const FunctionCallbackInfo<Value> &info) {
 	nx_path2d_t *p = self(info);
 	if (!p)
 		return;
-	SkPoint cp = {(SkScalar)arg(info, 1, 0), (SkScalar)arg(info, 2, 0)};
-	SkPoint end = {(SkScalar)arg(info, 3, 0), (SkScalar)arg(info, 4, 0)};
+	SkPoint cp = {(SkScalar)arg(info, 0, 0), (SkScalar)arg(info, 1, 0)};
+	SkPoint end = {(SkScalar)arg(info, 2, 0), (SkScalar)arg(info, 3, 0)};
 	if (!has_current(p->builder, nullptr))
 		p->builder.moveTo(cp);
 	p->builder.quadTo(cp, end);
@@ -124,9 +126,9 @@ void nx_path2d_arc(const FunctionCallbackInfo<Value> &info) {
 	nx_path2d_t *p = self(info);
 	if (!p)
 		return;
-	double x = arg(info, 1, 0), y = arg(info, 2, 0), r = arg(info, 3, 0),
-	       sa = arg(info, 4, 0), ea = arg(info, 5, 0);
-	bool ccw = info.Length() > 6 ? info[6]->BooleanValue(info.GetIsolate())
+	double x = arg(info, 0, 0), y = arg(info, 1, 0), r = arg(info, 2, 0),
+	       sa = arg(info, 3, 0), ea = arg(info, 4, 0);
+	bool ccw = info.Length() > 5 ? info[5]->BooleanValue(info.GetIsolate())
 	                             : false;
 	if (r < 0)
 		return;
@@ -140,18 +142,18 @@ void nx_path2d_arc_to(const FunctionCallbackInfo<Value> &info) {
 	SkPoint p0;
 	if (!has_current(p->builder, &p0))
 		p0 = SkPoint::Make(0, 0);
-	nxcp_arc_to(p->builder, p0, arg(info, 1, 0), arg(info, 2, 0),
-	            arg(info, 3, 0), arg(info, 4, 0), arg(info, 5, 0));
+	nxcp_arc_to(p->builder, p0, arg(info, 0, 0), arg(info, 1, 0),
+	            arg(info, 2, 0), arg(info, 3, 0), arg(info, 4, 0));
 }
 
 void nx_path2d_ellipse(const FunctionCallbackInfo<Value> &info) {
 	nx_path2d_t *p = self(info);
 	if (!p)
 		return;
-	double x = arg(info, 1, 0), y = arg(info, 2, 0), rx = arg(info, 3, 0),
-	       ry = arg(info, 4, 0), rot = arg(info, 5, 0), sa = arg(info, 6, 0),
-	       ea = arg(info, 7, 0);
-	bool ccw = info.Length() > 8 ? info[8]->BooleanValue(info.GetIsolate())
+	double x = arg(info, 0, 0), y = arg(info, 1, 0), rx = arg(info, 2, 0),
+	       ry = arg(info, 3, 0), rot = arg(info, 4, 0), sa = arg(info, 5, 0),
+	       ea = arg(info, 6, 0);
+	bool ccw = info.Length() > 7 ? info[7]->BooleanValue(info.GetIsolate())
 	                             : false;
 	if (rx == 0 || ry == 0)
 		return;
@@ -164,8 +166,8 @@ void nx_path2d_rect(const FunctionCallbackInfo<Value> &info) {
 	nx_path2d_t *p = self(info);
 	if (!p)
 		return;
-	nxcp_rect(p->builder, arg(info, 1, 0), arg(info, 2, 0), arg(info, 3, 0),
-	          arg(info, 4, 0));
+	nxcp_rect(p->builder, arg(info, 0, 0), arg(info, 1, 0), arg(info, 2, 0),
+	          arg(info, 3, 0));
 }
 
 void nx_path2d_round_rect(const FunctionCallbackInfo<Value> &info) {
@@ -173,11 +175,11 @@ void nx_path2d_round_rect(const FunctionCallbackInfo<Value> &info) {
 	if (!p)
 		return;
 	Isolate *iso = info.GetIsolate();
-	double x = arg(info, 1, 0), y = arg(info, 2, 0), w = arg(info, 3, 0),
-	       h = arg(info, 4, 0);
+	double x = arg(info, 0, 0), y = arg(info, 1, 0), w = arg(info, 2, 0),
+	       h = arg(info, 3, 0);
 	// radii: number | [number|{x,y}, ...] (1..4). Resolve to 4 (x,y) corners.
 	SkVector radii[4] = {{0, 0}, {0, 0}, {0, 0}, {0, 0}};
-	if (!nx_resolve_round_rect_radii(iso, info.Length() > 5 ? info[5]
+	if (!nx_resolve_round_rect_radii(iso, info.Length() > 4 ? info[4]
 	                                                        : Local<Value>(),
 	                                 radii)) {
 		nx_throw(iso, "Invalid radii for roundRect");
@@ -207,18 +209,18 @@ void nx_path2d_close_path(const FunctionCallbackInfo<Value> &info) {
 		p->builder.close();
 }
 
-// path2dAddPath(dst, src, [domMatrix]) — append src to dst, optionally
-// transformed by the DOMMatrix. Skia transforms ALL segment types correctly.
+// addPath(src, [domMatrix]) — append src to `this`, optionally transformed by
+// the DOMMatrix. Skia transforms ALL segment types correctly.
 void nx_path2d_add_path(const FunctionCallbackInfo<Value> &info) {
 	Isolate *iso = info.GetIsolate();
-	nx_path2d_t *dst = nx::Unwrap<nx_path2d_t>(info[0]);
-	const SkPath *src = nx_path2d_get(iso, info[1]);
+	nx_path2d_t *dst = self(info);
+	const SkPath *src = nx_path2d_get(iso, info[0]);
 	if (!dst || !src)
 		return;
 	SkMatrix m = SkMatrix::I();
-	if (info.Length() > 2 && info[2]->IsObject()) {
+	if (info.Length() > 1 && info[1]->IsObject()) {
 		nx_dommatrix_t dm;
-		if (nx_dommatrix_init(iso, info[2], &dm) == 0) {
+		if (nx_dommatrix_init(iso, info[1], &dm) == 0) {
 			// DOMMatrix (a c e / b d f) -> SkMatrix row-major.
 			m.setAll((SkScalar)dm.values.m11, (SkScalar)dm.values.m21,
 			         (SkScalar)dm.values.m41, (SkScalar)dm.values.m12,
@@ -226,6 +228,30 @@ void nx_path2d_add_path(const FunctionCallbackInfo<Value> &info) {
 		}
 	}
 	dst->builder.addPath(*src, m, SkPath::kAppend_AddPathMode);
+}
+
+// path2dInitClass(Path2D) — install the Path2D methods on the prototype. The
+// TS class (canvas/path2d.ts) is just declarations + JSDoc with stub() bodies;
+// the real implementations live here.
+void nx_path2d_init_class(const FunctionCallbackInfo<Value> &info) {
+	Isolate *iso = info.GetIsolate();
+	Local<Context> ctx = iso->GetCurrentContext();
+	Local<Object> proto = info[0]
+	                          .As<Object>()
+	                          ->Get(ctx, nx_str(iso, "prototype"))
+	                          .ToLocalChecked()
+	                          .As<Object>();
+	NX_DEF_FUNC(proto, "moveTo", nx_path2d_move_to, 2);
+	NX_DEF_FUNC(proto, "lineTo", nx_path2d_line_to, 2);
+	NX_DEF_FUNC(proto, "bezierCurveTo", nx_path2d_bezier_curve_to, 6);
+	NX_DEF_FUNC(proto, "quadraticCurveTo", nx_path2d_quadratic_curve_to, 4);
+	NX_DEF_FUNC(proto, "arc", nx_path2d_arc, 5);
+	NX_DEF_FUNC(proto, "arcTo", nx_path2d_arc_to, 5);
+	NX_DEF_FUNC(proto, "ellipse", nx_path2d_ellipse, 7);
+	NX_DEF_FUNC(proto, "rect", nx_path2d_rect, 4);
+	NX_DEF_FUNC(proto, "roundRect", nx_path2d_round_rect, 4);
+	NX_DEF_FUNC(proto, "closePath", nx_path2d_close_path, 0);
+	NX_DEF_FUNC(proto, "addPath", nx_path2d_add_path, 1);
 }
 
 } // namespace
@@ -243,17 +269,7 @@ const SkPath *nx_path2d_get(Isolate *iso, Local<Value> obj) {
 }
 
 void nx_init_path2d(Isolate *iso, Local<Object> init_obj) {
+	// Constructor backing (allocates the native SkPath) + prototype installer.
 	NX_SET_FUNC(init_obj, "path2dNew", nx_path2d_new);
-	NX_SET_FUNC(init_obj, "path2dMoveTo", nx_path2d_move_to);
-	NX_SET_FUNC(init_obj, "path2dLineTo", nx_path2d_line_to);
-	NX_SET_FUNC(init_obj, "path2dBezierCurveTo", nx_path2d_bezier_curve_to);
-	NX_SET_FUNC(init_obj, "path2dQuadraticCurveTo",
-	            nx_path2d_quadratic_curve_to);
-	NX_SET_FUNC(init_obj, "path2dArc", nx_path2d_arc);
-	NX_SET_FUNC(init_obj, "path2dArcTo", nx_path2d_arc_to);
-	NX_SET_FUNC(init_obj, "path2dEllipse", nx_path2d_ellipse);
-	NX_SET_FUNC(init_obj, "path2dRect", nx_path2d_rect);
-	NX_SET_FUNC(init_obj, "path2dRoundRect", nx_path2d_round_rect);
-	NX_SET_FUNC(init_obj, "path2dClosePath", nx_path2d_close_path);
-	NX_SET_FUNC(init_obj, "path2dAddPath", nx_path2d_add_path);
+	NX_SET_FUNC(init_obj, "path2dInitClass", nx_path2d_init_class);
 }
