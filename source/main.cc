@@ -815,13 +815,11 @@ int main(int argc, char *argv[]) {
 	    platform::NewSingleThreadedDefaultPlatform();
 	V8::InitializePlatform(platform.get());
 
-	// Memory-gated JIT policy (see MIGRATION-NOTES "trifecta" findings):
-	// full-JIT's libnx jitCreate dual-maps a >=64 MiB code range (~128 MiB
-	// real). In applet mode (~137 MiB free) that starves the GPU/Mesa stack, so
-	// when free memory is tight we fall back to jitless (interpreter). Phase 1
-	// uses a CPU (Cairo) canvas with no Mesa contention, so this will normally
-	// pick full JIT in both regimes; the gate matters once a GPU canvas lands.
-	// mem_free / tight_memory were probed before socketInitialize above.
+	// Memory-gated JIT policy: full-JIT's libnx jitCreate dual-maps a >=64 MiB
+	// code range (~128 MiB real). In applet mode (~137 MiB free) that starves
+	// the GPU/Mesa stack, so when free memory is tight we fall back to jitless
+	// (interpreter) + raster canvas; application mode (~3 GiB) runs full JIT +
+	// GPU. mem_free / tight_memory were probed before socketInitialize above.
 	// ~300 MiB headroom: code arena (128 MiB real) + GPU/Mesa + JS heap.
 	bool can_jit = !tight_memory;
 
@@ -1145,7 +1143,7 @@ int main(int argc, char *argv[]) {
 	}
 	delete_if_empty(LOG_FILENAME);
 
-	// CRITICAL (see MIGRATION-NOTES): V8 maps its arenas via manual
+	// CRITICAL: V8 maps its arenas via manual
 	// svcMapMemory, which libnx's NRO exit does NOT unmap. Release them as the
 	// VERY LAST thing before returning to hbloader/hbmenu — leaked aliases
 	// corrupt the next process's address space (posix_memalign->NULL, hbmenu

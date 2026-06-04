@@ -615,12 +615,6 @@ export class Path2D implements globalThis.Path2D {
 					startAngle = c[6];
 					endAngle = c[7];
 					ccw = c[8];
-					// Replay via the ellipse primitive directly. The previous
-					// save()/translate/scale/arc/restore trick baked the radii
-					// into the CTM, but path points are stored in user space at
-					// construction time and the temporary scale was discarded by
-					// restore() before fill — collapsing the ellipse to a unit
-					// circle and leaving the interior unfilled.
 					ctx.ellipse(
 						x,
 						y,
