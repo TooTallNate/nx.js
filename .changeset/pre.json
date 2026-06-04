@@ -45,9 +45,12 @@
     "@nx.js/ws": "0.0.2"
   },
   "changesets": [
+    "bump-v8-image",
     "canvas-path-ctm",
+    "never-hard-crash",
     "path2d-skpath",
     "queue-microtask",
+    "run-module-graceful-oversize",
     "socket-buffer-exhaustion",
     "socket-read-buffer-leak",
     "switch-ada-portlib",

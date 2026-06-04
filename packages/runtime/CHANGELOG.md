@@ -1,5 +1,15 @@
 # @nx.js/runtime
 
+## 1.0.0-beta.1
+
+### Patch Changes
+
+- fix: build the published runtime against switch-v8 15.0.243-6, which raises `String::kMaxLength` back to the full limit so JS bundles larger than 1 MiB can be compiled. ([#351](https://github.com/TooTallNate/nx.js/pull/351))
+
+- fix: never hard-crash the console from native bindings — route data-driven failures (invalid-UTF-8 names, hostile getters, allocation failures) into catchable JS errors instead of aborting the process. ([#350](https://github.com/TooTallNate/nx.js/pull/350))
+
+- fix: fail gracefully with a clear error instead of hard-crashing (V8 `OS::Abort`) when the entrypoint source exceeds V8's maximum string length. ([#349](https://github.com/TooTallNate/nx.js/pull/349))
+
 ## 1.0.0-beta.0
 
 ### Major Changes
