@@ -264,9 +264,15 @@ static bool run_script(Isolate *iso, Local<Context> context, const char *src,
                        size_t len, const char *name) {
 	HandleScope scope(iso);
 	TryCatch try_catch(iso);
-	Local<String> source =
-	    String::NewFromUtf8(iso, src, NewStringType::kNormal, (int)len)
-	        .ToLocalChecked();
+	Local<String> source;
+	if (!String::NewFromUtf8(iso, src, NewStringType::kNormal, (int)len)
+	         .ToLocal(&source)) {
+		fprintf(stderr,
+		        "Failed to load %s: source is %zu bytes, which exceeds V8's "
+		        "maximum string length\n",
+		        name, len);
+		return false;
+	}
 	ScriptOrigin origin(nx_str(iso, name));
 	Local<Script> script;
 	if (!Script::Compile(context, source, &origin).ToLocal(&script)) {
@@ -305,9 +311,15 @@ static bool run_module(Isolate *iso, Local<Context> context, const char *src,
 	HandleScope scope(iso);
 	TryCatch try_catch(iso);
 	g_entrypoint_url = name;
-	Local<String> source =
-	    String::NewFromUtf8(iso, src, NewStringType::kNormal, (int)len)
-	        .ToLocalChecked();
+	Local<String> source;
+	if (!String::NewFromUtf8(iso, src, NewStringType::kNormal, (int)len)
+	         .ToLocal(&source)) {
+		fprintf(stderr,
+		        "Failed to load %s: source is %zu bytes, which exceeds V8's "
+		        "maximum string length\n",
+		        name, len);
+		return false;
+	}
 	ScriptOrigin origin(nx_str(iso, name), 0, 0, false, -1, Local<Value>(),
 	                    false, false, true);
 	ScriptCompiler::Source script_source(source, origin);
