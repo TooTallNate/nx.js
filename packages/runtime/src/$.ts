@@ -509,7 +509,11 @@ export interface Init {
 	// window.c
 	windowInit(c: Window): void;
 
-	applyPath: any;
+	// path2d.c — Path2D backed by a native SkPath (user space). The methods
+	// are installed on the prototype by path2dInitClass; only the constructor
+	// backing + class installer are exposed on `$`.
+	path2dNew(path?: unknown): unknown;
+	path2dInitClass(Path2D: Function): void;
 }
 
 export const $: Init = (globalThis as any).$;

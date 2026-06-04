@@ -61,6 +61,7 @@ NX_MODULE(irs);
 NX_MODULE(memory);
 NX_MODULE(nifm);
 NX_MODULE(ns);
+NX_MODULE(path2d);
 NX_MODULE(service);
 NX_MODULE(swkbd);
 NX_MODULE(tcp);
@@ -629,6 +630,7 @@ static void build_init_object(Isolate *iso, Local<Context> context,
 	nx_init_memory(iso, init_obj);
 	nx_init_nifm(iso, init_obj);
 	nx_init_ns(iso, init_obj);
+	nx_init_path2d(iso, init_obj);
 	nx_init_service(iso, init_obj);
 	nx_init_swkbd(iso, init_obj);
 	nx_init_tcp(iso, init_obj);
