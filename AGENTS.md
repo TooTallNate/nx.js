@@ -142,7 +142,11 @@ The `$.entrypoint` gives the base URL for resolving relative paths.
 
 ## Versioning & Changesets
 
-**⚠️ nx.js is NOT following semver yet. ALL changesets MUST be `patch`. No `minor` or `major` until stable 1.0.**
+nx.js **follows [semver](https://semver.org/)** as of v1. Choose the bump type that matches the change:
+
+- **`patch`** — bug fixes and other backwards-compatible changes.
+- **`minor`** — new, backwards-compatible features.
+- **`major`** — breaking changes to the public API or runtime behavior.
 
 ```markdown
 ---
@@ -152,6 +156,7 @@ The `$.entrypoint` gives the base URL for resolving relative paths.
 feat: description of what changed
 ```
 
+- The repo is currently in changesets **beta prerelease mode** (`.changeset/pre.json`), so releases publish as `X.Y.Z-beta.N`. A `major`/`minor`/`patch` changeset still picks the underlying version bump; the `-beta.N` suffix is applied automatically while in pre mode.
 - All packages in `@nx.js/runtime`, `@nx.js/nro`, `@nx.js/nsp`, and `create-nxjs-app` are version-locked (see `.changeset/config.json` `fixed` array)
 - If your change touches `source/` (C code), the changeset should include `@nx.js/runtime`
 
