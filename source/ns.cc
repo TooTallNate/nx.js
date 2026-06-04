@@ -89,7 +89,12 @@ void nx_ns_app_new(const FunctionCallbackInfo<Value> &info) {
 		u32 nacp_section_offset = *(u32 *)(asset_header + 0x18);
 		u32 nacp_section_size = *(u32 *)(asset_header + 0x20);
 		fseek(file, asset_header_offset + icon_section_offset, SEEK_SET);
-		data->icon = malloc(icon_section_size);
+		data->icon = nx_alloc(iso, icon_section_size);
+		if (!data->icon) {
+			fclose(file);
+			free(data);
+			return;
+		}
 		fread(data->icon, icon_section_size, 1, file);
 		fseek(file, asset_header_offset + nacp_section_offset, SEEK_SET);
 		fread(&data->nacp, nacp_section_size, 1, file);
@@ -111,7 +116,11 @@ void nx_ns_app_new(const FunctionCallbackInfo<Value> &info) {
 		u32 icon_section_size = *(u32 *)(asset_header + 0x10);
 		u32 nacp_section_offset = *(u32 *)(asset_header + 0x18);
 		u32 nacp_section_size = *(u32 *)(asset_header + 0x20);
-		data->icon = malloc(icon_section_size);
+		data->icon = nx_alloc(iso, icon_section_size);
+		if (!data->icon) {
+			free(data);
+			return;
+		}
 		memcpy(data->icon, asset_header + icon_section_offset,
 		       icon_section_size);
 		memcpy(&data->nacp, asset_header + nacp_section_offset,
@@ -132,7 +141,11 @@ void nx_ns_app_new(const FunctionCallbackInfo<Value> &info) {
 			return;
 		}
 		data->icon_size = outSize > 0 ? outSize - sizeof(buf.nacp) : 0;
-		data->icon = malloc(data->icon_size);
+		data->icon = nx_alloc(iso, data->icon_size);
+		if (!data->icon) {
+			free(data);
+			return;
+		}
 		memcpy(data->icon, &buf.icon, data->icon_size);
 		memcpy(&data->nacp, &buf.nacp, sizeof(NacpStruct));
 	}
@@ -234,7 +247,9 @@ void nx_ns_app_launch(const FunctionCallbackInfo<Value> &info) {
 		char *full_path = NULL;
 		if (strncmp(app->nro_path, "sdmc:", 5) != 0) {
 			size_t path_len = strlen(app->nro_path) + 6;
-			full_path = (char *)malloc(path_len);
+			full_path = (char *)nx_alloc(iso, path_len);
+			if (!full_path)
+				return;
 			snprintf(full_path, path_len, "sdmc:%s", app->nro_path);
 			launch_path = full_path;
 		}

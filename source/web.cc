@@ -318,10 +318,7 @@ void nx_web_applet_poll_messages(const FunctionCallbackInfo<Value> &info) {
 		if (R_FAILED(rc) || !flag)
 			break;
 		size_t str_len = out_size > 0 ? strnlen(buf, (size_t)out_size) : 0;
-		arr->Set(context, index++,
-		         String::NewFromUtf8(iso, buf, NewStringType::kNormal,
-		                             (int)str_len)
-		             .ToLocalChecked())
+		arr->Set(context, index++, nx_str_lossy(iso, buf, (int)str_len))
 		    .Check();
 	}
 	info.GetReturnValue().Set(arr);

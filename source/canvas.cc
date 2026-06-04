@@ -850,10 +850,9 @@ bool resolve_round_rect_radii_impl(Isolate *iso, Local<Value> radii,
 			r[i].x = r[i].y = 0.;
 	} else if (radii->IsArray()) {
 		Local<Object> arr = radii.As<Object>();
-		if (!arr->Get(jsctx, nx_str(iso, "length"))
-		         .ToLocalChecked()
-		         ->Uint32Value(jsctx)
-		         .To(&nRadii))
+		Local<Value> length_val;
+		if (!arr->Get(jsctx, nx_str(iso, "length")).ToLocal(&length_val) ||
+		    !length_val->Uint32Value(jsctx).To(&nRadii))
 			return false;
 		if (!(nRadii >= 1 && nRadii <= 4)) {
 			iso->ThrowException(Exception::RangeError(nx_str(
@@ -862,7 +861,9 @@ bool resolve_round_rect_radii_impl(Isolate *iso, Local<Value> radii,
 			return false;
 		}
 		for (uint32_t i = 0; i < nRadii; i++) {
-			Local<Value> v = arr->Get(jsctx, i).ToLocalChecked();
+			Local<Value> v;
+			if (!arr->Get(jsctx, i).ToLocal(&v))
+				return false;
 			if (get_radius(iso, v, &r[i]))
 				return false;
 		}
@@ -1339,12 +1340,15 @@ void nx_canvas_context_2d_set_line_dash(
     const FunctionCallbackInfo<Value> &info) {
 	ENTER_THIS;
 	Local<Context> jsctx = iso->GetCurrentContext();
+	if (!info[0]->IsObject()) {
+		nx_throw(iso, "setLineDash: argument is not a list");
+		return;
+	}
 	Local<Object> arr = info[0].As<Object>();
 	uint32_t length;
-	if (!arr->Get(jsctx, nx_str(iso, "length"))
-	         .ToLocalChecked()
-	         ->Uint32Value(jsctx)
-	         .To(&length))
+	Local<Value> length_val;
+	if (!arr->Get(jsctx, nx_str(iso, "length")).ToLocal(&length_val) ||
+	    !length_val->Uint32Value(jsctx).To(&length))
 		return;
 	// SkDashPathEffect requires an even, non-empty interval count. CSS doubles
 	// an odd-length pattern.
@@ -1354,7 +1358,9 @@ void nx_canvas_context_2d_set_line_dash(
 	uint32_t zero_dashes = 0;
 	for (uint32_t i = 0; i < num_dashes; i++) {
 		double v;
-		Local<Value> val = arr->Get(jsctx, i % length).ToLocalChecked();
+		Local<Value> val;
+		if (!arr->Get(jsctx, i % length).ToLocal(&val))
+			return;
 		if (!val->NumberValue(jsctx).To(&v))
 			return;
 		if (v == 0)
@@ -2034,10 +2040,16 @@ void nx_canvas_context_2d_put_image_data(
 	Local<Context> jsctx = iso->GetCurrentContext();
 	int sx = 0, sy = 0, sw = 0, sh = 0, dx, dy, image_data_width,
 	    image_data_height, rows, cols;
+	if (!info[0]->IsObject()) {
+		nx_throw(iso, "putImageData: first argument must be an ImageData");
+		return;
+	}
 	Local<Object> id = info[0].As<Object>();
-	Local<Value> data_v = id->Get(jsctx, nx_str(iso, "data")).ToLocalChecked();
-	Local<Value> w_v = id->Get(jsctx, nx_str(iso, "width")).ToLocalChecked();
-	Local<Value> h_v = id->Get(jsctx, nx_str(iso, "height")).ToLocalChecked();
+	Local<Value> data_v, w_v, h_v;
+	if (!id->Get(jsctx, nx_str(iso, "data")).ToLocal(&data_v) ||
+	    !id->Get(jsctx, nx_str(iso, "width")).ToLocal(&w_v) ||
+	    !id->Get(jsctx, nx_str(iso, "height")).ToLocal(&h_v))
+		return;
 	if (!data_v->IsArrayBufferView()) {
 		nx_throw(iso, "ImageData.data must be a typed array");
 		return;

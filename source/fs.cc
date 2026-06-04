@@ -424,7 +424,7 @@ void nx_readdir_sync(const FunctionCallbackInfo<Value> &info) {
 	while ((entry = readdir(dir)) != NULL) {
 		if (!strcmp(".", entry->d_name) || !strcmp("..", entry->d_name))
 			continue;
-		arr->Set(context, i++, nx_str(iso, entry->d_name)).Check();
+		arr->Set(context, i++, nx_str_lossy(iso, entry->d_name)).Check();
 	}
 	if (errno) {
 		closedir(dir);
@@ -730,7 +730,7 @@ MaybeLocal<Value> readdir_next_cb(Isolate *iso, nx_work_t *req) {
 	if (d->eof)
 		return Null(iso).As<Value>();
 	Local<Object> obj = Object::New(iso);
-	obj->Set(context, nx_str(iso, "name"), nx_str(iso, d->name)).Check();
+	obj->Set(context, nx_str(iso, "name"), nx_str_lossy(iso, d->name)).Check();
 	obj->Set(context, nx_str(iso, "isFile"),
 	         Boolean::New(iso, d->d_type == DT_REG))
 	    .Check();

@@ -40,8 +40,15 @@ void nx_new_font_face(const FunctionCallbackInfo<Value> &info) {
 	}
 
 	nx_font_face_t *context =
-	    (nx_font_face_t *)calloc(1, sizeof(nx_font_face_t));
-	context->font_buffer = (FT_Byte *)malloc(bytes);
+	    (nx_font_face_t *)nx_alloc(iso, sizeof(nx_font_face_t));
+	if (!context)
+		return;
+	memset(context, 0, sizeof(nx_font_face_t));
+	context->font_buffer = (FT_Byte *)nx_alloc(iso, bytes);
+	if (!context->font_buffer) {
+		free(context);
+		return;
+	}
 	memcpy(context->font_buffer, font_data, bytes);
 
 	if (ctx->ft_library == NULL) {

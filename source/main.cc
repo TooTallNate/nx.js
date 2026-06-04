@@ -260,10 +260,13 @@ static void js_env_to_object(const FunctionCallbackInfo<Value> &info) {
 	extern char **environ;
 	for (char **envp = environ; *envp; envp++) {
 		char *key = strdup(*envp);
+		if (!key)
+			continue;
 		char *eq = strchr(key, '=');
 		if (eq) {
 			*eq = '\0';
-			env->Set(context, nx_str(iso, key), nx_str(iso, eq + 1)).Check();
+			env->Set(context, nx_str_lossy(iso, key), nx_str_lossy(iso, eq + 1))
+			    .Check();
 		}
 		free(key);
 	}
@@ -770,7 +773,7 @@ static void build_init_object(Isolate *iso, Local<Context> context,
 	// Switch.argv
 	Local<Array> argv_array = Array::New(iso, argc);
 	for (int i = 0; i < argc; i++) {
-		argv_array->Set(context, i, nx_str(iso, argv[i])).Check();
+		argv_array->Set(context, i, nx_str_lossy(iso, argv[i])).Check();
 	}
 	init_obj->Set(context, nx_str(iso, "argv"), argv_array).Check();
 
