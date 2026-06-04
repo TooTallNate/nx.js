@@ -4,10 +4,13 @@ import { test } from '../src/tap';
 // harness, so the underlying matrix math (currently hand-rolled; a candidate
 // for SkM44) is pinned to the browser's behavior.
 
-const EPS = 1e-9;
+// Single shared tolerance. Assertion *names* are compared verbatim between
+// nxjs-test and Chrome by the conformance harness, so they must never embed
+// computed floating-point values (formatting/rounding could differ).
+const EPS = 1e-6;
 
 function close(a: number, b: number): boolean {
-	return Math.abs(a - b) < 1e-6;
+	return Math.abs(a - b) < EPS;
 }
 
 // Compare the 16 elements of a matrix against expected values.
@@ -25,7 +28,7 @@ function matrixEquals(
 	];
 	let ok = true;
 	for (let i = 0; i < 16; i++) if (!close(got[i], expected[i])) ok = false;
-	t.ok(ok, `${label}: ${ok ? 'matches' : `got [${got.join(',')}]`}`);
+	t.ok(ok, `${label} matches expected matrix`);
 }
 
 test('DOMMatrix - identity', (t) => {
@@ -83,8 +86,8 @@ test('DOMMatrix - multiply (order)', (t) => {
 	const r = a.multiply(b); // a * b
 	// translate-then-scale: point (1,0) -> scale -> (2,0) -> translate -> (12,0)
 	const p = r.transformPoint(new DOMPoint(1, 0));
-	t.ok(close(p.x, 12), `multiply order x=${p.x}`);
-	t.ok(close(p.y, 0), 'y=0');
+	t.ok(close(p.x, 12), 'multiply order: x = 12');
+	t.ok(close(p.y, 0), 'multiply order: y = 0');
 });
 
 test('DOMMatrix - inverse round-trips', (t) => {
@@ -102,7 +105,7 @@ test('DOMMatrix - non-invertible -> NaN', (t) => {
 
 test('DOMMatrix - skewX', (t) => {
 	const m = new DOMMatrix().skewX(45);
-	t.ok(close(m.c, 1), `skewX tan(45)=1, c=${m.c}`);
+	t.ok(close(m.c, 1), 'skewX(45): c = tan(45) = 1');
 	t.ok(close(m.a, 1) && close(m.d, 1), 'diagonal unchanged');
 });
 
@@ -115,33 +118,32 @@ test('DOMMatrix - rotateAxisAngle around Z', (t) => {
 test('DOMMatrix - transformPoint', (t) => {
 	const m = new DOMMatrix().translate(5, 7).scale(2, 3);
 	const p = m.transformPoint(new DOMPoint(10, 10));
-	t.ok(close(p.x, 25), `x = 10*2+5 = ${p.x}`);
-	t.ok(close(p.y, 37), `y = 10*3+7 = ${p.y}`);
+	t.ok(close(p.x, 25), 'transformPoint x = 10*2+5 = 25');
+	t.ok(close(p.y, 37), 'transformPoint y = 10*3+7 = 37');
 });
 
-test('DOMMatrix - chained transforms vs Chrome', (t) => {
+test('DOMMatrix - chained transforms', (t) => {
 	const m = new DOMMatrix()
 		.translate(100, 50)
 		.rotate(30)
 		.scale(1.5, 0.5)
 		.skewX(10);
-	const p = m.transformPoint(new DOMPoint(20, 40));
-	// Values are whatever Chrome computes; the harness compares both engines.
-	t.ok(Number.isFinite(p.x) && Number.isFinite(p.y), 'finite');
-	t.ok(close(m.is2D ? 1 : 0, 1), 'still 2D after 2D ops');
+	// Expected values captured from Chrome (the reference implementation).
 	matrixEquals(
 		t,
 		m,
 		[
-			m.m11, m.m12, m.m13, m.m14,
-			m.m21, m.m22, m.m23, m.m24,
-			m.m31, m.m32, m.m33, m.m34,
-			m.m41, m.m42, m.m43, m.m44,
+			1.299038105676658, 0.7499999999999999, 0, 0,
+			-0.02094453300079102, 0.565257937423568, 0, 0,
+			0, 0, 1, 0,
+			100, 50, 0, 1,
 		],
-		'self-consistent',
+		'chained translate*rotate*scale*skewX',
 	);
-	// Pin the transformed point precisely (compared against Chrome).
-	t.ok(close(p.x, p.x), 'x stable');
+	t.equal(m.is2D, true, 'still 2D after 2D ops');
+	const p = m.transformPoint(new DOMPoint(20, 40));
+	t.ok(close(p.x, 125.14298079350152), 'chained transformPoint x');
+	t.ok(close(p.y, 87.61031749694271), 'chained transformPoint y');
 });
 
 test('DOMMatrix - flipX / flipY', (t) => {
@@ -177,7 +179,7 @@ test('DOMMatrix - preMultiplySelf order', (t) => {
 	const r = DOMMatrix.fromMatrix(a).preMultiplySelf(b);
 	const p = r.transformPoint(new DOMPoint(1, 0));
 	// (1,0) -> translate -> (11,0) -> scale -> (22,0)
-	t.ok(close(p.x, 22), `preMultiply order x=${p.x}`);
+	t.ok(close(p.x, 22), 'preMultiply order: x = 22');
 });
 
 test('DOMMatrix - toFloat32Array / toFloat64Array', (t) => {
@@ -193,5 +195,3 @@ test('DOMMatrix - toFloat32Array / toFloat64Array', (t) => {
 // NOTE: setMatrixValue() (CSS transform-string parsing) is not yet implemented
 // in nx.js (throws "Method not implemented."), so it is intentionally not
 // asserted here. Tracked separately from the matrix-math conformance.
-
-void EPS;
