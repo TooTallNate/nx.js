@@ -293,6 +293,18 @@ void connect_on_ready(op_t *op, int events) {
 	if (events < 0)
 		err = -events;
 	if (err) {
+		// Async connect failed (e.g. ECONNREFUSED, ENOBUFS, timeout). The fd
+		// was never handed to JS (connect() rejects before the Socket stores
+		// it), so it must be closed here — otherwise the fd and its bsdsocket
+		// buffers leak, and enough leaked connect failures exhaust the socket
+		// buffer pool ("No buffer space available"). Mark the owning poll entry
+		// to close the fd: op_finish() removes this (last) op and tears the
+		// poll down via fd_poll_destroy(), whose uv_close callback then closes
+		// the fd (closing it while the uv_poll_t still references it would
+		// corrupt the bsdsocket sysmodule).
+		fd_poll_t *fp = op->owner;
+		if (fp)
+			fp->close_fd = true;
 		op_finish(op, make_errno(iso, err), Undefined(iso));
 	} else {
 		op_finish(op, Undefined(iso), Integer::New(iso, op->fd));

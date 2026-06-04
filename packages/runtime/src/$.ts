@@ -342,6 +342,8 @@ export interface Init {
 	argv: string[];
 	entrypoint: string;
 	version: Versions;
+	/** Configured bsdsocket TCP receive buffer size (bytes) for this memory regime. */
+	tcpRxBufSize: number;
 	exit(): never;
 	cwd(): string;
 	chdir(dir: string): void;
