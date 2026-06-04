@@ -73,6 +73,8 @@ interface SocketInternal {
 	// finishes/closes (see the readable stream) to avoid exhausting the native
 	// ArrayBuffer pool across many sockets.
 	readBuffer?: ArrayBuffer;
+	// Guard so close() runs once (it re-enters via readable.cancel()).
+	closing?: boolean;
 }
 
 const _ = createInternal<Socket, SocketInternal>();
@@ -195,15 +197,24 @@ export class Socket {
 	 * Closes the socket and its underlying connection.
 	 */
 	close(reason?: any) {
+		const i = _(this);
+		// Idempotent: close() re-enters itself via readable.cancel()'s handler
+		// (which calls socket.close()), so guard against running twice. Without
+		// this, the re-entrant call would reject `opened` with its (undefined)
+		// reason BEFORE the original reason, masking the real error (e.g. a TLS
+		// handshake failure surfaced as a bare `undefined` rejection).
+		if (i.closing) return this.closed;
+		i.closing = true;
+		// Reject `opened` with the real reason FIRST, before cancelling the
+		// readable (whose cancel handler re-enters close()).
+		i.readBuffer = undefined; // release the large read buffer promptly
+		i.opened.reject(reason);
 		if (!this.readable.locked) {
 			this.readable.cancel(reason);
 		}
 		if (!this.writable.locked) {
 			this.writable.abort(reason);
 		}
-		const i = _(this);
-		i.readBuffer = undefined; // release the large read buffer promptly
-		i.opened.reject(reason);
 		if (i.tls) {
 			// TLS context owns its fd; tear it down natively (closes the
 			// uv_poll_t then the fd). Never $.close the fd directly.

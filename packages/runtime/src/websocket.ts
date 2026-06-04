@@ -348,6 +348,10 @@ export class WebSocket extends EventTarget {
 			this.#readLoop(reader, buffer);
 		} catch (err) {
 			this.#readyState = CLOSED;
+			// Close the underlying socket so its fd / native buffers are
+			// released — otherwise a failed handshake (or connect) leaks the
+			// socket, eventually exhausting buffers (ENOBUFS).
+			this.#cleanup();
 			this.#fireEvent('error', new Event('error'));
 			this.#fireEvent(
 				'close',
@@ -380,6 +384,7 @@ export class WebSocket extends EventTarget {
 						const state = this.#readyState as number;
 						if (state !== (CLOSED as number)) {
 							this.#readyState = CLOSED;
+							this.#cleanup();
 							this.#fireEvent(
 								'close',
 								new CloseEvent('close', {
@@ -466,6 +471,7 @@ export class WebSocket extends EventTarget {
 		} catch (err) {
 			if (this.#readyState !== CLOSED) {
 				this.#readyState = CLOSED;
+				this.#cleanup();
 				this.#fireEvent('error', new Event('error'));
 				this.#fireEvent(
 					'close',

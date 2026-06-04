@@ -744,36 +744,49 @@ static void build_init_object(Isolate *iso, Local<Context> context,
 // BsdServiceType_Auto (tries bsd:s first) is intentional: bsd:s is required to
 // bind privileged ports (e.g. a TCP server on port 80).
 //
-// The socket layer reserves a transfer-memory region sized roughly as
-// (tcp_tx_max + tcp_rx_max + udp_tx + udp_rx) * sb_efficiency. The full config
-// below is ~(4+4)MiB * 8 = ~64 MiB. That is fine in application/full-memory
-// mode (GiBs free) but is catastrophic in applet mode (~137 MiB total): the
-// reservation starves Mesa/V8 and bsdsocket faults the first time libuv touches
-// its loopback self-wake socketpair (User Break at bsdsocket+0xe7064, observed
-// at frame 1). So pick a lean config when free memory is tight.
+// The socket layer reserves transfer memory per socket sized roughly as
+// (tcp_tx_buf_size + tcp_rx_buf_size) * sb_efficiency, drawn from a shared pool
+// of ~(tcp_tx_max + tcp_rx_max + udp_tx + udp_rx) * sb_efficiency. A previous
+// config used 1 MiB tx/rx buffers with sb_efficiency=8, reserving ~16 MiB PER
+// socket — so only ~4 sockets could exist concurrently before connect() failed
+// with ENOBUFS ("No buffer space available"). That breaks any concurrent
+// fetch / redirect-follow workload. Use a moderate per-socket footprint
+// (256 KiB initial, autotuning up to 1 MiB) so 20+ sockets coexist while
+// preserving high single-stream throughput. The lean config (below) is used in
+// applet mode (~137 MiB total) where a large reservation starves Mesa/V8 and
+// bsdsocket faults on libuv's loopback self-wake socketpair (User Break at
+// bsdsocket+0xe7064).
 static SocketInitConfig const s_socketInitConfigFull = {
-    .tcp_tx_buf_size = 1 * 1024 * 1024,
-    .tcp_rx_buf_size = 1 * 1024 * 1024,
-    .tcp_tx_buf_max_size = 4 * 1024 * 1024,
-    .tcp_rx_buf_max_size = 4 * 1024 * 1024,
+    .tcp_tx_buf_size = 256 * 1024,
+    .tcp_rx_buf_size = 256 * 1024,
+    .tcp_tx_buf_max_size = 1 * 1024 * 1024,
+    .tcp_rx_buf_max_size = 1 * 1024 * 1024,
     .udp_tx_buf_size = 0x2400,
     .udp_rx_buf_size = 0xA500,
-    .sb_efficiency = 8,
+    .sb_efficiency = 6,
     .num_bsd_sessions = 3,
     .bsd_service_type = BsdServiceType_Auto,
 };
 
-// Lean config for tight-memory (applet) mode: ~(256+256)KiB * 4 = ~2 MiB of
-// transfer memory. Enough for libuv's self-wake socketpair, DNS, and modest
-// fetch/TLS, while leaving room for the GPU/Mesa + V8 stack.
+// Lean config for tight-memory (applet) mode. The previous lean config used
+// 128 KiB initial / 256 KiB max buffers with sb_efficiency=4, which reserved
+// ~1 MiB PER socket and a total pool of only ~2 MiB — barely two concurrent
+// sockets, so a redirect-following fetch (whose two hops briefly overlap during
+// the socket handoff) failed the second connect() with ENOBUFS. Shrink the
+// per-socket *initial* buffers (64 KiB, matching libnx's default rx size) so
+// each socket's footprint is small, while raising sb_efficiency to grow the
+// shared pool enough for ~15+ concurrent sockets. Total reservation is roughly
+// (tx_max + rx_max + udp_tx + udp_rx) * sb_efficiency ~= 512 KiB * 8 ~= 4 MiB,
+// still small enough to leave room for the GPU/Mesa + V8 stack in applet mode
+// (~137 MiB total).
 static SocketInitConfig const s_socketInitConfigLean = {
-    .tcp_tx_buf_size = 128 * 1024,
-    .tcp_rx_buf_size = 128 * 1024,
+    .tcp_tx_buf_size = 64 * 1024,
+    .tcp_rx_buf_size = 64 * 1024,
     .tcp_tx_buf_max_size = 256 * 1024,
     .tcp_rx_buf_max_size = 256 * 1024,
     .udp_tx_buf_size = 0x2400,
     .udp_rx_buf_size = 0xA500,
-    .sb_efficiency = 4,
+    .sb_efficiency = 8,
     .num_bsd_sessions = 3,
     .bsd_service_type = BsdServiceType_Auto,
 };
