@@ -667,6 +667,10 @@ static void build_init_object(Isolate *iso, Local<Context> context,
 	auto set_ver = [&](const char *k, const char *v) {
 		version->Set(context, nx_str(iso, k), nx_str(iso, v)).Check();
 	};
+	// ada does not export a version function in the bundled source, so the
+	// version is hard-coded (matching the QuickJS-era runtime). TODO: switch to
+	// the `switch-ada` portlib and use ada_get_version().
+	set_ver("ada", "2.9.2");
 	// ams + emummc are lazy (require SPL init); install accessors.
 	version
 	    ->SetNativeDataProperty(context, nx_str(iso, "ams"),

@@ -355,6 +355,7 @@ static void build_init_object(Isolate *iso, Local<Context> context,
 	auto set_ver = [&](const char *k, const char *v) {
 		version->Set(context, nx_str(iso, k), nx_str(iso, v)).Check();
 	};
+	set_ver("ada", "2.9.2");
 	version
 	    ->SetNativeDataProperty(context, nx_str(iso, "ams"), nx_version_get_ams)
 	    .Check();

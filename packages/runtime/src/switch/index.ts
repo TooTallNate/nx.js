@@ -35,6 +35,8 @@ export { WebApplet, type WebAppletOptions } from '../web-applet';
 export type PathLike = string | URL;
 
 export interface Versions {
+	/** The version of the [ada](https://github.com/ada-url/ada) URL parsing library. */
+	readonly ada: string;
 	/**
 	 * The version of the [Atmosphère](https://github.com/Atmosphere-NX/Atmosphere)
 	 * custom firmware running on the Switch, or `undefined` if not running
