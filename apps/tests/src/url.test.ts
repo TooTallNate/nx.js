@@ -411,7 +411,7 @@ test.skip('Changing the query of a URL with an opaque path can impact the path',
 	assert.is(url.href, 'data:space');
 });
 
-test.skip('Changing the query of a URL with an opaque path can impact the path if the URL has no fragment', () => {
+test.skip('Changing the query of a URL with an opaque path can impact the path if the URL has a fragment', () => {
 	const url = new URL('data:space    ?test#test');
 	url.searchParams.delete('test');
 	assert.is(url.search, '');
