@@ -26,13 +26,17 @@ const CANVAS_HEIGHT = 200;
 const ROOT = import.meta.dirname;
 const FIXTURES_DIR = join(ROOT, 'fixtures');
 const OUTPUT_DIR = join(ROOT, 'output');
-const BUILD_DIR = join(ROOT, 'build');
-const BINARY = join(BUILD_DIR, 'nxjs-canvas-test');
+// Reuse the V8 + Skia conformance harness binary (built by
+// packages/runtime/test). It renders a fixture's canvas to PNG via its
+// "--png <out> <w> <h>" mode.
+const RUNTIME_TEST_DIR = join(ROOT, '../../packages/runtime/test');
+const BINARY = join(RUNTIME_TEST_DIR, 'build', 'nxjs-test');
 const RUNTIME = join(ROOT, '../../packages/runtime/runtime.js');
 
-// Pixel difference threshold: percentage of total pixels that can differ
-// Cairo and Chrome use different rasterizers, so some anti-aliasing differences
-// are expected. 5% is generous enough for AA differences but catches real bugs.
+// Pixel difference threshold: percentage of total pixels that can differ.
+// Skia (nx.js) and Chrome (Skia) use very similar rasterizers, but minor
+// anti-aliasing differences remain; 5% is generous enough for AA but still
+// catches real rendering bugs.
 const DIFF_THRESHOLD_PERCENT = 0.05; // 5%
 
 // pixelmatch color threshold (0-1): how different a pixel must be to count as
@@ -50,7 +54,7 @@ function ensureDir(dir: string) {
  */
 function renderWithNxjs(fixturePath: string, outputPath: string): Buffer {
 	execSync(
-		`"${BINARY}" "${RUNTIME}" "${fixturePath}" "${outputPath}" ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`,
+		`"${BINARY}" "${RUNTIME}" "${fixturePath}" --png "${outputPath}" ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`,
 		{ timeout: 10000 }
 	);
 	return readFileSync(outputPath);
@@ -160,7 +164,8 @@ describe('Canvas 2D conformance: nx.js vs Chrome', () => {
 		// Verify the binary and runtime exist
 		if (!existsSync(BINARY)) {
 			throw new Error(
-				`Canvas test binary not found at ${BINARY}. Run 'pnpm build' first.`
+				`Canvas test binary not found at ${BINARY}. Build it first: ` +
+					`cmake -B build && cmake --build build (in packages/runtime/test).`
 			);
 		}
 		if (!existsSync(RUNTIME)) {

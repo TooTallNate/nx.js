@@ -1,5 +1,5 @@
-import { suite } from 'uvu';
-import * as assert from 'uvu/assert';
+import { suite } from './harness';
+import * as assert from './assert';
 import { toHex, fromHex, concat } from './util';
 
 const test = suite('WebCrypto AES-XTS');

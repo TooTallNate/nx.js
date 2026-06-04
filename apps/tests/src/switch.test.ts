@@ -1,6 +1,6 @@
 import { ENOENT } from '@nx.js/constants';
-import { suite } from 'uvu';
-import * as assert from 'uvu/assert';
+import { suite } from './harness';
+import * as assert from './assert';
 
 const test = suite('Switch');
 

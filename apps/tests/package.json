@@ -16,8 +16,5 @@
     "@nx.js/nsp": "workspace:^",
     "@nx.js/runtime": "workspace:^",
     "esbuild": "catalog:"
-  },
-  "dependencies": {
-    "uvu": "github:TooTallNate/uvu#master"
   }
 }

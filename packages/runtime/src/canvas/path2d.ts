@@ -615,12 +615,16 @@ export class Path2D implements globalThis.Path2D {
 					startAngle = c[6];
 					endAngle = c[7];
 					ccw = c[8];
-					ctx.save();
-					ctx.translate(x, y);
-					ctx.rotate(angle);
-					ctx.scale(rx, ry);
-					ctx.arc(0, 0, 1, startAngle, endAngle, ccw);
-					ctx.restore();
+					ctx.ellipse(
+						x,
+						y,
+						rx,
+						ry,
+						angle,
+						startAngle,
+						endAngle,
+						ccw,
+					);
 					break;
 				case 'R': // rect
 					c = commands[i] as RectCommand;

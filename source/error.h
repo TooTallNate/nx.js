@@ -1,21 +1,25 @@
 #pragma once
 #include "types.h"
 
-void print_js_error(JSContext *ctx);
+// Print the currently-caught exception (from a TryCatch) to stdout + stderr.
+void print_js_error(v8::Isolate *iso, v8::TryCatch *try_catch);
 
-JSValue nx_throw_errno_error(JSContext *ctx, int errno, char *syscall);
+// Throw helpers (schedule the exception on the isolate; caller must `return`).
+void nx_throw(v8::Isolate *iso, const char *message);
+void nx_throw_errno_error(v8::Isolate *iso, int err, const char *syscall);
 
 // Error codes explanations:
 //  - https://switchbrew.org/wiki/Error_codes
-//  - https://github.com/backupbrew/switchbrew/blob/master/Error%20codes.md
 //  - https://github.com/switchbrew/libnx/blob/master/nx/include/switch/result.h
-JSValue nx_throw_libnx_error(JSContext *ctx, Result rc, char *name);
+void nx_throw_libnx_error(v8::Isolate *iso, Result rc, const char *name);
 
-void nx_emit_error_event(JSContext *ctx);
-void nx_emit_unhandled_rejection_event(JSContext *ctx);
+// Dispatch a caught exception (from `try_catch`) to the JS error handler.
+void nx_emit_error_event(v8::Isolate *iso, v8::TryCatch *try_catch);
 
-void nx_promise_rejection_handler(JSContext *ctx, JSValueConst promise,
-								  JSValueConst reason, bool is_handled,
-								  void *opaque);
+// Dispatch the stored unhandled-rejected promise to the JS rejection handler.
+void nx_emit_unhandled_rejection_event(v8::Isolate *iso);
 
-void nx_init_error(JSContext *ctx, JSValueConst init_obj);
+// V8 promise-reject callback (registered via Isolate::SetPromiseRejectCallback).
+void nx_promise_rejection_handler(v8::PromiseRejectMessage message);
+
+void nx_init_error(v8::Isolate *iso, v8::Local<v8::Object> init_obj);

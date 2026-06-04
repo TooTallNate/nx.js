@@ -15,7 +15,7 @@ let [globalTypes, switchTypes, wasmTypes] = generateDtsBundle(
 			filePath: './src/switch/index.ts',
 		},
 		{
-			filePath: './src/wasm.ts',
+			filePath: './src/wasm-types.ts',
 		},
 	],
 	{

@@ -43,8 +43,6 @@ export interface Versions {
 	 * Atmosphère.
 	 */
 	readonly ams: string | undefined;
-	/** The version of the [cairo](https://www.cairographics.org/) 2D graphics library used for canvas rendering. */
-	readonly cairo: string;
 	/**
 	 * `true` if the Switch is running Atmosphère from emuMMC, `false` if
 	 * running sysMMC, or `undefined` if not running Atmosphère.
@@ -62,16 +60,14 @@ export interface Versions {
 	readonly mbedtls: string;
 	/** The semver version of the nx.js runtime itself. */
 	readonly nxjs: string;
-	/** The version of the [pixman](https://pixman.org/) low-level pixel manipulation library. */
-	readonly pixman: string;
+	/** The version of the [Skia](https://skia.org/) 2D graphics library used for canvas rendering (milestone number, e.g. `"149"`). */
+	readonly skia: string;
 	/** The version of [libpng](http://www.libpng.org/pub/png/libpng.html) used for PNG decoding. */
 	readonly png: string;
-	/** The version of the [QuickJS](https://bellard.org/quickjs/) JavaScript engine. */
-	readonly quickjs: string;
 	/** The version of [libjpeg-turbo](https://libjpeg-turbo.org/) used for JPEG decoding. */
 	readonly turbojpeg: string;
-	/** The version of [wasm3](https://github.com/wasm3/wasm3) used for `WebAssembly` execution. */
-	readonly wasm3: string;
+	/** The version of the [V8](https://v8.dev/) JavaScript engine. */
+	readonly v8: string;
 	/** The version of [libwebp](https://developers.google.com/speed/webp/) used for WebP decoding. */
 	readonly webp: string;
 	/** The version of [zlib](https://zlib.net/) used for deflate / gzip compression. */
@@ -133,63 +129,32 @@ export interface ListenOptions {
 }
 
 /**
- * Memory usage statistics from the QuickJS JavaScript engine.
+ * Memory usage statistics from the [V8](https://v8.dev/) JavaScript engine,
+ * as reported by V8's `HeapStatistics`.
  *
  * @see {@link memoryUsage}
  */
 export interface MemoryUsage {
-	/** Total bytes allocated by the JS engine's malloc. */
-	mallocSize: number;
-	/** Maximum malloc allocation limit (0 = unlimited). */
-	mallocLimit: number;
-	/** Total memory used by the JS engine, including internal bookkeeping. */
-	memoryUsedSize: number;
-	/** Number of active malloc allocations. */
-	mallocCount: number;
-	/** Number of memory usage entries tracked internally. */
-	memoryUsedCount: number;
-	/** Number of interned atoms (identifiers/strings). */
-	atomCount: number;
-	/** Total bytes used by atoms. */
-	atomSize: number;
-	/** Number of JS strings. */
-	strCount: number;
-	/** Total bytes used by strings. */
-	strSize: number;
-	/** Number of JS objects. */
-	objCount: number;
-	/** Total bytes used by objects. */
-	objSize: number;
-	/** Number of object properties. */
-	propCount: number;
-	/** Total bytes used by properties. */
-	propSize: number;
-	/** Number of object shapes. */
-	shapeCount: number;
-	/** Total bytes used by shapes. */
-	shapeSize: number;
-	/** Number of JS functions. */
-	jsFuncCount: number;
-	/** Total bytes used by JS functions. */
-	jsFuncSize: number;
-	/** Total bytes of JS function bytecode. */
-	jsFuncCodeSize: number;
-	/** Number of pc-to-line debug entries. */
-	jsFuncPc2lineCount: number;
-	/** Total bytes used by pc-to-line debug data. */
-	jsFuncPc2lineSize: number;
-	/** Number of C functions registered in the engine. */
-	cFuncCount: number;
-	/** Number of JS arrays. */
-	arrayCount: number;
-	/** Number of fast (dense) arrays. */
-	fastArrayCount: number;
-	/** Total number of elements in fast arrays. */
-	fastArrayElements: number;
-	/** Number of binary (ArrayBuffer/SharedArrayBuffer) objects. */
-	binaryObjectCount: number;
-	/** Total bytes used by binary objects. */
-	binaryObjectSize: number;
+	/** Total size of the V8 heap, in bytes. */
+	totalHeapSize: number;
+	/** Total size of executable (JIT code) portions of the heap, in bytes. */
+	totalHeapSizeExecutable: number;
+	/** Committed physical size of the heap, in bytes. */
+	totalPhysicalSize: number;
+	/** Total memory available to the heap before hitting the limit, in bytes. */
+	totalAvailableSize: number;
+	/** Memory currently used by live objects on the heap, in bytes. */
+	usedHeapSize: number;
+	/** Maximum size the heap is allowed to grow to, in bytes. */
+	heapSizeLimit: number;
+	/** Memory currently allocated via the engine's `malloc`, in bytes. */
+	mallocedMemory: number;
+	/** Peak memory ever allocated via the engine's `malloc`, in bytes. */
+	peakMallocedMemory: number;
+	/** Number of active (native) contexts. */
+	numberOfNativeContexts: number;
+	/** Number of detached (pending GC) contexts. */
+	numberOfDetachedContexts: number;
 }
 
 export interface NetworkInfo {
@@ -409,8 +374,8 @@ export function setMediaPlaybackState(state: boolean) {
 }
 
 /**
- * Returns memory usage statistics from the QuickJS JavaScript engine
- * via `JS_ComputeMemoryUsage()`.
+ * Returns memory usage statistics from the [V8](https://v8.dev/) JavaScript
+ * engine via V8's `HeapStatistics`.
  *
  * Useful for debugging memory leaks and monitoring memory pressure.
  *
@@ -418,9 +383,9 @@ export function setMediaPlaybackState(state: boolean) {
  *
  * ```typescript
  * const mem = Switch.memoryUsage();
- * console.log(`JS malloc: ${mem.mallocSize} bytes`);
- * console.log(`JS memory used: ${mem.memoryUsedSize} bytes`);
- * console.log(`Objects: ${mem.objCount} (${mem.objSize} bytes)`);
+ * console.log(`Heap used: ${mem.usedHeapSize} bytes`);
+ * console.log(`Heap total: ${mem.totalHeapSize} bytes`);
+ * console.log(`Heap limit: ${mem.heapSizeLimit} bytes`);
  * ```
  */
 export function memoryUsage(): MemoryUsage {

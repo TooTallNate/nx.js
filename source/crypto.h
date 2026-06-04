@@ -1,9 +1,9 @@
 #pragma once
 #define MBEDTLS_ALLOW_PRIVATE_ACCESS
 #include "types.h"
-#include <mbedtls/version.h>
 #include <mbedtls/ecp.h>
 #include <mbedtls/rsa.h>
+#include <mbedtls/version.h>
 
 typedef enum {
 	NX_CRYPTO_KEY_TYPE_UNKNOWN,
@@ -43,31 +43,29 @@ typedef struct {
 	nx_crypto_key_type type;
 	bool extractable;
 	nx_crypto_key_algorithm algorithm;
-	JSValue algorithm_cached;
+	v8::Global<v8::Value> algorithm_cached;
 	nx_crypto_key_usage usages;
-	JSValue usages_cached;
+	v8::Global<v8::Value> usages_cached;
 	void *handle;
-	uint8_t *raw_key_data;  // Raw key material (for exportKey)
-	size_t raw_key_size;     // Size of raw key data
+	uint8_t *raw_key_data;
+	size_t raw_key_size;
 } nx_crypto_key_t;
 
 typedef struct {
 	uint8_t *key;
 	size_t key_length;
-	char hash_name[16];  // "SHA-256", etc.
+	char hash_name[16];
 } nx_crypto_key_hmac_t;
 
 typedef struct {
-	u8 key_length; /* 16 (128-bit), 24 (192-bit), 32 (256-bit), etc. */
+	u8 key_length;
 	union {
 		Aes128CbcContext cbc_128;
 		Aes192CbcContext cbc_192;
 		Aes256CbcContext cbc_256;
-
 		Aes128CtrContext ctr_128;
 		Aes192CtrContext ctr_192;
 		Aes256CtrContext ctr_256;
-
 		Aes128XtsContext xts_128;
 		Aes192XtsContext xts_192;
 		Aes256XtsContext xts_256;
@@ -76,10 +74,6 @@ typedef struct {
 		Aes128CbcContext cbc_128;
 		Aes192CbcContext cbc_192;
 		Aes256CbcContext cbc_256;
-
-		// AES-CTR only needs one context for both encrypt and decrypt,
-		// so for encrypt, we use the same context as decrypt
-
 		Aes128XtsContext xts_128;
 		Aes192XtsContext xts_192;
 		Aes256XtsContext xts_256;
@@ -88,13 +82,13 @@ typedef struct {
 
 typedef struct {
 	mbedtls_ecp_keypair keypair;
-	char curve_name[8];  // "P-256" or "P-384"
+	char curve_name[8];
 } nx_crypto_key_ec_t;
 
 typedef struct {
 	mbedtls_rsa_context rsa;
-	char hash_name[16];  // "SHA-256", etc.
-	int salt_length;     // For PSS: -1 = hash length (default)
+	char hash_name[16];
+	int salt_length;
 } nx_crypto_key_rsa_t;
 
-void nx_init_crypto(JSContext *ctx, JSValueConst init_obj);
+void nx_init_crypto(v8::Isolate *iso, v8::Local<v8::Object> init_obj);

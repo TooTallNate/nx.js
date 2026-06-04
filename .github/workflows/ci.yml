@@ -14,7 +14,7 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
-    container: ghcr.io/tootallnate/pacman-packages@sha256:73d5497b5b6da3bed5b23b1f47506817661cbcc6947a1590eb42a0a82e084c60
+    container: ghcr.io/tootallnate/pacman-packages@sha256:667d2b78eaac3f52996fe60b6ac45cf4b546726ac640b279669aa79aeff195ee
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
@@ -130,29 +130,45 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    # Run in the pacman-packages image: it provides the host-native V8, Skia,
+    # and libuv (under /opt/host) that the nxjs-test conformance harness links
+    # against (the Switch portlibs are target_os=horizon and can't link into a
+    # host ELF). The harness + Skia + V8 are all built against the system
+    # libstdc++, so compile the harness with clang-16/lld against /opt/host.
+    container: ghcr.io/tootallnate/pacman-packages@sha256:ab26d09e381328e61d6e786d147d4a719905cb566bdd8bb77cec5d65c4230ea7
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          package_json_file: package.json
+      - name: Install build + host toolchain deps
+        run: |
+          apt-get update
+          apt-get install -y \
+            cmake pkg-config lsb-release wget software-properties-common gnupg \
+            libmbedtls-dev libfreetype-dev libharfbuzz-dev \
+            libpng-dev libturbojpeg0-dev libjpeg62-turbo-dev libwebp-dev \
+            zlib1g-dev libzstd-dev
+          # The host V8/Skia archives are produced by a modern Clang that emits
+          # CREL relocations. Linking them requires LLVM >= 18 (lld-16 cannot
+          # process CREL and silently leaves .init_array unrelocated, which
+          # crashes at startup). Prefer clang-19 if the image already ships it,
+          # otherwise install it from apt.llvm.org.
+          if ! command -v clang-19 >/dev/null 2>&1; then
+            wget -q https://apt.llvm.org/llvm.sh -O /tmp/llvm.sh
+            chmod +x /tmp/llvm.sh
+            /tmp/llvm.sh 19
+          fi
+          ln -sf /usr/bin/ld.lld-19 /usr/bin/ld.lld
 
       - name: Setup Node.js 22.x
         uses: actions/setup-node@v4
         with:
           node-version: 22.x
-          cache: "pnpm"
 
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            cmake build-essential pkg-config \
-            libcairo2-dev libfreetype-dev libharfbuzz-dev \
-            libpng-dev libturbojpeg0-dev libwebp-dev \
-            zlib1g-dev libzstd-dev
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          package_json_file: package.json
 
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
@@ -161,8 +177,17 @@ jobs:
         run: pnpm --filter @nx.js/runtime exec playwright install --with-deps chromium
 
       - name: Build nxjs-test binary
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=clang-19 -DCMAKE_CXX_COMPILER=clang++-19
+          cmake --build build -j"$(nproc)"
         working-directory: packages/runtime/test
 
       - name: Run Tests
         run: pnpm test
+
+      - name: Run Canvas 2D image tests
+        # Pixel-compares nx.js (Skia) canvas rendering against Chrome (Skia)
+        # for each fixture, reusing the nxjs-test binary in --png mode. Runs
+        # after `pnpm test` so runtime.js (built by turbo's runtime#bundle) and
+        # the nxjs-test binary both exist.
+        run: pnpm --filter @nxjs/canvas-test test:canvas

@@ -5,18 +5,22 @@
 
 enum ImageFormat { FORMAT_PNG, FORMAT_JPEG, FORMAT_WEBP, FORMAT_UNKNOWN };
 
+// Decoded image: `data` is premultiplied BGRA (byte order B,G,R,A), width*4
+// stride. canvas.cc wraps `data` in an SkImage at draw time (no persistent
+// surface object needed in the raster Skia backend).
 typedef struct {
 	u32 width;
 	u32 height;
 	u8 *data;
-	bool data_needs_js_free;
-	cairo_surface_t *surface;
+	bool data_needs_js_free; // (legacy flag; now always malloc/free or tjFree)
 	enum ImageFormat format;
 } nx_image_t;
 
-nx_image_t *nx_get_image(JSContext *ctx, JSValueConst obj);
+// Retrieve the native image wrapped by a JS object (or nullptr). Shared with
+// canvas.cc / irs.cc.
+nx_image_t *nx_get_image(v8::Isolate *iso, v8::Local<v8::Value> obj);
 
 int decode_jpeg(uint8_t *jpegBuf, size_t jpegSize, uint8_t **output, int *width,
-				int *height);
+                int *height);
 
-void nx_init_image(JSContext *ctx, JSValueConst init_obj);
+void nx_init_image(v8::Isolate *iso, v8::Local<v8::Object> init_obj);

@@ -1,5 +1,5 @@
-import { suite } from 'uvu';
-import * as assert from 'uvu/assert';
+import { suite } from './harness';
+import * as assert from './assert';
 
 // Set the current profile to the first profile
 // so that the profile selector is not shown
