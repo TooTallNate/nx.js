@@ -14,7 +14,7 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
-    container: ghcr.io/tootallnate/pacman-packages@sha256:667d2b78eaac3f52996fe60b6ac45cf4b546726ac640b279669aa79aeff195ee
+    container: ghcr.io/tootallnate/pacman-packages@sha256:a942a9e8bf5657c341a9887473a9193aeb21c22ed91e1901578e50a36dda5954
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
@@ -131,11 +131,12 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
     # Run in the pacman-packages image: it provides the host-native V8, Skia,
-    # and libuv (under /opt/host) that the nxjs-test conformance harness links
-    # against (the Switch portlibs are target_os=horizon and can't link into a
-    # host ELF). The harness + Skia + V8 are all built against the system
-    # libstdc++, so compile the harness with clang-16/lld against /opt/host.
-    container: ghcr.io/tootallnate/pacman-packages@sha256:ab26d09e381328e61d6e786d147d4a719905cb566bdd8bb77cec5d65c4230ea7
+    # libuv, and ada (under /opt/host) that the nxjs-test conformance harness
+    # links against (the Switch portlibs are target_os=horizon and can't link
+    # into a host ELF), plus the clang-19/lld-19 toolchain. The harness + Skia +
+    # V8 are all built against the system libstdc++, so compile the harness with
+    # clang-19/lld against /opt/host.
+    container: ghcr.io/tootallnate/pacman-packages@sha256:a942a9e8bf5657c341a9887473a9193aeb21c22ed91e1901578e50a36dda5954
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
@@ -144,22 +145,14 @@ jobs:
         run: |
           apt-get update
           apt-get install -y \
-            cmake pkg-config lsb-release wget software-properties-common gnupg \
+            cmake pkg-config \
             libmbedtls-dev libfreetype-dev libharfbuzz-dev \
             libpng-dev libturbojpeg0-dev libjpeg62-turbo-dev libwebp-dev \
             zlib1g-dev libzstd-dev
-          # The host V8/Skia archives are produced by a modern Clang that emits
-          # CREL relocations. Linking them requires LLVM >= 18 (lld-16 cannot
-          # process CREL and silently leaves .init_array unrelocated, which
-          # crashes at startup). Prefer clang-19 if the image already ships it,
-          # otherwise install it from apt.llvm.org.
-          if ! command -v clang-19 >/dev/null 2>&1; then
-            wget -q https://apt.llvm.org/llvm.sh -O /tmp/llvm.sh
-            chmod +x /tmp/llvm.sh
-            /tmp/llvm.sh 19
-          fi
-          ln -sf /usr/bin/ld.lld-19 /usr/bin/ld.lld
-
+          # The image ships clang-19/lld-19 + the ld.lld symlink. LLVM >= 18 is
+          # required to link the host V8/Skia archives (they use CREL
+          # relocations that lld-16 cannot process — it would leave .init_array
+          # unrelocated and the binary would crash at startup).
       - name: Setup Node.js 22.x
         uses: actions/setup-node@v4
         with:

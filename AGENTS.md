@@ -217,8 +217,8 @@ The `packages/runtime/test/` directory contains a **unified host-platform build*
 
 ### Architecture
 
-- **20 real source modules** compiled from `source/`: async, canvas, compression, crypto, dns, dommatrix, error, font, image, poll, tcp, thpool, tls, udp, uint8array, url, util, wasm, web, window + ada.cpp
-- **13 stubbed modules** (no-op `nx_init_*` in `src/stubs.c`): account, album, applet, audio, battery, fs, fsdev, gamepad, irs, nifm, ns, service, swkbd
+- **Real source modules** compiled from `source/`: async, canvas, compression, crypto, dns, dommatrix, error, font, fs, image, tcp, tls, udp, url, util, window, wrap. ada is linked from the `switch-ada` host lib (`/opt/host/ada`), not compiled here.
+- **Stubbed modules** (no-op `nx_init_*` in `src/stubs.cc`): account, album, applet, audio, battery, fsdev, gamepad, irs, memory, nifm, ns, service, swkbd, web
 - **Compat headers** in `src/compat/` provide libnx type/function stubs, real AES/SHA via mbedtls, host system CA certificates for TLS
 - **60 FPS event loop** with real thread pool, networking, and async operations
 
@@ -226,9 +226,9 @@ The `packages/runtime/test/` directory contains a **unified host-platform build*
 
 When you add or change a C source file in `source/`, you MUST update the test binary:
 
-1. **New portable module** (uses standard C libs, not libnx): Add the `.c` file to `NX_SOURCES` in `packages/runtime/test/CMakeLists.txt`. Add the `nx_init_*` call in `packages/runtime/test/src/main.c` under the "Real modules" section.
+1. **New portable module** (uses standard C libs, not libnx): Add the `.cc` file to `NX_SOURCES` in `packages/runtime/test/CMakeLists.txt`. Add the `nx_init_*` call in `packages/runtime/test/src/main.cc` under the "Real modules" section.
 
-2. **New Switch-only module** (uses libnx APIs): Add a no-op `nx_init_*` stub in `packages/runtime/test/src/stubs.c`. Add the `nx_init_*` call in `packages/runtime/test/src/main.c` under the "Stubbed modules" section.
+2. **New Switch-only module** (uses libnx APIs): Add a no-op `nx_init_*` stub in `packages/runtime/test/src/stubs.cc`. Add the `nx_init_*` call in `packages/runtime/test/src/main.cc` under the "Stubbed modules" section.
 
 3. **New libnx types/functions** referenced by compiled modules: Add stubs to `packages/runtime/test/src/compat/switch.h`.
 

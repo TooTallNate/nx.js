@@ -18,6 +18,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <ada.h>
 #include <ft2build.h>
 #include <harfbuzz/hb.h>
 #include <libplatform/libplatform.h>
@@ -355,7 +356,7 @@ static void build_init_object(Isolate *iso, Local<Context> context,
 	auto set_ver = [&](const char *k, const char *v) {
 		version->Set(context, nx_str(iso, k), nx_str(iso, v)).Check();
 	};
-	set_ver("ada", "2.9.2");
+	set_ver("ada", ADA_VERSION);
 	version
 	    ->SetNativeDataProperty(context, nx_str(iso, "ams"), nx_version_get_ams)
 	    .Check();
