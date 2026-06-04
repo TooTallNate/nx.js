@@ -82,6 +82,38 @@ static void js_exit(const FunctionCallbackInfo<Value> &info) {
 	(void)info;
 	is_running = 0;
 }
+
+// queueMicrotask(callback) — mirrors source/main.cc (raw V8 has no such global).
+static void nx_microtask_run(void *data) {
+	Isolate *iso = Isolate::GetCurrent();
+	HandleScope scope(iso);
+	Local<Context> context = iso->GetCurrentContext();
+	Context::Scope ctx_scope(context);
+
+	Global<Function> *gfn = static_cast<Global<Function> *>(data);
+	Local<Function> fn = gfn->Get(iso);
+
+	TryCatch try_catch(iso);
+	Local<Value> ret;
+	if (!fn->Call(context, Undefined(iso), 0, nullptr).ToLocal(&ret)) {
+		nx_emit_error_event(iso, &try_catch);
+	}
+
+	gfn->Reset();
+	delete gfn;
+}
+
+static void js_queue_microtask(const FunctionCallbackInfo<Value> &info) {
+	Isolate *iso = info.GetIsolate();
+	if (info.Length() < 1 || !info[0]->IsFunction()) {
+		nx_throw(iso,
+		         "Failed to execute 'queueMicrotask': parameter 1 is not of "
+		         "type 'Function'.");
+		return;
+	}
+	Global<Function> *gfn = new Global<Function>(iso, info[0].As<Function>());
+	iso->EnqueueMicrotask(nx_microtask_run, gfn);
+}
 static void js_cwd(const FunctionCallbackInfo<Value> &info) {
 	Isolate *iso = info.GetIsolate();
 	char cwd[4096];
@@ -332,6 +364,7 @@ static void build_init_object(Isolate *iso, Local<Context> context,
 	nx_init_web(iso, init_obj);
 	nx_init_window(iso, init_obj);
 	NX_SET_FUNC(init_obj, "exit", js_exit);
+	NX_SET_FUNC(init_obj, "queueMicrotask", js_queue_microtask);
 	NX_SET_FUNC(init_obj, "cwd", js_cwd);
 	NX_SET_FUNC(init_obj, "chdir", js_chdir);
 	NX_SET_FUNC(init_obj, "print", js_print);
