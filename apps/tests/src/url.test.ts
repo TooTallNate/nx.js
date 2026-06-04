@@ -396,6 +396,8 @@ test('Removing non-existent param removes ? from URL', function () {
 	assert.is(url.search, '', 'url.search does not have ?');
 });
 
+// Still failing as of ada 3.4.4: deleting the query of an opaque-path URL does
+// not strip the path's trailing whitespace (ada yields `space   %20`).
 test.skip('Changing the query of a URL with an opaque path can impact the path', () => {
 	const url = new URL('data:space    ?test');
 	assert.ok(url.searchParams.has('test'));

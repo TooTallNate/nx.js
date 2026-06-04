@@ -16,10 +16,11 @@ project(nxjs-test CXX)
 # ============================================================================
 
 # /opt/host layout from the pacman-packages image.
-set(HOST_PREFIX "/opt/host" CACHE PATH "Host-native V8/Skia/libuv prefix")
+set(HOST_PREFIX "/opt/host" CACHE PATH "Host-native V8/Skia/libuv/ada prefix")
 set(V8_DIR    "${HOST_PREFIX}/v8")
 set(SKIA_DIR  "${HOST_PREFIX}/skia")
 set(LIBUV_DIR "${HOST_PREFIX}/libuv")
+set(ADA_DIR   "${HOST_PREFIX}/ada")
 
 find_package(PkgConfig REQUIRED)
 # Leaf deps come from apt (host ABI); only the engine/renderer/loop are pinned.
@@ -63,7 +64,6 @@ set(NX_SOURCES
   ${NX_SOURCE_DIR}/util.cc
   ${NX_SOURCE_DIR}/window.cc
   ${NX_SOURCE_DIR}/wrap.cc
-  ${NX_SOURCE_DIR}/ada.cpp
 )
 
 add_executable(nxjs-test ${TEST_SOURCES} ${NX_SOURCES})
@@ -90,6 +90,7 @@ target_include_directories(nxjs-test PRIVATE
   ${V8_DIR}/include
   ${SKIA_DIR}
   ${LIBUV_DIR}/include
+  ${ADA_DIR}/include
   ${FREETYPE_INCLUDE_DIRS}
   ${HARFBUZZ_INCLUDE_DIRS}
   ${HARFBUZZ_PARENT_INCLUDE}
@@ -127,6 +128,7 @@ target_link_libraries(nxjs-test PRIVATE
   ${SKIA_DIR}/lib/libskunicode_libgrapheme.a
   ${SKIA_DIR}/lib/libskcms.a
   ${LIBUV_DIR}/lib/libuv.a
+  ${ADA_DIR}/lib/libada.a
   mbedtls mbedx509 mbedcrypto
   ${FREETYPE_LIBRARIES}
   ${HARFBUZZ_LIBRARIES}

@@ -217,7 +217,7 @@ The `packages/runtime/test/` directory contains a **unified host-platform build*
 
 ### Architecture
 
-- **20 real source modules** compiled from `source/`: async, canvas, compression, crypto, dns, dommatrix, error, font, image, poll, tcp, thpool, tls, udp, uint8array, url, util, wasm, web, window + ada.cpp
+- **Real source modules** compiled from `source/`: async, canvas, compression, crypto, dns, dommatrix, error, font, fs, image, tcp, tls, udp, url, util, window, wrap. ada is linked from the `switch-ada` host lib (`/opt/host/ada`), not compiled here.
 - **13 stubbed modules** (no-op `nx_init_*` in `src/stubs.c`): account, album, applet, audio, battery, fs, fsdev, gamepad, irs, nifm, ns, service, swkbd
 - **Compat headers** in `src/compat/` provide libnx type/function stubs, real AES/SHA via mbedtls, host system CA certificates for TLS
 - **60 FPS event loop** with real thread pool, networking, and async operations

@@ -1,4 +1,4 @@
-// URL / URLSearchParams backed by the ada parser (ada.cpp / ada_c.h).
+// URL / URLSearchParams backed by the ada parser (switch-ada portlib).
 #include "error.h"
 #include "types.h"
 #include "wrap.h"
@@ -8,7 +8,7 @@
 // ada's C API header has no extern "C" guard; ada.cpp defines the symbols with
 // C linkage, so wrap the include to match (url.cc is C++).
 extern "C" {
-#include "ada_c.h"
+#include <ada_c.h>
 }
 
 using namespace v8;

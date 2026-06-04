@@ -107,6 +107,7 @@ LIBS	:=  $(SKIA_LIBS) $(V8_LIBS) $(UV_LIBS) $(GL_LIBS) \
 			-lmbedtls -lmbedx509 -lmbedcrypto \
 			-Wl,--start-group -lfreetype -lharfbuzz -Wl,--end-group \
 			-lturbojpeg -lwebp -lwebpdemux -ljpeg -lpng -lbz2 -lz -lm -lzstd \
+			-lada \
 			-L$(DEVKITPRO)/libnx/lib -lnx
 
 #---------------------------------------------------------------------------------
