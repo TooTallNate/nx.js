@@ -495,8 +495,9 @@ static bool path_has_suffix(const char *path, const char *suffix) {
 // RomFS is not at file offset 0: it lives after the code segments + asset
 // header. romfsMountFromFsdev() takes the romfs start offset but does NOT parse
 // the NRO, so compute the offset here (mirroring libnx's romfsMountSelf): read
-// the NroHeader at 0 to get `size`, then the NroAssetHeader at `size` to get
-// the romfs section offset. Returns a libnx Result.
+// the NroHeader (which follows the 16-byte NroStart, so at offset
+// sizeof(NroStart)) to get `size`, then the NroAssetHeader at `size` to get the
+// romfs section offset. Returns a libnx Result.
 static Result mount_nro_romfs(const char *path, const char *name) {
 	FILE *f = fopen(path, "rb");
 	if (!f)

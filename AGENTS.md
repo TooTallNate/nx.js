@@ -142,7 +142,10 @@ The `$.entrypoint` gives the base URL for resolving relative paths.
 `main.cc` resolves the user entrypoint as:
 
 1. If `argv[1]` is set (bootstrap launch — a thin launcher hands nx.js the app):
-   - `*.nro` → `romfsMountFromFsdev(argv[1], 0, "romfs")`, run `romfs:/main.js`.
+   - `*.nro` → mount its embedded RomFS as `romfs:` and run `romfs:/main.js`.
+     The RomFS is not at file offset 0, so `mount_nro_romfs()` parses the NRO
+     header + asset header to find the RomFS offset, then calls
+     `romfsMountFromFsdev(argv[1], romfs_offset, "romfs")`.
    - otherwise (typically `*.js`) → run `argv[1]` directly.
 2. Else (standalone): mount self as `romfs:`, run `romfs:/main.js`; fall back to
    `<argv0>.js` next to the `.nro` on the SD card.
