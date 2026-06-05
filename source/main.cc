@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <unistd.h>
 
 #include <ada.h>
@@ -482,6 +483,46 @@ static void js_hid_send_vibration_values(
 // ---------------------------------------------------------------------------
 // File reading helper.
 // ---------------------------------------------------------------------------
+
+// Case-insensitive check that `path` ends with `suffix` (e.g. ".nro").
+static bool path_has_suffix(const char *path, const char *suffix) {
+	size_t plen = strlen(path);
+	size_t slen = strlen(suffix);
+	return plen >= slen && strcasecmp(path + plen - slen, suffix) == 0;
+}
+
+// Mount the embedded RomFS of the NRO at `path` under device `name`. An NRO's
+// RomFS is not at file offset 0: it lives after the code segments + asset
+// header. romfsMountFromFsdev() takes the romfs start offset but does NOT parse
+// the NRO, so compute the offset here (mirroring libnx's romfsMountSelf): read
+// the NroHeader at 0 to get `size`, then the NroAssetHeader at `size` to get
+// the romfs section offset. Returns a libnx Result.
+static Result mount_nro_romfs(const char *path, const char *name) {
+	FILE *f = fopen(path, "rb");
+	if (!f)
+		return MAKERESULT(Module_Libnx, LibnxError_NotFound);
+	NroHeader hdr;
+	NroAssetHeader asset;
+	Result rc = MAKERESULT(Module_Libnx, LibnxError_IoError);
+	// NroHeader follows NroStart (16 bytes) at the start of the file.
+	if (fseek(f, sizeof(NroStart), SEEK_SET) != 0 ||
+	    fread(&hdr, 1, sizeof(hdr), f) != sizeof(hdr) ||
+	    hdr.magic != NROHEADER_MAGIC)
+		goto done;
+	// The asset header is appended right after the NRO code image (hdr.size).
+	if (fseek(f, hdr.size, SEEK_SET) != 0 ||
+	    fread(&asset, 1, sizeof(asset), f) != sizeof(asset) ||
+	    asset.magic != NROASSETHEADER_MAGIC || asset.romfs.offset == 0 ||
+	    asset.romfs.size == 0)
+		goto done;
+	fclose(f);
+	// romfsMountFromFsdev opens its own handle; pass the absolute romfs offset.
+	return romfsMountFromFsdev(path, hdr.size + asset.romfs.offset, name);
+done:
+	fclose(f);
+	return rc;
+}
+
 uint8_t *read_file(const char *filename, size_t *out_size) {
 	FILE *file = fopen(filename, "rb");
 	if (file == NULL)
@@ -879,7 +920,17 @@ int main(int argc, char *argv[]) {
 	nx_context_t *nx_ctx = (nx_context_t *)calloc(1, sizeof(nx_context_t));
 	nx_ctx->rendering_mode = NX_RENDERING_MODE_INIT;
 
-	rc = romfsInit();
+	// Mount the nx.js NRO's OWN embedded romfs as `nxjs:` (it holds the
+	// runtime's source map). The app's romfs is mounted separately as `romfs:`
+	// during entrypoint resolution below: for a standalone app that is also
+	// this NRO's romfs; for a bootstrap launch (argv[1] = an app `.nro`) it is
+	// the launched app's romfs. Keeping the runtime files under `nxjs:` lets
+	// `romfs:` always mean "the app".
+	//
+	// Use romfsMountSelf (NRO-aware: reads our own NRO file via argv[0]), NOT
+	// romfsMountFromCurrentProcess (which uses fsOpenDataStorageByCurrentProcess
+	// — that is for installed titles/NSO and fails for a homebrew NRO).
+	rc = romfsMountSelf("nxjs");
 	if (R_FAILED(rc))
 		diagAbortWithResult(rc);
 
@@ -1050,17 +1101,61 @@ int main(int argc, char *argv[]) {
 		              (HidNpadIdType)(HidNpadIdType_No1 + i));
 	}
 
-	// Resolve the user entrypoint (romfs:/main.js, then sdmc <nro>.js).
+	// Resolve the user entrypoint. Two launch models:
+	//
+	//   1. Bootstrap launch: `argv[1]` is an explicit entrypoint passed by a
+	//      thin launcher (which keeps the big nx.js NRO at a well-known path and
+	//      hands it the app to run). `argv[1]` is either:
+	//        - a `.nro`: mount its embedded romfs as `romfs:` and run
+	//          `romfs:/main.js` (the app's assets resolve under `romfs:`), or
+	//        - any other path (typically a `.js`): run it directly; its URL is
+	//          the base for relative fetch/import resolution.
+	//
+	//   2. Standalone app (the original model, no argv[1]): the app's own NRO
+	//      romfs holds `main.js` + assets, so mount self as `romfs:` and run
+	//      `romfs:/main.js`; fall back to `<nro>.js` next to the NRO on the SD
+	//      card.
 	size_t user_code_size = 0;
 	bool user_path_needs_free = false;
-	char *user_code_path = (char *)"romfs:/main.js";
-	char *user_code = (char *)read_file(user_code_path, &user_code_size);
-	if (user_code == NULL && errno == ENOENT && argc > 0) {
-		user_path_needs_free = true;
-		user_code_path = strdup(argv[0]);
-		if (user_code_path) {
-			replace_file_extension(user_code_path, ".js");
+	char *user_code_path = NULL;
+	char *user_code = NULL;
+
+	if (argc > 1 && argv[1] && argv[1][0]) {
+		// Bootstrap launch with an explicit entrypoint.
+		if (path_has_suffix(argv[1], ".nro")) {
+			rc = mount_nro_romfs(argv[1], "romfs");
+			if (R_FAILED(rc)) {
+				nx_console_init(nx_ctx);
+				printf("Failed to mount romfs from %s (0x%x)\n", argv[1], rc);
+				nx_ctx->had_error = 1;
+			} else {
+				user_code_path = (char *)"romfs:/main.js";
+				user_code = (char *)read_file(user_code_path, &user_code_size);
+			}
+		} else {
+			user_path_needs_free = true;
+			user_code_path = strdup(argv[1]);
+			if (user_code_path) {
+				user_code = (char *)read_file(user_code_path, &user_code_size);
+			}
+		}
+	} else {
+		// Standalone app: this NRO's own romfs is the app. Also expose it as
+		// `romfs:` (it is already mounted as `nxjs:` for the runtime's files).
+		// romfsMountSelf opens our NRO file again with an independent handle, so
+		// the second mount coexists with the `nxjs:` one.
+		rc = romfsMountSelf("romfs");
+		if (R_SUCCEEDED(rc)) {
+			user_code_path = (char *)"romfs:/main.js";
 			user_code = (char *)read_file(user_code_path, &user_code_size);
+		}
+		if (user_code == NULL && errno == ENOENT && argc > 0) {
+			user_path_needs_free = true;
+			user_code_path = strdup(argv[0]);
+			if (user_code_path) {
+				replace_file_extension(user_code_path, ".js");
+				user_code = (char *)read_file(user_code_path, &user_code_size);
+			}
 		}
 	}
 
@@ -1072,9 +1167,16 @@ int main(int argc, char *argv[]) {
 		Local<Object> global = context->Global();
 
 		if (user_code == NULL) {
-			nx_console_init(nx_ctx);
-			printf("%s: %s\n", strerror(errno), user_code_path);
-			nx_ctx->had_error = 1;
+			// A more specific error may already have been reported (e.g. an
+			// argv[1] `.nro` whose romfs failed to mount, leaving had_error set
+			// and user_code_path NULL). Only print the generic errno message
+			// when we actually have a path that couldn't be read.
+			if (!nx_ctx->had_error) {
+				nx_console_init(nx_ctx);
+				printf("%s: %s\n", strerror(errno),
+				       user_code_path ? user_code_path : "(no entrypoint)");
+				nx_ctx->had_error = 1;
+			}
 		} else {
 			Local<Object> init_obj = Object::New(iso);
 			nx_ctx->init_obj.Reset(iso, init_obj);
@@ -1082,10 +1184,13 @@ int main(int argc, char *argv[]) {
 			                  argv);
 			global->Set(context, nx_str(iso, "$"), init_obj).Check();
 
-			// Initialize the runtime (embedded runtime.js source).
+			// Initialize the runtime (embedded runtime.js source). Name it
+			// `nxjs:/runtime.js` so its stack frames symbolicate against the
+			// source map at `nxjs:/runtime.js.map` (the runtime's own romfs,
+			// mounted as `nxjs:`).
 			if (!run_script(iso, context,
 			                (const char *)nxjs_runtime_js,
-			                nxjs_runtime_js_len, "runtime.js")) {
+			                nxjs_runtime_js_len, "nxjs:/runtime.js")) {
 				nx_console_init(nx_ctx);
 				printf("Runtime initialization failed\n");
 				nx_ctx->had_error = 1;
@@ -1287,7 +1392,11 @@ int main(int argc, char *argv[]) {
 
 	// Close libnx services in reverse init order, while memory is still valid.
 	plExit();
-	romfsExit();
+	romfsUnmount("nxjs");
+	// The `romfs:` mount (self for a standalone app, or the launched app's NRO
+	// for a bootstrap launch) is unmounted best-effort; it is a no-op if no
+	// such mount was registered.
+	romfsUnmount("romfs");
 	socketExit();
 
 	if (debug_fd) {
