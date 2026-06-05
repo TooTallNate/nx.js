@@ -29,7 +29,9 @@ export function registerConsoleScreen(
 }
 
 // Map a vertical touch drag on the screen to console scrollback. ~1 row per
-// `lineHeight` of drag; dragging up scrolls back into history.
+// `lineHeight` of drag. The gesture matches grabbing the content and moving it:
+// dragging DOWN pulls older lines into view (scrolls back into history), and
+// dragging UP returns toward the latest output.
 const TOUCH_ROW_PX = 20;
 function wireTouchScroll(): void {
 	if (touchWired || !consoleScreenTarget) return;
@@ -47,7 +49,10 @@ function wireTouchScroll(): void {
 		const dy = y - lastY;
 		const rows = (dy / TOUCH_ROW_PX) | 0;
 		if (rows !== 0) {
-			// Drag down (positive dy) scrolls up into history.
+			// screenY increases downward, so dragging DOWN gives a positive
+			// `rows` -> scrollUp() into history; dragging UP gives a negative
+			// `rows` -> scrollUp(negative) == scrollDown() toward the latest
+			// output. (scrollUp/scrollDown clamp internally.)
 			activeTerminal.scrollUp(rows);
 			lastY = y;
 		}
