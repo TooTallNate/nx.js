@@ -185,6 +185,9 @@ udp_rx_buf_size = 42KiB
 sb_efficiency = 6
 num_bsd_sessions = 3
 service_type = auto                ; auto | user | system
+
+[runtime]                          ; consumed by the SLIM bootstrap launcher (not the runtime)
+version = ^1                       ; semver requirement for the shared runtime NRO
 ```
 
 - **Effective** (post-clamp) values are exposed to JS as `$.config`
@@ -197,6 +200,40 @@ service_type = auto                ; auto | user | system
   Mesa) — that combo is warned about but still attempted.
 - The host `nxjs-test` reads **no** INI; its `build_init_object` exposes a
   default `$.config`. Keep that mirror in sync if you change `$.config`'s shape.
+- `[runtime]` is read by the **slim bootstrap launcher**, not the runtime. The
+  runtime's parser recognizes + silently ignores it (the same `nxjs.ini` ships
+  inside a slim app's RomFS and is read by both).
+
+### Slim apps / bootstrap launcher (`bootstrap/`)
+
+An app can be packaged two ways:
+
+- **Fat** (default): `nxjs-nro` embeds the full ~40 MB runtime into the app's
+  NRO — self-contained, no external dependency.
+- **Slim**: `nxjs-nro --slim` builds a tiny launcher NRO (a few hundred KB)
+  whose code segment is `bootstrap/` (a pure-C libnx app, NO V8/Skia) and whose
+  RomFS holds the app's `main.js` + assets + `nxjs.ini`. At boot the launcher:
+  1. reads `[runtime] version` from its own `romfs:/nxjs.ini` (default baked at
+     build time = `^<runtime-major>`),
+  2. scans `sdmc:/nx.js/nxjs-v<full-version>.nro`, picks the **highest installed
+     version satisfying the specifier** (vendored `semver.c`),
+  3. `envSetNextLoad(<that runtime>, "\"<runtime>\" \"<self.nro>\"")` and exits.
+  hbloader then loads the runtime with `argv[1]` = the slim NRO, and the
+  runtime's existing `mount_nro_romfs(argv[1])` mounts the slim NRO's RomFS as
+  `romfs:` and runs `romfs:/main.js`. No satisfying runtime / not launched via
+  hbloader ⇒ a clear on-screen error (wait for `+`), never a crash.
+
+- **Build**: `make -C bootstrap` (devkitPro; `jq` derives the runtime major from
+  `packages/runtime/package.json` → the baked `^major` default). CI builds
+  `bootstrap.nro`, uploads it, and the release job copies it into
+  `packages/nro/dist/` next to `nxjs.nro` (so `@nx.js/nro --slim` can use it).
+- **Match logic** (`bootstrap/source/match.c`) is split from libnx so it's
+  host-unit-tested: `bootstrap/test/run.sh` (no Switch needed).
+- **Prerelease note**: the vendored `semver.c` compares purely by precedence and
+  does NOT apply node-semver's "prereleases excluded from non-prerelease ranges"
+  rule, so `^1` DOES match `1.0.0-beta.N` — intentional during the v1 beta.
+- SD-card convention (new): shared runtimes live at
+  `sdmc:/nx.js/nxjs-v<full-version>.nro`; multiple versions may coexist.
 
 ### ES module `import` (static + dynamic)
 

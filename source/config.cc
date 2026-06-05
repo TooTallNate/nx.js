@@ -180,6 +180,14 @@ static int ini_cb(void *user, const char *section, const char *name,
 		return 1;
 	}
 
+	// [runtime] is consumed by the slim bootstrap LAUNCHER (it selects which
+	// shared runtime NRO to chainload), not by the runtime itself. The same
+	// nxjs.ini ships inside a slim app's RomFS and is read here too, so accept
+	// and ignore the section silently rather than logging it as unknown.
+	if (str_ieq(section, "runtime")) {
+		return 1;
+	}
+
 	cfg_log("[%s] section ignored: unknown", section);
 	return 1;
 }

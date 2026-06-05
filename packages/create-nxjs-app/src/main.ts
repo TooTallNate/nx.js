@@ -154,6 +154,27 @@ try {
 		throw packageManager;
 	}
 
+	// Ask whether to build a "slim" or "fat" NRO.
+	const packaging = await clack.select({
+		message: 'How should the app be packaged?',
+		options: [
+			{
+				label: 'Slim',
+				value: 'slim',
+				hint: 'tiny NRO; shares one runtime installed at sdmc:/nx.js/ (recommended)',
+			},
+			{
+				label: 'Fat',
+				value: 'fat',
+				hint: 'self-contained ~40 MB NRO with the runtime embedded',
+			},
+		],
+		initialValue: 'slim',
+	});
+	if (clack.isCancel(packaging)) {
+		throw packaging;
+	}
+
 	// Wait for cloning to complete
 	const spinner = clack.spinner();
 	spinner.start(
@@ -200,6 +221,17 @@ try {
 
 	resolveProtocols(packageJson.dependencies, data.packages, data.catalog);
 	resolveProtocols(packageJson.devDependencies, data.packages, data.catalog);
+
+	// Slim packaging: build the app as a tiny launcher NRO that chainloads a
+	// shared runtime from sdmc:/nx.js/ (via `nxjs-nro --slim`). Fat keeps the
+	// default self-contained `nxjs-nro`.
+	if (packaging === 'slim' && packageJson.scripts?.nro) {
+		const nro = packageJson.scripts.nro;
+		if (/\bnxjs-nro\b/.test(nro) && !/--slim\b/.test(nro)) {
+			packageJson.scripts.nro = `${nro} --slim`;
+		}
+	}
+
 	await fs.writeFile(
 		packageJsonUrl,
 		`${JSON.stringify(
@@ -245,6 +277,18 @@ try {
 	console.log(chalk.bold('Next steps'));
 	console.log();
 	const cmd = chalk.yellow;
+	if (packaging === 'slim') {
+		console.log(
+			` • ${chalk.cyan('Slim')} packaging: install an nx.js runtime NRO at ${cmd(
+				'sdmc:/nx.js/nxjs-v<version>.nro',
+			)}`,
+		);
+		console.log(
+			`   on your SD card (the app's NRO chainloads it). The required version`,
+		);
+		console.log(`   is set in ${cmd('romfs/nxjs.ini')} under ${cmd('[runtime]')}.`);
+		console.log();
+	}
 	if (packageManager === 'skip') {
 		console.log(` • Run the following command: ${cmd(`cd ${slugifiedName}`)}`);
 		console.log(` • Install dependencies using your preferred package manager`);
