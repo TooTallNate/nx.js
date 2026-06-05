@@ -31,16 +31,27 @@ void register_module(Isolate *iso, Local<Module> module,
 	g_module_urls[module->GetIdentityHash()] = url;
 }
 
+// Safely convert a String::Utf8Value to std::string. `*v` can be null (e.g. on
+// an OOM during the UTF-8 conversion), and std::string(nullptr, 0) is undefined
+// behavior — so treat a null pointer as the empty string.
+std::string utf8_to_string(const String::Utf8Value &v) {
+	return *v ? std::string(*v, v.length()) : std::string();
+}
+
 // Read an entire file at `path` (a mounted devoptab URL, e.g. romfs:/x.js, or a
 // host path). Returns a malloc'd NUL-terminated buffer (caller frees) or NULL.
 char *read_module_file(const char *path, size_t *out_size) {
 	FILE *f = fopen(path, "rb");
 	if (!f)
 		return NULL;
-	fseek(f, 0, SEEK_END);
+	// Determine the size; treat any seek/tell failure as an error so we never
+	// compile a truncated module.
+	if (fseek(f, 0, SEEK_END) != 0) {
+		fclose(f);
+		return NULL;
+	}
 	long n = ftell(f);
-	fseek(f, 0, SEEK_SET);
-	if (n < 0) {
+	if (n < 0 || fseek(f, 0, SEEK_SET) != 0) {
 		fclose(f);
 		return NULL;
 	}
@@ -50,6 +61,13 @@ char *read_module_file(const char *path, size_t *out_size) {
 		return NULL;
 	}
 	size_t rd = fread(buf, 1, (size_t)n, f);
+	// A short read (I/O error or unexpected truncation) must NOT silently yield
+	// partial source — bail rather than compile an incomplete module.
+	if (rd != (size_t)n || ferror(f)) {
+		fclose(f);
+		free(buf);
+		return NULL;
+	}
 	fclose(f);
 	buf[rd] = '\0';
 	if (out_size)
@@ -146,13 +164,14 @@ MaybeLocal<Module> resolve_module_callback(Local<Context> context,
 	std::string base = it != g_module_urls.end() ? it->second : g_entrypoint_url;
 
 	String::Utf8Value spec(iso, specifier);
+	std::string spec_str = utf8_to_string(spec);
 	std::string resolved;
-	if (!resolve_specifier(base, std::string(*spec, spec.length()), resolved)) {
+	if (!resolve_specifier(base, spec_str, resolved)) {
 		char msg[1024];
 		snprintf(msg, sizeof(msg),
 		         "Cannot find module '%s' imported from '%s' (only relative "
 		         "and absolute-URL specifiers are supported)",
-		         *spec ? *spec : "", base.c_str());
+		         spec_str.c_str(), base.c_str());
 		iso->ThrowException(Exception::Error(nx_str(iso, msg)));
 		return MaybeLocal<Module>();
 	}
@@ -203,22 +222,23 @@ MaybeLocal<Promise> dynamic_import_callback(
 	std::string base;
 	if (resource_name->IsString()) {
 		String::Utf8Value rn(iso, resource_name);
-		base.assign(*rn ? *rn : "", rn.length());
+		base = utf8_to_string(rn);
 	}
 	if (base.empty())
 		base = g_entrypoint_url;
 
 	String::Utf8Value spec(iso, specifier);
+	std::string spec_str = utf8_to_string(spec);
 	std::string resolved;
 
 	TryCatch try_catch(iso);
 	bool failed = false;
 	Local<Value> error;
 
-	if (!resolve_specifier(base, std::string(*spec, spec.length()), resolved)) {
+	if (!resolve_specifier(base, spec_str, resolved)) {
 		char msg[1024];
 		snprintf(msg, sizeof(msg), "Cannot find module '%s' imported from '%s'",
-		         *spec ? *spec : "", base.c_str());
+		         spec_str.c_str(), base.c_str());
 		error = Exception::Error(nx_str(iso, msg));
 		failed = true;
 	}
