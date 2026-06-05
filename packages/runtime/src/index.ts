@@ -92,10 +92,10 @@ def(Switch, 'Switch');
 
 def(console, 'console');
 def(Console);
-def(setTimeout);
-def(setInterval);
-def(clearTimeout);
-def(clearInterval);
+def(setTimeout, 'setTimeout');
+def(setInterval, 'setInterval');
+def(clearTimeout, 'clearTimeout');
+def(clearInterval, 'clearInterval');
 def($.queueMicrotask, 'queueMicrotask');
 
 import './navigator';
