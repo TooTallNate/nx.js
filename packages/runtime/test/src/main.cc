@@ -404,7 +404,10 @@ static void build_init_object(Isolate *iso, Local<Context> context,
 			conf->Set(context, nx_str(iso, k), v).Check();
 		};
 		cset("jit", Boolean::New(iso, true));
-		cset("heapLimit", Number::New(iso, 0.0));
+		// Device exposes the effective (post-clamp) max heap in bytes, never 0;
+		// report the device application-regime cap (512 MiB) so host fixtures
+		// see the same semantics.
+		cset("heapLimit", Number::New(iso, 512.0 * 1024 * 1024));
 		cset("renderer", nx_str(iso, "auto"));
 		cset("v8Flags", nx_str(iso, ""));
 

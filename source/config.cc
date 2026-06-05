@@ -1,5 +1,6 @@
 #include "config.h"
 
+#include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,14 +33,19 @@ static bool str_ieq(const char *a, const char *b) {
 }
 
 // Parse a size string: decimal digits with optional KiB/MiB/GiB/KB/MB/GB/K/M/G
-// suffix (case-insensitive), or raw bytes. Returns true on success.
+// suffix (case-insensitive), or raw bytes. Returns true on success. Detects
+// both strtoull range overflow and overflow of the value*multiplier product so
+// a huge value can't silently wrap to a small (apparently valid) size.
 static bool parse_size(const char *s, uint64_t *out) {
 	if (!s || !*s)
 		return false;
+	errno = 0;
 	char *end = NULL;
 	unsigned long long v = strtoull(s, &end, 10);
 	if (end == s)
 		return false; // no digits
+	if (errno == ERANGE)
+		return false; // value itself overflowed uint64
 	while (*end == ' ' || *end == '\t')
 		end++;
 	uint64_t mult = 1;
@@ -53,6 +59,9 @@ static bool parse_size(const char *s, uint64_t *out) {
 		else
 			return false; // unknown suffix
 	}
+	// Guard the multiply against uint64 overflow.
+	if (mult != 0 && (uint64_t)v > UINT64_MAX / mult)
+		return false;
 	*out = (uint64_t)v * mult;
 	return true;
 }
@@ -296,33 +305,65 @@ void nx_config_apply_socket(SocketInitConfig *base, const nx_config_t *cfg,
 	// Total transfer-memory reservation must fit the regime. The libnx BSD
 	// service reserves ~(tcp_tx_max + tcp_rx_max + udp_tx + udp_rx) *
 	// sb_efficiency. Cap the reservation: 16 MiB in applet (tight) mode,
-	// 64 MiB in application mode. If over, scale the TCP max buffers down.
+	// 64 MiB in application mode. Because socketInitialize() failure is fatal
+	// (diagAbortWithResult), this clamp MUST be exhaustive: a misconfigured INI
+	// with huge UDP buffers and/or a high sb_efficiency must not be able to keep
+	// the reservation above the cap. Shrink contributors in order — TCP max
+	// buffers, then UDP buffers, then sb_efficiency — and as a final guarantee
+	// solve for an sb_efficiency that fits.
 	uint64_t cap = (tight_memory ? 16ull : 64ull) * 1024 * 1024;
-	for (int guard = 0; guard < 8; guard++) {
+	auto reservation = [&]() -> uint64_t {
 		uint64_t per = (uint64_t)base->tcp_tx_buf_max_size +
 		               base->tcp_rx_buf_max_size + base->udp_tx_buf_size +
 		               base->udp_rx_buf_size;
-		uint64_t total = per * base->sb_efficiency;
-		if (total <= cap)
-			break;
+		return per * base->sb_efficiency;
+	};
+	if (reservation() > cap) {
 		cfg_log("socket buffers not honored: reservation ~%llu MiB exceeds the "
-		        "%llu MiB %s-mode cap; halving tcp_*_buf_max_size",
-		        (unsigned long long)(total / (1024 * 1024)),
+		        "%llu MiB %s-mode cap; shrinking buffers to fit",
+		        (unsigned long long)(reservation() / (1024 * 1024)),
 		        (unsigned long long)(cap / (1024 * 1024)),
 		        tight_memory ? "applet" : "application");
-		base->tcp_tx_buf_max_size =
-		    base->tcp_tx_buf_max_size > 16384 ? base->tcp_tx_buf_max_size / 2
-		                                      : base->tcp_tx_buf_max_size;
-		base->tcp_rx_buf_max_size =
-		    base->tcp_rx_buf_max_size > 16384 ? base->tcp_rx_buf_max_size / 2
-		                                      : base->tcp_rx_buf_max_size;
+
+		// 1) Halve TCP max buffers down to a 16 KiB floor.
+		while (reservation() > cap &&
+		       (base->tcp_tx_buf_max_size > 16384 ||
+		        base->tcp_rx_buf_max_size > 16384)) {
+			if (base->tcp_tx_buf_max_size > 16384)
+				base->tcp_tx_buf_max_size /= 2;
+			if (base->tcp_rx_buf_max_size > 16384)
+				base->tcp_rx_buf_max_size /= 2;
+		}
+		// 2) Halve UDP buffers down to a 2 KiB floor.
+		while (reservation() > cap && (base->udp_tx_buf_size > 2048 ||
+		                               base->udp_rx_buf_size > 2048)) {
+			if (base->udp_tx_buf_size > 2048)
+				base->udp_tx_buf_size /= 2;
+			if (base->udp_rx_buf_size > 2048)
+				base->udp_rx_buf_size /= 2;
+		}
+		// 3) Solve for the largest sb_efficiency (>=1) that still fits, as a
+		//    hard guarantee the reservation is <= cap.
+		uint64_t per = (uint64_t)base->tcp_tx_buf_max_size +
+		               base->tcp_rx_buf_max_size + base->udp_tx_buf_size +
+		               base->udp_rx_buf_size;
+		if (per == 0)
+			per = 1; // avoid div-by-zero; reservation is then 0 anyway
+		uint64_t max_eff = cap / per;
+		if (max_eff < 1)
+			max_eff = 1; // floor: a single set of buffers must still be allowed
+		if (base->sb_efficiency > max_eff)
+			base->sb_efficiency = (uint32_t)max_eff;
+
+		// Keep the initial buffer sizes <= their (possibly reduced) max.
 		if (base->tcp_tx_buf_size > base->tcp_tx_buf_max_size)
 			base->tcp_tx_buf_size = base->tcp_tx_buf_max_size;
 		if (base->tcp_rx_buf_size > base->tcp_rx_buf_max_size)
 			base->tcp_rx_buf_size = base->tcp_rx_buf_max_size;
-		if (base->tcp_tx_buf_max_size <= 16384 &&
-		    base->tcp_rx_buf_max_size <= 16384)
-			break; // can't shrink further
+
+		cfg_log("socket reservation now ~%llu MiB (cap %llu MiB)",
+		        (unsigned long long)(reservation() / (1024 * 1024)),
+		        (unsigned long long)(cap / (1024 * 1024)));
 	}
 }
 

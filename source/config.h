@@ -89,9 +89,9 @@ typedef struct {
 	bool loaded;          // true if an nxjs.ini was found + parsed
 
 	// Effective values, filled in by main() after clamping, for diagnostics
-	// (exposed to JS via `$.config`). `effective_renderer` is the requested
-	// mode; the actual GPU-vs-raster outcome isn't known until the lazy
-	// framebuffer init and is logged there.
+	// (exposed to JS via `$.config`). There is no effective_renderer field: the
+	// requested mode lives in `renderer` above, and the actual GPU-vs-raster
+	// outcome isn't known until the lazy framebuffer init (it's logged there).
 	bool effective_jit;
 	uint64_t effective_heap_limit; // bytes actually passed to V8
 } nx_config_t;

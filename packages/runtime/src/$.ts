@@ -73,7 +73,7 @@ export interface NxSocketConfig {
 export interface NxConfig {
 	/** Whether V8 JIT is enabled (vs jitless interpreter). */
 	jit: boolean;
-	/** Effective V8 max heap size in bytes (0 if the computed default was used unmodified). */
+	/** Effective V8 max heap size in bytes (post-clamp; the value actually passed to V8). */
 	heapLimit: number;
 	/** Requested renderer mode. */
 	renderer: 'auto' | 'cpu' | 'gpu';
