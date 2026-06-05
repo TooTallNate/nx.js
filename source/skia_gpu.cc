@@ -156,7 +156,7 @@ void nx_skia_gpu_present(void) {
 		// stale destination through, making output look additive across
 		// frames. kSrc copies the surface verbatim — including alpha — so each
 		// present fully replaces the back buffer, matching the CPU raster path
-		// (which memcpy's the pixels straight into the framebuffer).
+		// (which memcpy()s the pixels straight into the framebuffer).
 		SkPaint paint;
 		paint.setBlendMode(SkBlendMode::kSrc);
 		c->drawImage(img, 0, 0, SkSamplingOptions(), &paint);
