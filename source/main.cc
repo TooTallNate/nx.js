@@ -83,6 +83,11 @@ extern "C" const unsigned int nxjs_runtime_js_len;
 // switch-v8: release manual svcMapMemory arenas before returning to hbloader.
 extern "C" void horizon_mman_teardown(void);
 
+// switch-v8: address space the mman reserved (from the STACK region) for V8's
+// object heap, in bytes (typically ~1 GiB; 0 if the reservation failed). Used to
+// size the V8 max heap against the real committable ceiling.
+extern "C" size_t horizon_mman_data_arena_size(void);
+
 // ---------------------------------------------------------------------------
 // Rendering state (Phase 1: Cairo raster -> libnx framebuffer memcpy).
 // ---------------------------------------------------------------------------
@@ -967,17 +972,49 @@ int main(int argc, char *argv[]) {
 	// V8 reserve/commit oversized arenas that the horizon mman can't satisfy
 	// (crash in Arena::CommitRange -> _malloc_r). This matches the hello-v8
 	// reference. ConfigureDefaultsFromHeapSize also RESETS the code range size,
-	// so (re)apply it AFTER. Budget the max heap from memory free at startup,
-	// reserving headroom for the JIT code arena, GPU/Cairo, and native allocs.
+	// so (re)apply it AFTER.
+	//
+	// Budget the V8 object heap per memory regime. Two facts drive this:
+	//   - horizon_mman_data_arena_size(): the ADDRESS SPACE switch-v8 reserved
+	//     (from the STACK region) for the V8 heap (~1 GiB), committed lazily in
+	//     16 MiB slabs as V8 touches pages. This is an address-space ceiling,
+	//     NOT a guarantee of physical RAM.
+	//   - the actual physical memory the process can commit.
+	// In APPLICATION mode the grant is several GiB but mem_free (= total - used)
+	// is misleading: Horizon reports the whole grant as "used" at startup, so
+	// mem_free reads as only a few MiB. There, size from the arena ceiling
+	// (capped) — physical RAM is plentiful. In APPLET mode the grant is small
+	// (~380 MiB) and mem_free IS meaningful (~137 MiB free); the 1 GiB arena is
+	// pure address space the device cannot back, so configuring a big heap makes
+	// V8 grow until physical commits fail and it fatally OOMs
+	// ("CALL_AND_RETRY_LAST"). So in applet mode clamp to real free RAM.
+	// Reserve headroom for the JIT code arena (~128 MiB real when can_jit),
+	// GPU/Mesa, libuv, and native allocs — they share the process memory.
 	{
+		u64 arena = (u64)horizon_mman_data_arena_size();
 		u64 reserve = (can_jit ? 180ull : 48ull) * 1024 * 1024;
-		u64 max_heap = mem_free > reserve ? mem_free - reserve : 0;
+		u64 ceiling;
+		if (tight_memory) {
+			// Applet: bounded by real free physical RAM, not the address-space
+			// arena. mem_free is reliable in this regime.
+			ceiling = mem_free;
+		} else {
+			// Application: physical RAM is plentiful; mem_free is unreliable.
+			// Use the mman's reserved arena (fallback to a proven 192 MiB).
+			ceiling = arena ? arena : 192ull * 1024 * 1024;
+		}
+		u64 max_heap = ceiling > reserve ? ceiling - reserve : 0;
 		if (max_heap < 32ull * 1024 * 1024)
 			max_heap = 32ull * 1024 * 1024;
-		if (max_heap > 192ull * 1024 * 1024)
-			max_heap = 192ull * 1024 * 1024;
+		if (max_heap > 512ull * 1024 * 1024)
+			max_heap = 512ull * 1024 * 1024;
 		create_params.constraints.ConfigureDefaultsFromHeapSize(
 		    8ull * 1024 * 1024 /* initial */, max_heap /* max */);
+		fprintf(stderr,
+		        "[v8] max_heap=%llu MiB (arena=%llu MiB free=%llu MiB)\n",
+		        (unsigned long long)(max_heap / (1024 * 1024)),
+		        (unsigned long long)(arena / (1024 * 1024)),
+		        (unsigned long long)(mem_free / (1024 * 1024)));
 	}
 
 	if (can_jit) {
