@@ -38,6 +38,7 @@
 #include <psa/crypto.h>
 
 #include "error.h"
+#include "module.h"
 #include "types.h"
 #include "util.h"
 
@@ -287,59 +288,9 @@ static bool run_script(Isolate *iso, Local<Context> context, const char *src,
 	return true;
 }
 
-static const char *g_entrypoint_url = "";
-static MaybeLocal<Module> resolve_module_callback(Local<Context>,
-                                                  Local<String>,
-                                                  Local<FixedArray>,
-                                                  Local<Module>) {
-	Isolate *iso = Isolate::GetCurrent();
-	iso->ThrowException(
-	    Exception::Error(nx_str(iso, "module resolution not implemented")));
-	return MaybeLocal<Module>();
-}
-static void init_import_meta(Local<Context> context, Local<Module>,
-                             Local<Object> meta) {
-	Isolate *iso = Isolate::GetCurrent();
-	meta->CreateDataProperty(context, nx_str(iso, "url"),
-	                         nx_str(iso, g_entrypoint_url))
-	    .Check();
-	meta->CreateDataProperty(context, nx_str(iso, "main"), True(iso)).Check();
-}
-
-static bool run_module(Isolate *iso, Local<Context> context, const char *src,
-                       size_t len, const char *name) {
-	HandleScope scope(iso);
-	TryCatch try_catch(iso);
-	g_entrypoint_url = name;
-	Local<String> source;
-	if (!String::NewFromUtf8(iso, src, NewStringType::kNormal, (int)len)
-	         .ToLocal(&source)) {
-		fprintf(stderr,
-		        "Failed to load %s: source is %zu bytes, which exceeds V8's "
-		        "maximum string length\n",
-		        name, len);
-		return false;
-	}
-	ScriptOrigin origin(nx_str(iso, name), 0, 0, false, -1, Local<Value>(),
-	                    false, false, true);
-	ScriptCompiler::Source script_source(source, origin);
-	Local<Module> module;
-	if (!ScriptCompiler::CompileModule(iso, &script_source).ToLocal(&module)) {
-		print_js_error(iso, &try_catch);
-		return false;
-	}
-	if (module->InstantiateModule(context, resolve_module_callback)
-	        .IsNothing()) {
-		print_js_error(iso, &try_catch);
-		return false;
-	}
-	Local<Value> result;
-	if (!module->Evaluate(context).ToLocal(&result)) {
-		print_js_error(iso, &try_catch);
-		return false;
-	}
-	return true;
-}
+// ES module loading (static `import` + filesystem `await import()`) is shared
+// with the device runtime via source/module.cc (nx_init_modules /
+// nx_run_entry_module).
 
 // ---------------------------------------------------------------------------
 // $ bridge
@@ -634,7 +585,7 @@ int main(int argc, char *argv[]) {
 	nx_ctx->iso = iso;
 	iso->SetData(0, nx_ctx);
 	iso->SetPromiseRejectCallback(nx_promise_rejection_handler);
-	iso->SetHostInitializeImportMetaObjectCallback(init_import_meta);
+	nx_init_modules(iso); // import.meta + static/dynamic import (module.cc)
 	iso->SetMicrotasksPolicy(MicrotasksPolicy::kExplicit);
 
 	int exit_code = 0;
@@ -686,7 +637,7 @@ int main(int argc, char *argv[]) {
 		} else {
 			char url[4096];
 			snprintf(url, sizeof(url), "file://%s", script_path);
-			run_module(iso, context, sc_src, sc_len, url);
+			nx_run_entry_module(iso, context, sc_src, sc_len, url);
 		}
 		free(rt_src);
 		free(sc_src);

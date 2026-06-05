@@ -150,6 +150,31 @@ The `$.entrypoint` gives the base URL for resolving relative paths.
 2. Else (standalone): mount self as `romfs:`, run `romfs:/main.js`; fall back to
    `<argv0>.js` next to the `.nro` on the SD card.
 
+### ES module `import` (static + dynamic)
+
+`source/module.cc` (shared by the device runtime and the host test binary, so
+they never drift) implements native ES module resolution for the entrypoint and
+its imports:
+
+- **Static `import`** and **`await import()`** resolve specifiers as URLs (via
+  `ada`) against the importing module's URL: relative (`./`, `../`),
+  absolute-path (`/x.js`), and absolute-URL (`romfs:`/`sdmc:`/`nxjs:`/`file:`)
+  specifiers work; **bare specifiers throw** (no node_modules / import maps).
+- Resolution is **synchronous** (`fopen`/`read_file`), so only mounted devoptab
+  schemes work. `http(s):`/`data:` imports are not supported (would need an
+  async loader). JSON / asset (synthetic) modules are also not implemented yet.
+- A module **cache** keyed by resolved URL gives referential stability (a shared
+  dependency imported via multiple paths is one instance) and handles cycles.
+  `import.meta.url` is each module's resolved URL; `import.meta.main` is true
+  only for the entrypoint.
+- Apps are normally esbuild-bundled (imports resolved at build time), so this is
+  additive — it enables unbundled multi-file apps, the REPL, and app-level lazy
+  `import()`. Top-level await works (V8 native; a rejected entry graph is routed
+  to the error path).
+- `main.cc` calls `nx_init_modules(iso)` once after `Isolate::New`,
+  `nx_run_entry_module(...)` to run the entrypoint, and `nx_modules_teardown()`
+  before isolate dispose. The host test binary mirrors these calls.
+
 ## Build System
 
 - **C code**: `Makefile` using devkitPro/libnx toolchain (aarch64, cross-compiled)
