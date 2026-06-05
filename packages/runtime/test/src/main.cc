@@ -695,6 +695,12 @@ int main(int argc, char *argv[]) {
 		nx_ctx->exit_handler.Reset();
 		nx_ctx->init_obj.Reset();
 		nx_ctx->unhandled_rejected_promise.Reset();
+		// Release the module cache's Global<Module> handles while the isolate
+		// is still alive. Without this the static map in module.cc is destroyed
+		// at process exit, AFTER iso->Dispose() / V8::Dispose(), and the
+		// Global<> destructors touch a disposed isolate -> segfault. (The device
+		// runtime calls this before its iso->Dispose() too.)
+		nx_modules_teardown();
 	}
 
 	uv_walk(
