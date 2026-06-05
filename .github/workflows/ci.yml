@@ -14,7 +14,7 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
-    container: ghcr.io/tootallnate/pacman-packages@sha256:32a60b2d5bd6f7c0965e903d23e53079aba80bb02d1df7400d4c9e3219ac6ae1
+    container: ghcr.io/tootallnate/pacman-packages@sha256:5fd521a2e2e884e41a42ce5bd412b17ae0498d5a5e61a66b6ca836b6b7bc66b8
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
@@ -136,7 +136,7 @@ jobs:
     # into a host ELF), plus the clang-19/lld-19 toolchain. The harness + Skia +
     # V8 are all built against the system libstdc++, so compile the harness with
     # clang-19/lld against /opt/host.
-    container: ghcr.io/tootallnate/pacman-packages@sha256:32a60b2d5bd6f7c0965e903d23e53079aba80bb02d1df7400d4c9e3219ac6ae1
+    container: ghcr.io/tootallnate/pacman-packages@sha256:5fd521a2e2e884e41a42ce5bd412b17ae0498d5a5e61a66b6ca836b6b7bc66b8
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
