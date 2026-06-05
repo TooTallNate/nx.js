@@ -21,6 +21,7 @@
 #include FT_FREETYPE_H
 
 #include "error.h"
+#include "module.h"
 #include "skia_gpu.h"
 #include "types.h"
 #include "util.h"
@@ -647,75 +648,6 @@ static bool run_script(Isolate *iso, Local<Context> context, const char *src,
 	return true;
 }
 
-// Minimal ES-module loader for the user entrypoint. (Full import resolution is
-// a follow-up; for now we run the entrypoint as a module with no static
-// imports resolvable, matching the common single-file app case.)
-static MaybeLocal<Module> resolve_module_callback(
-    Local<Context> context, Local<String> specifier,
-    Local<FixedArray> import_assertions, Local<Module> referrer) {
-	// TODO(phase1): real module resolution against romfs:/ + sdmc:/.
-	(void)context;
-	Isolate *iso = Isolate::GetCurrent();
-	iso->ThrowException(
-	    Exception::Error(nx_str(iso, "module resolution not implemented yet")));
-	return MaybeLocal<Module>();
-}
-
-// The entrypoint module's URL, used to populate import.meta.url. Single-file
-// app for now, so one global suffices.
-static const char *g_entrypoint_url = "";
-
-// Populates import.meta for the (single) entrypoint module: `url` (the module's
-// resource name) and `main` (true — the entrypoint is always the main module).
-static void init_import_meta(Local<Context> context, Local<Module> module,
-                             Local<Object> meta) {
-	Isolate *iso = Isolate::GetCurrent();
-	(void)module;
-	meta->CreateDataProperty(context, nx_str(iso, "url"),
-	                         nx_str(iso, g_entrypoint_url))
-	    .Check();
-	meta->CreateDataProperty(context, nx_str(iso, "main"), True(iso)).Check();
-}
-
-static bool run_module(Isolate *iso, Local<Context> context, const char *src,
-                       size_t len, const char *name) {
-	HandleScope scope(iso);
-	TryCatch try_catch(iso);
-	g_entrypoint_url = name;
-	// NewFromUtf8 returns an empty MaybeLocal if the source exceeds
-	// String::kMaxLength or a string allocation fails (e.g. tight applet
-	// memory). Don't .ToLocalChecked() — that would abort the process; report
-	// the failure instead.
-	Local<String> source;
-	if (!String::NewFromUtf8(iso, src, NewStringType::kNormal, (int)len)
-	         .ToLocal(&source)) {
-		nx_console_init(nx_ctx(iso));
-		fprintf(stderr,
-		        "Failed to load %s: source is %zu bytes, which exceeds V8's "
-		        "maximum string length\n",
-		        name, len);
-		return false;
-	}
-	ScriptOrigin origin(nx_str(iso, name), 0, 0, false, -1, Local<Value>(),
-	                    false, false, true /* is_module */);
-	ScriptCompiler::Source script_source(source, origin);
-	Local<Module> module;
-	if (!ScriptCompiler::CompileModule(iso, &script_source).ToLocal(&module)) {
-		nx_emit_error_event(iso, &try_catch);
-		return false;
-	}
-	if (module->InstantiateModule(context, resolve_module_callback)
-	        .IsNothing()) {
-		nx_emit_error_event(iso, &try_catch);
-		return false;
-	}
-	Local<Value> result;
-	if (!module->Evaluate(context).ToLocal(&result)) {
-		nx_emit_error_event(iso, &try_catch);
-		return false;
-	}
-	return true;
-}
 
 // ---------------------------------------------------------------------------
 // `$` bridge construction.
@@ -1091,7 +1023,8 @@ int main(int argc, char *argv[]) {
 	nx_ctx->iso = iso;
 	iso->SetData(0, nx_ctx);
 	iso->SetPromiseRejectCallback(nx_promise_rejection_handler);
-	iso->SetHostInitializeImportMetaObjectCallback(init_import_meta);
+	// ES module loading (import.meta + static/dynamic import); see module.cc.
+	nx_init_modules(iso);
 	// Microtasks are pumped explicitly from the loop.
 	iso->SetMicrotasksPolicy(MicrotasksPolicy::kExplicit);
 
@@ -1197,8 +1130,8 @@ int main(int argc, char *argv[]) {
 				nx_ctx->had_error = 1;
 			} else {
 				// Run the user entrypoint as an ES module.
-				run_module(iso, context, user_code, user_code_size,
-				           user_code_path);
+				nx_run_entry_module(iso, context, user_code, user_code_size,
+				                    user_code_path);
 			}
 		}
 
@@ -1324,6 +1257,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	// Release retained handles before disposing the isolate.
+	nx_modules_teardown();
 	nx_ctx->frame_handler.Reset();
 	nx_ctx->exit_handler.Reset();
 	nx_ctx->error_handler.Reset();
