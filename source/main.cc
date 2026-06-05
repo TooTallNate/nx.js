@@ -1000,7 +1000,12 @@ int main(int argc, char *argv[]) {
 			ceiling = mem_free;
 		} else {
 			// Application: physical RAM is plentiful; mem_free is unreliable.
-			// Use the mman's reserved arena (fallback to a proven 192 MiB).
+			// Size from the mman's reserved arena (normally ~1 GiB -> capped at
+			// 512 MiB below). If the arena reservation reported 0 (it failed),
+			// fall back to 192 MiB of address space; after the `reserve`
+			// subtraction this lands on the 32 MiB floor — a deliberately
+			// conservative last resort, since with no arena we can't trust a
+			// larger heap to be backable.
 			ceiling = arena ? arena : 192ull * 1024 * 1024;
 		}
 		u64 max_heap = ceiling > reserve ? ceiling - reserve : 0;
@@ -1015,6 +1020,10 @@ int main(int argc, char *argv[]) {
 		        (unsigned long long)(max_heap / (1024 * 1024)),
 		        (unsigned long long)(arena / (1024 * 1024)),
 		        (unsigned long long)(mem_free / (1024 * 1024)));
+		// stderr is fully buffered when redirected to a file; flush so this
+		// milestone survives an early abnormal exit (matches the other init
+		// logs above).
+		fflush(stderr);
 	}
 
 	if (can_jit) {

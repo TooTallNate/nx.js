@@ -52,32 +52,37 @@ whole grant as used in application mode, so `mem_free ≈ 3 MiB` there →
 `max_heap` underflows to the 32 MiB floor. That is the original
 `HEAP-COMMIT-INVESTIGATION` "Symptom A" (`FatalOOM` on a big `Array.prototype.join`).
 
-### Recommended fix
+### Recommended fix (as implemented)
 
-Budget the heap from the **real DATA-arena ceiling** exposed by switch-v8,
-clamped by **real free memory**, instead of `mem_free`:
+Budget the heap **per memory regime** — `mem_free` is only meaningful in
+applet/tight-memory mode, so it must NOT be used in application mode (where it
+reads as only a few MiB even with a multi-GiB grant). This is what landed in
+`source/main.cc`:
 
 ```c
 // Declare alongside the other horizon_mman_* externs (near line 84):
 extern "C" size_t horizon_mman_data_arena_size(void);
 
-// ... in the heap-sizing block (~line 972), replace the mem_free math:
+// ... in the heap-sizing block, replace the mem_free math:
 {
-    // Real committable ceiling for the V8 object heap. Two independent limits:
-    //  - horizon_mman_data_arena_size(): address space the mman reserved from
-    //    the STACK region for the V8 heap (typically 1 GiB).
-    //  - actual free physical RAM. In application/title-redirect mode the host
-    //    game may have eaten most RAM, so this can be small even with a 3 GiB
-    //    grant; in a clean app-mode launch it can be ~3 GiB. NOTE: here
-    //    (total - used) IS meaningful as "physically backable", which is what we
-    //    want — unlike the JIT gate, which needs the grant size (mem_total).
-    u64 arena    = (u64)horizon_mman_data_arena_size();
-    u64 free_ram = mem_free;                       // total - used (backable RAM)
-    u64 ceiling  = arena < free_ram ? arena : free_ram;
-
+    u64 arena   = (u64)horizon_mman_data_arena_size();
     // Headroom for the JIT code arena (~128 MiB real when can_jit), GPU/Mesa or
     // Cairo, libuv, and native allocs — all share this memory.
-    u64 reserve  = (can_jit ? 180ull : 48ull) * 1024 * 1024;
+    u64 reserve = (can_jit ? 180ull : 48ull) * 1024 * 1024;
+    u64 ceiling;
+    if (tight_memory) {
+        // Applet (~380 MiB grant): the ~1 GiB arena is pure address space the
+        // device can't back, so bound by REAL free physical RAM. Here
+        // mem_free (= total - used) IS meaningful (~137 MiB).
+        ceiling = mem_free;
+    } else {
+        // Application (multi-GiB grant): physical RAM is plentiful but mem_free
+        // is unreliable — the whole grant is reported as "used" at startup, so
+        // mem_free reads as only a few MiB. Size from the mman's reserved arena
+        // instead (fallback 192 MiB of address space if the reservation failed,
+        // which after `reserve` lands on the 32 MiB floor — conservative).
+        ceiling = arena ? arena : 192ull * 1024 * 1024;
+    }
     u64 max_heap = ceiling > reserve ? ceiling - reserve : 0;
 
     if (max_heap < 32ull  * 1024 * 1024) max_heap = 32ull  * 1024 * 1024;
@@ -86,15 +91,18 @@ extern "C" size_t horizon_mman_data_arena_size(void);
 }
 ```
 
-Leave the `set_code_range_size_in_bytes` block (64 MiB for JIT / 0 for jitless,
-~line 983) exactly as-is — that is correct and load-bearing.
+Leave the `set_code_range_size_in_bytes` block (64 MiB for JIT / 0 for jitless)
+exactly as-is — that is correct and load-bearing.
 
 Notes:
+- Do NOT use `min(arena, mem_free)` unconditionally: in application mode
+  `mem_free ≈ a few MiB`, so the `min` would collapse to it and reintroduce the
+  32 MiB under-sizing bug. `mem_free` is only a valid ceiling in applet mode.
 - Raising the clamp from 192 → 512 MiB lets application-mode apps actually use
-  the available heap. Pick a value you're comfortable with; the V8 object heap
-  lives in the (≈1 GiB) mman DATA arena, so 512 MiB is safe headroom-wise.
-- If `horizon_mman_data_arena_size()` returns 0 (reservation failed), the `min`
-  collapses to `free_ram`, which is a sane fallback.
+  the available heap. The V8 object heap lives in the (≈1 GiB) mman DATA arena,
+  so 512 MiB is safe headroom-wise.
+- Verified on device: application mode `max_heap=512 MiB`; applet mode
+  `max_heap=89 MiB` (sized from ~137 MiB free RAM). Both stable.
 
 ## Important: ArrayBuffer / TypedArray memory is SEPARATE from the V8 heap
 
