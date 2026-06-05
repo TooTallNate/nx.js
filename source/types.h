@@ -20,6 +20,8 @@
 #include <uv.h>
 #include <v8.h>
 
+#include "config.h"
+
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
@@ -168,6 +170,11 @@ typedef struct nx_context_s {
 	mbedtls_x509_crt ca_chain;
 
 	bool spl_initialized;
+
+	// Parsed `nxjs.ini` application config (effective values after clamping).
+	// Read very early in main(); the renderer mode is consulted later by the
+	// lazy framebuffer init.
+	nx_config_t config;
 } nx_context_t;
 
 // Fetch the per-isolate context (replaces JS_GetContextOpaque).

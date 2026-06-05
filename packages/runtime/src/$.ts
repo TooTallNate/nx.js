@@ -55,6 +55,36 @@ type DecompressHandle = Opaque<'DecompressHandle'>;
 type SaveDataIterator = Opaque<'SaveDataIterator'>;
 type URLSearchParamsIterator = Opaque<'URLSearchParamsIterator'>;
 
+/** Effective socket (libnx SocketInitConfig) values, after nxjs.ini overrides. */
+export interface NxSocketConfig {
+	tcpTxBufSize: number;
+	tcpRxBufSize: number;
+	tcpTxBufMaxSize: number;
+	tcpRxBufMaxSize: number;
+	udpTxBufSize: number;
+	udpRxBufSize: number;
+	sbEfficiency: number;
+	numBsdSessions: number;
+	/** libnx BsdServiceType: 1=user, 2=system, 3=auto. */
+	serviceType: number;
+}
+
+/** Effective application config (from `nxjs.ini`); values reflect post-clamp reality. */
+export interface NxConfig {
+	/** Whether V8 JIT is enabled (vs jitless interpreter). */
+	jit: boolean;
+	/** Effective V8 max heap size in bytes (0 if the computed default was used unmodified). */
+	heapLimit: number;
+	/** Requested renderer mode. */
+	renderer: 'auto' | 'cpu' | 'gpu';
+	/** App-provided V8 flag string applied after the runtime defaults (empty if none). */
+	v8Flags: string;
+	/** Effective libnx socket configuration. */
+	socket: NxSocketConfig;
+	/** Whether an `nxjs.ini` file was found and parsed. */
+	loaded: boolean;
+}
+
 export interface Init {
 	// account.c
 	accountInitialize(): () => void;
@@ -344,6 +374,8 @@ export interface Init {
 	version: Versions;
 	/** Configured bsdsocket TCP receive buffer size (bytes) for this memory regime. */
 	tcpRxBufSize: number;
+	/** Effective application config parsed from `nxjs.ini` (next to the entrypoint). */
+	config: NxConfig;
 	exit(): never;
 	queueMicrotask(callback: () => void): void;
 	cwd(): string;

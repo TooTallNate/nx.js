@@ -686,7 +686,9 @@ static inline Result splGetConfig(SplConfigItem item, u64 *out) {
 // ============================================================================
 
 typedef enum {
-	BsdServiceType_Auto = 0,
+	BsdServiceType_User = 1,   // BIT(0)
+	BsdServiceType_System = 2, // BIT(1)
+	BsdServiceType_Auto = 3,   // User | System
 } BsdServiceType;
 
 typedef struct {
