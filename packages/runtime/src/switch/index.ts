@@ -248,9 +248,25 @@ export const env = new Env(INTERNAL_SYMBOL);
 export const argv = $.argv;
 
 /**
- * String value of the entrypoint JavaScript file that was evaluated. If a `main.js` file is present on the application's RomFS, then that will be executed first, in which case the value will be `romfs:/main.js`. Otherwise, the value will be the path of the `.nro` file on the SD card, with the `.nro` extension replaced with `.js`.
+ * String value of the entrypoint JavaScript file that was evaluated. It is the
+ * base URL used to resolve relative `fetch()` / `Image` / `Audio` paths.
+ *
+ * It is resolved in the following order:
+ *
+ *  - If a second launch argument ({@link argv | `Switch.argv[1]`}) was provided
+ *    (a "bootstrap" launch, where a thin launcher hands the nx.js runtime an app
+ *    to run):
+ *    - a `.nro` path: its embedded RomFS is mounted and the value is
+ *      `"romfs:/main.js"`.
+ *    - any other path (typically a `.js` file): the value is that path as given.
+ *  - Otherwise (a standalone app): if a `main.js` is present in the
+ *    application's own RomFS, the value is `"romfs:/main.js"`. Failing that, it
+ *    is the path of the `.nro` on the SD card with `.nro` replaced by `.js`.
+ *
+ * Note: the nx.js runtime's own files (e.g. its source map) are mounted
+ * separately under `nxjs:` so that `romfs:` always refers to the running app.
  * @example "romfs:/main.js"
- * @example "sdmc:/switch/nxjs.js"
+ * @example "sdmc:/switch/my-app.js"
  */
 export const entrypoint = $.entrypoint;
 

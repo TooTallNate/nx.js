@@ -126,6 +126,30 @@ fetch(url)
 
 The `$.entrypoint` gives the base URL for resolving relative paths.
 
+### RomFS mounts (`romfs:` vs `nxjs:`)
+
+`main.cc` mounts two RomFS devices:
+
+- **`nxjs:`** — the nx.js NRO's OWN embedded RomFS (holds the runtime's source
+  map, `nxjs:/runtime.js.map`). Always mounted. The embedded runtime is run
+  under the name `nxjs:/runtime.js` so its stack frames symbolicate.
+- **`romfs:`** — "the app". For a standalone app this is the same NRO's RomFS
+  (so existing `romfs:/asset` references work). For a **bootstrap launch**
+  (`argv[1]` is an app `.nro`), it is the launched app's RomFS instead.
+
+### Entrypoint resolution (`argv[1]`)
+
+`main.cc` resolves the user entrypoint as:
+
+1. If `argv[1]` is set (bootstrap launch — a thin launcher hands nx.js the app):
+   - `*.nro` → mount its embedded RomFS as `romfs:` and run `romfs:/main.js`.
+     The RomFS is not at file offset 0, so `mount_nro_romfs()` parses the NRO
+     header + asset header to find the RomFS offset, then calls
+     `romfsMountFromFsdev(argv[1], romfs_offset, "romfs")`.
+   - otherwise (typically `*.js`) → run `argv[1]` directly.
+2. Else (standalone): mount self as `romfs:`, run `romfs:/main.js`; fall back to
+   `<argv0>.js` next to the `.nro` on the SD card.
+
 ## Build System
 
 - **C code**: `Makefile` using devkitPro/libnx toolchain (aarch64, cross-compiled)

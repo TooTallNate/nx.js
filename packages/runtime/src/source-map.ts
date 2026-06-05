@@ -119,7 +119,7 @@ function filenameToTracer(filename: string) {
 					return `    at ${filename}:${callsite.getLineNumber()}:${callsite.getColumnNumber()}`;
 				}
 				if (filename) {
-					const proto = filename === 'romfs:/runtime.js' ? 'nxjs' : 'app';
+					const proto = filename === 'nxjs:/runtime.js' ? 'nxjs' : 'app';
 					let line = callsite.getLineNumber() ?? 1;
 					let column = callsite.getColumnNumber() ?? 1;
 
