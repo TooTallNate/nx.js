@@ -1,6 +1,9 @@
 import { bgRgb, bold, red, yellow } from 'kleur/colors';
 import { $ } from './$';
 import { inspect } from './switch/inspect';
+import { Terminal, consoleFontAvailable } from './terminal';
+import type { OffscreenCanvas } from './canvas/offscreen-canvas';
+import { onConsoleOutput } from './console-screen';
 
 const bgRedDim = bgRgb(60, 0, 0);
 const bgYellowDim = bgRgb(60, 60, 0);
@@ -53,19 +56,74 @@ export interface ConsoleOptions {
 	printErr?(s: string): void;
 }
 
+// The global `console` (first Console created without a custom print sink) owns
+// the default on-screen terminal present. Further `new Console()` instances are
+// isolated — they render to their own `console.canvas` for apps to composite.
+let globalConsoleClaimed = false;
+
 export class Console {
 	#print: (s: string) => void;
 	#printErr: (s: string) => void;
 	#counts: Map<string, number>;
 	#timers: Map<string, number>;
 	#groupDepth: number;
+	/** Canvas-backed terminal renderer (lazily created on first output). */
+	#terminal?: Terminal;
+	/** Whether this is the global `console` (drives the default screen present). */
+	#isGlobal: boolean;
+	/** Custom print sink (if provided, bypasses the canvas terminal). */
+	#customPrint?: (s: string) => void;
 
 	constructor(opts: ConsoleOptions = {}) {
+		this.#customPrint = opts.print;
 		this.#print = opts.print || $.print;
 		this.#printErr = opts.printErr || $.printErr;
 		this.#counts = new Map();
 		this.#timers = new Map();
 		this.#groupDepth = 0;
+		// The first Console created without a custom `print` sink is the global
+		// one — it owns the default on-screen console present (see index.ts).
+		this.#isGlobal = !opts.print && !globalConsoleClaimed;
+		if (this.#isGlobal) globalConsoleClaimed = true;
+	}
+
+	/**
+	 * The {@link OffscreenCanvas} this console renders its terminal into. Lazily
+	 * created on first access (or first output). Apps can composite it onto the
+	 * screen, e.g. `screen.getContext('2d').drawImage(console.canvas, x, y)`.
+	 */
+	get canvas(): OffscreenCanvas {
+		return this.#getTerminal().canvas;
+	}
+
+	#getTerminal(): Terminal {
+		if (!this.#terminal) {
+			this.#terminal = new Terminal();
+		}
+		return this.#terminal;
+	}
+
+	/**
+	 * Write `s` to this console's terminal renderer. Returns false (and the
+	 * caller should fall back to `$.print`) when the canvas terminal can't be
+	 * used yet (e.g. the Geist Mono font hasn't loaded — early boot, or the
+	 * host test binary which has no display).
+	 */
+	#writeTerminal(s: string): boolean {
+		// A custom print sink always takes precedence over the canvas terminal.
+		if (this.#customPrint) return false;
+		// No canvas terminal when the bundled font can't be loaded (host test
+		// binary / very early boot) — fall back to the native libnx console.
+		if (!consoleFontAvailable()) return false;
+		let term: Terminal;
+		try {
+			term = this.#getTerminal();
+		} catch {
+			return false;
+		}
+		term.write(s);
+		if (this.#isGlobal) onConsoleOutput(term);
+		return true;
 	}
 
 	/**
@@ -75,7 +133,29 @@ export class Console {
 	 * @param s The text to print to the console.
 	 */
 	print = (s: string) => {
-		this.#print.call(this, s);
+		// Prefer the canvas-backed terminal; fall back to the native libnx
+		// console ($.print) when it's unavailable (early boot before the font
+		// loads, or the host test binary with no display).
+		if (!this.#writeTerminal(s)) {
+			this.#print.call(this, s);
+		}
+	};
+
+	/**
+	 * Scroll the console's terminal view up `n` rows into the scrollback
+	 * history. No-op if this console isn't using the canvas renderer.
+	 */
+	scrollUp = (n = 1) => {
+		this.#terminal?.scrollUp(n);
+		if (this.#isGlobal && this.#terminal) onConsoleOutput(this.#terminal);
+	};
+
+	/**
+	 * Scroll the console's terminal view down `n` rows toward the latest output.
+	 */
+	scrollDown = (n = 1) => {
+		this.#terminal?.scrollDown(n);
+		if (this.#isGlobal && this.#terminal) onConsoleOutput(this.#terminal);
 	};
 
 	/**

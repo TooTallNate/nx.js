@@ -227,7 +227,13 @@ $(ROMFS)/runtime.js.map: packages/runtime/runtime.js.map
 	@mkdir -p $(ROMFS)
 	@cp -v packages/runtime/runtime.js.map $(ROMFS)
 
-$(BUILD): source/runtime_js.c romfs/runtime.js.map
+# Geist Mono font, used by the canvas-backed console renderer. Staged from the
+# tracked asset into romfs (mounted as `nxjs:/GeistMono.ttf` at runtime).
+$(ROMFS)/GeistMono.ttf: assets/GeistMono.ttf
+	@mkdir -p $(ROMFS)
+	@cp -v assets/GeistMono.ttf $(ROMFS)
+
+$(BUILD): source/runtime_js.c romfs/runtime.js.map romfs/GeistMono.ttf
 	@[ -d $@ ] || mkdir -p $@
 	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
 

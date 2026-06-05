@@ -30,6 +30,7 @@
     "@nx.js/ws": "workspace:*",
     "@types/color-rgba": "^2.1.2",
     "@types/to-px": "^1.1.4",
+    "@xterm/headless": "6.0.0",
     "bun": "^1.3.0",
     "color-rgba": "^2.4.0",
     "data-uri-to-buffer": "^6.0.1",

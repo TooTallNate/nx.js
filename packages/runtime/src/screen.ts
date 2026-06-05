@@ -13,12 +13,41 @@ import { INTERNAL_SYMBOL } from './internal';
 import { CanvasRenderingContext2D } from './canvas/canvas-rendering-context-2d';
 import { initTouchscreen } from './touchscreen';
 import type { TouchEvent } from './polyfills/event';
+import {
+	markAppOwnsScreen,
+	registerConsoleScreen,
+} from './console-screen';
 
 interface ScreenInternal {
 	context2d?: CanvasRenderingContext2D;
 }
 
 const _ = createInternal<Screen, ScreenInternal>();
+
+// Internal hook so the console present can get the screen's 2D context without
+// the public getContext()'s "app owns screen" side effect.
+const CONSOLE_SCREEN_CTX = Symbol('consoleScreenCtx');
+
+// Acquire the screen's 2D context + put the screen into canvas (framebuffer)
+// mode. Shared by the public `getContext('2d')` and the console present.
+//
+// NOTE: this MUST be a free function (keyed off the `_` WeakMap), NOT a
+// `#private` method. The `Screen` constructor returns a substitute native
+// canvas object (`proto($.canvasNew(...), Screen)`), so private class members
+// are never installed on the actual `screen` instance — calling a `#method` on
+// it throws "Receiver must be an instance of class Screen".
+function ensureContext(self: Screen): CanvasRenderingContext2D {
+	const i = _(self);
+	if (!i.context2d) {
+		i.context2d = new CanvasRenderingContext2D(
+			// @ts-expect-error Internal constructor
+			INTERNAL_SYMBOL,
+			self,
+		);
+		$.framebufferInit(self);
+	}
+	return i.context2d;
+}
 
 export class Screen extends EventTarget implements globalThis.Screen {
 	/**
@@ -77,19 +106,19 @@ export class Screen extends EventTarget implements globalThis.Screen {
 		if (contextId !== '2d') {
 			return null;
 		}
+		// User code acquiring the screen context takes over rendering from the
+		// default console present (see console-screen.ts).
+		markAppOwnsScreen();
+		return ensureContext(this);
+	}
 
-		const i = _(this);
-		if (!i.context2d) {
-			i.context2d = new CanvasRenderingContext2D(
-				// @ts-expect-error Internal constructor
-				INTERNAL_SYMBOL,
-				this,
-			);
-
-			$.framebufferInit(this);
-		}
-
-		return i.context2d;
+	/**
+	 * @ignore
+	 * Internal: used by the console present to draw onto the screen WITHOUT
+	 * marking the app as owning the screen.
+	 */
+	[CONSOLE_SCREEN_CTX](): CanvasRenderingContext2D {
+		return ensureContext(this);
 	}
 
 	// @ts-expect-error
@@ -195,4 +224,8 @@ def(Screen);
 
 // @ts-expect-error Internal constructor
 export var screen = new Screen(INTERNAL_SYMBOL);
+
+// Let the console present blit onto the screen (without claiming app ownership)
+// and wire touch-drag scrollback.
+registerConsoleScreen(() => (screen as any)[CONSOLE_SCREEN_CTX](), screen);
 def(screen, 'screen');
