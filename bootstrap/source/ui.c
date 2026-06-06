@@ -39,14 +39,18 @@ static void header(void) {
 	printf("-------------------\n\n");
 }
 
-void nx_fail(const char *fmt, ...) {
+void nx_failv(const char *fmt, va_list ap) {
 	consoleInit(NULL);
 	header();
+	vprintf(fmt, ap);
+	wait_for_plus_and_exit();
+}
+
+void nx_fail(const char *fmt, ...) {
 	va_list ap;
 	va_start(ap, fmt);
-	vprintf(fmt, ap);
+	nx_failv(fmt, ap);
 	va_end(ap);
-	wait_for_plus_and_exit();
 }
 
 void nx_fail_no_runtime(const nx_resolve_t *r) {

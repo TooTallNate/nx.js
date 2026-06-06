@@ -3,6 +3,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <stdarg.h>
 
 #include "resolve.h"
 #include "ui.h"
@@ -421,16 +422,15 @@ void nx_ui_exit(void)
     __builtin_unreachable();
 }
 
-// Show the shared "no runtime found" error screen, then exit cleanly.
+// Bring up the display + input stack the on-screen error UI needs.
 //
 // This forwarder uses a minimal __appInit (sm/setsys/fs, then main() smExit'd),
-// so the display + input stack the console needs isn't up — bring it up here in
-// libnx's default __appInit order before delegating to the shared UI. The
-// 16 MiB malloc heap (see __libnx_initheap) is required: consoleInit()'s
+// so unlike a normal libnx app the display/input services aren't up — initialize
+// them here in libnx's default __appInit order before any nx_fail* call. The
+// 16 MiB malloc heap (see __libnx_initheap) is also required: consoleInit()'s
 // framebufferCreate allocates from malloc and blocks if the heap is tiny
-// (confirmed on-device). nx_fail_no_runtime() renders + waits for + and then
-// calls nx_ui_exit() (overridden above). Does not return.
-static void NX_NORETURN nx_show_error_and_exit(const nx_resolve_t *r)
+// (confirmed on-device). The matching teardown happens in nx_ui_exit().
+static void nx_ui_bringup(void)
 {
     smInitialize();
     appletInitialize();
@@ -438,8 +438,28 @@ static void NX_NORETURN nx_show_error_and_exit(const nx_resolve_t *r)
     if (R_SUCCEEDED(timeInitialize()))
         __libnx_init_time();
     __nx_win_init();
+}
 
+// Show the shared "no runtime found" error screen, then exit cleanly.
+// nx_fail_no_runtime() renders + waits for + then calls nx_ui_exit() (the strong
+// override above). Does not return.
+static void NX_NORETURN nx_show_error_and_exit(const nx_resolve_t *r)
+{
+    nx_ui_bringup();
     nx_fail_no_runtime(r);
+    __builtin_unreachable();
+}
+
+// Show a one-line error (e.g. a malformed [runtime] version specifier), then
+// exit cleanly. Mirrors the NRO launcher's nx_fail() path. Does not return.
+static void NX_NORETURN __attribute__((format(printf, 1, 2)))
+nx_show_message_and_exit(const char *fmt, ...)
+{
+    nx_ui_bringup();
+    va_list ap;
+    va_start(ap, fmt);
+    nx_failv(fmt, ap);
+    va_end(ap);
     __builtin_unreachable();
 }
 
@@ -513,15 +533,25 @@ void loadNro(void)
         // (SD is already mounted at the top of loadNro; romfs:/nxjs.ini comes
         // from this title's RomFS via romfsInit.)
         nx_resolve_t r = {0};
-        Result rc = romfsInit();
-        if (R_SUCCEEDED(rc))
+        bool ok;
+        if (R_SUCCEEDED(romfsInit()))
         {
-            nx_read_runtime_requirement(&r);
+            ok = nx_read_runtime_requirement(&r);
             romfsExit();
         }
         else
         {
-            nx_read_runtime_requirement(&r);
+            // No RomFS? Fall back to the baked default requirement.
+            ok = nx_read_runtime_requirement(&r);
+        }
+
+        if (!ok)
+        {
+            // Malformed [runtime] version specifier — show a clear error rather
+            // than silently falling through to "no runtime found" (mirrors the
+            // NRO launcher). Does not return.
+            nx_show_message_and_exit(
+                "Invalid [runtime] version specifier: \"%s\"\n", r.version);
         }
 
         if (!nx_resolve_runtime(&r))
@@ -570,7 +600,17 @@ void loadNro(void)
     if (header->magic != NROHEADER_MAGIC)
         diagAbortWithResult(MAKERESULT(Module_HomebrewLoader, 5));
 
-    size_t rest_size = header->size - (sizeof(NroStart) + sizeof(NroHeader));
+    // Validate header->size before using it: it must be at least the header we
+    // already read (else rest_size underflows), and the whole NRO image
+    // (size + bss, page-aligned) must fit in our heap buffer (else the read()
+    // below and the later svcMapProcessCodeMemory() touch out-of-bounds memory).
+    size_t min_size = sizeof(NroStart) + sizeof(NroHeader);
+    size_t image_size = (size_t)header->size + header->bss_size;
+    image_size = (image_size + 0xFFF) & ~0xFFF;
+    if (header->size < min_size || image_size > g_heapSize)
+        diagAbortWithResult(MAKERESULT(Module_HomebrewLoader, 6));
+
+    size_t rest_size = header->size - min_size;
     if (read(fd, rest, rest_size) != rest_size)
         diagAbortWithResult(MAKERESULT(Module_HomebrewLoader, 7));
 
@@ -594,7 +634,7 @@ void loadNro(void)
         }
     }
 
-    // todo: Detect whether NRO fits into heap or not.
+    // (NRO heap-fit + header->size bounds were validated above.)
 
     // Copy header to elsewhere because we're going to unmap it next.
     memcpy(&g_nroHeader, header, sizeof(g_nroHeader));
