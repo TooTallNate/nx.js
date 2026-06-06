@@ -52,7 +52,7 @@ export interface TerminalOptions {
 	width?: number;
 	/** Height of the backing canvas in pixels. @default 720 */
 	height?: number;
-	/** Font size in pixels. @default 16 */
+	/** Font size in pixels. @default 20 */
 	fontSize?: number;
 	/** Scrollback buffer size (rows). @default 1000 */
 	scrollback?: number;
@@ -82,7 +82,7 @@ export class Terminal {
 	constructor(opts: TerminalOptions = {}) {
 		const width = opts.width ?? SCREEN_WIDTH;
 		const height = opts.height ?? SCREEN_HEIGHT;
-		this.#fontSize = opts.fontSize ?? 16;
+		this.#fontSize = opts.fontSize ?? 20;
 		this.#theme = opts.theme ?? {};
 
 		consoleFontAvailable();
@@ -181,9 +181,25 @@ export class Terminal {
 		this.scrollOffset = 0;
 	}
 
-	#cellColor(colorCode: number, isBold: boolean, isDefault: boolean): string {
-		const fg = this.#theme.foreground ?? '#ffffff';
-		if (isDefault || colorCode === -1) return fg;
+	#cellColor(
+		colorCode: number,
+		isBold: boolean,
+		isDefault: boolean,
+		isRGB: boolean,
+		fallback: string,
+	): string {
+		const fg = fallback;
+		if (isDefault) return fg;
+		// 24-bit truecolor (e.g. kleur's rgb()/bgRgb()): getColor() returns the
+		// packed 0xRRGGBB value. Must be handled BEFORE the palette ranges,
+		// since a packed RGB int is almost always > 255.
+		if (isRGB) {
+			const r = (colorCode >> 16) & 0xff;
+			const g = (colorCode >> 8) & 0xff;
+			const b = colorCode & 0xff;
+			return `rgb(${r},${g},${b})`;
+		}
+		if (colorCode === -1) return fg;
 		if (colorCode >= 0 && colorCode <= 15) {
 			if (isBold && colorCode < 8) return ANSI_COLORS[colorCode + 8]!;
 			return ANSI_COLORS[colorCode]!;
@@ -232,17 +248,35 @@ export class Terminal {
 		const baseFont = `${this.#fontSize}px "${FONT_FAMILY}"`;
 		const boldFont = `bold ${this.#fontSize}px "${FONT_FAMILY}"`;
 
+		const bg = this.#theme.background ?? '#000000';
+		const fg = this.#theme.foreground ?? '#ffffff';
 		for (let y = 0; y < rows; y++) {
 			const line = buff.getLine(startRow + y);
 			if (!line) continue;
+			// Integer pixel bounds for this row, so adjacent rows share an exact
+			// edge with no sub-pixel seam.
+			const yTop = Math.round(y * lh);
+			const yBot = Math.round((y + 1) * lh);
 			for (let x = 0; x < line.length; x++) {
 				line.getCell(x, cell);
 				const char = cell.getChars();
 
+				// Integer pixel bounds for this cell. Using rounded left/right
+				// edges (rather than left + fractional width) makes neighboring
+				// cell backgrounds tile seamlessly — no 1px black gaps.
+				const xL = Math.round(x * cw);
+				const xR = Math.round((x + 1) * cw);
+
 				// Cell background (skip default — already cleared).
 				if (!cell.isBgDefault()) {
-					ctx.fillStyle = this.#cellColor(cell.getBgColor(), false, false);
-					ctx.fillRect(x * cw, y * lh, cw, lh);
+					ctx.fillStyle = this.#cellColor(
+						cell.getBgColor(),
+						false,
+						false,
+						cell.isBgRGB(),
+						bg,
+					);
+					ctx.fillRect(xL, yTop, xR - xL, yBot - yTop);
 				}
 
 				if (!char) continue;
@@ -251,9 +285,11 @@ export class Terminal {
 					cell.getFgColor(),
 					bold,
 					cell.isFgDefault(),
+					cell.isFgRGB(),
+					fg,
 				);
 				ctx.font = bold ? boldFont : baseFont;
-				ctx.fillText(char, x * cw, y * lh);
+				ctx.fillText(char, xL, yTop);
 			}
 		}
 
@@ -261,7 +297,11 @@ export class Terminal {
 		if (offset === 0) {
 			ctx.fillStyle = this.#theme.cursor ?? '#ffffff';
 			ctx.globalAlpha = 0.5;
-			ctx.fillRect(buff.cursorX * cw, buff.cursorY * lh, cw, lh);
+			const cxL = Math.round(buff.cursorX * cw);
+			const cxR = Math.round((buff.cursorX + 1) * cw);
+			const cyT = Math.round(buff.cursorY * lh);
+			const cyB = Math.round((buff.cursorY + 1) * lh);
+			ctx.fillRect(cxL, cyT, cxR - cxL, cyB - cyT);
 			ctx.globalAlpha = 1;
 		}
 		return true;
