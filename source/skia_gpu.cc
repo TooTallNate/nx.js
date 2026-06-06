@@ -5,11 +5,13 @@
 #include <GLES2/gl2.h>
 #include <stdio.h>
 
+#include "include/core/SkBlendMode.h"
 #include "include/core/SkCanvas.h"
 #include "include/core/SkColorSpace.h"
 #include "include/core/SkGraphics.h"
 #include "include/core/SkImage.h"
 #include "include/core/SkImageInfo.h"
+#include "include/core/SkPaint.h"
 #include "include/core/SkSamplingOptions.h"
 #include "include/core/SkSurface.h"
 #include "include/gpu/GpuTypes.h"
@@ -147,7 +149,17 @@ void nx_skia_gpu_present(void) {
 	sk_sp<SkImage> img = s_canvas->makeImageSnapshot();
 	if (img) {
 		SkCanvas *c = s_fbo->getCanvas();
-		c->drawImage(img, 0, 0, SkSamplingOptions(), nullptr);
+		// Use kSrc (source-replace), NOT the default kSrcOver: the EGL back
+		// buffer is double-buffered and retains stale content (the previous
+		// frame, or uninitialized garbage). With kSrcOver, any transparent /
+		// partially-transparent pixel in the canvas surface would blend the
+		// stale destination through, making output look additive across
+		// frames. kSrc copies the surface verbatim — including alpha — so each
+		// present fully replaces the back buffer, matching the CPU raster path
+		// (which memcpy()s the pixels straight into the framebuffer).
+		SkPaint paint;
+		paint.setBlendMode(SkBlendMode::kSrc);
+		c->drawImage(img, 0, 0, SkSamplingOptions(), &paint);
 	}
 	s_gr->flush(s_fbo.get());
 	s_gr->submit();
