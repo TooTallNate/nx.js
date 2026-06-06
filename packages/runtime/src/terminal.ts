@@ -1,4 +1,4 @@
-import { Terminal as XTerminal, type ITheme } from '@xterm/headless';
+import { Terminal as XTerminal } from '@xterm/headless';
 import { OffscreenCanvas } from './canvas/offscreen-canvas';
 import type { OffscreenCanvasRenderingContext2D } from './canvas/offscreen-canvas-rendering-context-2d';
 import { fonts } from './font/font-face-set';
@@ -16,7 +16,7 @@ const ANSI_COLORS = [
 
 // xterm ITheme field names for ANSI palette indices 0-15, in order. Used to
 // resolve a theme's per-color overrides over the ANSI_COLORS defaults.
-const THEME_ANSI_KEYS: (keyof ITheme)[] = [
+const THEME_ANSI_KEYS: (keyof ConsoleTheme)[] = [
 	'black', 'red', 'green', 'yellow',
 	'blue', 'magenta', 'cyan', 'white',
 	'brightBlack', 'brightRed', 'brightGreen', 'brightYellow',
@@ -60,6 +60,57 @@ export function consoleFontAvailable(): boolean {
 /** Visual style of the terminal cursor. */
 export type CursorStyle = 'block' | 'underline' | 'bar';
 
+/**
+ * Color theme for the on-screen terminal. Supports the standard ANSI 16-color
+ * palette plus foreground, background, and cursor colors.
+ */
+export interface ConsoleTheme {
+	/** The default foreground color. */
+	foreground?: string;
+	/** The default background color. */
+	background?: string;
+	/** The cursor color. */
+	cursor?: string;
+	/** The accent color of the cursor (fg color for a block cursor). */
+	cursorAccent?: string;
+	/** The selection background color (can be transparent). */
+	selection?: string;
+	/** ANSI black (eg. `\x1b[30m`). */
+	black?: string;
+	/** ANSI red (eg. `\x1b[31m`). */
+	red?: string;
+	/** ANSI green (eg. `\x1b[32m`). */
+	green?: string;
+	/** ANSI yellow (eg. `\x1b[33m`). */
+	yellow?: string;
+	/** ANSI blue (eg. `\x1b[34m`). */
+	blue?: string;
+	/** ANSI magenta (eg. `\x1b[35m`). */
+	magenta?: string;
+	/** ANSI cyan (eg. `\x1b[36m`). */
+	cyan?: string;
+	/** ANSI white (eg. `\x1b[37m`). */
+	white?: string;
+	/** ANSI bright black (eg. `\x1b[1;30m`). */
+	brightBlack?: string;
+	/** ANSI bright red (eg. `\x1b[1;31m`). */
+	brightRed?: string;
+	/** ANSI bright green (eg. `\x1b[1;32m`). */
+	brightGreen?: string;
+	/** ANSI bright yellow (eg. `\x1b[1;33m`). */
+	brightYellow?: string;
+	/** ANSI bright blue (eg. `\x1b[1;34m`). */
+	brightBlue?: string;
+	/** ANSI bright magenta (eg. `\x1b[1;35m`). */
+	brightMagenta?: string;
+	/** ANSI bright cyan (eg. `\x1b[1;36m`). */
+	brightCyan?: string;
+	/** ANSI bright white (eg. `\x1b[1;37m`). */
+	brightWhite?: string;
+	/** ANSI extended colors (16-255). */
+	extendedAnsi?: string[];
+}
+
 export interface TerminalOptions {
 	/** Width of the backing canvas in pixels. @default 1280 */
 	width?: number;
@@ -77,7 +128,7 @@ export interface TerminalOptions {
 	 * Color theme. In addition to `background` / `foreground` / `cursor`, the
 	 * full ANSI palette (`black`..`brightWhite`) is honored.
 	 */
-	theme?: ITheme;
+	theme?: ConsoleTheme;
 	/** Cursor shape. @default 'block' */
 	cursorStyle?: CursorStyle;
 	/**
@@ -100,7 +151,7 @@ export class Terminal {
 	#fontSize: number;
 	#charWidth: number;
 	#lineHeight: number;
-	#theme: ITheme;
+	#theme: ConsoleTheme;
 	/** Resolved 16-color ANSI palette (theme overrides over the defaults). */
 	#palette: string[];
 	#cursorStyle: CursorStyle;
@@ -172,8 +223,14 @@ export class Terminal {
 		return this.#canvas;
 	}
 
-	/** The underlying headless xterm.js instance. */
-	get terminal(): XTerminal {
+	/**
+	 * The underlying headless
+	 * {@link https://xtermjs.org/docs/api/terminal/classes/terminal/ | xterm.js Terminal}
+	 * instance, typed as `unknown` to avoid leaking the `@xterm/headless`
+	 * dependency into the public type surface. Cast to
+	 * `import('@xterm/headless').Terminal` if you need the full API.
+	 */
+	get terminal(): unknown {
 		return this.#term;
 	}
 
