@@ -438,6 +438,11 @@ static void build_init_object(Isolate *iso, Local<Context> context,
 	// device (`argv: string[]`) and `$.argv[0]` is a well-defined `undefined`
 	// rather than throwing on a missing property (e.g. via `Application.self`).
 	init_obj->Set(context, nx_str(iso, "argv"), Array::New(iso, 0)).Check();
+
+	// `$.selfNroPath`: the device sets the launched app's NRO path (or null for
+	// installed titles). The host has no app; expose null to match the `$` shape
+	// (`selfNroPath: string | null`). `Application.self` is `ns`-stubbed here.
+	init_obj->Set(context, nx_str(iso, "selfNroPath"), Null(iso)).Check();
 }
 
 // ---------------------------------------------------------------------------

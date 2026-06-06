@@ -371,6 +371,13 @@ export interface Init {
 	// main.c
 	argv: string[];
 	entrypoint: string;
+	/**
+	 * Source for `Application.self`: a `.nro` path for standalone/slim NRO apps,
+	 * or `null` for installed titles (fat/slim NSP) — in which case
+	 * `nsAppNew(null)` resolves via the running process's ProgramId. Identifies
+	 * the launched app, not the shared runtime NRO.
+	 */
+	selfNroPath: string | null;
 	version: Versions;
 	/** Configured bsdsocket TCP receive buffer size (bytes) for this memory regime. */
 	tcpRxBufSize: number;

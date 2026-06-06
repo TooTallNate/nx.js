@@ -187,7 +187,13 @@ export class Application {
 	static get self(): Application {
 		if (!self) {
 			_init();
-			self = proto($.nsAppNew($.argv[0] ?? null), Application);
+			// `$.selfNroPath` identifies the app the user launched (the native
+			// side resolves it per launch mode): a `.nro` path for standalone /
+			// slim NRO apps, or `null` for installed titles (fat/slim NSP) — in
+			// which case `nsAppNew(null)` reads the running process's ProgramId.
+			// Do NOT use `$.argv[0]`: in slim modes that is the shared runtime
+			// NRO, so `self` would resolve to "nx.js" instead of the app.
+			self = proto($.nsAppNew($.selfNroPath), Application);
 		}
 		return self;
 	}
