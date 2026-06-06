@@ -950,7 +950,25 @@ static void resolve_entrypoint(nx_context_t *nx_ctx, int argc, char *argv[],
 
 	if (argc > 1 && argv[1] && argv[1][0]) {
 		// Bootstrap launch with an explicit entrypoint.
-		if (path_has_suffix(argv[1], ".nro")) {
+		if (strcmp(argv[1], "nsp:") == 0) {
+			// Slim NSP launch: a forwarder hbloader (the title's `main` NSO,
+			// see bootstrap/launcher-nsp) loaded us, the runtime NRO, with the
+			// "nsp:" marker. The app's `main.js` + assets live in the *installed
+			// title's* RomFS, which is this process's data storage — mount it
+			// via romfsMountFromCurrentProcess (fs cmd 200), independent of the
+			// NRO/NSO ABI. (mount_nro_romfs / romfsMountSelf wouldn't work here:
+			// our own argv[0] is the runtime NRO, whose RomFS is `nxjs:`.)
+			rc = romfsMountFromCurrentProcess("romfs");
+			if (R_FAILED(rc)) {
+				nx_console_init(nx_ctx);
+				printf("Failed to mount the installed title's romfs (0x%x)\n",
+				       rc);
+				nx_ctx->had_error = 1;
+			} else {
+				*out_path = (char *)"romfs:/main.js";
+				*out_code = (char *)read_file(*out_path, out_size);
+			}
+		} else if (path_has_suffix(argv[1], ".nro")) {
 			rc = mount_nro_romfs(argv[1], "romfs");
 			if (R_FAILED(rc)) {
 				nx_console_init(nx_ctx);

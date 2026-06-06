@@ -37,7 +37,7 @@ const baseName = slim ? 'bootstrap.nro' : 'nxjs.nro';
 const baseNroUrl = new URL(
 	isSrcMode
 		? slim
-			? '../../../bootstrap/bootstrap.nro'
+			? '../../../bootstrap/launcher-nro/bootstrap.nro'
 			: '../../../nxjs.nro'
 		: `../dist/${baseName}`,
 	import.meta.url,

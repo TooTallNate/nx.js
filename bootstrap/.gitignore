@@ -3,3 +3,5 @@ build/
 *.nro
 *.nacp
 *.map
+*.nso
+*.npdm

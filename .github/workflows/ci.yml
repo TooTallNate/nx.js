@@ -45,8 +45,11 @@ jobs:
       - name: Build `nxjs.nro`
         run: make V=1
 
-      - name: Build slim `bootstrap.nro`
-        run: make -C bootstrap V=1
+      - name: Build slim NRO launcher (`bootstrap.nro`)
+        run: make -C bootstrap/launcher-nro V=1
+
+      - name: Build slim NSP forwarder (`hbl.nso` / `hbl.npdm`)
+        run: make -C bootstrap/launcher-nsp V=1
 
       - uses: actions/upload-artifact@v7
         with:
@@ -56,7 +59,14 @@ jobs:
       - uses: actions/upload-artifact@v7
         with:
           name: bootstrap.nro
-          path: bootstrap/bootstrap.nro
+          path: bootstrap/launcher-nro/bootstrap.nro
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: bootstrap-nsp
+          path: |
+            bootstrap/launcher-nsp/hbl.nso
+            bootstrap/launcher-nsp/hbl.npdm
 
       - uses: actions/upload-artifact@v7
         with:
@@ -91,6 +101,12 @@ jobs:
           name: bootstrap.nro
           path: bootstrap-artifact
 
+      - name: Download `bootstrap-nsp` (hbl.nso / hbl.npdm)
+        uses: actions/download-artifact@v8
+        with:
+          name: bootstrap-nsp
+          path: bootstrap-nsp-artifact
+
       - name: Download `nxjs.nsp`
         uses: actions/download-artifact@v8
         with:
@@ -121,7 +137,9 @@ jobs:
         run: cp -v nxjs.nro bootstrap-artifact/bootstrap.nro packages/nro/dist
 
       - name: Copy files to "@nx.js/nsp"
-        run: cp -rv build/exefs romfs nxjs.nacp icon.jpg packages/nsp
+        run: |
+          cp -rv build/exefs romfs nxjs.nacp icon.jpg packages/nsp
+          cp -v bootstrap-nsp-artifact/hbl.nso bootstrap-nsp-artifact/hbl.npdm packages/nsp/dist
 
       - name: Create Release Pull Request or Publish to npm
         id: changesets

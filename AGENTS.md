@@ -204,38 +204,59 @@ version = ^1                       ; semver requirement for the shared runtime N
   runtime's parser recognizes + silently ignores it (the same `nxjs.ini` ships
   inside a slim app's RomFS and is read by both).
 
-### Slim apps / bootstrap launcher (`bootstrap/`)
+### Slim apps / bootstrap launchers (`bootstrap/`)
 
-An app can be packaged two ways:
+An app can be packaged **slim** (default — shares one on-SD runtime) or **fat**
+(self-contained). This applies to BOTH `.nro` (`@nx.js/nro`) and `.nsp`
+(`@nx.js/nsp`) outputs.
 
-- **Slim** (default): `nxjs-nro` builds a tiny launcher NRO (a few hundred KB)
-  whose code segment is `bootstrap/` (a pure-C libnx app, NO V8/Skia) and whose
-  RomFS holds the app's `main.js` + assets + `nxjs.ini`. At boot the launcher:
-  1. reads `[runtime] version` from its own `romfs:/nxjs.ini` (default baked at
-     build time = `^<runtime-major>`),
-  2. scans `sdmc:/nx.js/nxjs-v<full-version>.nro`, picks the **highest installed
-     version satisfying the specifier** (vendored `semver.c`),
-  3. `envSetNextLoad(<that runtime>, "\"<runtime>\" \"<self.nro>\"")` and exits.
-  hbloader then loads the runtime with `argv[1]` = the slim NRO, and the
-  runtime's existing `mount_nro_romfs(argv[1])` mounts the slim NRO's RomFS as
-  `romfs:` and runs `romfs:/main.js`. No satisfying runtime / not launched via
-  hbloader ⇒ a clear on-screen error (wait for `+`), never a crash.
-- **Fat**: `nxjs-nro --fat` (or `NXJS_FAT=1`) embeds the full ~40 MB runtime
-  into the app's NRO — self-contained, no external dependency. (`--slim` /
-  `NXJS_SLIM=1` are still accepted as no-ops since slim is the default.)
+`bootstrap/` holds the **shared** launcher logic (pure-C, libnx only, NO
+V8/Skia), with two flavor subdirs that differ only in the final "launch" step:
 
-- **Build**: `make -C bootstrap` (devkitPro; `jq` derives the runtime major from
-  `packages/runtime/package.json` → the baked `^major` default). CI builds
-  `bootstrap.nro`, uploads it, and the release job copies it into
-  `packages/nro/dist/` next to `nxjs.nro` (so `@nx.js/nro` can use it as the
-  default slim base).
+- `bootstrap/source/` — shared: `resolve.c` (read `[runtime] version` from the
+  app's own `romfs:/nxjs.ini`, scan `sdmc:/nx.js/nxjs-v<full-version>.nro`,
+  semver-match the highest), `match.c` (specifier parse + compare),
+  `ui.c` (on-screen error + wait-for-`+`), `vendor/{ini.h,semver.c}`. A future
+  "download the runtime if missing" step slots in here.
+- `bootstrap/launcher-nro/` → `bootstrap.nro`. Resolves the runtime, then
+  `envSetNextLoad(<runtime>, "\"<runtime>\" \"<self.nro>\"")` and exits; hbloader
+  loads the runtime with `argv[1]` = the slim NRO, whose RomFS the runtime mounts
+  via `mount_nro_romfs(argv[1])`.
+- `bootstrap/launcher-nsp/` → `hbl.nso` + `hbl.npdm`. A patched **nx-hbloader
+  forwarder** that runs as the slim NSP's exefs `main`. `envSetNextLoad` is
+  hbloader-only and unavailable to an installed title, so the forwarder instead
+  *is* an hbloader: it resolves the runtime, then loads that NRO directly
+  (`svcMapProcessCodeMemory` + the homebrew `ConfigEntry[]` ABI) with
+  `argv` = `"<runtime>" "nsp:"`. The loaded runtime sees `envIsNso()==false`
+  (forwarded homebrew, not the title's NSO) and the `"nsp:"` marker tells it to
+  mount the **installed title's own** RomFS (the app's files) via
+  `romfsMountFromCurrentProcess` (fs cmd 200), then run `romfs:/main.js`.
+  Vendored from switchbrew/nx-hbloader (MIT) + Skywalker25/Forwarder-Mod; only
+  needs rebuilding on a major libnx/firmware ABI change.
+
+- **Fat**: `nxjs-nro --fat` / `nxjs-nsp --fat` (or `NXJS_FAT=1`) embeds the full
+  runtime (the ~40 MB NRO / ~21 MB NSO). `--slim` / `NXJS_SLIM=1` are accepted
+  no-ops (slim is the default). Both default changes are **breaking** for
+  existing `nxjs-nro`/`nxjs-nsp` scripts.
+- **Build**: `make -C bootstrap/launcher-nro` and `make -C bootstrap/launcher-nsp`
+  (devkitPro; `jq` derives the runtime major from
+  `packages/runtime/package.json` → the baked `^major` default). Each launcher's
+  Makefile is tiny and `include`s `bootstrap/common.mk` (shared devkitPro build
+  scaffold; compiles `bootstrap/source/*` into both). CI builds both, uploads
+  them, and the release job copies `bootstrap.nro` → `packages/nro/dist/` and
+  `hbl.nso`/`hbl.npdm` → `packages/nsp/dist/`.
 - **Match logic** (`bootstrap/source/match.c`) is split from libnx so it's
   host-unit-tested: `bootstrap/test/run.sh` (no Switch needed).
 - **Prerelease note**: the vendored `semver.c` compares purely by precedence and
   does NOT apply node-semver's "prereleases excluded from non-prerelease ranges"
   rule, so `^1` DOES match `1.0.0-beta.N` — intentional during the v1 beta.
-- SD-card convention (new): shared runtimes live at
-  `sdmc:/nx.js/nxjs-v<full-version>.nro`; multiple versions may coexist.
+- **`nsp:` runtime branch**: `resolve_entrypoint()` in `source/main.cc` detects
+  `argv[1] == "nsp:"` and mounts `romfs:` via `romfsMountFromCurrentProcess`
+  (the installed title's data storage), instead of `mount_nro_romfs` (NRO path)
+  or `romfsMountSelf` (standalone). `nxjs:` (runtime's own files) is unaffected.
+- SD-card convention: shared runtimes live at
+  `sdmc:/nx.js/nxjs-v<full-version>.nro`; multiple versions may coexist. The same
+  runtime NRO serves both slim NRO and slim NSP apps.
 
 ### ES module `import` (static + dynamic)
 

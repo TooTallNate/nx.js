@@ -222,13 +222,22 @@ try {
 	resolveProtocols(packageJson.dependencies, data.packages, data.catalog);
 	resolveProtocols(packageJson.devDependencies, data.packages, data.catalog);
 
-	// `nxjs-nro` builds a slim NRO by default (a tiny launcher that chainloads a
-	// shared runtime from sdmc:/nx.js/). For the fat (self-contained) choice,
-	// add the explicit `--fat` flag to the `nro` script.
-	if (packaging === 'fat' && packageJson.scripts?.nro) {
-		const nro = packageJson.scripts.nro;
-		if (/\bnxjs-nro\b/.test(nro) && !/--fat\b/.test(nro)) {
-			packageJson.scripts.nro = `${nro} --fat`;
+	// `nxjs-nro` / `nxjs-nsp` build SLIM by default (a tiny launcher/forwarder
+	// that chainloads a shared runtime from sdmc:/nx.js/). For the fat
+	// (self-contained) choice, add the explicit `--fat` flag to both scripts.
+	if (packaging === 'fat' && packageJson.scripts) {
+		for (const [name, bin] of [
+			['nro', 'nxjs-nro'],
+			['nsp', 'nxjs-nsp'],
+		] as const) {
+			const script = packageJson.scripts[name];
+			if (
+				typeof script === 'string' &&
+				new RegExp(`\\b${bin}\\b`).test(script) &&
+				!/--fat\b/.test(script)
+			) {
+				packageJson.scripts[name] = `${script} --fat`;
+			}
 		}
 	}
 
