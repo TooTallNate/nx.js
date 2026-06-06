@@ -395,6 +395,44 @@ static void build_init_object(Isolate *iso, Local<Context> context,
 	          Integer::NewFromUnsigned(iso, 1024u * 1024u))
 	    .Check();
 
+	// `$.config`: the host reads no nxjs.ini, so expose defaults matching the
+	// device application regime. Mirrors the device build_init_object so
+	// fixtures that read `$.config` see the same shape.
+	{
+		Local<Object> conf = Object::New(iso);
+		auto cset = [&](const char *k, Local<Value> v) {
+			conf->Set(context, nx_str(iso, k), v).Check();
+		};
+		cset("jit", Boolean::New(iso, true));
+		// Device exposes the effective (post-clamp) max heap in bytes, never 0;
+		// report the device application-regime cap (512 MiB) so host fixtures
+		// see the same semantics.
+		cset("heapLimit", Number::New(iso, 512.0 * 1024 * 1024));
+		cset("renderer", nx_str(iso, "auto"));
+		cset("v8Flags", nx_str(iso, ""));
+
+		Local<Object> sock = Object::New(iso);
+		auto sset = [&](const char *k, uint32_t v) {
+			sock->Set(context, nx_str(iso, k),
+			          Integer::NewFromUnsigned(iso, v))
+			    .Check();
+		};
+		sset("tcpTxBufSize", 256u * 1024u);
+		sset("tcpRxBufSize", 256u * 1024u);
+		sset("tcpTxBufMaxSize", 1024u * 1024u);
+		sset("tcpRxBufMaxSize", 1024u * 1024u);
+		sset("udpTxBufSize", 0x2400u);
+		sset("udpRxBufSize", 0xA500u);
+		sset("sbEfficiency", 6u);
+		sset("numBsdSessions", 3u);
+		sset("serviceType", 3u); // BsdServiceType_Auto
+		conf->Set(context, nx_str(iso, "socket"), sock).Check();
+
+		conf->Set(context, nx_str(iso, "loaded"), Boolean::New(iso, false))
+		    .Check();
+		init_obj->Set(context, nx_str(iso, "config"), conf).Check();
+	}
+
 	Local<Object> argv = Object::New(iso);  // not used by fixtures
 	(void)argv;
 }

@@ -338,9 +338,27 @@ static void nx_framebuffer_init(const FunctionCallbackInfo<Value> &info) {
 	//     incorrect. Raster is fully correct and fits. (This also avoids the
 	//     EGL-mid-loop HID issue that only affected applet+GPU.)
 	// A failed GPU init in application mode still falls back to raster below.
+	//
+	// nxjs.ini [renderer] mode overrides this: `auto` keeps the regime default;
+	// `cpu` forces raster; `gpu` attempts GPU even in applet mode. GPU init that
+	// returns null ALWAYS falls back to raster (never a hard failure), so `gpu`
+	// can't crash startup.
+	bool want_gpu;
+	switch (ctx->config.renderer) {
+	case NX_RENDER_CPU:
+		want_gpu = false;
+		break;
+	case NX_RENDER_GPU:
+		want_gpu = true;
+		break;
+	case NX_RENDER_AUTO:
+	default:
+		want_gpu = !g_tight_memory;
+		break;
+	}
 	sk_sp<SkSurface> gpu =
-	    g_tight_memory ? nullptr
-	                   : nx_skia_gpu_screen_init(width, height, /*samples=*/4);
+	    want_gpu ? nx_skia_gpu_screen_init(width, height, /*samples=*/4)
+	             : nullptr;
 	if (gpu) {
 		nx_canvas_set_gpu_surface(canvas, gpu);
 		screen_is_gpu = true;
@@ -358,9 +376,19 @@ static void nx_framebuffer_init(const FunctionCallbackInfo<Value> &info) {
 			padInitialize(&ctx->pads[i], (HidNpadIdType)(HidNpadIdType_No1 + i));
 		}
 	} else {
-		fprintf(stderr, "[skia] using raster path (%s)\n",
-		        g_tight_memory ? "applet regime"
-		                       : "GPU init failed, falling back");
+		// Explain why raster was chosen. If the app explicitly asked for GPU
+		// but init failed, log it as a config value that wasn't honored.
+		if (ctx->config.renderer == NX_RENDER_GPU) {
+			fprintf(stderr,
+			        "[config] renderer.mode=gpu not honored: GPU/EGL init "
+			        "failed, falling back to CPU raster\n");
+		} else {
+			fprintf(stderr, "[skia] using raster path (%s)\n",
+			        ctx->config.renderer == NX_RENDER_CPU
+			            ? "renderer.mode=cpu"
+			            : (g_tight_memory ? "applet regime"
+			                              : "GPU init failed, falling back"));
+		}
 		fflush(stderr);
 		screen_is_gpu = false;
 		js_framebuffer = nx_canvas_pixels(canvas);
@@ -658,10 +686,15 @@ static bool run_script(Isolate *iso, Local<Context> context, const char *src,
 // (1 MiB in application mode, 128 KiB in the lean applet config) instead of
 // hard-coding 1 MiB and over-allocating the limited ArrayBuffer pool.
 static u32 nx_selected_tcp_rx_buf_size(void);
+// The effective SocketInitConfig passed to socketInitialize() (regime base +
+// nxjs.ini overrides). Forward-declared so build_init_object() can expose it on
+// `$.config.socket`; defined alongside the socket configs below.
+static const SocketInitConfig *nx_effective_socket_cfg(void);
 
 static void build_init_object(Isolate *iso, Local<Context> context,
                               Local<Object> init_obj, const char *entrypoint,
-                              int argc, char *argv[]) {
+                              int argc, char *argv[],
+                              const nx_config_t *cfg) {
 	nx_init_account(iso, init_obj);
 	nx_init_album(iso, init_obj);
 	nx_init_applet(iso, init_obj);
@@ -785,6 +818,48 @@ static void build_init_object(Isolate *iso, Local<Context> context,
 	    ->Set(context, nx_str(iso, "tcpRxBufSize"),
 	          Integer::NewFromUnsigned(iso, nx_selected_tcp_rx_buf_size()))
 	    .Check();
+
+	// Switch-side config (`$.config`): the EFFECTIVE values applied from
+	// nxjs.ini (after clamping/regime defaults), for diagnostics. Mirrors the
+	// `version` object pattern above.
+	{
+		Local<Object> conf = Object::New(iso);
+		auto cset = [&](const char *k, Local<Value> v) {
+			conf->Set(context, nx_str(iso, k), v).Check();
+		};
+		cset("jit", Boolean::New(iso, cfg->effective_jit));
+		cset("heapLimit",
+		     Number::New(iso, (double)cfg->effective_heap_limit));
+		const char *rmode = cfg->renderer == NX_RENDER_CPU   ? "cpu"
+		                    : cfg->renderer == NX_RENDER_GPU ? "gpu"
+		                                                     : "auto";
+		cset("renderer", nx_str(iso, rmode));
+		cset("v8Flags",
+		     nx_str_lossy(iso, cfg->v8_flags ? cfg->v8_flags : ""));
+
+		const SocketInitConfig *esc = nx_effective_socket_cfg();
+		Local<Object> sock = Object::New(iso);
+		auto sset = [&](const char *k, u32 v) {
+			sock->Set(context, nx_str(iso, k),
+			          Integer::NewFromUnsigned(iso, v))
+			    .Check();
+		};
+		sset("tcpTxBufSize", esc->tcp_tx_buf_size);
+		sset("tcpRxBufSize", esc->tcp_rx_buf_size);
+		sset("tcpTxBufMaxSize", esc->tcp_tx_buf_max_size);
+		sset("tcpRxBufMaxSize", esc->tcp_rx_buf_max_size);
+		sset("udpTxBufSize", esc->udp_tx_buf_size);
+		sset("udpRxBufSize", esc->udp_rx_buf_size);
+		sset("sbEfficiency", esc->sb_efficiency);
+		sset("numBsdSessions", esc->num_bsd_sessions);
+		sset("serviceType", (u32)esc->bsd_service_type);
+		conf->Set(context, nx_str(iso, "socket"), sock).Check();
+
+		conf->Set(context, nx_str(iso, "loaded"),
+		          Boolean::New(iso, cfg->loaded))
+		    .Check();
+		init_obj->Set(context, nx_str(iso, "config"), conf).Check();
+	}
 }
 
 // BsdServiceType_Auto (tries bsd:s first) is intentional: bsd:s is required to
@@ -837,11 +912,80 @@ static SocketInitConfig const s_socketInitConfigLean = {
     .bsd_service_type = BsdServiceType_Auto,
 };
 
-// tcp_rx_buf_size of whichever config socketInitialize() selected for this
-// memory regime (gated on g_tight_memory, set before socketInitialize).
+// The SocketInitConfig actually passed to socketInitialize() — the
+// regime-selected base after any [socket] nxjs.ini overrides + clamping. Set
+// once in main() before socketInitialize. Initialized to the full config so a
+// read before assignment (shouldn't happen) is still sane.
+static SocketInitConfig g_effective_socket_cfg = s_socketInitConfigFull;
+
+// tcp_rx_buf_size of the config socketInitialize() actually used (so the JS
+// socket layer sizes its read buffer to match the native config).
 static u32 nx_selected_tcp_rx_buf_size(void) {
-	return (g_tight_memory ? s_socketInitConfigLean : s_socketInitConfigFull)
-	    .tcp_rx_buf_size;
+	return g_effective_socket_cfg.tcp_rx_buf_size;
+}
+
+static const SocketInitConfig *nx_effective_socket_cfg(void) {
+	return &g_effective_socket_cfg;
+}
+
+// Resolve the user entrypoint and (for standalone / bootstrap-.nro launches)
+// mount `romfs:`. Hoisted out of main()'s body so it can run BEFORE V8 init:
+// the entrypoint directory is needed to locate `nxjs.ini`, whose [v8]/[memory]
+// settings must be applied before the isolate is created. Two launch models:
+//
+//   1. Bootstrap launch: `argv[1]` is an explicit entrypoint passed by a thin
+//      launcher. Either a `.nro` (mount its embedded romfs as `romfs:`, run
+//      `romfs:/main.js`) or any other path (typically `.js`: run it directly).
+//   2. Standalone app (no argv[1]): the app's own NRO romfs holds `main.js` +
+//      assets, so mount self as `romfs:` and run `romfs:/main.js`; fall back to
+//      `<nro>.js` next to the NRO on the SD card.
+static void resolve_entrypoint(nx_context_t *nx_ctx, int argc, char *argv[],
+                               char **out_path, char **out_code,
+                               size_t *out_size, bool *out_needs_free) {
+	*out_path = NULL;
+	*out_code = NULL;
+	*out_size = 0;
+	*out_needs_free = false;
+	Result rc;
+
+	if (argc > 1 && argv[1] && argv[1][0]) {
+		// Bootstrap launch with an explicit entrypoint.
+		if (path_has_suffix(argv[1], ".nro")) {
+			rc = mount_nro_romfs(argv[1], "romfs");
+			if (R_FAILED(rc)) {
+				nx_console_init(nx_ctx);
+				printf("Failed to mount romfs from %s (0x%x)\n", argv[1], rc);
+				nx_ctx->had_error = 1;
+			} else {
+				*out_path = (char *)"romfs:/main.js";
+				*out_code = (char *)read_file(*out_path, out_size);
+			}
+		} else {
+			*out_needs_free = true;
+			*out_path = strdup(argv[1]);
+			if (*out_path) {
+				*out_code = (char *)read_file(*out_path, out_size);
+			}
+		}
+	} else {
+		// Standalone app: this NRO's own romfs is the app. Also expose it as
+		// `romfs:` (it is already mounted as `nxjs:` for the runtime's files).
+		// romfsMountSelf opens our NRO file again with an independent handle, so
+		// the second mount coexists with the `nxjs:` one.
+		rc = romfsMountSelf("romfs");
+		if (R_SUCCEEDED(rc)) {
+			*out_path = (char *)"romfs:/main.js";
+			*out_code = (char *)read_file(*out_path, out_size);
+		}
+		if (*out_code == NULL && errno == ENOENT && argc > 0) {
+			*out_needs_free = true;
+			*out_path = strdup(argv[0]);
+			if (*out_path) {
+				replace_file_extension(*out_path, ".js");
+				*out_code = (char *)read_file(*out_path, out_size);
+			}
+		}
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -887,16 +1031,50 @@ int main(int argc, char *argv[]) {
 	bool tight_memory = mem_total <= (1024ull * 1024 * 1024);
 	g_tight_memory = tight_memory;
 
-	rc = socketInitialize(tight_memory ? &s_socketInitConfigLean
-	                                    : &s_socketInitConfigFull);
+	// Redirect stderr to the on-SD debug log NOW (before socket init and the
+	// config parse) so that `[config]`/`[v8]`/`[skia]` diagnostics — including
+	// any "value not honored" lines from the nxjs.ini parse below — are
+	// captured to sdmc:/switch/nxjs-debug.log.
+	FILE *debug_fd = freopen(LOG_FILENAME, "w", stderr);
+
+	// Resolve the app entrypoint up front (this is the hoisted version of the
+	// block that used to run after V8 init). We need the entrypoint path early
+	// because (a) `nxjs.ini` lives next to it, and (b) the V8 flag/heap/JIT
+	// settings it can override MUST be applied before V8::Initialize() below.
+	// This mounts `romfs:` (for standalone / bootstrap-.nro launches) and reads
+	// the user code. The actual evaluation still happens much later.
+	size_t user_code_size = 0;
+	bool user_path_needs_free = false;
+	char *user_code_path = NULL;
+	char *user_code = NULL;
+	resolve_entrypoint(nx_ctx, argc, argv, &user_code_path, &user_code,
+	                   &user_code_size, &user_path_needs_free);
+
+	// Parse `nxjs.ini` (next to the entrypoint) into the per-isolate config.
+	// Missing/unreadable file -> defaults, silently. Done before socket init +
+	// V8 init so every setting can take effect.
+	nx_config_defaults(&nx_ctx->config);
+	if (user_code_path) {
+		char *ini_path = nx_config_ini_path_for(user_code_path);
+		if (ini_path) {
+			nx_config_load(&nx_ctx->config, ini_path);
+			free(ini_path);
+		}
+	}
+
+	// Socket buffers: start from the regime-selected base, then apply any
+	// [socket] overrides from nxjs.ini (clamped + logged).
+	SocketInitConfig socket_cfg =
+	    tight_memory ? s_socketInitConfigLean : s_socketInitConfigFull;
+	nx_config_apply_socket(&socket_cfg, &nx_ctx->config, tight_memory);
+	g_effective_socket_cfg = socket_cfg;
+	rc = socketInitialize(&socket_cfg);
 	if (R_FAILED(rc))
 		diagAbortWithResult(rc);
 
 	rc = plInitialize(PlServiceType_User);
 	if (R_FAILED(rc))
 		diagAbortWithResult(rc);
-
-	FILE *debug_fd = freopen(LOG_FILENAME, "w", stderr);
 
 	// libuv loop.
 	uv_loop_t loop;
@@ -912,11 +1090,38 @@ int main(int argc, char *argv[]) {
 
 	// Memory-gated JIT policy: full-JIT's libnx jitCreate dual-maps a >=64 MiB
 	// code range (~128 MiB real). In applet mode (~137 MiB free) that starves
-	// the GPU/Mesa stack, so when free memory is tight we fall back to jitless
-	// (interpreter) + raster canvas; application mode (~3 GiB) runs full JIT +
-	// GPU. mem_free / tight_memory were probed before socketInitialize above.
-	// ~300 MiB headroom: code arena (128 MiB real) + GPU/Mesa + JS heap.
-	bool can_jit = !tight_memory;
+	// the GPU/Mesa stack, so by default we fall back to jitless (interpreter) +
+	// raster canvas when free memory is tight; application mode (~3 GiB) runs
+	// full JIT + GPU. mem_free / tight_memory were probed before
+	// socketInitialize above. ~300 MiB headroom: code arena (128 MiB real) +
+	// GPU/Mesa + JS heap.
+	//
+	// nxjs.ini [v8] jit overrides this: `auto` keeps the regime default; `on`
+	// forces full JIT; `off` forces jitless. JIT is honored verbatim (no clamp)
+	// — JIT in applet mode is fine for CPU rendering; only the applet + GPU +
+	// JIT combination is known to crash (jitCreate starves Mesa), for which we
+	// emit a warning below but still proceed.
+	bool can_jit;
+	switch (nx_ctx->config.jit) {
+	case NX_JIT_ON:
+		can_jit = true;
+		break;
+	case NX_JIT_OFF:
+		can_jit = false;
+		break;
+	case NX_JIT_AUTO:
+	default:
+		can_jit = !tight_memory;
+		break;
+	}
+	nx_ctx->config.effective_jit = can_jit;
+	if (nx_ctx->config.jit == NX_JIT_ON && tight_memory &&
+	    nx_ctx->config.renderer == NX_RENDER_GPU) {
+		fprintf(stderr,
+		        "[config] jit=on + renderer=gpu in applet regime: known-"
+		        "unstable (V8 jitCreate starves Mesa); may crash\n");
+		fflush(stderr);
+	}
 
 	if (can_jit) {
 		V8::SetFlagsFromString("--single-threaded --single-threaded-gc "
@@ -926,16 +1131,25 @@ int main(int argc, char *argv[]) {
 		                       "--single-threaded-gc "
 		                       "--no-concurrent-recompilation --predictable");
 	}
+	// App-provided V8 flags, applied AFTER the runtime defaults so they take
+	// precedence (V8's later SetFlagsFromString wins). Advanced/at-own-risk:
+	// V8 silently ignores unknown flags, so we just record what was applied.
+	if (nx_ctx->config.v8_flags && nx_ctx->config.v8_flags[0]) {
+		fprintf(stderr, "[config] applying app V8 flags: \"%s\"\n",
+		        nx_ctx->config.v8_flags);
+		V8::SetFlagsFromString(nx_ctx->config.v8_flags);
+	}
 	// Report the memory gate + JIT mode. When JIT is on, the linked monolith
 	// tiers up Ignition -> Sparkplug -> Maglev -> TurboFan; jitless is Ignition
 	// only.
 	fprintf(stderr,
-	        "[v8] mem_total=%llu MiB free=%llu MiB regime=%s -> mode=%s (%s)\n",
+	        "[v8] mem_total=%llu MiB free=%llu MiB regime=%s -> mode=%s (%s)%s\n",
 	        (unsigned long long)(mem_total / (1024 * 1024)),
 	        (unsigned long long)(mem_free / (1024 * 1024)),
 	        tight_memory ? "applet" : "application",
 	        can_jit ? "jit" : "jitless",
-	        can_jit ? "Ignition+Sparkplug+Maglev+TurboFan" : "Ignition only");
+	        can_jit ? "Ignition+Sparkplug+Maglev+TurboFan" : "Ignition only",
+	        nx_ctx->config.jit != NX_JIT_AUTO ? " [config override]" : "");
 	// stderr is fully buffered when redirected to a file (not a TTY), so an
 	// early abnormal exit would lose this line. Flush each init milestone so the
 	// log reflects how far startup actually got.
@@ -992,18 +1206,52 @@ int main(int argc, char *argv[]) {
 			// larger heap to be backable.
 			ceiling = arena ? arena : 192ull * 1024 * 1024;
 		}
-		u64 max_heap = ceiling > reserve ? ceiling - reserve : 0;
-		if (max_heap < 32ull * 1024 * 1024)
+		u64 computed = ceiling > reserve ? ceiling - reserve : 0;
+		u64 max_heap = computed;
+		// nxjs.ini [memory] heap_limit override. Allowed to raise or lower the
+		// limit, but still clamped to what is physically backable (the same
+		// ceiling - reserve the runtime computed) so a too-high value can't
+		// guarantee a FatalOOM. The 32 MiB floor / 512 MiB cap below also apply.
+		bool heap_overridden = false;
+		if (nx_ctx->config.heap_limit != 0) {
+			u64 req = nx_ctx->config.heap_limit;
+			max_heap = req;
+			if (max_heap > computed) {
+				fprintf(stderr,
+				        "[config] memory.heap_limit=%llu MiB not honored: "
+				        "exceeds backable %llu MiB (ceiling %llu - reserve %llu "
+				        "MiB), clamped\n",
+				        (unsigned long long)(req / (1024 * 1024)),
+				        (unsigned long long)(computed / (1024 * 1024)),
+				        (unsigned long long)(ceiling / (1024 * 1024)),
+				        (unsigned long long)(reserve / (1024 * 1024)));
+				max_heap = computed;
+			}
+			heap_overridden = true;
+		}
+		if (max_heap < 32ull * 1024 * 1024) {
+			if (heap_overridden)
+				fprintf(stderr,
+				        "[config] memory.heap_limit not honored: below 32 MiB "
+				        "floor, clamped to 32 MiB\n");
 			max_heap = 32ull * 1024 * 1024;
-		if (max_heap > 512ull * 1024 * 1024)
+		}
+		if (max_heap > 512ull * 1024 * 1024) {
+			if (heap_overridden)
+				fprintf(stderr,
+				        "[config] memory.heap_limit not honored: above 512 MiB "
+				        "cap, clamped to 512 MiB\n");
 			max_heap = 512ull * 1024 * 1024;
+		}
+		nx_ctx->config.effective_heap_limit = max_heap;
 		create_params.constraints.ConfigureDefaultsFromHeapSize(
 		    8ull * 1024 * 1024 /* initial */, max_heap /* max */);
 		fprintf(stderr,
-		        "[v8] max_heap=%llu MiB (arena=%llu MiB free=%llu MiB)\n",
+		        "[v8] max_heap=%llu MiB (arena=%llu MiB free=%llu MiB)%s\n",
 		        (unsigned long long)(max_heap / (1024 * 1024)),
 		        (unsigned long long)(arena / (1024 * 1024)),
-		        (unsigned long long)(mem_free / (1024 * 1024)));
+		        (unsigned long long)(mem_free / (1024 * 1024)),
+		        heap_overridden ? " [config override]" : "");
 		// stderr is fully buffered when redirected to a file; flush so this
 		// milestone survives an early abnormal exit (matches the other init
 		// logs above).
@@ -1035,63 +1283,10 @@ int main(int argc, char *argv[]) {
 		              (HidNpadIdType)(HidNpadIdType_No1 + i));
 	}
 
-	// Resolve the user entrypoint. Two launch models:
-	//
-	//   1. Bootstrap launch: `argv[1]` is an explicit entrypoint passed by a
-	//      thin launcher (which keeps the big nx.js NRO at a well-known path and
-	//      hands it the app to run). `argv[1]` is either:
-	//        - a `.nro`: mount its embedded romfs as `romfs:` and run
-	//          `romfs:/main.js` (the app's assets resolve under `romfs:`), or
-	//        - any other path (typically a `.js`): run it directly; its URL is
-	//          the base for relative fetch/import resolution.
-	//
-	//   2. Standalone app (the original model, no argv[1]): the app's own NRO
-	//      romfs holds `main.js` + assets, so mount self as `romfs:` and run
-	//      `romfs:/main.js`; fall back to `<nro>.js` next to the NRO on the SD
-	//      card.
-	size_t user_code_size = 0;
-	bool user_path_needs_free = false;
-	char *user_code_path = NULL;
-	char *user_code = NULL;
-
-	if (argc > 1 && argv[1] && argv[1][0]) {
-		// Bootstrap launch with an explicit entrypoint.
-		if (path_has_suffix(argv[1], ".nro")) {
-			rc = mount_nro_romfs(argv[1], "romfs");
-			if (R_FAILED(rc)) {
-				nx_console_init(nx_ctx);
-				printf("Failed to mount romfs from %s (0x%x)\n", argv[1], rc);
-				nx_ctx->had_error = 1;
-			} else {
-				user_code_path = (char *)"romfs:/main.js";
-				user_code = (char *)read_file(user_code_path, &user_code_size);
-			}
-		} else {
-			user_path_needs_free = true;
-			user_code_path = strdup(argv[1]);
-			if (user_code_path) {
-				user_code = (char *)read_file(user_code_path, &user_code_size);
-			}
-		}
-	} else {
-		// Standalone app: this NRO's own romfs is the app. Also expose it as
-		// `romfs:` (it is already mounted as `nxjs:` for the runtime's files).
-		// romfsMountSelf opens our NRO file again with an independent handle, so
-		// the second mount coexists with the `nxjs:` one.
-		rc = romfsMountSelf("romfs");
-		if (R_SUCCEEDED(rc)) {
-			user_code_path = (char *)"romfs:/main.js";
-			user_code = (char *)read_file(user_code_path, &user_code_size);
-		}
-		if (user_code == NULL && errno == ENOENT && argc > 0) {
-			user_path_needs_free = true;
-			user_code_path = strdup(argv[0]);
-			if (user_code_path) {
-				replace_file_extension(user_code_path, ".js");
-				user_code = (char *)read_file(user_code_path, &user_code_size);
-			}
-		}
-	}
+	// The user entrypoint (user_code_path / user_code) was already resolved
+	// near the top of main() — before V8 init — so that `nxjs.ini` (which sits
+	// next to it) could be read in time to influence the V8 flag/heap/JIT
+	// settings. See resolve_entrypoint() and its call site above.
 
 	{
 		Isolate::Scope iso_scope(iso);
@@ -1115,7 +1310,7 @@ int main(int argc, char *argv[]) {
 			Local<Object> init_obj = Object::New(iso);
 			nx_ctx->init_obj.Reset(iso, init_obj);
 			build_init_object(iso, context, init_obj, user_code_path, argc,
-			                  argv);
+			                  argv, &nx_ctx->config);
 			global->Set(context, nx_str(iso, "$"), init_obj).Check();
 
 			// Initialize the runtime (embedded runtime.js source). Name it
@@ -1316,6 +1511,7 @@ int main(int argc, char *argv[]) {
 	if (nx_ctx->spl_initialized) {
 		splExit();
 	}
+	nx_config_free(&nx_ctx->config);
 	free(nx_ctx);
 
 	// Must run while the socket layer is still up: libuv's async self-wakeup

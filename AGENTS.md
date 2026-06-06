@@ -150,6 +150,54 @@ The `$.entrypoint` gives the base URL for resolving relative paths.
 2. Else (standalone): mount self as `romfs:`, run `romfs:/main.js`; fall back to
    `<argv0>.js` next to the `.nro` on the SD card.
 
+The entrypoint resolution (`resolve_entrypoint()`) runs **early in `main()`, before
+V8 init** — not because the app code runs early, but because `nxjs.ini` (below)
+lives next to the entrypoint and its V8/heap settings must apply before
+`V8::Initialize()`/`Isolate::New`.
+
+### Configuration (`nxjs.ini`)
+
+An optional INI file located **next to the entrypoint** (`romfs:/nxjs.ini` for a
+standalone/bootstrap app, `<dir>/nxjs.ini` for a loose `.js`). Parsed very early
+in `main()` with the bundled `source/vendor/ini.h` (inih), using plain `fopen` —
+the JS `fetch`/`readFileSync` layer doesn't exist yet, and the `[v8]`/`[memory]`
+settings must be applied before the isolate is created. Lives in
+`source/config.cc`/`config.h` (`nx_config_t` on `nx_context_t`).
+
+```ini
+[v8]
+jit   = auto                       ; auto (regime-based) | on | off
+flags = --max-old-space-size=256   ; appended AFTER the runtime's default V8 flags
+
+[memory]
+heap_limit = 256MiB                ; KiB/MiB/GiB or raw bytes; clamped to fit
+
+[renderer]
+mode = auto                        ; auto | cpu | gpu (gpu falls back to raster on init fail)
+
+[socket]                           ; field-level overrides on the regime base (lean/full)
+tcp_tx_buf_size = 256KiB
+tcp_rx_buf_size = 256KiB
+tcp_tx_buf_max_size = 1MiB
+tcp_rx_buf_max_size = 1MiB
+udp_tx_buf_size = 9KiB
+udp_rx_buf_size = 42KiB
+sb_efficiency = 6
+num_bsd_sessions = 3
+service_type = auto                ; auto | user | system
+```
+
+- **Effective** (post-clamp) values are exposed to JS as `$.config`
+  (`{ jit, heapLimit, renderer, v8Flags, socket:{…}, loaded }`).
+- **Every value that can't be honored is logged** to `nxjs-debug.log` as a
+  `[config] … not honored: <reason>` line (clamped heap, invalid value, GPU
+  init fallback, socket reservation too big, etc.). A missing file is silent.
+- `jit` is honored verbatim (no clamp): JIT works in applet mode for CPU
+  rendering; only **applet + GPU + JIT** is known to crash (jitCreate starves
+  Mesa) — that combo is warned about but still attempted.
+- The host `nxjs-test` reads **no** INI; its `build_init_object` exposes a
+  default `$.config`. Keep that mirror in sync if you change `$.config`'s shape.
+
 ### ES module `import` (static + dynamic)
 
 `source/module.cc` (shared by the device runtime and the host test binary, so
@@ -259,6 +307,7 @@ The `screen` global is the main display (1280×720). Use `screen.getContext('2d'
 - **Globals like `setTimeout`, `setInterval`, `clearTimeout`, `clearInterval` are NOT available inside `packages/runtime/src/`** — they're only registered as globals in `index.ts` for user code. Within the runtime package itself, import them: `import { setInterval, clearInterval } from './timers';`
 - **Gamepad button mapping** is NOT standard Web Gamepad API order. Use `@nx.js/constants` `Button` enum (e.g. `Button.A`, `Button.B`). The order is: B=0, A=1, Y=2, X=3, L=4, R=5, ZL=6, ZR=7, Minus=8, Plus=9, StickL=10, StickR=11, Up=12, Down=13, Left=14, Right=15
 - **`stub()` does NOT mean unimplemented.** Methods marked with `stub()` in TypeScript (from `./utils`) are placeholders for type generation only. At runtime, the C side overwrites them on the prototype via `NX_DEF_FUNC()` or `NX_DEF_GET()`/`NX_DEF_GETSET()`. If you see `stub()`, check the corresponding C file's `nx_init_*` or `*_init_class` function — the real implementation is there. Only `throw new Error('Method not implemented.')` means actually not implemented.
+- **`nxjs.ini` must be read before `V8::Initialize()`** (for `[v8]`/`[memory]`), so entrypoint resolution is hoisted to the top of `main()` and the INI is parsed with plain `fopen` (via `source/vendor/ini.h`), NOT the JS `readFileSync`. The `[v8] jit` setting drives `can_jit`, which **couples** the V8 flags (`--jitless`), the heap `reserve` (180 vs 48 MiB), AND the code-range size (64 MiB vs 0) — override `can_jit` once, don't touch those three independently. Socket overrides are clamped so a bad value can't make `socketInitialize` (which `diagAbortWithResult`s on failure) brick startup. Any non-honored value logs `[config] … not honored: <reason>` to `nxjs-debug.log`.
 
 ## Host-Platform Test Binary (`nxjs-test`)
 
