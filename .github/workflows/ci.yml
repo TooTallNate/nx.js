@@ -45,10 +45,18 @@ jobs:
       - name: Build `nxjs.nro`
         run: make V=1
 
+      - name: Build slim `bootstrap.nro`
+        run: make -C bootstrap V=1
+
       - uses: actions/upload-artifact@v4
         with:
           name: nxjs.nro
           path: nxjs.nro
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bootstrap.nro
+          path: bootstrap/bootstrap.nro
 
       - uses: actions/upload-artifact@v4
         with:
@@ -77,6 +85,12 @@ jobs:
         with:
           name: nxjs.nro
 
+      - name: Download `bootstrap.nro`
+        uses: actions/download-artifact@v4
+        with:
+          name: bootstrap.nro
+          path: bootstrap-artifact
+
       - name: Download `nxjs.nsp`
         uses: actions/download-artifact@v4
         with:
@@ -103,8 +117,8 @@ jobs:
       - name: Build Packages
         run: pnpm build
 
-      - name: Copy `nxjs.nro` to "@nx.js/nro"
-        run: cp -v nxjs.nro packages/nro/dist
+      - name: Copy `nxjs.nro` + `bootstrap.nro` to "@nx.js/nro"
+        run: cp -v nxjs.nro bootstrap-artifact/bootstrap.nro packages/nro/dist
 
       - name: Copy files to "@nx.js/nsp"
         run: cp -rv build/exefs romfs nxjs.nacp icon.jpg packages/nsp
@@ -174,6 +188,11 @@ jobs:
           cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=clang-19 -DCMAKE_CXX_COMPILER=clang++-19
           cmake --build build -j"$(nproc)"
         working-directory: packages/runtime/test
+
+      - name: Run bootstrap launcher unit tests
+        # Host-compiled semver/version-matching tests for the slim bootstrap
+        # launcher (no Switch hardware / devkitPro needed).
+        run: ./bootstrap/test/run.sh
 
       - name: Run Tests
         run: pnpm test

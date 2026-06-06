@@ -28,6 +28,9 @@
 //   num_bsd_sessions    = 3
 //   service_type        = auto   ; auto | user | system
 //
+//   [runtime]                    ; consumed by the slim bootstrap LAUNCHER, not
+//   version = ^1                 ; the runtime; recognized+ignored here.
+//
 // Parsing happens VERY early in main() (before V8::Initialize), using plain
 // fopen via the bundled inih parser, because the V8 flag/heap settings must be
 // applied before the isolate is created. The JS `fetch`/`readFileSync` layer

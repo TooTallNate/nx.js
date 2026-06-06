@@ -19,13 +19,40 @@ import terminalImage from 'terminal-image';
 const cwd = process.cwd();
 const appRoot = new URL(`${pathToFileURL(cwd)}/`);
 const isSrcMode = existsSync(new URL('../tsconfig.json', import.meta.url));
-const nxjsNroUrl = new URL(
-	isSrcMode ? '../../../nxjs.nro' : '../dist/nxjs.nro',
+
+// Slim mode: instead of embedding the full ~40 MB runtime, use the tiny
+// `bootstrap.nro` launcher as the base. The launcher chainloads a shared
+// runtime from `sdmc:/nx.js/` at boot. Enabled via `--slim` or `NXJS_SLIM=1`.
+const slim =
+	process.argv.slice(2).includes('--slim') || process.env.NXJS_SLIM === '1';
+
+// The base NRO whose code segments we reuse: the bootstrap launcher (slim) or
+// the full runtime (fat).
+const baseName = slim ? 'bootstrap.nro' : 'nxjs.nro';
+const baseNroUrl = new URL(
+	isSrcMode
+		? slim
+			? '../../../bootstrap/bootstrap.nro'
+			: '../../../nxjs.nro'
+		: `../dist/${baseName}`,
 	import.meta.url,
 );
-const nxjsNroBuffer = readFileSync(nxjsNroUrl);
+const nxjsNroBuffer = readFileSync(baseNroUrl);
 const nxjsNroBlob = new Blob([nxjsNroBuffer]);
 const nxjsNro = await NRO.decode(nxjsNroBlob);
+
+if (slim) {
+	console.log(
+		chalk.bold(
+			`Building a ${chalk.cyan('slim')} NRO (shared runtime via bootstrap launcher).`,
+		),
+	);
+	console.log(
+		chalk.dim(
+			'  Requires an nx.js runtime NRO installed at sdmc:/nx.js/nxjs-v<version>.nro\n',
+		),
+	);
+}
 
 // Icon
 let icon = nxjsNro.icon;
@@ -70,7 +97,12 @@ for (const [k, v] of updated) {
 // RomFS
 const romfsDir = new URL('romfs/', appRoot);
 const romfsDirPath = fileURLToPath(romfsDir);
-const romfs = await RomFS.decode(nxjsNro.romfs!);
+// Fat base (nxjs.nro) ships a RomFS (runtime.js.map, GeistMono.ttf) to merge
+// the app's files into. The slim base (bootstrap.nro) has no RomFS, so start
+// from an empty tree.
+const romfs: RomFS.RomFsEntry = nxjsNro.romfs
+	? await RomFS.decode(nxjsNro.romfs)
+	: Object.create(null);
 console.log();
 console.log(chalk.bold('RomFS Files:'));
 
@@ -104,6 +136,33 @@ try {
 } catch (err: any) {
 	// Don't crash if there is no `romfs` directory
 	if (err.code !== 'ENOENT') throw err;
+}
+
+// Slim apps need an `nxjs.ini` with a `[runtime] version` semver requirement in
+// their RomFS — the bootstrap launcher reads it to pick which shared runtime to
+// chainload. If the app didn't provide one (no `romfs/nxjs.ini` with a
+// [runtime] section), write a default caret-on-major requirement derived from
+// this @nx.js/nro package's version (which tracks the runtime).
+if (slim) {
+	const existingIni = romfs['nxjs.ini'];
+	const existingIniText =
+		existingIni instanceof Blob ? await existingIni.text() : '';
+	const hasRuntimeSection = /^\s*\[runtime\]/im.test(existingIniText);
+	if (!hasRuntimeSection) {
+		const selfPkg = JSON.parse(
+			readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
+		);
+		const major = String(selfPkg.version).replace(/[.-].*/, '');
+		const runtimeReq = `^${major}`;
+		// Prepend a [runtime] section, preserving any existing ini content.
+		const merged =
+			`[runtime]\n; nx.js shared runtime version requirement (semver).\nversion = ${runtimeReq}\n` +
+			(existingIniText ? `\n${existingIniText}` : '');
+		romfs['nxjs.ini'] = new Blob([merged]);
+		console.log(
+			`  ${chalk.cyan('nxjs.ini')} (generated; [runtime] version = ${runtimeReq})`,
+		);
+	}
 }
 
 const outputNroName = `${packageJson.name}.nro`;
