@@ -4,6 +4,7 @@
 #include "util.h"
 #include "wrap.h"
 #include <harfbuzz/hb-ot.h>
+#include <new>
 #include <stdlib.h>
 #include <string.h>
 #include <switch.h>
@@ -43,7 +44,10 @@ void nx_new_font_face(const FunctionCallbackInfo<Value> &info) {
 	    (nx_font_face_t *)nx_alloc(iso, sizeof(nx_font_face_t));
 	if (!context)
 		return;
-	memset(context, 0, sizeof(nx_font_face_t));
+	// Placement-new to value-initialize: the struct holds an sk_sp<SkTypeface>
+	// (non-trivial), so memset() over it is UB (-Wclass-memaccess). The matching
+	// teardown is free_font_face(), which resets the sk_sp before free().
+	new (context) nx_font_face_t();
 	context->font_buffer = (FT_Byte *)nx_alloc(iso, bytes);
 	if (!context->font_buffer) {
 		free(context);

@@ -584,7 +584,8 @@ bool nx_crypto_parse_cipher_params(Isolate *iso, Local<Value> algorithm,
 		    algo->Get(context, nx_str(iso, "tagLength")).ToLocal(&tag_val) &&
 		    !tag_val->IsUndefined() && !tag_val->IsNull()) {
 			uint32_t tag_bits = 0;
-			tag_val->Uint32Value(context).To(&tag_bits);
+			if (!tag_val->Uint32Value(context).To(&tag_bits))
+				tag_bits = 0;
 			gcm_params->tag_length = tag_bits / 8;
 		} else {
 			gcm_params->tag_length = 16;
@@ -607,11 +608,13 @@ bool nx_crypto_parse_cipher_params(Isolate *iso, Local<Value> algorithm,
 		}
 		if (!algo.IsEmpty() &&
 		    algo->Get(context, nx_str(iso, "sector")).ToLocal(&v)) {
-			v->Uint32Value(context).To(&sector);
+			if (!v->Uint32Value(context).To(&sector))
+				sector = 0;
 		}
 		if (!algo.IsEmpty() &&
 		    algo->Get(context, nx_str(iso, "sectorSize")).ToLocal(&v)) {
-			v->Uint32Value(context).To(&sector_size);
+			if (!v->Uint32Value(context).To(&sector_size))
+				sector_size = 0;
 		}
 		xts_params->is_nintendo = is_nintendo;
 		xts_params->sector = sector;
@@ -1209,7 +1212,8 @@ bool nx_crypto_parse_usages(Isolate *iso, Local<Value> usages_val,
 	if (!arr->Get(context, nx_str(iso, "length")).ToLocal(&len_val))
 		return true;
 	uint32_t n = 0;
-	len_val->Uint32Value(context).To(&n);
+	if (!len_val->Uint32Value(context).To(&n))
+		n = 0;
 	uint32_t mask = 0;
 	for (uint32_t i = 0; i < n; i++) {
 		Local<Value> uv;
@@ -1460,7 +1464,9 @@ void nx_crypto_key_new(const FunctionCallbackInfo<Value> &info) {
 		}
 		memcpy(hmac->key, key_data, key_size);
 		hmac->key_length = key_size;
-		strncpy(hmac->hash_name, hash_name, sizeof(hmac->hash_name) - 1);
+		// Copy at most size-1 bytes and always NUL-terminate (strncpy alone
+		// wouldn't terminate a src that fills the buffer -> -Wstringop-truncation).
+		snprintf(hmac->hash_name, sizeof(hmac->hash_name), "%s", hash_name);
 		kctx->handle = hmac;
 	} else if (strcmp(algo_name, "ECDSA") == 0 ||
 	           strcmp(algo_name, "ECDH") == 0) {
@@ -2212,15 +2218,22 @@ void nx_crypto_key_new_ec_private(const FunctionCallbackInfo<Value> &info) {
 	kctx->type = NX_CRYPTO_KEY_TYPE_PRIVATE;
 
 	Local<Object> algo = info[0].As<Object>();
+	// If a property access throws/returns empty, the handle stays empty and
+	// Utf8Value below yields "" (falls through to the ECDH default / curve
+	// lookup fails cleanly). The `if (!...)` consumes the [[nodiscard]] result.
 	Local<Value> name_val;
-	algo->Get(context, nx_str(iso, "name")).ToLocal(&name_val);
+	if (!algo->Get(context, nx_str(iso, "name")).ToLocal(&name_val)) {
+		// leave name_val empty
+	}
 	String::Utf8Value algo_name(iso, name_val);
 	kctx->algorithm = (*algo_name && strcmp(*algo_name, "ECDSA") == 0)
 	                      ? NX_CRYPTO_KEY_ALGORITHM_ECDSA
 	                      : NX_CRYPTO_KEY_ALGORITHM_ECDH;
 
 	Local<Value> curve_val;
-	algo->Get(context, nx_str(iso, "namedCurve")).ToLocal(&curve_val);
+	if (!algo->Get(context, nx_str(iso, "namedCurve")).ToLocal(&curve_val)) {
+		// leave curve_val empty
+	}
 	String::Utf8Value curve(iso, curve_val);
 	const char *curve_name = *curve;
 	mbedtls_ecp_group_id grp_id;
@@ -2493,7 +2506,8 @@ void nx_crypto_derive_bits(const FunctionCallbackInfo<Value> &info) {
 			uint32_t iterations = 0;
 			if (algo->Get(context, nx_str(iso, "iterations"))
 			        .ToLocal(&iter_val)) {
-				iter_val->Uint32Value(context).To(&iterations);
+				if (!iter_val->Uint32Value(context).To(&iterations))
+					iterations = 0;
 			}
 			data->iterations = iterations;
 		} else if (data->key->algorithm == NX_CRYPTO_KEY_ALGORITHM_HKDF) {
