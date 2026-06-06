@@ -101,11 +101,18 @@ export class Console {
 		this.#timers = new Map();
 		this.#groupDepth = 0;
 		const { print, printErr, ...termOpts } = opts;
-		this.#options = termOpts;
 		// The first Console created without a custom `print` sink is the global
 		// one — it owns the default on-screen console present (see index.ts).
 		this.#isGlobal = !opts.print && !globalConsoleClaimed;
 		if (this.#isGlobal) globalConsoleClaimed = true;
+		// Seed the global console's styling from the `[console]` section of
+		// nxjs.ini ($.config.console) so it can be themed with zero app code.
+		// Explicitly-passed constructor options (rare for the global console)
+		// and a later `console.options =` assignment both override this.
+		this.#options =
+			this.#isGlobal && Object.keys(termOpts).length === 0
+				? ($.config?.console as TerminalOptions) ?? {}
+				: termOpts;
 	}
 
 	/**

@@ -17,6 +17,18 @@
 //   [renderer]
 //   mode = auto             ; auto | cpu | gpu
 //
+//   [console]               ; on-screen console / terminal styling
+//   font_size      = 22
+//   line_height    = 1.25
+//   scrollback     = 1000
+//   cursor_style   = bar    ; block | underline | bar
+//   cursor_opacity = 0.5
+//   background     = #002b36
+//   foreground     = #839496
+//   cursor         = #93a1a1
+//   black = #073642   red = #dc322f   green = #859900   ...  white = #eee8d5
+//   bright_black = #586e75  ...  bright_white = #fdf6e3
+//
 //   [socket]                ; overrides on the regime-selected SocketInitConfig
 //   tcp_tx_buf_size     = 256KiB
 //   tcp_rx_buf_size     = 256KiB
@@ -60,6 +72,37 @@ typedef enum {
 	NX_RENDER_GPU,      // attempt GPU regardless of regime (falls back to raster)
 } nx_render_mode_t;
 
+// Console / on-screen terminal styling overrides (`[console]` section). The
+// runtime does not consume these in C — they are exposed verbatim on
+// `$.config.console` and the JS console layer seeds the global console's
+// options from them (an explicit `console.options =` assignment overrides).
+// Each string is strdup'd (or NULL when unset); numeric/enum fields use a
+// `has_*` flag. Color strings are passed through as-is (e.g. "#002b36").
+typedef enum {
+	NX_CURSOR_UNSET = 0,
+	NX_CURSOR_BLOCK,
+	NX_CURSOR_UNDERLINE,
+	NX_CURSOR_BAR,
+} nx_cursor_style_t;
+
+typedef struct {
+	bool has_font_size;
+	double font_size;
+	bool has_line_height;
+	double line_height;
+	bool has_scrollback;
+	uint32_t scrollback;
+	nx_cursor_style_t cursor_style;
+	bool has_cursor_opacity;
+	double cursor_opacity;
+	// Theme colors (NULL = unset). Index 0..15 are the ANSI palette
+	// (black..brightWhite); the three named base colors are separate.
+	char *background;
+	char *foreground;
+	char *cursor;
+	char *ansi[16];
+} nx_console_config_t;
+
 // Socket overrides. Each field has a `has_*` flag; when false, the
 // regime-selected default (lean/full) value is kept for that field.
 typedef struct {
@@ -89,6 +132,7 @@ typedef struct {
 	uint64_t heap_limit;  // requested heap max in bytes; 0 = use computed default
 	nx_render_mode_t renderer;
 	nx_socket_config_t socket;
+	nx_console_config_t console; // [console] styling, exposed on $.config.console
 	bool loaded;          // true if an nxjs.ini was found + parsed
 
 	// Effective values, filled in by main() after clamping, for diagnostics

@@ -69,6 +69,22 @@ export interface NxSocketConfig {
 	serviceType: number;
 }
 
+/**
+ * On-screen console styling from the `[console]` section of `nxjs.ini`. Only the
+ * keys present in the file are set. The global `console` seeds its options from
+ * this at startup; an explicit `console.options =` assignment overrides it. The
+ * shape matches the runtime's `TerminalOptions` (theme, fontSize, …).
+ */
+export interface NxConsoleConfig {
+	fontSize?: number;
+	lineHeight?: number;
+	scrollback?: number;
+	cursorStyle?: 'block' | 'underline' | 'bar';
+	cursorOpacity?: number;
+	/** Theme colors: `background`/`foreground`/`cursor` + the ANSI palette. */
+	theme?: Record<string, string>;
+}
+
 /** Effective application config (from `nxjs.ini`); values reflect post-clamp reality. */
 export interface NxConfig {
 	/** Whether V8 JIT is enabled (vs jitless interpreter). */
@@ -81,6 +97,8 @@ export interface NxConfig {
 	v8Flags: string;
 	/** Effective libnx socket configuration. */
 	socket: NxSocketConfig;
+	/** On-screen console styling from the `[console]` section (empty if none). */
+	console: NxConsoleConfig;
 	/** Whether an `nxjs.ini` file was found and parsed. */
 	loaded: boolean;
 }
