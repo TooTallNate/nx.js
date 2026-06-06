@@ -27,19 +27,35 @@ export PATH := $(DEVKITPRO)/devkitA64/bin:$(DEVKITPRO)/tools/bin:$(PATH)
 COMMON_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
 TOPDIR ?= $(CURDIR)
-include $(DEVKITPRO)/libnx/switch_rules
 
 #---------------------------------------------------------------------------------
 # Metadata. APP_VERSION + the default runtime requirement track the runtime's
 # semver MAJOR (e.g. "1.0.0-beta.1" -> major "1" -> default "^1").
+#
+# These MUST be set before including switch_rules: that file resolves APP_TITLE/
+# APP_AUTHOR to their own defaults ("$(notdir OUTPUT)" / "Unspecified Author")
+# at include time, so a later `?=` here would be a no-op and the launcher NACP
+# would carry the wrong title/author. APP_TITLEID matches the root Makefile's
+# nx.js title id so a slim app's NACP inherits the same PresenceGroupId as the
+# fat build (Application.self.id then matches across packaging modes).
 #---------------------------------------------------------------------------------
 RUNTIME_PKG := $(COMMON_DIR)/../packages/runtime/package.json
 APP_TITLE   ?=  nx.js app
 APP_AUTHOR  ?=  TooTallNate
+APP_TITLEID ?=  016e782e6a730000
 APP_VERSION :=  `jq -r .version < $(RUNTIME_PKG)`
 RUNTIME_MAJOR := $(shell jq -r .version < $(RUNTIME_PKG) | sed 's/[.-].*//')
 # Default [runtime] version requirement baked into the launcher: caret-on-major.
 NXJS_RUNTIME_DEFAULT := ^$(RUNTIME_MAJOR)
+
+# The devkitPro %.nacp rule passes APP_TITLEID only via NACPFLAGS (not as a
+# positional arg), so wire it through like the root Makefile does. This bakes
+# the PresenceGroupId into the launcher NACP, which a slim app inherits.
+ifneq ($(APP_TITLEID),)
+	export NACPFLAGS += --titleid=$(APP_TITLEID)
+endif
+
+include $(DEVKITPRO)/libnx/switch_rules
 
 BUILD		:=	build
 # Each launcher's own source/ plus the shared bootstrap/source (+ vendor).

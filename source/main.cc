@@ -811,6 +811,29 @@ static void build_init_object(Isolate *iso, Local<Context> context,
 	}
 	init_obj->Set(context, nx_str(iso, "argv"), argv_array).Check();
 
+	// $.selfNroPath — the source `Application.self` should read its NACP/icon
+	// from. This must identify the *app the user launched*, NOT the runtime.
+	// The launch mode (mirrors resolve_entrypoint) determines it:
+	//   - Standalone (fat) NRO: argv[0] is the app's own NRO -> that path.
+	//   - Slim NRO (argv[1] is an app `.nro`): argv[0] is the *runtime* NRO, so
+	//     the app is argv[1] -> that path.
+	//   - NSP, fat or slim (argv[1] == "nsp:" or no argv[1] for an installed
+	//     title): the app is an installed title; null tells nsAppNew to read the
+	//     running process's ProgramId via nsGetApplicationControlData.
+	//   - Direct `.js` (argv[1] is a non-.nro path): no NACP available; null
+	//     (falls back to the running process ProgramId).
+	// Without this, Application.self keyed off argv[0] and resolved to the
+	// shared runtime NRO ("nx.js") in both slim modes.
+	Local<Value> self_nro_path = Null(iso);
+	if (argc > 1 && argv[1] && argv[1][0]) {
+		if (strcmp(argv[1], "nsp:") != 0 && path_has_suffix(argv[1], ".nro")) {
+			self_nro_path = nx_str_lossy(iso, argv[1]);
+		}
+	} else if (argc > 0 && argv[0] && argv[0][0]) {
+		self_nro_path = nx_str_lossy(iso, argv[0]);
+	}
+	init_obj->Set(context, nx_str(iso, "selfNroPath"), self_nro_path).Check();
+
 	// The configured bsdsocket TCP receive buffer size (regime-dependent). The
 	// JS socket layer sizes its per-socket read buffer to this instead of a
 	// hard-coded 1 MiB, so applet mode (128 KiB) does not over-allocate.
