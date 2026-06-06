@@ -187,7 +187,7 @@ export class Application {
 	static get self(): Application {
 		if (!self) {
 			_init();
-			self = proto($.nsAppNew($.argv?.[0] ?? null), Application);
+			self = proto($.nsAppNew($.argv[0] ?? null), Application);
 		}
 		return self;
 	}

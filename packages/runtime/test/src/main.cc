@@ -433,8 +433,11 @@ static void build_init_object(Isolate *iso, Local<Context> context,
 		init_obj->Set(context, nx_str(iso, "config"), conf).Check();
 	}
 
-	Local<Object> argv = Object::New(iso);  // not used by fixtures
-	(void)argv;
+	// `$.argv`: the device exposes a string[] (process argv). The host harness
+	// has no app argv, but expose an empty array so the `$` shape matches the
+	// device (`argv: string[]`) and `$.argv[0]` is a well-defined `undefined`
+	// rather than throwing on a missing property (e.g. via `Application.self`).
+	init_obj->Set(context, nx_str(iso, "argv"), Array::New(iso, 0)).Check();
 }
 
 // ---------------------------------------------------------------------------
