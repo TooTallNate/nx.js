@@ -5,12 +5,22 @@ import { fonts } from './font/font-face-set';
 import { FontFace } from './font/font-face';
 import { readFileSync } from './fs';
 
-// ANSI 256-color palette (first 16 standard colors).
+// Default ANSI 16-color palette (indices 0-15). A theme may override any of
+// these via its `black`..`brightWhite` fields (see THEME_ANSI_KEYS).
 const ANSI_COLORS = [
 	'#000000', '#cd0000', '#00cd00', '#cdcd00',
 	'#0000ee', '#cd00cd', '#00cdcd', '#e5e5e5',
 	'#7f7f7f', '#ff0000', '#00ff00', '#ffff00',
 	'#5c5cff', '#ff00ff', '#00ffff', '#ffffff',
+];
+
+// xterm ITheme field names for ANSI palette indices 0-15, in order. Used to
+// resolve a theme's per-color overrides over the ANSI_COLORS defaults.
+const THEME_ANSI_KEYS: (keyof ITheme)[] = [
+	'black', 'red', 'green', 'yellow',
+	'blue', 'magenta', 'cyan', 'white',
+	'brightBlack', 'brightRed', 'brightGreen', 'brightYellow',
+	'brightBlue', 'brightMagenta', 'brightCyan', 'brightWhite',
 ];
 
 // Default screen size (matches `screen`).
@@ -47,6 +57,9 @@ export function consoleFontAvailable(): boolean {
 	return false;
 }
 
+/** Visual style of the terminal cursor. */
+export type CursorStyle = 'block' | 'underline' | 'bar';
+
 export interface TerminalOptions {
 	/** Width of the backing canvas in pixels. @default 1280 */
 	width?: number;
@@ -54,10 +67,23 @@ export interface TerminalOptions {
 	height?: number;
 	/** Font size in pixels. @default 20 */
 	fontSize?: number;
+	/**
+	 * Line height as a multiple of the font size. @default 1.25
+	 */
+	lineHeight?: number;
 	/** Scrollback buffer size (rows). @default 1000 */
 	scrollback?: number;
-	/** xterm.js theme. */
+	/**
+	 * Color theme. In addition to `background` / `foreground` / `cursor`, the
+	 * full ANSI palette (`black`..`brightWhite`) is honored.
+	 */
 	theme?: ITheme;
+	/** Cursor shape. @default 'block' */
+	cursorStyle?: CursorStyle;
+	/**
+	 * Opacity of the cursor, 0-1. @default 0.5
+	 */
+	cursorOpacity?: number;
 }
 
 /**
@@ -75,6 +101,10 @@ export class Terminal {
 	#charWidth: number;
 	#lineHeight: number;
 	#theme: ITheme;
+	/** Resolved 16-color ANSI palette (theme overrides over the defaults). */
+	#palette: string[];
+	#cursorStyle: CursorStyle;
+	#cursorOpacity: number;
 	#scrollOffset = 0;
 	/** Set whenever the buffer/cursor/scroll changes; cleared after render(). */
 	#dirty = true;
@@ -84,6 +114,13 @@ export class Terminal {
 		const height = opts.height ?? SCREEN_HEIGHT;
 		this.#fontSize = opts.fontSize ?? 20;
 		this.#theme = opts.theme ?? {};
+		this.#cursorStyle = opts.cursorStyle ?? 'block';
+		this.#cursorOpacity = opts.cursorOpacity ?? 0.5;
+
+		// Resolve the ANSI palette: theme color overrides each default.
+		this.#palette = ANSI_COLORS.map(
+			(def, i) => (this.#theme[THEME_ANSI_KEYS[i]!] as string) ?? def,
+		);
 
 		consoleFontAvailable();
 
@@ -102,8 +139,14 @@ export class Terminal {
 		if (!charWidth || !isFinite(charWidth)) {
 			charWidth = this.#fontSize * 0.6;
 		}
-		this.#charWidth = charWidth;
-		this.#lineHeight = Math.ceil(this.#fontSize * 1.25);
+		// Snap the cell advance to a whole pixel. With a fractional advance,
+		// per-cell rounding (round(x*cw)..round((x+1)*cw)) gives cells that
+		// alternate between floor/ceil widths; a glyph (e.g. the FULL BLOCK
+		// `█` used for color swatches) drawn at its own fractional advance then
+		// leaves thin background seams between cells. An integer advance makes
+		// every cell exactly `cw` px wide so glyphs and fills tile seamlessly.
+		this.#charWidth = Math.max(1, Math.round(charWidth));
+		this.#lineHeight = Math.ceil(this.#fontSize * (opts.lineHeight ?? 1.25));
 
 		const cols = Math.max(1, Math.floor(width / this.#charWidth));
 		const rows = Math.max(1, Math.floor(height / this.#lineHeight));
@@ -201,8 +244,8 @@ export class Terminal {
 		}
 		if (colorCode === -1) return fg;
 		if (colorCode >= 0 && colorCode <= 15) {
-			if (isBold && colorCode < 8) return ANSI_COLORS[colorCode + 8]!;
-			return ANSI_COLORS[colorCode]!;
+			if (isBold && colorCode < 8) return this.#palette[colorCode + 8]!;
+			return this.#palette[colorCode]!;
 		}
 		if (colorCode >= 16 && colorCode <= 231) {
 			const c = colorCode - 16;
@@ -294,14 +337,26 @@ export class Terminal {
 		}
 
 		// Cursor (only when viewing the latest output).
-		if (offset === 0) {
+		if (offset === 0 && this.#cursorOpacity > 0) {
 			ctx.fillStyle = this.#theme.cursor ?? '#ffffff';
-			ctx.globalAlpha = 0.5;
+			ctx.globalAlpha = this.#cursorOpacity;
 			const cxL = Math.round(buff.cursorX * cw);
 			const cxR = Math.round((buff.cursorX + 1) * cw);
 			const cyT = Math.round(buff.cursorY * lh);
 			const cyB = Math.round((buff.cursorY + 1) * lh);
-			ctx.fillRect(cxL, cyT, cxR - cxL, cyB - cyT);
+			const cw_ = cxR - cxL;
+			const ch_ = cyB - cyT;
+			if (this.#cursorStyle === 'bar') {
+				// Thin vertical bar at the left edge (min 1px).
+				ctx.fillRect(cxL, cyT, Math.max(1, Math.round(cw_ * 0.15)), ch_);
+			} else if (this.#cursorStyle === 'underline') {
+				// Thin horizontal bar at the bottom (min 1px).
+				const uh = Math.max(1, Math.round(ch_ * 0.15));
+				ctx.fillRect(cxL, cyB - uh, cw_, uh);
+			} else {
+				// Block (default): full cell.
+				ctx.fillRect(cxL, cyT, cw_, ch_);
+			}
 			ctx.globalAlpha = 1;
 		}
 		return true;
