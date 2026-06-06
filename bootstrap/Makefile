@@ -27,6 +27,10 @@ RUNTIME_PKG := $(MK_DIR)/../packages/runtime/package.json
 APP_TITLE   :=  nx.js app
 APP_AUTHOR  :=  TooTallNate
 APP_VERSION :=  `jq -r .version < $(RUNTIME_PKG)`
+# Use the shared nx.js default icon (the same icon.jpg embedded in nxjs.nro at
+# the repo root) for the slim launcher base, rather than libnx's default icon.
+# ICON is relative to this project dir (the devkitPro rules prepend TOPDIR).
+ICON        :=  ../icon.jpg
 RUNTIME_MAJOR := $(shell jq -r .version < $(RUNTIME_PKG) | sed 's/[.-].*//')
 # Default [runtime] version requirement baked into the launcher: caret-on-major.
 NXJS_RUNTIME_DEFAULT := ^$(RUNTIME_MAJOR)
