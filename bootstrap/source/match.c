@@ -68,15 +68,15 @@ bool nx_version_satisfies(const char *cand, const char *spec) {
 	char want_str[128] = {0};
 	if (!nx_parse_spec(spec, op, sizeof(op), want_str, sizeof(want_str)))
 		return false;
+	// NOTE: semver_parse() can allocate metadata/prerelease even when it
+	// returns an error (it slices +/- before parsing the numeric version), so
+	// always semver_free() — both structs are zero-initialized, and freeing a
+	// zeroed semver_t is a no-op.
 	semver_t want = {0};
-	if (semver_parse(want_str, &want) != 0)
-		return false;
 	semver_t c = {0};
-	if (semver_parse(cand, &c) != 0) {
-		semver_free(&want);
-		return false;
-	}
-	bool ok = semver_satisfies(c, want, op) != 0;
+	int pw = semver_parse(want_str, &want);
+	int pc = semver_parse(cand, &c);
+	bool ok = (pw == 0 && pc == 0) && semver_satisfies(c, want, op) != 0;
 	semver_free(&c);
 	semver_free(&want);
 	return ok;
@@ -95,9 +95,9 @@ int nx_version_compare(const char *a, const char *b) {
 		r = 1;
 	else
 		r = semver_compare(va, vb);
-	if (pa == 0)
-		semver_free(&va);
-	if (pb == 0)
-		semver_free(&vb);
+	// semver_parse() may allocate metadata/prerelease even on an error return,
+	// so always free (both structs are zero-initialized; freeing is a no-op).
+	semver_free(&va);
+	semver_free(&vb);
 	return r;
 }
