@@ -80,8 +80,14 @@ CFLAGS	+=	$(INCLUDE) -D__SWITCH__ -D_DEFAULT_SOURCE $(UV_CFLAGS) \
 SKIA_CFLAGS	:=	-DSK_GL -DSK_BUILD_FOR_UNIX -I$(PORTLIBS)/include/skia
 
 # V8's API is C++; nx.js native modules are C++ (.cc), no exceptions/RTTI, C++20.
-# -Wno-comment: V8 headers (v8-internal.h) contain ASCII-art block comments.
-CXXFLAGS	:=	$(CFLAGS) $(SKIA_CFLAGS) -fno-rtti -fno-exceptions -std=c++20 -Wno-comment
+# Third-party header noise we can't fix in our code:
+#   -Wno-comment: V8 headers (v8-internal.h) contain ASCII-art block comments.
+#   -Wno-attributes: Skia's SkTemplates.h uses the clang-only `clang::reinitializes`
+#     scoped attribute, which devkitPro GCC doesn't recognize.
+#   -Wno-strict-aliasing: V8's v8-function-callback.h PropertyCallbackInfo::
+#     GetIsolate() does a reinterpret_cast type-pun in the engine headers.
+CXXFLAGS	:=	$(CFLAGS) $(SKIA_CFLAGS) -fno-rtti -fno-exceptions -std=c++20 \
+			-Wno-comment -Wno-attributes -Wno-strict-aliasing
 
 ASFLAGS	:=	-g $(ARCH)
 LDFLAGS	=	-specs=${DEVKITPRO}/libnx/switch.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)

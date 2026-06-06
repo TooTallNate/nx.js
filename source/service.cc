@@ -86,8 +86,11 @@ void nx_service_dispatch_in_out(const FunctionCallbackInfo<Value> &info) {
 		Local<Object> opts = info[3].As<Object>();
 		Local<Value> v;
 		if (opts->Get(c, nx_str(iso, "targetSession")).ToLocal(&v) &&
-		    v->IsNumber())
-			(void)v->Uint32Value(c).To(&disp.target_session);
+		    v->IsNumber()) {
+			uint32_t ts = 0;
+			if (v->Uint32Value(c).To(&ts))
+				disp.target_session = ts;
+		}
 		disp.context = prop_u32(iso, opts, "context", 0);
 
 		// bufferAttrs (array of up to 8 numbers)
@@ -111,7 +114,8 @@ void nx_service_dispatch_in_out(const FunctionCallbackInfo<Value> &info) {
 			Local<Value> len_v;
 			if (!a->Get(c, nx_str(iso, "length")).ToLocal(&len_v))
 				return;
-			(void)len_v->Uint32Value(c).To(&length);
+			if (!len_v->Uint32Value(c).To(&length))
+				length = 0;
 			for (uint32_t i = 0; i < length && i < 8; i++) {
 				Local<Value> e;
 				if (a->Get(c, i).ToLocal(&e)) {
@@ -129,7 +133,8 @@ void nx_service_dispatch_in_out(const FunctionCallbackInfo<Value> &info) {
 			Local<Value> len_v;
 			if (!a->Get(c, nx_str(iso, "length")).ToLocal(&len_v))
 				return;
-			(void)len_v->Uint32Value(c).To(&disp.in_num_objects);
+			if (!len_v->Uint32Value(c).To(&disp.in_num_objects))
+				disp.in_num_objects = 0;
 			for (uint32_t i = 0; i < disp.in_num_objects && i < 8; i++) {
 				Local<Value> e;
 				if (!a->Get(c, i).ToLocal(&e))
@@ -149,7 +154,8 @@ void nx_service_dispatch_in_out(const FunctionCallbackInfo<Value> &info) {
 			Local<Value> len_v;
 			if (!a->Get(c, nx_str(iso, "length")).ToLocal(&len_v))
 				return;
-			(void)len_v->Uint32Value(c).To(&disp.out_num_objects);
+			if (!len_v->Uint32Value(c).To(&disp.out_num_objects))
+				disp.out_num_objects = 0;
 			for (uint32_t i = 0; i < disp.out_num_objects && i < 8; i++) {
 				Local<Value> e;
 				if (!a->Get(c, i).ToLocal(&e))

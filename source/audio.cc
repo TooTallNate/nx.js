@@ -265,12 +265,20 @@ void nx_audio_decode(const FunctionCallbackInfo<Value> &info) {
 // Argument helpers.
 int arg_i32(const FunctionCallbackInfo<Value> &info, int i) {
 	int32_t v = 0;
-	(void)info[i]->Int32Value(info.GetIsolate()->GetCurrentContext()).To(&v);
+	if (!info[i]
+	         ->Int32Value(info.GetIsolate()->GetCurrentContext())
+	         .To(&v)) {
+		v = 0; // conversion threw/failed; default to 0
+	}
 	return v;
 }
 double arg_f64(const FunctionCallbackInfo<Value> &info, int i) {
 	double v = 0;
-	(void)info[i]->NumberValue(info.GetIsolate()->GetCurrentContext()).To(&v);
+	if (!info[i]
+	         ->NumberValue(info.GetIsolate()->GetCurrentContext())
+	         .To(&v)) {
+		v = 0; // conversion threw/failed; default to 0
+	}
 	return v;
 }
 
