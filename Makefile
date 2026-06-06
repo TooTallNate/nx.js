@@ -227,7 +227,17 @@ $(ROMFS)/runtime.js.map: packages/runtime/runtime.js.map
 	@mkdir -p $(ROMFS)
 	@cp -v packages/runtime/runtime.js.map $(ROMFS)
 
-$(BUILD): source/runtime_js.c romfs/runtime.js.map
+# Geist Mono font, used by the canvas-backed console renderer. Extracted at
+# build time from the `geist` npm package (a devDependency of @nx.js/runtime)
+# into romfs (mounted as `nxjs:/GeistMono.ttf` at runtime) — NOT committed to
+# the repo. The pnpm symlink at packages/runtime/node_modules/geist is a stable
+# path to the versioned package in the store.
+GEIST_MONO_TTF := packages/runtime/node_modules/geist/dist/fonts/geist-mono/GeistMono-Regular.ttf
+$(ROMFS)/GeistMono.ttf: $(GEIST_MONO_TTF)
+	@mkdir -p $(ROMFS)
+	@cp -v $(GEIST_MONO_TTF) $(ROMFS)/GeistMono.ttf
+
+$(BUILD): source/runtime_js.c romfs/runtime.js.map romfs/GeistMono.ttf
 	@[ -d $@ ] || mkdir -p $@
 	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
 

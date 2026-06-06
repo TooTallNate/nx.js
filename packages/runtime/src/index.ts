@@ -1,5 +1,6 @@
 import './polyfills';
-import { console } from './console';
+import { Console, console } from './console';
+import { presentConsole } from './console-screen';
 import { ErrorEvent, Event, PromiseRejectionEvent } from './polyfills/event';
 import { callRafCallbacks } from './raf';
 import {
@@ -90,10 +91,11 @@ import * as Switch from './switch';
 def(Switch, 'Switch');
 
 def(console, 'console');
-def(setTimeout);
-def(setInterval);
-def(clearTimeout);
-def(clearInterval);
+def(Console);
+def(setTimeout, 'setTimeout');
+def(setInterval, 'setInterval');
+def(clearTimeout, 'clearTimeout');
+def(clearInterval, 'clearInterval');
 def($.queueMicrotask, 'queueMicrotask');
 
 import './navigator';
@@ -235,6 +237,10 @@ $.onFrame((plusDown) => {
 	callRafCallbacks();
 	dispatchTouchEvents(screen);
 	dispatchKeyboardEvents(globalThis);
+	// Blit the default console's terminal canvas onto the screen if it changed
+	// (no-op once the app owns screen rendering). After rAF so an app that
+	// draws to the screen each frame isn't overwritten on the same frame.
+	presentConsole();
 });
 
 $.onExit(() => {

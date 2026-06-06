@@ -308,6 +308,12 @@ The `screen` global is the main display (1280×720). Use `screen.getContext('2d'
 - **Gamepad button mapping** is NOT standard Web Gamepad API order. Use `@nx.js/constants` `Button` enum (e.g. `Button.A`, `Button.B`). The order is: B=0, A=1, Y=2, X=3, L=4, R=5, ZL=6, ZR=7, Minus=8, Plus=9, StickL=10, StickR=11, Up=12, Down=13, Left=14, Right=15
 - **`stub()` does NOT mean unimplemented.** Methods marked with `stub()` in TypeScript (from `./utils`) are placeholders for type generation only. At runtime, the C side overwrites them on the prototype via `NX_DEF_FUNC()` or `NX_DEF_GET()`/`NX_DEF_GETSET()`. If you see `stub()`, check the corresponding C file's `nx_init_*` or `*_init_class` function — the real implementation is there. Only `throw new Error('Method not implemented.')` means actually not implemented.
 - **`nxjs.ini` must be read before `V8::Initialize()`** (for `[v8]`/`[memory]`), so entrypoint resolution is hoisted to the top of `main()` and the INI is parsed with plain `fopen` (via `source/vendor/ini.h`), NOT the JS `readFileSync`. The `[v8] jit` setting drives `can_jit`, which **couples** the V8 flags (`--jitless`), the heap `reserve` (180 vs 48 MiB), AND the code-range size (64 MiB vs 0) — override `can_jit` once, don't touch those three independently. Socket overrides are clamped so a bad value can't make `socketInitialize` (which `diagAbortWithResult`s on failure) brick startup. Any non-honored value logs `[config] … not honored: <reason>` to `nxjs-debug.log`.
+- **Classes whose constructor `return`s a substitute object (e.g. `Screen`, `Image`) must NOT use `#private` fields/methods for shared state.** `Screen`'s constructor does `const c = proto($.canvasNew(...), Screen); _.set(c, {}); return c;` — the returned native object never had the class's private members installed, so calling a `#method` on the `screen` instance throws `"Receiver must be an instance of class Screen"`. Use the `createInternal()` WeakMap (`_`) + a module-level free function instead (see `ensureContext()` in `screen.ts`).
+- **Third-party libs that read `navigator`/`window`/`document` at module-eval time can break runtime startup.** `@xterm/headless` computes `isNode ? 'node' : navigator.userAgent` at import, and `navigator.userAgent`'s getter walks `Application.self` → ns init (`addEventListener`, `$.argv`) — not all ready that early, so init threw on device AND host. Fix: a `bundle.mjs` esbuild `inject` (`xterm-process-shim.js`) supplies a module-scoped `process` ({title}) so xterm's `isNode` is true and it never reads `navigator`. The shim is injected only into modules referencing free `process` (xterm), not a real global.
+- **Feed a terminal CRLF, not bare LF.** xterm (and real terminals) treat `\n` as line-feed only (cursor down, same column), so `console.log`'s `\n` staircases. `Terminal.write()` normalizes lone LF → CRLF.
+- **xterm cell colors have THREE modes — handle truecolor (`isBgRGB`/`isFgRGB`) separately.** `getBgColor()`/`getFgColor()` return a *palette index* (0–255) in palette mode but a *packed `0xRRGGBB`* in RGB mode (e.g. kleur's `bgRgb()`/`rgb()` emit `48;2;r;g;b`). A packed RGB int is almost always > 255, so if you only handle the 0–255 palette ranges it falls through to the fallback (this made `console.warn`/`error` backgrounds render white). The terminal renderer checks `isBgRGB()`/`isFgRGB()` first and unpacks the bytes. Note `isBgRGB()`/`isFgRGB()` return `boolean`, while sibling cell predicates like `isBold()`/`isFgDefault()` return `number` (0/1) — don't `!== 0` the booleans.
+- **Canvas terminal cell backgrounds must use integer pixel bounds.** The monospace advance (`measureText('M').width`) is fractional, so drawing a cell bg as `fillRect(x*cw, y*lh, cw, lh)` leaves 1px black seams between cells. Round each cell's left/right/top/bottom edges (`round(x*cw)`..`round((x+1)*cw)`) so neighbors share an exact edge and tile seamlessly.
+- **DX: the libnx PrintConsole is initialized BEFORE running `runtime.js`** (`source/main.cc`) so that if runtime.js throws during evaluation, `print_js_error()`'s on-screen output (exception + stack) is visible instead of a bare "Runtime initialization failed". The full error is also in `sdmc:/switch/nxjs-debug.log`.
 
 ## Host-Platform Test Binary (`nxjs-test`)
 
@@ -381,3 +387,177 @@ pnpm --filter @nx.js/runtime test
 
 System dependencies needed: `cmake`, `pkg-config`, `libcairo2-dev`, `libfreetype-dev`, `libharfbuzz-dev`, `libpng-dev`, `libturbojpeg0-dev`, `libwebp-dev`, `zlib1g-dev`, `libzstd-dev`, plus Playwright Chromium (`pnpm --filter @nx.js/runtime exec playwright install chromium`).
 
+
+## Verification workflows (device + host)
+
+These are the proven loops for verifying native (`source/`) and runtime
+(`packages/runtime/src/`) changes. Read this before iterating — it captures the
+shortcuts that make the dev cycle fast.
+
+### Rebuilding `nxjs.nro` (the device runtime)
+
+The runtime is embedded into `nxjs.nro` as a byte array (`source/runtime_js.c`).
+The full chain after a change:
+
+```bash
+# 1. Bundle the TS runtime (only needed if you changed packages/runtime/src/):
+pnpm --filter @nx.js/runtime bundle          # -> packages/runtime/runtime.js
+# 2. Embed runtime.js as the C byte array (only if runtime.js changed):
+node tools/embed-runtime.mjs packages/runtime/runtime.js source/runtime_js.c
+# 3. Compile + link the NRO (needs devkitPro; can build locally on macOS):
+DEVKITPRO=/opt/devkitpro make -j4            # -> nxjs.nro / nxjs.elf
+```
+
+- If you only changed `source/*.cc`, skip steps 1–2 (just `make`).
+- If you only changed TS, you still need all three steps.
+- `runtime_js.c` is byte-encoded; `strings nxjs.elf` won't show JS source —
+  use it to confirm a rebuild happened, not to grep JS.
+- The build is reproducible locally with the devkitPro toolchain at
+  `/opt/devkitpro` (V8/Skia portlibs installed). Code layout can differ from the
+  CI/published binary if the `switch-v8` package version differs (matters only
+  for symbolizing a *published* crash — see below).
+
+### On-device testing with `hello-world` as a throwaway
+
+`apps/hello-world` is the fastest device test vehicle. Pattern:
+
+1. Write a throwaway repro into `apps/hello-world/src/main.ts` (or place files
+   directly in `apps/hello-world/romfs/` for unbundled tests — `romfs/` is
+   gitignored). Have it log results to a file on the SD card so you can read
+   them over FTP (console output is easy to miss; a log file is reliable):
+   ```ts
+   const LOG = 'sdmc:/switch/dbg.log';
+   let buf = '';
+   const log = (...a:any[]) => { buf += a.join(' ')+'\n';
+     try { Switch.writeFileSync(LOG, buf); } catch {}; console.log(...a); };
+   ```
+2. Build + package the app NRO (the app embeds the runtime from the repo-root
+   `nxjs.nro` via `@nx.js/nro`'s `../../../nxjs.nro`):
+   ```bash
+   cd apps/hello-world && pnpm build && DEVKITPRO=/opt/devkitpro pnpm nro
+   ```
+   - If your repro writes `romfs/main.js` directly (unbundled / multi-file
+     module test), SKIP `pnpm build` (don't let esbuild overwrite it) and just
+     run `pnpm nro`.
+3. Upload + reset the log, then ask the user to run it and report back:
+   ```bash
+   curl -s --netrc -T hello-world.nro "ftp://192.168.1.249/switch/hello-world.nro"
+   printf "" | curl -s --netrc -T - "ftp://192.168.1.249/switch/dbg.log"   # reset
+   ```
+4. After the user runs it, fetch the log:
+   ```bash
+   curl -s --netrc --ftp-method nocwd "ftp://192.168.1.249/switch/dbg.log" -o /tmp/dbg.log
+   ```
+5. **ALWAYS restore the throwaway afterward**: `git checkout -- apps/hello-world/`
+   and delete any temp `romfs/` files you added. Never commit hello-world hacks.
+
+**Application vs applet mode matters** for memory/JIT/GPU paths: application mode
+(~3 GiB grant) runs full JIT + GPU canvas; applet mode (~380 MiB) runs jitless +
+raster. The user chooses how they launch it — ask which mode to test, and have
+the repro log `Switch.memoryUsage()` / read `[v8]` lines from
+`sdmc:/switch/nxjs-debug.log` when memory behavior is relevant.
+
+### FTP to the Switch console
+
+The Switch runs an FTP server (e.g. ftpd/sys-ftpd). Access via `curl --netrc`
+(credentials live in `~/.netrc`; anonymous is rejected):
+
+```bash
+# Upload an app NRO:
+curl -s --netrc -T myapp.nro "ftp://192.168.1.249/switch/myapp.nro"
+# Download a file (use --ftp-method nocwd for reliability):
+curl -s --netrc --ftp-method nocwd "ftp://192.168.1.249/switch/foo.log" -o /tmp/foo.log
+# List a directory:
+curl -s --netrc "ftp://192.168.1.249/atmosphere/crash_reports/"
+# Delete a file:
+curl -s --netrc -Q "DELE /switch/foo.log" "ftp://192.168.1.249/"
+```
+
+Useful locations on the SD card:
+- `/switch/` — apps + any logs you write via `Switch.writeFileSync('sdmc:/switch/...')`.
+- `/switch/nxjs-debug.log` — the runtime's stderr (the `[v8] mem_total=... regime=... mode=...`
+  startup line + any `fprintf(stderr, ...)` you add temporarily).
+- `/atmosphere/crash_reports/*.log` — Atmosphère crash reports (see below).
+
+### Diagnosing a device crash (Atmosphère crash reports)
+
+A hard crash writes `/atmosphere/crash_reports/<id>_<programid>.log`. To read it:
+1. Fetch the newest report over FTP (sort by timestamp).
+2. Key fields: `Exception Info` (Type/Address), the `Address: ... (nxjs + 0xXXXX)`
+   offsets, and the **Stack Dump** (ASCII often contains the abort message, e.g.
+   `[FatalOOM] JavaScript OOM: CALL_AND_RETRY_LAST`).
+3. Symbolize the `nxjs + 0xOFFSET` values with addr2line against a matching
+   `nxjs.elf`:
+   ```bash
+   /opt/devkitpro/devkitA64/bin/aarch64-none-elf-addr2line -e nxjs.elf -f -C 0xOFFSET
+   ```
+   - The crash report's `Module Id` is the build-id; compare to your elf's
+     (`aarch64-none-elf-readelf -n nxjs.elf | grep -i 'build id'`). If they
+     differ, a local rebuild from the *same source* usually still symbolizes our
+     own functions correctly, but V8-internal offsets may be slightly off. To
+     symbolize a **published** binary exactly, rebuild on natecube with the same
+     `switch-v8` package (see below); verify the match by confirming the `brk`
+     opcode (`d4200000`) sits at the crashing offset in both NROs.
+   - Common crash signatures seen: `OS::Abort` ← `Utils::ReportApiFailure`
+     ("Empty MaybeLocal" = an unguarded `.ToLocalChecked()`); `FatalOOM`
+     ("CALL_AND_RETRY_LAST" = V8 JS-heap exhaustion); `OS::Abort` ←
+     `FatalNoSecurityImpact`; Data Abort in `MarkingBarrier`/`SetOldGenerationPageFlags`
+     (V8 heap reservation exceeds what the Horizon mman can commit).
+
+### natecube: host conformance harness (`nxjs-test`) + matching-toolchain builds
+
+`nxjs-test` is the host-platform build of the runtime (compiles the real
+`source/*.cc` against host libs, libnx stubbed) used to run the TAP conformance
+fixtures and compare them to Chrome. It needs the CI toolchain (clang-19/lld-19
++ `/opt/host` V8/Skia/ada), which lives in the `nxdbg` Docker container on the
+`natecube` host.
+
+```bash
+# The repo is bind-mounted at /work in the nxdbg container.
+ssh natecube "docker exec nxdbg bash -lc 'cd /work && <cmd>'"
+```
+
+Notes / gotchas learned:
+- The container is **x86_64**; install host node as the x64 build if missing.
+- `git` needs `git config --global --add safe.directory /work` (dubious
+  ownership) after a fresh container.
+- node/pnpm are NOT baked into the image — CI installs them per-run
+  (`actions/setup-node` + `pnpm/action-setup`). Install on demand if needed.
+- Some apt dev headers (e.g. `libturbojpeg0-dev libjpeg62-turbo-dev`) may be
+  missing in a fresh container and are needed to compile `image.cc`; CI installs
+  them via apt.
+- To **symbolize a published crash**, check out the published tag/commit in
+  `/work`, rebuild `nxjs.nro` there (same `switch-v8` as CI), and addr2line.
+- Build + run the host harness:
+  ```bash
+  cd packages/runtime/test
+  cmake -B build -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_C_COMPILER=clang-19 -DCMAKE_CXX_COMPILER=clang++-19
+  cmake --build build -j8                       # -> build/nxjs-test
+  # Full conformance (needs Playwright Chromium):
+  pnpm --filter @nx.js/runtime test
+  # Run ONE fixture directly (no Chrome) — use ABSOLUTE paths; line-buffer
+  # stdout because the binary idles until the fixture calls Switch.exit():
+  node packages/runtime/test/build-fixtures.mjs        # build fixtures/*.ts -> fixtures/build/*.js
+  stdbuf -oL ./packages/runtime/test/build/nxjs-test \
+      "$(pwd)/packages/runtime/runtime.js" \
+      "$(pwd)/packages/runtime/test/fixtures/build/<name>.js"
+  ```
+  A fixture that exits non-zero / segfaults: the harness loses block-buffered
+  stdout, so a real failure can masquerade as "empty output, all fixtures fail".
+  Run it directly with `stdbuf -oL` to see the actual TAP + exit code.
+- The CI `pacman-packages` image SHA is pinned in `.github/workflows/ci.yml`
+  (both the Build and Test jobs). When the V8/Skia portlib is rebuilt, the user
+  provides a new image digest; bump both references and (optionally) re-create
+  the natecube `nxdbg` container on the new image.
+
+### General loop discipline
+
+- Prefer a small, deterministic on-device repro (hello-world) over re-running
+  the full conformance/app suite — the full suite depends on flaky public
+  network endpoints (e.g. `echo.websocket.org`).
+- After ANY native change, keep `source/main.cc` and the host
+  `packages/runtime/test/src/main.cc` in sync (and add new shared logic to a
+  common `.cc` compiled by both, rather than mirroring — see `source/module.cc`).
+- Build artifacts (`nxjs.nro`, `nxjs.elf`, `packages/runtime/runtime.js`,
+  `apps/*/*.nro`, `apps/*/romfs/main.js*`) are gitignored — never commit them.

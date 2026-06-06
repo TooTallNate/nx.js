@@ -1317,11 +1317,20 @@ int main(int argc, char *argv[]) {
 			// `nxjs:/runtime.js` so its stack frames symbolicate against the
 			// source map at `nxjs:/runtime.js.map` (the runtime's own romfs,
 			// mounted as `nxjs:`).
+			//
+			// Initialize the libnx PrintConsole *before* running runtime.js so
+			// that if runtime.js throws during evaluation, print_js_error()'s
+			// stdout output (the actual exception + stack) lands on screen
+			// instead of being swallowed. Otherwise the user would only ever
+			// see a generic "Runtime initialization failed" with no detail.
+			nx_console_init(nx_ctx);
 			if (!run_script(iso, context,
 			                (const char *)nxjs_runtime_js,
 			                nxjs_runtime_js_len, "nxjs:/runtime.js")) {
-				nx_console_init(nx_ctx);
-				printf("Runtime initialization failed\n");
+				// run_script already printed the underlying error (exception +
+				// stack) via print_js_error(). Add a trailing hint; the full
+				// error is also in sdmc:/switch/nxjs-debug.log.
+				printf("\nRuntime initialization failed (see error above).\n");
 				nx_ctx->had_error = 1;
 			} else {
 				// Run the user entrypoint as an ES module.
