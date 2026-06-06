@@ -14,3 +14,10 @@ void nx_fail(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 // version, where we looked, what's installed), then wait for + and exit.
 // Does not return.
 void nx_fail_no_runtime(const nx_resolve_t *r);
+
+// Exit hook invoked after the user presses + on any nx_fail* screen. Weakly
+// defined in ui.c (consoleExit + return, for the hbloader-launched NRO
+// launcher). A launcher whose process can't exit normally (the NSP forwarder)
+// provides a strong override that performs the proper applet self-exit
+// handshake; in that case nx_ui_exit() does not return.
+void nx_ui_exit(void);

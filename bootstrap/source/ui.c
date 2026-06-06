@@ -10,6 +10,16 @@
 
 static PadState g_pad;
 
+// Launcher-provided exit hook. The default (used by the NRO launcher, which is
+// launched by hbloader and exits normally) just tears the console down and
+// returns to the caller's crt0. The NSP forwarder overrides this with a strong
+// definition that performs the proper applet self-exit handshake (it links
+// -Wl,-wrap,exit and runs as forwarded homebrew, so a normal exit() can't be
+// used). Does not return for the forwarder; returns for the NRO launcher.
+__attribute__((weak)) void nx_ui_exit(void) {
+	consoleExit(NULL);
+}
+
 static void wait_for_plus_and_exit(void) {
 	padConfigureInput(1, HidNpadStyleSet_NpadStandard);
 	padInitializeDefault(&g_pad);
@@ -21,7 +31,7 @@ static void wait_for_plus_and_exit(void) {
 			break;
 		consoleUpdate(NULL);
 	}
-	consoleExit(NULL);
+	nx_ui_exit();
 }
 
 static void header(void) {

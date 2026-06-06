@@ -13,6 +13,13 @@
 
 u32 __nx_applet_type = AppletType_SystemApplication;
 
+// Force appletExit() to run the proper applet self-exit handshake even though
+// this process is forwarded homebrew (envIsNso()==false). Without this, libnx's
+// _appletCleanup() skips the exit commands and a plain svcExitProcess() makes
+// the OS report "software was closed" instead of returning cleanly to home.
+// Only consulted on the error/no-runtime path (the NRO-load path never exits).
+u32 __nx_applet_exit_mode = 1;
+
 const char g_noticeText[] =
     "nx-hbloader " VERSION "\0"
     "Do you mean to tell me that you're thinking seriously of building that way, when and if you are an architect?";
@@ -57,7 +64,12 @@ void NX_NORETURN nroEntrypointTrampoline(const ConfigEntry* entries, u64 handle,
 
 void __libnx_initheap(void)
 {
-    static char g_innerheap[0x4000];
+    // 16 MiB malloc arena. Upstream nx-hbloader uses a tiny 16 KiB heap (it
+    // loads the NRO into a separate svcSetHeapSize region, not malloc), but we
+    // also render an on-screen console for errors / the future runtime-download
+    // UI — and consoleInit()'s framebuffer allocation blocks if the malloc heap
+    // is too small (confirmed on-device: tiny heap -> framebufferCreate hangs).
+    static char g_innerheap[0x1000000];
 
     extern char* fake_heap_start;
     extern char* fake_heap_end;
@@ -376,6 +388,61 @@ fail0:
     }
 }
 
+// Render the shared "no runtime found" console error screen, then exit cleanly.
+//
+// This forwarder uses a minimal __appInit (sm/setsys/fs, then main() smExit'd),
+// so the display + input stack the console needs isn't up — bring it up here in
+// libnx's default __appInit order. The 16 MiB malloc heap (see
+// __libnx_initheap) is required: consoleInit()'s framebufferCreate allocates
+// from malloc and blocks if the heap is tiny (confirmed on-device). Does not
+// return. Same code path will host the future runtime-download UI.
+extern void __libnx_init_time(void);
+extern void __nx_win_init(void);
+extern void __nx_win_exit(void);
+void NX_NORETURN __nx_exit(Result rc, LoaderReturnFn retaddr);
+
+// Strong override of ui.c's weak nx_ui_exit(): invoked after the user presses +
+// on the "no runtime found" screen. This forwarder can't exit via libc exit()
+// (it links -Wl,-wrap,exit, whose __wrap_exit aborts), so we replicate libnx's
+// __libnx_exit() path by hand. Tear down the display we brought up, then
+// appletExit(): with __nx_applet_exit_mode=1 (set at top of file),
+// _appletCleanup() registers _appletExitProcess as the exit func (via
+// envSetExitFuncPtr) and returns. __nx_exit() then jumps to it, performing the
+// real applet self-exit handshake the OS expects — returning to the home menu
+// without the "software was closed" dialog. Does not return.
+void nx_ui_exit(void)
+{
+    consoleExit(NULL);
+    __nx_win_exit();
+    hidExit();
+    timeExit();
+    appletExit();
+    __nx_exit(0, envGetExitFuncPtr());
+    __builtin_unreachable();
+}
+
+// Show the shared "no runtime found" error screen, then exit cleanly.
+//
+// This forwarder uses a minimal __appInit (sm/setsys/fs, then main() smExit'd),
+// so the display + input stack the console needs isn't up — bring it up here in
+// libnx's default __appInit order before delegating to the shared UI. The
+// 16 MiB malloc heap (see __libnx_initheap) is required: consoleInit()'s
+// framebufferCreate allocates from malloc and blocks if the heap is tiny
+// (confirmed on-device). nx_fail_no_runtime() renders + waits for + and then
+// calls nx_ui_exit() (overridden above). Does not return.
+static void NX_NORETURN nx_show_error_and_exit(const nx_resolve_t *r)
+{
+    smInitialize();
+    appletInitialize();
+    hidInitialize();
+    if (R_SUCCEEDED(timeInitialize()))
+        __libnx_init_time();
+    __nx_win_init();
+
+    nx_fail_no_runtime(r);
+    __builtin_unreachable();
+}
+
 void loadNro(void)
 {
     NroHeader* header = NULL;
@@ -383,6 +450,18 @@ void loadNro(void)
     Result rc=0;
 
     memcpy((u8*)armGetTls() + 0x100, g_savedTls, 0x100);
+
+    // Mount the SD card once (idempotent). Both the runtime resolution (scan
+    // sdmc:/nx.js) and the NRO read below need it. The forwarder's __appInit
+    // only does fsInitialize(), not fsdev, so we mount here. fsdevMountSdmc()
+    // fails if already mounted, so guard it (this fn runs again per loaded NRO).
+    static bool s_sdmc_mounted = false;
+    if (!s_sdmc_mounted) {
+        rc = fsdevMountSdmc();
+        if (R_FAILED(rc))
+            diagAbortWithResult(MAKERESULT(Module_HomebrewLoader, 404));
+        s_sdmc_mounted = true;
+    }
 
     if (g_nroSize > 0)
     {
@@ -431,6 +510,8 @@ void loadNro(void)
         // Resolve the shared nx.js runtime: read this NSP's own RomFS for the
         // [runtime] version requirement, then pick the best-matching
         // sdmc:/nx.js/nxjs-v<version>.nro. Shared with the NRO launcher.
+        // (SD is already mounted at the top of loadNro; romfs:/nxjs.ini comes
+        // from this title's RomFS via romfsInit.)
         nx_resolve_t r = {0};
         Result rc = romfsInit();
         if (R_SUCCEEDED(rc))
@@ -445,9 +526,11 @@ void loadNro(void)
 
         if (!nx_resolve_runtime(&r))
         {
-            // No compatible runtime installed -- show the shared error screen
-            // (waits for + then exits). Does not return.
-            nx_fail_no_runtime(&r);
+            // No compatible runtime installed -- show the on-screen error.
+            // The forwarder's __appInit is minimal and main() called smExit(),
+            // so bring up the full display stack the console + pad need first
+            // (see nx_show_error_and_exit). Does not return.
+            nx_show_error_and_exit(&r);
         }
 
         // Hand the runtime its own path as argv[0] and the "nsp:" marker as
@@ -470,10 +553,7 @@ void loadNro(void)
     header = (NroHeader*) (nrobuf + sizeof(NroStart));
     uint8_t*   rest   = (uint8_t*)   (nrobuf + sizeof(NroStart) + sizeof(NroHeader));
 
-    rc = fsdevMountSdmc();
-    if (R_FAILED(rc))
-        diagAbortWithResult(MAKERESULT(Module_HomebrewLoader, 404));
-
+    // SD was already mounted (idempotently) at the top of loadNro.
     int fd = open(g_nextNroPath, O_RDONLY);
     if (fd < 0)
         diagAbortWithResult(MAKERESULT(Module_HomebrewLoader, 3));
@@ -495,7 +575,8 @@ void loadNro(void)
         diagAbortWithResult(MAKERESULT(Module_HomebrewLoader, 7));
 
     close(fd);
-    fsdevUnmountAll();
+    // Keep SD mounted: loadNro runs again if the loaded NRO returns, and the
+    // top-of-function mount is guarded (s_sdmc_mounted), so don't unmount here.
 
     size_t total_size = header->size + header->bss_size;
     total_size = (total_size+0xFFF) & ~0xFFF;

@@ -230,9 +230,33 @@ V8/Skia), with two flavor subdirs that differ only in the final "launch" step:
   `argv` = `"<runtime>" "nsp:"`. The loaded runtime sees `envIsNso()==false`
   (forwarded homebrew, not the title's NSO) and the `"nsp:"` marker tells it to
   mount the **installed title's own** RomFS (the app's files) via
-  `romfsMountFromCurrentProcess` (fs cmd 200), then run `romfs:/main.js`.
-  Vendored from switchbrew/nx-hbloader (MIT) + Skywalker25/Forwarder-Mod; only
-  needs rebuilding on a major libnx/firmware ABI change.
+   `romfsMountFromCurrentProcess` (fs cmd 200), then run `romfs:/main.js`.
+   Vendored from switchbrew/nx-hbloader (MIT) + Skywalker25/Forwarder-Mod; only
+   needs rebuilding on a major libnx/firmware ABI change.
+   - **No-runtime error path**: when `nx_resolve_runtime` fails, the forwarder
+     can't just abort (`diagAbortWithResult`) — it renders the shared on-screen
+     error UI (`bootstrap/source/ui.c` `nx_fail_no_runtime`) so the user sees a
+     real message (+ the future runtime-download UI lives here). Two gotchas
+     this requires: (1) the forwarder's `__libnx_initheap` malloc arena must be
+     **16 MiB** (upstream nx-hbloader uses 16 KiB) — `consoleInit`'s
+     `framebufferCreate` allocates from malloc and *hangs* on a tiny heap; and
+     (2) the forwarder's minimal `__appInit` doesn't bring up the display/input
+     stack, so `nx_show_error_and_exit` runs the libnx `__appInit` order
+     (`sm`/`applet`/`hid`/`time`+`__libnx_init_time`/`__nx_win_init`) before
+     delegating to the shared UI.
+   - **Clean exit from the error screen**: an installed title that just
+     `svcExitProcess()`s makes the OS show "software was closed". The proper
+     applet self-exit handshake in libnx's `_appletCleanup` is gated on
+     `(envIsNso() && __nx_applet_exit_mode==0) || __nx_applet_exit_mode==1` —
+     and forwarded homebrew has `envIsNso()==false`, so the forwarder sets
+     **`u32 __nx_applet_exit_mode = 1`**. The shared `ui.c` calls a weak
+     `nx_ui_exit()` after `+` (default = `consoleExit` + return, correct for the
+     hbloader-launched NRO launcher); the forwarder provides a *strong*
+     `nx_ui_exit()` that replicates `__libnx_exit` by hand (it links
+     `-Wl,-wrap,exit`, whose `__wrap_exit` aborts, so `exit()` is unusable):
+     teardown → `appletExit()` (registers `_appletExitProcess` as the exit func)
+     → `__nx_exit(0, envGetExitFuncPtr())` jumps to it. All four matrix cases
+     (NRO/NSP × runtime present/missing) verified on-device.
 
 - **Fat**: `nxjs-nro --fat` / `nxjs-nsp --fat` (or `NXJS_FAT=1`) embeds the full
   runtime (the ~40 MB NRO / ~21 MB NSO). `--slim` / `NXJS_SLIM=1` are accepted
