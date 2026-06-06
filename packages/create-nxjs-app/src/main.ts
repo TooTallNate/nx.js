@@ -222,13 +222,13 @@ try {
 	resolveProtocols(packageJson.dependencies, data.packages, data.catalog);
 	resolveProtocols(packageJson.devDependencies, data.packages, data.catalog);
 
-	// Slim packaging: build the app as a tiny launcher NRO that chainloads a
-	// shared runtime from sdmc:/nx.js/ (via `nxjs-nro --slim`). Fat keeps the
-	// default self-contained `nxjs-nro`.
-	if (packaging === 'slim' && packageJson.scripts?.nro) {
+	// `nxjs-nro` builds a slim NRO by default (a tiny launcher that chainloads a
+	// shared runtime from sdmc:/nx.js/). For the fat (self-contained) choice,
+	// add the explicit `--fat` flag to the `nro` script.
+	if (packaging === 'fat' && packageJson.scripts?.nro) {
 		const nro = packageJson.scripts.nro;
-		if (/\bnxjs-nro\b/.test(nro) && !/--slim\b/.test(nro)) {
-			packageJson.scripts.nro = `${nro} --slim`;
+		if (/\bnxjs-nro\b/.test(nro) && !/--fat\b/.test(nro)) {
+			packageJson.scripts.nro = `${nro} --fat`;
 		}
 	}
 

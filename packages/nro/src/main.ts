@@ -20,11 +20,16 @@ const cwd = process.cwd();
 const appRoot = new URL(`${pathToFileURL(cwd)}/`);
 const isSrcMode = existsSync(new URL('../tsconfig.json', import.meta.url));
 
-// Slim mode: instead of embedding the full ~40 MB runtime, use the tiny
-// `bootstrap.nro` launcher as the base. The launcher chainloads a shared
-// runtime from `sdmc:/nx.js/` at boot. Enabled via `--slim` or `NXJS_SLIM=1`.
-const slim =
-	process.argv.slice(2).includes('--slim') || process.env.NXJS_SLIM === '1';
+// Packaging mode. SLIM is the default: instead of embedding the full ~40 MB
+// runtime, use the tiny `bootstrap.nro` launcher as the base — it chainloads a
+// shared runtime from `sdmc:/nx.js/` at boot. Pass `--fat` (or `NXJS_FAT=1`) to
+// build a self-contained NRO with the runtime embedded.
+//
+// `--slim` / `NXJS_SLIM=1` are still accepted (no-ops now that slim is the
+// default) for backwards compatibility with existing build scripts.
+const args = process.argv.slice(2);
+const fat = args.includes('--fat') || process.env.NXJS_FAT === '1';
+const slim = !fat;
 
 // The base NRO whose code segments we reuse: the bootstrap launcher (slim) or
 // the full runtime (fat).
@@ -49,7 +54,14 @@ if (slim) {
 	);
 	console.log(
 		chalk.dim(
-			'  Requires an nx.js runtime NRO installed at sdmc:/nx.js/nxjs-v<version>.nro\n',
+			'  Requires an nx.js runtime NRO installed at sdmc:/nx.js/nxjs-v<version>.nro.\n' +
+				'  Pass --fat for a self-contained NRO with the runtime embedded.\n',
+		),
+	);
+} else {
+	console.log(
+		chalk.bold(
+			`Building a ${chalk.cyan('fat')} NRO (self-contained; runtime embedded).`,
 		),
 	);
 }
