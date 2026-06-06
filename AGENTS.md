@@ -208,9 +208,7 @@ version = ^1                       ; semver requirement for the shared runtime N
 
 An app can be packaged two ways:
 
-- **Fat** (default): `nxjs-nro` embeds the full ~40 MB runtime into the app's
-  NRO — self-contained, no external dependency.
-- **Slim**: `nxjs-nro --slim` builds a tiny launcher NRO (a few hundred KB)
+- **Slim** (default): `nxjs-nro` builds a tiny launcher NRO (a few hundred KB)
   whose code segment is `bootstrap/` (a pure-C libnx app, NO V8/Skia) and whose
   RomFS holds the app's `main.js` + assets + `nxjs.ini`. At boot the launcher:
   1. reads `[runtime] version` from its own `romfs:/nxjs.ini` (default baked at
@@ -222,11 +220,15 @@ An app can be packaged two ways:
   runtime's existing `mount_nro_romfs(argv[1])` mounts the slim NRO's RomFS as
   `romfs:` and runs `romfs:/main.js`. No satisfying runtime / not launched via
   hbloader ⇒ a clear on-screen error (wait for `+`), never a crash.
+- **Fat**: `nxjs-nro --fat` (or `NXJS_FAT=1`) embeds the full ~40 MB runtime
+  into the app's NRO — self-contained, no external dependency. (`--slim` /
+  `NXJS_SLIM=1` are still accepted as no-ops since slim is the default.)
 
 - **Build**: `make -C bootstrap` (devkitPro; `jq` derives the runtime major from
   `packages/runtime/package.json` → the baked `^major` default). CI builds
   `bootstrap.nro`, uploads it, and the release job copies it into
-  `packages/nro/dist/` next to `nxjs.nro` (so `@nx.js/nro --slim` can use it).
+  `packages/nro/dist/` next to `nxjs.nro` (so `@nx.js/nro` can use it as the
+  default slim base).
 - **Match logic** (`bootstrap/source/match.c`) is split from libnx so it's
   host-unit-tested: `bootstrap/test/run.sh` (no Switch needed).
 - **Prerelease note**: the vendored `semver.c` compares purely by precedence and
