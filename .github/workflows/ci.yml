@@ -17,15 +17,15 @@ jobs:
     container: ghcr.io/tootallnate/pacman-packages@sha256:5fd521a2e2e884e41a42ce5bd412b17ae0498d5a5e61a66b6ca836b6b7bc66b8
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         with:
           package_json_file: package.json
 
       - name: Setup Node.js 22.x
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 22.x
           cache: "pnpm"
@@ -48,17 +48,17 @@ jobs:
       - name: Build slim `bootstrap.nro`
         run: make -C bootstrap V=1
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: nxjs.nro
           path: nxjs.nro
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: bootstrap.nro
           path: bootstrap/bootstrap.nro
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: nxjs.nsp
           path: |
@@ -78,21 +78,21 @@ jobs:
       id-token: write
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Download `nxjs.nro`
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: nxjs.nro
 
       - name: Download `bootstrap.nro`
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: bootstrap.nro
           path: bootstrap-artifact
 
       - name: Download `nxjs.nsp`
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: nxjs.nsp
 
@@ -100,12 +100,12 @@ jobs:
         run: git fetch origin 'refs/tags/*:refs/tags/*'
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         with:
           package_json_file: package.json
 
       - name: Setup Node.js 24.x
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 24.x
           cache: "pnpm"
@@ -153,7 +153,7 @@ jobs:
     container: ghcr.io/tootallnate/pacman-packages@sha256:5fd521a2e2e884e41a42ce5bd412b17ae0498d5a5e61a66b6ca836b6b7bc66b8
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install build + host toolchain deps
         run: |
@@ -168,12 +168,12 @@ jobs:
           # relocations that lld-16 cannot process — it would leave .init_array
           # unrelocated and the binary would crash at startup).
       - name: Setup Node.js 22.x
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 22.x
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         with:
           package_json_file: package.json
 
