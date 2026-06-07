@@ -1221,10 +1221,12 @@ int main(int argc, char *argv[]) {
 		// headroom -> the 64 MiB code-range minimum, which fits): verified
 		// across the example apps on-device in applet mode (canvas, snake, svg,
 		// fonts, react, audio, http/websocket servers, repl — all stable with
-		// clean exit). Applet mode still uses CPU raster rendering (chosen
-		// independently of JIT) and keeps WASM opt-in (no code headroom by
-		// default; see the code-arena budget below). Apps can force the jitless
-		// interpreter with `[v8] jit = off`.
+		// clean exit). Applet mode still defaults to CPU raster rendering
+		// (chosen independently of JIT; an explicit `[renderer] gpu` can opt in
+		// to GPU even in applet — the known-unstable combo handled below) and
+		// keeps WASM opt-in (no code headroom by default; see the code-arena
+		// budget below). Apps can force the jitless interpreter with
+		// `[v8] jit = off`.
 		can_jit = true;
 		break;
 	}
@@ -1329,22 +1331,31 @@ int main(int argc, char *argv[]) {
 	// ("CALL_AND_RETRY_LAST"). So in applet mode clamp to real free RAM.
 	// Reserve headroom (outside the V8 managed heap) for the JIT code arena,
 	// GPU/Mesa, libuv, and native allocs — they share the process memory grant.
-	// The size depends on BOTH the JIT mode and the regime:
+	// The size depends on the JIT mode, the regime, and (in applet) whether GPU
+	// was explicitly requested:
 	//   - application + JIT: GPU/Mesa is the big consumer; reserve 180 MiB out
 	//     of the ~1 GiB address-space arena (heap then caps at 512 MiB below).
-	//   - applet + JIT: NO GPU (raster), so the only large reservation is the
-	//     64 MiB JIT code range (which libnx jitCreate dual-maps) plus libuv /
-	//     Skia raster / native. ~64 MiB leaves a usable heap from the ~137 MiB
-	//     applet grant. (The previous 180 MiB here was an application-mode
-	//     figure: it underflowed applet's free RAM to 0 and collapsed the heap
-	//     to the 32 MiB floor, which is too small for the JIT/Wasm compiler and
-	//     OOM'd — even though full JIT + a ~96 MiB heap is known to work in
-	//     applet mode. See the trifecta CPU example.)
+	//   - applet + JIT, default (raster): no GPU, so the only large reservation
+	//     is the 64 MiB JIT code range (which libnx jitCreate dual-maps) plus
+	//     libuv / Skia raster / native. ~64 MiB leaves a usable heap from the
+	//     ~137 MiB applet grant. (The previous 180 MiB here was an
+	//     application-mode figure: it underflowed applet's free RAM to 0 and
+	//     collapsed the heap to the 32 MiB floor, which is too small for the
+	//     JIT/Wasm compiler and OOM'd — even though full JIT + a ~96 MiB heap is
+	//     known to work in applet mode. See the trifecta CPU example.)
+	//   - applet + JIT + explicit `[renderer] gpu`: GPU/Mesa IS active (this is
+	//     the known-unstable combo warned about above). Use the larger 180 MiB
+	//     reserve so the V8 heap stays small and leaves Mesa as much room as
+	//     possible — the smaller raster reserve would grow the heap and starve
+	//     Mesa further. (`mem_free` - 180 underflows to the 32 MiB heap floor,
+	//     which is the right outcome here: minimal heap, maximal Mesa headroom.)
 	//   - jitless (either regime): no code range -> 48 MiB.
+	bool applet_gpu = tight_memory &&
+	                  nx_ctx->config.renderer == NX_RENDER_GPU;
 	u64 reserve;
 	if (!can_jit)
 		reserve = 48ull * 1024 * 1024;
-	else if (tight_memory)
+	else if (tight_memory && !applet_gpu)
 		reserve = 64ull * 1024 * 1024;
 	else
 		reserve = 180ull * 1024 * 1024;
