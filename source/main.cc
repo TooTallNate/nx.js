@@ -84,6 +84,14 @@ extern "C" const unsigned int nxjs_runtime_js_len;
 
 // switch-v8: release manual svcMapMemory arenas before returning to hbloader.
 extern "C" void horizon_mman_teardown(void);
+// switch-v8: tune the JIT code-arena budget BEFORE V8 init. wasm_headroom_mb is
+// extra code space for WebAssembly beyond V8's 64 MiB code-range floor; since
+// the libnx jit_* arena is dual-mapped (rx+rw) each MiB costs ~2 MiB real, so
+// 0 keeps the arena at the ~64 MiB minimum (~128 MiB real) instead of growing
+// it. max_code_mb is a hard ceiling (0 = automatic). See the headroom logic in
+// main() and apps/wasm/romfs/nxjs.ini.
+extern "C" void horizon_mman_set_code_budget(size_t wasm_headroom_mb,
+                                             size_t max_code_mb);
 
 // switch-v8: address space the mman reserved (from the STACK region) for V8's
 // object heap, in bytes (typically ~1 GiB; 0 if the reservation failed). Used to
@@ -853,6 +861,8 @@ static void build_init_object(Isolate *iso, Local<Context> context,
 		cset("jit", Boolean::New(iso, cfg->effective_jit));
 		cset("heapLimit",
 		     Number::New(iso, (double)cfg->effective_heap_limit));
+		cset("codeHeadroomMb",
+		     Integer::NewFromUnsigned(iso, cfg->effective_code_headroom_mb));
 		const char *rmode = cfg->renderer == NX_RENDER_CPU   ? "cpu"
 		                    : cfg->renderer == NX_RENDER_GPU ? "gpu"
 		                                                     : "auto";
@@ -1217,6 +1227,33 @@ int main(int argc, char *argv[]) {
 		        "unstable (V8 jitCreate starves Mesa); may crash\n");
 		fflush(stderr);
 	}
+
+	// JIT code-arena budget. The libnx jit_* code arena is dual-mapped (rx+rw),
+	// so it costs ~2x its size in real memory: V8's 64 MiB code-range floor is
+	// ~128 MiB real, and the default 64 MiB WASM headroom on top would make it
+	// ~256 MiB — impossible in applet mode (~137 MiB free). That oversized arena
+	// was the root cause of applet+JIT failures (early bsdsocket crash for apps
+	// that didn't fit; a ~5s render-loop freeze as the heap gradually exhausted).
+	//
+	// So pick the WASM headroom by regime unless the app overrides it:
+	//   - application mode: 64 MiB (WASM works out of the box).
+	//   - applet mode: 0 (WASM is opt-in via [v8] code_headroom_mb / wasm=on;
+	//     applet can't afford the dual-mapped headroom by default).
+	// 0 headroom => 64 MiB arena (V8's minimum code range; cannot go lower).
+	uint32_t headroom_mb = 0;
+	if (can_jit) {
+		headroom_mb = nx_ctx->config.code_headroom_mb;
+		if (headroom_mb == NX_CODE_HEADROOM_AUTO)
+			headroom_mb = tight_memory ? 0u : 64u;
+		horizon_mman_set_code_budget(headroom_mb, 0);
+		fprintf(stderr, "[v8] code arena: WASM headroom = %u MiB%s\n",
+		        headroom_mb,
+		        nx_ctx->config.code_headroom_mb == NX_CODE_HEADROOM_AUTO
+		            ? " (regime default)"
+		            : " (config)");
+		fflush(stderr);
+	}
+	nx_ctx->config.effective_code_headroom_mb = headroom_mb;
 
 	if (can_jit) {
 		V8::SetFlagsFromString("--single-threaded --single-threaded-gc "
