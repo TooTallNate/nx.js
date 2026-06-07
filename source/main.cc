@@ -1281,11 +1281,29 @@ int main(int argc, char *argv[]) {
 	// pure address space the device cannot back, so configuring a big heap makes
 	// V8 grow until physical commits fail and it fatally OOMs
 	// ("CALL_AND_RETRY_LAST"). So in applet mode clamp to real free RAM.
-	// Reserve headroom for the JIT code arena (~128 MiB real when can_jit),
-	// GPU/Mesa, libuv, and native allocs — they share the process memory.
+	// Reserve headroom (outside the V8 managed heap) for the JIT code arena,
+	// GPU/Mesa, libuv, and native allocs — they share the process memory grant.
+	// The size depends on BOTH the JIT mode and the regime:
+	//   - application + JIT: GPU/Mesa is the big consumer; reserve 180 MiB out
+	//     of the ~1 GiB address-space arena (heap then caps at 512 MiB below).
+	//   - applet + JIT: NO GPU (raster), so the only large reservation is the
+	//     64 MiB JIT code range (which libnx jitCreate dual-maps) plus libuv /
+	//     Skia raster / native. ~64 MiB leaves a usable heap from the ~137 MiB
+	//     applet grant. (The previous 180 MiB here was an application-mode
+	//     figure: it underflowed applet's free RAM to 0 and collapsed the heap
+	//     to the 32 MiB floor, which is too small for the JIT/Wasm compiler and
+	//     OOM'd — even though full JIT + a ~96 MiB heap is known to work in
+	//     applet mode. See the trifecta CPU example.)
+	//   - jitless (either regime): no code range -> 48 MiB.
+	u64 reserve;
+	if (!can_jit)
+		reserve = 48ull * 1024 * 1024;
+	else if (tight_memory)
+		reserve = 64ull * 1024 * 1024;
+	else
+		reserve = 180ull * 1024 * 1024;
 	{
 		u64 arena = (u64)horizon_mman_data_arena_size();
-		u64 reserve = (can_jit ? 180ull : 48ull) * 1024 * 1024;
 		u64 ceiling;
 		if (tight_memory) {
 			// Applet: bounded by real free physical RAM, not the address-space
