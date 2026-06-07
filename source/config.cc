@@ -136,6 +136,29 @@ static int ini_cb(void *user, const char *section, const char *name,
 		} else if (str_ieq(name, "flags")) {
 			free(cfg->v8_flags);
 			cfg->v8_flags = strdup(value);
+		} else if (str_ieq(name, "code_headroom_mb") ||
+		           str_ieq(name, "wasm")) {
+			// `wasm = on/off` is sugar for code_headroom_mb = 64 / 0.
+			if (str_ieq(name, "wasm")) {
+				if (str_ieq(value, "on") || str_ieq(value, "true") ||
+				    str_ieq(value, "1"))
+					cfg->code_headroom_mb = 64;
+				else if (str_ieq(value, "off") || str_ieq(value, "false") ||
+				         str_ieq(value, "0"))
+					cfg->code_headroom_mb = 0;
+				else
+					cfg_log("v8.wasm=\"%s\" not honored: invalid (use on|off)",
+					        value);
+			} else {
+				char *end = NULL;
+				unsigned long mb = strtoul(value, &end, 10);
+				if (end && *end == '\0' && mb <= 1024)
+					cfg->code_headroom_mb = (uint32_t)mb;
+				else
+					cfg_log("v8.code_headroom_mb=\"%s\" not honored: invalid "
+					        "(use 0-1024)",
+					        value);
+			}
 		} else {
 			cfg_log("v8.%s ignored: unknown key", name);
 		}
@@ -278,6 +301,7 @@ void nx_config_defaults(nx_config_t *cfg) {
 	cfg->renderer = NX_RENDER_AUTO;
 	cfg->v8_flags = NULL;
 	cfg->heap_limit = 0;
+	cfg->code_headroom_mb = NX_CODE_HEADROOM_AUTO;
 	cfg->loaded = false;
 }
 

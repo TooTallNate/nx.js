@@ -404,6 +404,10 @@ static void build_init_object(Isolate *iso, Local<Context> context,
 			conf->Set(context, nx_str(iso, k), v).Check();
 		};
 		cset("jit", Boolean::New(iso, true));
+		// Match the device application-mode default (64 MiB WASM headroom) so
+		// the runtime's WebAssembly-availability guard (see index.ts) keeps
+		// WASM enabled on the host harness — the wasm.ts fixture relies on it.
+		cset("codeHeadroomMb", Integer::NewFromUnsigned(iso, 64));
 		// Device exposes the effective (post-clamp) max heap in bytes, never 0;
 		// report the device application-regime cap (512 MiB) so host fixtures
 		// see the same semantics.

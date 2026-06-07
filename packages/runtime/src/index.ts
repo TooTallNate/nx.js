@@ -104,6 +104,55 @@ import './navigator';
 import './source-map';
 import { $ } from './$';
 
+// WebAssembly availability guard.
+//
+// WASM requires V8's JIT (a code-generation backend) AND room in the JIT code
+// arena for its separate code space. Two configurations make it unavailable:
+//   - jitless mode (`[v8] jit = off`, or — without this guard — applet mode if
+//     JIT were disabled): V8 has no backend, so `new WebAssembly.Module()`
+//     throws an opaque CompileError.
+//   - applet mode with no WASM code headroom (the regime default,
+//     `$.config.codeHeadroomMb === 0`): there is no room reserved for WASM's
+//     code space, so compilation OOMs.
+// In both cases the native error is cryptic. Wrap the `WebAssembly` entry points
+// to fail fast with an actionable message pointing at the `nxjs.ini` fix.
+{
+	const WA: any = (globalThis as any).WebAssembly;
+	if (WA) {
+		const jit = $.config?.jit !== false;
+		const headroom = $.config?.codeHeadroomMb ?? 0;
+		let reason: string | undefined;
+		if (!jit) {
+			reason =
+				'WebAssembly requires the V8 JIT, which is disabled ' +
+				'(`[v8] jit = off` in nxjs.ini). Remove that override (or set ' +
+				'`jit = on`) to use WebAssembly.';
+		} else if (headroom === 0) {
+			reason =
+				'WebAssembly is disabled in this memory regime (applet mode) ' +
+				'because no JIT code-space headroom is reserved by default. ' +
+				'Enable it by adding to nxjs.ini:\n\n  [v8]\n  wasm = on\n\n' +
+				'(equivalently `code_headroom_mb = 64`). Note this needs the ' +
+				'extra memory, so prefer launching in full-memory/application ' +
+				'mode for WebAssembly-heavy apps.';
+		}
+		if (reason) {
+			const err = () => {
+				throw new WA.CompileError(`[nx.js] ${reason}`);
+			};
+			// Synchronous entry points throw; async ones reject.
+			const rej = () => Promise.reject(new WA.CompileError(`[nx.js] ${reason}`));
+			WA.Module = function () {
+				err();
+			} as any;
+			WA.compile = rej;
+			WA.instantiate = rej;
+			WA.compileStreaming = rej;
+			WA.instantiateStreaming = rej;
+		}
+	}
+}
+
 /**
  * The `import.meta` meta-property exposes context-specific metadata to a JavaScript module.
  * It contains information about the module, such as the module's URL.

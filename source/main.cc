@@ -84,6 +84,14 @@ extern "C" const unsigned int nxjs_runtime_js_len;
 
 // switch-v8: release manual svcMapMemory arenas before returning to hbloader.
 extern "C" void horizon_mman_teardown(void);
+// switch-v8: tune the JIT code-arena budget BEFORE V8 init. wasm_headroom_mb is
+// extra code space for WebAssembly beyond V8's 64 MiB code-range floor; since
+// the libnx jit_* arena is dual-mapped (rx+rw) each MiB costs ~2 MiB real, so
+// 0 keeps the arena at the ~64 MiB minimum (~128 MiB real) instead of growing
+// it. max_code_mb is a hard ceiling (0 = automatic). See the headroom logic in
+// main() and apps/wasm/romfs/nxjs.ini.
+extern "C" void horizon_mman_set_code_budget(size_t wasm_headroom_mb,
+                                             size_t max_code_mb);
 
 // switch-v8: address space the mman reserved (from the STACK region) for V8's
 // object heap, in bytes (typically ~1 GiB; 0 if the reservation failed). Used to
@@ -853,6 +861,8 @@ static void build_init_object(Isolate *iso, Local<Context> context,
 		cset("jit", Boolean::New(iso, cfg->effective_jit));
 		cset("heapLimit",
 		     Number::New(iso, (double)cfg->effective_heap_limit));
+		cset("codeHeadroomMb",
+		     Integer::NewFromUnsigned(iso, cfg->effective_code_headroom_mb));
 		const char *rmode = cfg->renderer == NX_RENDER_CPU   ? "cpu"
 		                    : cfg->renderer == NX_RENDER_GPU ? "gpu"
 		                                                     : "auto";
@@ -1206,7 +1216,18 @@ int main(int argc, char *argv[]) {
 		break;
 	case NX_JIT_AUTO:
 	default:
-		can_jit = !tight_memory;
+		// Full JIT in BOTH memory regimes by default. This is safe now that the
+		// JIT code-arena headroom is regime-gated (applet mode reserves 0 WASM
+		// headroom -> the 64 MiB code-range minimum, which fits): verified
+		// across the example apps on-device in applet mode (canvas, snake, svg,
+		// fonts, react, audio, http/websocket servers, repl — all stable with
+		// clean exit). Applet mode still defaults to CPU raster rendering
+		// (chosen independently of JIT; an explicit `[renderer] gpu` can opt in
+		// to GPU even in applet — the known-unstable combo handled below) and
+		// keeps WASM opt-in (no code headroom by default; see the code-arena
+		// budget below). Apps can force the jitless interpreter with
+		// `[v8] jit = off`.
+		can_jit = true;
 		break;
 	}
 	nx_ctx->config.effective_jit = can_jit;
@@ -1217,6 +1238,33 @@ int main(int argc, char *argv[]) {
 		        "unstable (V8 jitCreate starves Mesa); may crash\n");
 		fflush(stderr);
 	}
+
+	// JIT code-arena budget. The libnx jit_* code arena is dual-mapped (rx+rw),
+	// so it costs ~2x its size in real memory: V8's 64 MiB code-range floor is
+	// ~128 MiB real, and the default 64 MiB WASM headroom on top would make it
+	// ~256 MiB — impossible in applet mode (~137 MiB free). That oversized arena
+	// was the root cause of applet+JIT failures (early bsdsocket crash for apps
+	// that didn't fit; a ~5s render-loop freeze as the heap gradually exhausted).
+	//
+	// So pick the WASM headroom by regime unless the app overrides it:
+	//   - application mode: 64 MiB (WASM works out of the box).
+	//   - applet mode: 0 (WASM is opt-in via [v8] code_headroom_mb / wasm=on;
+	//     applet can't afford the dual-mapped headroom by default).
+	// 0 headroom => 64 MiB arena (V8's minimum code range; cannot go lower).
+	uint32_t headroom_mb = 0;
+	if (can_jit) {
+		headroom_mb = nx_ctx->config.code_headroom_mb;
+		if (headroom_mb == NX_CODE_HEADROOM_AUTO)
+			headroom_mb = tight_memory ? 0u : 64u;
+		horizon_mman_set_code_budget(headroom_mb, 0);
+		fprintf(stderr, "[v8] code arena: WASM headroom = %u MiB%s\n",
+		        headroom_mb,
+		        nx_ctx->config.code_headroom_mb == NX_CODE_HEADROOM_AUTO
+		            ? " (regime default)"
+		            : " (config)");
+		fflush(stderr);
+	}
+	nx_ctx->config.effective_code_headroom_mb = headroom_mb;
 
 	if (can_jit) {
 		V8::SetFlagsFromString("--single-threaded --single-threaded-gc "
@@ -1281,11 +1329,38 @@ int main(int argc, char *argv[]) {
 	// pure address space the device cannot back, so configuring a big heap makes
 	// V8 grow until physical commits fail and it fatally OOMs
 	// ("CALL_AND_RETRY_LAST"). So in applet mode clamp to real free RAM.
-	// Reserve headroom for the JIT code arena (~128 MiB real when can_jit),
-	// GPU/Mesa, libuv, and native allocs — they share the process memory.
+	// Reserve headroom (outside the V8 managed heap) for the JIT code arena,
+	// GPU/Mesa, libuv, and native allocs — they share the process memory grant.
+	// The size depends on the JIT mode, the regime, and (in applet) whether GPU
+	// was explicitly requested:
+	//   - application + JIT: GPU/Mesa is the big consumer; reserve 180 MiB out
+	//     of the ~1 GiB address-space arena (heap then caps at 512 MiB below).
+	//   - applet + JIT, default (raster): no GPU, so the only large reservation
+	//     is the 64 MiB JIT code range (which libnx jitCreate dual-maps) plus
+	//     libuv / Skia raster / native. ~64 MiB leaves a usable heap from the
+	//     ~137 MiB applet grant. (The previous 180 MiB here was an
+	//     application-mode figure: it underflowed applet's free RAM to 0 and
+	//     collapsed the heap to the 32 MiB floor, which is too small for the
+	//     JIT/Wasm compiler and OOM'd — even though full JIT + a ~96 MiB heap is
+	//     known to work in applet mode. See the trifecta CPU example.)
+	//   - applet + JIT + explicit `[renderer] gpu`: GPU/Mesa IS active (this is
+	//     the known-unstable combo warned about above). Use the larger 180 MiB
+	//     reserve so the V8 heap stays small and leaves Mesa as much room as
+	//     possible — the smaller raster reserve would grow the heap and starve
+	//     Mesa further. (`mem_free` - 180 underflows to the 32 MiB heap floor,
+	//     which is the right outcome here: minimal heap, maximal Mesa headroom.)
+	//   - jitless (either regime): no code range -> 48 MiB.
+	bool applet_gpu = tight_memory &&
+	                  nx_ctx->config.renderer == NX_RENDER_GPU;
+	u64 reserve;
+	if (!can_jit)
+		reserve = 48ull * 1024 * 1024;
+	else if (tight_memory && !applet_gpu)
+		reserve = 64ull * 1024 * 1024;
+	else
+		reserve = 180ull * 1024 * 1024;
 	{
 		u64 arena = (u64)horizon_mman_data_arena_size();
-		u64 reserve = (can_jit ? 180ull : 48ull) * 1024 * 1024;
 		u64 ceiling;
 		if (tight_memory) {
 			// Applet: bounded by real free physical RAM, not the address-space

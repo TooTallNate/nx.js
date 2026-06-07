@@ -202,9 +202,25 @@ version = ^1                       ; semver requirement for the shared runtime N
 - **Every value that can't be honored is logged** to `nxjs-debug.log` as a
   `[config] … not honored: <reason>` line (clamped heap, invalid value, GPU
   init fallback, socket reservation too big, etc.). A missing file is silent.
-- `jit` is honored verbatim (no clamp): JIT works in applet mode for CPU
-  rendering; only **applet + GPU + JIT** is known to crash (jitCreate starves
-  Mesa) — that combo is warned about but still attempted.
+- **JIT is ON by default in BOTH regimes** (`jit = auto` → `can_jit = true`;
+  was regime-gated/jitless-in-applet before). Applet mode still uses CPU raster
+  rendering (chosen independently of JIT). `jit = off` forces the interpreter.
+  Only **applet + GPU + JIT** is known to crash (jitCreate starves Mesa) — that
+  combo (an explicit `[renderer] gpu` in applet) is warned about but attempted.
+- **WASM needs JIT code-arena headroom** beyond V8's 64 MiB code-range floor.
+  The libnx jit_* arena is dual-mapped (rx+rw → ~2× real), so the headroom is
+  regime-gated: application mode reserves 64 MiB (WASM works out of the box),
+  applet mode reserves **0** (WASM opt-in, since the dual-mapped headroom won't
+  fit applet's ~137 MiB free). Set `[v8] code_headroom_mb = N` (or `wasm = on`,
+  sugar for 64). When WASM is unavailable (jitless, or applet w/ 0 headroom),
+  `index.ts` wraps `WebAssembly.Module`/`compile`/`instantiate`(`Streaming`) to
+  throw a clear nx.js `CompileError` pointing at the `nxjs.ini` fix, gated on
+  `$.config.jit` / `$.config.codeHeadroomMb` — keep the host `$.config` mirror's
+  `codeHeadroomMb` non-zero (64) so the host harness keeps WASM enabled.
+- The historic applet-mode-JIT crashes were NOT the regime per se: nx.js used to
+  reserve the 64 MiB WASM headroom unconditionally → a ~256 MiB-real arena that
+  left ~10 MiB for everything in applet → bsdsocket/heap/Skia failures. Fixed by
+  regime-gating the headroom (commit 71eecc2).
 - The host `nxjs-test` reads **no** INI; its `build_init_object` exposes a
   default `$.config`. Keep that mirror in sync if you change `$.config`'s shape.
 - `[runtime]` is read by the **slim bootstrap launcher**, not the runtime. The
@@ -546,9 +562,10 @@ DEVKITPRO=/opt/devkitpro make -j4            # -> nxjs.nro / nxjs.elf
 5. **ALWAYS restore the throwaway afterward**: `git checkout -- apps/hello-world/`
    and delete any temp `romfs/` files you added. Never commit hello-world hacks.
 
-**Application vs applet mode matters** for memory/JIT/GPU paths: application mode
-(~3 GiB grant) runs full JIT + GPU canvas; applet mode (~380 MiB) runs jitless +
-raster. The user chooses how they launch it — ask which mode to test, and have
+**Application vs applet mode matters** for memory/GPU paths: application mode
+(~3 GiB grant) runs GPU canvas + WASM by default; applet mode (~380 MiB) runs
+raster + WASM opt-in. Both run full JIT by default now (applet was jitless
+before). The user chooses how they launch it — ask which mode to test, and have
 the repro log `Switch.memoryUsage()` / read `[v8]` lines from
 `sdmc:/switch/nxjs-debug.log` when memory behavior is relevant.
 

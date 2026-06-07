@@ -66,6 +66,11 @@ typedef enum {
 	NX_JIT_OFF,
 } nx_jit_mode_t;
 
+// Sentinel for nx_config_t::code_headroom_mb meaning "unset — pick a regime
+// default" (application: 64 MiB WASM headroom; applet: 0). UINT32_MAX so an
+// explicit `code_headroom_mb = 0` (disable) is distinguishable from unset.
+#define NX_CODE_HEADROOM_AUTO 0xFFFFFFFFu
+
 typedef enum {
 	NX_RENDER_AUTO = 0, // regime-based: raster in applet, GPU (w/ fallback) in app
 	NX_RENDER_CPU,      // force raster
@@ -130,6 +135,14 @@ typedef struct {
 	nx_jit_mode_t jit;
 	char *v8_flags;       // strdup'd app-provided flag string, or NULL
 	uint64_t heap_limit;  // requested heap max in bytes; 0 = use computed default
+	// Extra MiB of JIT code-arena space reserved for WebAssembly (WASM compiles
+	// its own code region from the libnx jit_* arena, which is dual-mapped so
+	// every MiB here costs ~2 MiB real). Sentinel NX_CODE_HEADROOM_AUTO means
+	// "pick a regime default" (application: 64, applet: 0 — applet's ~137 MiB
+	// can't afford the dual-mapped headroom, so WASM is opt-in there). A WASM
+	// app in applet mode sets e.g. `code_headroom_mb = 64`. 0 disables WASM
+	// code space (modules OOM at compile: "Allocate initial wasm code space").
+	uint32_t code_headroom_mb;
 	nx_render_mode_t renderer;
 	nx_socket_config_t socket;
 	nx_console_config_t console; // [console] styling, exposed on $.config.console
@@ -141,6 +154,7 @@ typedef struct {
 	// outcome isn't known until the lazy framebuffer init (it's logged there).
 	bool effective_jit;
 	uint64_t effective_heap_limit; // bytes actually passed to V8
+	uint32_t effective_code_headroom_mb; // WASM headroom actually applied (0 if !jit)
 } nx_config_t;
 
 // Initialize `cfg` to defaults (everything auto/unset).

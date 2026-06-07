@@ -89,6 +89,13 @@ export interface NxConsoleConfig {
 export interface NxConfig {
 	/** Whether V8 JIT is enabled (vs jitless interpreter). */
 	jit: boolean;
+	/**
+	 * Effective extra JIT code-arena headroom (MiB) reserved for WebAssembly
+	 * beyond V8's 64 MiB code-range floor. 0 means WASM is effectively
+	 * unavailable (no room for its code space) — opt in via `[v8]
+	 * code_headroom_mb` / `wasm = on`. Always 0 when `jit` is false.
+	 */
+	codeHeadroomMb: number;
 	/** Effective V8 max heap size in bytes (post-clamp; the value actually passed to V8). */
 	heapLimit: number;
 	/** Requested renderer mode. */
