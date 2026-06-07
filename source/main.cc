@@ -1216,7 +1216,16 @@ int main(int argc, char *argv[]) {
 		break;
 	case NX_JIT_AUTO:
 	default:
-		can_jit = !tight_memory;
+		// Full JIT in BOTH memory regimes by default. This is safe now that the
+		// JIT code-arena headroom is regime-gated (applet mode reserves 0 WASM
+		// headroom -> the 64 MiB code-range minimum, which fits): verified
+		// across the example apps on-device in applet mode (canvas, snake, svg,
+		// fonts, react, audio, http/websocket servers, repl — all stable with
+		// clean exit). Applet mode still uses CPU raster rendering (chosen
+		// independently of JIT) and keeps WASM opt-in (no code headroom by
+		// default; see the code-arena budget below). Apps can force the jitless
+		// interpreter with `[v8] jit = off`.
+		can_jit = true;
 		break;
 	}
 	nx_ctx->config.effective_jit = can_jit;
