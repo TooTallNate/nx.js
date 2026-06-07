@@ -1,6 +1,6 @@
 {
   "name": "@nx.js/runtime",
-  "version": "1.0.0-beta.1",
+  "version": "1.0.0-beta.2",
   "description": "nx.js runtime",
   "repository": {
     "type": "git",

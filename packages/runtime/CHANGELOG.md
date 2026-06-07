@@ -1,5 +1,31 @@
 # @nx.js/runtime
 
+## 1.0.0-beta.2
+
+### Minor Changes
+
+- feat: support an explicit entrypoint via `argv[1]` — launch the nx.js runtime with a `.js` file (run directly) or an app `.nro` (its embedded RomFS is mounted as `romfs:` and `romfs:/main.js` is run). The runtime's own files are now mounted under `nxjs:` so `romfs:` always refers to the app. This is the foundation for a thin "bootstrap" launcher that keeps a single shared nx.js runtime on the SD card. ([#355](https://github.com/TooTallNate/nx.js/pull/355))
+
+- feat: canvas-backed `console` — `console.log`/`warn`/`error` now render to the screen via a headless xterm.js terminal drawn with Canvas2D in the bundled Geist Mono font (ANSI colors, UTF-8, scrollback with `console.scrollUp`/`scrollDown` + touch-drag, plus `console.canvas` and isolated `new Console()` instances), falling back to the native libnx console when no font/display is available; this also fixes the GPU-mode `console.log` crash (it no longer tears down EGL). The on-screen "Runtime initialization failed" message now shows the underlying error + stack. ([#357](https://github.com/TooTallNate/nx.js/pull/357))
+
+- feat: configurable on-screen `console` — `Console` now accepts terminal styling options (theme colors, `fontSize`, `lineHeight`, `scrollback`, `cursorStyle`, `cursorOpacity`) via its constructor, and the global `console` exposes a settable `console.options` to apply them before the first log (the terminal is created lazily). The console can also be themed **declaratively** via a `[console]` section in `nxjs.ini` (`font_size`, `cursor_style`, `background`/`foreground`/`cursor`, and the full `black`..`bright_white` ANSI palette), exposed on `$.config.console`; the global console seeds its options from it (an explicit `console.options =` assignment overrides). The canvas terminal renderer now honors the **full** xterm ANSI palette (`black`..`brightWhite`, not just `background`/`foreground`/`cursor`) and supports `block`/`underline`/`bar` cursor styles. Also fixes thin background seams between cells by snapping the monospace cell advance to a whole pixel. ([#367](https://github.com/TooTallNate/nx.js/pull/367))
+
+- feat: native ES module `import` resolution — the runtime now resolves static `import` and filesystem `await import()` against `romfs:`/`sdmc:`/`nxjs:` (relative and absolute-URL specifiers; bare specifiers throw), with a module cache for referential stability/cycles and correct per-module `import.meta.url`/`import.meta.main`. Top-level await is supported. Enables unbundled multi-file apps and app-level lazy loading (JSON/asset and remote `http(s):`/`data:` imports are not yet supported). ([#356](https://github.com/TooTallNate/nx.js/pull/356))
+
+- feat: optional `nxjs.ini` config file (read next to the entrypoint, before V8 init) lets an app override V8 JIT mode + flags (`[v8] jit/flags`), the V8 heap limit (`[memory] heap_limit`, clamped to what fits), the renderer (`[renderer] mode = auto|cpu|gpu`), and the libnx socket config (`[socket]` fields incl. `service_type`); effective values are exposed on `$.config`, and any value that can't be honored is logged to `nxjs-debug.log` with the reason. ([#359](https://github.com/TooTallNate/nx.js/pull/359))
+
+- feat: slim NSP packaging. `nxjs-nsp` now builds a **slim** NSP by default — its exefs `main` is a tiny forwarder (a patched nx-hbloader) that chainloads the shared runtime NRO from `sdmc:/nx.js/` (selected by the `[runtime] version` requirement in the app's `romfs/nxjs.ini`, default caret-on-major) and mounts the installed title's own RomFS (the app) into it — instead of embedding the full ~21 MB runtime NSO per title. Pass `--fat` (or `NXJS_FAT=1`) for a self-contained NSP. The runtime gained an `argv[1] == "nsp:"` entrypoint that mounts the app via `romfsMountFromCurrentProcess`. The `bootstrap/` launcher sources were reorganized into shared logic + `launcher-nro/` and `launcher-nsp/`; `@nx.js/nro`'s slim base path moved accordingly. `create-nxjs-app` flags both the `nro` and `nsp` scripts for the Fat packaging choice. ([#365](https://github.com/TooTallNate/nx.js/pull/365))
+
+### Patch Changes
+
+- fix: `Switch.Application.self` now resolves to the launched app (not the shared runtime) in slim packaging modes. It previously keyed off `$.argv[0]`, which for a slim NRO/NSP is the shared runtime NRO, so `self.name` reported `"nx.js"` instead of the app. The runtime now exposes `$.selfNroPath` (the app's `.nro` path for standalone/slim NRO apps, or `null` for installed titles so `self` resolves via the process's `ProgramId`), and the slim bootstrap launcher's NACP carries the proper author + title id so a slim app's `Application.self` (name/author/version/id) matches the fat build. Verified on-device across all four modes (fat/slim × NRO/NSP). ([#366](https://github.com/TooTallNate/nx.js/pull/366))
+
+- chore: clean up all C++ compile warnings — consume the `[[nodiscard]]` results of V8 `Maybe::To()`/`MaybeLocal::ToLocal()` in audio/crypto/service (defaulting on failure), replace a truncating `strncpy` with `snprintf`, value-initialize the `sk_sp`-containing font-face struct with placement-new instead of `memset`, and suppress unavoidable third-party header warnings (Skia's `clang::reinitializes` attribute, V8's `GetIsolate()` strict-aliasing type-pun). The device build is now warning-free. ([#361](https://github.com/TooTallNate/nx.js/pull/361))
+
+- fix: the GPU screen renderer now blits the canvas into the EGL back buffer with `SkBlendMode::kSrc` instead of the default `kSrcOver`, so transparent/partially-transparent pixels fully replace the (double-buffered, stale) back buffer each frame instead of blending it through and looking additive — matching the CPU raster path. ([#358](https://github.com/TooTallNate/nx.js/pull/358))
+
+- fix: size the V8 heap per memory regime — in application mode from the real committable arena (up to 512 MiB) instead of the misleading free-memory figure, and in applet mode from actual free RAM — so memory-heavy JS no longer fatally OOMs in application mode while applet mode stays correctly bounded. ([#353](https://github.com/TooTallNate/nx.js/pull/353))
+
 ## 1.0.0-beta.1
 
 ### Patch Changes
