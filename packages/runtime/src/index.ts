@@ -13,6 +13,7 @@ import {
 import { def } from './utils';
 
 export type * from './console';
+export type * from './terminal';
 
 export type * from './crypto';
 import { DOMException } from './dom-exception';

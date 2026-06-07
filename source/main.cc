@@ -878,6 +878,60 @@ static void build_init_object(Isolate *iso, Local<Context> context,
 		sset("serviceType", (u32)esc->bsd_service_type);
 		conf->Set(context, nx_str(iso, "socket"), sock).Check();
 
+		// `$.config.console`: the `[console]` styling from nxjs.ini, passed
+		// through verbatim (only keys that were set). The JS console layer
+		// seeds the global console's options from this (an explicit
+		// `console.options =` assignment overrides). A `theme` sub-object holds
+		// the colors so it maps directly onto the TerminalOptions theme shape.
+		{
+			const nx_console_config_t *cc = &cfg->console;
+			Local<Object> con = Object::New(iso);
+			auto cnset = [&](const char *k, Local<Value> v) {
+				con->Set(context, nx_str(iso, k), v).Check();
+			};
+			if (cc->has_font_size)
+				cnset("fontSize", Number::New(iso, cc->font_size));
+			if (cc->has_line_height)
+				cnset("lineHeight", Number::New(iso, cc->line_height));
+			if (cc->has_scrollback)
+				cnset("scrollback",
+				      Integer::NewFromUnsigned(iso, cc->scrollback));
+			if (cc->cursor_style != NX_CURSOR_UNSET) {
+				const char *cs = cc->cursor_style == NX_CURSOR_UNDERLINE
+				                     ? "underline"
+				                 : cc->cursor_style == NX_CURSOR_BAR ? "bar"
+				                                                     : "block";
+				cnset("cursorStyle", nx_str(iso, cs));
+			}
+			if (cc->has_cursor_opacity)
+				cnset("cursorOpacity", Number::New(iso, cc->cursor_opacity));
+
+			// Theme colors -> a `theme` object (only the set ones).
+			static const char *const THEME_KEYS[16] = {
+			    "black",       "red",        "green",       "yellow",
+			    "blue",        "magenta",    "cyan",        "white",
+			    "brightBlack", "brightRed",  "brightGreen", "brightYellow",
+			    "brightBlue",  "brightMagenta", "brightCyan", "brightWhite"};
+			Local<Object> theme = Object::New(iso);
+			bool any_theme = false;
+			auto tset = [&](const char *k, const char *v) {
+				if (!v)
+					return;
+				theme->Set(context, nx_str(iso, k), nx_str_lossy(iso, v))
+				    .Check();
+				any_theme = true;
+			};
+			tset("background", cc->background);
+			tset("foreground", cc->foreground);
+			tset("cursor", cc->cursor);
+			for (int i = 0; i < 16; i++)
+				tset(THEME_KEYS[i], cc->ansi[i]);
+			if (any_theme)
+				cnset("theme", theme);
+
+			conf->Set(context, nx_str(iso, "console"), con).Check();
+		}
+
 		conf->Set(context, nx_str(iso, "loaded"),
 		          Boolean::New(iso, cfg->loaded))
 		    .Check();

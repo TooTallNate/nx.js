@@ -428,6 +428,10 @@ static void build_init_object(Isolate *iso, Local<Context> context,
 		sset("serviceType", 3u); // BsdServiceType_Auto
 		conf->Set(context, nx_str(iso, "socket"), sock).Check();
 
+		// `$.config.console`: the host reads no nxjs.ini, so expose an empty
+		// object (no overrides) to match the device `$.config` shape.
+		conf->Set(context, nx_str(iso, "console"), Object::New(iso)).Check();
+
 		conf->Set(context, nx_str(iso, "loaded"), Boolean::New(iso, false))
 		    .Check();
 		init_obj->Set(context, nx_str(iso, "config"), conf).Check();

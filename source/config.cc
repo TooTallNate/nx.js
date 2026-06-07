@@ -76,6 +76,39 @@ static bool parse_u32(const char *s, uint32_t *out) {
 	return true;
 }
 
+// Parse a finite, non-negative decimal (e.g. "22", "1.25", "0.5").
+static bool parse_double(const char *s, double *out) {
+	if (!s || !*s)
+		return false;
+	errno = 0;
+	char *end = NULL;
+	double v = strtod(s, &end);
+	if (end == s || errno == ERANGE)
+		return false;
+	while (*end == ' ' || *end == '\t')
+		end++;
+	if (*end)
+		return false; // trailing garbage
+	if (!(v >= 0.0) || v != v) // reject negatives, NaN, inf
+		return false;
+	*out = v;
+	return true;
+}
+
+// Replace a strdup'd color string slot with a copy of `value`.
+static void set_color(char **slot, const char *value) {
+	free(*slot);
+	*slot = strdup(value);
+}
+
+// ANSI palette keys (indices 0-15), matching nx_console_config_t.ansi[].
+static const char *const CONSOLE_ANSI_KEYS[16] = {
+	"black", "red", "green", "yellow",
+	"blue", "magenta", "cyan", "white",
+	"bright_black", "bright_red", "bright_green", "bright_yellow",
+	"bright_blue", "bright_magenta", "bright_cyan", "bright_white",
+};
+
 // ---------------------------------------------------------------------------
 // inih handler.
 // ---------------------------------------------------------------------------
@@ -176,6 +209,49 @@ static int ini_cb(void *user, const char *section, const char *name,
 			else cfg_log("socket.service_type=\"%s\" not honored: invalid (use auto|user|system)", value);
 		} else {
 			cfg_log("socket.%s ignored: unknown key", name);
+		}
+		return 1;
+	}
+
+	if (str_ieq(section, "console")) {
+		nx_console_config_t *c = &cfg->console;
+		double d;
+		uint32_t u;
+		if (str_ieq(name, "font_size")) {
+			if (parse_double(value, &d) && d > 0) { c->font_size = d; c->has_font_size = true; }
+			else cfg_log("console.font_size=\"%s\" not honored: invalid (positive number)", value);
+		} else if (str_ieq(name, "line_height")) {
+			if (parse_double(value, &d) && d > 0) { c->line_height = d; c->has_line_height = true; }
+			else cfg_log("console.line_height=\"%s\" not honored: invalid (positive number)", value);
+		} else if (str_ieq(name, "scrollback")) {
+			if (parse_u32(value, &u)) { c->scrollback = u; c->has_scrollback = true; }
+			else cfg_log("console.scrollback=\"%s\" not honored: invalid", value);
+		} else if (str_ieq(name, "cursor_style")) {
+			if (str_ieq(value, "block")) c->cursor_style = NX_CURSOR_BLOCK;
+			else if (str_ieq(value, "underline")) c->cursor_style = NX_CURSOR_UNDERLINE;
+			else if (str_ieq(value, "bar")) c->cursor_style = NX_CURSOR_BAR;
+			else cfg_log("console.cursor_style=\"%s\" not honored: invalid (use block|underline|bar)", value);
+		} else if (str_ieq(name, "cursor_opacity")) {
+			if (parse_double(value, &d) && d <= 1.0) { c->cursor_opacity = d; c->has_cursor_opacity = true; }
+			else cfg_log("console.cursor_opacity=\"%s\" not honored: invalid (0-1)", value);
+		} else if (str_ieq(name, "background")) {
+			set_color(&c->background, value);
+		} else if (str_ieq(name, "foreground")) {
+			set_color(&c->foreground, value);
+		} else if (str_ieq(name, "cursor")) {
+			set_color(&c->cursor, value);
+		} else {
+			// Try the ANSI palette keys (black..bright_white).
+			bool matched = false;
+			for (int i = 0; i < 16; i++) {
+				if (str_ieq(name, CONSOLE_ANSI_KEYS[i])) {
+					set_color(&c->ansi[i], value);
+					matched = true;
+					break;
+				}
+			}
+			if (!matched)
+				cfg_log("console.%s ignored: unknown key", name);
 		}
 		return 1;
 	}
@@ -380,4 +456,13 @@ void nx_config_free(nx_config_t *cfg) {
 		return;
 	free(cfg->v8_flags);
 	cfg->v8_flags = NULL;
+	nx_console_config_t *c = &cfg->console;
+	free(c->background);
+	free(c->foreground);
+	free(c->cursor);
+	c->background = c->foreground = c->cursor = NULL;
+	for (int i = 0; i < 16; i++) {
+		free(c->ansi[i]);
+		c->ansi[i] = NULL;
+	}
 }

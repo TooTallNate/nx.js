@@ -2,6 +2,7 @@ import { bgRgb, bold, red, yellow } from 'kleur/colors';
 import { $ } from './$';
 import { inspect } from './switch/inspect';
 import { Terminal, consoleFontAvailable } from './terminal';
+import type { TerminalOptions } from './terminal';
 import type { OffscreenCanvas } from './canvas/offscreen-canvas';
 import { onConsoleOutput } from './console-screen';
 
@@ -51,7 +52,23 @@ function format(...input: unknown[]): string {
 	return s;
 }
 
-export interface ConsoleOptions {
+/**
+ * Options for a {@link Console}. In addition to the optional `print`/`printErr`
+ * sinks, the canvas-backed terminal can be styled via {@link TerminalOptions}
+ * (theme colors, font size, scrollback, cursor, etc.).
+ *
+ * For the global `console`, assign these options to {@link Console.options}
+ * before the first output (e.g. at the top of your app) — the underlying
+ * terminal is created lazily, so the options take effect on first render:
+ *
+ * ```ts
+ * console.options = {
+ *   fontSize: 24,
+ *   theme: { background: '#002b36', foreground: '#839496' },
+ * };
+ * ```
+ */
+export interface ConsoleOptions extends TerminalOptions {
 	print?(s: string): void;
 	printErr?(s: string): void;
 }
@@ -73,6 +90,8 @@ export class Console {
 	#isGlobal: boolean;
 	/** Custom print sink (if provided, bypasses the canvas terminal). */
 	#customPrint?: (s: string) => void;
+	/** Terminal styling options applied when the terminal is (re)created. */
+	#options: TerminalOptions;
 
 	constructor(opts: ConsoleOptions = {}) {
 		this.#customPrint = opts.print;
@@ -81,16 +100,57 @@ export class Console {
 		this.#counts = new Map();
 		this.#timers = new Map();
 		this.#groupDepth = 0;
+		const { print, printErr, ...termOpts } = opts;
 		// The first Console created without a custom `print` sink is the global
 		// one — it owns the default on-screen console present (see index.ts).
 		this.#isGlobal = !opts.print && !globalConsoleClaimed;
 		if (this.#isGlobal) globalConsoleClaimed = true;
+		// Seed the global console's styling from the `[console]` section of
+		// nxjs.ini ($.config.console) so it can be themed with zero app code.
+		// Explicitly-passed constructor options (rare for the global console)
+		// and a later `console.options =` assignment both override this.
+		this.#options =
+			this.#isGlobal && Object.keys(termOpts).length === 0
+				? ($.config?.console as TerminalOptions) ?? {}
+				: termOpts;
+	}
+
+	/**
+	 * The terminal styling options (theme, font size, scrollback, cursor, …).
+	 * Assigning replaces them and rebuilds the underlying terminal, so a fresh
+	 * theme/font takes effect immediately (the scrollback buffer is reset).
+	 *
+	 * For the global `console`, set this before the first log to style the
+	 * on-screen console:
+	 *
+	 * ```ts
+	 * console.options = { theme: { background: '#002b36' }, fontSize: 24 };
+	 * ```
+	 *
+	 * Note: rebuilding the terminal also creates a new {@link Console.canvas}.
+	 * If you cache `console.canvas`, re-read it after assigning `options` (or
+	 * set `options` before first accessing the canvas) — a stale reference will
+	 * keep drawing the old, no-longer-updated canvas.
+	 */
+	get options(): TerminalOptions {
+		return this.#options;
+	}
+	set options(opts: TerminalOptions) {
+		this.#options = opts ?? {};
+		// Drop any existing terminal so the next access rebuilds it with the new
+		// options. (Buffered scrollback is not carried over, and a new backing
+		// canvas is created — see the `canvas` getter note.)
+		this.#terminal = undefined;
 	}
 
 	/**
 	 * The {@link OffscreenCanvas} this console renders its terminal into. Lazily
 	 * created on first access (or first output). Apps can composite it onto the
 	 * screen, e.g. `screen.getContext('2d').drawImage(console.canvas, x, y)`.
+	 *
+	 * Assigning {@link Console.options} rebuilds the terminal and replaces this
+	 * canvas, so don't hold a long-lived reference across an `options` change —
+	 * re-read `console.canvas` afterward.
 	 */
 	get canvas(): OffscreenCanvas {
 		return this.#getTerminal().canvas;
@@ -98,7 +158,7 @@ export class Console {
 
 	#getTerminal(): Terminal {
 		if (!this.#terminal) {
-			this.#terminal = new Terminal();
+			this.#terminal = new Terminal(this.#options);
 		}
 		return this.#terminal;
 	}
