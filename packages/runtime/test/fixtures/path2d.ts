@@ -252,3 +252,94 @@ test('Path2D - two separate paths rendered independently', (t) => {
 	t.ok(right[2] === 255 && right[0] === 0, 'right rect should be blue');
 	t.ok(gap[3] === 0, 'gap between rects should be transparent');
 });
+
+// ---------- clip(Path2D) ----------
+// Regression test for #323: ctx.clip(path) with a Path2D argument was ignored
+// (only the context's current path was clipped against), so drawing outside the
+// Path2D region was NOT clipped.
+
+test('clip(Path2D) - restricts subsequent drawing to the path', (t) => {
+	const c = new OffscreenCanvas(50, 50);
+	const ctx = c.getContext('2d')!;
+
+	const clipPath = new Path2D();
+	clipPath.rect(10, 10, 30, 30);
+
+	ctx.clip(clipPath);
+	ctx.fillStyle = 'green';
+	ctx.fillRect(0, 0, 50, 50); // attempt to fill the entire canvas
+
+	const inside = ctx.getImageData(25, 25, 1, 1).data;
+	const outside = ctx.getImageData(5, 5, 1, 1).data;
+
+	t.equal(inside[3], 255, 'inside the clip path should be painted');
+	t.equal(outside[3], 0, 'outside the clip path should be clipped out');
+});
+
+test('clip(Path2D) - does not disturb the context current path', (t) => {
+	const c = new OffscreenCanvas(50, 50);
+	const ctx = c.getContext('2d')!;
+
+	// Build a current path that is DIFFERENT from the clip path.
+	ctx.rect(0, 0, 20, 20);
+
+	const clipPath = new Path2D();
+	clipPath.rect(10, 10, 30, 30);
+	ctx.clip(clipPath);
+
+	// fill() with no arg should use the context's current path (0,0,20,20),
+	// intersected with the clip region (10,10,30,30) -> (10,10)..(20,20).
+	ctx.fillStyle = 'green';
+	ctx.fill();
+
+	const overlap = ctx.getImageData(15, 15, 1, 1).data;
+	const onlyCurrentPath = ctx.getImageData(5, 5, 1, 1).data; // in path, out of clip
+	const onlyClip = ctx.getImageData(30, 30, 1, 1).data; // in clip, out of path
+
+	t.equal(overlap[3], 255, 'current-path ∩ clip is painted');
+	t.equal(onlyCurrentPath[3], 0, 'current path outside clip is clipped');
+	t.equal(onlyClip[3], 0, 'clip region outside current path is not painted');
+});
+
+test('clip(Path2D) - honors the current transform', (t) => {
+	const c = new OffscreenCanvas(50, 50);
+	const ctx = c.getContext('2d')!;
+
+	// The Path2D coordinates are interpreted under the CTM at clip() time.
+	ctx.translate(10, 10);
+	const clipPath = new Path2D();
+	clipPath.rect(0, 0, 30, 30); // device space (10,10)..(40,40)
+	ctx.clip(clipPath);
+
+	ctx.resetTransform();
+	ctx.fillStyle = 'green';
+	ctx.fillRect(0, 0, 50, 50);
+
+	const inside = ctx.getImageData(25, 25, 1, 1).data;
+	const outside = ctx.getImageData(5, 5, 1, 1).data;
+
+	t.equal(inside[3], 255, 'inside the transformed clip path is painted');
+	t.equal(outside[3], 0, 'outside the transformed clip path is clipped');
+});
+
+test('clip(Path2D, "evenodd") - applies the fill rule to the clip path', (t) => {
+	const c = new OffscreenCanvas(60, 60);
+	const ctx = c.getContext('2d')!;
+
+	// Outer rect with an inner rect; under evenodd the inner region is a hole.
+	const clipPath = new Path2D();
+	clipPath.rect(10, 10, 40, 40);
+	clipPath.rect(20, 20, 20, 20);
+	ctx.clip(clipPath, 'evenodd');
+
+	ctx.fillStyle = 'green';
+	ctx.fillRect(0, 0, 60, 60);
+
+	const ring = ctx.getImageData(15, 15, 1, 1).data; // between outer and inner
+	const hole = ctx.getImageData(30, 30, 1, 1).data; // inside inner (the hole)
+	const outside = ctx.getImageData(5, 5, 1, 1).data;
+
+	t.equal(ring[3], 255, 'the evenodd ring is painted');
+	t.equal(hole[3], 0, 'the evenodd hole is clipped out');
+	t.equal(outside[3], 0, 'outside the clip path is clipped out');
+});

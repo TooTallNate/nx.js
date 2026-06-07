@@ -942,7 +942,55 @@ void nx_canvas_context_2d_close_path(const FunctionCallbackInfo<Value> &info) {
 
 void nx_canvas_context_2d_clip(const FunctionCallbackInfo<Value> &info) {
 	ENTER_THIS;
-	set_fill_rule_v(iso, info[0], context);
+	// Per the spec, clip() has two overloads: clip(fillRule?) clips against the
+	// context's current path, and clip(path, fillRule?) clips against a Path2D.
+	// Distinguish them by whether the first argument is an object (a Path2D) vs
+	// a string (the fill rule). Mirrors fill()/stroke()'s argument handling.
+	Local<Value> path, fill_rule;
+	bool have_path = false, have_rule = false;
+	if (info.Length() == 1) {
+		if (info[0]->IsObject()) {
+			path = info[0];
+			have_path = true;
+		} else if (info[0]->IsString()) {
+			fill_rule = info[0];
+			have_rule = true;
+		} else if (!info[0]->IsUndefined()) {
+			nx_throw(iso, "Expected Path2D or string at index 0");
+			return;
+		}
+	} else if (info.Length() >= 2) {
+		if (info[0]->IsObject()) {
+			path = info[0];
+			have_path = true;
+		} else {
+			nx_throw(iso, "Expected Path2D at index 0");
+			return;
+		}
+		if (info[1]->IsString()) {
+			fill_rule = info[1];
+			have_rule = true;
+		} else if (!info[1]->IsUndefined()) {
+			nx_throw(iso, "Expected string at index 1");
+			return;
+		}
+	}
+
+	// When a Path2D is given, clip against THAT path (baked into device space
+	// via apply_path, like fill(path)) instead of the context's current path,
+	// without disturbing the current path. The fill rule (winding/evenodd)
+	// applies to whichever path is used.
+	SkPathBuilder saved_path;
+	bool restore_path = false;
+	if (have_path) {
+		saved_path = context->path;
+		restore_path = true;
+		context->path.reset();
+		apply_path(iso, info.This(), path);
+	}
+	if (have_rule)
+		set_fill_rule_v(iso, fill_rule, context);
+
 	// context->path is in device space; clip under identity so clipPath does
 	// not re-apply the CTM. Toggle the matrix directly (NOT via save/restore,
 	// which would also pop the clip we are adding).
@@ -950,6 +998,9 @@ void nx_canvas_context_2d_clip(const FunctionCallbackInfo<Value> &info) {
 	cr->resetMatrix();
 	cr->clipPath(context->path.snapshot(), true);
 	cr->setMatrix(saved);
+
+	if (restore_path)
+		context->path = saved_path;
 }
 
 void nx_canvas_context_2d_fill(const FunctionCallbackInfo<Value> &info) {
