@@ -126,6 +126,11 @@ export class Console {
 	 * ```ts
 	 * console.options = { theme: { background: '#002b36' }, fontSize: 24 };
 	 * ```
+	 *
+	 * Note: rebuilding the terminal also creates a new {@link Console.canvas}.
+	 * If you cache `console.canvas`, re-read it after assigning `options` (or
+	 * set `options` before first accessing the canvas) — a stale reference will
+	 * keep drawing the old, no-longer-updated canvas.
 	 */
 	get options(): TerminalOptions {
 		return this.#options;
@@ -133,7 +138,8 @@ export class Console {
 	set options(opts: TerminalOptions) {
 		this.#options = opts ?? {};
 		// Drop any existing terminal so the next access rebuilds it with the new
-		// options. (Buffered scrollback is not carried over.)
+		// options. (Buffered scrollback is not carried over, and a new backing
+		// canvas is created — see the `canvas` getter note.)
 		this.#terminal = undefined;
 	}
 
@@ -141,6 +147,10 @@ export class Console {
 	 * The {@link OffscreenCanvas} this console renders its terminal into. Lazily
 	 * created on first access (or first output). Apps can composite it onto the
 	 * screen, e.g. `screen.getContext('2d').drawImage(console.canvas, x, y)`.
+	 *
+	 * Assigning {@link Console.options} rebuilds the terminal and replaces this
+	 * canvas, so don't hold a long-lived reference across an `options` change —
+	 * re-read `console.canvas` afterward.
 	 */
 	get canvas(): OffscreenCanvas {
 		return this.#getTerminal().canvas;

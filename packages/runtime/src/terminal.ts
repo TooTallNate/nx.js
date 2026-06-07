@@ -163,10 +163,22 @@ export class Terminal {
 	constructor(opts: TerminalOptions = {}) {
 		const width = opts.width ?? SCREEN_WIDTH;
 		const height = opts.height ?? SCREEN_HEIGHT;
-		this.#fontSize = opts.fontSize ?? 20;
+		// Sanitize numeric options: a bad value (0, negative, NaN, Infinity)
+		// from the JS API or nxjs.ini must not break layout (e.g. a 0/NaN line
+		// height makes `rows` Infinity/NaN) or rendering (globalAlpha ignores
+		// out-of-range assignments). Fall back to the default for each.
+		const posOr = (v: number | undefined, dflt: number) =>
+			typeof v === 'number' && isFinite(v) && v > 0 ? v : dflt;
+		this.#fontSize = posOr(opts.fontSize, 20);
+		const lineHeightMul = posOr(opts.lineHeight, 1.25);
 		this.#theme = opts.theme ?? {};
 		this.#cursorStyle = opts.cursorStyle ?? 'block';
-		this.#cursorOpacity = opts.cursorOpacity ?? 0.5;
+		// Clamp cursor opacity to [0, 1]; a non-finite value falls back to 0.5.
+		const co = opts.cursorOpacity;
+		this.#cursorOpacity =
+			typeof co === 'number' && isFinite(co)
+				? Math.max(0, Math.min(1, co))
+				: 0.5;
 
 		// Resolve the ANSI palette: theme color overrides each default.
 		this.#palette = ANSI_COLORS.map(
@@ -197,7 +209,7 @@ export class Terminal {
 		// leaves thin background seams between cells. An integer advance makes
 		// every cell exactly `cw` px wide so glyphs and fills tile seamlessly.
 		this.#charWidth = Math.max(1, Math.round(charWidth));
-		this.#lineHeight = Math.ceil(this.#fontSize * (opts.lineHeight ?? 1.25));
+		this.#lineHeight = Math.max(1, Math.ceil(this.#fontSize * lineHeightMul));
 
 		const cols = Math.max(1, Math.floor(width / this.#charWidth));
 		const rows = Math.max(1, Math.floor(height / this.#lineHeight));
