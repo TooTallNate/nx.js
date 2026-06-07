@@ -343,3 +343,94 @@ test('clip(Path2D, "evenodd") - applies the fill rule to the clip path', (t) => 
 	t.equal(hole[3], 0, 'the evenodd hole is clipped out');
 	t.equal(outside[3], 0, 'outside the clip path is clipped out');
 });
+
+// clip() overload resolution + argument validation (matches Chrome/WebIDL).
+
+test('clip(fillRule) - string arg clips the current path, does not throw', (t) => {
+	const c = new OffscreenCanvas(50, 50);
+	const ctx = c.getContext('2d')!;
+
+	// Outer + inner rect on the CURRENT path; evenodd makes the inner a hole.
+	ctx.rect(10, 10, 30, 30);
+	ctx.rect(20, 20, 10, 10);
+	ctx.clip('evenodd');
+
+	ctx.fillStyle = 'green';
+	ctx.fillRect(0, 0, 50, 50);
+
+	const ring = ctx.getImageData(12, 12, 1, 1).data;
+	const hole = ctx.getImageData(25, 25, 1, 1).data;
+	const outside = ctx.getImageData(2, 2, 1, 1).data;
+
+	t.equal(ring[3], 255, 'evenodd ring of the current path is painted');
+	t.equal(hole[3], 0, 'evenodd hole is clipped out');
+	t.equal(outside[3], 0, 'outside the current path is clipped out');
+});
+
+test('clip/fill/stroke - non-Path2D object throws (not a silent empty path)', (t) => {
+	const c = new OffscreenCanvas(50, 50);
+	const ctx = c.getContext('2d')!;
+	// A non-Path2D object where a Path2D is expected is a TypeError — matching
+	// Chrome — rather than silently producing an empty path (which for clip()
+	// would erase all subsequent drawing).
+	t.throws(
+		// @ts-expect-error - intentionally passing a non-Path2D object
+		() => ctx.clip({}),
+		undefined,
+		'clip(non-Path2D object) throws',
+	);
+	t.throws(
+		// @ts-expect-error - intentionally passing a non-Path2D object
+		() => ctx.fill({}),
+		undefined,
+		'fill(non-Path2D object) throws',
+	);
+	t.throws(
+		// @ts-expect-error - intentionally passing a non-Path2D object
+		() => ctx.stroke({}),
+		undefined,
+		'stroke(non-Path2D object) throws',
+	);
+});
+
+test('clip/fill - two args with a string path arg throws (Path2D overload)', (t) => {
+	const c = new OffscreenCanvas(50, 50);
+	const ctx = c.getContext('2d')!;
+	// With 2 arguments the (Path2D, fillRule) overload is selected, so a string
+	// in the path position is a TypeError (matching Chrome) — NOT treated as a
+	// fill rule with the extra arg ignored.
+	t.throws(
+		// @ts-expect-error - intentionally passing a string where Path2D expected
+		() => ctx.clip('nonzero', 123),
+		undefined,
+		'clip(string, extra) throws (selects the Path2D overload)',
+	);
+	t.throws(
+		// @ts-expect-error - intentionally passing a string where Path2D expected
+		() => ctx.fill('nonzero', 123),
+		undefined,
+		'fill(string, extra) throws (selects the Path2D overload)',
+	);
+});
+
+test('clip/fill/stroke - trailing args after a Path2D are ignored', (t) => {
+	const c = new OffscreenCanvas(50, 50);
+	const ctx = c.getContext('2d')!;
+	const p = new Path2D();
+	p.rect(10, 10, 20, 20);
+	t.doesNotThrow(
+		// @ts-expect-error - intentionally passing an extra trailing argument
+		() => ctx.clip(p, 'evenodd', 9),
+		'clip(Path2D, fillRule, extra) ignores the trailing arg',
+	);
+	t.doesNotThrow(
+		// @ts-expect-error - intentionally passing an extra trailing argument
+		() => ctx.fill(p, 'evenodd', 9),
+		'fill(Path2D, fillRule, extra) ignores the trailing arg',
+	);
+	t.doesNotThrow(
+		// @ts-expect-error - intentionally passing an extra trailing argument
+		() => ctx.stroke(p, 9),
+		'stroke(Path2D, extra) ignores the trailing arg',
+	);
+});

@@ -609,6 +609,59 @@ void apply_path(Isolate *iso, Local<Value> recv, Local<Value> path) {
 	                      SkPath::kAppend_AddPathMode);
 }
 
+// Resolve the WebIDL overloads shared by fill()/clip(): `(fillRule?)` and
+// `(Path2D path, fillRule?)`. Overload selection is by ARGUMENT COUNT (matching
+// Chrome): with 2+ arguments the Path2D overload is chosen, so arg0 must be a
+// Path2D (else TypeError) and arg1 is the optional fill rule; with 0-1
+// arguments the no-path overload is chosen, so arg0 (if present) is the fill
+// rule string (a non-string, non-undefined arg0 is a TypeError). A non-Path2D
+// object in the path position throws rather than silently becoming an empty
+// path. Returns false (and throws) on a type error; on success sets out_path /
+// out_rule (each may stay empty). Mirrors fill()/clip()/Path2D semantics so the
+// behavior is identical across the three.
+static bool resolve_path_and_rule(const FunctionCallbackInfo<Value> &info,
+                                   Local<Value> *out_path, bool *out_have_path,
+                                   Local<Value> *out_rule, bool *out_have_rule) {
+	Isolate *iso = info.GetIsolate();
+	*out_have_path = false;
+	*out_have_rule = false;
+	if (info.Length() >= 2) {
+		// (path, fillRule?) overload — arg0 MUST be a Path2D.
+		if (!nx_path2d_get(iso, info[0])) {
+			nx_throw(iso, "Expected Path2D at index 0");
+			return false;
+		}
+		*out_path = info[0];
+		*out_have_path = true;
+		if (info[1]->IsString()) {
+			*out_rule = info[1];
+			*out_have_rule = true;
+		} else if (!info[1]->IsUndefined()) {
+			nx_throw(iso, "Expected string at index 1");
+			return false;
+		}
+		// Trailing arguments (index >= 2) are ignored, per WebIDL.
+	} else if (info.Length() == 1) {
+		if (info[0]->IsObject()) {
+			// An object in the single-arg position selects the path overload;
+			// it must be a real Path2D.
+			if (!nx_path2d_get(iso, info[0])) {
+				nx_throw(iso, "Expected Path2D at index 0");
+				return false;
+			}
+			*out_path = info[0];
+			*out_have_path = true;
+		} else if (info[0]->IsString()) {
+			*out_rule = info[0];
+			*out_have_rule = true;
+		} else if (!info[0]->IsUndefined()) {
+			nx_throw(iso, "Expected Path2D or string at index 0");
+			return false;
+		}
+	}
+	return true;
+}
+
 // ===========================================================================
 // STUBS — filled in subsequent slices (primitives, paint, transforms, text,
 // images, imageData, encode). Each throws so a partial build is obvious.
@@ -942,39 +995,13 @@ void nx_canvas_context_2d_close_path(const FunctionCallbackInfo<Value> &info) {
 
 void nx_canvas_context_2d_clip(const FunctionCallbackInfo<Value> &info) {
 	ENTER_THIS;
-	// Per the spec, clip() has two overloads: clip(fillRule?) clips against the
-	// context's current path, and clip(path, fillRule?) clips against a Path2D.
-	// Distinguish them by whether the first argument is an object (a Path2D) vs
-	// a string (the fill rule). Mirrors fill()/stroke()'s argument handling.
+	// clip() has two WebIDL overloads — clip(fillRule?) (clip against the
+	// context's current path) and clip(path, fillRule?) (clip against a Path2D)
+	// — resolved by argument count + arg0 type (see resolve_path_and_rule).
 	Local<Value> path, fill_rule;
 	bool have_path = false, have_rule = false;
-	if (info.Length() == 1) {
-		if (info[0]->IsObject()) {
-			path = info[0];
-			have_path = true;
-		} else if (info[0]->IsString()) {
-			fill_rule = info[0];
-			have_rule = true;
-		} else if (!info[0]->IsUndefined()) {
-			nx_throw(iso, "Expected Path2D or string at index 0");
-			return;
-		}
-	} else if (info.Length() >= 2) {
-		if (info[0]->IsObject()) {
-			path = info[0];
-			have_path = true;
-		} else {
-			nx_throw(iso, "Expected Path2D at index 0");
-			return;
-		}
-		if (info[1]->IsString()) {
-			fill_rule = info[1];
-			have_rule = true;
-		} else if (!info[1]->IsUndefined()) {
-			nx_throw(iso, "Expected string at index 1");
-			return;
-		}
-	}
+	if (!resolve_path_and_rule(info, &path, &have_path, &fill_rule, &have_rule))
+		return; // a TypeError was thrown
 
 	// When a Path2D is given, clip against THAT path (baked into device space
 	// via apply_path, like fill(path)) instead of the context's current path,
@@ -1005,35 +1032,13 @@ void nx_canvas_context_2d_clip(const FunctionCallbackInfo<Value> &info) {
 
 void nx_canvas_context_2d_fill(const FunctionCallbackInfo<Value> &info) {
 	ENTER_THIS;
+	// fill(fillRule?) / fill(path, fillRule?) — same overload resolution as
+	// clip() (by arg count + arg0 type); a non-Path2D object in the path
+	// position throws rather than silently filling an empty path.
 	Local<Value> path, fill_rule;
 	bool have_path = false, have_rule = false;
-	if (info.Length() == 1) {
-		if (info[0]->IsObject()) {
-			path = info[0];
-			have_path = true;
-		} else if (info[0]->IsString()) {
-			fill_rule = info[0];
-			have_rule = true;
-		} else if (!info[0]->IsUndefined()) {
-			nx_throw(iso, "Expected Path2D or string at index 0");
-			return;
-		}
-	} else if (info.Length() == 2) {
-		if (info[0]->IsObject()) {
-			path = info[0];
-			have_path = true;
-		} else {
-			nx_throw(iso, "Expected Path2D at index 0");
-			return;
-		}
-		if (info[1]->IsString()) {
-			fill_rule = info[1];
-			have_rule = true;
-		} else if (!info[1]->IsUndefined()) {
-			nx_throw(iso, "Expected string at index 1");
-			return;
-		}
-	}
+	if (!resolve_path_and_rule(info, &path, &have_path, &fill_rule, &have_rule))
+		return; // a TypeError was thrown
 	if (have_rule)
 		set_fill_rule_v(iso, fill_rule, context);
 	if (!have_path) {
@@ -1049,16 +1054,19 @@ void nx_canvas_context_2d_fill(const FunctionCallbackInfo<Value> &info) {
 
 void nx_canvas_context_2d_stroke(const FunctionCallbackInfo<Value> &info) {
 	ENTER_THIS;
+	// stroke() / stroke(path) — the single overload's optional argument is a
+	// Path2D. With an argument present it MUST be a real Path2D (a non-Path2D
+	// value, object or otherwise, is a TypeError) so we never stroke an empty
+	// path silently; trailing arguments are ignored.
 	Local<Value> path;
 	bool have_path = false;
-	if (info.Length() == 1) {
-		if (info[0]->IsObject()) {
-			path = info[0];
-			have_path = true;
-		} else {
+	if (info.Length() >= 1 && !info[0]->IsUndefined()) {
+		if (!nx_path2d_get(iso, info[0])) {
 			nx_throw(iso, "Expected Path2D at index 0");
 			return;
 		}
+		path = info[0];
+		have_path = true;
 	}
 	if (!have_path) {
 		stroke_op(context, true);
