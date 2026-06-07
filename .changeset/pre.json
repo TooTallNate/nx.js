@@ -42,18 +42,32 @@
     "@nx.js/repl": "0.0.5",
     "@nx.js/runtime": "0.0.70",
     "@nx.js/util": "1.1.0",
-    "@nx.js/ws": "0.0.2"
+    "@nx.js/ws": "0.0.2",
+    "console-theme": "0.0.0"
   },
   "changesets": [
+    "application-self-slim",
+    "argv-entrypoint",
+    "bootstrap-nxjs-icon",
     "bump-v8-image",
+    "canvas-console",
     "canvas-path-ctm",
+    "clean-compile-warnings",
+    "console-config",
+    "gpu-transparent-present",
+    "native-import",
     "never-hard-crash",
+    "nro-slim-default",
+    "nxjs-ini-config",
     "path2d-skpath",
     "queue-microtask",
     "run-module-graceful-oversize",
+    "slim-bootstrap",
+    "slim-nsp",
     "socket-buffer-exhaustion",
     "socket-read-buffer-leak",
     "switch-ada-portlib",
-    "v1-beta"
+    "v1-beta",
+    "v8-heap-sizing"
   ]
 }

@@ -1,5 +1,23 @@
 # @nx.js/nro
 
+## 1.0.0-beta.2
+
+### Major Changes
+
+- `nxjs-nro` now builds a **slim** NRO by default (a tiny launcher that chainloads a shared runtime installed at `sdmc:/nx.js/`), instead of a self-contained ~40 MB NRO. Pass `--fat` (or set `NXJS_FAT=1`) to embed the runtime as before. `--slim` / `NXJS_SLIM=1` are still accepted as no-ops. `create-nxjs-app` adds `--fat` to the generated `nro` script when the "Fat" packaging option is chosen. ([#364](https://github.com/TooTallNate/nx.js/pull/364))
+
+### Minor Changes
+
+- feat: slim app packaging via `nxjs-nro --slim` — builds a tiny launcher NRO (a few hundred KB) instead of embedding the full ~40 MB runtime; at boot it chainloads a shared runtime installed at `sdmc:/nx.js/nxjs-v<version>.nro`, selected by the `[runtime] version` semver requirement in the app's `romfs/nxjs.ini` (defaulting to caret-on-major). `create-nxjs-app` now prompts to package an app as slim or fat. ([#360](https://github.com/TooTallNate/nx.js/pull/360))
+
+### Patch Changes
+
+- fix: `Switch.Application.self` now resolves to the launched app (not the shared runtime) in slim packaging modes. It previously keyed off `$.argv[0]`, which for a slim NRO/NSP is the shared runtime NRO, so `self.name` reported `"nx.js"` instead of the app. The runtime now exposes `$.selfNroPath` (the app's `.nro` path for standalone/slim NRO apps, or `null` for installed titles so `self` resolves via the process's `ProgramId`), and the slim bootstrap launcher's NACP carries the proper author + title id so a slim app's `Application.self` (name/author/version/id) matches the fat build. Verified on-device across all four modes (fat/slim × NRO/NSP). ([#366](https://github.com/TooTallNate/nx.js/pull/366))
+
+- fix: the slim bootstrap launcher (`bootstrap.nro`) now embeds the nx.js default icon (the same `icon.jpg` as `nxjs.nro`) instead of libnx's default, so slim apps without their own `icon.jpg` show the nx.js icon in the homebrew menu. ([#363](https://github.com/TooTallNate/nx.js/pull/363))
+
+- feat: slim NSP packaging. `nxjs-nsp` now builds a **slim** NSP by default — its exefs `main` is a tiny forwarder (a patched nx-hbloader) that chainloads the shared runtime NRO from `sdmc:/nx.js/` (selected by the `[runtime] version` requirement in the app's `romfs/nxjs.ini`, default caret-on-major) and mounts the installed title's own RomFS (the app) into it — instead of embedding the full ~21 MB runtime NSO per title. Pass `--fat` (or `NXJS_FAT=1`) for a self-contained NSP. The runtime gained an `argv[1] == "nsp:"` entrypoint that mounts the app via `romfsMountFromCurrentProcess`. The `bootstrap/` launcher sources were reorganized into shared logic + `launcher-nro/` and `launcher-nsp/`; `@nx.js/nro`'s slim base path moved accordingly. `create-nxjs-app` flags both the `nro` and `nsp` scripts for the Fat packaging choice. ([#365](https://github.com/TooTallNate/nx.js/pull/365))
+
 ## 1.0.0-beta.1
 
 ## 1.0.0-beta.0
