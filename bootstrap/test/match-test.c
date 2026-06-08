@@ -87,6 +87,16 @@ int main(void) {
 	expect_satisfies("1.0.0-beta.1", ">=1.0.0-beta.1", true);
 	expect_satisfies("1.0.0-beta.1", ">=1.0.0-beta.2", false);
 
+	// --- Caret on a FULL prerelease version (what @nx.js/nro|nsp now bake,
+	// e.g. "^1.0.0-beta.2": "at least the version packaged with, or newer").
+	// By precedence, ^1.0.0-beta.2 == >=1.0.0-beta.2 <2.0.0.
+	expect_satisfies("1.0.0-beta.2", "^1.0.0-beta.2", true); // exact floor
+	expect_satisfies("1.0.0-beta.3", "^1.0.0-beta.2", true); // newer prerelease
+	expect_satisfies("1.0.0", "^1.0.0-beta.2", true);        // the release
+	expect_satisfies("1.2.0", "^1.0.0-beta.2", true);        // newer minor
+	expect_satisfies("1.0.0-beta.1", "^1.0.0-beta.2", false); // OLDER -> rejected
+	expect_satisfies("2.0.0", "^1.0.0-beta.2", false);        // major bump out
+
 	// --- Comparison / "pick highest" ordering ---
 	expect_cmp("1.2.0", "1.10.0", -1);  // numeric, not lexical
 	expect_cmp("1.10.0", "1.2.0", 1);

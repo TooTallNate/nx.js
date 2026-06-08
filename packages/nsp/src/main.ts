@@ -247,13 +247,18 @@ try {
 			const selfPkg = JSON.parse(
 				readFileSync(new URL('package.json', root), 'utf8'),
 			);
-			const major = String(selfPkg.version).replace(/[.-].*/, '');
+			// Caret on the FULL version this builder (== the runtime version,
+			// since the packages are version-locked) was published as — "at
+			// least the runtime this app was packaged with, or any newer
+			// compatible release". A caret-on-major (^1) would wrongly accept an
+			// OLDER runtime missing features the app expects.
+			const runtimeReq = `^${selfPkg.version}`;
 			const merged =
-				`[runtime]\n; nx.js shared runtime version requirement (semver).\nversion = ^${major}\n` +
+				`[runtime]\n; nx.js shared runtime version requirement (semver).\nversion = ${runtimeReq}\n` +
 				(existingIniText ? `\n${existingIniText}` : '');
 			romfsEntry['nxjs.ini'] = new Blob([merged]);
 			console.log(
-				`  ${chalk.cyan('nxjs.ini')} (generated; [runtime] version = ^${major})`,
+				`  ${chalk.cyan('nxjs.ini')} (generated; [runtime] version = ${runtimeReq})`,
 			);
 		}
 	}

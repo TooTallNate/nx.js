@@ -49,8 +49,14 @@ int main(int argc, char *argv[]) {
 	}
 
 	if (!nx_resolve_runtime(&r)) {
-		nx_fail_no_runtime(&r);
-		return 0;
+		// No installed runtime satisfies the requirement — try to download one
+		// (renders progress; returns true with r filled on success, or shows
+		// the manual-install screen + exits on failure).
+		if (!nx_resolve_or_download(&r))
+			return 0; // (unreachable; the error path exits)
+		// A runtime was downloaded; consoleExit so it doesn't linger over the
+		// chainloaded runtime, then fall through to launch r.runtime_path.
+		consoleExit(NULL);
 	}
 
 	// Chainload: hand the runtime our own NRO as argv[1]. The runtime mounts

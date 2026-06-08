@@ -440,14 +440,45 @@ static void nx_ui_bringup(void)
     __nx_win_init();
 }
 
-// Show the shared "no runtime found" error screen, then exit cleanly.
-// nx_fail_no_runtime() renders + waits for + then calls nx_ui_exit() (the strong
-// override above). Does not return.
-static void NX_NORETURN nx_show_error_and_exit(const nx_resolve_t *r)
+// `__nx_applet_exit_mode` (defined at top of file = 1, for the clean self-exit
+// on the error screen). For the "continue after download" teardown below we
+// temporarily set it to 2 (">1" = skip the applet exit cmds in
+// _appletCleanup), since we're tearing applet down to continue in-process, NOT
+// exiting — see there.
+extern u32 __nx_applet_exit_mode;
+
+// No installed runtime: bring up the display, auto-download a compatible one
+// (nx_resolve_or_download renders progress), and on success fill `r` + return
+// true so loadNro continues to map the freshly-downloaded runtime. On failure
+// nx_resolve_or_download shows the manual-install screen + exits (does not
+// return).
+//
+// CRITICAL: on success we must restore the EXACT service state the happy path
+// jumps into the runtime with — which is what main() left before loadNro:
+// sm CLOSED, fs up, and NOTHING else (no applet/hid/time/display). The runtime
+// does its own __appInit (smInitialize etc.); if we leave sm open or the applet
+// in the self-exit-armed state (__nx_applet_exit_mode=1), the runtime's libnx
+// init fails (LibnxError_InitFail). So tear down everything nx_ui_bringup
+// brought up, with a PLAIN appletExit (exit mode 2 = skip exit cmds, since
+// we're not exiting), and finally smExit().
+static bool nx_download_or_exit(nx_resolve_t *r)
 {
     nx_ui_bringup();
-    nx_fail_no_runtime(r);
-    __builtin_unreachable();
+    if (!nx_resolve_or_download(r))
+        return false; // unreachable: the error path exits
+    consoleExit(NULL);
+    __nx_win_exit();
+    hidExit();
+    timeExit();
+    // Plain applet teardown (NOT the self-exit handshake): we're continuing to
+    // chainload the runtime in-process, not exiting. exit_mode 2 (>1) skips the
+    // applet exit cmds in _appletCleanup. Restore the prior mode after.
+    u32 saved_mode = __nx_applet_exit_mode;
+    __nx_applet_exit_mode = 2;
+    appletExit();
+    __nx_applet_exit_mode = saved_mode;
+    smExit(); // match main()'s pre-loadNro state (sm closed)
+    return true;
 }
 
 // Show a one-line error (e.g. a malformed [runtime] version specifier), then
@@ -556,11 +587,13 @@ void loadNro(void)
 
         if (!nx_resolve_runtime(&r))
         {
-            // No compatible runtime installed -- show the on-screen error.
-            // The forwarder's __appInit is minimal and main() called smExit(),
-            // so bring up the full display stack the console + pad need first
-            // (see nx_show_error_and_exit). Does not return.
-            nx_show_error_and_exit(&r);
+            // No compatible runtime installed -- bring up the display + try to
+            // download one. The forwarder's __appInit is minimal and main()
+            // called smExit(), so nx_download_or_exit brings up the full display
+            // stack first. On success it fills `r` (and tears the display back
+            // down) so we continue below; on failure it shows the manual-install
+            // screen and exits (does not return).
+            nx_download_or_exit(&r);
         }
 
         // Hand the runtime its own path as argv[0] and the "nsp:" marker as

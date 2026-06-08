@@ -164,8 +164,12 @@ if (slim) {
 		const selfPkg = JSON.parse(
 			readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
 		);
-		const major = String(selfPkg.version).replace(/[.-].*/, '');
-		const runtimeReq = `^${major}`;
+		// Caret on the FULL version this builder (== the runtime version, since
+		// the packages are version-locked) was published as — i.e. "at least
+		// the runtime this app was packaged with, or any newer compatible
+		// release". A caret-on-major (^1) would wrongly accept an OLDER runtime
+		// missing features the app expects.
+		const runtimeReq = `^${selfPkg.version}`;
 		// Prepend a [runtime] section, preserving any existing ini content.
 		const merged =
 			`[runtime]\n; nx.js shared runtime version requirement (semver).\nversion = ${runtimeReq}\n` +

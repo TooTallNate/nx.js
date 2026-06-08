@@ -44,9 +44,13 @@ APP_TITLE   ?=  nx.js app
 APP_AUTHOR  ?=  TooTallNate
 APP_TITLEID ?=  016e782e6a730000
 APP_VERSION :=  `jq -r .version < $(RUNTIME_PKG)`
-RUNTIME_MAJOR := $(shell jq -r .version < $(RUNTIME_PKG) | sed 's/[.-].*//')
-# Default [runtime] version requirement baked into the launcher: caret-on-major.
-NXJS_RUNTIME_DEFAULT := ^$(RUNTIME_MAJOR)
+# Default [runtime] version requirement baked into the launcher: caret on the
+# FULL runtime version this launcher was built against (e.g. ^1.0.0-beta.2),
+# i.e. "at least the version packaged with, or any newer compatible release".
+# A caret-on-major (^1) would wrongly accept an OLDER runtime that lacks
+# features the app expects. This is only the fallback for a hand-built app whose
+# nxjs.ini has no [runtime] version; @nx.js/nro and @nx.js/nsp inject their own.
+NXJS_RUNTIME_DEFAULT := ^$(shell jq -r .version < $(RUNTIME_PKG))
 
 # The devkitPro %.nacp rule passes APP_TITLEID only via NACPFLAGS (not as a
 # positional arg), so wire it through like the root Makefile does. This bakes
