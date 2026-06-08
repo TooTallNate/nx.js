@@ -1,5 +1,15 @@
 # @nx.js/nsp
 
+## 1.0.0-beta.3
+
+### Minor Changes
+
+- feat: the slim bootstrap launcher now downloads a compatible nx.js runtime automatically when none is installed. When a slim app (NRO or NSP) can't find a shared runtime satisfying its `[runtime] version` requirement under `sdmc:/nx.js/`, the launcher queries the nx.js GitHub releases over HTTPS (via the Switch `ssl` service), picks the highest release that satisfies the requirement, downloads its `nxjs.nro` with an on-screen progress indicator, saves it as `sdmc:/nx.js/nxjs-v<version>.nro`, and continues launching — so a freshly-installed slim app "just works" on a network-connected console without manually installing the runtime first. If the download can't proceed (no network, no satisfying release), it falls back to the existing manual-install instructions screen. ([#371](https://github.com/TooTallNate/nx.js/pull/371))
+
+### Patch Changes
+
+- fix: slim apps now bake a `[runtime] version` requirement of `^<full version>` (e.g. `^1.0.0-beta.2`) into their `nxjs.ini` instead of `^<major>` (e.g. `^1`). The caret-on-major specifier would accept an _older_ shared runtime that predates—and therefore lacks—features the app was built against; caret-on-full-version means "at least the runtime this app was packaged with, or any newer compatible release". The bootstrap launcher's semver matcher also gained a prerelease-floor guard so a caret on a prerelease (e.g. `^1.0.0-beta.2`) correctly rejects an older prerelease of the same `x.y.z` (`1.0.0-beta.1`) rather than wrongly accepting it. ([#371](https://github.com/TooTallNate/nx.js/pull/371))
+
 ## 1.0.0-beta.2
 
 ### Major Changes
