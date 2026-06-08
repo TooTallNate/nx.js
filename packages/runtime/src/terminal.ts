@@ -230,8 +230,19 @@ export class Terminal {
 		this.#term.onWriteParsed(markDirty);
 	}
 
-	/** The {@link OffscreenCanvas} the terminal renders into. */
+	/**
+	 * The {@link OffscreenCanvas} the terminal renders into.
+	 *
+	 * Accessing this renders any pending output first (render() is a no-op when
+	 * nothing changed), so the returned canvas always reflects the latest
+	 * writes. This matters when an app composites `console.canvas` itself (e.g.
+	 * `drawImage`) — especially after it has taken over the screen with
+	 * `screen.getContext('2d')`, which stops the runtime's per-frame console
+	 * present; without rendering here the canvas would freeze at the last
+	 * auto-presented frame.
+	 */
 	get canvas(): OffscreenCanvas {
+		this.render();
 		return this.#canvas;
 	}
 

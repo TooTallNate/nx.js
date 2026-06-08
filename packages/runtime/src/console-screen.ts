@@ -78,8 +78,11 @@ export function markAppOwnsScreen(): void {
  * blit it.
  */
 export function onConsoleOutput(term: Terminal): void {
-	if (appOwnsScreen) return;
+	// Always track the terminal so presentConsole() keeps console.canvas live
+	// for apps that composite it (even when they own the screen). Only the
+	// screen-mode acquisition + auto-present below is gated on app ownership.
 	activeTerminal = term;
+	if (appOwnsScreen) return;
 	if (!screenCtx && consoleScreenCtxGetter) {
 		try {
 			screenCtx = consoleScreenCtxGetter();
@@ -93,9 +96,22 @@ export function onConsoleOutput(term: Terminal): void {
 /**
  * Per-frame hook (called from the runtime frame handler, after rAF). Blits the
  * active console terminal canvas to the screen when it has changed.
+ *
+ * Once the app owns the screen we no longer blit, but we STILL render the
+ * terminal each frame: an app may composite `console.canvas` itself (e.g.
+ * `drawImage`), and apps commonly cache the canvas reference once — so the
+ * pixels must keep updating as new `console.log` output arrives, even though we
+ * stop drawing it to the screen. `render()` is a no-op when nothing changed, so
+ * this is cheap.
  */
 export function presentConsole(): void {
-	if (appOwnsScreen || !activeTerminal || !screenCtx) return;
+	if (!activeTerminal) return;
+	if (appOwnsScreen) {
+		// App owns the screen: keep console.canvas live, but don't blit it.
+		activeTerminal.render();
+		return;
+	}
+	if (!screenCtx) return;
 	// render() is a no-op when nothing changed; only blit on an actual change.
 	if (activeTerminal.render()) {
 		screenCtx.drawImage(activeTerminal.canvas, 0, 0);
