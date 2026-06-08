@@ -13,6 +13,7 @@
 #include <switch.h>
 
 #include "match.h"
+#include "ui.h" // NX_C_* ANSI color macros
 
 // ---------------------------------------------------------------------------
 // Minimal HTTPS client over the system `ssl` service (TLS + cert verification +
@@ -382,12 +383,24 @@ static bool http_get_all(const char *url, int max_redirects, char **out,
 // ---------------------------------------------------------------------------
 
 static void print_progress(long done, long total) {
+	// A simple inline progress bar, redrawn in place via carriage return.
 	if (total > 0) {
 		int pct = (int)((done * 100) / total);
-		printf("\r  downloading... %d%% (%ld / %ld KiB)   ", pct, done / 1024,
-		       total / 1024);
+		if (pct > 100)
+			pct = 100;
+		char bar[21];
+		int filled = pct / 5; // 20 cells
+		for (int i = 0; i < 20; i++)
+			bar[i] = i < filled ? '#' : '-';
+		bar[20] = '\0';
+		printf("\r  " NX_C_DIM "downloading " NX_C_RESET NX_C_GREEN
+		       "[%s]" NX_C_RESET " %3d%% " NX_C_GRAY "(%ld/%ld KiB)" NX_C_RESET
+		       "   ",
+		       bar, pct, done / 1024, total / 1024);
 	} else {
-		printf("\r  downloading... %ld KiB   ", done / 1024);
+		printf("\r  " NX_C_DIM "downloading " NX_C_RESET NX_C_GRAY
+		       "%ld KiB" NX_C_RESET "   ",
+		       done / 1024);
 	}
 	consoleUpdate(NULL);
 }
@@ -531,12 +544,14 @@ static void teardown_network(void) {
 // ---------------------------------------------------------------------------
 
 bool nx_download_runtime(nx_resolve_t *r) {
-	printf("Downloading a compatible nx.js runtime...\n");
-	printf("  requirement: %s\n", r->version);
+	printf("  " NX_C_CYAN "Downloading the nx.js runtime..." NX_C_RESET "\n");
 	consoleUpdate(NULL);
 
 	if (!ensure_network()) {
-		printf("  no internet connection available.\n");
+		printf("\n  " NX_C_RED "No internet connection." NX_C_RESET "\n");
+		printf("  " NX_C_GRAY "Connect this console to the internet and relaunch,"
+		       "\n  or install the runtime manually (see below)." NX_C_RESET
+		       "\n");
 		consoleUpdate(NULL);
 		return false;
 	}
@@ -544,14 +559,17 @@ bool nx_download_runtime(nx_resolve_t *r) {
 	bool result = false;
 
 	// 1. Query the releases API and pick the best satisfying tag.
-	printf("  querying GitHub releases...\n");
+	printf("  " "finding a compatible release..." NX_C_RESET
+	       "\n");
 	consoleUpdate(NULL);
 	char *json = NULL;
 	size_t json_len = 0;
 	if (!http_get_all("https://api.github.com/repos/" NXJS_GH_REPO
 	                  "/releases?per_page=100",
 	                  5, &json, &json_len)) {
-		printf("  could not reach the GitHub releases API.\n");
+		printf("\n  " NX_C_RED "Could not reach GitHub." NX_C_RESET "\n");
+		printf("  " NX_C_GRAY "Check the internet connection and try again."
+		       NX_C_RESET "\n");
 		consoleUpdate(NULL);
 		teardown_network();
 		return false;
@@ -560,12 +578,14 @@ bool nx_download_runtime(nx_resolve_t *r) {
 	bool picked = pick_release(json, r->version, ver, sizeof(ver));
 	free(json);
 	if (!picked) {
-		printf("  no published release satisfies \"%s\".\n", r->version);
+		printf("\n  " NX_C_RED "No published release satisfies %s."
+		       NX_C_RESET "\n", r->version);
 		consoleUpdate(NULL);
 		teardown_network();
 		return false;
 	}
-	printf("  selected: v%s\n", ver);
+	printf("  " "selected " NX_C_RESET NX_C_BOLD "v%s" NX_C_RESET
+	       "\n", ver);
 	consoleUpdate(NULL);
 
 	// 2. Download the asset to a temp file, then rename into place.
@@ -587,21 +607,25 @@ bool nx_download_runtime(nx_resolve_t *r) {
 	mkdir(NXJS_RUNTIME_DIR, 0777);
 
 	if (!download_to_file(url, tmp_path)) {
-		printf("  download failed.\n");
+		printf("\n  " NX_C_RED "Download failed." NX_C_RESET "\n");
+		printf("  " NX_C_GRAY "The connection may have dropped; try again."
+		       NX_C_RESET "\n");
 		consoleUpdate(NULL);
 		teardown_network();
 		return false;
 	}
 	remove(final_path); // in case a stale/partial one exists
 	if (rename(tmp_path, final_path) != 0) {
-		printf("  could not save the runtime.\n");
+		printf("\n  " NX_C_RED "Could not save the runtime to the SD card."
+		       NX_C_RESET "\n");
 		consoleUpdate(NULL);
 		remove(tmp_path);
 		teardown_network();
 		return false;
 	}
 
-	printf("  installed %s\n", final_path);
+	printf("  " NX_C_GREEN "installed " NX_C_RESET NX_C_BOLD
+	       NXJS_RUNTIME_PREFIX "%s" NXJS_RUNTIME_SUFFIX NX_C_RESET "\n", ver);
 	consoleUpdate(NULL);
 	snprintf(r->runtime_path, sizeof(r->runtime_path), "%s", final_path);
 	snprintf(r->runtime_version, sizeof(r->runtime_version), "%s", ver);
