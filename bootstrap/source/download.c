@@ -23,10 +23,17 @@
 
 #define DL_USER_AGENT "nx.js-bootstrap"
 
-// One open TLS connection (socket + ssl conn). The ssl service owns the socket
-// (DoNotCloseSocket not set), so sslConnectionClose closes it for us.
+// One open TLS connection (socket + ssl conn).
+//
+// Socket-descriptor ownership (libnx): socketSslConnectionSetSocketDescriptor
+// consumes the input `sockfd` and returns an OUTPUT sockfd that WE own. Per the
+// ssl docs, that output fd "must be closed prior to sslConnectionClose" (we
+// don't set SslOptionType_DoNotCloseSocket). So `ssl_sockfd` holds that output
+// fd and https_close() closes it BEFORE sslConnectionClose — otherwise every
+// request leaks the socket/service registration.
 typedef struct {
-	int sockfd;
+	int sockfd;     // raw fd before handover; -1 once consumed by the ssl conn
+	int ssl_sockfd; // output fd from the ssl handover (we must close it); -1 if none
 	SslContext ctx;
 	SslConnection conn;
 	bool have_ctx;
@@ -34,6 +41,11 @@ typedef struct {
 } https_t;
 
 static void https_close(https_t *h) {
+	// The ssl-service output fd must be closed BEFORE the connection.
+	if (h->ssl_sockfd >= 0) {
+		close(h->ssl_sockfd);
+		h->ssl_sockfd = -1;
+	}
 	if (h->have_conn) {
 		sslConnectionClose(&h->conn);
 		h->have_conn = false;
@@ -42,11 +54,10 @@ static void https_close(https_t *h) {
 		sslContextClose(&h->ctx);
 		h->have_ctx = false;
 	}
-	// sslConnectionClose closes the socket (we don't set DoNotCloseSocket); only
-	// close here if the connection was never established.
+	// The raw input fd is only still open if handover never happened (early
+	// failure before socketSslConnectionSetSocketDescriptor consumed it).
 	if (h->sockfd >= 0) {
-		// If a conn was created over it, ssl already closed it; guard with a
-		// flag so we don't double-close.
+		close(h->sockfd);
 		h->sockfd = -1;
 	}
 }
@@ -77,6 +88,7 @@ static int tcp_connect(const char *host) {
 static bool https_open(https_t *h, const char *host) {
 	memset(h, 0, sizeof(*h));
 	h->sockfd = -1;
+	h->ssl_sockfd = -1;
 
 	h->sockfd = tcp_connect(host);
 	if (h->sockfd < 0)
@@ -94,11 +106,19 @@ static bool https_open(https_t *h, const char *host) {
 	// NOT the raw sslConnectionSetSocketDescriptor IPC cmd — the wrapper
 	// registers/duplicates the BSD fd through the bsdsocket layer for the ssl
 	// service. The raw cmd fails (0xe87b) with a plain socket() fd.
+	//
+	// The wrapper CONSUMES the input fd and returns an OUTPUT fd that we now
+	// own and must close before sslConnectionClose (errno==ENOENT means no out
+	// fd was returned, which the docs say to ignore). Track it in ssl_sockfd so
+	// https_close() closes it — otherwise each request leaks a socket.
 	sslConnectionSetHostName(&h->conn, host, strlen(host));
+	errno = 0;
 	int out_sockfd = socketSslConnectionSetSocketDescriptor(&h->conn, h->sockfd);
+	h->sockfd = -1; // consumed by the wrapper now
 	if (out_sockfd < 0 && errno != ENOENT)
 		return false;
-	h->sockfd = -1; // owned by the ssl connection now
+	if (out_sockfd >= 0)
+		h->ssl_sockfd = out_sockfd;
 
 	u32 out_size = 0, total_certs = 0;
 	if (R_FAILED(sslConnectionDoHandshake(&h->conn, &out_size, &total_certs,
