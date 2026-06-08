@@ -441,8 +441,10 @@ static void nx_ui_bringup(void)
 }
 
 // `__nx_applet_exit_mode` (defined at top of file = 1, for the clean self-exit
-// on the error screen). We need to flip it to 0 for the "continue after
-// download" teardown below — see there.
+// on the error screen). For the "continue after download" teardown below we
+// temporarily set it to 2 (">1" = skip the applet exit cmds in
+// _appletCleanup), since we're tearing applet down to continue in-process, NOT
+// exiting — see there.
 extern u32 __nx_applet_exit_mode;
 
 // No installed runtime: bring up the display, auto-download a compatible one
@@ -457,7 +459,8 @@ extern u32 __nx_applet_exit_mode;
 // does its own __appInit (smInitialize etc.); if we leave sm open or the applet
 // in the self-exit-armed state (__nx_applet_exit_mode=1), the runtime's libnx
 // init fails (LibnxError_InitFail). So tear down everything nx_ui_bringup
-// brought up, with a PLAIN appletExit (exit mode 0), and finally smExit().
+// brought up, with a PLAIN appletExit (exit mode 2 = skip exit cmds, since
+// we're not exiting), and finally smExit().
 static bool nx_download_or_exit(nx_resolve_t *r)
 {
     nx_ui_bringup();
@@ -468,9 +471,10 @@ static bool nx_download_or_exit(nx_resolve_t *r)
     hidExit();
     timeExit();
     // Plain applet teardown (NOT the self-exit handshake): we're continuing to
-    // chainload the runtime in-process, not exiting. Restore exit mode after.
+    // chainload the runtime in-process, not exiting. exit_mode 2 (>1) skips the
+    // applet exit cmds in _appletCleanup. Restore the prior mode after.
     u32 saved_mode = __nx_applet_exit_mode;
-    __nx_applet_exit_mode = 2; // >1 = skip exit cmds in _appletCleanup
+    __nx_applet_exit_mode = 2;
     appletExit();
     __nx_applet_exit_mode = saved_mode;
     smExit(); // match main()'s pre-loadNro state (sm closed)

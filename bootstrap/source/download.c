@@ -623,8 +623,17 @@ bool nx_download_runtime(nx_resolve_t *r) {
 	                          ".part",
 	         ver);
 
-	// Ensure the runtime dir exists.
-	mkdir(NXJS_RUNTIME_DIR, 0777);
+	// Ensure the runtime dir exists (EEXIST is fine; any other error means the
+	// SD card isn't writable, so report that specifically rather than letting
+	// the write fail later with a generic "download failed").
+	if (mkdir(NXJS_RUNTIME_DIR, 0777) != 0 && errno != EEXIST) {
+		printf("\n  " NX_C_RED "Could not create %s on the SD card." NX_C_RESET
+		       "\n",
+		       NXJS_RUNTIME_DIR);
+		consoleUpdate(NULL);
+		teardown_network();
+		return false;
+	}
 
 	if (!download_to_file(url, tmp_path)) {
 		printf("\n  " NX_C_RED "Download failed." NX_C_RESET "\n");

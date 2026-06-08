@@ -44,8 +44,9 @@ void nx_fail_no_runtime(const nx_resolve_t *r);
 // like nx_fail_no_runtime() and DOES NOT RETURN. So: a `true` return means a
 // runtime is ready; the function not returning means the user exited.
 //
-// The console must already be initialized (the NRO launcher's nx_fail* do this;
-// the NSP forwarder calls nx_ui_bringup first). `consoleInit` is idempotent.
+// This calls consoleInit() itself (idempotent), so the console need not be
+// initialized beforehand. The NSP forwarder must still call nx_ui_bringup
+// first, though, to bring up the display/input services the console needs.
 bool nx_resolve_or_download(nx_resolve_t *r);
 
 // Exit hook invoked after the user presses + on any nx_fail* screen. Weakly
