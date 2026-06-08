@@ -77,6 +77,21 @@ bool nx_version_satisfies(const char *cand, const char *spec) {
 	int pw = semver_parse(want_str, &want);
 	int pc = semver_parse(cand, &c);
 	bool ok = (pw == 0 && pc == 0) && semver_satisfies(c, want, op) != 0;
+	// Prerelease floor guard. The vendored semver's caret/tilde/range checks
+	// compare only MAJOR.MINOR.PATCH and ignore the prerelease component, so a
+	// spec with a prerelease lower bound (e.g. "^1.0.0-beta.2", which @nx.js/nro
+	// and @nx.js/nsp now bake) would wrongly accept an OLDER prerelease of the
+	// same x.y.z (e.g. "1.0.0-beta.1"). For floor operators, when the candidate
+	// shares want's x.y.z and want carries a prerelease, additionally require
+	// the candidate to be >= want by full precedence (which orders prereleases).
+	if (ok && want.prerelease && want.prerelease[0] &&
+	    (op[0] == '^' || op[0] == '~' || op[0] == '=' ||
+	     (op[0] == '>' && op[1] == '=')) &&
+	    c.major == want.major && c.minor == want.minor &&
+	    c.patch == want.patch) {
+		if (semver_compare(c, want) < 0)
+			ok = false;
+	}
 	semver_free(&c);
 	semver_free(&want);
 	return ok;
