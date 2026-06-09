@@ -629,35 +629,72 @@ fixtures and compare them to Chrome. It needs the CI toolchain (clang-19/lld-19
 ssh natecube "docker exec nxdbg bash -lc 'cd /work && <cmd>'"
 ```
 
+**You do NOT need natecube hardware access beyond `ssh natecube` + the running
+`nxdbg` container** — this is the canonical way to run the conformance suite
+when you don't have `/opt/host` locally (macOS dev machines won't). The recipe
+below is verified end-to-end; run each step as
+`ssh natecube "docker exec nxdbg bash -lc 'cd /work && <cmd>'"`.
+
+**IMPORTANT — leave `/work` as you found it.** `/work` is a real working tree the
+user may have checked out to another branch with uncommitted changes. Before
+touching it: `git stash list` + `git status`. If dirty, `git stash push -u -m
+<note>` first; **restore at the end** (`git checkout <orig-branch>`, `git stash
+pop`, delete any temp branch you made, `rm -rf .pnpm-store`).
+
+End-to-end recipe (each line is a separate `docker exec … bash -lc 'cd /work &&
+…'`; always append `< /dev/null` to pnpm/node so they can't hang on a prompt):
+
+```bash
+# 0. git dubious-ownership guard (once per fresh container)
+git config --global --add safe.directory /work
+# 1. Get your branch into /work (origin remote-tracking refs may be absent —
+#    fetch straight into a local branch ref, don't rely on origin/<branch>):
+git fetch origin <branch>:<branch> && git checkout <branch>
+# 2. node + pnpm are NOT baked in (Debian 12 / x86_64). Install the x64 build:
+cd /tmp && curl -fsSL https://nodejs.org/dist/v22.14.0/node-v22.14.0-linux-x64.tar.xz \
+  -o node.tar.xz && tar -xf node.tar.xz && cp -r node-v22.14.0-linux-x64/* /usr/local/
+corepack enable && corepack prepare pnpm@8.15.9 --activate     # match packageManager
+# 3. Deps + a FRESH runtime.js bundled from your branch (the harness runs it):
+pnpm install --frozen-lockfile < /dev/null
+pnpm --filter @nx.js/runtime bundle < /dev/null                # -> packages/runtime/runtime.js
+# 4. Build the host binary (clang-19/lld-19 + /opt/host V8/Skia/ada):
+cd packages/runtime/test && cmake -B build -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_C_COMPILER=clang-19 -DCMAKE_CXX_COMPILER=clang++-19 && \
+    cmake --build build -j"$(nproc)"                           # -> build/nxjs-test
+# 5a. Run ONE fixture directly (NO Chrome) — absolute paths; stdbuf because the
+#     binary idles until the fixture calls Switch.exit():
+node packages/runtime/test/build-fixtures.mjs                  # fixtures/*.ts -> fixtures/build/*.js
+stdbuf -oL ./packages/runtime/test/build/nxjs-test \
+    "$(pwd)/packages/runtime/runtime.js" \
+    "$(pwd)/packages/runtime/test/fixtures/build/<name>.js"
+# 5b. Conformance vs Chrome for SPECIFIC fixtures (avoids the flaky full run).
+#     Needs Playwright Chromium + its apt libs (libnspr4 etc.):
+pnpm --filter @nx.js/runtime exec playwright install chromium < /dev/null
+apt-get update -qq && pnpm --filter @nx.js/runtime exec playwright install-deps chromium < /dev/null
+#     Filter by vitest test name "<fixture>: nxjs-test vs Chrome" (run from the
+#     runtime package dir; -t is a substring match so be specific):
+cd /work/packages/runtime && npx vitest run --config test/vitest.config.ts \
+    -t "<fixture>: nxjs-test vs Chrome" < /dev/null
+```
+
 Notes / gotchas learned:
-- The container is **x86_64**; install host node as the x64 build if missing.
-- `git` needs `git config --global --add safe.directory /work` (dubious
-  ownership) after a fresh container.
-- node/pnpm are NOT baked into the image — CI installs them per-run
-  (`actions/setup-node` + `pnpm/action-setup`). Install on demand if needed.
+- **AppleDouble `._*` files**: if `/work` was ever rsync'd from macOS, stray
+  `._<fixture>.js` sidecars can litter `fixtures/build/`. The conformance
+  fixture-discovery globs `*.js` and tries to execute them; `nxjs-test` chokes
+  and the test **hangs 30s then fails as `._<fixture>: …`**. This is NOT a real
+  failure — `find packages/runtime/test/fixtures/build -name '._*' -delete`,
+  then re-run. (A real fixture's result line has no `._` prefix.)
+- **Don't run the full `pnpm test`** unattended — some fixtures hit flaky public
+  endpoints (`echo.websocket.org`) and can stall for many minutes. Use the `-t`
+  filter for the fixtures your change touches.
 - Some apt dev headers (e.g. `libturbojpeg0-dev libjpeg62-turbo-dev`) may be
   missing in a fresh container and are needed to compile `image.cc`; CI installs
   them via apt.
 - To **symbolize a published crash**, check out the published tag/commit in
   `/work`, rebuild `nxjs.nro` there (same `switch-v8` as CI), and addr2line.
-- Build + run the host harness:
-  ```bash
-  cd packages/runtime/test
-  cmake -B build -DCMAKE_BUILD_TYPE=Release \
-        -DCMAKE_C_COMPILER=clang-19 -DCMAKE_CXX_COMPILER=clang++-19
-  cmake --build build -j8                       # -> build/nxjs-test
-  # Full conformance (needs Playwright Chromium):
-  pnpm --filter @nx.js/runtime test
-  # Run ONE fixture directly (no Chrome) — use ABSOLUTE paths; line-buffer
-  # stdout because the binary idles until the fixture calls Switch.exit():
-  node packages/runtime/test/build-fixtures.mjs        # build fixtures/*.ts -> fixtures/build/*.js
-  stdbuf -oL ./packages/runtime/test/build/nxjs-test \
-      "$(pwd)/packages/runtime/runtime.js" \
-      "$(pwd)/packages/runtime/test/fixtures/build/<name>.js"
-  ```
-  A fixture that exits non-zero / segfaults: the harness loses block-buffered
+- A fixture that exits non-zero / segfaults: the harness loses block-buffered
   stdout, so a real failure can masquerade as "empty output, all fixtures fail".
-  Run it directly with `stdbuf -oL` to see the actual TAP + exit code.
+  Run it directly with `stdbuf -oL` (step 5a) to see the actual TAP + exit code.
 - The CI `pacman-packages` image SHA is pinned in `.github/workflows/ci.yml`
   (both the Build and Test jobs). When the V8/Skia portlib is rebuilt, the user
   provides a new image digest; bump both references and (optionally) re-create
