@@ -159,8 +159,13 @@ void nx_irs_sensor_update(const FunctionCallbackInfo<Value> &info) {
 				          (data->color.b * alpha) / 255, alpha);
 			}
 		}
-		// data->image->data is written in place; canvas.cc wraps it in an
-		// SkImage at draw time, so there is no surface to mark dirty.
+		// data->image->data is written in place. canvas.cc now memoizes the
+		// wrapped SkImage on the image (so repeat draws don't re-upload the
+		// source to the GPU). That memo holds a COPY of the pixels taken when it
+		// was built, so it won't reflect this in-place update — drop it here to
+		// force a rebuild on the next draw; otherwise the stale cached image
+		// would keep drawing and this frame's IR update would be invisible.
+		nx_image_release_cache(data->image);
 		data->sampling_number = state.sampling_number;
 		updated = true;
 	}

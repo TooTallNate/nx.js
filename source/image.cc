@@ -20,6 +20,10 @@ struct buffer_state {
 };
 
 void close_image(nx_image_t *image) {
+	// Drop the memoized SkImage (built from a copy of the pixels). Ordering
+	// vs. freeing `data` below doesn't strictly matter since the cache owns its
+	// own copy, but release it up front to keep teardown tidy.
+	nx_image_release_cache(image);
 	if (image->data) {
 		if (image->format == FORMAT_JPEG) {
 			tjFree(image->data);
