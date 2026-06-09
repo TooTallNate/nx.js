@@ -11,6 +11,12 @@ import type { CanvasRenderingContext2D } from './canvas/canvas-rendering-context
 let activeTerminal: Terminal | undefined;
 let appOwnsScreen = false;
 let screenCtx: CanvasRenderingContext2D | undefined;
+// Set when console output (or a scroll) has happened that the screen hasn't
+// been re-blitted for yet. Tracked separately from `Terminal.dirty` because
+// reading `console.canvas` renders + clears the terminal's dirty flag, so by
+// the time presentConsole() runs `render()` may already return false even
+// though the on-screen blit is stale. Cleared after a successful blit.
+let needsBlit = false;
 
 // `screen.ts` registers a getter that returns the screen's own 2D context +
 // puts the screen into canvas (framebuffer) mode, WITHOUT marking the app as
@@ -54,6 +60,7 @@ function wireTouchScroll(): void {
 			// `rows` -> scrollUp(negative) == scrollDown() toward the latest
 			// output. (scrollUp/scrollDown clamp internally.)
 			activeTerminal.scrollUp(rows);
+			needsBlit = true; // the viewport changed; re-blit next frame
 			lastY = y;
 		}
 	});
@@ -70,6 +77,7 @@ function wireTouchScroll(): void {
 export function markAppOwnsScreen(): void {
 	appOwnsScreen = true;
 	screenCtx = undefined;
+	needsBlit = false; // the app draws the screen now; nothing for us to blit
 }
 
 /**
@@ -82,6 +90,7 @@ export function onConsoleOutput(term: Terminal): void {
 	// for apps that composite it (even when they own the screen). Only the
 	// screen-mode acquisition + auto-present below is gated on app ownership.
 	activeTerminal = term;
+	needsBlit = true;
 	if (appOwnsScreen) return;
 	if (!screenCtx && consoleScreenCtxGetter) {
 		try {
@@ -112,9 +121,16 @@ export function presentConsole(): void {
 		return;
 	}
 	if (!screenCtx) return;
-	// render() is a no-op when nothing changed; only blit on an actual change.
-	if (activeTerminal.render()) {
+	// Ensure the terminal pixels are current (no-op if already rendered, e.g.
+	// because user code read `console.canvas` this turn).
+	activeTerminal.render();
+	// Blit when output/scroll happened since the last blit. We gate on
+	// `needsBlit` rather than render()'s return because reading `console.canvas`
+	// can have already done (and cleared) the render — in which case render()
+	// returns false here yet the on-screen copy is still stale.
+	if (needsBlit) {
 		screenCtx.drawImage(activeTerminal.canvas, 0, 0);
+		needsBlit = false;
 	}
 }
 
