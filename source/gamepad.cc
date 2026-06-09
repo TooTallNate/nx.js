@@ -1,6 +1,7 @@
 #include "error.h"
 #include "types.h"
 #include "wrap.h"
+#include <stdio.h>
 
 using namespace v8;
 
@@ -73,7 +74,17 @@ void nx_gamepad_get_axes(const FunctionCallbackInfo<Value> &info) {
 }
 
 void nx_gamepad_get_id(const FunctionCallbackInfo<Value> &info) {
-	info.GetReturnValue().Set(nx_str(info.GetIsolate(), ""));
+	// Return an id UNIQUE per controller index. Previously this returned ""
+	// for every pad, so all 8 controllers were indistinguishable — code that
+	// keys state/config/slot-assignment by `gamepad.id` (the standard Web
+	// Gamepad pattern) collapsed all pads onto one entry. The Web spec says
+	// `id` should identify the controller; index is the stable discriminator
+	// libnx gives us (HidNpadIdType 0..7).
+	Isolate *iso = info.GetIsolate();
+	nx_gamepad_t *gamepad = nx::Unwrap<nx_gamepad_t>(info.This());
+	char buf[32];
+	snprintf(buf, sizeof(buf), "switch-gamepad-%u", (unsigned)gamepad->id);
+	info.GetReturnValue().Set(nx_str(iso, buf));
 }
 
 void nx_gamepad_get_raw_buttons(const FunctionCallbackInfo<Value> &info) {
