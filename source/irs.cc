@@ -161,9 +161,10 @@ void nx_irs_sensor_update(const FunctionCallbackInfo<Value> &info) {
 		}
 		// data->image->data is written in place. canvas.cc now memoizes the
 		// wrapped SkImage on the image (so repeat draws don't re-upload the
-		// source to the GPU). That memo references these pixels, so we must
-		// invalidate it here — otherwise this frame's IR update would be
-		// invisible and the stale cached image would keep drawing.
+		// source to the GPU). That memo holds a COPY of the pixels taken when it
+		// was built, so it won't reflect this in-place update — drop it here to
+		// force a rebuild on the next draw; otherwise the stale cached image
+		// would keep drawing and this frame's IR update would be invisible.
 		nx_image_release_cache(data->image);
 		data->sampling_number = state.sampling_number;
 		updated = true;

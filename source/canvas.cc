@@ -2308,6 +2308,12 @@ void nx_canvas_context_2d_draw_image(const FunctionCallbackInfo<Value> &info) {
 			                                   kPremul_SkAlphaType);
 			SkPixmap pm(ii, img->data, (size_t)img->width * 4);
 			sk_sp<SkImage> cached = SkImages::RasterFromPixmapCopy(pm);
+			// Only memoize on success: caching a null sk_sp would make a
+			// transient failure (e.g. OOM) permanent — every later draw would
+			// reuse the null and never retry. On failure just skip this draw;
+			// the next one rebuilds.
+			if (!cached)
+				return;
 			img->cached_sk_image = new sk_sp<SkImage>(std::move(cached));
 		}
 		image = *static_cast<sk_sp<SkImage> *>(img->cached_sk_image);
