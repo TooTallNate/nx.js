@@ -116,8 +116,14 @@ export function onConsoleOutput(term: Terminal): void {
 export function presentConsole(): void {
 	if (!activeTerminal) return;
 	if (appOwnsScreen) {
-		// App owns the screen: keep console.canvas live, but don't blit it.
-		activeTerminal.render();
+		// App owns the screen: the console is not shown, so do NOT eagerly
+		// re-rasterize the terminal here. render() is cheap only while clean;
+		// once console output marks it dirty it re-rasterizes the whole text
+		// canvas, and doing that EVERY frame (e.g. an app logging telemetry
+		// per tick) burns frame budget for pixels nobody sees — a real,
+		// hard-to-spot per-frame cost on constrained targets like Switch.
+		// Apps that composite `console.canvas` themselves still get it
+		// rendered on demand: the `canvas` getter calls render() lazily.
 		return;
 	}
 	if (!screenCtx) return;
