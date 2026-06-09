@@ -39,6 +39,36 @@ update();
 > It is optional, but recommended to use the [`Button`](/constants/api/enumerations/Button)
 > enum from the `@nx.js/constants` package to refer to the button indices, as shown in the example above.
 
+## Identifying controllers
+
+Each [`Gamepad`](/runtime/api/classes/Gamepad) has an `id` property that identifies the
+controller. On Switch firmware 5.0.0 and later, this is the controller's device name plus
+its hardware serial number, for example:
+
+```
+Nintendo Switch Pro Controller (XAW10012345678)
+```
+
+This makes `id` stable and unique per _physical_ controller, which is useful for keying
+per-player state or settings. The serial number is read once and cached, so reading `id`
+in your update loop is cheap. On older firmware (or if the serial is otherwise
+unavailable) `id` falls back to a per-slot string of the form `switch-gamepad-<index>`.
+
+## Connect and disconnect events
+
+The global `gamepadconnected` and `gamepaddisconnected` events fire when a controller is
+connected to or disconnected from the system:
+
+```typescript
+addEventListener('gamepadconnected', (event) => {
+  console.log(`Controller connected: ${event.gamepad.id}`);
+});
+
+addEventListener('gamepaddisconnected', (event) => {
+  console.log(`Controller disconnected at index ${event.gamepad.index}`);
+});
+```
+
 ## Plus button behavior
 
 By default, pressing the <Icon></Icon> button on the first controller __will exit the application__.

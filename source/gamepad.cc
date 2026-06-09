@@ -1,4 +1,5 @@
 #include "error.h"
+#include "hidsys.h"
 #include "types.h"
 #include "wrap.h"
 #include <stdio.h>
@@ -74,16 +75,20 @@ void nx_gamepad_get_axes(const FunctionCallbackInfo<Value> &info) {
 }
 
 void nx_gamepad_get_id(const FunctionCallbackInfo<Value> &info) {
-	// Return an id UNIQUE per controller index. Previously this returned ""
-	// for every pad, so all 8 controllers were indistinguishable — code that
-	// keys state/config/slot-assignment by `gamepad.id` (the standard Web
-	// Gamepad pattern) collapsed all pads onto one entry. The Web spec says
-	// `id` should identify the controller; index is the stable discriminator
-	// libnx gives us (HidNpadIdType 0..7).
+	// Resolve a descriptive, hardware-backed id — the controller's device name
+	// plus its serial number, e.g. "Nintendo Switch Pro Controller (XAW...)".
+	// The serial comes from the `hid:sys` service (FW 5.0.0+); that IPC is
+	// expensive, so `nx_gamepad_resolve_id` caches the result per Npad index
+	// and only re-queries after a connect/disconnect — it is NEVER hit on the
+	// hot input-polling path. When the serial can't be obtained (old firmware,
+	// no paired controller, IPC failure) it falls back to the prior
+	// "switch-gamepad-<index>" string, so `id` is always a non-empty value
+	// that is unique per controller slot (the standard Web Gamepad pattern of
+	// keying state/config by `gamepad.id`).
 	Isolate *iso = info.GetIsolate();
 	nx_gamepad_t *gamepad = nx::Unwrap<nx_gamepad_t>(info.This());
-	char buf[32];
-	snprintf(buf, sizeof(buf), "switch-gamepad-%u", (unsigned)gamepad->id);
+	char buf[96];
+	nx_gamepad_resolve_id(iso, (unsigned)gamepad->id, buf, sizeof(buf));
 	info.GetReturnValue().Set(nx_str(iso, buf));
 }
 
