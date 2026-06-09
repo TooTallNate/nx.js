@@ -99,6 +99,25 @@ test('atob - invalid base64 throws', (t) => {
 	t.throws(() => atob('a'), undefined, 'atob("a") throws (bad length)');
 	// Non-base64 character.
 	t.throws(() => atob('!!!!'), undefined, 'atob("!!!!") throws');
+	// 5 chars (len % 4 == 1) also invalid.
+	t.throws(() => atob('aGVsb'), undefined, 'atob 5 chars throws');
+});
+
+test('atob - unpadded short groups decode (forgiving base64)', (t) => {
+	// Per WHATWG forgiving-base64, padding is optional. mbedtls returned ""
+	// here; the spec decodes the partial final group.
+	t.equal(atob('Zg'), 'f', 'atob("Zg") -> "f" (no padding)');
+	t.equal(atob('Zm8'), 'fo', 'atob("Zm8") -> "fo" (no padding)');
+	t.equal(atob('aGVsbG8'), 'hello', 'atob("aGVsbG8") -> "hello"');
+	// With padding still works.
+	t.equal(atob('Zg=='), 'f', 'atob("Zg==") -> "f"');
+});
+
+test('atob - ASCII whitespace is stripped (forgiving base64)', (t) => {
+	t.equal(atob('aG Vs bG 8='), 'hello', 'spaces stripped');
+	t.equal(atob('aGVsbG8=\n'), 'hello', 'trailing newline stripped');
+	t.equal(atob('\taGVsbG8=\r\n'), 'hello', 'tab/CRLF stripped');
+	t.equal(atob('a G V s b G 8'), 'hello', 'interior spaces, no padding');
 });
 
 test('atob - throws with name InvalidCharacterError', (t) => {
