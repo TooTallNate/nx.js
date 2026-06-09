@@ -84,14 +84,17 @@ test('btoa - char > 0xFF throws InvalidCharacterError', (t) => {
 	t.throws(() => btoa('\uD83D\uDE00'), undefined, 'emoji (surrogates) throws');
 });
 
-test('btoa - throws with name InvalidCharacterError', (t) => {
+test('btoa - throws a DOMException named InvalidCharacterError', (t) => {
 	let name = '';
+	let isDOMException = false;
 	try {
 		btoa('\u0100');
 	} catch (e) {
 		name = (e as { name?: string }).name ?? '';
+		isDOMException = e instanceof DOMException;
 	}
 	t.equal(name, 'InvalidCharacterError', 'error name is InvalidCharacterError');
+	t.ok(isDOMException, 'thrown value is a DOMException');
 });
 
 test('atob - invalid base64 throws', (t) => {
@@ -120,14 +123,22 @@ test('atob - ASCII whitespace is stripped (forgiving base64)', (t) => {
 	t.equal(atob('a G V s b G 8'), 'hello', 'interior spaces, no padding');
 });
 
-test('atob - throws with name InvalidCharacterError', (t) => {
+test('atob - throws a DOMException named InvalidCharacterError', (t) => {
 	let name = '';
+	let isDOMException = false;
 	try {
 		atob('a');
 	} catch (e) {
 		name = (e as { name?: string }).name ?? '';
+		isDOMException = e instanceof DOMException;
 	}
 	t.equal(name, 'InvalidCharacterError', 'error name is InvalidCharacterError');
+	t.ok(isDOMException, 'thrown value is a DOMException');
+});
+
+test('atob - non-Latin1 (two-byte) input throws', (t) => {
+	// A code unit > 0xFF can't be valid base64; must throw, not truncate.
+	t.throws(() => atob('\u0100bc'), undefined, 'atob with U+0100 throws');
 });
 
 test('btoa - argument is stringified', (t) => {

@@ -7,13 +7,27 @@ using namespace v8;
 
 namespace {
 
-// Throw a DOMException-flavored InvalidCharacterError. The HTML spec requires
-// atob/btoa to throw "InvalidCharacterError" (a DOMException) on bad input.
-// We don't have a native DOMException constructor here, so throw an Error whose
-// name is set to "InvalidCharacterError" — `instanceof`/`.name` checks and the
-// message match what callers expect.
+// Throw an "InvalidCharacterError" — the DOMException the HTML spec requires
+// atob/btoa to throw on bad input. Prefer the real global `DOMException`
+// (so `instanceof DOMException` works, matching Chrome/WebIDL):
+// `new DOMException(msg, "InvalidCharacterError")`. Fall back to an Error whose
+// `name` is set if the constructor isn't available for any reason.
 static void throw_invalid_character(Isolate *iso, const char *msg) {
 	Local<Context> ctx = iso->GetCurrentContext();
+	Local<Object> global = ctx->Global();
+	Local<Value> de_ctor_v;
+	if (global->Get(ctx, nx_str(iso, "DOMException")).ToLocal(&de_ctor_v) &&
+	    de_ctor_v->IsFunction()) {
+		Local<Function> de_ctor = de_ctor_v.As<Function>();
+		Local<Value> args[] = {nx_str(iso, msg),
+		                       nx_str(iso, "InvalidCharacterError")};
+		Local<Value> ex;
+		if (de_ctor->NewInstance(ctx, 2, args).ToLocal(&ex)) {
+			iso->ThrowException(ex);
+			return;
+		}
+	}
+	// Fallback: an Error with the right name.
 	Local<Value> err = Exception::Error(nx_str(iso, msg));
 	if (err->IsObject()) {
 		err.As<Object>()
@@ -60,14 +74,20 @@ void nx_atob(const FunctionCallbackInfo<Value> &info) {
 		return; // pending exception from coercion
 	}
 
-	// Read the input as Latin-1 bytes (base64 is ASCII; a code unit > 0xFF
-	// can't be a base64 char, so truncation here only turns into an error
-	// below — but be exact and reject any non-one-byte input as invalid).
 	int input_len = in_str->Length();
 	if (input_len == 0) {
 		info.GetReturnValue().Set(nx_str(iso, ""));
 		return;
 	}
+	// A code unit > 0xFF can't be a base64 char. Reject non-one-byte input up
+	// front rather than letting WriteOneByte truncate it to a stray byte that
+	// might masquerade as a valid base64 char (matches btoa's check).
+	if (!in_str->ContainsOnlyOneByte()) {
+		throw_invalid_character(
+		    iso, "The string to be decoded is not correctly encoded.");
+		return;
+	}
+	// Read the input as Latin-1 bytes (base64 is ASCII, one byte per char).
 	uint8_t *raw = (uint8_t *)malloc((size_t)input_len);
 	if (!raw) {
 		nx_throw(iso, "out of memory");
