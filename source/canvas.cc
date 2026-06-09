@@ -2289,11 +2289,28 @@ void nx_canvas_context_2d_draw_image(const FunctionCallbackInfo<Value> &info) {
 	if (img) {
 		if (!img->data || img->width == 0 || img->height == 0)
 			return;
-		SkImageInfo ii = SkImageInfo::Make(img->width, img->height,
-		                                   kBGRA_8888_SkColorType,
-		                                   kPremul_SkAlphaType);
-		SkPixmap pm(ii, img->data, (size_t)img->width * 4);
-		image = SkImages::RasterFromPixmapCopy(pm);
+		// Memoize the wrapped SkImage on the image object. Rebuilding it per
+		// draw gave each call a fresh image identity, defeating Ganesh's
+		// GPU-texture cache (full source re-upload every frame), and at ~10k
+		// tile draws/frame the per-call copy also OOMs the single-threaded GC.
+		//
+		// We build the cached image with RasterFromPixmapCopy, which COPIES
+		// the pixels into a self-owned, immutable SkImage. An earlier version
+		// used RasterFromData(MakeWithoutCopy) to avoid the copy, but that
+		// shares `img->data` with a non-owning SkData; under the GPU backend
+		// (especially with bilinear sampling) Skia's refcounting on the shared
+		// buffer aborted (SkRefCnt BRK). The copy happens ONCE (it's cached),
+		// so the cost is paid a single time per image, not per draw. Released
+		// in close_image via nx_image_release_cache.
+		if (!img->cached_sk_image) {
+			SkImageInfo ii = SkImageInfo::Make(img->width, img->height,
+			                                   kBGRA_8888_SkColorType,
+			                                   kPremul_SkAlphaType);
+			SkPixmap pm(ii, img->data, (size_t)img->width * 4);
+			sk_sp<SkImage> cached = SkImages::RasterFromPixmapCopy(pm);
+			img->cached_sk_image = new sk_sp<SkImage>(std::move(cached));
+		}
+		image = *static_cast<sk_sp<SkImage> *>(img->cached_sk_image);
 		source_w = img->width;
 		source_h = img->height;
 	} else {
@@ -2664,6 +2681,17 @@ void nx_canvas_proto_to_data_url(const FunctionCallbackInfo<Value> &info) {
 } // namespace
 
 // ---- shared (non-namespace) symbols ----
+
+// Release an nx_image_t's memoized SkImage. Declared in image.h, defined here
+// where the Skia type is visible; called from image.cc:close_image and
+// irs.cc (in-place pixel updates must drop the stale memo).
+void nx_image_release_cache(nx_image_t *image) {
+	if (image && image->cached_sk_image) {
+		delete static_cast<sk_sp<SkImage> *>(image->cached_sk_image);
+		image->cached_sk_image = nullptr;
+	}
+}
+
 bool nx_resolve_round_rect_radii(Isolate *iso, Local<Value> radii,
                                  SkVector out[4]) {
 	return resolve_round_rect_radii_impl(iso, radii, out);

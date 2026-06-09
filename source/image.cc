@@ -20,6 +20,9 @@ struct buffer_state {
 };
 
 void close_image(nx_image_t *image) {
+	// Drop the memoized SkImage first — it references `data`, so it must go
+	// before the pixels it wraps are freed.
+	nx_image_release_cache(image);
 	if (image->data) {
 		if (image->format == FORMAT_JPEG) {
 			tjFree(image->data);
