@@ -62,6 +62,9 @@ bool init_egl(NWindow *win) {
 	if (!s_ctx)
 		return false;
 	eglMakeCurrent(s_dpy, s_surf, s_surf, s_ctx);
+	// Lock presentation to one buffer-swap per vblank for a clean 60Hz cadence.
+	// Without an explicit interval the driver default is undefined.
+	eglSwapInterval(s_dpy, 1);
 	// NOTE: the EGL window surface is double-buffered. The canvas draws into a
 	// separate persistent surface (s_canvas) and we composite it into the back
 	// buffer every present (see nx_skia_gpu_present), so double buffering does
