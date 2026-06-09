@@ -27,9 +27,11 @@ void nx_hidsys_exit(nx_context_t *ctx);
 void nx_gamepad_resolve_id(v8::Isolate *iso, unsigned index, char *out,
                            size_t out_len);
 
-// Non-blocking check of the OS unique-pad connection event. When it has
-// signaled (a controller connected/disconnected), clears the entire id cache
-// and returns true. Returns false (and does nothing) otherwise. Exposed to JS
-// as `$.gamepadConnectionChanged()` and called once per frame to drive the
-// `gamepadconnected` / `gamepaddisconnected` sweep.
+// Registers the `$.gamepadConnectionChanged()` binding: a non-blocking check of
+// the OS unique-pad connection event. When it has signaled (a controller
+// connected/disconnected), it invalidates the cached id of every CURRENTLY
+// CONNECTED slot (so a slot now hosting a different controller re-resolves)
+// while leaving disconnected slots' last-known ids intact (so the
+// `gamepaddisconnected` event reports the controller that left, not the
+// fallback), then returns true. Returns false (and does nothing) otherwise.
 void nx_init_hidsys(v8::Isolate *iso, v8::Local<v8::Object> init_obj);

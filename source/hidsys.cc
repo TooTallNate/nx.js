@@ -72,17 +72,23 @@ void nx_gamepad_connection_changed(const FunctionCallbackInfo<Value> &info) {
 
 } // namespace
 
-// Read one unique pad's serial number into `out` (NUL-terminated, trimmed).
-// Returns true only when a non-empty serial was obtained.
+// Read one unique pad's serial number into `out` (NUL-terminated, with any
+// trailing whitespace / control-byte padding trimmed). Returns true only when
+// a non-empty serial was obtained.
 bool read_serial(HidsysUniquePadId pad, char *out, size_t out_len) {
 	HidsysUniquePadSerialNumber serial;
 	memset(&serial, 0, sizeof(serial));
 	if (R_FAILED(hidsysGetUniquePadSerialNumber(pad, &serial)))
 		return false;
-	// serial_number is a 0x10 byte field, not guaranteed NUL-terminated.
+	// serial_number is a fixed 0x10-byte field, not guaranteed NUL-terminated
+	// and often padded with spaces / zero bytes.
 	char ser[sizeof(serial.serial_number) + 1];
 	memcpy(ser, serial.serial_number, sizeof(serial.serial_number));
 	ser[sizeof(serial.serial_number)] = '\0';
+	// Trim trailing padding (spaces and any control bytes <= 0x20).
+	size_t len = strlen(ser);
+	while (len > 0 && (unsigned char)ser[len - 1] <= ' ')
+		ser[--len] = '\0';
 	if (ser[0] == '\0')
 		return false;
 	snprintf(out, out_len, "%s", ser);

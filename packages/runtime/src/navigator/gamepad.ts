@@ -120,20 +120,27 @@ const connectedState: boolean[] = Array(8).fill(false);
 
 /**
  * Detects controller connect/disconnect transitions and returns the
- * `GamepadEvent`s that should be dispatched (in order). Cheap on the common
- * path: it only diffs the 8 slots when the OS connection event has fired (the
- * native `$.gamepadConnectionChanged()` is a non-blocking event check, and is
- * also what invalidates the cached `Gamepad.id` values). Returns an empty
- * array when nothing changed.
+ * `GamepadEvent`s that should be dispatched (in order). Returns an empty array
+ * when nothing changed (the common path: 8 cheap boolean reads).
+ *
+ * `$.gamepadConnectionChanged()` is consulted purely to invalidate the cached
+ * `Gamepad.id` values when the OS connection event fires — the transition diff
+ * itself is always run off `Gamepad.connected`, so the events still dispatch
+ * even when `hid:sys` is unavailable (e.g. firmware < 5.0.0) and that native
+ * check always reports `false`.
  *
  * @ignore
  */
 export function sweepGamepadConnections(): GamepadEvent[] {
-	if (!$.gamepadConnectionChanged()) return [];
+	// Drain the native connect/disconnect event so the C side can invalidate
+	// the id cache for re-resolution. The return value does NOT gate the diff.
+	$.gamepadConnectionChanged();
 	const events: GamepadEvent[] = [];
 	for (let i = 0; i < 8; i++) {
 		const g = gamepads[i];
-		const connected = g.connected;
+		// Coerce to a real boolean: the host test stub leaves `connected`
+		// undefined, which would otherwise look like a transition every frame.
+		const connected = !!g.connected;
 		if (connected === connectedState[i]) continue;
 		connectedState[i] = connected;
 		events.push(
