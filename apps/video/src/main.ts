@@ -1,5 +1,6 @@
 // Video Demo - nx.js
-// Place a video file (e.g. .webm / .mp4) at romfs/video.webm
+// Place a video file (e.g. WebM / MP4) at `romfs/video.webm` in this app's
+// directory — it is loaded at runtime as `romfs:/video.webm`.
 //
 // Controls:
 //   A         = play / pause
@@ -22,7 +23,7 @@ video.addEventListener('canplay', () => {
 	statusText = 'Ready — press A to play';
 });
 video.addEventListener('error', (e) => {
-	statusText = `Error: ${e.error?.message ?? 'failed to load'} — place a video at romfs/video.webm`;
+	statusText = `Error: ${e.error?.message ?? 'failed to load'} — place a video file at romfs/video.webm`;
 });
 video.addEventListener('ended', () => {
 	statusText = 'Ended — press A to replay';

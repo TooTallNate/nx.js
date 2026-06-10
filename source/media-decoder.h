@@ -17,6 +17,7 @@
 //     buffer (pointer swap, zero copy) based on the media clock. The clock
 //     is slaved to the audio stream node's consumed-frame counter when an
 //     audio track is playing, and to the monotonic wall clock otherwise.
+#include <memory>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -40,11 +41,14 @@ bool nx_media_decode_audio(const uint8_t *data, size_t size,
                            size_t errbuf_size);
 
 // Open a media resource and probe its streams. Exactly one of `path` or
-// `mem` must be provided; for `mem`, the buffer must stay valid until
-// nx_media_destroy() (the caller pins it). Blocking — call off the main
-// thread. Returns NULL and fills `errbuf` on failure.
+// `mem` must be provided; for `mem`, `keepalive` must own the buffer (e.g. a
+// shared_ptr<v8::BackingStore>) — the media holds it until
+// nx_media_destroy(), since the decode thread streams from it for the
+// media's whole lifetime. Blocking — call off the main thread. Returns NULL
+// and fills `errbuf` on failure.
 nx_media_t *nx_media_open(const char *path, const uint8_t *mem,
-                          size_t mem_size, char *errbuf, size_t errbuf_size);
+                          size_t mem_size, std::shared_ptr<void> keepalive,
+                          char *errbuf, size_t errbuf_size);
 
 // Metadata (valid after a successful open).
 int nx_media_width(nx_media_t *m);

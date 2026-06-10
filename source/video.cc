@@ -34,9 +34,6 @@ struct nx_video_t {
 	// decode thread is joined). NULL when the media has no audio track or no
 	// audio context was attached.
 	nx_audio_node *audio_node = nullptr;
-	// Pins for memory-backed loads (the decoder reads the bytes in place).
-	Global<Value> mem_val;
-	std::shared_ptr<BackingStore> mem_store;
 	bool closed = false;
 };
 
@@ -56,8 +53,6 @@ void reset_media(nx_video_t *v) {
 	free(v->image.data);
 	v->image.data = nullptr;
 	v->image.width = v->image.height = 0;
-	v->mem_val.Reset();
-	v->mem_store.reset();
 }
 
 void close_video(nx_video_t *v) {
@@ -106,6 +101,10 @@ struct video_load_t {
 	char *path = nullptr;    // owned copy (file-backed load)
 	const uint8_t *mem = nullptr;
 	size_t mem_size = 0;
+	// Strong ref to the memory buffer for the duration of the open (and,
+	// via nx_media_open, handed to the media for its whole lifetime) — a
+	// concurrent reset/close on the main thread can never unpin it.
+	std::shared_ptr<BackingStore> mem_store;
 	nx_media_t *media = nullptr;
 	char err_buf[256] = {};
 	~video_load_t() { free(path); }
@@ -113,8 +112,9 @@ struct video_load_t {
 
 void video_load_work(nx_work_t *req) {
 	video_load_t *data = (video_load_t *)req->data;
-	data->media = nx_media_open(data->path, data->mem, data->mem_size,
-	                            data->err_buf, sizeof(data->err_buf));
+	data->media =
+	    nx_media_open(data->path, data->mem, data->mem_size, data->mem_store,
+	                  data->err_buf, sizeof(data->err_buf));
 }
 
 MaybeLocal<Value> video_load_after(Isolate *iso, nx_work_t *req) {
@@ -123,8 +123,6 @@ MaybeLocal<Value> video_load_after(Isolate *iso, nx_work_t *req) {
 	nx_video_t *v = data->video;
 	data->video_val.Reset();
 	if (!data->media) {
-		v->mem_val.Reset();
-		v->mem_store.reset();
 		iso->ThrowException(Exception::Error(nx_str_lossy(iso, data->err_buf)));
 		return MaybeLocal<Value>();
 	}
@@ -134,6 +132,9 @@ MaybeLocal<Value> video_load_after(Isolate *iso, nx_work_t *req) {
 		iso->ThrowException(Exception::Error(nx_str(iso, "Video was closed")));
 		return MaybeLocal<Value>();
 	}
+	// Racing loads (src changed while this open was in flight): last one
+	// wins — tear down whatever an earlier load installed.
+	reset_media(v);
 	v->media = data->media;
 	int width = nx_media_width(data->media);
 	int height = nx_media_height(data->media);
@@ -194,10 +195,7 @@ void nx_video_load(const FunctionCallbackInfo<Value> &info) {
 		std::shared_ptr<BackingStore> bs = ab->GetBackingStore();
 		data->mem = (const uint8_t *)bs->Data();
 		data->mem_size = bs->ByteLength();
-		// Pin the buffer for the lifetime of the media (the decode thread
-		// streams from it).
-		v->mem_val.Reset(iso, info[2]);
-		v->mem_store = std::move(bs);
+		data->mem_store = std::move(bs);
 	}
 	if (!data->path && !data->mem) {
 		req->data_dtor(data);

@@ -53,6 +53,9 @@ struct nx_media {
 	const uint8_t *mem = nullptr;
 	size_t mem_size = 0;
 	size_t mem_pos = 0;
+	// Owns the memory buffer for the media's lifetime (the decode thread
+	// streams from it until destroy).
+	std::shared_ptr<void> mem_hold;
 
 	// ---- ffmpeg ----
 	AVIOContext *avio = nullptr;
@@ -475,8 +478,10 @@ double clock_now(nx_media *m) {
 // ---------------------------------------------------------------------------
 
 nx_media_t *nx_media_open(const char *path, const uint8_t *mem,
-                          size_t mem_size, char *errbuf, size_t errbuf_size) {
+                          size_t mem_size, std::shared_ptr<void> keepalive,
+                          char *errbuf, size_t errbuf_size) {
 	nx_media *m = new nx_media();
+	m->mem_hold = std::move(keepalive);
 	int ret = 0;
 	const AVCodec *vcodec = NULL;
 	const AVCodec *acodec = NULL;
