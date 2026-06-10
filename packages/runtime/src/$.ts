@@ -48,6 +48,8 @@ type ClassOf<T> = {
 	new (...args: any[]): T;
 };
 
+export type AudioContextHandle = Opaque<'AudioContextHandle'>;
+export type AudioNodeHandle = Opaque<'AudioNodeHandle'>;
 type FileHandle = Opaque<'FileHandle'>;
 type CanvasGradientOpaque = Opaque<'CanvasGradientOpaque'>;
 type CompressHandle = Opaque<'CompressHandle'>;
@@ -549,37 +551,64 @@ export interface Init {
 	): URLSearchParamsIterator;
 	urlSearchIteratorNext(it: URLSearchParamsIterator): any;
 
-	// audio.c
-	audioInit(): void;
-	audioExit(): void;
-	audioDecode(
-		buffer: ArrayBuffer,
-		mimeType: string,
-	): Promise<{
-		pcmData: ArrayBuffer;
-		sampleRate: number;
-		channels: number;
-		samples: number;
-		byteLength: number;
-	}>;
-	audioPlay(
-		pcmData: ArrayBuffer,
-		voiceId: number,
-		volume: number,
-		loop: boolean,
-		sampleRate: number,
-		channels: number,
-		totalSamples: number,
+	// audio.cc — Web Audio API
+	audioContextNew(sampleRate: number, offline: boolean): AudioContextHandle;
+	audioContextClose(ctx: AudioContextHandle): void;
+	audioContextSuspend(ctx: AudioContextHandle): void;
+	audioContextResume(ctx: AudioContextHandle): void;
+	audioContextCurrentTime(ctx: AudioContextHandle): number;
+	audioContextDestination(ctx: AudioContextHandle): AudioNodeHandle;
+	audioNodeNew(ctx: AudioContextHandle, type: number): AudioNodeHandle;
+	audioNodeConnect(src: AudioNodeHandle, dst: AudioNodeHandle): void;
+	audioNodeDisconnect(src: AudioNodeHandle, dst?: AudioNodeHandle): void;
+	audioParamValue(node: AudioNodeHandle, index: number): number;
+	audioParamSetValue(node: AudioNodeHandle, index: number, value: number): void;
+	audioParamSchedule(
+		node: AudioNodeHandle,
+		index: number,
+		type: number,
+		time: number,
+		value: number,
+		timeConstant: number,
 	): void;
-	audioStop(voiceId: number): void;
-	audioPause(voiceId: number, paused: boolean): void;
-	audioSetVolume(voiceId: number, volume: number): void;
-	audioSetPitch(voiceId: number, pitch: number): void;
-	audioUpdate(): void;
-	audioGetPlayedSamples(voiceId: number): number;
-	audioAllocVoice(): number;
-	audioFreeVoice(voiceId: number): void;
-	audioIsPlaying(voiceId: number): boolean;
+	audioParamSetValueCurve(
+		node: AudioNodeHandle,
+		index: number,
+		curve: Float32Array,
+		startTime: number,
+		duration: number,
+	): void;
+	audioParamCancel(node: AudioNodeHandle, index: number, time: number): void;
+	audioSourceSetBuffer(
+		node: AudioNodeHandle,
+		channels: Float32Array[],
+		length: number,
+		sampleRate: number,
+	): void;
+	audioSourceStart(
+		node: AudioNodeHandle,
+		when: number,
+		offset: number,
+		duration: number,
+	): void;
+	audioSourceStop(node: AudioNodeHandle, when: number): void;
+	audioSourceSetLoop(
+		node: AudioNodeHandle,
+		loop: boolean,
+		loopStart: number,
+		loopEnd: number,
+	): void;
+	audioSourceState(node: AudioNodeHandle): number;
+	audioDecode(buffer: ArrayBuffer): Promise<{
+		channelData: ArrayBuffer[];
+		length: number;
+		sampleRate: number;
+	}>;
+	audioOfflineRender(
+		ctx: AudioContextHandle,
+		numberOfChannels: number,
+		length: number,
+	): Promise<ArrayBuffer[]>;
 
 	// (Uint8Array base64/hex methods are provided natively by V8 — no binding.)
 

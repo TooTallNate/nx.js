@@ -1,0 +1,19 @@
+{
+  "name": "web-audio",
+  "version": "0.0.0",
+  "private": true,
+  "description": "nx.js example which generates and plays audio using the Web Audio API",
+  "scripts": {
+    "build": "esbuild --bundle --sourcemap --sources-content=false --target=es2022 --format=esm --outdir=romfs src/main.ts",
+    "nro": "nxjs-nro",
+    "nsp": "nxjs-nsp"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@nx.js/constants": "workspace:^",
+    "@nx.js/nro": "workspace:^",
+    "@nx.js/nsp": "workspace:^",
+    "@nx.js/runtime": "workspace:^",
+    "esbuild": "catalog:"
+  }
+}

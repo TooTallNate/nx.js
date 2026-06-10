@@ -41,6 +41,9 @@ set(NX_SOURCE_DIR "${CMAKE_SOURCE_DIR}/../../../source")
 set(TEST_SOURCES
   src/main.cc
   src/stubs.cc
+  # Host audio output sink (wall-clock paced consumer thread); the device
+  # equivalent is source/audio-sink-audren.cc.
+  src/audio-sink.cc
 )
 
 # Real nx.js source modules that are portable (compiled from source/*.cc, with
@@ -48,6 +51,8 @@ set(TEST_SOURCES
 # screen provider, which the host raster harness does not use.
 set(NX_SOURCES
   ${NX_SOURCE_DIR}/async.cc
+  ${NX_SOURCE_DIR}/audio.cc
+  ${NX_SOURCE_DIR}/audio-graph.cc
   ${NX_SOURCE_DIR}/canvas.cc
   ${NX_SOURCE_DIR}/canvas_path.cc
   ${NX_SOURCE_DIR}/compression.cc
