@@ -9,10 +9,12 @@
  * factory functions return an empty object so callers that read properties
  * off the result do not crash.
  *
- * The portable modules (canvas, crypto, dns, compression, url, web, fs, image,
- * font, tcp, tls, udp, wasm, window, dommatrix, error, util, async) are
- * compiled from source/*.cc against the libnx stubs in compat/. memory.cc is
- * Switch-specific (svc memory introspection), so it is stubbed here too.
+ * The portable modules (audio, canvas, crypto, dns, compression, url, web,
+ * fs, image, font, tcp, tls, udp, wasm, window, dommatrix, error, util,
+ * async) are compiled from source/*.cc against the libnx stubs in compat/.
+ * memory.cc is Switch-specific (svc memory introspection), so it is stubbed
+ * here too. (audio.cc is portable because the platform output lives behind
+ * audio-sink.h — the host sink is src/audio-sink.cc.)
  */
 #include "types.h"
 #include <v8.h>
@@ -71,13 +73,6 @@ NX_STUB_FN(album) {
 NX_STUB_FN(applet) {
 	NX_STUB_NAMES("appletIlluminance", "appletGetAppletType",
 	              "appletGetOperationMode", "appletSetMediaPlaybackState")
-}
-
-NX_STUB_FN(audio) {
-	NX_STUB_NAMES("audioInit", "audioExit", "audioDecode", "audioPlay",
-	              "audioStop", "audioPause", "audioSetVolume", "audioSetPitch",
-	              "audioUpdate", "audioGetPlayedSamples", "audioAllocVoice",
-	              "audioFreeVoice", "audioIsPlaying")
 }
 
 NX_STUB_FN(battery) {

@@ -182,6 +182,42 @@ export interface ImportMeta {
  */
 export declare function queueMicrotask(callback: () => void): void;
 
+import './audio/audio-buffer';
+export type * from './audio/audio-buffer';
+
+import './audio/audio-param';
+export type * from './audio/audio-param';
+
+import './audio/audio-node';
+export type * from './audio/audio-node';
+
+import './audio/audio-scheduled-source-node';
+export type * from './audio/audio-scheduled-source-node';
+
+import './audio/audio-buffer-source-node';
+export type * from './audio/audio-buffer-source-node';
+
+import './audio/gain-node';
+export type * from './audio/gain-node';
+
+import './audio/stereo-panner-node';
+export type * from './audio/stereo-panner-node';
+
+import './audio/audio-destination-node';
+export type * from './audio/audio-destination-node';
+
+import './audio/base-audio-context';
+export type * from './audio/base-audio-context';
+
+import './audio/audio-context';
+export type * from './audio/audio-context';
+
+import './audio/offline-audio-completion-event';
+export type * from './audio/offline-audio-completion-event';
+
+import './audio/offline-audio-context';
+export type * from './audio/offline-audio-context';
+
 import './audio';
 import './web-applet';
 

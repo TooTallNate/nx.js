@@ -1,4 +1,8 @@
 import { $ } from './$';
+import { createAudioBuffer, type AudioBuffer } from './audio/audio-buffer';
+import type { AudioBufferSourceNode } from './audio/audio-buffer-source-node';
+import { AudioContext } from './audio/audio-context';
+import type { GainNode } from './audio/gain-node';
 import { DOMException } from './dom-exception';
 import { fetch } from './fetch/fetch';
 import { ErrorEvent, Event } from './polyfills/event';
@@ -13,54 +17,21 @@ const HAVE_CURRENT_DATA = 2;
 const HAVE_FUTURE_DATA = 3;
 const HAVE_ENOUGH_DATA = 4;
 
-interface DecodedAudio {
-	pcmData: ArrayBuffer;
-	sampleRate: number;
-	channels: number;
-	samples: number;
-	byteLength: number;
-}
-
-function mimeFromExtension(path: string): string {
-	const ext = path.split('.').pop()?.toLowerCase();
-	switch (ext) {
-		case 'mp3':
-			return 'audio/mpeg';
-		case 'wav':
-			return 'audio/wav';
-		case 'ogg':
-			return 'audio/ogg';
-		default:
-			return 'application/octet-stream';
+// All `Audio` elements share one (lazily-created) AudioContext.
+let sharedCtx: AudioContext | null = null;
+function getContext(): AudioContext {
+	if (!sharedCtx) {
+		sharedCtx = new AudioContext();
 	}
-}
-
-let audioInitialized = false;
-let updateInterval: ReturnType<typeof setInterval> | null = null;
-
-function ensureAudioInit() {
-	if (!audioInitialized) {
-		$.audioInit();
-		audioInitialized = true;
-		addEventListener('unload', () => {
-			$.audioExit();
-			audioInitialized = false;
-		});
-	}
-}
-
-function ensureUpdateLoop() {
-	if (!updateInterval) {
-		updateInterval = setInterval(() => {
-			$.audioUpdate();
-		}, 16); // ~60fps
-	}
+	return sharedCtx;
 }
 
 /**
  * The `Audio` class provides audio playback functionality similar to the
  * [`HTMLAudioElement`](https://developer.mozilla.org/docs/Web/API/HTMLAudioElement)
- * in web browsers.
+ * in web browsers. It is implemented on top of the Web Audio API
+ * ({@link AudioContext}) — for low-level / game audio use the Web Audio
+ * classes directly.
  *
  * ### Supported Audio Formats
  *
@@ -94,9 +65,11 @@ export class Audio extends EventTarget {
 	#ended = false;
 	#playbackRate = 1.0;
 	#readyState = HAVE_NOTHING;
-	#voiceId = -1;
-	#decoded: DecodedAudio | null = null;
-	#sampleOffset = 0;
+	#buffer: AudioBuffer | null = null;
+	#gain: GainNode | null = null;
+	#source: AudioBufferSourceNode | null = null;
+	#offset = 0; // playback position (seconds) at the last start/pause/rebase
+	#startCtxTime = 0; // context time at the last start/rebase
 	#timeupdateInterval: ReturnType<typeof setInterval> | null = null;
 
 	constructor(src?: string) {
@@ -132,8 +105,8 @@ export class Audio extends EventTarget {
 
 	set volume(val: number) {
 		this.#volume = Math.max(0, Math.min(1, val));
-		if (this.#voiceId >= 0) {
-			$.audioSetVolume(this.#voiceId, this.#volume);
+		if (this.#gain) {
+			this.#gain.gain.value = this.#volume;
 		}
 	}
 
@@ -143,6 +116,9 @@ export class Audio extends EventTarget {
 
 	set loop(val: boolean) {
 		this.#loop = val;
+		if (this.#source) {
+			this.#source.loop = val;
+		}
 	}
 
 	get paused(): boolean {
@@ -154,41 +130,35 @@ export class Audio extends EventTarget {
 	}
 
 	get currentTime(): number {
-		if (!this.#decoded) return 0;
-		if (this.#voiceId >= 0 && !this.#paused) {
-			const played = $.audioGetPlayedSamples(this.#voiceId) as number;
-			return (played + this.#sampleOffset) / this.#decoded.sampleRate;
+		if (!this.#buffer) return 0;
+		if (this.#paused || !this.#source) return this.#offset;
+		const ctx = getContext();
+		let pos =
+			this.#offset +
+			(ctx.currentTime - this.#startCtxTime) * this.#playbackRate;
+		const dur = this.#buffer.duration;
+		if (this.#loop) {
+			pos = dur > 0 ? pos % dur : 0;
+		} else if (pos > dur) {
+			pos = dur;
 		}
-		return this.#sampleOffset / (this.#decoded?.sampleRate ?? 48000);
+		return pos;
 	}
 
 	set currentTime(val: number) {
-		if (!this.#decoded) return;
-		this.#sampleOffset = Math.max(
-			0,
-			Math.min(
-				Math.floor(val * this.#decoded.sampleRate),
-				this.#decoded.samples,
-			),
-		);
-		// If currently playing, restart at new offset
-		if (!this.#paused && this.#voiceId >= 0) {
-			$.audioStop(this.#voiceId);
-			$.audioPlay(
-				this.#decoded.pcmData,
-				this.#voiceId,
-				this.#volume,
-				this.#loop,
-				this.#decoded.sampleRate,
-				this.#decoded.channels,
-				this.#decoded.samples,
-			);
+		if (!this.#buffer) return;
+		const offset = Math.max(0, Math.min(val, this.#buffer.duration));
+		this.#offset = offset;
+		if (!this.#paused) {
+			// Restart playback at the new position.
+			this.#stopSource();
+			this.#startSource();
 		}
 	}
 
 	get duration(): number {
-		if (!this.#decoded) return NaN;
-		return this.#decoded.samples / this.#decoded.sampleRate;
+		if (!this.#buffer) return NaN;
+		return this.#buffer.duration;
 	}
 
 	get playbackRate(): number {
@@ -196,10 +166,14 @@ export class Audio extends EventTarget {
 	}
 
 	set playbackRate(val: number) {
-		this.#playbackRate = val;
-		if (this.#voiceId >= 0) {
-			$.audioSetPitch(this.#voiceId, val);
+		if (!this.#paused && this.#source) {
+			// Rebase the position tracking at the old rate before switching.
+			const ctx = getContext();
+			this.#offset = this.currentTime;
+			this.#startCtxTime = ctx.currentTime;
+			this.#source.playbackRate.value = val;
 		}
+		this.#playbackRate = val;
 	}
 
 	get readyState(): number {
@@ -228,11 +202,10 @@ export class Audio extends EventTarget {
 		// Stop current playback
 		this.#stop();
 		this.#readyState = HAVE_NOTHING;
-		this.#decoded = null;
+		this.#buffer = null;
 
 		const url = new URL(this.#src, $.entrypoint);
 		this.#currentSrc = url.href;
-		const mime = mimeFromExtension(url.pathname);
 
 		fetch(url)
 			.then((res) => {
@@ -241,10 +214,13 @@ export class Audio extends EventTarget {
 				}
 				return res.arrayBuffer();
 			})
-			.then((buf) => $.audioDecode(buf, mime) as Promise<DecodedAudio>)
+			.then((buf) => $.audioDecode(buf))
 			.then(
-				(decoded) => {
-					this.#decoded = decoded;
+				({ channelData, sampleRate }) => {
+					this.#buffer = createAudioBuffer(
+						channelData.map((ab) => new Float32Array(ab)),
+						sampleRate,
+					);
 					this.#readyState = HAVE_METADATA;
 					this.dispatchEvent(new Event('loadedmetadata'));
 					this.#readyState = HAVE_ENOUGH_DATA;
@@ -257,74 +233,74 @@ export class Audio extends EventTarget {
 	}
 
 	async play(): Promise<void> {
-		if (!this.#decoded) {
+		if (!this.#buffer) {
 			throw new DOMException('No audio source loaded', 'InvalidStateError');
 		}
-
-		ensureAudioInit();
-		ensureUpdateLoop();
-
-		if (this.#voiceId < 0) {
-			this.#voiceId = $.audioAllocVoice() as number;
-		}
-
+		this.#stopSource();
 		this.#paused = false;
 		this.#ended = false;
-
-		$.audioPlay(
-			this.#decoded.pcmData,
-			this.#voiceId,
-			this.#volume,
-			this.#loop,
-			this.#decoded.sampleRate,
-			this.#decoded.channels,
-			this.#decoded.samples,
-		);
-
-		if (this.#playbackRate !== 1.0) {
-			$.audioSetPitch(this.#voiceId, this.#playbackRate);
-		}
-
+		this.#startSource();
 		this.dispatchEvent(new Event('play'));
-
-		// Set up timeupdate + ended checking
 		this.#startTimeupdateLoop();
 	}
 
 	pause(): void {
 		if (this.#paused) return;
+		this.#offset = this.currentTime;
+		this.#stopSource();
 		this.#paused = true;
-		if (this.#voiceId >= 0) {
-			$.audioPause(this.#voiceId, true);
-		}
 		this.#stopTimeupdateLoop();
 		this.dispatchEvent(new Event('pause'));
 	}
 
+	#startSource(): void {
+		const ctx = getContext();
+		if (!this.#gain) {
+			this.#gain = ctx.createGain();
+			this.#gain.gain.value = this.#volume;
+			this.#gain.connect(ctx.destination);
+		}
+		const source = ctx.createBufferSource();
+		source.buffer = this.#buffer;
+		source.loop = this.#loop;
+		source.playbackRate.value = this.#playbackRate;
+		source.connect(this.#gain);
+		source.onended = () => {
+			// Ignore stale sources (replaced by seek/pause/replay).
+			if (this.#source !== source || this.#paused) return;
+			this.#ended = true;
+			this.#paused = true;
+			this.#offset = this.#buffer?.duration ?? 0;
+			this.#source = null;
+			this.#stopTimeupdateLoop();
+			this.dispatchEvent(new Event('ended'));
+		};
+		this.#source = source;
+		this.#startCtxTime = ctx.currentTime;
+		source.start(0, this.#offset);
+	}
+
+	#stopSource(): void {
+		const source = this.#source;
+		if (source) {
+			this.#source = null;
+			source.stop();
+			source.disconnect();
+		}
+	}
+
 	#stop(): void {
 		this.#stopTimeupdateLoop();
-		if (this.#voiceId >= 0) {
-			$.audioStop(this.#voiceId);
-			$.audioFreeVoice(this.#voiceId);
-			this.#voiceId = -1;
-		}
+		this.#stopSource();
 		this.#paused = true;
-		this.#sampleOffset = 0;
+		this.#offset = 0;
 	}
 
 	#startTimeupdateLoop(): void {
 		this.#stopTimeupdateLoop();
 		this.#timeupdateInterval = setInterval(() => {
-			if (this.#voiceId >= 0 && !this.#paused) {
+			if (!this.#paused) {
 				this.dispatchEvent(new Event('timeupdate'));
-
-				// Check if playback ended
-				if (!this.#loop && !$.audioIsPlaying(this.#voiceId)) {
-					this.#ended = true;
-					this.#paused = true;
-					this.#stopTimeupdateLoop();
-					this.dispatchEvent(new Event('ended'));
-				}
 			}
 		}, 250);
 	}

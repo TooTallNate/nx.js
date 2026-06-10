@@ -807,14 +807,6 @@ static inline void diagAbortWithResult(Result rc) {
 }
 
 // ============================================================================
-// Audio types (stubs for types.h / audio.c — module is stubbed)
-// ============================================================================
-
-typedef struct {
-	int _unused;
-} AudioDriver;
-
-// ============================================================================
 // NACP types (used by ns.h nx_app_t struct — module is stubbed)
 // ============================================================================
 
