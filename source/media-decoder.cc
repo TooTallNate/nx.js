@@ -62,6 +62,7 @@ struct nx_media {
 	int width = 0;
 	int height = 0;
 	double duration = 0;
+	double vframe_dur = 1.0 / 30; // nominal frame duration (seek slack)
 
 	// ---- video presentation ring (SPSC: decode thread -> main thread) ----
 	video_slot slots[RING_SLOTS];
@@ -97,6 +98,10 @@ struct nx_media {
 	std::atomic<bool> seek_requested{false};
 	std::atomic<double> seek_target{0};
 	std::atomic<bool> seeking{false};
+	// After a seek, present the first decoded frame even if its PTS is
+	// slightly past the (paused) clock — the user expects to see the frame
+	// nearest the seek target.
+	std::atomic<bool> present_force{false};
 	std::atomic<bool> eof{false};
 	std::atomic<bool> fatal{false};
 	char error_buf[256] = {};
@@ -273,7 +278,13 @@ bool receive_frames(nx_media *m, AVCodecContext *ctx, int stream_index,
 		double pts = frame_pts_seconds(m, frame, stream_index) +
 		             m->loop_offset;
 		bool is_video = stream_index == m->vstream;
-		if (seek_drop_until >= 0 && pts < seek_drop_until - 0.005) {
+		// Seek convergence: drop everything strictly before the target —
+		// with half a frame of slack for video so the frame *containing*
+		// the target is kept.
+		double drop_before = is_video
+		                         ? seek_drop_until - m->vframe_dur * 0.5
+		                         : seek_drop_until - 0.005;
+		if (seek_drop_until >= 0 && pts < drop_before) {
 			av_frame_unref(frame);
 			continue;
 		}
@@ -344,6 +355,7 @@ void do_seek(nx_media *m, double *seek_drop_until) {
 		return;
 	}
 	*seek_drop_until = target;
+	m->present_force.store(true);
 	if (m->vstream < 0) {
 		// No video track: nothing will flip `seeking` in receive_frames.
 		m->seeking.store(false);
@@ -535,6 +547,9 @@ nx_media_t *nx_media_open(const char *path, const uint8_t *mem,
 		}
 		m->width = par->width;
 		m->height = par->height;
+		AVRational fr = m->fmt->streams[m->vstream]->avg_frame_rate;
+		if (fr.num > 0 && fr.den > 0)
+			m->vframe_dur = (double)fr.den / fr.num;
 		if (m->width <= 0 || m->height <= 0 || m->width > 4096 ||
 		    m->height > 4096) {
 			snprintf(errbuf, errbuf_size, "unsupported video dimensions");
@@ -639,8 +654,15 @@ bool nx_media_present(nx_media_t *m, uint8_t **buffer_inout) {
 		else
 			break;
 	}
+	if (candidate < 0 && w > r &&
+	    m->present_force.exchange(false, std::memory_order_acq_rel)) {
+		// First frame after a seek: show it even if its PTS is just past
+		// the paused clock (it is the frame nearest the seek target).
+		candidate = (int64_t)r;
+	}
 	if (candidate < 0)
 		return false;
+	m->present_force.store(false, std::memory_order_relaxed);
 	video_slot *slot = &m->slots[candidate % RING_SLOTS];
 	uint8_t *prev = *buffer_inout;
 	*buffer_inout = slot->bgra;
