@@ -3,8 +3,8 @@
 // This module is PORTABLE (compiled into both the device runtime and the host
 // nxjs-test binary): the graph processing lives in audio-graph.cc and the
 // platform output behind audio-sink.h (audren on device, a paced thread on
-// host). Decoding (decodeAudioData) uses the vendored dr_mp3 / dr_wav /
-// stb_vorbis single-header libraries on the libuv threadpool.
+// host). Decoding (decodeAudioData) goes through ffmpeg (media-decoder.cc) on
+// the libuv threadpool, so every ffmpeg-supported audio container/codec works.
 //
 // JS object model: AudioContext/OfflineAudioContext wrap an nx_audio_ctx_t
 // (graph + optional sink); every AudioNode wraps an nx_audio_node* directly.
@@ -16,42 +16,22 @@
 #include "audio-graph.h"
 #include "audio-sink.h"
 #include "error.h"
+#include "media-decoder.h"
 #include "util.h"
 #include "wrap.h"
 #include <stdlib.h>
 #include <string.h>
 
-#define DR_MP3_IMPLEMENTATION
-#define DR_MP3_NO_STDIO
-#include "vendor/dr_mp3.h"
-
-#define DR_WAV_IMPLEMENTATION
-#define DR_WAV_NO_STDIO
-#include "vendor/dr_wav.h"
-
-#define STB_VORBIS_NO_STDIO
-#define STB_VORBIS_NO_PUSHDATA_API
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
-extern "C" {
-#include "vendor/stb_vorbis.c"
-}
-#pragma GCC diagnostic pop
-
 using namespace v8;
 
 // Decoded channel cap — bounds memory for absurd channel counts. Web Audio
 // allows up to 32 channels; files beyond that are truncated.
-#define NX_AUDIO_DECODE_MAX_CHANNELS 32
+#define NX_AUDIO_DECODE_MAX_CHANNELS NX_MEDIA_MAX_CHANNELS
 
 namespace {
 
-// An online or offline audio context: the graph plus (for online contexts)
-// the platform output sink.
-typedef struct {
-	nx_audio_graph *graph;
-	nx_audio_sink_t *sink; // NULL for offline contexts / after close()
-} nx_audio_ctx_t;
+// nx_audio_ctx_t (the graph + optional platform sink) is declared in audio.h
+// so that video.cc can unwrap AudioContext handles too.
 
 void free_audio_ctx(nx_audio_ctx_t *ctx) {
 	if (ctx->sink) {
@@ -401,28 +381,9 @@ void nx_audio_source_state_cb(const FunctionCallbackInfo<Value> &info) {
 // decodeAudioData
 // ---------------------------------------------------------------------------
 
-enum AudioFormat {
-	AUDIO_FORMAT_UNKNOWN,
-	AUDIO_FORMAT_MP3,
-	AUDIO_FORMAT_WAV,
-	AUDIO_FORMAT_OGG,
-};
-
-AudioFormat identify_audio_format(const uint8_t *data, size_t size) {
-	if (size >= 12 && !memcmp(data, "RIFF", 4) && !memcmp(data + 8, "WAVE", 4))
-		return AUDIO_FORMAT_WAV;
-	if (size >= 4 && !memcmp(data, "OggS", 4))
-		return AUDIO_FORMAT_OGG;
-	if (size >= 3 && !memcmp(data, "ID3", 3))
-		return AUDIO_FORMAT_MP3;
-	// MPEG audio frame sync: 11 set bits.
-	if (size >= 2 && data[0] == 0xFF && (data[1] & 0xE0) == 0xE0)
-		return AUDIO_FORMAT_MP3;
-	return AUDIO_FORMAT_UNKNOWN;
-}
-
 struct decode_audio_t {
 	const char *err_str = nullptr;
+	char err_buf[256] = {};
 	uint8_t *input = nullptr;
 	size_t input_size = 0;
 	Global<Value> buffer_val; // pins the input ArrayBuffer during decode
@@ -432,121 +393,14 @@ struct decode_audio_t {
 	uint32_t sample_rate = 0;
 };
 
-// Split interleaved f32 frames into per-channel malloc'd planar arrays.
-// Returns false on allocation failure (frees what it allocated).
-bool deinterleave(decode_audio_t *data, const float *frames, uint64_t count,
-                  int channels) {
-	if (channels > NX_AUDIO_DECODE_MAX_CHANNELS)
-		channels = NX_AUDIO_DECODE_MAX_CHANNELS;
-	for (int c = 0; c < channels; c++) {
-		data->channels[c] = (float *)malloc(count * sizeof(float));
-		if (!data->channels[c]) {
-			for (int j = 0; j < c; j++) {
-				free(data->channels[j]);
-				data->channels[j] = nullptr;
-			}
-			return false;
-		}
-	}
-	for (uint64_t i = 0; i < count; i++)
-		for (int c = 0; c < channels; c++)
-			data->channels[c][i] = frames[i * data->num_channels + c];
-	return true;
-}
-
 void decode_audio_work(nx_work_t *req) {
 	decode_audio_t *data = (decode_audio_t *)req->data;
-	AudioFormat format = identify_audio_format(data->input, data->input_size);
-	if (format == AUDIO_FORMAT_MP3) {
-		drmp3_config cfg;
-		drmp3_uint64 frame_count;
-		float *frames = drmp3_open_memory_and_read_pcm_frames_f32(
-		    data->input, data->input_size, &cfg, &frame_count, NULL);
-		if (!frames) {
-			data->err_str = "Failed to decode MP3";
-			return;
-		}
-		data->num_channels = (int)cfg.channels;
-		data->sample_rate = cfg.sampleRate;
-		data->length = (uint32_t)frame_count;
-		if (!deinterleave(data, frames, frame_count, (int)cfg.channels))
-			data->err_str = "Out of memory decoding MP3";
-		drmp3_free(frames, NULL);
-	} else if (format == AUDIO_FORMAT_WAV) {
-		drwav wav;
-		if (!drwav_init_memory(&wav, data->input, data->input_size, NULL)) {
-			data->err_str = "Failed to decode WAV";
-			return;
-		}
-		drwav_uint64 frame_count = wav.totalPCMFrameCount;
-		float *frames =
-		    (float *)malloc(frame_count * wav.channels * sizeof(float));
-		if (!frames) {
-			drwav_uninit(&wav);
-			data->err_str = "Out of memory decoding WAV";
-			return;
-		}
-		drwav_read_pcm_frames_f32(&wav, frame_count, frames);
-		data->num_channels = (int)wav.channels;
-		data->sample_rate = wav.sampleRate;
-		data->length = (uint32_t)frame_count;
-		if (!deinterleave(data, frames, frame_count, (int)wav.channels))
-			data->err_str = "Out of memory decoding WAV";
-		free(frames);
-		drwav_uninit(&wav);
-	} else if (format == AUDIO_FORMAT_OGG) {
-		int verr = 0;
-		stb_vorbis *v = stb_vorbis_open_memory(data->input,
-		                                       (int)data->input_size, &verr,
-		                                       NULL);
-		if (!v) {
-			data->err_str = "Failed to decode OGG Vorbis";
-			return;
-		}
-		stb_vorbis_info vi = stb_vorbis_get_info(v);
-		uint32_t total = stb_vorbis_stream_length_in_samples(v);
-		int channels = vi.channels;
-		if (channels > NX_AUDIO_DECODE_MAX_CHANNELS)
-			channels = NX_AUDIO_DECODE_MAX_CHANNELS;
-		data->num_channels = channels;
-		data->sample_rate = vi.sample_rate;
-		data->length = total;
-		bool oom = false;
-		for (int c = 0; c < channels; c++) {
-			data->channels[c] = (float *)malloc((size_t)total * sizeof(float));
-			if (!data->channels[c]) {
-				oom = true;
-				break;
-			}
-		}
-		if (oom) {
-			for (int c = 0; c < channels; c++) {
-				free(data->channels[c]);
-				data->channels[c] = nullptr;
-			}
-			stb_vorbis_close(v);
-			data->err_str = "Out of memory decoding OGG Vorbis";
-			return;
-		}
-		// stb_vorbis fills planar output buffers directly.
-		float *bufs[NX_AUDIO_DECODE_MAX_CHANNELS];
-		uint32_t offset = 0;
-		while (offset < total) {
-			for (int c = 0; c < channels; c++)
-				bufs[c] = data->channels[c] + offset;
-			int got = stb_vorbis_get_samples_float(v, channels, bufs,
-			                                       (int)(total - offset));
-			if (got <= 0)
-				break;
-			offset += (uint32_t)got;
-		}
-		data->length = offset;
-		stb_vorbis_close(v);
-	} else {
-		data->err_str = "Unsupported audio format";
+	if (!nx_media_decode_audio(data->input, data->input_size, data->channels,
+	                           &data->num_channels, &data->length,
+	                           &data->sample_rate, data->err_buf,
+	                           sizeof(data->err_buf))) {
+		data->err_str = data->err_buf;
 	}
-	if (!data->err_str && (data->length == 0 || data->num_channels == 0))
-		data->err_str = "Audio file contains no audio data";
 }
 
 MaybeLocal<Value> decode_audio_after(Isolate *iso, nx_work_t *req) {
