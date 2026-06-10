@@ -1,5 +1,6 @@
 import { $ } from '../$';
 import { assertInternalConstructor, def, proto } from '../utils';
+import { GamepadEvent } from '../polyfills/event';
 import type {
 	GamepadHapticActuatorType,
 	GamepadMappingType,
@@ -16,6 +17,18 @@ export class Gamepad implements globalThis.Gamepad {
 	readonly axes!: readonly number[];
 	readonly buttons!: readonly GamepadButton[];
 	readonly connected!: boolean;
+	/**
+	 * A string identifying the controller. When available (firmware 5.0.0+),
+	 * this is the controller's device name plus its hardware serial number,
+	 * e.g. `"Nintendo Switch Pro Controller (XAW10012345678)"`, making it
+	 * stable and unique per physical controller.
+	 *
+	 * The serial is read from the `hid:sys` service and cached — it is only
+	 * re-queried when a controller is connected or disconnected, never on the
+	 * input-polling hot path. When the serial can't be obtained (older
+	 * firmware, no serial, or a system error) `id` falls back to a
+	 * unique-per-slot string of the form `"switch-gamepad-<index>"`.
+	 */
 	readonly id!: string;
 	readonly index!: number;
 	readonly mapping!: GamepadMappingType;
@@ -100,3 +113,42 @@ export function gamepadNew(index: number) {
 export const gamepads: Gamepad[] = Array(8)
 	.fill(0)
 	.map((_, i) => gamepadNew(i));
+
+// Tracks the last-seen connection state of each slot so we can diff and emit
+// `gamepadconnected` / `gamepaddisconnected` only on an actual transition.
+const connectedState: boolean[] = Array(8).fill(false);
+
+/**
+ * Detects controller connect/disconnect transitions and returns the
+ * `GamepadEvent`s that should be dispatched (in order). Returns an empty array
+ * when nothing changed (the common path: 8 cheap boolean reads).
+ *
+ * `$.gamepadConnectionChanged()` is consulted purely to invalidate the cached
+ * `Gamepad.id` values when the OS connection event fires — the transition diff
+ * itself is always run off `Gamepad.connected`, so the events still dispatch
+ * even when `hid:sys` is unavailable (e.g. firmware < 5.0.0) and that native
+ * check always reports `false`.
+ *
+ * @ignore
+ */
+export function sweepGamepadConnections(): GamepadEvent[] {
+	// Drain the native connect/disconnect event so the C side can invalidate
+	// the id cache for re-resolution. The return value does NOT gate the diff.
+	$.gamepadConnectionChanged();
+	const events: GamepadEvent[] = [];
+	for (let i = 0; i < 8; i++) {
+		const g = gamepads[i];
+		// Coerce to a real boolean: the host test stub leaves `connected`
+		// undefined, which would otherwise look like a transition every frame.
+		const connected = !!g.connected;
+		if (connected === connectedState[i]) continue;
+		connectedState[i] = connected;
+		events.push(
+			new GamepadEvent(
+				connected ? 'gamepadconnected' : 'gamepaddisconnected',
+				{ gamepad: g },
+			),
+		);
+	}
+	return events;
+}

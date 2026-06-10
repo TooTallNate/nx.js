@@ -54,7 +54,8 @@ using namespace v8;
 NX_MOD(account); NX_MOD(album); NX_MOD(applet); NX_MOD(audio); NX_MOD(battery);
 NX_MOD(canvas); NX_MOD(compression); NX_MOD(crypto); NX_MOD(dns);
 NX_MOD(dommatrix); NX_MOD(error); NX_MOD(font); NX_MOD(fs); NX_MOD(fsdev);
-NX_MOD(gamepad); NX_MOD(image); NX_MOD(irs); NX_MOD(memory); NX_MOD(nifm);
+NX_MOD(gamepad); NX_MOD(hidsys); NX_MOD(image); NX_MOD(irs); NX_MOD(memory);
+NX_MOD(nifm);
 NX_MOD(ns); NX_MOD(path2d); NX_MOD(service); NX_MOD(swkbd); NX_MOD(tcp);
 NX_MOD(tls); NX_MOD(udp); NX_MOD(url); NX_MOD(web); NX_MOD(window);
 #undef NX_MOD
@@ -312,6 +313,7 @@ static void build_init_object(Isolate *iso, Local<Context> context,
 	nx_init_fs(iso, init_obj);
 	nx_init_fsdev(iso, init_obj);
 	nx_init_gamepad(iso, init_obj);
+	nx_init_hidsys(iso, init_obj);
 	nx_init_image(iso, init_obj);
 	nx_init_irs(iso, init_obj);
 	nx_init_memory(iso, init_obj);

@@ -21,6 +21,7 @@
 #include FT_FREETYPE_H
 
 #include "error.h"
+#include "hidsys.h"
 #include "module.h"
 #include "skia_gpu.h"
 #include "types.h"
@@ -718,6 +719,7 @@ static void build_init_object(Isolate *iso, Local<Context> context,
 	nx_init_fs(iso, init_obj);
 	nx_init_fsdev(iso, init_obj);
 	nx_init_gamepad(iso, init_obj);
+	nx_init_hidsys(iso, init_obj);
 	nx_init_image(iso, init_obj);
 	nx_init_irs(iso, init_obj);
 	nx_init_memory(iso, init_obj);
@@ -1453,6 +1455,11 @@ int main(int argc, char *argv[]) {
 		              (HidNpadIdType)(HidNpadIdType_No1 + i));
 	}
 
+	// `hid:sys` for hardware-backed Gamepad.id (serial numbers) + the
+	// controller connect/disconnect event. Non-fatal: on failure, Gamepad.id
+	// falls back to the index-based string and connection events stop firing.
+	nx_hidsys_init(iso);
+
 	// The user entrypoint (user_code_path / user_code) was already resolved
 	// near the top of main() — before V8 init — so that `nxjs.ini` (which sits
 	// next to it) could be read in time to influence the V8 flag/heap/JIT
@@ -1690,6 +1697,7 @@ int main(int argc, char *argv[]) {
 	if (nx_ctx->spl_initialized) {
 		splExit();
 	}
+	nx_hidsys_exit(nx_ctx);
 	nx_config_free(&nx_ctx->config);
 	free(nx_ctx);
 

@@ -159,6 +159,20 @@ typedef struct nx_context_s {
 
 	PadState pads[8];
 
+	// `hid:sys` service state for resolving real controller identifiers
+	// (serial numbers) behind `Gamepad.id`. The connection event signals on
+	// any controller connect/disconnect; the resolved id strings are cached
+	// per Npad index and invalidated (flag cleared) when it fires, so the
+	// expensive IPC happens at most once per connection and never in the hot
+	// input-polling loop. `hidsys_available` is false when hidsysInitialize()
+	// failed (id then falls back to the index-based string).
+	bool hidsys_available;
+	Event hidsys_conn_event;
+	bool gamepad_id_cached[8];
+	// Wide enough for "<device name> (<serialA> + <serialB>)" — a dual
+	// Joy-Con / handheld pair aggregates two 0x10-byte serials.
+	char gamepad_id_cache[8][96];
+
 	// mbedtls structures shared by all TLS connections
 	bool mbedtls_initialized;
 	mbedtls_entropy_context entropy;

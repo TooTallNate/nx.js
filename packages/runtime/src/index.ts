@@ -246,6 +246,7 @@ export type {
 
 import { dispatchKeyboardEvents } from './keyboard';
 import { dispatchTouchEvents } from './touchscreen';
+import { sweepGamepadConnections } from './navigator/gamepad';
 
 $.onError((e) => {
 	const ev = new ErrorEvent('error', {
@@ -287,6 +288,10 @@ $.onFrame((plusDown) => {
 	callRafCallbacks();
 	dispatchTouchEvents(screen);
 	dispatchKeyboardEvents(globalThis);
+	// Emit `gamepadconnected` / `gamepaddisconnected` on controller hotplug.
+	for (const e of sweepGamepadConnections()) {
+		globalThis.dispatchEvent(e);
+	}
 	// Blit the default console's terminal canvas onto the screen if it changed
 	// (no-op once the app owns screen rendering). After rAF so an app that
 	// draws to the screen each frame isn't overwritten on the same frame.

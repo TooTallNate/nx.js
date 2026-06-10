@@ -29,6 +29,12 @@ static void nx_stub_new(const FunctionCallbackInfo<Value> &info) {
 	info.GetReturnValue().Set(Object::New(iso));
 }
 
+// Boolean no-op: returns `false`. Used for predicate-shaped bindings whose
+// callers branch on the result (e.g. gamepadConnectionChanged).
+static void nx_stub_false(const FunctionCallbackInfo<Value> &info) {
+	info.GetReturnValue().Set(v8::Boolean::New(info.GetIsolate(), false));
+}
+
 // Register a list of names on init_obj, all bound to `fn`.
 static void nx_stub_register(Isolate *iso, Local<Object> init_obj,
                              const char *const *names, size_t count,
@@ -88,6 +94,14 @@ NX_STUB_FN(fsdev) {
 NX_STUB_FN(gamepad) {
 	NX_STUB_NAMES("gamepadInit", "gamepadNew", "gamepadButtonInit",
 	              "gamepadButtonNew")
+}
+
+// `hid:sys` (gamepad serial id resolution + connect/disconnect event) is
+// libnx-only, so it is stubbed host-side. gamepadConnectionChanged must return
+// a boolean (false) — the JS connection sweep branches on it.
+NX_STUB_FN(hidsys) {
+	static const char *const names[] = {"gamepadConnectionChanged"};
+	nx_stub_register(iso, init_obj, names, countof(names), nx_stub_false);
 }
 
 NX_STUB_FN(irs) {

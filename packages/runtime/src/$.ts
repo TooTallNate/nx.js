@@ -377,6 +377,16 @@ export interface Init {
 	gamepadButtonInit(c: ClassOf<GamepadButton>): void;
 	gamepadButtonNew(gamepad: Gamepad, index: number): void;
 
+	// hidsys.c
+	/**
+	 * Non-blocking check of the OS controller connect/disconnect event.
+	 * Returns `true` when a controller was connected or disconnected since the
+	 * last call (and invalidates the cached `Gamepad.id` values), `false`
+	 * otherwise. Called once per frame to drive `gamepadconnected` /
+	 * `gamepaddisconnected` dispatch.
+	 */
+	gamepadConnectionChanged(): boolean;
+
 	// image.c
 	imageInit(c: ClassOf<Image | ImageBitmap>): void;
 	imageNew(width?: number, height?: number): Image | ImageBitmap;
