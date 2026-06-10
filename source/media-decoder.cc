@@ -26,6 +26,12 @@ extern "C" {
 
 namespace {
 
+// Quiet ffmpeg's default stderr chatter (codec warnings during seeks, etc.);
+// real errors still surface through the nx_media error paths.
+struct av_log_quiet {
+	av_log_quiet() { av_log_set_level(AV_LOG_ERROR); }
+} av_log_quiet_init;
+
 constexpr int RING_SLOTS = 3;
 // Present a frame when its PTS is within this much of the clock (one frame of
 // slack at 24 fps is ~41 ms; this is just sub-frame jitter tolerance).
