@@ -40,7 +40,12 @@ export function createAudioParam(
 	node: AudioNode,
 	handle: AudioNodeHandle,
 	index: number,
-	opts: { defaultValue: number; minValue?: number; maxValue?: number },
+	opts: {
+		defaultValue: number;
+		minValue?: number;
+		maxValue?: number;
+		automationRate?: AutomationRate;
+	},
 ): AudioParam {
 	const param = Object.create(AudioParam.prototype) as AudioParam;
 	_.set(param, {
@@ -50,7 +55,7 @@ export function createAudioParam(
 		defaultValue: opts.defaultValue,
 		minValue: opts.minValue ?? -MOST_POSITIVE_SINGLE,
 		maxValue: opts.maxValue ?? MOST_POSITIVE_SINGLE,
-		automationRate: 'a-rate',
+		automationRate: opts.automationRate ?? 'a-rate',
 	});
 	return param;
 }
@@ -77,9 +82,11 @@ export class AudioParam implements globalThis.AudioParam {
 		return _(this).automationRate;
 	}
 
-	set automationRate(_v: AutomationRate) {
-		// All nx.js params process at their natural rate; the setting is
-		// accepted but has no effect.
+	set automationRate(v: AutomationRate) {
+		// The assignment is reflected by the getter, but nx.js params always
+		// process at their natural rate (gain/pan a-rate; playbackRate/detune
+		// k-rate), so this does not change processing.
+		_(this).automationRate = v;
 	}
 
 	/**

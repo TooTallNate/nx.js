@@ -82,9 +82,11 @@ float param_value_at(const nx_audio_param *p, double t) {
 		}
 		case NX_AUDIO_PARAM_SET_TARGET: {
 			// In effect until the next event (or `t`, whichever is sooner).
+			// An event at exactly `t` takes over (events apply at their
+			// start time, inclusive), so the comparison is `<=`.
 			double tstop = t;
 			bool next_applies =
-			    i + 1 < evs.size() && evs[i + 1].time < t;
+			    i + 1 < evs.size() && evs[i + 1].time <= t;
 			if (next_applies)
 				tstop = evs[i + 1].time;
 			double val;

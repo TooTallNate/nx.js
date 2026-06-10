@@ -130,6 +130,10 @@ void nx_audio_context_close(const FunctionCallbackInfo<Value> &info) {
 		nx_audio_sink_detach(ctx->sink);
 		ctx->sink = NULL;
 	}
+	// `closed` is read by render threads under the graph mutex, so the write
+	// must be guarded too (for an online context the sink is already detached
+	// at this point, but an OfflineAudioContext render may be in flight).
+	std::lock_guard<std::mutex> lock(ctx->graph->mutex);
 	ctx->graph->closed = true;
 }
 
@@ -331,6 +335,7 @@ void nx_audio_source_set_buffer_cb(const FunctionCallbackInfo<Value> &info) {
 	}
 	std::vector<const float *> channels;
 	std::vector<std::shared_ptr<void>> holds;
+	uint32_t length = (uint32_t)arg_f64(info, 2);
 	for (uint32_t i = 0; i < num_channels; i++) {
 		Local<Value> v;
 		if (!arr->Get(context, i).ToLocal(&v))
@@ -340,12 +345,17 @@ void nx_audio_source_set_buffer_cb(const FunctionCallbackInfo<Value> &info) {
 			return;
 		}
 		Local<Float32Array> ta = v.As<Float32Array>();
+		// Never trust the `length` argument beyond what the typed arrays
+		// actually contain — the render thread reads the backing stores
+		// directly, so an oversized `length` would be an OOB read.
+		uint32_t elements = (uint32_t)(ta->ByteLength() / sizeof(float));
+		if (elements < length)
+			length = elements;
 		std::shared_ptr<BackingStore> bs = ta->Buffer()->GetBackingStore();
 		channels.push_back(reinterpret_cast<const float *>(
 		    static_cast<uint8_t *>(bs->Data()) + ta->ByteOffset()));
 		holds.push_back(std::move(bs));
 	}
-	uint32_t length = (uint32_t)arg_f64(info, 2);
 	double sample_rate = arg_f64(info, 3);
 	nx_audio_source_set_buffer(n, channels.data(), (int)num_channels, length,
 	                           sample_rate, std::move(holds));

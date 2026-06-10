@@ -112,9 +112,11 @@ export class AudioBufferSourceNode
 			loopEnd: options.loopEnd ?? 0,
 			playbackRate: createAudioParam(this, handle, 0, {
 				defaultValue: 1,
+				automationRate: 'k-rate',
 			}),
 			detune: createAudioParam(this, handle, 1, {
 				defaultValue: 0,
+				automationRate: 'k-rate',
 			}),
 		});
 		const i = _(this);
