@@ -543,6 +543,24 @@ importers:
         specifier: 'catalog:'
         version: 0.27.3
 
+  apps/web-audio:
+    devDependencies:
+      '@nx.js/constants':
+        specifier: workspace:^
+        version: link:../../packages/constants
+      '@nx.js/nro':
+        specifier: workspace:^
+        version: link:../../packages/nro
+      '@nx.js/nsp':
+        specifier: workspace:^
+        version: link:../../packages/nsp
+      '@nx.js/runtime':
+        specifier: workspace:^
+        version: link:../../packages/runtime
+      esbuild:
+        specifier: 'catalog:'
+        version: 0.27.3
+
   apps/websocket-server:
     devDependencies:
       '@nx.js/nro':
