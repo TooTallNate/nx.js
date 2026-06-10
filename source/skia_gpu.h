@@ -5,10 +5,11 @@
 #include "include/core/SkSurface.h"
 
 // Phase 2.2 GPU backend: EGL + Skia Ganesh GL over the default NWindow. The
-// screen canvas is backed by a GPU SkSurface wrapping the EGL window's FBO 0
-// and presented via eglSwapBuffers. Offscreen canvases remain raster. If GPU
-// bringup fails (e.g. Mesa starved for memory in applet mode), the caller falls
-// back to the raster + libnx-framebuffer present path.
+// screen canvas draws into a PERSISTENT offscreen GPU SkSurface (`s_canvas`);
+// each present snapshots it and blits into the EGL window's double-buffered
+// FBO 0, then eglSwapBuffers (see nx_skia_gpu_present). Offscreen canvases
+// remain raster. If GPU bringup fails (e.g. Mesa starved for memory in applet
+// mode), the caller falls back to the raster + libnx-framebuffer present path.
 //
 // All functions must be called on the render (main) thread.
 

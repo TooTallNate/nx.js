@@ -102,7 +102,7 @@ sk_sp<SkSurface> nx_skia_gpu_screen_init(u32 width, u32 height, int samples,
 		const size_t oldBytes = s_gr->getResourceCacheLimit();
 		const size_t newBytes = (size_t)gpu_cache_mib * 1024u * 1024u;
 		s_gr->setResourceCacheLimit(newBytes);
-		fprintf(stderr, "[skia] GPU resource cache limit %zu -> %zu MiB\n",
+		fprintf(stderr, "[skia] GPU resource cache limit %zu MiB -> %zu MiB\n",
 		        oldBytes / (1024 * 1024), newBytes / (1024 * 1024));
 		fflush(stderr);
 	}

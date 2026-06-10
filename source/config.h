@@ -16,10 +16,12 @@
 //
 //   [renderer]
 //   mode = auto             ; auto | cpu | gpu
-//   gpu_cache = auto        ; GPU texture cache budget (MiB): auto | default |
-//                           ;   <number>. auto = 512 in full-memory mode, Skia
-//                           ;   default (~96) in applet mode. default = always
-//                           ;   Skia default. A number sets an explicit cap.
+//   gpu_cache = auto        ; Ganesh GPU *resource* cache budget in MiB
+//                           ;   (textures + other GPU resources): auto |
+//                           ;   default | <number>. auto = 512 in full-memory
+//                           ;   mode, Skia default (~96) in applet mode.
+//                           ;   default = always Skia default. A number sets
+//                           ;   an explicit cap.
 //
 //   [console]               ; on-screen console / terminal styling
 //   font_size      = 22

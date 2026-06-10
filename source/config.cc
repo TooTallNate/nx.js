@@ -203,7 +203,10 @@ static int ini_cb(void *user, const char *section, const char *name,
 			} else {
 				char *end = NULL;
 				unsigned long mb = strtoul(value, &end, 10);
-				if (end && *end == '\0' && mb <= 4096)
+				// `end != value` requires at least one digit consumed: an
+				// empty value (`gpu_cache =`) would otherwise parse as 0 and
+				// silently force Skia's default instead of being reported.
+				if (end && end != value && *end == '\0' && mb <= 4096)
 					cfg->gpu_cache_mib = (uint32_t)mb;
 				else
 					cfg_log("renderer.gpu_cache=\"%s\" not honored: invalid "
