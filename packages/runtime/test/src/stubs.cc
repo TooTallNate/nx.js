@@ -79,6 +79,15 @@ NX_STUB_FN(battery) {
 	NX_STUB_NAMES("batteryInit", "batteryInitClass", "batteryExit")
 }
 
+NX_STUB_FN(bluetooth) {
+	NX_STUB_NAMES("btleInit", "btleExit", "btleScanStart", "btleScanStop",
+	              "btleScanResults", "btleConnect", "btleDisconnect",
+	              "btleConnections", "btleGetServices",
+	              "btleGetCharacteristics", "btleGetDescriptors", "btleRead",
+	              "btleWrite", "btleWriteDescriptor", "btleNotify",
+	              "btlePollEvents")
+}
+
 NX_STUB_FN(fsdev) {
 	NX_STUB_NAMES("fsInit", "fsMount", "fsOpenBis", "fsOpenSdmc",
 	              "fsOpenWithId", "saveDataInit", "saveDataMount",

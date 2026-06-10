@@ -50,6 +50,50 @@ type ClassOf<T> = {
 
 export type AudioContextHandle = Opaque<'AudioContextHandle'>;
 export type AudioNodeHandle = Opaque<'AudioNodeHandle'>;
+
+export interface BtleScanResult {
+	address: string;
+	name?: string;
+}
+
+export interface BtleConnection {
+	handle: number;
+	address: string;
+}
+
+export interface BtleService {
+	uuid: string;
+	handle: number;
+	instanceId: number;
+	primary: boolean;
+}
+
+export interface BtleCharacteristic {
+	uuid: string;
+	handle: number;
+	instanceId: number;
+	properties: number;
+}
+
+export interface BtleDescriptor {
+	uuid: string;
+	handle: number;
+}
+
+export type BtleEvent =
+	| { type: 'scan' | 'connection' | 'discovery' | 'mtu' }
+	| {
+			type: 'gatt';
+			/** BtdrvBleEventType (8 = ClientNotify) */
+			event: number;
+			status: number;
+			connId: number;
+			op: number;
+			serviceUuid: string;
+			characteristicUuid: string;
+			descriptorUuid: string;
+			data: ArrayBuffer;
+	  };
 type FileHandle = Opaque<'FileHandle'>;
 type CanvasGradientOpaque = Opaque<'CanvasGradientOpaque'>;
 type CompressHandle = Opaque<'CompressHandle'>;
@@ -609,6 +653,61 @@ export interface Init {
 		numberOfChannels: number,
 		length: number,
 	): Promise<ArrayBuffer[]>;
+
+	// bluetooth.cc — Web Bluetooth (BLE GATT client over btm.u + bt)
+	btleInit(): void;
+	btleExit(): void;
+	btleScanStart(): void;
+	btleScanStop(): void;
+	btleScanResults(): BtleScanResult[];
+	btleConnect(address: string): void;
+	btleDisconnect(handle: number): void;
+	btleConnections(): BtleConnection[];
+	btleGetServices(conn: number): BtleService[];
+	btleGetCharacteristics(
+		conn: number,
+		serviceHandle: number,
+	): BtleCharacteristic[];
+	btleGetDescriptors(conn: number, charHandle: number): BtleDescriptor[];
+	btleRead(
+		conn: number,
+		primary: boolean,
+		serviceUuid: string,
+		serviceInstance: number,
+		charUuid: string,
+		charInstance: number,
+	): void;
+	btleWrite(
+		conn: number,
+		primary: boolean,
+		serviceUuid: string,
+		serviceInstance: number,
+		charUuid: string,
+		charInstance: number,
+		data: ArrayBuffer,
+		withResponse: boolean,
+	): void;
+	btleWriteDescriptor(
+		conn: number,
+		primary: boolean,
+		serviceUuid: string,
+		serviceInstance: number,
+		charUuid: string,
+		charInstance: number,
+		descUuid: string,
+		descInstance: number,
+		data: ArrayBuffer,
+	): void;
+	btleNotify(
+		conn: number,
+		primary: boolean,
+		serviceUuid: string,
+		serviceInstance: number,
+		charUuid: string,
+		charInstance: number,
+		enable: boolean,
+	): void;
+	btlePollEvents(): BtleEvent[];
 
 	// (Uint8Array base64/hex methods are provided natively by V8 — no binding.)
 

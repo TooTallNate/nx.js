@@ -49,6 +49,7 @@ NX_MODULE(album);
 NX_MODULE(applet);
 NX_MODULE(audio);
 NX_MODULE(battery);
+NX_MODULE(bluetooth);
 NX_MODULE(canvas);
 NX_MODULE(compression);
 NX_MODULE(crypto);
@@ -717,6 +718,7 @@ static void build_init_object(Isolate *iso, Local<Context> context,
 	nx_init_applet(iso, init_obj);
 	nx_init_audio(iso, init_obj);
 	nx_init_battery(iso, init_obj);
+	nx_init_bluetooth(iso, init_obj);
 	nx_init_canvas(iso, init_obj);
 	nx_init_compression(iso, init_obj);
 	nx_init_crypto(iso, init_obj);

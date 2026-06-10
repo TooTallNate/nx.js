@@ -9,6 +9,7 @@ import {
 	create as newVirtualKeyboard,
 } from './navigator/virtual-keyboard';
 import { Application, type Vibration } from './switch';
+import { bluetooth } from './navigator/bluetooth';
 
 interface NavigatorState {
 	batt?: Promise<BatteryManager>;
@@ -221,6 +222,16 @@ export class Navigator {
 		let vk = state.vk;
 		if (!vk) vk = state.vk = newVirtualKeyboard();
 		return vk;
+	}
+
+	/**
+	 * Entry point to the Web Bluetooth API, for communicating with nearby
+	 * Bluetooth LE devices.
+	 *
+	 * @see https://developer.mozilla.org/docs/Web/API/Navigator/bluetooth
+	 */
+	get bluetooth() {
+		return bluetooth;
 	}
 }
 def(Navigator);

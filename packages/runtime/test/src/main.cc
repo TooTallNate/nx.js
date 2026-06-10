@@ -52,6 +52,7 @@ using namespace v8;
 #define NX_MOD(name)                                                           \
 	void nx_init_##name(v8::Isolate *, v8::Local<v8::Object>)
 NX_MOD(account); NX_MOD(album); NX_MOD(applet); NX_MOD(audio); NX_MOD(battery);
+NX_MOD(bluetooth);
 NX_MOD(canvas); NX_MOD(compression); NX_MOD(crypto); NX_MOD(dns);
 NX_MOD(dommatrix); NX_MOD(error); NX_MOD(font); NX_MOD(fs); NX_MOD(fsdev);
 NX_MOD(gamepad); NX_MOD(hidsys); NX_MOD(image); NX_MOD(irs); NX_MOD(memory);
@@ -303,6 +304,7 @@ static void build_init_object(Isolate *iso, Local<Context> context,
 	nx_init_applet(iso, init_obj);
 	nx_init_audio(iso, init_obj);
 	nx_init_battery(iso, init_obj);
+	nx_init_bluetooth(iso, init_obj);
 	nx_init_canvas(iso, init_obj);
 	nx_init_compression(iso, init_obj);
 	nx_init_crypto(iso, init_obj);
