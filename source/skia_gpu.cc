@@ -61,7 +61,22 @@ bool init_egl(NWindow *win) {
 	s_ctx = eglCreateContext(s_dpy, cfg, EGL_NO_CONTEXT, ca);
 	if (!s_ctx)
 		return false;
-	eglMakeCurrent(s_dpy, s_surf, s_surf, s_ctx);
+	if (eglMakeCurrent(s_dpy, s_surf, s_surf, s_ctx) != EGL_TRUE) {
+		// Without a current context nothing later (swap interval, GL interface,
+		// Ganesh) can work; fail init so the caller falls back to raster.
+		fprintf(stderr, "[skia] eglMakeCurrent failed: 0x%x\n", eglGetError());
+		fflush(stderr);
+		return false;
+	}
+	// Lock presentation to one buffer-swap per vblank (whatever the display's
+	// refresh rate is). Without an explicit interval the driver default is
+	// undefined. A failure here is non-fatal — presentation still works, just
+	// with an undefined cadence (the previous behavior) — so log and continue.
+	if (eglSwapInterval(s_dpy, 1) != EGL_TRUE) {
+		fprintf(stderr, "[skia] eglSwapInterval(1) failed: 0x%x\n",
+		        eglGetError());
+		fflush(stderr);
+	}
 	// NOTE: the EGL window surface is double-buffered. The canvas draws into a
 	// separate persistent surface (s_canvas) and we composite it into the back
 	// buffer every present (see nx_skia_gpu_present), so double buffering does
