@@ -18,6 +18,22 @@ let screenCtx: CanvasRenderingContext2D | undefined;
 // though the on-screen blit is stale. Cleared after a successful blit.
 let needsBlit = false;
 
+// Set once the app has read the global `console.canvas`. Apps that composite
+// the console themselves often cache that canvas reference once and keep
+// drawing it (see apps/console-screen), relying on the per-frame present to
+// keep its pixels current after they take over the screen. Apps that NEVER
+// read `console.canvas` can't be drawing it, so for them the per-frame
+// terminal re-render under app ownership is pure waste (re-rasterizing
+// invisible pixels every frame an app logs — a measurable frame-time cost on
+// constrained targets). This flag is how presentConsole() distinguishes the
+// two. Sticky by design: once observed, liveness is maintained forever.
+let consoleCanvasObserved = false;
+
+/** Called by the global console's `canvas` getter on first/every read. */
+export function markConsoleCanvasObserved(): void {
+	consoleCanvasObserved = true;
+}
+
 // `screen.ts` registers a getter that returns the screen's own 2D context +
 // puts the screen into canvas (framebuffer) mode, WITHOUT marking the app as
 // owning the screen, plus the `screen` EventTarget so the console can wire up
@@ -116,14 +132,21 @@ export function onConsoleOutput(term: Terminal): void {
 export function presentConsole(): void {
 	if (!activeTerminal) return;
 	if (appOwnsScreen) {
-		// App owns the screen: the console is not shown, so do NOT eagerly
-		// re-rasterize the terminal here. render() is cheap only while clean;
-		// once console output marks it dirty it re-rasterizes the whole text
-		// canvas, and doing that EVERY frame (e.g. an app logging telemetry
-		// per tick) burns frame budget for pixels nobody sees — a real,
-		// hard-to-spot per-frame cost on constrained targets like Switch.
-		// Apps that composite `console.canvas` themselves still get it
-		// rendered on demand: the `canvas` getter calls render() lazily.
+		// App owns the screen. Two cases:
+		//
+		// 1. The app has read `console.canvas` at some point — it may be
+		//    compositing a CACHED reference each frame (apps/console-screen
+		//    does exactly this), so keep the terminal pixels current with the
+		//    eager render. render() is a no-op unless output made it dirty.
+		//
+		// 2. The app has NEVER read `console.canvas` — nothing can be drawing
+		//    it, so skip the eager render. Without this, an app that logs
+		//    every frame (e.g. per-tick telemetry) re-rasterizes the whole
+		//    invisible console text canvas every frame: a real, hard-to-spot
+		//    frame-time cost on constrained targets like Switch. If the app
+		//    reads `console.canvas` later, that getter renders on demand and
+		//    flips `consoleCanvasObserved`, restoring case-1 liveness.
+		if (consoleCanvasObserved) activeTerminal.render();
 		return;
 	}
 	if (!screenCtx) return;

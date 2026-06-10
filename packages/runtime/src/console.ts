@@ -4,7 +4,10 @@ import { inspect } from './switch/inspect';
 import { Terminal, consoleFontAvailable } from './terminal';
 import type { TerminalOptions } from './terminal';
 import type { OffscreenCanvas } from './canvas/offscreen-canvas';
-import { onConsoleOutput } from './console-screen';
+import {
+	markConsoleCanvasObserved,
+	onConsoleOutput,
+} from './console-screen';
 
 const bgRedDim = bgRgb(60, 0, 0);
 const bgYellowDim = bgRgb(60, 60, 0);
@@ -153,6 +156,11 @@ export class Console {
 	 * re-read `console.canvas` afterward.
 	 */
 	get canvas(): OffscreenCanvas {
+		// The per-frame present keeps the GLOBAL console's terminal pixels
+		// current after an app takes over the screen, but only once the app
+		// has shown interest by reading `console.canvas` (otherwise the eager
+		// re-render is wasted work — see presentConsole). Record that read.
+		if (this.#isGlobal) markConsoleCanvasObserved();
 		return this.#getTerminal().canvas;
 	}
 
