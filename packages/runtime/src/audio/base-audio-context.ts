@@ -160,9 +160,8 @@ export class BaseAudioContext
 	 *
 	 * ### Supported Audio Formats
 	 *
-	 * - `mp3` — MP3 audio using [dr_mp3](https://github.com/mackron/dr_libs)
-	 * - `wav` — WAV audio using [dr_wav](https://github.com/mackron/dr_libs)
-	 * - `ogg` — OGG Vorbis audio using [stb_vorbis](https://github.com/nothings/stb)
+	 * Any audio container/codec supported by [FFmpeg](https://ffmpeg.org),
+	 * including MP3, WAV, OGG Vorbis, Opus, FLAC and AAC/M4A.
 	 *
 	 * > [!NOTE]
 	 * > Unlike browsers, nx.js does NOT resample the decoded data to the

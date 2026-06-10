@@ -223,6 +223,10 @@ import './web-applet';
 
 export type * from './audio';
 
+import './video';
+
+export type * from './video';
+
 import './window';
 
 export type * from './window';

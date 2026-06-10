@@ -28,6 +28,12 @@ enum nx_audio_node_type {
 	NX_AUDIO_NODE_GAIN = 1,
 	NX_AUDIO_NODE_STEREO_PANNER = 2,
 	NX_AUDIO_NODE_BUFFER_SOURCE = 3,
+	// Internal (not exposed as a Web Audio class): a ring-buffer-fed source
+	// used by media elements (Video). A single producer thread (the media
+	// decode thread) pushes interleaved stereo f32 frames at the graph rate;
+	// the render thread drains a quantum at a time. The consumed-frame
+	// counter is the A/V sync master clock.
+	NX_AUDIO_NODE_STREAM_SOURCE = 4,
 };
 
 // AudioParam automation event types (matches the JS side's wire protocol).
@@ -108,6 +114,18 @@ struct nx_audio_node {
 	double stop_time = -1;      // <0 = no stop scheduled
 	double position = 0;        // playhead, fractional buffer frames
 	double played_frames = 0;   // cumulative buffer frames consumed
+
+	// ---- stream source state (NX_AUDIO_NODE_STREAM_SOURCE) ----
+	// Lock-free SPSC ring of interleaved stereo f32 frames. The producer
+	// (media decode thread) owns `stream_write_pos`; the consumer (render
+	// thread, under the graph mutex) owns `stream_read_pos`. Positions are
+	// absolute frame counters (never wrapped); ring index = pos % capacity.
+	std::unique_ptr<float[]> stream_ring;
+	uint32_t stream_capacity = 0; // frames
+	std::atomic<uint64_t> stream_write_pos{0};
+	std::atomic<uint64_t> stream_read_pos{0};
+	// When false the node outputs silence and consumes nothing (pause).
+	std::atomic<bool> stream_playing{false};
 };
 
 struct nx_audio_graph {
@@ -164,6 +182,20 @@ void nx_audio_source_start(nx_audio_node *n, double when, double offset,
                            double duration);
 void nx_audio_source_stop(nx_audio_node *n, double when);
 int nx_audio_source_playback_state(nx_audio_node *n);
+
+// ---- stream source (producer side; lock-free, single producer thread) ----
+// Number of frames that can currently be written without overwriting.
+uint32_t nx_audio_stream_writable(nx_audio_node *n);
+// Write up to `frames` interleaved stereo frames; returns frames written.
+uint32_t nx_audio_stream_write(nx_audio_node *n, const float *interleaved,
+                               uint32_t frames);
+// Gate consumption (false = output silence, consume nothing, clock frozen).
+void nx_audio_stream_set_playing(nx_audio_node *n, bool playing);
+// Total frames consumed by the render thread (the media clock).
+uint64_t nx_audio_stream_consumed(nx_audio_node *n);
+// Discard all buffered frames (seek/flush). The producer thread MUST be
+// parked while this is called.
+void nx_audio_stream_flush(nx_audio_node *n);
 
 // ---- rendering (called from sink threads / libuv workers; locks mutex) ----
 // Renders `frames` of interleaved stereo s16. When the graph is suspended (or

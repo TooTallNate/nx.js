@@ -261,6 +261,27 @@ void process_buffer_source(nx_audio_graph *g, nx_audio_node *n, double t0) {
 	}
 }
 
+void process_stream_source(nx_audio_graph *g, nx_audio_node *n) {
+	zero_bus(n);
+	n->bus_ch = 2;
+	if (!n->stream_ring || !n->stream_playing.load(std::memory_order_relaxed))
+		return;
+	uint64_t read = n->stream_read_pos.load(std::memory_order_relaxed);
+	uint64_t write = n->stream_write_pos.load(std::memory_order_acquire);
+	uint32_t avail = (uint32_t)(write - read);
+	uint32_t frames = avail < (uint32_t)Q ? avail : (uint32_t)Q;
+	const float *ring = n->stream_ring.get();
+	for (uint32_t i = 0; i < frames; i++) {
+		uint32_t idx = (uint32_t)((read + i) % n->stream_capacity);
+		n->bus[0][i] = ring[idx * 2];
+		n->bus[1][i] = ring[idx * 2 + 1];
+	}
+	// Underrun: the remainder of the bus stays silent and is NOT counted as
+	// consumed, so the media clock only advances for real audio.
+	n->stream_read_pos.store(read + frames, std::memory_order_release);
+	(void)g;
+}
+
 void process_gain(nx_audio_graph *g, nx_audio_node *n, double t0) {
 	float in[NX_AUDIO_CHANNELS][Q];
 	int ch;
@@ -329,6 +350,9 @@ void process_node(nx_audio_graph *g, nx_audio_node *n, double t0) {
 	case NX_AUDIO_NODE_BUFFER_SOURCE:
 		process_buffer_source(g, n, t0);
 		break;
+	case NX_AUDIO_NODE_STREAM_SOURCE:
+		process_stream_source(g, n);
+		break;
 	case NX_AUDIO_NODE_GAIN:
 		process_gain(g, n, t0);
 		break;
@@ -392,6 +416,13 @@ nx_audio_node *node_new(nx_audio_graph *g, nx_audio_node_type type) {
 		nx_audio_param detune;
 		detune.value = 0.f;
 		n->params.push_back(detune);
+		break;
+	}
+	case NX_AUDIO_NODE_STREAM_SOURCE: {
+		// One second of buffering at the graph rate.
+		n->stream_capacity = (uint32_t)g->sample_rate;
+		n->stream_ring = std::make_unique<float[]>(
+		    (size_t)n->stream_capacity * NX_AUDIO_CHANNELS);
 		break;
 	}
 	case NX_AUDIO_NODE_DESTINATION:
@@ -591,6 +622,51 @@ void nx_audio_source_stop(nx_audio_node *n, double when) {
 int nx_audio_source_playback_state(nx_audio_node *n) {
 	std::lock_guard<std::mutex> lock(n->graph->mutex);
 	return n->playback_state;
+}
+
+uint32_t nx_audio_stream_writable(nx_audio_node *n) {
+	if (!n->stream_ring)
+		return 0;
+	uint64_t read = n->stream_read_pos.load(std::memory_order_acquire);
+	uint64_t write = n->stream_write_pos.load(std::memory_order_relaxed);
+	return n->stream_capacity - (uint32_t)(write - read);
+}
+
+uint32_t nx_audio_stream_write(nx_audio_node *n, const float *interleaved,
+                               uint32_t frames) {
+	if (!n->stream_ring)
+		return 0;
+	uint64_t read = n->stream_read_pos.load(std::memory_order_acquire);
+	uint64_t write = n->stream_write_pos.load(std::memory_order_relaxed);
+	uint32_t writable = n->stream_capacity - (uint32_t)(write - read);
+	if (frames > writable)
+		frames = writable;
+	float *ring = n->stream_ring.get();
+	for (uint32_t i = 0; i < frames; i++) {
+		uint32_t idx = (uint32_t)((write + i) % n->stream_capacity);
+		ring[idx * 2] = interleaved[i * 2];
+		ring[idx * 2 + 1] = interleaved[i * 2 + 1];
+	}
+	n->stream_write_pos.store(write + frames, std::memory_order_release);
+	return frames;
+}
+
+void nx_audio_stream_set_playing(nx_audio_node *n, bool playing) {
+	n->stream_playing.store(playing, std::memory_order_relaxed);
+}
+
+uint64_t nx_audio_stream_consumed(nx_audio_node *n) {
+	return n->stream_read_pos.load(std::memory_order_acquire);
+}
+
+void nx_audio_stream_flush(nx_audio_node *n) {
+	// Producer is parked (decoder contract); empty the ring by advancing the
+	// read position to the write position. Take the graph mutex so this
+	// cannot interleave with a render quantum's read-modify-write.
+	std::lock_guard<std::mutex> lock(n->graph->mutex);
+	n->stream_read_pos.store(
+	    n->stream_write_pos.load(std::memory_order_relaxed),
+	    std::memory_order_release);
 }
 
 void nx_audio_graph_render_s16(nx_audio_graph *g, int16_t *out,

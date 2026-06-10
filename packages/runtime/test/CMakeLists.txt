@@ -31,6 +31,10 @@ pkg_check_modules(TURBOJPEG REQUIRED libturbojpeg)
 pkg_check_modules(WEBP REQUIRED libwebp)
 pkg_check_modules(ZLIB REQUIRED zlib)
 pkg_check_modules(ZSTD REQUIRED libzstd)
+# ffmpeg (media decode: Video element + decodeAudioData). The device links
+# switch-ffmpeg 7.x; the host uses the distro's 5.x+ — media-decoder.cc sticks
+# to the API surface common to both.
+pkg_check_modules(FFMPEG REQUIRED libavformat libavcodec libavutil libswscale libswresample)
 
 # ============================================================================
 # Source files
@@ -63,6 +67,7 @@ set(NX_SOURCES
   ${NX_SOURCE_DIR}/font.cc
   ${NX_SOURCE_DIR}/fs.cc
   ${NX_SOURCE_DIR}/image.cc
+  ${NX_SOURCE_DIR}/media-decoder.cc
   ${NX_SOURCE_DIR}/module.cc
   ${NX_SOURCE_DIR}/path2d.cc
   ${NX_SOURCE_DIR}/tcp.cc
@@ -70,6 +75,7 @@ set(NX_SOURCES
   ${NX_SOURCE_DIR}/udp.cc
   ${NX_SOURCE_DIR}/url.cc
   ${NX_SOURCE_DIR}/util.cc
+  ${NX_SOURCE_DIR}/video.cc
   ${NX_SOURCE_DIR}/window.cc
   ${NX_SOURCE_DIR}/wrap.cc
 )
@@ -107,6 +113,7 @@ target_include_directories(nxjs-test PRIVATE
   ${WEBP_INCLUDE_DIRS}
   ${ZLIB_INCLUDE_DIRS}
   ${ZSTD_INCLUDE_DIRS}
+  ${FFMPEG_INCLUDE_DIRS}
 )
 
 target_link_directories(nxjs-test PRIVATE
@@ -117,6 +124,7 @@ target_link_directories(nxjs-test PRIVATE
   ${WEBP_LIBRARY_DIRS}
   ${ZLIB_LIBRARY_DIRS}
   ${ZSTD_LIBRARY_DIRS}
+  ${FFMPEG_LIBRARY_DIRS}
 )
 
 # ============================================================================
@@ -150,6 +158,7 @@ target_link_libraries(nxjs-test PRIVATE
   ${PNG_LIBRARIES}
   ${ZLIB_LIBRARIES}
   ${ZSTD_LIBRARIES}
+  ${FFMPEG_LIBRARIES}
   m pthread dl
 )
 

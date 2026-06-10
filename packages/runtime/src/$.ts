@@ -50,6 +50,29 @@ type ClassOf<T> = {
 
 export type AudioContextHandle = Opaque<'AudioContextHandle'>;
 export type AudioNodeHandle = Opaque<'AudioNodeHandle'>;
+export type VideoHandle = Opaque<'VideoHandle'>;
+
+export interface VideoMetadata {
+	width: number;
+	height: number;
+	duration: number;
+	hasAudio: boolean;
+	hasVideo: boolean;
+}
+
+export interface VideoPlaybackState {
+	currentTime: number;
+	ended: boolean;
+	seeking: boolean;
+	/** Number of decoded video frames waiting for presentation. */
+	buffered: number;
+	/** Total video frames presented so far. */
+	presentedFrames: number;
+	/** Frames skipped because a newer frame was already due. */
+	droppedFrames: number;
+	/** Sticky fatal decode error message (if any). */
+	error?: string;
+}
 type FileHandle = Opaque<'FileHandle'>;
 type CanvasGradientOpaque = Opaque<'CanvasGradientOpaque'>;
 type CompressHandle = Opaque<'CompressHandle'>;
@@ -609,6 +632,25 @@ export interface Init {
 		numberOfChannels: number,
 		length: number,
 	): Promise<ArrayBuffer[]>;
+
+	// video.cc — Video element (ffmpeg media pipeline)
+	videoNew(): VideoHandle;
+	videoLoad(
+		video: VideoHandle,
+		path: string | null,
+		buffer: ArrayBuffer | null,
+	): Promise<VideoMetadata>;
+	videoPlay(video: VideoHandle): void;
+	videoPause(video: VideoHandle): void;
+	videoSeek(video: VideoHandle, seconds: number): void;
+	videoSetLoop(video: VideoHandle, loop: boolean): void;
+	videoTick(video: VideoHandle): boolean;
+	videoState(video: VideoHandle): VideoPlaybackState;
+	videoCreateAudioNode(
+		video: VideoHandle,
+		ctx: AudioContextHandle,
+	): AudioNodeHandle | null;
+	videoClose(video: VideoHandle): void;
 
 	// (Uint8Array base64/hex methods are provided natively by V8 — no binding.)
 
