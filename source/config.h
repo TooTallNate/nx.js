@@ -16,6 +16,12 @@
 //
 //   [renderer]
 //   mode = auto             ; auto | cpu | gpu
+//   gpu_cache = auto        ; Ganesh GPU *resource* cache budget in MiB
+//                           ;   (textures + other GPU resources): auto |
+//                           ;   default | <number>. auto = 512 in full-memory
+//                           ;   mode, Skia default (~96) in applet mode.
+//                           ;   default = always Skia default. A number sets
+//                           ;   an explicit cap.
 //
 //   [console]               ; on-screen console / terminal styling
 //   font_size      = 22
@@ -70,6 +76,12 @@ typedef enum {
 // default" (application: 64 MiB WASM headroom; applet: 0). UINT32_MAX so an
 // explicit `code_headroom_mb = 0` (disable) is distinguishable from unset.
 #define NX_CODE_HEADROOM_AUTO 0xFFFFFFFFu
+
+// Sentinel for nx_config_t::gpu_cache_mib meaning "unset — pick a regime
+// default" (application: 512 MiB; applet: 0 = Skia's own ~96 MiB default).
+// UINT32_MAX so an explicit `gpu_cache = 0` (force Skia default) is
+// distinguishable from unset.
+#define NX_GPU_CACHE_AUTO 0xFFFFFFFFu
 
 typedef enum {
 	NX_RENDER_AUTO = 0, // regime-based: raster in applet, GPU (w/ fallback) in app
@@ -144,6 +156,15 @@ typedef struct {
 	// code space (modules OOM at compile: "Allocate initial wasm code space").
 	uint32_t code_headroom_mb;
 	nx_render_mode_t renderer;
+	// [renderer] gpu_cache: Ganesh GPU resource-cache budget in MiB. Skia's
+	// own default is ~96 MiB; a texture-heavy app (many large atlases / baked
+	// tilemap layers) whose per-frame working set exceeds that thrashes the
+	// cache (LRU-evict + re-upload textures still needed next frame). Sentinel
+	// NX_GPU_CACHE_AUTO = "unset": use 512 MiB in full-memory mode (plenty of
+	// headroom) and Skia's default in applet mode (~137 MiB free — a big cache
+	// would starve Mesa). An explicit value (incl. 0 = force Skia default)
+	// overrides the regime default.
+	uint32_t gpu_cache_mib;
 	nx_socket_config_t socket;
 	nx_console_config_t console; // [console] styling, exposed on $.config.console
 	bool loaded;          // true if an nxjs.ini was found + parsed

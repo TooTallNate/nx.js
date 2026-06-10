@@ -87,7 +87,8 @@ bool init_egl(NWindow *win) {
 
 } // namespace
 
-sk_sp<SkSurface> nx_skia_gpu_screen_init(u32 width, u32 height, int samples) {
+sk_sp<SkSurface> nx_skia_gpu_screen_init(u32 width, u32 height, int samples,
+                                         u32 gpu_cache_mib) {
 	if (!init_egl(nwindowGetDefault())) {
 		fprintf(stderr, "[skia] EGL init failed\n");
 		fflush(stderr);
@@ -102,6 +103,23 @@ sk_sp<SkSurface> nx_skia_gpu_screen_init(u32 width, u32 height, int samples) {
 		fflush(stderr);
 		nx_skia_gpu_screen_exit();
 		return nullptr;
+	}
+	// Ganesh's default GPU resource cache budget is only ~96 MiB. A
+	// texture-heavy app whose per-frame working set exceeds that (e.g. a
+	// full-screen 2D game drawing many large atlases + baked tilemap layers,
+	// each up to a few MiB of GPU texture) thrashes the cache: textures still
+	// needed next frame get evicted LRU and re-uploaded. When the caller
+	// requests a larger budget (gpu_cache_mib > 0; see the regime-gated
+	// resolution in main.cc + the [renderer] gpu_cache config), raise it so
+	// the working set stays resident. 0 leaves Skia's default untouched
+	// (correct for tight-RAM applet mode, where a big cache would starve Mesa).
+	if (gpu_cache_mib > 0) {
+		const size_t oldBytes = s_gr->getResourceCacheLimit();
+		const size_t newBytes = (size_t)gpu_cache_mib * 1024u * 1024u;
+		s_gr->setResourceCacheLimit(newBytes);
+		fprintf(stderr, "[skia] GPU resource cache limit %zu MiB -> %zu MiB\n",
+		        oldBytes / (1024 * 1024), newBytes / (1024 * 1024));
+		fflush(stderr);
 	}
 	GrGLFramebufferInfo fbi;
 	fbi.fFBOID = 0;

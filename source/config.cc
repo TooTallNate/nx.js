@@ -192,6 +192,27 @@ static int ini_cb(void *user, const char *section, const char *name,
 				cfg_log("renderer.mode=\"%s\" not honored: invalid "
 				        "(use auto|cpu|gpu), using auto",
 				        value);
+		} else if (str_ieq(name, "gpu_cache")) {
+			// GPU resource-cache budget in MiB. "auto" (default) = regime
+			// pick; "default" = force Skia's own default (encoded as 0); a
+			// number = explicit MiB cap. See NX_GPU_CACHE_AUTO in config.h.
+			if (str_ieq(value, "auto")) {
+				cfg->gpu_cache_mib = NX_GPU_CACHE_AUTO;
+			} else if (str_ieq(value, "default")) {
+				cfg->gpu_cache_mib = 0;
+			} else {
+				char *end = NULL;
+				unsigned long mb = strtoul(value, &end, 10);
+				// `end != value` requires at least one digit consumed: an
+				// empty value (`gpu_cache =`) would otherwise parse as 0 and
+				// silently force Skia's default instead of being reported.
+				if (end && end != value && *end == '\0' && mb <= 4096)
+					cfg->gpu_cache_mib = (uint32_t)mb;
+				else
+					cfg_log("renderer.gpu_cache=\"%s\" not honored: invalid "
+					        "(use auto|default|0-4096)",
+					        value);
+			}
 		} else {
 			cfg_log("renderer.%s ignored: unknown key", name);
 		}
@@ -302,6 +323,7 @@ void nx_config_defaults(nx_config_t *cfg) {
 	cfg->v8_flags = NULL;
 	cfg->heap_limit = 0;
 	cfg->code_headroom_mb = NX_CODE_HEADROOM_AUTO;
+	cfg->gpu_cache_mib = NX_GPU_CACHE_AUTO;
 	cfg->loaded = false;
 }
 

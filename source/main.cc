@@ -365,8 +365,16 @@ static void nx_framebuffer_init(const FunctionCallbackInfo<Value> &info) {
 		want_gpu = !g_tight_memory;
 		break;
 	}
+	// Resolve the GPU resource-cache budget (MiB; 0 = leave Skia's default).
+	// AUTO: 512 MiB in full-memory mode (ample headroom for a texture-heavy
+	// app's working set), Skia default in applet mode (tight RAM — a big cache
+	// would starve Mesa). An explicit `[renderer] gpu_cache` overrides.
+	uint32_t gpu_cache_mib = ctx->config.gpu_cache_mib;
+	if (gpu_cache_mib == NX_GPU_CACHE_AUTO)
+		gpu_cache_mib = g_tight_memory ? 0u : 512u;
 	sk_sp<SkSurface> gpu =
-	    want_gpu ? nx_skia_gpu_screen_init(width, height, /*samples=*/4)
+	    want_gpu ? nx_skia_gpu_screen_init(width, height, /*samples=*/4,
+	                                       gpu_cache_mib)
 	             : nullptr;
 	if (gpu) {
 		nx_canvas_set_gpu_surface(canvas, gpu);
