@@ -50,6 +50,53 @@ type ClassOf<T> = {
 
 export type AudioContextHandle = Opaque<'AudioContextHandle'>;
 export type AudioNodeHandle = Opaque<'AudioNodeHandle'>;
+
+export interface BtleScanResult {
+	address: string;
+	name?: string;
+	/** Raw BtdrvBleScanResult bytes (only when requested; diagnostics). */
+	raw?: ArrayBuffer;
+}
+
+export interface BtleConnection {
+	handle: number;
+	address: string;
+}
+
+export interface BtleService {
+	uuid: string;
+	handle: number;
+	instanceId: number;
+	primary: boolean;
+}
+
+export interface BtleCharacteristic {
+	uuid: string;
+	handle: number;
+	instanceId: number;
+	properties: number;
+}
+
+export interface BtleDescriptor {
+	uuid: string;
+	handle: number;
+}
+
+export type BtleEvent =
+	| { type: 'scan' | 'connection' | 'discovery' | 'mtu' }
+	| {
+			type: 'gatt';
+			/** BtdrvBleEventType (8 = ClientNotify) */
+			event: number;
+			status: number;
+			connId: number;
+			op: number;
+			serviceUuid: string;
+			characteristicUuid: string;
+			descriptorUuid: string;
+			data: ArrayBuffer;
+	  };
+
 export type VideoHandle = Opaque<'VideoHandle'>;
 
 export interface VideoMetadata {
@@ -632,6 +679,82 @@ export interface Init {
 		numberOfChannels: number,
 		length: number,
 	): Promise<ArrayBuffer[]>;
+
+	// bluetooth.cc — Web Bluetooth (BLE GATT client over btm.u + bt)
+	btleInit(): void;
+	btleExit(): void;
+	/**
+	 * With `serviceUuid`: a "smart device" scan matching devices that
+	 * advertise that service UUID. With `companyId` (+ up to 6 pattern
+	 * bytes): a "general" scan with a custom manufacturer-data filter.
+	 * Without either: the "general" scan (Nintendo accessory filter).
+	 */
+	btleScanStart(
+		serviceUuid?: string | null,
+		companyId?: number | null,
+		pattern?: ArrayBuffer | null,
+	): void;
+	btleScanStop(): void;
+	btleScanResults(includeRaw?: boolean): BtleScanResult[];
+	btleConnect(address: string): void;
+	btleDisconnect(handle: number): void;
+	btleConnections(): BtleConnection[];
+	btleGetServices(conn: number): BtleService[];
+	btleGetCharacteristics(
+		conn: number,
+		serviceHandle: number,
+	): BtleCharacteristic[];
+	btleGetDescriptors(conn: number, charHandle: number): BtleDescriptor[];
+	btleRead(
+		conn: number,
+		primary: boolean,
+		serviceUuid: string,
+		serviceInstance: number,
+		charUuid: string,
+		charInstance: number,
+	): void;
+	btleWrite(
+		conn: number,
+		primary: boolean,
+		serviceUuid: string,
+		serviceInstance: number,
+		charUuid: string,
+		charInstance: number,
+		data: ArrayBuffer,
+		withResponse: boolean,
+	): void;
+	btleWriteDescriptor(
+		conn: number,
+		primary: boolean,
+		serviceUuid: string,
+		serviceInstance: number,
+		charUuid: string,
+		charInstance: number,
+		descUuid: string,
+		descInstance: number,
+		data: ArrayBuffer,
+	): void;
+	btleNotify(
+		conn: number,
+		primary: boolean,
+		serviceUuid: string,
+		serviceInstance: number,
+		charUuid: string,
+		charInstance: number,
+		enable: boolean,
+	): void;
+	btlePollEvents(): BtleEvent[];
+	/**
+	 * Unfiltered btdrv-level scan (no result delivery) used to prime the
+	 * Bluetooth stack's device cache before connecting by explicit address.
+	 */
+	btleRawScanStart(): void;
+	btleRawScanStop(): void;
+	/** Register/unregister a BLE GATT data path for a service UUID. */
+	btleRegisterDataPath(uuid: string, register: boolean): void;
+	/** Request an ATT MTU for the connection (browsers negotiate ~517). */
+	btleConfigureMtu(conn: number, mtu: number): void;
+	btleGetMtu(conn: number): number;
 
 	// video.cc — Video element (ffmpeg media pipeline)
 	videoNew(): VideoHandle;

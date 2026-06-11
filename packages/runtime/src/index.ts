@@ -32,6 +32,7 @@ export type { FontFaceSet, fonts } from './font/font-face-set';
 export type * from './image';
 export type * from './navigator';
 export type * from './navigator/battery';
+export type * from './navigator/bluetooth';
 export type {
 	Gamepad,
 	GamepadButton,

@@ -168,6 +168,24 @@ importers:
         specifier: 'catalog:'
         version: 0.27.3
 
+  apps/bluetooth:
+    devDependencies:
+      '@nx.js/constants':
+        specifier: workspace:^
+        version: link:../../packages/constants
+      '@nx.js/nro':
+        specifier: workspace:^
+        version: link:../../packages/nro
+      '@nx.js/nsp':
+        specifier: workspace:^
+        version: link:../../packages/nsp
+      '@nx.js/runtime':
+        specifier: workspace:^
+        version: link:../../packages/runtime
+      esbuild:
+        specifier: 'catalog:'
+        version: 0.27.3
+
   apps/breakout:
     dependencies:
       '@nx.js/constants':
