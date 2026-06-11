@@ -42,13 +42,6 @@ jobs:
       - name: Check bundle for esbuild class renames
         run: node packages/runtime/check-def-names.mjs
 
-      # Media decode portlib (Video element + decodeAudioData). TODO: bake
-      # into the pacman-packages image and drop this step.
-      - name: Install switch-ffmpeg
-        run: |
-          dkp-pacman -Sy --noconfirm switch-ffmpeg || \
-            pacman -Sy --noconfirm switch-ffmpeg
-
       - name: Build `nxjs.nro`
         run: make V=1
 
