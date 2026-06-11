@@ -86,6 +86,7 @@ void nx_video_new(const FunctionCallbackInfo<Value> &info) {
 	Local<Object> obj = nx::NewWrapped(iso);
 	nx_video_t *v = new nx_video_t();
 	memset(&v->image, 0, sizeof(v->image));
+	v->image.magic = NX_IMAGE_MAGIC;
 	v->image.format = FORMAT_UNKNOWN;
 	nx::Wrap<nx_video_t>(iso, obj, v, free_video);
 	info.GetReturnValue().Set(obj);
