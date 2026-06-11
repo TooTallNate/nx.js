@@ -1137,8 +1137,7 @@ export class Bluetooth extends EventTarget {
 		//     scans by advertised 128-bit service UUID
 		type ScanMode =
 			| { uuid: string }
-			| { companyId: number; pattern: ArrayBuffer }
-			| { general: true };
+			| { companyId: number; pattern: ArrayBuffer };
 		const modes: ScanMode[] = [];
 		if (filters) {
 			for (const filter of filters) {
@@ -1170,7 +1169,15 @@ export class Bluetooth extends EventTarget {
 			modes.push({ uuid: toUUID(s) });
 		}
 		if (modes.length === 0) {
-			modes.push({ general: true });
+			// Name-only filters (and acceptAllDevices) cannot be honored:
+			// the Switch's application scanner is strictly filter-based, so
+			// without a service UUID (or manufacturer data) there is nothing
+			// to scan for. Fail fast with guidance instead of running a scan
+			// that can never match.
+			throw new DOMException(
+				"This system cannot discover devices by name alone: include a service UUID the device advertises (in a filter's 'services' or in 'optionalServices'), or connect directly with the nx.js 'deviceId' extension.",
+				'NotSupportedError',
+			);
 		}
 		ensureInit();
 
@@ -1181,10 +1188,8 @@ export class Bluetooth extends EventTarget {
 			for (const mode of modes) {
 				if ('uuid' in mode) {
 					$.btleScanStart(mode.uuid);
-				} else if ('companyId' in mode) {
-					$.btleScanStart(null, mode.companyId, mode.pattern);
 				} else {
-					$.btleScanStart();
+					$.btleScanStart(null, mode.companyId, mode.pattern);
 				}
 				pumpRef();
 				try {

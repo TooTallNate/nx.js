@@ -1,22 +1,41 @@
 // Web Bluetooth Demo - nx.js
 //
-// Scans for a nearby Bluetooth LE device advertising the standard Battery
-// Service (0x180f), connects, and reads the battery level — exercising the
-// full Web Bluetooth flow: requestDevice() → gatt.connect() →
-// getPrimaryService() → getCharacteristic() → readValue().
+// A small GATT explorer: finds a nearby Bluetooth LE device, connects, and
+// dumps its GATT table (services, characteristics, properties), reading the
+// value of every readable characteristic.
 //
-// Note: the Switch's application BLE scanner is filter-based — devices are
-// discovered by an advertised service UUID (from the `services` filters /
-// `optionalServices`). To talk to a device that does not advertise its
-// service UUIDs, connect by address with the nx.js `deviceId` extension:
+// ### Device discovery on Switch
+//
+// The Switch's application BLE scanner is filter-based — devices are
+// discovered by an **advertised 128-bit service UUID** (from the `services`
+// filters / `optionalServices`). Many hobbyist/maker devices advertise one
+// (the defaults below cover common BLE-serial modules); consumer devices
+// that only advertise manufacturer data (e.g. AirPods) cannot be discovered
+// by scanning — connect to those by address instead with the nx.js
+// `deviceId` extension:
 //
 //   navigator.bluetooth.requestDevice({ deviceId: 'aa:bb:cc:dd:ee:ff' })
+//
+// Tip: find a device's address and advertised services with a phone app
+// like "nRF Connect", then customize the constants below.
 
-const BATTERY_SERVICE = 0x180f;
-const BATTERY_LEVEL = 0x2a19;
+// Set to your device's Bluetooth address to skip scanning entirely:
+const DEVICE_ADDRESS: string | null = null; // e.g. '12:0c:01:e6:59:cf'
 
-console.log('Web Bluetooth — Battery Service demo');
+// Otherwise, scan for devices advertising any of these service UUIDs:
+const SCAN_SERVICES = [
+	'6e400001-b5a3-f393-e0a9-e50e24dcca9e', // Nordic UART (Arduino/ESP32/Adafruit)
+	'49535343-fe7d-4ae5-8fa9-9fafd205e455', // Microchip Transparent UART
+	'e7810a71-73ae-499d-8c15-faa9aef0c3f2', // Transparent serial (Niimbot, etc.)
+];
+
+console.log('Web Bluetooth — GATT explorer');
 console.log('');
+
+const hex = (view: DataView) =>
+	[...new Uint8Array(view.buffer, view.byteOffset, view.byteLength)]
+		.map((b) => b.toString(16).padStart(2, '0'))
+		.join(' ');
 
 async function main() {
 	if (!(await navigator.bluetooth.getAvailability())) {
@@ -24,14 +43,21 @@ async function main() {
 		return;
 	}
 
-	console.log('Scanning for a device advertising the Battery Service...');
-	console.log('(make sure a BLE device with battery reporting is nearby');
-	console.log(' and advertising, e.g. headphones in pairing mode)');
-	console.log('');
-
-	const device = await navigator.bluetooth.requestDevice({
-		filters: [{ services: [BATTERY_SERVICE] }],
-	});
+	let device: BluetoothDevice;
+	if (DEVICE_ADDRESS) {
+		console.log(`Connecting by address: ${DEVICE_ADDRESS}`);
+		device = await navigator.bluetooth.requestDevice({
+			deviceId: DEVICE_ADDRESS,
+			optionalServices: SCAN_SERVICES,
+		});
+	} else {
+		console.log('Scanning for devices advertising:');
+		for (const s of SCAN_SERVICES) console.log(`  ${s}`);
+		console.log('');
+		device = await navigator.bluetooth.requestDevice({
+			filters: SCAN_SERVICES.map((s) => ({ services: [s] })),
+		});
+	}
 	console.log(`Found: ${device.name ?? '(unnamed)'} [${device.id}]`);
 
 	device.addEventListener('gattserverdisconnected', () => {
@@ -41,11 +67,30 @@ async function main() {
 	console.log('Connecting...');
 	const server = await device.gatt.connect();
 
-	const service = await server.getPrimaryService(BATTERY_SERVICE);
-	const characteristic = await service.getCharacteristic(BATTERY_LEVEL);
-	const value = await characteristic.readValue();
-	console.log('');
-	console.log(`🔋 Battery level: ${value.getUint8(0)}%`);
+	for (const service of await server.getPrimaryServices()) {
+		console.log(`service ${service.uuid}`);
+		for (const c of await service.getCharacteristics()) {
+			const p = c.properties;
+			const props = [
+				p.read && 'read',
+				p.write && 'write',
+				p.writeWithoutResponse && 'writeWithoutResponse',
+				p.notify && 'notify',
+				p.indicate && 'indicate',
+			]
+				.filter(Boolean)
+				.join(',');
+			console.log(`  characteristic ${c.uuid} [${props}]`);
+			if (p.read) {
+				try {
+					const value = await c.readValue();
+					console.log(`    value: ${hex(value)}`);
+				} catch (err: any) {
+					console.log(`    read failed: ${err.message}`);
+				}
+			}
+		}
+	}
 
 	server.disconnect();
 }
