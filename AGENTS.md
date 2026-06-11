@@ -182,6 +182,10 @@ background     = #002b36
 foreground     = #839496
 black = #073642   red = #dc322f   ...  bright_white = #fdf6e3
 
+[threadpool]                       ; libuv worker pool (services ALL async native ops)
+size       = 4                     ; worker count; default 2 in applet, 4 in application
+stack_size = 1MiB                  ; per-worker stack; default 1MiB (256KiB floor, 32MiB cap)
+
 [socket]                           ; field-level overrides on the regime base (lean/full)
 tcp_tx_buf_size = 256KiB
 tcp_rx_buf_size = 256KiB
@@ -198,7 +202,15 @@ version = ^1                       ; semver requirement for the shared runtime N
 ```
 
 - **Effective** (post-clamp) values are exposed to JS as `$.config`
-  (`{ jit, heapLimit, renderer, v8Flags, socket:{…}, loaded }`).
+  (`{ jit, heapLimit, renderer, v8Flags, socket:{…}, threadpool:{…}, loaded }`).
+- **`[threadpool]` exists because libuv's upstream defaults (4 workers ×
+  8 MiB stacks = 32 MiB, committed lazily on the FIRST async op) cannot be
+  satisfied in applet mode next to the JIT code arena — and a failed worker
+  create is a hard libuv `abort()` that skips the applet exit handshake and
+  destabilizes the system until reboot.** `main.cc` exports the effective
+  values via `UV_THREADPOOL_SIZE` / `UV_THREADPOOL_STACK_SIZE` env vars before
+  the pool spins up; the stack-size var is a **switch-libuv port extension**
+  (pacman-packages `switch-libuv` ≥ 1.52.1-3 required).
 - **Every value that can't be honored is logged** to `nxjs-debug.log` as a
   `[config] … not honored: <reason>` line (clamped heap, invalid value, GPU
   init fallback, socket reservation too big, etc.). A missing file is silent.
@@ -229,6 +241,22 @@ version = ^1                       ; semver requirement for the shared runtime N
   reserve the 64 MiB WASM headroom unconditionally → a ~256 MiB-real arena that
   left ~10 MiB for everything in applet → bsdsocket/heap/Skia failures. Fixed by
   regime-gating the headroom (commit 71eecc2).
+- **Applet-mode memory ground truth** (measured via the `nativeHeap*` fields of
+  `Switch.memoryUsage()`, which wrap newlib `mallinfo` + the `fake_heap`
+  bounds): the native malloc heap is ~168 MiB TOTAL, with >130 MiB consumed at
+  startup under JIT (64 MiB jit arena + V8 slabs + Skia raster + console). The
+  V8 heap, JIT arena, Skia surfaces, libuv stacks, zstd windows, and ArrayBuffer
+  backings ALL compete in this one budget — V8 commits its heap from it in
+  16 MiB slabs. That is why the applet+JIT `reserve` is 96 MiB (V8 max heap
+  ~41 MiB): a 64 MiB reserve left streaming-decompression workloads (8 MiB zstd
+  window + one V8 slab commit) ~5 MiB short → native ENOMEM, then a FATAL V8
+  Zone OOM on the next JIT compile.
+- **V8 fatal/OOM no longer takes down the system**: `main.cc` installs
+  `fatal_error_callback`/`oom_error_callback` (see `nx_v8_fatal_exit`) that log
+  the reason + `mallinfo` stats to `nxjs-debug.log` and `exit(1)` back through
+  hbloader, instead of V8's default `OS::Abort()` undefined-instruction trap —
+  which, under the Album applet, skipped the applet exit handshake and made any
+  subsequent applet launch crash the OS until reboot.
 - The host `nxjs-test` reads **no** INI; its `build_init_object` exposes a
   default `$.config`. Keep that mirror in sync if you change `$.config`'s shape.
 - `[runtime]` is read by the **slim bootstrap launcher**, not the runtime. The

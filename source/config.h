@@ -35,6 +35,10 @@
 //   black = #073642   red = #dc322f   green = #859900   ...  white = #eee8d5
 //   bright_black = #586e75  ...  bright_white = #fdf6e3
 //
+//   [threadpool]            ; libuv worker thread pool (async fs/crypto/zstd/...)
+//   size       = 4          ; worker thread count (1-64)
+//   stack_size = 1MiB       ; per-worker stack; KiB/MiB suffix or raw bytes
+//
 //   [socket]                ; overrides on the regime-selected SocketInitConfig
 //   tcp_tx_buf_size     = 256KiB
 //   tcp_rx_buf_size     = 256KiB
@@ -143,6 +147,22 @@ typedef struct {
 	BsdServiceType service_type;
 } nx_socket_config_t;
 
+// libuv worker thread pool overrides (`[threadpool]` section). The pool
+// services every async native op (fs, crypto, zstd, image decode, dns, ...)
+// and initializes lazily on the first one. Upstream libuv defaults to
+// 4 threads x 8 MiB stacks = 32 MiB committed at first use — applet mode
+// (~380 MiB process grant) cannot afford that next to the JIT code arena, and
+// a failed thread create inside libuv is a hard abort(). The runtime applies
+// Switch-appropriate defaults (4 threads x 1 MiB) via the UV_THREADPOOL_SIZE /
+// UV_THREADPOOL_STACK_SIZE env vars (the latter is a switch-libuv port
+// extension) before the pool spins up; this section overrides them.
+typedef struct {
+	bool has_size;
+	uint32_t size; // worker thread count
+	bool has_stack_size;
+	uint32_t stack_size; // bytes per worker stack
+} nx_threadpool_config_t;
+
 typedef struct {
 	nx_jit_mode_t jit;
 	char *v8_flags;       // strdup'd app-provided flag string, or NULL
@@ -166,6 +186,7 @@ typedef struct {
 	// overrides the regime default.
 	uint32_t gpu_cache_mib;
 	nx_socket_config_t socket;
+	nx_threadpool_config_t threadpool; // [threadpool] libuv pool overrides
 	nx_console_config_t console; // [console] styling, exposed on $.config.console
 	bool loaded;          // true if an nxjs.ini was found + parsed
 
@@ -176,6 +197,8 @@ typedef struct {
 	bool effective_jit;
 	uint64_t effective_heap_limit; // bytes actually passed to V8
 	uint32_t effective_code_headroom_mb; // WASM headroom actually applied (0 if !jit)
+	uint32_t effective_threadpool_size;       // worker count actually applied
+	uint32_t effective_threadpool_stack_size; // bytes/worker actually applied
 } nx_config_t;
 
 // Initialize `cfg` to defaults (everything auto/unset).
@@ -199,6 +222,14 @@ char *nx_config_ini_path_for(const char *entrypoint);
 // ceiling used for clamping the total buffer reservation.
 void nx_config_apply_socket(SocketInitConfig *base, const nx_config_t *cfg,
                             bool tight_memory);
+
+// Compute the effective libuv threadpool settings (regime defaults +
+// [threadpool] overrides, clamped to safe ranges with not-honored logging)
+// into `cfg->effective_threadpool_*`. The caller (main) exports them via the
+// UV_THREADPOOL_SIZE / UV_THREADPOOL_STACK_SIZE env vars BEFORE the first
+// async native op (the pool initializes lazily and aborts on failure).
+// `tight_memory` selects the applet (2 workers) vs application (4) default.
+void nx_config_apply_threadpool(nx_config_t *cfg, bool tight_memory);
 
 // Free any heap memory owned by `cfg` (the v8_flags string).
 void nx_config_free(nx_config_t *cfg);

@@ -257,6 +257,21 @@ static int ini_cb(void *user, const char *section, const char *name,
 		return 1;
 	}
 
+	if (str_ieq(section, "threadpool")) {
+		nx_threadpool_config_t *t = &cfg->threadpool;
+		uint32_t u;
+		if (str_ieq(name, "size")) {
+			if (parse_u32(value, &u) && u >= 1) { t->size = u; t->has_size = true; }
+			else cfg_log("threadpool.size=\"%s\" not honored: invalid (positive count)", value);
+		} else if (str_ieq(name, "stack_size")) {
+			if (parse_u32(value, &u) && u >= 1) { t->stack_size = u; t->has_stack_size = true; }
+			else cfg_log("threadpool.stack_size=\"%s\" not honored: invalid size", value);
+		} else {
+			cfg_log("threadpool.%s ignored: unknown key", name);
+		}
+		return 1;
+	}
+
 	if (str_ieq(section, "console")) {
 		nx_console_config_t *c = &cfg->console;
 		double d;
@@ -495,6 +510,52 @@ void nx_config_apply_socket(SocketInitConfig *base, const nx_config_t *cfg,
 		        (unsigned long long)(reservation() / (1024 * 1024)),
 		        (unsigned long long)(cap / (1024 * 1024)));
 	}
+}
+
+void nx_config_apply_threadpool(nx_config_t *cfg, bool tight_memory) {
+	// Defaults: 4 workers (libuv's own default count) x 1 MiB stacks; applet
+	// (tight) regime drops to 2 workers — its native heap is ~168 MiB total
+	// with >130 MiB consumed at startup, so both the stacks themselves and
+	// the peak of concurrent native work buffers matter. The worker callbacks
+	// are shallow C (zlib's 16 KiB stack CHUNK buffers, mbedtls handshakes
+	// ~64 KiB, image decoders), so 1 MiB has ample margin while costing
+	// 2-4 MiB total instead of upstream libuv's 32 MiB — which applet mode
+	// could not commit next to the JIT code arena, turning the first async op
+	// into a hard libuv abort().
+	uint32_t size = tight_memory ? 2 : 4;
+	uint32_t stack_size = 1024 * 1024;
+
+	if (cfg->threadpool.has_size) {
+		uint32_t req = cfg->threadpool.size;
+		size = req;
+		// libuv caps at 1024; anything past 64 is senseless on 4 cores and
+		// multiplies stack cost.
+		if (size > 64) {
+			cfg_log("threadpool.size=%u not honored: above 64, clamped", req);
+			size = 64;
+		}
+	}
+	if (cfg->threadpool.has_stack_size) {
+		uint32_t req = cfg->threadpool.stack_size;
+		stack_size = req;
+		// Floor: a too-small worker stack overflows silently (memory
+		// corruption, not a clean error). 256 KiB is the smallest safe value
+		// given the native work callbacks. Cap at 32 MiB (upstream is 8 MiB).
+		if (stack_size < 256 * 1024) {
+			cfg_log("threadpool.stack_size=%u not honored: below 256 KiB "
+			        "floor, clamped",
+			        req);
+			stack_size = 256 * 1024;
+		} else if (stack_size > 32 * 1024 * 1024) {
+			cfg_log("threadpool.stack_size=%u not honored: above 32 MiB cap, "
+			        "clamped",
+			        req);
+			stack_size = 32 * 1024 * 1024;
+		}
+	}
+
+	cfg->effective_threadpool_size = size;
+	cfg->effective_threadpool_stack_size = stack_size;
 }
 
 void nx_config_free(nx_config_t *cfg) {

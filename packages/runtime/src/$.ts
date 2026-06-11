@@ -143,6 +143,20 @@ export interface NxSocketConfig {
 }
 
 /**
+ * Effective libuv worker thread pool settings (after `[threadpool]` overrides
+ * from `nxjs.ini` are clamped). The pool services every async native operation
+ * (fs, crypto, compression, image decode, dns, …). Defaults: 4 workers with
+ * 1 MiB stacks (Switch-appropriate; upstream libuv's 8 MiB stacks cannot be
+ * committed in applet mode).
+ */
+export interface NxThreadpoolConfig {
+	/** Number of worker threads. */
+	size: number;
+	/** Stack size per worker thread, in bytes. */
+	stackSize: number;
+}
+
+/**
  * On-screen console styling from the `[console]` section of `nxjs.ini`. Only the
  * keys present in the file are set. The global `console` seeds its options from
  * this at startup; an explicit `console.options =` assignment overrides it. The
@@ -177,6 +191,8 @@ export interface NxConfig {
 	v8Flags: string;
 	/** Effective libnx socket configuration. */
 	socket: NxSocketConfig;
+	/** Effective libuv worker thread pool configuration. */
+	threadpool: NxThreadpoolConfig;
 	/** On-screen console styling from the `[console]` section (empty if none). */
 	console: NxConsoleConfig;
 	/** Whether an `nxjs.ini` file was found and parsed. */
