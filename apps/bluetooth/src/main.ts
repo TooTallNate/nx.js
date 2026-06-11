@@ -37,69 +37,64 @@ const hex = (view: DataView) =>
 		.map((b) => b.toString(16).padStart(2, '0'))
 		.join(' ');
 
-async function main() {
-	if (!(await navigator.bluetooth.getAvailability())) {
-		console.log('Bluetooth LE is not available on this system.');
-		return;
-	}
+try {
+	if (await navigator.bluetooth.getAvailability()) {
+		let device: BluetoothDevice;
+		if (DEVICE_ADDRESS) {
+			console.log(`Connecting by address: ${DEVICE_ADDRESS}`);
+			device = await navigator.bluetooth.requestDevice({
+				deviceId: DEVICE_ADDRESS,
+				optionalServices: SCAN_SERVICES,
+			});
+		} else {
+			console.log('Scanning for devices advertising:');
+			for (const s of SCAN_SERVICES) console.log(`  ${s}`);
+			console.log('');
+			device = await navigator.bluetooth.requestDevice({
+				filters: SCAN_SERVICES.map((s) => ({ services: [s] })),
+			});
+		}
+		console.log(`Found: ${device.name ?? '(unnamed)'} [${device.id}]`);
 
-	let device: BluetoothDevice;
-	if (DEVICE_ADDRESS) {
-		console.log(`Connecting by address: ${DEVICE_ADDRESS}`);
-		device = await navigator.bluetooth.requestDevice({
-			deviceId: DEVICE_ADDRESS,
-			optionalServices: SCAN_SERVICES,
+		device.addEventListener('gattserverdisconnected', () => {
+			console.log('Device disconnected.');
 		});
-	} else {
-		console.log('Scanning for devices advertising:');
-		for (const s of SCAN_SERVICES) console.log(`  ${s}`);
-		console.log('');
-		device = await navigator.bluetooth.requestDevice({
-			filters: SCAN_SERVICES.map((s) => ({ services: [s] })),
-		});
-	}
-	console.log(`Found: ${device.name ?? '(unnamed)'} [${device.id}]`);
 
-	device.addEventListener('gattserverdisconnected', () => {
-		console.log('Device disconnected.');
-	});
+		console.log('Connecting...');
+		const server = await device.gatt.connect();
 
-	console.log('Connecting...');
-	const server = await device.gatt.connect();
-
-	for (const service of await server.getPrimaryServices()) {
-		console.log(`service ${service.uuid}`);
-		for (const c of await service.getCharacteristics()) {
-			const p = c.properties;
-			const props = [
-				p.read && 'read',
-				p.write && 'write',
-				p.writeWithoutResponse && 'writeWithoutResponse',
-				p.notify && 'notify',
-				p.indicate && 'indicate',
-			]
-				.filter(Boolean)
-				.join(',');
-			console.log(`  characteristic ${c.uuid} [${props}]`);
-			if (p.read) {
-				try {
-					const value = await c.readValue();
-					console.log(`    value: ${hex(value)}`);
-				} catch (err: any) {
-					console.log(`    read failed: ${err.message}`);
+		for (const service of await server.getPrimaryServices()) {
+			console.log(`service ${service.uuid}`);
+			for (const c of await service.getCharacteristics()) {
+				const p = c.properties;
+				const props = [
+					p.read && 'read',
+					p.write && 'write',
+					p.writeWithoutResponse && 'writeWithoutResponse',
+					p.notify && 'notify',
+					p.indicate && 'indicate',
+				]
+					.filter(Boolean)
+					.join(',');
+				console.log(`  characteristic ${c.uuid} [${props}]`);
+				if (p.read) {
+					try {
+						const value = await c.readValue();
+						console.log(`    value: ${hex(value)}`);
+					} catch (err: any) {
+						console.log(`    read failed: ${err.message}`);
+					}
 				}
 			}
 		}
+
+		server.disconnect();
+	} else {
+		console.log('Bluetooth LE is not available on this system.');
 	}
-
-	server.disconnect();
+} catch (err: any) {
+	console.log(`${err.name}: ${err.message}`);
+} finally {
+	console.log('');
+	console.log('Press + to exit...');
 }
-
-main()
-	.catch((err) => {
-		console.log(`${err.name}: ${err.message}`);
-	})
-	.finally(() => {
-		console.log('');
-		console.log('Press + to exit...');
-	});
