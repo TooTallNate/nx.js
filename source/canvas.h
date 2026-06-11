@@ -25,7 +25,12 @@
  * Keeping `data` lets the screen present path stay a plain memcpy and
  * get/putImageData stay cheap CPU ops. GPU backing is a Phase 2.2 follow-up.
  */
+// See NX_IMAGE_MAGIC in image.h — discriminates wrapped canvases from
+// wrapped images in `nx_get_canvas`/`nx_get_image`.
+#define NX_CANVAS_MAGIC 0x5643584eu // 'NXCV'
+
 typedef struct nx_canvas_s {
+	uint32_t magic; // must be first: NX_CANVAS_MAGIC
 	uint32_t width;
 	uint32_t height;
 	uint8_t *data;

@@ -54,6 +54,8 @@ export type AudioNodeHandle = Opaque<'AudioNodeHandle'>;
 export interface BtleScanResult {
 	address: string;
 	name?: string;
+	/** Raw BtdrvBleScanResult bytes (only when requested; diagnostics). */
+	raw?: ArrayBuffer;
 }
 
 export interface BtleConnection {
@@ -657,9 +659,19 @@ export interface Init {
 	// bluetooth.cc — Web Bluetooth (BLE GATT client over btm.u + bt)
 	btleInit(): void;
 	btleExit(): void;
-	btleScanStart(): void;
+	/**
+	 * With `serviceUuid`: a "smart device" scan matching devices that
+	 * advertise that service UUID. With `companyId` (+ up to 6 pattern
+	 * bytes): a "general" scan with a custom manufacturer-data filter.
+	 * Without either: the "general" scan (Nintendo accessory filter).
+	 */
+	btleScanStart(
+		serviceUuid?: string | null,
+		companyId?: number | null,
+		pattern?: ArrayBuffer | null,
+	): void;
 	btleScanStop(): void;
-	btleScanResults(): BtleScanResult[];
+	btleScanResults(includeRaw?: boolean): BtleScanResult[];
 	btleConnect(address: string): void;
 	btleDisconnect(handle: number): void;
 	btleConnections(): BtleConnection[];
@@ -708,6 +720,17 @@ export interface Init {
 		enable: boolean,
 	): void;
 	btlePollEvents(): BtleEvent[];
+	/**
+	 * Unfiltered btdrv-level scan (no result delivery) used to prime the
+	 * Bluetooth stack's device cache before connecting by explicit address.
+	 */
+	btleRawScanStart(): void;
+	btleRawScanStop(): void;
+	/** Register/unregister a BLE GATT data path for a service UUID. */
+	btleRegisterDataPath(uuid: string, register: boolean): void;
+	/** Request an ATT MTU for the connection (browsers negotiate ~517). */
+	btleConfigureMtu(conn: number, mtu: number): void;
+	btleGetMtu(conn: number): number;
 
 	// (Uint8Array base64/hex methods are provided natively by V8 — no binding.)
 

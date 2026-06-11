@@ -11,22 +11,34 @@ import { EventTarget } from '../polyfills/event-target';
 import { clearInterval, clearTimeout, setInterval, setTimeout } from '../timers';
 import { assertInternalConstructor, createInternal, def } from '../utils';
 
-// BtdrvBleEventType values (see source/bluetooth.cc / btdrv_types.h).
-const BLE_EVENT_CLIENT_NOTIFY = 8;
-
 // Client Characteristic Configuration Descriptor.
 const CCCD_UUID = '00002902-0000-1000-8000-00805f9b34fb';
+
+export interface BluetoothManufacturerDataFilter {
+	companyIdentifier: number;
+	dataPrefix?: BufferSource;
+	mask?: BufferSource;
+}
 
 export interface BluetoothLEScanFilter {
 	name?: string;
 	namePrefix?: string;
 	services?: (string | number)[];
+	manufacturerData?: BluetoothManufacturerDataFilter[];
 }
 
 export interface RequestDeviceOptions {
 	filters?: BluetoothLEScanFilter[];
 	optionalServices?: (string | number)[];
 	acceptAllDevices?: boolean;
+	/**
+	 * nx.js extension: connect to a device by its known Bluetooth address
+	 * (`"xx:xx:xx:xx:xx:xx"`), skipping the scan/selection step entirely.
+	 * Useful when the application targets a specific accessory whose address
+	 * is already known (the Switch's application BLE scanner is filter-based
+	 * and cannot perform the unfiltered discovery browsers use).
+	 */
+	deviceId?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -148,7 +160,11 @@ function pumpTick() {
 	}
 	for (const ev of events) {
 		if (ev.type === 'gatt') {
-			if (ev.event === BLE_EVENT_CLIENT_NOTIFY) {
+			// `op` is the LeEventInfo flags byte: bit0 = IsWrite,
+			// bit1 = IsDescriptor, bit2 = IsNotify (verified on-device:
+			// write completions arrive as event type 8 too, so the flags —
+			// not the event type — discriminate notifications).
+			if (ev.op & 0x4) {
 				routeNotification(ev.connId, ev.characteristicUuid, ev.data);
 			} else {
 				routeCompletion(ev.connId, ev.characteristicUuid, ev.data);
@@ -252,6 +268,21 @@ interface BluetoothDeviceInternal {
 	gatt: BluetoothRemoteGATTServer;
 	connHandle: number;
 	connected: boolean;
+	/**
+	 * True when the device was created by explicit address (the `deviceId`
+	 * extension) and has not been seen by a scan: before connecting, an
+	 * unfiltered btdrv-level scan primes the Bluetooth stack's device cache
+	 * so `BleConnect` can resolve the peer's address type.
+	 */
+	needsCachePrime: boolean;
+	/**
+	 * Service UUIDs from the requestDevice() filters + optionalServices.
+	 * Registered as BLE GATT data paths with btm before connecting (btm maps
+	 * data paths to the GATT client interfaces that connections are keyed
+	 * on).
+	 */
+	allowedServices: string[];
+	dataPathsRegistered: boolean;
 }
 
 const deviceInternal = createInternal<
@@ -277,7 +308,7 @@ export class BluetoothDevice extends EventTarget {
 		assertInternalConstructor(arguments);
 		super();
 		this.ongattserverdisconnected = null;
-		const [, id, name] = arguments;
+		const [, id, name, needsCachePrime, allowedServices] = arguments;
 		// @ts-expect-error internal constructor
 		const gatt = new BluetoothRemoteGATTServer(INTERNAL, this);
 		deviceInternal.set(this, {
@@ -286,6 +317,9 @@ export class BluetoothDevice extends EventTarget {
 			gatt,
 			connHandle: -1,
 			connected: false,
+			needsCachePrime: needsCachePrime === true,
+			allowedServices: allowedServices ?? [],
+			dataPathsRegistered: false,
 		});
 	}
 
@@ -359,7 +393,37 @@ export class BluetoothRemoteGATTServer {
 		const i = deviceInternal(device);
 		if (i.connected) return this;
 		ensureInit();
-		$.btleConnect(i.id);
+		if (!i.dataPathsRegistered) {
+			// Associate this app with the GATT services it intends to use —
+			// btm maps registered data paths to the GATT client interfaces
+			// that connections are keyed on.
+			for (const uuid of i.allowedServices) {
+				try {
+					$.btleRegisterDataPath(uuid, true);
+				} catch {}
+			}
+			i.dataPathsRegistered = true;
+		}
+		if (i.needsCachePrime) {
+			// Device addressed explicitly (never seen by a scan): run an
+			// unfiltered btdrv-level scan so the Bluetooth stack caches the
+			// peer (and its address type — required for devices advertising
+			// with random addresses) before BleConnect.
+			$.btleRawScanStart();
+			try {
+				await new Promise((r) => setTimeout(r, 5000));
+			} finally {
+				$.btleRawScanStop();
+			}
+			i.needsCachePrime = false;
+		}
+		try {
+			$.btleConnect(i.id);
+		} catch {
+			// May already be connected/connecting at the system level (e.g.
+			// a racing or system-initiated connection) — the wait below
+			// resolves from the connection list either way.
+		}
 		pump.devices.set(i.id, device);
 		try {
 			const handle = await waitFor(
@@ -377,6 +441,13 @@ export class BluetoothRemoteGATTServer {
 			// Hold a pump ref while connected, so disconnects/notifications
 			// are observed.
 			pumpRef();
+			// Negotiate a large ATT MTU like browsers do (the default of 23
+			// caps characteristic writes at 20 bytes, which Web Bluetooth
+			// apps do not expect). Best-effort; the peer may cap it lower.
+			try {
+				$.btleConfigureMtu(handle, 247);
+				await new Promise((r) => setTimeout(r, 500));
+			} catch {}
 			// Wait for GATT service discovery to populate (the system
 			// performs discovery automatically after connecting).
 			await waitFor(
@@ -931,6 +1002,17 @@ def(BluetoothRemoteGATTCharacteristic);
 // Bluetooth (navigator.bluetooth)
 // ---------------------------------------------------------------------------
 
+// Every service UUID mentioned in the request (filter `services` +
+// `optionalServices`) — registered as GATT data paths before connecting.
+function collectServiceUuids(options?: RequestDeviceOptions): string[] {
+	const uuids = new Set<string>();
+	for (const filter of options?.filters ?? []) {
+		for (const s of filter.services ?? []) uuids.add(toUUID(s));
+	}
+	for (const s of options?.optionalServices ?? []) uuids.add(toUUID(s));
+	return [...uuids];
+}
+
 function matchesFilter(
 	result: { name?: string },
 	filter: BluetoothLEScanFilter,
@@ -954,14 +1036,37 @@ function matchesFilter(
  * filters** (scanning for up to 15 seconds before rejecting with
  * `NotFoundError`).
  *
+ * ### Device discovery on Switch
+ *
+ * The Switch's application BLE scanner is **filter-based** (there is no
+ * unfiltered scan like browsers use), which constrains how devices can be
+ * discovered:
+ *
+ * - **Advertised service UUID** (recommended): every UUID in the filters'
+ *   `services` and in `optionalServices` is scanned for; devices advertising
+ *   one of them are found, then `name`/`namePrefix` filters are applied.
+ * - **`manufacturerData` filters** map onto the system's manufacturer-data
+ *   scan, but the system only matches payloads whose first byte after the
+ *   company identifier is `0x01` — most third-party devices won't match.
+ * - **Known address** (nx.js extension): `requestDevice({ deviceId:
+ *   'aa:bb:cc:dd:ee:ff' })` skips scanning entirely and connects directly
+ *   (an unfiltered low-level scan primes the stack's device cache first, so
+ *   this works even for devices that advertise no service UUIDs).
+ *
  * @example
  *
  * ```typescript
+ * // Connect to a Niimbot label printer by address and use its serial
+ * // service — the same GATT flow as Chrome's Web Bluetooth:
  * const device = await navigator.bluetooth.requestDevice({
- *   filters: [{ namePrefix: 'D110' }],
+ *   deviceId: '12:0c:01:e6:59:cf',
  *   optionalServices: ['e7810a71-73ae-499d-8c15-faa9aef0c3f2'],
  * });
  * const server = await device.gatt.connect();
+ * const service = await server.getPrimaryService(
+ *   'e7810a71-73ae-499d-8c15-faa9aef0c3f2',
+ * );
+ * const chars = await service.getCharacteristics();
  * ```
  *
  * @see https://developer.mozilla.org/docs/Web/API/Bluetooth
@@ -993,79 +1098,137 @@ export class Bluetooth extends EventTarget {
 	 * Scans for a nearby Bluetooth LE device matching the provided filters.
 	 *
 	 * > [!NOTE]
-	 * > nx.js matches on `name` / `namePrefix` (and `acceptAllDevices`).
-	 * > `services`-based filtering is not currently supported — list the
-	 * > services you need in `optionalServices` instead.
+	 * > The Switch's application BLE scanner filters by **advertised service
+	 * > UUID**, so the scan UUIDs are gathered from the `services` of each
+	 * > filter plus `optionalServices`. Provide at least one service UUID
+	 * > (in either place) when targeting third-party devices —
+	 * > `name`/`namePrefix` matching is then applied to the scan results.
 	 *
 	 * @see https://developer.mozilla.org/docs/Web/API/Bluetooth/requestDevice
 	 */
 	async requestDevice(
 		options?: RequestDeviceOptions,
 	): Promise<BluetoothDevice> {
+		// nx.js extension: direct addressing without a scan.
+		if (typeof options?.deviceId === 'string') {
+			const address = options.deviceId.toLowerCase();
+			if (!/^([0-9a-f]{2}:){5}[0-9a-f]{2}$/.test(address)) {
+				throw new TypeError(
+					`Invalid Bluetooth address: "${options.deviceId}"`,
+				);
+			}
+			ensureInit();
+			const allowed = collectServiceUuids(options);
+			// @ts-expect-error internal constructor
+			return new BluetoothDevice(INTERNAL, address, undefined, true, allowed);
+		}
 		const filters = options?.filters;
 		const acceptAll = options?.acceptAllDevices === true;
-		if (!acceptAll && (!filters || filters.length === 0)) {
+		if (acceptAll === (filters !== undefined && filters.length > 0)) {
 			throw new TypeError(
 				"Failed to execute 'requestDevice' on 'Bluetooth': Either 'filters' should be present or 'acceptAllDevices' should be true, but not both.",
 			);
 		}
-		if (acceptAll && filters && filters.length > 0) {
-			throw new TypeError(
-				"Failed to execute 'requestDevice' on 'Bluetooth': Either 'filters' should be present or 'acceptAllDevices' should be true, but not both.",
-			);
-		}
+		// The Switch's application BLE scanner is filter-based (no unfiltered
+		// scan), so build the scan plan from everything the options give us:
+		//   - `manufacturerData` filters -> "general" scans with a custom
+		//     {companyIdentifier, dataPrefix} manufacturer-data filter
+		//   - `services` filters + `optionalServices` -> "smart device"
+		//     scans by advertised 128-bit service UUID
+		type ScanMode =
+			| { uuid: string }
+			| { companyId: number; pattern: ArrayBuffer }
+			| { general: true };
+		const modes: ScanMode[] = [];
 		if (filters) {
 			for (const filter of filters) {
-				if (filter.services && filter.services.length > 0) {
-					throw new DOMException(
-						"'services' filters are not supported in nx.js — use name/namePrefix filters and 'optionalServices'.",
-						'NotSupportedError',
-					);
-				}
 				if (
 					typeof filter.name === 'undefined' &&
-					typeof filter.namePrefix === 'undefined'
+					typeof filter.namePrefix === 'undefined' &&
+					(!filter.services || filter.services.length === 0) &&
+					(!filter.manufacturerData ||
+						filter.manufacturerData.length === 0)
 				) {
 					throw new TypeError(
 						"Failed to execute 'requestDevice' on 'Bluetooth': A filter must restrict the devices in some way.",
 					);
 				}
+				for (const s of filter.services ?? []) {
+					modes.push({ uuid: toUUID(s) });
+				}
+				for (const m of filter.manufacturerData ?? []) {
+					modes.push({
+						companyId: m.companyIdentifier,
+						pattern: m.dataPrefix
+							? bufferSourceToArrayBuffer(m.dataPrefix)
+							: new ArrayBuffer(0),
+					});
+				}
 			}
+		}
+		for (const s of options?.optionalServices ?? []) {
+			modes.push({ uuid: toUUID(s) });
+		}
+		if (modes.length === 0) {
+			modes.push({ general: true });
 		}
 		ensureInit();
-		$.btleScanStart();
-		pumpRef();
-		try {
-			const match = await waitFor(
-				() => {
-					const results = $.btleScanResults();
-					for (const result of results) {
-						if (
-							acceptAll ||
-							filters!.some((f) => matchesFilter(result, f))
-						) {
-							return result;
-						}
-					}
-					return undefined;
-				},
-				15000,
-				'requestDevice timed out',
-			).catch(() => undefined);
-			if (!match) {
-				throw new DOMException(
-					'No Bluetooth devices matching the filters were found.',
-					'NotFoundError',
-				);
+
+		const deadline = Date.now() + 15000;
+		const sliceMs = Math.max(5000, 15000 / modes.length);
+		let match: { address: string; name?: string } | undefined;
+		while (!match && Date.now() < deadline) {
+			for (const mode of modes) {
+				if ('uuid' in mode) {
+					$.btleScanStart(mode.uuid);
+				} else if ('companyId' in mode) {
+					$.btleScanStart(null, mode.companyId, mode.pattern);
+				} else {
+					$.btleScanStart();
+				}
+				pumpRef();
+				try {
+					match = await waitFor(
+						() => {
+							const results = $.btleScanResults();
+							for (const result of results) {
+								if (
+									acceptAll ||
+									filters!.some((f) =>
+										matchesFilter(result, f),
+									)
+								) {
+									return result;
+								}
+							}
+							return undefined;
+						},
+						Math.min(sliceMs, deadline - Date.now()),
+						'scan slice elapsed',
+					).catch(() => undefined);
+				} finally {
+					try {
+						$.btleScanStop();
+					} catch {}
+					pumpUnref();
+				}
+				if (match) break;
 			}
-			// @ts-expect-error internal constructor
-			return new BluetoothDevice(INTERNAL, match.address, match.name);
-		} finally {
-			try {
-				$.btleScanStop();
-			} catch {}
-			pumpUnref();
 		}
+		if (!match) {
+			throw new DOMException(
+				'No Bluetooth devices matching the filters were found.',
+				'NotFoundError',
+			);
+		}
+		const Ctor = BluetoothDevice as any;
+		return new Ctor(
+			INTERNAL,
+			match.address,
+			match.name,
+			false,
+			collectServiceUuids(options),
+		) as BluetoothDevice;
 	}
 }
 def(Bluetooth);

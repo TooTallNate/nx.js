@@ -36,6 +36,10 @@ struct {
 	Event discovery_event;  // btmuAcquireBleServiceDiscoveryEvent (autoclear)
 	Event mtu_event;        // btmuAcquireBleMtuConfigEvent (autoclear)
 	Event ble_event;        // btRegisterBleEvent (autoclear)
+	// Active scan mode: 0 = none, 1 = "general" (Nintendo accessory
+	// filter), 2 = "smart device" (filtered by advertised service UUID).
+	int scan_mode;
+	BtdrvGattAttributeUuid scan_uuid; // smart-device scan filter
 } g;
 
 // ---------------------------------------------------------------------------
@@ -214,31 +218,85 @@ void nx_btle_exit(const FunctionCallbackInfo<Value> &info) {
 // Scanning
 // ---------------------------------------------------------------------------
 
+// btleScanStart(serviceUuid?: string, companyId?: number, pattern?: ArrayBuffer)
+//
+// Three modes (the Switch's application BLE scanner is filter-based; there
+// is no unfiltered scan for applications):
+//   - serviceUuid string: "smart device" scan — matches devices advertising
+//     that 128-bit service UUID.
+//   - companyId (+ up to 6 `pattern` bytes): "general" scan with a custom
+//     manufacturer-data filter (maps Web Bluetooth `manufacturerData`
+//     filters).
+//   - neither: "general" scan with Nintendo's stock accessory parameter.
 void nx_btle_scan_start(const FunctionCallbackInfo<Value> &info) {
 	Isolate *iso = info.GetIsolate();
+	Local<Context> context = iso->GetCurrentContext();
 	BTLE_GUARD();
-	BtdrvBleAdvertisePacketParameter param;
-	Result rc = btmuGetBleScanFilterParameter(0x1, &param);
-	if (R_FAILED(rc)) {
-		nx_throw_libnx_error(iso, rc, "btmuGetBleScanFilterParameter");
+	if (g.scan_mode != 0) {
+		nx_throw(iso, "a BLE scan is already active");
 		return;
 	}
-	rc = btmuStartBleScanForGeneral(param);
-	if (R_FAILED(rc)) {
-		nx_throw_libnx_error(iso, rc, "btmuStartBleScanForGeneral");
-		return;
+	Result rc;
+	if (info[0]->IsString()) {
+		String::Utf8Value uuid_str(iso, info[0]);
+		if (!*uuid_str || !uuid_from_string(*uuid_str, &g.scan_uuid)) {
+			nx_throw(iso, "invalid UUID");
+			return;
+		}
+		rc = btmuStartBleScanForSmartDevice(&g.scan_uuid);
+		if (R_FAILED(rc)) {
+			nx_throw_libnx_error(iso, rc, "btmuStartBleScanForSmartDevice");
+			return;
+		}
+		g.scan_mode = 2;
+	} else {
+		BtdrvBleAdvertisePacketParameter param;
+		if (info[1]->IsNumber()) {
+			memset(&param, 0, sizeof(param));
+			uint32_t company = 0;
+			if (!info[1]->Uint32Value(context).To(&company))
+				return;
+			param.company_id = (u16)company;
+			if (!info[2]->IsUndefined() && !info[2]->IsNull()) {
+				size_t size = 0;
+				uint8_t *buf = NX_GetBufferSource(iso, &size, info[2]);
+				if (!buf) {
+					nx_throw(iso, "expected ArrayBuffer pattern");
+					return;
+				}
+				if (size > sizeof(param.pattern_data))
+					size = sizeof(param.pattern_data);
+				memcpy(param.pattern_data, buf, size);
+			}
+		} else {
+			rc = btmuGetBleScanFilterParameter(0x1, &param);
+			if (R_FAILED(rc)) {
+				nx_throw_libnx_error(iso, rc,
+				                     "btmuGetBleScanFilterParameter");
+				return;
+			}
+		}
+		rc = btmuStartBleScanForGeneral(param);
+		if (R_FAILED(rc)) {
+			nx_throw_libnx_error(iso, rc, "btmuStartBleScanForGeneral");
+			return;
+		}
+		g.scan_mode = 1;
 	}
 }
 
 void nx_btle_scan_stop(const FunctionCallbackInfo<Value> &info) {
 	Isolate *iso = info.GetIsolate();
 	BTLE_GUARD();
-	BtdrvBleAdvertisePacketParameter param;
-	Result rc = btmuGetBleScanFilterParameter(0x1, &param);
-	if (R_SUCCEEDED(rc))
+	Result rc = 0;
+	if (g.scan_mode == 2) {
+		rc = btmuStopBleScanForSmartDevice();
+	} else if (g.scan_mode == 1) {
 		rc = btmuStopBleScanForGeneral();
+	}
+	g.scan_mode = 0;
 	if (R_FAILED(rc)) {
-		nx_throw_libnx_error(iso, rc, "btmuStopBleScanForGeneral");
+		nx_throw_libnx_error(iso, rc, "btmuStopBleScan");
 		return;
 	}
 }
@@ -283,13 +341,19 @@ void nx_btle_scan_results(const FunctionCallbackInfo<Value> &info) {
 	BTLE_GUARD();
 	BtdrvBleScanResult results[16];
 	u8 total = 0;
-	Result rc = btmuGetBleScanResultsForGeneral(results, 16, &total);
+	Result rc;
+	if (g.scan_mode == 2) {
+		rc = btmuGetBleScanResultsForSmartDevice(results, 16, &total);
+	} else {
+		rc = btmuGetBleScanResultsForGeneral(results, 16, &total);
+	}
 	if (R_FAILED(rc)) {
-		nx_throw_libnx_error(iso, rc, "btmuGetBleScanResultsForGeneral");
+		nx_throw_libnx_error(iso, rc, "btmuGetBleScanResults");
 		return;
 	}
 	if (total > 16)
 		total = 16;
+	bool include_raw = info[0]->BooleanValue(iso);
 	Local<Array> arr = Array::New(iso, total);
 	for (u8 i = 0; i < total; i++) {
 		Local<Object> obj = Object::New(iso);
@@ -300,6 +364,19 @@ void nx_btle_scan_results(const FunctionCallbackInfo<Value> &info) {
 		char name[0x40];
 		if (scan_result_name(&results[i], name, sizeof(name))) {
 			obj->Set(context, nx_str(iso, "name"), nx_str_lossy(iso, name))
+			    .Check();
+		}
+		if (include_raw) {
+			// Diagnostic: the full raw BtdrvBleScanResult bytes.
+			void *copy = nx_alloc(iso, sizeof(BtdrvBleScanResult));
+			if (!copy)
+				return;
+			memcpy(copy, &results[i], sizeof(BtdrvBleScanResult));
+			std::unique_ptr<BackingStore> bs = ArrayBuffer::NewBackingStore(
+			    copy, sizeof(BtdrvBleScanResult),
+			    [](void *p, size_t, void *) { free(p); }, nullptr);
+			obj->Set(context, nx_str(iso, "raw"),
+			         ArrayBuffer::New(iso, std::move(bs)))
 			    .Check();
 		}
 		arr->Set(context, i, obj).Check();
@@ -444,8 +521,14 @@ void nx_btle_get_characteristics(const FunctionCallbackInfo<Value> &info) {
 		obj->Set(context, nx_str(iso, "instanceId"),
 		         Integer::NewFromUnsigned(iso, chars[i].instance_id))
 		    .Check();
+		// NOTE: libnx's BtmGattCharacteristic places `properties` at offset
+		// 0x1E, but on-device the GATT properties byte actually lives at
+		// offset 0x20 (verified against a device whose characteristic is
+		// read+writeWithoutResponse+notify = 0x16). Read it positionally
+		// until the libnx struct is corrected upstream.
 		obj->Set(context, nx_str(iso, "properties"),
-		         Integer::NewFromUnsigned(iso, chars[i].properties))
+		         Integer::NewFromUnsigned(
+		             iso, ((const u8 *)&chars[i])[0x20]))
 		    .Check();
 		arr->Set(context, i, obj).Check();
 	}
@@ -622,6 +705,110 @@ Local<Object> simple_event(Isolate *iso, Local<Context> context,
 	return obj;
 }
 
+// btleConfigureMtu(conn, mtu)
+//
+// Requests an ATT MTU for the connection (completion via the MTU event).
+// Without this the default MTU of 23 caps writes at 20 bytes — browsers
+// negotiate a large MTU automatically, so Web Bluetooth apps assume it.
+void nx_btle_configure_mtu(const FunctionCallbackInfo<Value> &info) {
+	Isolate *iso = info.GetIsolate();
+	Local<Context> context = iso->GetCurrentContext();
+	BTLE_GUARD();
+	uint32_t conn = 0, mtu = 0;
+	if (!info[0]->Uint32Value(context).To(&conn) ||
+	    !info[1]->Uint32Value(context).To(&mtu))
+		return;
+	Result rc = btmuConfigureBleMtu(conn, (u16)mtu);
+	if (R_FAILED(rc)) {
+		nx_throw_libnx_error(iso, rc, "btmuConfigureBleMtu");
+		return;
+	}
+}
+
+void nx_btle_get_mtu(const FunctionCallbackInfo<Value> &info) {
+	Isolate *iso = info.GetIsolate();
+	Local<Context> context = iso->GetCurrentContext();
+	BTLE_GUARD();
+	uint32_t conn = 0;
+	if (!info[0]->Uint32Value(context).To(&conn))
+		return;
+	u16 mtu = 0;
+	Result rc = btmuGetBleMtu(conn, &mtu);
+	if (R_FAILED(rc)) {
+		nx_throw_libnx_error(iso, rc, "btmuGetBleMtu");
+		return;
+	}
+	info.GetReturnValue().Set(Integer::NewFromUnsigned(iso, mtu));
+}
+
+// btleRegisterDataPath(uuid, register)
+//
+// Registers a BLE GATT data path for a service UUID with btm. This is how an
+// application associates itself with a GATT service: btm maps registered
+// data paths to btdrv GATT client interfaces (RegisterGattClient), which
+// connections are keyed on — without one, BleConnect is accepted but never
+// completes.
+void nx_btle_register_data_path(const FunctionCallbackInfo<Value> &info) {
+	Isolate *iso = info.GetIsolate();
+	BTLE_GUARD();
+	BtmBleDataPath path = {};
+	String::Utf8Value uuid_str(iso, info[0]);
+	if (!*uuid_str || !uuid_from_string(*uuid_str, &path.uuid)) {
+		nx_throw(iso, "invalid UUID");
+		return;
+	}
+	bool reg = info[1]->BooleanValue(iso);
+	Result rc = reg ? btmuRegisterBleGattDataPath(&path)
+	                : btmuUnregisterBleGattDataPath(&path);
+	if (R_FAILED(rc)) {
+		nx_throw_libnx_error(iso, rc,
+		                     reg ? "btmuRegisterBleGattDataPath"
+		                         : "btmuUnregisterBleGattDataPath");
+		return;
+	}
+}
+
+// Raw btdrv-level BLE scan. The application-facing btm.u scanner is
+// filter-based and cannot discover devices that advertise neither Nintendo
+// manufacturer data nor a 128-bit service UUID — but `btmuBleConnect` needs
+// the peer in the Bluetooth stack's device cache (for its address type).
+// Running an unfiltered scan at the btdrv level (no BLE event registration —
+// btm-sysmodule keeps that) populates the shared bluedroid cache, after
+// which btm.u connects by address succeed. hbloader grants homebrew access
+// to btdrv.
+void nx_btle_raw_scan_start(const FunctionCallbackInfo<Value> &info) {
+	Isolate *iso = info.GetIsolate();
+	Result rc = btdrvInitialize();
+	if (R_FAILED(rc)) {
+		nx_throw_libnx_error(iso, rc, "btdrvInitialize");
+		return;
+	}
+	// Drop btm's leftover scan-filter conditions and disable filtering
+	// entirely so every advertisement is processed into the device cache
+	// (including the peer's address type, which BleConnect needs — devices
+	// with random addresses cannot be connected without it). btm re-adds
+	// its conditions on its next scan start.
+	btdrvClearBleScanFilters();
+	btdrvEnableBleScanFilter(false);
+	rc = btdrvStartBleScan();
+	if (R_FAILED(rc)) {
+		btdrvExit();
+		nx_throw_libnx_error(iso, rc, "btdrvStartBleScan");
+		return;
+	}
+}
+
+void nx_btle_raw_scan_stop(const FunctionCallbackInfo<Value> &info) {
+	Isolate *iso = info.GetIsolate();
+	Result rc = btdrvStopBleScan();
+	btdrvEnableBleScanFilter(true);
+	btdrvExit();
+	if (R_FAILED(rc)) {
+		nx_throw_libnx_error(iso, rc, "btdrvStopBleScan");
+		return;
+	}
+}
+
 void nx_btle_poll_events(const FunctionCallbackInfo<Value> &info) {
 	Isolate *iso = info.GetIsolate();
 	Local<Context> context = iso->GetCurrentContext();
@@ -720,4 +907,9 @@ void nx_init_bluetooth(Isolate *iso, Local<Object> init_obj) {
 	NX_SET_FUNC(init_obj, "btleWriteDescriptor", nx_btle_write_descriptor);
 	NX_SET_FUNC(init_obj, "btleNotify", nx_btle_notify);
 	NX_SET_FUNC(init_obj, "btlePollEvents", nx_btle_poll_events);
+	NX_SET_FUNC(init_obj, "btleConfigureMtu", nx_btle_configure_mtu);
+	NX_SET_FUNC(init_obj, "btleGetMtu", nx_btle_get_mtu);
+	NX_SET_FUNC(init_obj, "btleRegisterDataPath", nx_btle_register_data_path);
+	NX_SET_FUNC(init_obj, "btleRawScanStart", nx_btle_raw_scan_start);
+	NX_SET_FUNC(init_obj, "btleRawScanStop", nx_btle_raw_scan_stop);
 }
