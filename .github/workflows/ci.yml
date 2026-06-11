@@ -42,6 +42,13 @@ jobs:
       - name: Check bundle for esbuild class renames
         run: node packages/runtime/check-def-names.mjs
 
+      # Media decode portlib (Video element + decodeAudioData). TODO: bake
+      # into the pacman-packages image and drop this step.
+      - name: Install switch-ffmpeg
+        run: |
+          dkp-pacman -Sy --noconfirm switch-ffmpeg || \
+            pacman -Sy --noconfirm switch-ffmpeg
+
       - name: Build `nxjs.nro`
         run: make V=1
 
@@ -180,7 +187,9 @@ jobs:
             cmake pkg-config \
             libmbedtls-dev libfreetype-dev libharfbuzz-dev \
             libpng-dev libturbojpeg0-dev libjpeg62-turbo-dev libwebp-dev \
-            zlib1g-dev libzstd-dev
+            zlib1g-dev libzstd-dev \
+            libavformat-dev libavcodec-dev libavutil-dev libswscale-dev \
+            libswresample-dev
           # The image ships clang-19/lld-19 + the ld.lld symlink. LLVM >= 18 is
           # required to link the host V8/Skia archives (they use CREL
           # relocations that lld-16 cannot process — it would leave .init_array

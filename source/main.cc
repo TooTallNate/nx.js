@@ -72,6 +72,7 @@ NX_MODULE(tcp);
 NX_MODULE(tls);
 NX_MODULE(udp);
 NX_MODULE(url);
+NX_MODULE(video);
 NX_MODULE(web);
 NX_MODULE(window);
 #undef NX_MODULE
@@ -742,6 +743,7 @@ static void build_init_object(Isolate *iso, Local<Context> context,
 	nx_init_tls(iso, init_obj);
 	nx_init_udp(iso, init_obj);
 	nx_init_url(iso, init_obj);
+	nx_init_video(iso, init_obj);
 	nx_init_web(iso, init_obj);
 	nx_init_window(iso, init_obj);
 

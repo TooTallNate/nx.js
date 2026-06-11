@@ -17,14 +17,22 @@ const HAVE_CURRENT_DATA = 2;
 const HAVE_FUTURE_DATA = 3;
 const HAVE_ENOUGH_DATA = 4;
 
-// All `Audio` elements share one (lazily-created) AudioContext.
+// All media elements (`Audio`, `Video`) share one (lazily-created)
+// AudioContext.
 let sharedCtx: AudioContext | null = null;
-function getContext(): AudioContext {
+
+/**
+ * The shared media-element AudioContext (created on first use).
+ *
+ * @internal
+ */
+export function getSharedAudioContext(): AudioContext {
 	if (!sharedCtx) {
 		sharedCtx = new AudioContext();
 	}
 	return sharedCtx;
 }
+const getContext = getSharedAudioContext;
 
 /**
  * The `Audio` class provides audio playback functionality similar to the
@@ -35,9 +43,8 @@ function getContext(): AudioContext {
  *
  * ### Supported Audio Formats
  *
- * - `mp3` — MP3 audio using [dr_mp3](https://github.com/mackron/dr_libs)
- * - `wav` — WAV audio using [dr_wav](https://github.com/mackron/dr_libs)
- * - `ogg` — OGG Vorbis audio using [stb_vorbis](https://github.com/nothings/stb)
+ * Any audio container/codec supported by [FFmpeg](https://ffmpeg.org),
+ * including MP3, WAV, OGG Vorbis, Opus, FLAC and AAC/M4A.
  *
  * @example
  *

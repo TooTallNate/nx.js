@@ -109,7 +109,12 @@ GL_LIBS		:=	-lEGL -lGLESv2 -lglapi -ldrm_nouveau
 # own ICU-free HarfBuzz internally. png/z are explicit (were formerly pulled via
 # cairo). Cairo and pixman are fully removed in Phase 2.1 (Skia is the sole
 # rendering backend).
+# ffmpeg (media decode for the Video element + decodeAudioData): demux/codec/
+# scale/resample only (no avfilter/avdevice). dav1d backs ffmpeg's AV1 decode.
+FFMPEG_LIBS	:=	-lavformat -lavcodec -lswscale -lswresample -lavutil -ldav1d
+
 LIBS	:=  $(SKIA_LIBS) $(V8_LIBS) $(UV_LIBS) $(GL_LIBS) \
+			$(FFMPEG_LIBS) \
 			-lmbedtls -lmbedx509 -lmbedcrypto \
 			-Wl,--start-group -lfreetype -lharfbuzz -Wl,--end-group \
 			-lturbojpeg -lwebp -lwebpdemux -ljpeg -lpng -lbz2 -lz -lm -lzstd \
