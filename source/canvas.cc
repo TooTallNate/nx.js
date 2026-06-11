@@ -1857,7 +1857,6 @@ void nx_canvas_new(const FunctionCallbackInfo<Value> &info) {
 		return;
 	}
 	nx_canvas_t *canvas = new nx_canvas_t();
-	canvas->magic = NX_CANVAS_MAGIC;
 	canvas->width = width;
 	canvas->height = height;
 	canvas->data = buffer;
@@ -2322,17 +2321,10 @@ void nx_canvas_context_2d_draw_image(const FunctionCallbackInfo<Value> &info) {
 		source_h = img->height;
 	} else {
 		nx_canvas_t *canvas = nx_get_canvas(iso, info[0]);
-		if (!canvas) {
+		if (!canvas || !canvas->surface) {
 			nx_throw(iso, "Image or Canvas expected");
 			return;
 		}
-		// A canvas that has never been drawn to has no surface yet — it is
-		// fully transparent, so drawing it is a no-op.
-		if (!canvas->surface)
-			return;
-		// makeImageSnapshot() returns the SAME SkImage (stable uniqueID)
-		// while the surface is unchanged, so Ganesh's texture cache stays
-		// effective across repeated draws of a static canvas.
 		image = canvas->surface->makeImageSnapshot();
 		source_w = canvas->width;
 		source_h = canvas->height;
@@ -2713,13 +2705,7 @@ bool nx_resolve_round_rect_radii(Isolate *iso, Local<Value> radii,
 
 nx_canvas_t *nx_get_canvas(Isolate *iso, Local<Value> obj) {
 	(void)iso;
-	nx_canvas_t *canvas = nx::Unwrap<nx_canvas_t>(obj);
-	// All wrapped objects share one ObjectTemplate, so validate the type
-	// discriminator — unwrapping an Image (or any other wrapped object) as a
-	// canvas would misread aliased fields (see NX_IMAGE_MAGIC in image.h).
-	if (canvas && canvas->magic != NX_CANVAS_MAGIC)
-		return nullptr;
-	return canvas;
+	return nx::Unwrap<nx_canvas_t>(obj);
 }
 nx_canvas_context_2d_t *nx_get_canvas_context_2d(Isolate *iso,
                                                  Local<Value> obj) {

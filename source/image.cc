@@ -196,7 +196,6 @@ void nx_image_new(const FunctionCallbackInfo<Value> &info) {
 	Local<Context> context = iso->GetCurrentContext();
 	Local<Object> img = nx::NewWrapped(iso);
 	nx_image_t *data = (nx_image_t *)calloc(1, sizeof(nx_image_t));
-	data->magic = NX_IMAGE_MAGIC;
 	nx::Wrap<nx_image_t>(iso, img, data, free_image);
 	if (info.Length() == 2) {
 		uint32_t w = 0, h = 0;
@@ -255,13 +254,7 @@ void nx_image_init_class(const FunctionCallbackInfo<Value> &info) {
 
 nx_image_t *nx_get_image(Isolate *iso, Local<Value> obj) {
 	(void)iso;
-	nx_image_t *image = nx::Unwrap<nx_image_t>(obj);
-	// Validate the type discriminator: a wrapped Canvas unwrapped as an
-	// image would alias `surface_dirty`/`gpu` with `cached_sk_image`,
-	// turning a bool into a dereferenced pointer (crash). See image.h.
-	if (image && image->magic != NX_IMAGE_MAGIC)
-		return nullptr;
-	return image;
+	return nx::Unwrap<nx_image_t>(obj);
 }
 
 int decode_jpeg(uint8_t *jpegBuf, size_t jpegSize, uint8_t **output, int *width,

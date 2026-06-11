@@ -19,16 +19,7 @@ enum ImageFormat { FORMAT_PNG, FORMAT_JPEG, FORMAT_WEBP, FORMAT_UNKNOWN };
 // this C-style header doesn't have to pull in the Skia C++ headers; canvas.cc
 // owns its construction and `close_image` releases it via
 // `nx_image_release_cache`.
-// Type discriminator for wrapped native objects that can be passed as a
-// `CanvasImageSource`. All wrapped nx.js objects share one ObjectTemplate, so
-// `nx::Unwrap<T>` alone cannot tell an Image from a Canvas — and misreading
-// an `nx_canvas_t` as `nx_image_t` aliases `surface_dirty`/`gpu` with
-// `cached_sk_image` (a bool read back as a pointer ⇒ crash). `nx_get_image`/
-// `nx_get_canvas` validate this magic and return NULL on mismatch.
-#define NX_IMAGE_MAGIC 0x4d49584eu  // 'NXIM'
-
 typedef struct {
-	u32 magic; // must be first: NX_IMAGE_MAGIC
 	u32 width;
 	u32 height;
 	u8 *data;
