@@ -2744,6 +2744,18 @@ void nx_canvas_set_gpu_surface(nx_canvas_t *c, sk_sp<SkSurface> surface) {
 	c->surface_dirty = true;  // ensure_surface() will (re)wire context->ctx
 }
 
+void nx_canvas_release_gpu_surface(nx_canvas_t *c) {
+	if (!c || !c->gpu)
+		return;
+	// Drop the GPU surface BEFORE the GL/Ganesh teardown destroys its
+	// GrDirectContext, and flag the surface dirty so the next 2D draw (if
+	// any) lazily recreates a raster backing instead of touching a surface
+	// whose GPU context is gone.
+	c->surface.reset();
+	c->gpu = false;
+	c->surface_dirty = true;
+}
+
 void nx_init_canvas(Isolate *iso, Local<Object> init_obj) {
 	NX_SET_FUNC(init_obj, "canvasNew", nx_canvas_new);
 	NX_SET_FUNC(init_obj, "canvasInitClass", nx_canvas_init_class);

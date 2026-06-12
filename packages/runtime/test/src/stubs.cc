@@ -37,6 +37,13 @@ static void nx_stub_false(const FunctionCallbackInfo<Value> &info) {
 	info.GetReturnValue().Set(v8::Boolean::New(info.GetIsolate(), false));
 }
 
+// Undefined no-op: for factory-shaped bindings whose callers must treat a
+// missing host implementation as "unavailable" (e.g. webglContextNew — the
+// TS getContext('webgl2') then returns null).
+static void nx_stub_undefined(const FunctionCallbackInfo<Value> &info) {
+	(void)info;
+}
+
 // Register a list of names on init_obj, all bound to `fn`.
 static void nx_stub_register(Isolate *iso, Local<Object> init_obj,
                              const char *const *names, size_t count,
@@ -132,6 +139,14 @@ NX_STUB_FN(service) {
 NX_STUB_FN(swkbd) {
 	(void)iso;
 	(void)init_obj;
+}
+
+// WebGL2 is EGL/Mesa over the Switch GPU — Switch-only. webglContextNew
+// returns undefined so `screen.getContext('webgl2')` yields null on host;
+// webglInitClass is a no-op (the TS class still installs its constants).
+NX_STUB_FN(webgl) {
+	static const char *const names[] = {"webglContextNew", "webglInitClass"};
+	nx_stub_register(iso, init_obj, names, countof(names), nx_stub_undefined);
 }
 
 NX_STUB_FN(web) {

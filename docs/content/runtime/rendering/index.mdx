@@ -29,7 +29,26 @@ ctx.fillStyle = 'red';
 ctx.fillRect(0, 0, 100, 100);
 ```
 
-> Currently only the `"2d"` rendering context is supported. The `"webgl"` context is planned for a future release (see [#131](https://github.com/TooTallNate/nx.js/pull/131)).
+### WebGL2
+
+The `"webgl2"` rendering context is also supported, providing hardware-accelerated
+3D rendering via the [WebGL2 API](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext)
+backed by a real OpenGL ES 3 context on the Switch GPU:
+
+```js
+const gl = screen.getContext('webgl2');
+gl.clearColor(0, 0, 1, 1);
+gl.clear(gl.COLOR_BUFFER_BIT);
+```
+
+A canvas may only have __one__ context kind: once a `"2d"` context has been
+acquired by the application, `getContext('webgl2')` returns `null` (and vice
+versa).
+
+> The `"webgl"` (WebGL 1) context is not currently implemented — target
+> `"webgl2"` instead, which is a superset of its functionality. WebGL
+> extensions are also not yet implemented (`getExtension()` returns `null`),
+> though most WebGL1-era extension features are part of WebGL2 core.
 
 ## Learn more
 

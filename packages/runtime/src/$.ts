@@ -1,6 +1,7 @@
 import type { PromiseState } from '@nx.js/inspect';
 import type { CanvasRenderingContext2D } from './canvas/canvas-rendering-context-2d';
 import type { ImageBitmap } from './canvas/image-bitmap';
+import type { WebGL2RenderingContext } from './canvas/webgl2-rendering-context';
 import type { OffscreenCanvas } from './canvas/offscreen-canvas';
 import type { OffscreenCanvasRenderingContext2D } from './canvas/offscreen-canvas-rendering-context-2d';
 import type { Crypto, CryptoKey } from './crypto';
@@ -510,6 +511,17 @@ export interface Init {
 	hidInitializeVibrationDevices(): void;
 	hidGetKeyboardStates(): Keys;
 	hidSendVibrationValues(v: VibrationValues): void;
+
+	// webgl.c
+	/**
+	 * Initializes EGL + an OpenGL ES 3 context on the screen. Returns the
+	 * native context carrier object, or `undefined` when GL init fails.
+	 */
+	webglContextNew(screen: Screen): WebGL2RenderingContext | undefined;
+	webglInitClass(
+		c: ClassOf<WebGL2RenderingContext>,
+		classes: Record<string, unknown>,
+	): void;
 
 	// nifm.c
 	nifmInitialize(): () => void;
