@@ -2458,6 +2458,22 @@ FN(nx_webgl_context_new) {
 		st = new WebGLState();
 	if (st->active)
 		return; // already created (TS guards against this)
+	// Applet (tight-memory) regime: the GL driver cannot run in the ~137 MiB
+	// grant — verified on-device: with JIT, Mesa fails to produce an EGL
+	// config (jitCreate starves it); jitless, the context comes up but the
+	// FIRST glCompileShader OOM-crashes inside Mesa's GLSL builtin
+	// construction (no way to fail gracefully from there). Return null
+	// (before touching EGL, so the NWindow stays usable for the raster
+	// fallback / error display). An explicit `[renderer] mode = gpu` opts in
+	// anyway, matching the Skia GPU path's applet policy.
+	if (nx_tight_memory() && ctx->config.renderer != NX_RENDER_GPU) {
+		fprintf(stderr,
+		        "[webgl] applet regime: not enough memory for the GL driver; "
+		        "getContext('webgl2') returns null ([renderer] mode = gpu "
+		        "overrides)\n");
+		fflush(stderr);
+		return;
+	}
 	// Release whatever currently owns the display path (PrintConsole, raster
 	// framebuffer, or a console-initialized Skia GPU screen) before EGL
 	// claims the NWindow.

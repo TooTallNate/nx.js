@@ -30,3 +30,10 @@ void nx_webgl_exit(void);
 // wrapper object.
 void nx_screen_release_for_webgl(v8::Isolate *iso,
                                  v8::Local<v8::Value> screen);
+
+// Implemented by main.cc: true in the tight-memory (applet) regime, where the
+// GL driver cannot run (verified on-device: with JIT, Mesa fails to produce an
+// EGL config; jitless, the first glCompileShader OOMs inside Mesa's GLSL
+// builtin construction). webgl.cc returns null from getContext('webgl2') in
+// this regime unless `[renderer] mode = gpu` explicitly opts in.
+bool nx_tight_memory(void);
