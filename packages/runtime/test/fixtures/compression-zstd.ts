@@ -133,3 +133,53 @@ test('zstd streaming pipeThrough roundtrip', async (t) => {
 	t.equal(outLen, total, 'streamed decompressed length matches');
 	t.equal(mismatch, -1, 'streamed bytes match the source pattern exactly');
 });
+
+// --- fused native file decompression fast path ---
+//
+// `Switch.file(path).stream().pipeThrough(new DecompressionStream(fmt))` is
+// transparently routed to a fused native read+decompress op (see
+// compression-streams.ts / polyfills/streams.ts). This test exercises that
+// real path on nxjs-test (which has Switch.file), writing a compressed temp
+// file and decompressing it back. On Bun/Chrome (no Switch.file) it runs the
+// equivalent in-memory Blob path, so both environments produce identical TAP
+// — locking in that the fused fast path yields byte-exact output.
+test('zstd file.stream().pipeThrough fused path roundtrip', async (t) => {
+	const N = 2 * 1024 * 1024; // 2 MB, enough to span many fused chunks
+	const src = new Uint8Array(N);
+	for (let i = 0; i < N; i++) src[i] = (i * 131 + 17) & 0xff;
+
+	const compressed = new Uint8Array(
+		await new Response(
+			new Blob([src]).stream().pipeThrough(new CompressionStream('zstd')),
+		).arrayBuffer(),
+	);
+
+	// Build the input stream: native file source when available, else in-memory.
+	const Sw: any = (globalThis as any).Switch;
+	let stream: ReadableStream<Uint8Array>;
+	let tmp: string | undefined;
+	if (Sw && typeof Sw.file === 'function' && typeof Sw.writeFileSync === 'function') {
+		tmp = 'nxjs-fused-zstd.tmp';
+		Sw.writeFileSync(tmp, compressed);
+		stream = Sw.file(tmp).stream();
+	} else {
+		stream = new Blob([compressed]).stream();
+	}
+
+	const out = new Uint8Array(
+		await new Response(
+			stream.pipeThrough(new DecompressionStream('zstd')),
+		).arrayBuffer(),
+	);
+
+	t.equal(out.length, N, 'fused decompressed length matches source');
+	let mismatch = -1;
+	for (let i = 0; i < out.length; i++) {
+		if (out[i] !== ((i * 131 + 17) & 0xff)) { mismatch = i; break; }
+	}
+	t.equal(mismatch, -1, 'fused decompressed bytes are byte-exact');
+
+	if (tmp && Sw && typeof Sw.remove === 'function') {
+		try { Sw.remove(tmp); } catch {}
+	}
+});

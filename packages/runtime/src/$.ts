@@ -125,6 +125,7 @@ type FileHandle = Opaque<'FileHandle'>;
 type CanvasGradientOpaque = Opaque<'CanvasGradientOpaque'>;
 type CompressHandle = Opaque<'CompressHandle'>;
 type DecompressHandle = Opaque<'DecompressHandle'>;
+type DecompressFileHandle = Opaque<'DecompressFileHandle'>;
 type SaveDataIterator = Opaque<'SaveDataIterator'>;
 type URLSearchParamsIterator = Opaque<'URLSearchParamsIterator'>;
 
@@ -323,6 +324,25 @@ export interface Init {
 		buf: BufferSource,
 	): Promise<ArrayBuffer>;
 	decompressFlush(handle: DecompressHandle): Promise<ArrayBuffer | null>;
+	/**
+	 * Fused file decompression: open `path` at `[start, end)` and decompress it
+	 * with `format`, reading + decompressing in one thread-pool dispatch per
+	 * {@link decompressFilePull | `decompressFilePull()`} call. Powers the
+	 * transparent fast path for `file.stream().pipeThrough(DecompressionStream)`.
+	 */
+	decompressFileNew(
+		format: string,
+		path: string,
+		start?: number,
+		end?: number,
+		/** Per-pull output capacity in bytes (clamped 256 KiB..8 MiB). Larger
+		 * means fewer thread-pool dispatches per MB of output. */
+		outCap?: number,
+	): DecompressFileHandle;
+	/** Pull the next decompressed chunk, or `null` at end of stream. */
+	decompressFilePull(
+		handle: DecompressFileHandle,
+	): Promise<ArrayBuffer | null>;
 
 	// crypto.c
 	cryptoKeyNew(
