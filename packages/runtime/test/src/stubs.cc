@@ -19,6 +19,15 @@
 #include "types.h"
 #include <v8.h>
 
+// libnx exposes the newlib heap bounds as `fake_heap_start`/`fake_heap_end`;
+// async.cc (compiled from source/) uses them to gauge native-heap pressure on
+// device. The host has a normal glibc heap with no such bounds, so provide the
+// symbols as a zero-width sentinel: async.cc's pressure check treats a zero
+// total as "unknown" and returns early (a no-op), which is the right behavior
+// on a host with plenty of RAM.
+extern "C" char *fake_heap_start = nullptr;
+extern "C" char *fake_heap_end = nullptr;
+
 using v8::FunctionCallbackInfo;
 using v8::Isolate;
 using v8::Local;

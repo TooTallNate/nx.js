@@ -119,6 +119,10 @@ struct nx_work_s {
 	uv_work_t req; // first member: uv hands this struct back to us
 	v8::Isolate *iso;
 	v8::Global<v8::Promise::Resolver> resolver;
+	// Context the work was queued in. Lets the after-work callback resolve the
+	// promise even when it fires during teardown, after the main loop's
+	// Context::Scope has been popped (iso->GetCurrentContext() is then empty).
+	v8::Global<v8::Context> context;
 	nx_work_cb work_cb;
 	nx_after_work_cb after_work_cb;
 	bool failed;          // set by work_cb to force rejection
