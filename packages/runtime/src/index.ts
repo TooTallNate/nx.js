@@ -266,6 +266,43 @@ import './canvas/offscreen-canvas-rendering-context-2d';
 
 export type * from './canvas/offscreen-canvas-rendering-context-2d';
 
+import './canvas/webgl2-rendering-context';
+
+export type {
+	Float32List,
+	GLbitfield,
+	GLboolean,
+	GLclampf,
+	GLenum,
+	GLfloat,
+	GLint,
+	GLint64,
+	GLintptr,
+	GLsizei,
+	GLsizeiptr,
+	GLuint,
+	GLuint64,
+	Int32List,
+	TexImageSource,
+	Uint32List,
+	WebGL2RenderingContext,
+	WebGLActiveInfo,
+	WebGLBuffer,
+	WebGLContextAttributes,
+	WebGLFramebuffer,
+	WebGLProgram,
+	WebGLQuery,
+	WebGLRenderbuffer,
+	WebGLSampler,
+	WebGLShader,
+	WebGLShaderPrecisionFormat,
+	WebGLSync,
+	WebGLTexture,
+	WebGLTransformFeedback,
+	WebGLUniformLocation,
+	WebGLVertexArrayObject,
+} from './canvas/webgl2-rendering-context';
+
 import './ambientlightsensor';
 
 export type * from './ambientlightsensor';

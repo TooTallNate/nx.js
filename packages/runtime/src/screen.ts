@@ -11,15 +11,21 @@ import { Blob } from './polyfills/blob';
 import { EventTarget } from './polyfills/event-target';
 import { INTERNAL_SYMBOL } from './internal';
 import { CanvasRenderingContext2D } from './canvas/canvas-rendering-context-2d';
+import {
+	createWebGL2Context,
+	type WebGL2RenderingContext,
+} from './canvas/webgl2-rendering-context';
 import { initTouchscreen } from './touchscreen';
 import type { TouchEvent } from './polyfills/event';
 import {
+	isAppOwningScreen,
 	markAppOwnsScreen,
 	registerConsoleScreen,
 } from './console-screen';
 
 interface ScreenInternal {
 	context2d?: CanvasRenderingContext2D;
+	contextWebGL2?: WebGL2RenderingContext;
 }
 
 const _ = createInternal<Screen, ScreenInternal>();
@@ -101,15 +107,38 @@ export class Screen extends EventTarget implements globalThis.Screen {
 	declare readonly height: number;
 
 	getContext(contextId: '2d'): CanvasRenderingContext2D;
+	getContext(contextId: 'webgl2'): WebGL2RenderingContext | null;
 	getContext(contextId: string): null;
-	getContext(contextId: string): CanvasRenderingContext2D | null {
-		if (contextId !== '2d') {
-			return null;
+	getContext(
+		contextId: string,
+	): CanvasRenderingContext2D | WebGL2RenderingContext | null {
+		const i = _(this);
+		if (contextId === '2d') {
+			// The screen may only have one context kind (per the HTML canvas
+			// spec): once a WebGL2 context exists, '2d' returns null.
+			if (i.contextWebGL2) return null;
+			// User code acquiring the screen context takes over rendering
+			// from the default console present (see console-screen.ts).
+			markAppOwnsScreen();
+			return ensureContext(this);
 		}
-		// User code acquiring the screen context takes over rendering from the
-		// default console present (see console-screen.ts).
-		markAppOwnsScreen();
-		return ensureContext(this);
+		if (contextId === 'webgl2') {
+			if (!i.contextWebGL2) {
+				// A 2D context that the APP acquired makes 'webgl2' unavailable
+				// (one context kind per canvas). A 2D context that only the
+				// console present created (any `console.log` before this call)
+				// does NOT block WebGL — the native side releases the console's
+				// display path and the WebGL context takes over the screen.
+				if (i.context2d && isAppOwningScreen()) return null;
+				const ctx = createWebGL2Context(this);
+				if (!ctx) return null;
+				i.context2d = undefined;
+				markAppOwnsScreen();
+				i.contextWebGL2 = ctx;
+			}
+			return i.contextWebGL2;
+		}
+		return null;
 	}
 
 	/**

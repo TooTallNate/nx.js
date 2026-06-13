@@ -63,6 +63,11 @@ uint32_t nx_canvas_height(nx_canvas_t *c);
 // the screen canvas only.
 void nx_canvas_set_gpu_surface(nx_canvas_t *c, sk_sp<SkSurface> surface);
 
+// Reverse of nx_canvas_set_gpu_surface: drop the (about-to-be-destroyed) GPU
+// surface and demote `c` back to (lazily recreated) raster. Used when a WebGL2
+// context takes over the screen from a console-initialized 2D present path.
+void nx_canvas_release_gpu_surface(nx_canvas_t *c);
+
 typedef struct nx_rgba_s {
 	double r, g, b, a;
 } nx_rgba_t;

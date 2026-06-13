@@ -27,6 +27,7 @@
 #include "skia_gpu.h"
 #include "types.h"
 #include "util.h"
+#include "webgl.h"
 
 #include "include/core/SkMilestone.h"
 #include "include/core/SkSurface.h"
@@ -169,6 +170,30 @@ uint8_t *nx_canvas_pixels(nx_canvas_s *c);
 u32 nx_canvas_width(nx_canvas_s *c);
 u32 nx_canvas_height(nx_canvas_s *c);
 void nx_canvas_set_gpu_surface(nx_canvas_s *c, sk_sp<SkSurface> surface);
+void nx_canvas_release_gpu_surface(nx_canvas_s *c);
+
+// Memory-regime accessor for webgl.cc (g_tight_memory is static here).
+bool nx_tight_memory(void) { return g_tight_memory; }
+
+// Called by webgl.cc before bringing up its own EGL/ES3 context: release
+// whatever currently owns the default NWindow / display path — the libnx
+// PrintConsole, the raster framebuffer, or the Skia GPU (EGL) screen path.
+// `screen` is the screen canvas wrapper (demoted back to raster backing when
+// it had adopted the Skia GPU surface, so a stale 2D context can't draw into
+// a surface whose GrDirectContext is destroyed).
+void nx_screen_release_for_webgl(Isolate *iso, Local<Value> screen) {
+	nx_console_exit();
+	if (screen_is_gpu) {
+		nx_canvas_s *canvas = nx_get_canvas(iso, screen);
+		if (canvas) {
+			nx_canvas_release_gpu_surface(canvas);
+		}
+		nx_skia_gpu_screen_exit();
+		screen_is_gpu = false;
+	} else {
+		nx_framebuffer_exit();
+	}
+}
 
 // ---------------------------------------------------------------------------
 // Core `$` functions implemented here in main.cc.
@@ -790,6 +815,7 @@ static void build_init_object(Isolate *iso, Local<Context> context,
 	nx_init_url(iso, init_obj);
 	nx_init_video(iso, init_obj);
 	nx_init_web(iso, init_obj);
+	nx_init_webgl(iso, init_obj);
 	nx_init_window(iso, init_obj);
 
 	NX_SET_FUNC(init_obj, "exit", js_exit);
@@ -1647,7 +1673,7 @@ int main(int argc, char *argv[]) {
 			// arenas and corrupting the next launch). So only honor its false
 			// return as an exit signal on the raster framebuffer path; GPU mode
 			// exits via + / Switch.exit() (handled below).
-			if (!screen_is_gpu && !applet_active)
+			if (!screen_is_gpu && !nx_webgl_active() && !applet_active)
 				break;
 			if (!nx_ctx->had_error) {
 				// libuv: sockets, fs, dns, threadpool afters, timers.
@@ -1705,7 +1731,12 @@ int main(int argc, char *argv[]) {
 			if (nx_ctx->rendering_mode == NX_RENDERING_MODE_CONSOLE) {
 				consoleUpdate(print_console);
 			} else if (nx_ctx->rendering_mode == NX_RENDERING_MODE_CANVAS) {
-				if (screen_is_gpu) {
+				if (nx_webgl_active()) {
+					// WebGL2 screen context: the app rendered directly into
+					// the EGL back buffer (FBO 0); swap if it drew anything
+					// since the last present.
+					nx_webgl_present();
+				} else if (screen_is_gpu) {
 					// Composite the persistent canvas surface into the EGL back
 					// buffer + swap. Presenting every frame is correct because
 					// the persistent surface always holds full current content
@@ -1744,7 +1775,9 @@ int main(int argc, char *argv[]) {
 	if (nx_ctx->rendering_mode == NX_RENDERING_MODE_CONSOLE) {
 		nx_console_exit();
 	} else if (nx_ctx->rendering_mode == NX_RENDERING_MODE_CANVAS) {
-		if (screen_is_gpu) {
+		if (nx_webgl_active()) {
+			nx_webgl_exit();
+		} else if (screen_is_gpu) {
 			nx_skia_gpu_screen_exit();
 		} else {
 			nx_framebuffer_exit();
