@@ -1293,18 +1293,30 @@ int main(int argc, char *argv[]) {
 		break;
 	case NX_JIT_AUTO:
 	default:
-		// Full JIT in BOTH memory regimes by default. This is safe now that the
-		// JIT code-arena headroom is regime-gated (applet mode reserves 0 WASM
-		// headroom -> the 64 MiB code-range minimum, which fits): verified
-		// across the example apps on-device in applet mode (canvas, snake, svg,
-		// fonts, react, audio, http/websocket servers, repl — all stable with
-		// clean exit). Applet mode still defaults to CPU raster rendering
-		// (chosen independently of JIT; an explicit `[renderer] gpu` can opt in
-		// to GPU even in applet — the known-unstable combo handled below) and
-		// keeps WASM opt-in (no code headroom by default; see the code-arena
-		// budget below). Apps can force the jitless interpreter with
-		// `[v8] jit = off`.
-		can_jit = true;
+		// Regime-gated default: full JIT in the application regime, jitless
+		// (Ignition interpreter) in the applet regime.
+		//
+		// JIT in applet mode *runs* (the code-arena headroom is regime-gated;
+		// verified across the example apps on-device), but the cost is brutal:
+		// the 64 MiB code-range minimum is dual-mapped by libnx jitCreate to
+		// ~128 MiB REAL memory — a third of the entire ~380 MiB applet grant —
+		// leaving only ~15-19 MiB of slack for everything else. That puts
+		// every multi-MiB allocation (the ~11 MiB raster framebuffer pair, the
+		// console's font + terminal canvas, ...) on a knife edge where mere
+		// kilobytes of runtime growth flip apps into degraded modes (canvas
+		// terminal -> PrintConsole fallback) or, without the display-funding
+		// hardening, outright hangs/crashes (verified on-device). Jitless
+		// frees that ~128 MiB, making the full console/canvas experience
+		// reliably fit with >100 MiB to spare.
+		//
+		// Apps that want JIT performance in applet mode can opt in with
+		// `[v8] jit = on` (accepting the tight margins above); application
+		// mode always gets full JIT. Applet mode also uses CPU raster
+		// rendering (chosen independently of JIT; an explicit `[renderer] gpu`
+		// can opt in to GPU even in applet — the known-unstable combo handled
+		// below), and keeps WASM opt-in (no code headroom by default; see the
+		// code-arena budget below).
+		can_jit = !tight_memory;
 		break;
 	}
 	nx_ctx->config.effective_jit = can_jit;
