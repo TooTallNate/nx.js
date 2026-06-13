@@ -59,7 +59,7 @@ NX_MOD(gamepad); NX_MOD(hidsys); NX_MOD(image); NX_MOD(irs); NX_MOD(memory);
 NX_MOD(nifm);
 NX_MOD(ns); NX_MOD(path2d); NX_MOD(service); NX_MOD(swkbd); NX_MOD(tcp);
 NX_MOD(tls); NX_MOD(udp); NX_MOD(url); NX_MOD(video); NX_MOD(web);
-NX_MOD(window);
+NX_MOD(webgl); NX_MOD(window);
 #undef NX_MOD
 
 // canvas raster present accessor (provided by canvas.cc).
@@ -331,6 +331,7 @@ static void build_init_object(Isolate *iso, Local<Context> context,
 	nx_init_url(iso, init_obj);
 	nx_init_video(iso, init_obj);
 	nx_init_web(iso, init_obj);
+	nx_init_webgl(iso, init_obj);
 	nx_init_window(iso, init_obj);
 	NX_SET_FUNC(init_obj, "exit", js_exit);
 	NX_SET_FUNC(init_obj, "queueMicrotask", js_queue_microtask);
