@@ -202,11 +202,19 @@ version = ^1                       ; semver requirement for the shared runtime N
 - **Every value that can't be honored is logged** to `nxjs-debug.log` as a
   `[config] … not honored: <reason>` line (clamped heap, invalid value, GPU
   init fallback, socket reservation too big, etc.). A missing file is silent.
-- **JIT is ON by default in BOTH regimes** (`jit = auto` → `can_jit = true`;
-  was regime-gated/jitless-in-applet before). Applet mode still uses CPU raster
-  rendering (chosen independently of JIT). `jit = off` forces the interpreter.
-  Only **applet + GPU + JIT** is known to crash (jitCreate starves Mesa) — that
-  combo (an explicit `[renderer] gpu` in applet) is warned about but attempted.
+- **JIT default is regime-gated** (`jit = auto` → full JIT in application
+  mode, jitless/Ignition in applet mode). JIT in applet *runs*, but its 64 MiB
+  code-range minimum is dual-mapped by libnx jitCreate to ~128 MiB REAL — a
+  third of the ~380 MiB applet grant — leaving only ~15-19 MiB of slack, so
+  every multi-MiB allocation (raster framebuffers, console font + terminal
+  canvas) sits on a knife edge where kilobytes of runtime growth degrade the
+  console to the PrintConsole fallback (or worse without the display-funding
+  hardening). Jitless frees that ~128 MiB so the full canvas-terminal
+  experience reliably fits. `jit = on` opts in to applet JIT (accepting those
+  margins); `jit = off` forces the interpreter everywhere. Applet mode also
+  uses CPU raster rendering (chosen independently of JIT). Only **applet +
+  GPU + JIT** is known to crash (jitCreate starves Mesa) — that combo (an
+  explicit `[renderer] gpu` in applet) is warned about but attempted.
 - **WASM needs JIT code-arena headroom** beyond V8's 64 MiB code-range floor.
   The libnx jit_* arena is dual-mapped (rx+rw → ~2× real), so the headroom is
   regime-gated: application mode reserves 64 MiB (WASM works out of the box),
