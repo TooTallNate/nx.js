@@ -103,6 +103,55 @@ extern "C" void horizon_mman_set_code_budget(size_t wasm_headroom_mb,
 // size the V8 max heap against the real committable ceiling.
 extern "C" size_t horizon_mman_data_arena_size(void);
 
+// newlib heap bounds (set up by libnx/hbloader): the process's total native
+// malloc capacity. Logged by the V8 fatal/OOM handlers below.
+extern "C" char *fake_heap_start;
+extern "C" char *fake_heap_end;
+
+// ---------------------------------------------------------------------------
+// V8 fatal error / OOM handlers.
+//
+// V8's default response to an unrecoverable error (JS heap OOM, Zone/compiler
+// arena OOM, internal invariant failure) is OS::Abort() — an
+// undefined-instruction trap. Under hbloader that kills the HOST process (in
+// applet mode, the Album applet) without the applet exit handshake, which
+// destabilizes the whole system until reboot (verified on-device: after such
+// an abort, launching any applet or pressing Home crashes the OS).
+//
+// There is no recovering a V8 isolate from a fatal/OOM condition, but we can
+// at least die cleanly: log the reason + native heap stats to nxjs-debug.log,
+// then exit(1). libnx's exit() unwinds through the homebrew environment back
+// to hbloader/hbmenu with the proper handshake, so the rest of the system
+// stays healthy.
+// ---------------------------------------------------------------------------
+static void nx_v8_fatal_exit(const char *kind, const char *location,
+                             const char *detail) {
+	struct mallinfo mi = mallinfo();
+	fprintf(stderr,
+	        "[v8] FATAL %s at %s: %s\n"
+	        "[v8] native heap: used=%zu KiB free=%zu KiB arena=%zu KiB "
+	        "total=%zu KiB\n"
+	        "[v8] exiting cleanly (V8 cannot recover from this)\n",
+	        kind, location ? location : "?", detail ? detail : "",
+	        (size_t)mi.uordblks / 1024, (size_t)mi.fordblks / 1024,
+	        (size_t)mi.arena / 1024,
+	        (size_t)(fake_heap_end - fake_heap_start) / 1024);
+	fflush(stderr);
+	// NOT abort(): exit() runs the libnx exit path (back to hbloader) so the
+	// applet host process survives. Skipping the runtime's normal teardown is
+	// acceptable — the alternative is taking down the whole system.
+	exit(1);
+}
+
+static void nx_v8_fatal_cb(const char *location, const char *message) {
+	nx_v8_fatal_exit("error", location, message);
+}
+
+static void nx_v8_oom_cb(const char *location, const v8::OOMDetails &details) {
+	nx_v8_fatal_exit(details.is_heap_oom ? "JS heap OOM" : "process OOM",
+	                 location, details.detail);
+}
+
 // ---------------------------------------------------------------------------
 // Rendering state (Phase 1: Cairo raster -> libnx framebuffer memcpy).
 // ---------------------------------------------------------------------------
@@ -973,6 +1022,21 @@ static void build_init_object(Isolate *iso, Local<Context> context,
 		sset("serviceType", (u32)esc->bsd_service_type);
 		conf->Set(context, nx_str(iso, "socket"), sock).Check();
 
+		// `$.config.threadpool`: effective libuv worker pool settings (the
+		// values exported via UV_THREADPOOL_SIZE / UV_THREADPOOL_STACK_SIZE).
+		{
+			Local<Object> tp = Object::New(iso);
+			tp->Set(context, nx_str(iso, "size"),
+			        Integer::NewFromUnsigned(
+			            iso, cfg->effective_threadpool_size))
+			    .Check();
+			tp->Set(context, nx_str(iso, "stackSize"),
+			        Integer::NewFromUnsigned(
+			            iso, cfg->effective_threadpool_stack_size))
+			    .Check();
+			conf->Set(context, nx_str(iso, "threadpool"), tp).Check();
+		}
+
 		// `$.config.console`: the `[console]` styling from nxjs.ini, passed
 		// through verbatim (only keys that were set). The JS console layer
 		// seeds the global console's options from this (an explicit
@@ -1270,6 +1334,27 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
+	// libuv worker thread pool: initialized lazily inside libuv on the FIRST
+	// async native op (fs/crypto/zstd/image/dns), and a failed worker thread
+	// create there is a hard abort() that skips the applet exit handshake
+	// (poisoning system applets until reboot). Upstream libuv's 4 x 8 MiB
+	// stacks (32 MiB committed) is exactly what applet mode can't afford next
+	// to the JIT code arena, so export Switch-appropriate values (defaults
+	// 2 x 1 MiB applet / 4 x 1 MiB application, [threadpool] overrides) via
+	// the env vars libuv reads — UV_THREADPOOL_STACK_SIZE is a switch-libuv
+	// port extension. Must happen before any uv_queue_work; doing it here
+	// (pre-V8) is the earliest safe spot after the ini parse.
+	nx_config_apply_threadpool(&nx_ctx->config, tight_memory);
+	{
+		char buf[16];
+		snprintf(buf, sizeof(buf), "%u",
+		         nx_ctx->config.effective_threadpool_size);
+		setenv("UV_THREADPOOL_SIZE", buf, 1);
+		snprintf(buf, sizeof(buf), "%u",
+		         nx_ctx->config.effective_threadpool_stack_size);
+		setenv("UV_THREADPOOL_STACK_SIZE", buf, 1);
+	}
+
 	// Socket buffers: start from the regime-selected base, then apply any
 	// [socket] overrides from nxjs.ini (clamped + logged).
 	SocketInitConfig socket_cfg =
@@ -1417,6 +1502,10 @@ int main(int argc, char *argv[]) {
 	Isolate::CreateParams create_params;
 	create_params.array_buffer_allocator =
 	    ArrayBuffer::Allocator::NewDefaultAllocator();
+	// Die cleanly (exit back to hbloader/hbmenu) instead of V8's abort() on
+	// unrecoverable errors — see nx_v8_fatal_exit above.
+	create_params.fatal_error_callback = nx_v8_fatal_cb;
+	create_params.oom_error_callback = nx_v8_oom_cb;
 
 	// Size V8's heap for the device. Without this V8 uses desktop defaults
 	// (assuming GBs of RAM) and only discovers it's out of memory by fatally
@@ -1450,14 +1539,24 @@ int main(int argc, char *argv[]) {
 	// was explicitly requested:
 	//   - application + JIT: GPU/Mesa is the big consumer; reserve 180 MiB out
 	//     of the ~1 GiB address-space arena (heap then caps at 512 MiB below).
-	//   - applet + JIT, default (raster): no GPU, so the only large reservation
-	//     is the 64 MiB JIT code range (which libnx jitCreate dual-maps) plus
-	//     libuv / Skia raster / native. ~64 MiB leaves a usable heap from the
-	//     ~137 MiB applet grant. (The previous 180 MiB here was an
-	//     application-mode figure: it underflowed applet's free RAM to 0 and
-	//     collapsed the heap to the 32 MiB floor, which is too small for the
-	//     JIT/Wasm compiler and OOM'd — even though full JIT + a ~96 MiB heap is
-	//     known to work in applet mode. See the trifecta CPU example.)
+	//   - applet + JIT, opt-in `[v8] jit = on` (raster): NOT the applet
+	//     default (jitless is — see can_jit above), but when an app opts in the
+	//     big reservations are the 64 MiB JIT code range (which libnx jitCreate
+	//     dual-maps) PLUS enough native headroom for Skia raster, libuv, V8
+	//     Zone (compiler arena) spikes, and app-driven native allocs (zstd
+	//     decompression
+	//     windows, ArrayBuffer backings, ...). Measured on-device (mallinfo):
+	//     the applet native heap is ~168 MiB total with >130 MiB consumed at
+	//     startup, and a 64 MiB reserve left streaming-decompression workloads
+	//     ~5 MiB short of completing (native ENOMEM, then a fatal V8 Zone OOM
+	//     on the next JIT compile). 96 MiB keeps V8's max heap at ~41 MiB —
+	//     ample for typical applet apps (a JS-heap-heavy app can raise it via
+	//     [memory] heap_limit at the cost of native headroom). (The previous
+	//     180 MiB here was an application-mode figure: it underflowed applet's
+	//     free RAM to 0 and collapsed the heap to the 32 MiB floor, which is
+	//     too small for the JIT/Wasm compiler and OOM'd — even though full JIT
+	//     + a ~96 MiB heap is known to work in applet mode. See the trifecta
+	//     CPU example.)
 	//   - applet + JIT + explicit `[renderer] gpu`: GPU/Mesa IS active (this is
 	//     the known-unstable combo warned about above). Use the larger 180 MiB
 	//     reserve so the V8 heap stays small and leaves Mesa as much room as
@@ -1471,7 +1570,7 @@ int main(int argc, char *argv[]) {
 	if (!can_jit)
 		reserve = 48ull * 1024 * 1024;
 	else if (tight_memory && !applet_gpu)
-		reserve = 64ull * 1024 * 1024;
+		reserve = 96ull * 1024 * 1024;
 	else
 		reserve = 180ull * 1024 * 1024;
 	{

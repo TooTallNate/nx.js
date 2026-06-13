@@ -155,6 +155,24 @@ export interface MemoryUsage {
 	numberOfNativeContexts: number;
 	/** Number of detached (pending GC) contexts. */
 	numberOfDetachedContexts: number;
+	/**
+	 * Bytes of off-heap memory (e.g. `ArrayBuffer` backing stores) that V8 is
+	 * keeping alive. A large value with a small {@link MemoryUsage.usedHeapSize | `usedHeapSize`}
+	 * means native memory is held by not-yet-collected JS objects.
+	 */
+	externalMemory: number;
+	/**
+	 * Total native (newlib) heap capacity of the process, in bytes. Every
+	 * native allocation — the V8 heap, JIT code arena, render surfaces, worker
+	 * thread stacks, `ArrayBuffer` backings — competes within this budget.
+	 */
+	nativeHeapTotal: number;
+	/** Current size of the native allocator's arena, in bytes. */
+	nativeHeapArena: number;
+	/** Bytes currently allocated from the native heap. */
+	nativeHeapUsed: number;
+	/** Bytes free within the native allocator's current arena. */
+	nativeHeapFree: number;
 }
 
 export interface NetworkInfo {

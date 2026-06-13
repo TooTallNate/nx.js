@@ -439,6 +439,20 @@ static void build_init_object(Isolate *iso, Local<Context> context,
 		sset("serviceType", 3u); // BsdServiceType_Auto
 		conf->Set(context, nx_str(iso, "socket"), sock).Check();
 
+		// `$.config.threadpool`: mirror the device defaults (4 workers x
+		// 1 MiB stacks). The host harness uses the system libuv (no env
+		// export needed); this only keeps the `$.config` shape in sync.
+		{
+			Local<Object> tp = Object::New(iso);
+			tp->Set(context, nx_str(iso, "size"),
+			        Integer::NewFromUnsigned(iso, 4u))
+			    .Check();
+			tp->Set(context, nx_str(iso, "stackSize"),
+			        Integer::NewFromUnsigned(iso, 1024u * 1024u))
+			    .Check();
+			conf->Set(context, nx_str(iso, "threadpool"), tp).Check();
+		}
+
 		// `$.config.console`: the host reads no nxjs.ini, so expose an empty
 		// object (no overrides) to match the device `$.config` shape.
 		conf->Set(context, nx_str(iso, "console"), Object::New(iso)).Check();
