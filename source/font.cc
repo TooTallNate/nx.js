@@ -4,6 +4,7 @@
 #include "util.h"
 #include "wrap.h"
 #include <harfbuzz/hb-ot.h>
+#include <memory>
 #include <new>
 #include <stdlib.h>
 #include <string.h>
@@ -121,10 +122,21 @@ void nx_get_system_font(const FunctionCallbackInfo<Value> &info) {
 		nx_throw_libnx_error(iso, rc, "plGetSharedFontByType");
 		return;
 	}
-	// Copy the shared font bytes into an ArrayBuffer.
-	Local<ArrayBuffer> ab = ArrayBuffer::New(iso, font.size);
-	memcpy(ab->Data(), font.address, font.size);
-	info.GetReturnValue().Set(ab);
+	// Copy the shared font bytes into an ArrayBuffer. Allocate the backing
+	// store with a checked malloc (NOT ArrayBuffer::New(iso, size), which
+	// FATALLY aborts the process on allocation failure): in the tight applet
+	// memory regime this multi-MiB copy can fail, and the JS font loaders
+	// catch the thrown error and fall back gracefully (e.g. the console
+	// terminal falls back to the libnx PrintConsole).
+	uint8_t *buffer = (uint8_t *)malloc(font.size);
+	if (buffer == NULL) {
+		nx_throw_oom(iso, font.size);
+		return;
+	}
+	memcpy(buffer, font.address, font.size);
+	std::unique_ptr<BackingStore> bs = ArrayBuffer::NewBackingStore(
+	    buffer, font.size, [](void *p, size_t, void *) { free(p); }, nullptr);
+	info.GetReturnValue().Set(ArrayBuffer::New(iso, std::move(bs)));
 }
 
 } // namespace
