@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <malloc.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -111,6 +112,29 @@ static uint8_t *js_framebuffer = NULL;
 static u32 js_fb_width = 0;
 static u32 js_fb_height = 0;
 static int is_running = 1;
+
+// Applet-regime display funding (see main() for the full rationale). The
+// applet memory grant (~380 MiB) leaves little slack once V8 + the runtime
+// are up, yet the raster present needs ~11.2 MiB at framebufferInit time
+// (~7.5 MiB block-linear swapchain + ~3.7 MiB linear staging). These two
+// reservations guarantee the display path can always be funded:
+//  - g_nv_early_ref: a process-lifetime nvdrv reference taken at boot (when
+//    memory is plentiful). Without it, the boot console's framebufferClose()
+//    drops the nv refcount to zero and the canvas-mode framebufferCreate()
+//    re-opens nvdrv:a — a close→reopen cycle observed to HANG inside
+//    nvservices' Initialize when applet memory is nearly exhausted.
+//  - g_display_parachute: ~12 MiB reserved at boot and released right before
+//    the raster framebuffer is created, so display bring-up never loses the
+//    memory race against the JS heap.
+static bool g_nv_early_ref = false;
+static void *g_display_parachute = NULL;
+
+static void nx_display_parachute_release(void) {
+	if (g_display_parachute != NULL) {
+		free(g_display_parachute);
+		g_display_parachute = NULL;
+	}
+}
 
 void nx_console_init(nx_context_t *nx_ctx) {
 	nx_ctx->rendering_mode = NX_RENDERING_MODE_CONSOLE;
@@ -413,10 +437,31 @@ static void nx_framebuffer_init(const FunctionCallbackInfo<Value> &info) {
 		js_framebuffer = nx_canvas_pixels(canvas);
 		js_fb_width = width;
 		js_fb_height = height;
+		// Release the display parachute (reserved at boot in the applet
+		// regime) so the libnx framebuffer allocations below — ~7.5 MiB
+		// block-linear swapchain + ~3.7 MiB linear staging buffer — are
+		// guaranteed to be fundable even when the rest of applet memory is
+		// nearly exhausted (see the parachute allocation in main()).
+		nx_display_parachute_release();
 		framebuffer = (Framebuffer *)malloc(sizeof(Framebuffer));
-		framebufferCreate(framebuffer, win, width, height,
-		                  PIXEL_FORMAT_BGRA_8888, 2);
-		framebufferMakeLinear(framebuffer);
+		Result fbrc = framebufferCreate(framebuffer, win, width, height,
+		                                PIXEL_FORMAT_BGRA_8888, 2);
+		if (R_SUCCEEDED(fbrc)) {
+			fbrc = framebufferMakeLinear(framebuffer);
+		}
+		if (R_FAILED(fbrc)) {
+			// Out of memory (or display in a bad state): present nothing
+			// rather than crash. The loop's framebufferBegin() null-guard
+			// skips the blit; the app keeps running and `+` still exits.
+			fprintf(stderr,
+			        "[fb] raster framebuffer init failed: 0x%x (out of "
+			        "memory?); the screen will stay black\n",
+			        fbrc);
+			fflush(stderr);
+			framebufferClose(framebuffer);
+			free(framebuffer);
+			framebuffer = NULL;
+		}
 	}
 	ctx->rendering_mode = NX_RENDERING_MODE_CANVAS;
 }
@@ -1156,6 +1201,24 @@ int main(int argc, char *argv[]) {
 	// captured to sdmc:/switch/nxjs-debug.log.
 	FILE *debug_fd = freopen(LOG_FILENAME, "w", stderr);
 
+	// Take a process-lifetime nvdrv reference NOW, while memory is plentiful.
+	// The libnx PrintConsole/Framebuffer stack nvInitialize()/nvExit()s around
+	// each framebuffer, so without this reference the boot console's teardown
+	// fully closes nvdrv and the later canvas-mode framebufferCreate() must
+	// re-open it — and that close→reopen of nvdrv:a was observed (on-device)
+	// to hang inside nvservices' Initialize when applet memory is nearly
+	// exhausted. Holding the session from boot makes those inner init/exit
+	// calls pure refcount operations. Released at teardown below.
+	{
+		Result nvrc = nvInitialize();
+		if (R_SUCCEEDED(nvrc)) {
+			g_nv_early_ref = true;
+		} else {
+			fprintf(stderr, "[fb] early nvInitialize failed: 0x%x\n", nvrc);
+			fflush(stderr);
+		}
+	}
+
 	// Resolve the app entrypoint up front (this is the hoisted version of the
 	// block that used to run after V8 init). We need the entrypoint path early
 	// because (a) `nxjs.ini` lives next to it, and (b) the V8 flag/heap/JIT
@@ -1522,6 +1585,26 @@ int main(int argc, char *argv[]) {
 				printf("\nRuntime initialization failed (see error above).\n");
 				nx_ctx->had_error = 1;
 			} else {
+				// Applet regime: pre-fund the display path. The raster present
+				// needs ~11.2 MiB at framebufferInit time (2x ~3.7 MiB
+				// block-linear swapchain buffers + ~3.7 MiB linear staging),
+				// but the applet grant leaves only a few MiB of slack once V8
+				// + the runtime are up — a failed (or worse, hung) framebuffer
+				// bring-up means a black screen. Reserve the memory NOW —
+				// after runtime.js evaluation (so V8's boot-time heap growth
+				// isn't squeezed into a fatal OOM) but before user code can
+				// consume the remaining slack — and release it right before
+				// framebufferCreate() (see nx_framebuffer_init), so display
+				// bring-up can never lose the race against the JS heap.
+				if (g_tight_memory) {
+					g_display_parachute =
+					    memalign(0x1000, 12ull * 1024 * 1024);
+					if (g_display_parachute == NULL) {
+						fprintf(stderr,
+						        "[fb] display parachute reservation failed\n");
+						fflush(stderr);
+					}
+				}
 				// Run the user entrypoint as an ES module.
 				nx_run_entry_module(iso, context, user_code, user_code_size,
 				                    user_code_path);
@@ -1617,12 +1700,19 @@ int main(int argc, char *argv[]) {
 					// (see nx_skia_gpu_present); double buffering no longer
 					// causes flicker.
 					nx_skia_gpu_present();
-				} else {
+				} else if (framebuffer != NULL && js_framebuffer != NULL) {
 					u32 stride;
 					u8 *fb = (u8 *)framebufferBegin(framebuffer, &stride);
-					memcpy(fb, js_framebuffer,
-					       js_fb_width * js_fb_height * 4);
-					framebufferEnd(framebuffer);
+					// framebufferBegin() can return NULL when the framebuffer
+					// is in a bad state (e.g. a failed init left it unusable —
+					// see nx_framebuffer_init's out-of-memory fallback, which
+					// leaves `framebuffer` NULL). Skip the frame rather than
+					// memcpy() into NULL.
+					if (fb != NULL) {
+						memcpy(fb, js_framebuffer,
+						       js_fb_width * js_fb_height * 4);
+						framebufferEnd(framebuffer);
+					}
 				}
 			}
 		}
@@ -1721,6 +1811,11 @@ int main(int argc, char *argv[]) {
 	uv_library_shutdown();
 
 	// Close libnx services in reverse init order, while memory is still valid.
+	nx_display_parachute_release();
+	if (g_nv_early_ref) {
+		nvExit();
+		g_nv_early_ref = false;
+	}
 	plExit();
 	romfsUnmount("nxjs");
 	// The `romfs:` mount (self for a standalone app, or the launched app's NRO

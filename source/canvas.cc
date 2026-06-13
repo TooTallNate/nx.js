@@ -49,6 +49,7 @@
 #include "include/encode/SkPngEncoder.h"
 
 #include <harfbuzz/hb.h>
+#include <memory>
 #include <utility>
 #include <vector>
 
@@ -2224,8 +2225,18 @@ void nx_canvas_context_2d_get_image_data(
 	uint8_t *src = canvas_readable_pixels(context->canvas, &src_owned);
 	if (!src)
 		return;
-	Local<ArrayBuffer> ab = ArrayBuffer::New(iso, size);
-	uint8_t *dst = (uint8_t *)ab->Data();
+	// Checked allocation (NOT ArrayBuffer::New(iso, size), which fatally
+	// aborts on failure) — getImageData sizes are app-controlled and the
+	// applet regime can be near memory exhaustion.
+	uint8_t *dst = (uint8_t *)nx_alloc(iso, size);
+	if (dst == NULL) {
+		if (src_owned)
+			free(src);
+		return;
+	}
+	std::unique_ptr<BackingStore> ab_bs = ArrayBuffer::NewBackingStore(
+	    dst, size, [](void *p, size_t, void *) { free(p); }, nullptr);
+	Local<ArrayBuffer> ab = ArrayBuffer::New(iso, std::move(ab_bs));
 	for (int y = 0; y < sh; ++y) {
 		uint32_t *row = (uint32_t *)(src + srcStride * (y + sy));
 		for (int x = 0; x < sw; ++x) {
