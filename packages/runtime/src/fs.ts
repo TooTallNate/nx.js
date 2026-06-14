@@ -1,10 +1,39 @@
 import { $ } from './$';
 import { bufferSourceToArrayBuffer, pathToString } from './utils';
+import {
+	kNativeFileSource,
+	type NativeFileSource,
+} from './polyfills/streams';
 import { File } from './polyfills/file';
 import { decoder } from './polyfills/text-decoder';
 import { encoder } from './polyfills/text-encoder';
 import type { PathLike } from './switch';
 import type { BufferSource } from './types';
+
+/**
+ * Default chunk size for {@link FsFile.stream | `FsFile#stream()`}, chosen by
+ * memory regime. Each chunk is a full async thread-pool round-trip
+ * (`$.fread` dispatch + promise + ReadableStream `pull()`), so per-chunk
+ * overhead — not the read itself — dominates throughput at small sizes
+ * (measured on-device: ~0.6 MB/s @ 64 KiB vs ~10 MB/s @ 1 MiB for a raw read).
+ *
+ * But a large chunk also amplifies peak memory when piped into a
+ * `DecompressionStream` (1 MiB in → ~1.8 MiB out, several in flight at once,
+ * plus the decoder's realloc-grow spikes), which the applet regime's
+ * ~30 MiB native-heap headroom cannot absorb — on-device, 1 MiB faulted and
+ * even 256 KiB OOM'd partway through a large stream. So gate it:
+ *   - Application regime (~3 GiB): 1 MiB — the full ~15x throughput win.
+ *   - Applet regime (~380 MiB): 64 KiB — the conservative value that reliably
+ *     completes large streams within the tight native-heap budget. (The
+ *     transparent native fused read+decompress path is what makes streaming
+ *     decompression fast in applet mode; see compression-streams.ts.)
+ * Callers that know their memory budget can override via `chunkSize`.
+ */
+function defaultStreamChunkSize(): number {
+	// AppletType.Application === 0; anything else is an applet regime.
+	const isApplication = $.appletGetAppletType() === 0;
+	return isApplication ? 1024 * 1024 : 65536;
+}
 
 /**
  * Information about a directory entry returned from {@link readDir | `Switch.readDir()`}.
@@ -314,7 +343,11 @@ export interface FsFileStreamOptions {
 	/**
 	 * The size of each chunk to read from the file.
 	 *
-	 * @default 65536
+	 * Defaults to a memory-regime-aware size: 1 MiB in the application regime,
+	 * 64 KiB in the (memory-constrained) applet regime. Larger chunks read
+	 * faster but raise peak memory when piped into a `DecompressionStream`.
+	 *
+	 * @default 1048576 (application regime) / 65536 (applet regime)
 	 */
 	chunkSize?: number;
 }
@@ -402,9 +435,9 @@ export class FsFile extends File {
 	stream(opts?: FsFileStreamOptions): ReadableStream<Uint8Array> {
 		const { name, start, end } = this;
 		let offset = start ?? 0;
-		const chunkSize = opts?.chunkSize || 65536;
+		const chunkSize = opts?.chunkSize || defaultStreamChunkSize();
 		let h: Awaited<ReturnType<typeof $.fopen>> | undefined | null;
-		return new ReadableStream({
+		const stream = new ReadableStream({
 			type: 'bytes',
 			async pull(controller) {
 				if (!h) h = await $.fopen(name, 'rb', start);
@@ -432,6 +465,16 @@ export class FsFile extends File {
 				}
 			},
 		});
+		// Tag the stream as a native file source so that
+		// `.pipeThrough(new DecompressionStream(...))` can take the fused
+		// native read+decompress fast path (see polyfills/streams.ts). This is
+		// purely additive: the stream still works as a normal byte stream when
+		// read directly or piped to anything else.
+		Object.defineProperty(stream, kNativeFileSource, {
+			value: { path: name, start: start ?? 0, end } as NativeFileSource,
+			enumerable: false,
+		});
+		return stream;
 	}
 
 	get writable() {

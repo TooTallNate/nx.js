@@ -6,6 +6,53 @@ for (const k of Object.keys(streams)) {
 	def(streams[k as keyof typeof streams], k);
 }
 
+/**
+ * Internal tags enabling a transparent native fast path for the
+ * `file.stream().pipeThrough(new DecompressionStream(fmt))` pattern.
+ *
+ * `FsFile.stream()` tags its `ReadableStream` with {@link kNativeFileSource}
+ * carrying `{ path, start, end }`. `DecompressionStream` tags itself with
+ * {@link kNativeDecompressSetup} — a factory that, given such a descriptor,
+ * returns a `ReadableStream` driven by the fused native read+decompress op.
+ * The {@link ReadableStream.prototype.pipeThrough} override below detects the
+ * combination and bypasses the polyfill `pipeTo` machinery (which otherwise
+ * allocates ~10 promises + several `ArrayBuffer`s per chunk and amplifies peak
+ * memory) entirely. Any other source/transform pair falls through to the
+ * normal polyfill pipe.
+ */
+export const kNativeFileSource = Symbol('nx.nativeFileSource');
+export const kNativeDecompressSetup = Symbol('nx.nativeDecompressSetup');
+
+/** Descriptor a native-file-source ReadableStream carries. */
+export interface NativeFileSource {
+	path: string;
+	start: number;
+	/** Exclusive end offset, or `undefined` for "to EOF". */
+	end?: number;
+}
+
+{
+	const RS: any = (streams as any).ReadableStream;
+	const originalPipeThrough = RS.prototype.pipeThrough;
+	RS.prototype.pipeThrough = function pipeThrough(
+		this: any,
+		transform: any,
+		options?: any,
+	) {
+		const src: NativeFileSource | undefined = this[kNativeFileSource];
+		const setup: ((s: NativeFileSource) => any) | undefined =
+			transform?.writable?.[kNativeDecompressSetup] ??
+			transform?.[kNativeDecompressSetup];
+		if (src && setup) {
+			// Fast path: build the fused native ReadableStream directly. The
+			// source `this` is never read from (no fread dispatches), and the
+			// transform's writable side is left unused — both are inert here.
+			return setup(src);
+		}
+		return originalPipeThrough.call(this, transform, options);
+	};
+}
+
 export type ReadableStreamController<T> =
 	| ReadableStreamDefaultController<T>
 	| ReadableByteStreamController;

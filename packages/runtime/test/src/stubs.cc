@@ -53,6 +53,13 @@ static void nx_stub_undefined(const FunctionCallbackInfo<Value> &info) {
 	(void)info;
 }
 
+// Numeric-zero no-op. Used for appletGetAppletType so the host reports
+// AppletType.Application (0) — matching the rest of the harness, which mirrors
+// the device application regime (e.g. fs.ts picks the 1 MiB stream chunk size).
+static void nx_stub_zero(const FunctionCallbackInfo<Value> &info) {
+	info.GetReturnValue().Set(v8::Integer::New(info.GetIsolate(), 0));
+}
+
 // Register a list of names on init_obj, all bound to `fn`.
 static void nx_stub_register(Isolate *iso, Local<Object> init_obj,
                              const char *const *names, size_t count,
@@ -87,8 +94,13 @@ NX_STUB_FN(album) {
 }
 
 NX_STUB_FN(applet) {
-	NX_STUB_NAMES("appletIlluminance", "appletGetAppletType",
-	              "appletGetOperationMode", "appletSetMediaPlaybackState")
+	NX_STUB_NAMES("appletIlluminance", "appletGetOperationMode",
+	              "appletSetMediaPlaybackState")
+	// appletGetAppletType: return 0 (AppletType.Application) so fs.ts and any
+	// other regime-gated code takes the application-mode path on the host.
+	static const char *const zero_names[] = {"appletGetAppletType"};
+	nx_stub_register(iso, init_obj, zero_names, countof(zero_names),
+	                 nx_stub_zero);
 }
 
 NX_STUB_FN(battery) {
