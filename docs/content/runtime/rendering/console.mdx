@@ -54,15 +54,38 @@ console.scrollDown(5); // scroll back down
 
 ## Theming
 
-The console is fully themeable. You can configure it programmatically by
-assigning [`console.options`](/runtime/api/classes/Console#options), or
-declaratively via the [`[console]` section of `nxjs.ini`](/runtime/configuration#console).
+The console is fully themeable. The recommended way is declaratively, via the
+[`[console]` section of `nxjs.ini`](/runtime/configuration#console) — the runtime
+reads it at startup and styles the global `console` for you, with no app code:
 
-> [!IMPORTANT]
-> The terminal is created _lazily_, on the first log. Assign `console.options`
-> **before** your first `console.*` call so the options take effect on the
-> initial render. Re-assigning `options` rebuilds the terminal (and resets the
-> scrollback buffer).
+```ini title="romfs/nxjs.ini"
+[console]
+font_size    = 22
+cursor_style = bar              ; block | underline | bar
+
+background   = #002b36
+foreground   = #839496
+cursor       = #93a1a1
+
+; The full 16-color ANSI palette (black..bright_white) is supported
+black        = #073642
+red          = #dc322f
+green        = #859900
+yellow       = #b58900
+blue         = #268bd2
+magenta      = #d33682
+cyan         = #2aa198
+white        = #eee8d5
+```
+
+> See the [`apps/console-theme`](https://github.com/TooTallNate/nx.js/tree/main/apps/console-theme)
+> example for a complete Solarized Dark theme configured this way.
+
+### Programmatic theming
+
+You can also configure the console at runtime by assigning
+[`console.options`](/runtime/api/classes/Console#options) (this overrides any
+`nxjs.ini` styling):
 
 ```typescript title="src/main.ts"
 console.options = {
@@ -78,6 +101,12 @@ console.options = {
 console.log('Now with a Solarized Dark theme!');
 ```
 
+> [!IMPORTANT]
+> The terminal is created _lazily_, on the first log. Assign `console.options`
+> **before** your first `console.*` call so the options take effect on the
+> initial render. Re-assigning `options` rebuilds the terminal (and resets the
+> scrollback buffer).
+
 Available options (from [`TerminalOptions`](/runtime/api/interfaces/TerminalOptions)):
 
 | Option | Description |
@@ -88,9 +117,6 @@ Available options (from [`TerminalOptions`](/runtime/api/interfaces/TerminalOpti
 | `scrollback` | Number of scrollback rows to retain |
 | `cursorStyle` | `'block'`, `'underline'`, or `'bar'` |
 | `cursorOpacity` | Cursor opacity (`0`–`1`) |
-
-> See the [`apps/console-theme`](https://github.com/TooTallNate/nx.js/tree/main/apps/console-theme)
-> example for a complete Solarized Dark theme configured via `nxjs.ini`.
 
 ## Compositing the console canvas
 
