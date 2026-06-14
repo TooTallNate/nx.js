@@ -1,0 +1,119 @@
+---
+title: Bluetooth
+description: Communicating with BLE peripherals using the Web Bluetooth API
+---
+
+nx.js implements the [Web Bluetooth API](https://developer.mozilla.org/docs/Web/API/Web_Bluetooth_API)
+for communicating with **Bluetooth Low Energy (BLE)** peripherals as a GATT
+client. It is exposed via the global
+[`navigator.bluetooth`](https://developer.mozilla.org/docs/Web/API/Navigator/bluetooth)
+object, and is backed by the Switch's application-facing `btm.u` + `bt`
+services.
+
+This means the same Web Bluetooth code that runs in a Chrome web app can run on
+the Switch.
+
+## Implemented Interfaces
+
+| Interface | Description |
+|-----------|-------------|
+| [`Bluetooth`](https://developer.mozilla.org/docs/Web/API/Bluetooth) (`navigator.bluetooth`) | Entry point: availability + device requests |
+| [`BluetoothDevice`](https://developer.mozilla.org/docs/Web/API/BluetoothDevice) | A discovered/known device |
+| [`BluetoothRemoteGATTServer`](https://developer.mozilla.org/docs/Web/API/BluetoothRemoteGATTServer) | The connection to a device's GATT server |
+| [`BluetoothRemoteGATTService`](https://developer.mozilla.org/docs/Web/API/BluetoothRemoteGATTService) | A GATT service |
+| [`BluetoothRemoteGATTCharacteristic`](https://developer.mozilla.org/docs/Web/API/BluetoothRemoteGATTCharacteristic) | A characteristic (read/write/notify) |
+| [`BluetoothUUID`](https://developer.mozilla.org/docs/Web/API/BluetoothUUID) | UUID helpers |
+
+## Finding a device
+
+On the Switch, the application BLE scanner is **filter-based**: devices are
+discovered by an **advertised 128-bit service UUID**. Pass the service UUIDs you
+care about in the `filters` of
+[`requestDevice()`](https://developer.mozilla.org/docs/Web/API/Bluetooth/requestDevice):
+
+```typescript title="src/main.ts"
+const device = await navigator.bluetooth.requestDevice({
+  filters: [
+    // Nordic UART service (common on Arduino/ESP32/Adafruit boards)
+    { services: ['6e400001-b5a3-f393-e0a9-e50e24dcca9e'] },
+  ],
+});
+
+console.log(`Found: ${device.name ?? '(unnamed)'} [${device.id}]`);
+```
+
+> [!NOTE]
+> Consumer devices that advertise only manufacturer data (e.g. AirPods) cannot
+> be discovered by scanning. See [Connecting by address](#connecting-by-address)
+> below.
+
+## Connecting by address
+
+nx.js adds a `deviceId` extension to `requestDevice()` so you can connect to a
+device by its known Bluetooth address — bypassing the scan entirely. This is
+useful for devices that advertise no usable service UUID:
+
+```typescript
+const device = await navigator.bluetooth.requestDevice({
+  deviceId: 'aa:bb:cc:dd:ee:ff',
+  optionalServices: ['6e400001-b5a3-f393-e0a9-e50e24dcca9e'],
+});
+```
+
+> [!TIP]
+> Use a phone app like **nRF Connect** to discover a device's address and the
+> service UUIDs it advertises.
+
+## Reading and writing
+
+Connect to the GATT server, look up a service and characteristic, then read or
+write its value:
+
+```typescript
+const server = await device.gatt.connect();
+const service = await server.getPrimaryService(
+  '6e400001-b5a3-f393-e0a9-e50e24dcca9e',
+);
+const characteristic = await service.getCharacteristic(
+  '6e400002-b5a3-f393-e0a9-e50e24dcca9e',
+);
+
+// Read
+const value = await characteristic.readValue(); // DataView
+
+// Write
+await characteristic.writeValueWithResponse(new Uint8Array([0x01, 0x02]));
+```
+
+## Notifications
+
+Subscribe to characteristic notifications (the CCCD write is handled
+automatically) and listen for `characteristicvaluechanged` events:
+
+```typescript
+await characteristic.startNotifications();
+characteristic.addEventListener('characteristicvaluechanged', (event) => {
+  const value = event.target.value; // DataView
+  console.log('notified:', new Uint8Array(value.buffer));
+});
+```
+
+## Disconnection
+
+Listen for the `gattserverdisconnected` event to know when the device drops:
+
+```typescript
+device.addEventListener('gattserverdisconnected', () => {
+  console.log('Device disconnected.');
+});
+```
+
+## Other features
+
+- Browser-style ATT MTU negotiation
+- Writes with and without response
+- GATT service/characteristic discovery
+- `navigator.bluetooth.getAvailability()`
+
+> See the [`apps/bluetooth`](https://github.com/TooTallNate/nx.js/tree/main/apps/bluetooth)
+> example for a complete GATT explorer that dumps a device's full GATT table.

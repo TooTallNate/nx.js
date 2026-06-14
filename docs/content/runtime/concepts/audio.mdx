@@ -3,17 +3,36 @@ title: Audio
 description: Playing audio files in your nx.js application
 ---
 
-nx.js provides audio playback through the [`Audio`](/runtime/api/classes/Audio) class,
-which implements a subset of the web
-[`HTMLAudioElement`](https://developer.mozilla.org/docs/Web/API/HTMLAudioElement) API.
+nx.js provides two complementary ways to play audio:
+
+- The [`Audio`](/runtime/api/classes/Audio) element — a simple way to play back
+  an audio file, implementing a subset of the web
+  [`HTMLAudioElement`](https://developer.mozilla.org/docs/Web/API/HTMLAudioElement)
+  API. Covered in the first half of this page.
+- The [**Web Audio API**](#web-audio-api) — a node-graph engine for low-latency
+  playback, synthesis, mixing, panning, and real-time processing. Covered in the
+  [second half](#web-audio-api).
+
+Both are backed by the same [FFmpeg](https://ffmpeg.org/) decoder, so they
+support the same set of file formats.
 
 ## Supported Formats
 
-| Format | Library | MIME Type |
-|--------|---------|-----------|
-| MP3 | [dr_mp3](https://github.com/mackron/dr_libs) | `audio/mpeg` |
-| WAV | [dr_wav](https://github.com/mackron/dr_libs) | `audio/wav` |
-| OGG Vorbis | [stb_vorbis](https://github.com/nothings/stb) | `audio/ogg` |
+Audio decoding is backed by [FFmpeg](https://ffmpeg.org/), so essentially every
+common audio format is supported, including:
+
+| Format | MIME Type |
+|--------|-----------|
+| MP3 | `audio/mpeg` |
+| WAV | `audio/wav` |
+| OGG Vorbis | `audio/ogg` |
+| Opus | `audio/opus` |
+| FLAC | `audio/flac` |
+| AAC / M4A | `audio/aac` |
+
+> [!NOTE]
+> The same FFmpeg pipeline backs the [Web Audio API](#web-audio-api)'s
+> `decodeAudioData()` and the [`Video`](/runtime/concepts/video) element.
 
 ## Basic Playback
 
@@ -165,3 +184,108 @@ update();
 > [!TIP]
 > For sound effects that need to be played rapidly or overlapping, create
 > multiple `Audio` instances from the same source.
+
+## Web Audio API
+
+For low-latency playback, synthesis, mixing, and real-time processing, nx.js
+implements the [Web Audio API](https://developer.mozilla.org/docs/Web/API/Web_Audio_API),
+which builds an audio processing graph out of connected nodes.
+
+Audio is processed by a native graph engine running on a dedicated real-time
+render thread (in 128-frame quanta, like browsers), and streamed to the Switch's
+`audren` audio service.
+
+### Implemented Interfaces
+
+| Interface | Description |
+|-----------|-------------|
+| [`AudioContext`](https://developer.mozilla.org/docs/Web/API/AudioContext) | The main real-time audio graph |
+| [`OfflineAudioContext`](https://developer.mozilla.org/docs/Web/API/OfflineAudioContext) | Renders a graph to an `AudioBuffer` faster than real-time |
+| [`AudioBuffer`](https://developer.mozilla.org/docs/Web/API/AudioBuffer) | In-memory PCM audio data |
+| [`AudioBufferSourceNode`](https://developer.mozilla.org/docs/Web/API/AudioBufferSourceNode) | Plays back an `AudioBuffer` |
+| [`GainNode`](https://developer.mozilla.org/docs/Web/API/GainNode) | Volume control |
+| [`StereoPannerNode`](https://developer.mozilla.org/docs/Web/API/StereoPannerNode) | Left/right stereo panning |
+| [`AudioParam`](https://developer.mozilla.org/docs/Web/API/AudioParam) | Automatable parameter (with scheduling) |
+
+### Playing an `AudioBuffer`
+
+Decode an audio file with [`decodeAudioData()`](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/decodeAudioData),
+then play it through an `AudioBufferSourceNode`:
+
+```typescript title="src/main.ts"
+const ctx = new AudioContext();
+
+const data = await fetch('romfs:/sound.mp3').then((r) => r.arrayBuffer());
+const buffer = await ctx.decodeAudioData(data);
+
+const source = ctx.createBufferSource();
+source.buffer = buffer;
+source.connect(ctx.destination);
+source.start();
+```
+
+### Synthesizing audio
+
+You don't need any asset files — you can fill an `AudioBuffer` with samples you
+compute yourself. Here's a simple sine-wave beep:
+
+```typescript title="src/main.ts"
+const ctx = new AudioContext();
+
+// 0.5 seconds of a 440 Hz sine wave
+const length = Math.floor(0.5 * ctx.sampleRate);
+const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
+const data = buffer.getChannelData(0);
+for (let i = 0; i < length; i++) {
+  const t = i / ctx.sampleRate;
+  data[i] = Math.sin(2 * Math.PI * 440 * t) * 0.3;
+}
+
+const source = ctx.createBufferSource();
+source.buffer = buffer;
+source.connect(ctx.destination);
+source.start();
+```
+
+### Building a graph
+
+Nodes can be chained with `connect()` to build a processing graph. Here a source
+is routed through a gain (volume) node and a stereo panner before reaching the
+destination:
+
+```typescript
+const ctx = new AudioContext();
+
+const gain = ctx.createGain();
+gain.gain.value = 0.5; // 50% volume
+
+const panner = ctx.createStereoPanner();
+panner.pan.value = -1; // hard left
+
+source.connect(gain).connect(panner).connect(ctx.destination);
+source.start();
+```
+
+### Parameter automation
+
+[`AudioParam`](https://developer.mozilla.org/docs/Web/API/AudioParam) values can
+be scheduled to change over time — for example, a fade-out:
+
+```typescript
+const gain = ctx.createGain();
+gain.connect(ctx.destination);
+
+// Fade from full volume to silence over 1 second
+gain.gain.setValueAtTime(1, ctx.currentTime);
+gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 1);
+```
+
+> See the [`apps/web-audio`](https://github.com/TooTallNate/nx.js/tree/main/apps/web-audio)
+> example for a complete demo that synthesizes sound effects and music
+> procedurally.
+
+## Learn more
+
+<Cards>
+  <Card title="Video playback" href="/runtime/concepts/video" />
+</Cards>
