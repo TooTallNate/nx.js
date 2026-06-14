@@ -4,6 +4,8 @@
     "--- Documentation ---",
     "index",
     "metadata",
+    "configuration",
+    "packaging",
     "...",
     "--- API Reference ---",
     "...api"

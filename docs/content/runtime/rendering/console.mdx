@@ -1,13 +1,19 @@
 ---
 title: Console
-description: Logging to the Console for text based applications
+description: Logging to the screen for text based applications
 ---
 
 import HelloWorldScreenshot from '@/screenshots/hello-world.jpg';
 
 If your application is purely text-based, you can use the familiar
-global [`console`](/runtime/api/variables/console) object to write textual data to the screen of the application
-in the terminal-like interface that [`libnx`](https://github.com/switchbrew/libnx) provides.
+global [`console`](/runtime/api/variables/console) object to write textual data
+to the screen.
+
+nx.js renders the console output using a **canvas-backed terminal**: a headless
+[xterm.js](https://xtermjs.org) instance drawn to the screen with the Canvas 2D
+API in the bundled [Geist Mono](https://vercel.com/font) font. This means the
+console supports full ANSI colors, UTF-8 text, scrollback, and customizable
+styling.
 
 > [!TIP]
 > To draw more intricate graphics, your application should use [__canvas rendering__](/runtime/rendering/canvas) mode.
@@ -25,18 +31,133 @@ console.log('Press the + button to exit...');
 
 ## ANSI Escape Codes
 
+The canvas terminal honors the full xterm ANSI palette (the 16 base colors plus
+truecolor `38;2;…`/`48;2;…` sequences), so colored output and cursor movement
+work as you would expect from a real terminal.
+
 Listed below is a (non-exhaustive) list of npm modules known to work well with nx.js when using console rendering mode:
 
 * [`kleur`](https://github.com/lukeed/kleur) - Output colored text with ANSI escape codes
 * [`sisteransi`](https://github.com/terkelg/sisteransi) - ANSI escape sequences for moving the cursor
 
-## Limitations
+## Scrollback
 
-It is worth noting that the terminal interface that `libnx` provides
-has dimensions of 80 x 45 characters, supports a limited set of unicode characters,
-and provides no customization options for the appearance of the text.
+Output that scrolls off the top of the screen is retained in a scrollback
+buffer. Use [`console.scrollUp()`](/runtime/api/classes/Console#scrollup) and
+[`console.scrollDown()`](/runtime/api/classes/Console#scrolldown) to navigate it
+(you can also drag with the touchscreen):
 
-> There is a work-in-progress `@nx.js/terminal` package
-> (see [#112](https://github.com/TooTallNate/nx.js/pull/112)), which will provide
-> a more full-featured terminal interface powered by [`xterm.js`](https://xtermjs.org),
-> which will allow for more control over the visual appearance of your application.
+```typescript
+console.scrollUp(5);   // scroll up 5 rows into the scrollback
+console.scrollDown(5); // scroll back down
+```
+
+## Theming
+
+The console is fully themeable. The recommended way is declaratively, via the
+[`[console]` section of `nxjs.ini`](/runtime/configuration#console) — the runtime
+reads it at startup and styles the global `console` for you, with no app code:
+
+```ini title="romfs/nxjs.ini"
+[console]
+font_size    = 22
+cursor_style = bar              ; block | underline | bar
+
+background   = #002b36
+foreground   = #839496
+cursor       = #93a1a1
+
+; The full 16-color ANSI palette (black..bright_white) is supported
+black        = #073642
+red          = #dc322f
+green        = #859900
+yellow       = #b58900
+blue         = #268bd2
+magenta      = #d33682
+cyan         = #2aa198
+white        = #eee8d5
+```
+
+> See the [`apps/console-theme`](https://github.com/TooTallNate/nx.js/tree/main/apps/console-theme)
+> example for a complete Solarized Dark theme configured this way.
+
+### Programmatic theming
+
+You can also configure the console at runtime by assigning
+[`console.options`](/runtime/api/classes/Console#options) (this overrides any
+`nxjs.ini` styling):
+
+```typescript title="src/main.ts"
+console.options = {
+  fontSize: 24,
+  cursorStyle: 'bar', // 'block' | 'underline' | 'bar'
+  theme: {
+    background: '#002b36',
+    foreground: '#839496',
+    // ...the full `black`..`brightWhite` ANSI palette is supported
+  },
+};
+
+console.log('Now with a Solarized Dark theme!');
+```
+
+> [!IMPORTANT]
+> The terminal is created _lazily_, on the first log. Assign `console.options`
+> **before** your first `console.*` call so the options take effect on the
+> initial render. Re-assigning `options` rebuilds the terminal (and resets the
+> scrollback buffer).
+
+Available options (from [`TerminalOptions`](/runtime/api/interfaces/TerminalOptions)):
+
+| Option | Description |
+|--------|-------------|
+| `theme` | Terminal colors (`background`, `foreground`, `cursor`, and the `black`..`brightWhite` ANSI palette) |
+| `fontSize` | Font size in pixels |
+| `lineHeight` | Line height multiplier |
+| `scrollback` | Number of scrollback rows to retain |
+| `cursorStyle` | `'block'`, `'underline'`, or `'bar'` |
+| `cursorOpacity` | Cursor opacity (`0`–`1`) |
+
+## Compositing the console canvas
+
+The console renders to an offscreen canvas, accessible via
+[`console.canvas`](/runtime/api/classes/Console#canvas). This lets a
+[canvas-rendering](/runtime/rendering/canvas) app composite the console output
+into its own scene — for example, an in-game debug overlay:
+
+```typescript
+const ctx = screen.getContext('2d');
+
+function update() {
+  requestAnimationFrame(update);
+  // ...draw your scene...
+
+  // Composite the live console output in the top-left corner
+  ctx.drawImage(console.canvas, 0, 0);
+}
+update();
+```
+
+The console keeps updating its canvas as long as you read `console.canvas`, even
+after an app has taken over the screen with `screen.getContext('2d')`.
+
+## Isolated `Console` instances
+
+In addition to the global `console`, you can create isolated
+[`Console`](/runtime/api/classes/Console) instances. Each renders to its own
+`canvas` (it does not auto-present to the screen), which is useful for
+multiple independent terminal surfaces:
+
+```typescript
+const term = new Console({ fontSize: 18, scrollback: 500 });
+term.log('Output for this terminal only');
+ctx.drawImage(term.canvas, 100, 100);
+```
+
+## Fallback behavior
+
+When no font or display is available (for example, when the canvas terminal
+can't be allocated in the memory-constrained applet regime), the console
+gracefully falls back to the native `libnx` terminal so output is never lost.
+The underlying error and stack are also written to
+`sdmc:/switch/nxjs-debug.log`.

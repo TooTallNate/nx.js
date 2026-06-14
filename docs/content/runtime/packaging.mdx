@@ -1,0 +1,81 @@
+---
+title: Packaging
+description: Slim vs. fat packaging for distributing your nx.js app
+---
+
+When you package an nx.js app into a `.nro` (homebrew menu) or `.nsp` (installed
+title), you choose how the **runtime** is bundled. There are two modes: **slim**
+(the default) and **fat**.
+
+## Slim vs. fat
+
+| | **Slim** (default) | **Fat** |
+|---|---|---|
+| App file size | A few hundred KB | ~40 MB (NRO) / ~21 MB (NSP) |
+| Runtime | Shared, installed once at `sdmc:/nx.js/` | Embedded in every app |
+| Best for | Most apps; multiple nx.js apps on one console | Self-contained distribution |
+
+A **slim** app is a tiny launcher. At boot it _chainloads_ a shared nx.js
+runtime NRO installed at `sdmc:/nx.js/nxjs-v<version>.nro`, selected by the
+[`[runtime] version`](/runtime/configuration#runtime) semver requirement baked
+into the app's `nxjs.ini`. Many slim apps can share a single runtime, so you
+don't pay the ~40 MB cost per app.
+
+A **fat** app embeds the entire runtime, so it is fully self-contained and runs
+without anything else installed.
+
+> [!NOTE]
+> Slim became the default in `@nx.js/nro` v1 (previously every NRO was fat).
+
+## Building
+
+The packaging scripts produced by the templates are
+[`nxjs-nro`](https://www.npmjs.com/package/@nx.js/nro) and
+[`nxjs-nsp`](https://www.npmjs.com/package/@nx.js/nsp). They build slim by
+default; pass `--fat` (or set the `NXJS_FAT=1` environment variable) for a
+self-contained build:
+
+```bash
+# Slim (default)
+npm run nro
+
+# Fat (self-contained)
+npx nxjs-nro --fat
+```
+
+> [!TIP]
+> When scaffolding with [`create-nxjs-app`](/runtime#clone-a-template), you're
+> prompted to choose slim or fat. Choosing fat adds the `--fat` flag to the
+> generated `nro`/`nsp` scripts.
+
+## Installing the shared runtime (slim)
+
+A slim app needs a compatible shared runtime present on the SD card under
+`sdmc:/nx.js/`. There are two ways this happens:
+
+1. **Automatic download.** If no compatible runtime is installed, the slim
+   bootstrap launcher downloads one automatically from the nx.js GitHub releases
+   over the network, shows an on-screen progress indicator, saves it to
+   `sdmc:/nx.js/nxjs-v<version>.nro`, and continues launching. A freshly-
+   installed slim app "just works" on a network-connected console.
+2. **Manual.** Download a runtime `nxjs.nro` from the
+   [releases](https://github.com/TooTallNate/nx.js/releases) and place it at
+   `sdmc:/nx.js/nxjs-v<version>.nro`. (If the automatic download can't proceed,
+   the launcher shows these instructions on-screen.)
+
+Multiple runtime versions can coexist under `sdmc:/nx.js/`; each slim app picks
+the highest installed version that satisfies its requirement.
+
+## NSP packaging
+
+The same slim/fat choice applies to `.nsp` (installed-title) builds via
+`nxjs-nsp`. A slim NSP uses a tiny forwarder as its executable, which chainloads
+the shared runtime and mounts the installed title's own files as `romfs:`. Pass
+`--fat` for a self-contained NSP.
+
+## Learn more
+
+<Cards>
+  <Card title="Configure the [runtime] version requirement" href="/runtime/configuration#runtime" />
+  <Card title="Customize metadata and icon" href="/runtime/metadata" />
+</Cards>

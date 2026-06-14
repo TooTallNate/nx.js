@@ -3,9 +3,17 @@ title: Event Loop
 description: Callback-based animation frame request
 ---
 
+nx.js runs an event loop driven by [libuv](https://libuv.org/) (the same library
+that powers Node.js), which services timers, async I/O, and the render loop.
+
 To hook into each frame of the event loop in nx.js, use the
 [`requestAnimationFrame()`](/runtime/api/functions/requestAnimationFrame)
 function. This allows your app to update its state at a fixed frame rate (60 FPS).
+
+The familiar timer functions ([`setTimeout()`](/runtime/api/functions/setTimeout),
+[`setInterval()`](/runtime/api/functions/setInterval),
+[`queueMicrotask()`](https://developer.mozilla.org/docs/Web/API/Window/queueMicrotask),
+and Promises) are also available.
 
 ## Example
 

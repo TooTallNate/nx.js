@@ -63,19 +63,26 @@ In the end, you will have a new directory which contains the cloned template for
 
 ## Bundle the source code
 
-nx.js evaluates a single JavaScript file at runtime. It does _not_ implement a module loader. Therefore,
-when separating your application code into multiple files, it is the responsibility of a _bundler_ to
-combine the source files into a singular "bundle", which is the code that nx.js runs.
+The example templates are pre-configured to bundle your application into a single
+`romfs/main.js` file (the entrypoint that nx.js runs) using [`esbuild`][]. This
+is the recommended workflow: the bundler resolves your imports and npm
+dependencies at build time, and outputs a single optimized file.
 
-All of the example templates are pre-configured to use [`esbuild`][], but you can use a different bundler
-if you prefer, such as Parcel or Rollup.
-
-Run the `build` script to bundle the application into the `romfs/main.js` file, which is the entrypoint
-of the nx.js app:
+Run the `build` script to produce `romfs/main.js`:
 
 ```bash
 npm run build
 ```
+
+You can use a different bundler if you prefer, such as Parcel or Rollup.
+
+> [!NOTE]
+> nx.js also supports native ES module
+> [`import`](/runtime/concepts/modules) at runtime, so you _can_ ship an
+> unbundled multi-file app or lazy-load modules with dynamic `import()`. Bundling
+> is still recommended for distribution, since runtime import resolution is
+> synchronous and limited to local files (`romfs:`/`sdmc:`/`nxjs:` — no bare npm
+> specifiers or remote URLs).
 
 > [!TIP]
 > You may place other files within the `romfs` directory, and they will become embedded within the RomFS
@@ -94,10 +101,17 @@ npm run nro
 This will result in a `<your app name>.nro` file in the root directory of your project. You can then upload
 this file to Switch via FTP or directly copy it to the SD card, and then launch the app from the homebrew menu.
 
+> [!NOTE]
+> By default this produces a **slim** NRO — a tiny launcher that shares one nx.js
+> runtime installed on the SD card. See [Packaging](/runtime/packaging) for the
+> slim vs. fat tradeoff and how the shared runtime is installed.
+
 ## Learn more
 
 <Cards>
   <Card title="Customizing package metadata and icon" href="/runtime/metadata" />
+  <Card title="Slim vs. fat packaging" href="/runtime/packaging" />
+  <Card title="Configure the runtime with nxjs.ini" href="/runtime/configuration" />
   <Card title="Learn about the available rendering mode APIs" href="/runtime/rendering" />
 </Cards>
 

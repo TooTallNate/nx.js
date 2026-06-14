@@ -1,0 +1,106 @@
+---
+title: Video
+description: Playing video files in your nx.js application
+---
+
+nx.js provides video playback through the [`Video`](/runtime/api/classes/Video)
+class, which implements an API similar to the web
+[`HTMLVideoElement`](https://developer.mozilla.org/docs/Web/API/HTMLVideoElement).
+
+Because nx.js has no DOM, there is no `<video>` element that draws itself to the
+page. Instead, your app explicitly draws each frame onto the screen with
+[`ctx.drawImage(video, …)`](/runtime/concepts/images) — exactly like rendering a
+`<video>` onto a `<canvas>` on the web.
+
+Video decoding is powered by an [FFmpeg](https://ffmpeg.org/) media pipeline, so
+a wide range of containers and codecs are supported (WebM VP8/VP9, MP4/MKV
+H.264/H.265, AV1, …). Audio tracks are played through the
+[Web Audio](/runtime/concepts/audio#web-audio-api) engine, with A/V sync slaved to the
+audio clock.
+
+## Basic Playback
+
+Create a `Video`, set its `src`, and draw it every frame in your render loop:
+
+```typescript title="src/main.ts"
+const ctx = screen.getContext('2d');
+
+const video = new Video();
+video.src = 'romfs:/video.webm';
+
+// Start playing once enough data is buffered
+video.addEventListener('canplay', () => {
+  video.play();
+});
+
+function update() {
+  requestAnimationFrame(update);
+  ctx.clearRect(0, 0, screen.width, screen.height);
+
+  // Draw the current video frame, scaled to fill the screen
+  ctx.drawImage(video, 0, 0, screen.width, screen.height);
+}
+update();
+```
+
+> [!IMPORTANT]
+> Like the [`Audio`](/runtime/concepts/audio) element, video data loads and
+> decodes asynchronously. Wait for the `canplay` (or `loadedmetadata`) event
+> before calling `play()`.
+
+## Loading Video
+
+The `src` property accepts any URL supported by [`fetch()`](/runtime/api/functions/fetch),
+including `romfs:/` paths for bundled assets, `sdmc:/` paths on the SD card, and
+remote `http(s)://` URLs.
+
+## Playback Controls
+
+The familiar media controls are available:
+
+```typescript
+await video.play();
+video.pause();
+
+video.loop = true;          // gapless looping
+video.volume = 0.5;         // 0..1
+video.currentTime = 30;     // seek to 30 seconds (keyframe seeking)
+console.log(video.duration);
+```
+
+## Dimensions
+
+Use `videoWidth` and `videoHeight` (available after `loadedmetadata`) to size or
+letterbox the frame correctly:
+
+```typescript
+video.addEventListener('loadedmetadata', () => {
+  console.log(`${video.videoWidth} x ${video.videoHeight}`);
+});
+```
+
+## Playback Quality
+
+[`getVideoPlaybackQuality()`](https://developer.mozilla.org/docs/Web/API/HTMLVideoElement/getVideoPlaybackQuality)
+reports decode statistics, useful for diagnostics:
+
+```typescript
+const q = video.getVideoPlaybackQuality();
+console.log(`dropped: ${q.droppedVideoFrames} / ${q.totalVideoFrames}`);
+```
+
+## Events
+
+The `Video` class dispatches standard media events, including `loadedmetadata`,
+`canplay`, `canplaythrough`, `play`, `pause`, `ended`, `timeupdate`, and
+`error`.
+
+> See the [`apps/video`](https://github.com/TooTallNate/nx.js/tree/main/apps/video)
+> example for a complete player with seeking, looping, and volume controls.
+
+## Learn more
+
+<Cards>
+  <Card title="Drawing images and frames with drawImage()" href="/runtime/concepts/images" />
+  <Card title="Audio &amp; Web Audio" href="/runtime/concepts/audio" />
+</Cards>

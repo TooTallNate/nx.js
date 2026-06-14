@@ -1,0 +1,80 @@
+---
+title: ES Modules
+description: Loading multiple files with native import resolution
+---
+
+nx.js resolves native ES module
+[`import`](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Statements/import)
+statements at runtime, so you can ship an **unbundled, multi-file app** or
+**lazy-load** modules on demand with dynamic `import()`.
+
+> [!TIP]
+> For distribution, [bundling](/runtime#bundle-the-source-code) your app into a
+> single file with [`esbuild`][] is still recommended. Native imports are
+> additive — they enable unbundled multi-file apps, the REPL, and app-level lazy
+> loading.
+
+## Static imports
+
+Both static `import` and top-level `await` are supported. Specifiers are
+resolved as URLs relative to the importing module:
+
+```typescript title="romfs/main.js"
+import { greet } from './greet.js';
+import { CONFIG } from '/config.js'; // absolute path
+
+greet(CONFIG.name);
+```
+
+```typescript title="romfs/greet.js"
+export function greet(name) {
+  console.log(`Hello, ${name}!`);
+}
+```
+
+## Dynamic imports
+
+`await import()` works too, for lazy-loading code only when needed:
+
+```typescript
+async function onLevelStart() {
+  const { loadLevel } = await import('./levels/level1.js');
+  loadLevel();
+}
+```
+
+## Resolution rules
+
+Module specifiers are resolved against the importing module's URL:
+
+| Specifier | Example | Supported |
+|-----------|---------|-----------|
+| Relative | `./util.js`, `../lib/x.js` | ✅ |
+| Absolute path | `/config.js` | ✅ |
+| Absolute URL | `romfs:/x.js`, `sdmc:/x.js`, `nxjs:/x.js`, `file:/x.js` | ✅ |
+| Bare specifier | `react`, `lodash` | ❌ (throws) |
+| Remote URL | `https://…`, `data:…` | ❌ (not yet supported) |
+
+- There is **no** `node_modules` resolution or import maps — bare specifiers
+  (like `react`) throw. Use a bundler if you depend on npm packages.
+- Resolution is **synchronous**, so only mounted filesystem schemes work
+  (`romfs:`, `sdmc:`, `nxjs:`, `file:`). Remote `http(s):`/`data:` imports are
+  not supported.
+- JSON and other asset module types are not yet supported.
+
+## `import.meta`
+
+Each module has an accurate `import.meta`:
+
+```typescript
+console.log(import.meta.url);  // the module's resolved URL
+console.log(import.meta.main); // true only for the entrypoint
+```
+
+## Module cache & cycles
+
+Modules are cached by their resolved URL, so a shared dependency imported through
+multiple paths resolves to a single instance (giving referential stability), and
+import cycles are handled correctly.
+
+[`esbuild`]: https://esbuild.github.io

@@ -1,0 +1,191 @@
+---
+title: Configuration
+description: Tuning the runtime with an nxjs.ini file
+---
+
+nx.js apps can be configured with an optional **`nxjs.ini`** file placed next to
+the application's entrypoint (i.e. in the root of the `romfs` directory,
+alongside `main.js`).
+
+This file is read **very early during startup** — before the V8 engine is even
+initialized — because some of its settings (the JIT mode and heap limit) must be
+applied before the JavaScript engine starts. It uses the standard INI format
+with `[section]` headers and `key = value` pairs. Lines beginning with `;` are
+comments.
+
+```ini title="romfs/nxjs.ini"
+[v8]
+jit = auto
+
+[memory]
+heap_limit = 256MiB
+
+[renderer]
+mode = auto
+```
+
+> [!NOTE]
+> The file is entirely optional. If it is missing, the runtime uses its
+> regime-aware defaults (see below). Any value that can't be honored (a clamped
+> heap, an invalid setting, a renderer fallback, etc.) is logged to
+> `sdmc:/switch/nxjs-debug.log` with the reason — a missing file is silent.
+
+## Memory regimes
+
+Many defaults depend on the **memory regime** the app is launched in:
+
+- **Application mode** — the full memory grant (~3 GiB). This is what you get
+  when launching hbmenu via the title override (hold R while opening a game), or
+  when running an installed `.nsp`. Defaults to full V8 JIT and GPU canvas
+  rendering.
+- **Applet mode** — a much smaller grant (~380 MiB). This is what you get when
+  launching from the Album. Defaults to a more conservative configuration: the
+  jitless interpreter, CPU raster rendering, and smaller buffers. (The jitless
+  default keeps enough memory free for the canvas terminal and other large
+  allocations; you can opt into JIT with `[v8] jit = on`.)
+
+Any setting whose requested value can't be honored in the current regime (a
+clamped heap, a GPU fallback, an oversized socket reservation, etc.) is logged to
+`sdmc:/switch/nxjs-debug.log` so you can see what the runtime actually applied.
+
+## `[v8]`
+
+Controls the V8 JavaScript engine.
+
+| Key | Values | Description |
+|-----|--------|-------------|
+| `jit` | `auto` (default), `on`, `off` | JIT compilation mode. `auto` enables full JIT in **application** mode and the jitless interpreter in **applet** mode; `on` forces full JIT everywhere; `off` forces the jitless interpreter everywhere. |
+| `flags` | string | Extra V8 flags, appended **after** the runtime's defaults (e.g. `--max-old-space-size=256`). |
+| `wasm` | `on` / `off` | Sugar for `code_headroom_mb = 64`. Reserves the extra JIT code-arena headroom that [WebAssembly](https://developer.mozilla.org/docs/WebAssembly) needs. |
+| `code_headroom_mb` | number | Explicit JIT code-arena headroom (MiB) for WebAssembly, beyond V8's 64 MiB code-range floor. |
+
+```ini
+[v8]
+jit   = auto
+flags = --max-old-space-size=256
+```
+
+> [!IMPORTANT]
+> **WebAssembly requires JIT** and extra code-arena headroom. It works out of
+> the box in **application mode**. In **applet mode** the headroom can't be
+> afforded by default, so WASM is opt-in there via `[v8] wasm = on` (or
+> `code_headroom_mb`). When WASM is unavailable, `WebAssembly.compile()` /
+> `instantiate()` throw a clear nx.js error pointing at this fix.
+
+## `[memory]`
+
+| Key | Values | Description |
+|-----|--------|-------------|
+| `heap_limit` | size | The V8 max heap size. Accepts `KiB`/`MiB`/`GiB` suffixes or raw bytes. Clamped to what actually fits in the current regime. |
+
+```ini
+[memory]
+heap_limit = 256MiB
+```
+
+## `[renderer]`
+
+| Key | Values | Description |
+|-----|--------|-------------|
+| `mode` | `auto` (default), `cpu`, `gpu` | The canvas renderer. `auto` picks GPU in application mode and CPU raster in applet mode. `gpu` falls back to raster if GPU init fails. |
+| `gpu_cache` | `auto` (default), `default`, number | The [Skia](https://skia.org/) Ganesh GPU resource-cache budget in MiB. `auto` uses 512 MiB in application mode and the Skia default in applet mode. Useful for texture-heavy apps that thrash the cache. |
+
+```ini
+[renderer]
+mode      = auto
+gpu_cache = auto
+```
+
+> [!NOTE]
+> [WebGL2](/runtime/rendering#webgl2) always requires the GPU path and is
+> therefore only available in application mode.
+
+## `[console]`
+
+Styles the on-screen [console](/runtime/rendering/console) terminal
+declaratively. All keys are optional; an explicit `console.options =` assignment
+at runtime overrides them.
+
+| Key | Description |
+|-----|-------------|
+| `font_size` | Terminal font size in pixels |
+| `cursor_style` | `block`, `underline`, or `bar` |
+| `background` / `foreground` / `cursor` | Base terminal colors (hex) |
+| `black`..`bright_white` | The full 16-color ANSI palette (hex) |
+
+```ini
+[console]
+font_size    = 22
+cursor_style = bar
+background   = #002b36
+foreground   = #839496
+
+black        = #073642
+red          = #dc322f
+green        = #859900
+; ...through bright_white
+```
+
+> See [`apps/console-theme`](https://github.com/TooTallNate/nx.js/tree/main/apps/console-theme)
+> for a complete Solarized Dark theme.
+
+## `[threadpool]`
+
+Configures the [libuv](https://libuv.org/) worker thread pool, which services
+**every** async native operation (file I/O, crypto, compression, image decode,
+DNS, …).
+
+| Key | Description |
+|-----|-------------|
+| `size` | Number of worker threads. Default: `2` in applet mode, `4` in application mode. |
+| `stack_size` | Per-worker stack size (256 KiB floor, 32 MiB cap). Default: `1MiB`. |
+
+```ini
+[threadpool]
+size       = 4
+stack_size = 1MiB
+```
+
+> [!CAUTION]
+> The defaults exist for a reason. libuv's upstream defaults (4 workers × 8 MiB
+> stacks) cannot be satisfied in applet mode, where exceeding the budget hard-
+> aborts the process. Raise these values with care, and test in applet mode.
+
+## `[socket]`
+
+Field-level overrides for the libnx socket configuration. All values are clamped
+so a bad value can't prevent the network stack from initializing.
+
+| Key | Description |
+|-----|-------------|
+| `tcp_tx_buf_size` / `tcp_rx_buf_size` | Initial TCP send/receive buffer sizes |
+| `tcp_tx_buf_max_size` / `tcp_rx_buf_max_size` | Maximum TCP send/receive buffer sizes |
+| `udp_tx_buf_size` / `udp_rx_buf_size` | UDP send/receive buffer sizes |
+| `sb_efficiency` | Socket buffer efficiency multiplier |
+| `num_bsd_sessions` | Number of BSD sessions |
+| `service_type` | `auto` (default), `user`, or `system` |
+
+```ini
+[socket]
+tcp_tx_buf_size = 256KiB
+tcp_rx_buf_size = 256KiB
+```
+
+## `[runtime]`
+
+This section is read by the [slim bootstrap launcher](/runtime/packaging),
+**not** by the runtime itself.
+
+| Key | Description |
+|-----|-------------|
+| `version` | A [semver](https://semver.org/) requirement for the shared runtime NRO (e.g. `^1.0.0-beta.2`). |
+
+```ini
+[runtime]
+version = ^1.0.0-beta.2
+```
+
+> [!NOTE]
+> When packaging a slim app, this section is generated for you (baked to
+> `^<the full runtime version the app was built against>`). You normally won't
+> edit it by hand.
