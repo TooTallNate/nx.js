@@ -60,6 +60,10 @@ static void nx_stub_zero(const FunctionCallbackInfo<Value> &info) {
 	info.GetReturnValue().Set(v8::Integer::New(info.GetIsolate(), 0));
 }
 
+static void nx_stub_empty_array(const FunctionCallbackInfo<Value> &info) {
+	info.GetReturnValue().Set(v8::Array::New(info.GetIsolate()));
+}
+
 // Register a list of names on init_obj, all bound to `fn`.
 static void nx_stub_register(Isolate *iso, Local<Object> init_obj,
                              const char *const *names, size_t count,
@@ -160,6 +164,15 @@ NX_STUB_FN(service) {
 NX_STUB_FN(swkbd) {
 	(void)iso;
 	(void)init_obj;
+}
+
+NX_STUB_FN(usb) {
+	NX_STUB_NAMES("usbInit", "usbExit", "usbDeviceOpen", "usbDeviceClose",
+	              "usbClaimInterface", "usbTransferIn", "usbTransferOut",
+	              "usbControlTransferIn", "usbResetDevice")
+	static const char *const array_names[] = {"usbGetDevices"};
+	nx_stub_register(iso, init_obj, array_names, countof(array_names),
+	                 nx_stub_empty_array);
 }
 
 // WebGL2 is EGL/Mesa over the Switch GPU — Switch-only. webglContextNew

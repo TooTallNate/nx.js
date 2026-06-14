@@ -128,6 +128,7 @@ type DecompressHandle = Opaque<'DecompressHandle'>;
 type DecompressFileHandle = Opaque<'DecompressFileHandle'>;
 type SaveDataIterator = Opaque<'SaveDataIterator'>;
 type URLSearchParamsIterator = Opaque<'URLSearchParamsIterator'>;
+export type USBNativeDevice = Opaque<'USBNativeDevice'>;
 
 /** Effective socket (libnx SocketInitConfig) values, after nxjs.ini overrides. */
 export interface NxSocketConfig {
@@ -803,6 +804,45 @@ export interface Init {
 	/** Request an ATT MTU for the connection (browsers negotiate ~517). */
 	btleConfigureMtu(conn: number, mtu: number): void;
 	btleGetMtu(conn: number): number;
+
+	// usb.cc — WebUSB over libnx usb:hs (USB host mode)
+	usbInit(): void;
+	usbExit(): void;
+	usbGetDevices(filter?: {
+		vendorId?: number;
+		productId?: number;
+		classCode?: number;
+		subclassCode?: number;
+		protocolCode?: number;
+		interfaceClass?: number;
+		interfaceSubclass?: number;
+		interfaceProtocol?: number;
+	}): USBNativeDevice[];
+	usbDeviceOpen(device: USBNativeDevice): void;
+	usbDeviceClose(device: USBNativeDevice): void;
+	usbClaimInterface(device: USBNativeDevice, interfaceNumber: number): void;
+	usbTransferIn(
+		device: USBNativeDevice,
+		endpointNumber: number,
+		length: number,
+	): ArrayBuffer;
+	usbTransferOut(
+		device: USBNativeDevice,
+		endpointNumber: number,
+		data: BufferSource,
+	): number;
+	usbControlTransferIn(
+		device: USBNativeDevice,
+		setup: {
+			requestType: string;
+			recipient: string;
+			request: number;
+			value: number;
+			index: number;
+		},
+		length: number,
+	): ArrayBuffer;
+	usbResetDevice(device: USBNativeDevice): void;
 
 	// video.cc — Video element (ffmpeg media pipeline)
 	videoNew(): VideoHandle;

@@ -10,6 +10,7 @@ import {
 } from './navigator/virtual-keyboard';
 import { Application, type Vibration } from './switch';
 import { bluetooth } from './navigator/bluetooth';
+import { usb } from './navigator/usb';
 
 interface NavigatorState {
 	batt?: Promise<BatteryManager>;
@@ -232,6 +233,16 @@ export class Navigator {
 	 */
 	get bluetooth() {
 		return bluetooth;
+	}
+
+	/**
+	 * Entry point to the WebUSB API, for communicating with USB devices attached
+	 * to the Switch's USB-C port while the host Switch is in USB host mode.
+	 *
+	 * @see https://developer.mozilla.org/docs/Web/API/Navigator/usb
+	 */
+	get usb() {
+		return usb;
 	}
 }
 def(Navigator);

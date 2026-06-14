@@ -33,6 +33,7 @@ export type * from './image';
 export type * from './navigator';
 export type * from './navigator/battery';
 export type * from './navigator/bluetooth';
+export type * from './navigator/usb';
 export type {
 	Gamepad,
 	GamepadButton,

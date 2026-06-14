@@ -630,6 +630,21 @@ importers:
         specifier: 'catalog:'
         version: 0.27.3
 
+  apps/webusb-rcm:
+    devDependencies:
+      '@nx.js/nro':
+        specifier: workspace:^
+        version: link:../../packages/nro
+      '@nx.js/nsp':
+        specifier: workspace:^
+        version: link:../../packages/nsp
+      '@nx.js/runtime':
+        specifier: workspace:^
+        version: link:../../packages/runtime
+      esbuild:
+        specifier: 'catalog:'
+        version: 0.27.3
+
   docs:
     dependencies:
       '@vercel/analytics':
