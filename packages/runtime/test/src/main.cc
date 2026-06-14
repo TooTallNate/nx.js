@@ -58,7 +58,7 @@ NX_MOD(dommatrix); NX_MOD(error); NX_MOD(font); NX_MOD(fs); NX_MOD(fsdev);
 NX_MOD(gamepad); NX_MOD(hidsys); NX_MOD(image); NX_MOD(irs); NX_MOD(memory);
 NX_MOD(nifm);
 NX_MOD(ns); NX_MOD(path2d); NX_MOD(service); NX_MOD(swkbd); NX_MOD(tcp);
-NX_MOD(tls); NX_MOD(udp); NX_MOD(url); NX_MOD(video); NX_MOD(web);
+NX_MOD(tls); NX_MOD(udp); NX_MOD(url); NX_MOD(usb); NX_MOD(video); NX_MOD(web);
 NX_MOD(webgl); NX_MOD(window);
 #undef NX_MOD
 
@@ -329,6 +329,7 @@ static void build_init_object(Isolate *iso, Local<Context> context,
 	nx_init_tls(iso, init_obj);
 	nx_init_udp(iso, init_obj);
 	nx_init_url(iso, init_obj);
+	nx_init_usb(iso, init_obj);
 	nx_init_video(iso, init_obj);
 	nx_init_web(iso, init_obj);
 	nx_init_webgl(iso, init_obj);
