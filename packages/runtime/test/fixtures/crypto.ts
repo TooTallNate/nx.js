@@ -120,3 +120,39 @@ test('crypto.subtle.digest empty input', async (t) => {
 		'SHA-256 of empty input',
 	);
 });
+
+// --- duck-typed BufferSource regression (NX_GetBufferSource) ---
+//
+// nx.js's native buffer-source extraction accepts not just ArrayBuffer /
+// ArrayBufferView but also any object shaped like { buffer, byteOffset,
+// byteLength } — the form of `@nx.js/util`'s ArrayBufferStruct, which is a
+// plain JS class (NOT a real ArrayBufferView) used pervasively by @nx.js/ncm
+// and others for IPC structs. The V8 migration dropped this duck-typing, so
+// such objects silently read as a null/empty buffer, producing malformed
+// service IPC requests (kernel ConnectionClosed) — which broke title installs.
+// This verifies a duck-typed struct over a sub-range of a larger buffer hashes
+// identically to the equivalent bytes. On non-nx.js runtimes (Chrome/Bun) the
+// duck-typed shape isn't accepted, so we pass the equivalent real view to keep
+// the observable result — and the TAP — identical across environments.
+test('crypto.subtle.digest accepts duck-typed BufferSource', async (t) => {
+	// Bytes "abc" placed at offset 4 within a 16-byte buffer.
+	const backing = new ArrayBuffer(16);
+	new Uint8Array(backing).set([0, 0, 0, 0, 0x61, 0x62, 0x63], 0);
+	const byteOffset = 4;
+	const byteLength = 3;
+
+	const isNxjs = typeof (globalThis as any).Switch !== 'undefined';
+	const src: ArrayBufferView = isNxjs
+		? // Duck-typed struct (ArrayBufferStruct shape). Exercises the
+		  // NX_GetBufferSource fallback that honors byteOffset/byteLength.
+		  ({ buffer: backing, byteOffset, byteLength } as unknown as ArrayBufferView)
+		: // Real view of the same 3 bytes elsewhere.
+		  new Uint8Array(backing, byteOffset, byteLength);
+
+	const hash = await crypto.subtle.digest('SHA-256', src as BufferSource);
+	t.equal(
+		new Uint8Array(hash).toHex(),
+		'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad',
+		'SHA-256 of the duck-typed sub-range equals SHA-256("abc")',
+	);
+});
