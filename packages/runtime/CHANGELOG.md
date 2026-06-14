@@ -1,5 +1,181 @@
 # @nx.js/runtime
 
+## 1.0.0-beta.4
+
+### Minor Changes
+
+- perf: fast native fused read+decompress for `file.stream().pipeThrough(DecompressionStream)` ([#392](https://github.com/TooTallNate/nx.js/pull/392))
+
+  Streaming a file through a `DecompressionStream` —
+  `Switch.file(path).stream().pipeThrough(new DecompressionStream('zstd'))`, the
+  pattern an NSZ/NSP installer uses — was dramatically slow (~0.6 MB/s on-device)
+  and, in the memory-constrained applet regime, could exhaust the native heap and
+  crash. The cost was per-chunk overhead: every chunk meant a separate `$.fread`
+  thread-pool dispatch, a separate `$.decompressWrite` dispatch, the
+  web-streams-polyfill pipe's ~10 promises, and several fresh `ArrayBuffer`s,
+  plus the decoder's realloc-grow spikes.
+
+  - New native **fused read+decompress** op: opens the file once and, per pull,
+    reads a chunk AND decompresses it into a fixed reused buffer in the _same_
+    thread-pool dispatch — no polyfill pipe, no per-chunk read/decompress split,
+    no realloc spikes. Supports all `DecompressionStream` formats (zstd, gzip,
+    deflate, deflate-raw).
+  - The `file.stream().pipeThrough(new DecompressionStream(...))` pattern detects
+    this combination and routes to the fused path **transparently** — no app
+    code change. Any other source/transform pair keeps the existing behavior.
+  - Per-pull output size and `FsFile.stream()`'s default chunk size are gated by
+    memory regime (larger in the application regime, conservative in applet) so
+    the win is safe in both.
+
+  Measured on-device with a 595 MB NSZ decompression (`file → zstd → AES-CTR →
+sink`):
+
+  - Application regime: **~1030s → ~21s** (~28 MB/s, ~49×) — at parity with the
+    native DBI installer.
+  - Applet regime: completes in **~120s** (was ~1030s after the prior OOM fix),
+    staying within the native-heap budget.
+  - Pure decompression (no AES, e.g. gzip `fetch().body`): **~10 MB/s** in applet
+    (~16× the previous 64 KiB-chunk path).
+
+- feat: `Gamepad.id` now reports the controller's real hardware identity. On firmware 5.0.0+ it is the device name plus the controller's serial number (e.g. `"Nintendo Switch Pro Controller (XAW10012345678)"`), queried from the `hid:sys` service. The serial is resolved lazily and cached — it is never read on the input-polling hot path, and is invalidated only when a controller connects or disconnects. When the serial is unavailable (older firmware, no serial, or a system error) `id` falls back to the previous unique-per-slot `"switch-gamepad-<index>"` string. ([#374](https://github.com/TooTallNate/nx.js/pull/374))
+
+  Additionally, the global `gamepadconnected` and `gamepaddisconnected` events now fire when controllers are connected to or disconnected from the system (previously the `GamepadEvent` type existed but was never dispatched).
+
+- feat: WebGL2 rendering context for the screen canvas (`screen.getContext('webgl2')`), backed by a real OpenGL ES 3 context (EGL + Mesa/nouveau) on the Switch GPU. Implements the WebGL2 core API surface (shaders, buffers, VAOs, textures, framebuffers, uniforms, queries, samplers, sync objects, transform feedback, uniform buffers, instanced drawing), the standard `WebGL*` object classes, and the full WebGL enum constant set. The `"webgl"` (WebGL 1) context id and WebGL extensions are not implemented. ([#390](https://github.com/TooTallNate/nx.js/pull/390))
+
+- feat: configurable libuv worker thread pool via `[threadpool]` in `nxjs.ini`, with applet-safe defaults ([#386](https://github.com/TooTallNate/nx.js/pull/386))
+
+  The libuv worker pool (which services every async native op — fs, crypto,
+  compression, image decode, dns) previously initialized lazily with upstream
+  defaults of 4 threads × 8 MiB stacks. In applet mode that 32 MiB commit could
+  not be satisfied next to the JIT code arena, so the **first async operation
+  hard-aborted the process** (skipping the applet exit handshake and
+  destabilizing the system until reboot).
+
+  - New `[threadpool]` section in `nxjs.ini`: `size` (worker count) and
+    `stack_size` (per-worker stack, 256 KiB floor / 32 MiB cap). Defaults:
+    2 workers × 1 MiB in applet mode, 4 × 1 MiB in application mode. Effective
+    values are exposed on `$.config.threadpool`. Requires `switch-libuv`
+    ≥ 1.52.1-3 (adds the `UV_THREADPOOL_STACK_SIZE` env var).
+  - Native-heap back-pressure for high-rate async allocators: after each async
+    op, if the native malloc heap is running low the runtime fires a V8
+    `MemoryPressureNotification(kCritical)` to reclaim unreferenced external
+    `ArrayBuffer` backing stores. Without it, a tight async loop (e.g. reading a
+    `DecompressionStream` chunk by chunk) let external buffers pile up faster
+    than V8's GC scheduled around its tiny managed heap, exhausting the
+    ~30 MiB free applet native heap in seconds. Verified on-device: a full
+    594 MB streaming zstd decompression that previously OOM'd at ~8 MB now runs
+    to completion in applet mode.
+  - Async after-work callbacks no longer crash when they fire during teardown
+    (e.g. `Switch.exit()` / HOME pressed mid-operation): the callback captures
+    the queuing context and falls back to it (or drops the result) instead of
+    entering an empty `v8::Context` (a Data Abort at 0x0 in `Context::Enter()`).
+  - Applet+JIT memory reserve raised 64 → 96 MiB (V8 max heap ~41 MiB) for the
+    opt-in `[v8] jit = on` applet case (the default applet regime is jitless).
+  - V8 fatal errors / OOMs now log diagnostics to `nxjs-debug.log` and exit
+    cleanly back to hbmenu instead of aborting (which poisoned the system in
+    applet mode).
+  - `Switch.memoryUsage()` gains `externalMemory` and `nativeHeapTotal` /
+    `nativeHeapArena` / `nativeHeapUsed` / `nativeHeapFree` (newlib mallinfo)
+    fields for diagnosing native memory pressure.
+
+- feat: add the `Video` element for video playback, backed by a new FFmpeg media pipeline ([#382](https://github.com/TooTallNate/nx.js/pull/382))
+
+  `new Video()` provides an `HTMLVideoElement`-like API (since nx.js has no DOM,
+  the app explicitly draws each frame via `ctx.drawImage(video, …)`, like
+  rendering a `<video>` onto a `<canvas>`). Supports any container/codec FFmpeg
+  software-decodes (WebM VP8/VP9, MP4/MKV H.264/H.265, AV1, …), with audio
+  tracks played through the Web Audio engine and A/V sync slaved to the audio
+  clock. Includes keyframe seeking, gapless looping, and
+  `getVideoPlaybackQuality()`.
+
+  `decodeAudioData()` and the `Audio` element are now also backed by FFmpeg
+  (replacing the vendored dr_mp3/dr_wav/stb_vorbis decoders), so every
+  FFmpeg-supported audio format works: MP3, WAV, OGG Vorbis, Opus, FLAC,
+  AAC/M4A, and more.
+
+- feat: implement the Web Audio API (`AudioContext`, `OfflineAudioContext`, `AudioBuffer`, `AudioBufferSourceNode`, `GainNode`, `StereoPannerNode`, `AudioParam` automation, `decodeAudioData()`) ([#381](https://github.com/TooTallNate/nx.js/pull/381))
+
+  Audio is now processed by a native graph engine on a dedicated real-time render
+  thread (128-frame quanta, like browsers), streamed to the Switch `audren`
+  service via double-buffered wavebufs. The `Audio` element is re-implemented on
+  top of the new engine.
+
+- feat: implement the Web Bluetooth API (`navigator.bluetooth`) for BLE GATT client communication ([#383](https://github.com/TooTallNate/nx.js/pull/383))
+
+  `requestDevice()`, `BluetoothDevice`, `BluetoothRemoteGATTServer` /
+  `Service` / `Characteristic`, `BluetoothCharacteristicProperties`, and
+  `BluetoothUUID` — backed by the Switch's application-facing `btm.u` + `bt`
+  services. Supports service-UUID-based scanning, GATT discovery, reads,
+  writes (with/without response), notifications (with automatic CCCD writes),
+  browser-style ATT MTU negotiation, `gattserverdisconnected` events, and an
+  nx.js `deviceId` extension for connecting to devices by known address
+  (including devices that advertise no service UUIDs).
+
+  Verified end-to-end on real hardware by printing a label on a Niimbot D11
+  label printer using the same Web Bluetooth code paths as a Chrome web app.
+
+- feat: implement initial WebUSB support (`navigator.usb`) backed by libnx `usb:hs` ([#397](https://github.com/TooTallNate/nx.js/pull/397))
+
+  Includes USB device discovery by descriptor filters, opening/closing devices,
+  claiming interfaces, bulk `transferIn()` / `transferOut()`, control
+  `controlTransferIn()`, and device reset. Adds a `webusb-rcm` example that sends
+  fusee/hekate-style RCM payloads to a v1 Nintendo Switch in RCM mode.
+
+### Patch Changes
+
+- fix: prevent `AmbientLightSensor.start()` from leaking timers when called multiple times. `start()` is now a no-op while already active, and `stop()` resets the timeout handle so `activated` correctly returns `false` afterward. ([#395](https://github.com/TooTallNate/nx.js/pull/395))
+
+- fix: `atob()` and `btoa()` now operate on binary strings (Latin-1, one byte per character) per the WHATWG spec, instead of round-tripping through UTF-8. Previously `btoa()` UTF-8-encoded its input (so a character like `\xff` became two bytes), and `atob()` decoded the bytes as UTF-8 (mangling any byte ≥ 0x80 into U+FFFD), which broke using `atob()` to recover raw bytes — e.g. a base64 decoder built on `atob()` failed for any byte over 127. Now every byte value 0–255 round-trips through `btoa()`/`atob()`, `btoa()` throws `InvalidCharacterError` for characters above 0xFF, and both throw a DOMException-named `InvalidCharacterError` on bad input (matching Chrome). `atob()` also implements the WHATWG forgiving-base64 decode directly (strips ASCII whitespace, accepts unpadded input, rejects `length % 4 == 1`) instead of the stricter mbedtls decoder. Adds conformance tests verified against Chrome (40 assertions, identical in both engines). ([#376](https://github.com/TooTallNate/nx.js/pull/376))
+
+- fix: accept duck-typed `BufferSource` objects (e.g. `ArrayBufferStruct`) in native APIs ([#393](https://github.com/TooTallNate/nx.js/pull/393))
+
+  `NX_GetBufferSource` — used by every native API that takes a `BufferSource`
+  (service IPC dispatch, crypto, compression, fs, image, …) — only handled real
+  `ArrayBuffer` / `ArrayBufferView` values after the V8 migration. It dropped the
+  QuickJS-era fallback that duck-typed any object exposing
+  `{ buffer, byteOffset, byteLength }`.
+
+  `@nx.js/util`'s `ArrayBufferStruct` (used pervasively by `@nx.js/ncm`,
+  `@nx.js/install-title`, and others to describe IPC structs) is a plain JS class
+  that only _implements_ the `ArrayBufferView` shape — it is not a real V8
+  `ArrayBufferView`. So passing one silently read as a null/empty buffer, which
+  produced malformed service requests that the kernel rejected by closing the
+  session (`KernelError_ConnectionClosed`, `2001-0123`). This broke, among other
+  things, NCM content-storage commands (`deletePlaceHolder`, `register`, `has`,
+  …) and therefore title installation.
+
+  Restored the duck-typed fallback (honoring `byteOffset`/`byteLength`, clamped to
+  the backing buffer). Verified on-device: a full NSZ title install now completes
+  and the title appears on the HOME menu.
+
+- fix: `drawImage()` type confusion between wrapped Canvas and Image sources ([#384](https://github.com/TooTallNate/nx.js/pull/384))
+
+  All wrapped native objects share one ObjectTemplate, so `drawImage()`
+  duck-typed every source as an `nx_image_t` — a canvas source aliased its
+  `surface_dirty`/`gpu` flags with the image's `cached_sk_image` slot, turning
+  a bool into a dereferenced pointer (a crash in the console present path,
+  which draws the terminal canvas every frame in console-only apps). Both
+  structs now carry a leading magic discriminator validated by
+  `nx_get_image()`/`nx_get_canvas()`, and canvas sources are drawn through the
+  proper `SkSurface::makeImageSnapshot()` path (which keeps a stable SkImage
+  identity while the surface is unchanged, so the GPU texture cache stays
+  effective).
+
+- fix: `console.canvas` now keeps updating after an app takes over the screen with `screen.getContext('2d')`. Previously, once the app owned the screen the runtime stopped rendering the console terminal, so an app compositing `console.canvas` itself (e.g. `ctx.drawImage(console.canvas, ...)`) — especially when it cached the canvas reference once — saw it frozen at the last auto-presented frame. The per-frame present now still renders the terminal (without blitting it) while the app owns the screen, and accessing `console.canvas` renders any pending output on demand, so composited console output stays live. ([#372](https://github.com/TooTallNate/nx.js/pull/372))
+
+- perf: stop re-rendering the on-screen console every frame once an app owns the screen, unless the app has read `console.canvas`. After `Screen.getContext('2d')` the per-frame `presentConsole()` re-rasterized the entire (now invisible) console text canvas any frame that `console.*` output had marked it dirty — an app logging every frame (e.g. per-tick telemetry) paid that cost every frame for pixels nobody sees. Apps that composite the console themselves are unaffected: reading `console.canvas` (even once, cached) marks the console as observed, and the per-frame render then continues exactly as before so a cached canvas reference stays live. ([#378](https://github.com/TooTallNate/nx.js/pull/378))
+
+- fix: set `eglSwapInterval(1)` on the GPU screen surface so presentation locks to one buffer-swap per vblank (at whatever rate the display refreshes). Previously no interval was set, leaving the driver default undefined. Also: `eglMakeCurrent` failure during GPU screen init is now detected and fails over to the raster path (it was previously unchecked, so later GL/Ganesh setup could proceed against no current context), and an `eglSwapInterval` failure is logged but non-fatal. ([#379](https://github.com/TooTallNate/nx.js/pull/379))
+
+- fix: memoize the wrapped `SkImage` for decoded images so repeat `drawImage()` of the same source no longer re-uploads its pixels to the GPU every call. Previously each `drawImage(image, …)` rebuilt a fresh `SkImage` from the raw pixels, giving every call a new image identity that defeated Ganesh's GPU texture cache (a full source re-upload per draw — measured ~8 ms for a 1024² source, ~25 ms for 2048², regardless of destination size), and at high draw counts (e.g. ~10k tiles/frame) the per-call pixel copy also exhausted the single-threaded GC. The `SkImage` is now built once and cached on the image (a stable identity Ganesh can cache the upload for), released when the image is freed, and invalidated when its pixels are written in place (e.g. IR-camera updates). ([#373](https://github.com/TooTallNate/nx.js/pull/373))
+
+- fix: default to the jitless interpreter in the applet regime again (`[v8] jit = auto`). The JIT's 64 MiB code-range minimum is dual-mapped by libnx jitCreate to ~128 MiB of real memory — a third of the applet grant — leaving so little slack that the console's canvas terminal (and other multi-MiB allocations) degrade or fail. Jitless keeps the full canvas-terminal experience reliably working in applet mode; apps that want JIT performance there can opt in with `[v8] jit = on`. Application mode is unchanged (full JIT). ([#389](https://github.com/TooTallNate/nx.js/pull/389))
+
+- feat: new `[renderer] gpu_cache` nxjs.ini key to set the Ganesh GPU resource-cache budget (MiB). Skia's own default is ~96 MiB; a texture-heavy app whose per-frame working set exceeds that thrashes the cache (LRU-evict + re-upload of textures still needed the next frame). Values: `auto` (default — 512 MiB in full-memory Application mode, Skia default in tight-RAM applet mode so a big cache cannot starve Mesa), `default` (always Skia default), or an explicit MiB number (0-4096). ([#380](https://github.com/TooTallNate/nx.js/pull/380))
+
+- fix: harden display bring-up and large allocations against the applet memory cliff. The applet regime (~380 MiB grant) leaves little slack once V8 + the runtime are up, yet the raster framebuffer needs ~11.2 MiB at init time. This pre-funds the display path (a process-lifetime nvdrv reference taken at boot to avoid an nvservices hang in the nvdrv close→reopen, plus a ~12 MiB "display parachute" released right before `framebufferCreate`), checks the `framebufferCreate`/`framebufferMakeLinear` results (black-screen fallback instead of a `memcpy(NULL)` crash), and switches `getSystemFont`/`getImageData` to checked allocations + `ArrayBuffer::NewBackingStore` so an out-of-memory condition throws a catchable error instead of fatally aborting the process (the console then gracefully falls back to the libnx PrintConsole). ([#388](https://github.com/TooTallNate/nx.js/pull/388))
+
 ## 1.0.0-beta.3
 
 ### Minor Changes

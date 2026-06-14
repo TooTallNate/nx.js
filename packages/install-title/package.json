@@ -1,6 +1,6 @@
 {
   "name": "@nx.js/install-title",
-  "version": "0.0.3",
+  "version": "0.0.4-beta.0",
   "description": "Install a title from an NSP, NSZ, XCI, or XCZ file",
   "repository": {
     "type": "git",
