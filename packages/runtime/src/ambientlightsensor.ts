@@ -60,6 +60,8 @@ export class AmbientLightSensor extends Sensor {
 	}
 
 	start(): void {
+		// Already running, so this is a no-op to avoid leaking timers.
+		if (this.#timeout != null) return;
 		this.#timeout = setInterval(() => {
 			const prev = this.#illuminance;
 			this.#illuminance = $.appletIlluminance();
@@ -72,6 +74,7 @@ export class AmbientLightSensor extends Sensor {
 
 	stop(): void {
 		clearInterval(this.#timeout);
+		this.#timeout = undefined;
 	}
 }
 def(AmbientLightSensor);
