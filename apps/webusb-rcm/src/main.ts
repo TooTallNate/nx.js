@@ -77,16 +77,20 @@ async function main() {
 	}
 
 	console.log('Triggering RCM vulnerability...');
-	await device.controlTransferIn(
-		{
-			requestType: 'standard',
-			recipient: 'interface',
-			request: 0,
-			value: 0,
-			index: 0,
-		},
-		0x7000,
-	);
+	try {
+		await device.controlTransferIn(
+			{
+				requestType: 'standard',
+				recipient: 'interface',
+				request: 0,
+				value: 0,
+				index: 0,
+			},
+			0x7000,
+		);
+	} catch (err) {
+		console.log('Target disconnected during smash; this is expected if Hekate booted.');
+	}
 	console.log('Done.');
 }
 

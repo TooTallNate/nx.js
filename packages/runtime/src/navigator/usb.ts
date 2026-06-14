@@ -3,6 +3,7 @@ import { DOMException } from '../dom-exception';
 import { INTERNAL_SYMBOL } from '../internal';
 import type { BufferSource } from '../types';
 import { assertInternalConstructor, def } from '../utils';
+import { setTimeout } from '../timers';
 
 type USBControlTransferType = 'standard' | 'class' | 'vendor';
 type USBRequestType = USBControlTransferType | 'reserved';
@@ -106,6 +107,10 @@ function ensureInit() {
 		$.usbExit();
 		initialized = false;
 	});
+}
+
+function yieldToLoop() {
+	return new Promise<void>((resolve) => setTimeout(resolve, 0));
 }
 
 function validateByte(name: string, value: number) {
@@ -265,6 +270,7 @@ export class USBDevice {
 	async open(): Promise<void> {
 		const state = _device.get(this)!;
 		if (!state.opened) {
+			await yieldToLoop();
 			$.usbDeviceOpen(state.native);
 			state.opened = true;
 		}
@@ -273,6 +279,7 @@ export class USBDevice {
 	async close(): Promise<void> {
 		const state = _device.get(this)!;
 		if (state.opened) {
+			await yieldToLoop();
 			$.usbDeviceClose(state.native);
 			state.opened = false;
 			for (const config of this.configurations) {
@@ -297,6 +304,7 @@ export class USBDevice {
 		if (!state.opened) {
 			throw new DOMException('The device must be opened first.', 'InvalidStateError');
 		}
+		await yieldToLoop();
 		$.usbClaimInterface(state.native, interfaceNumber);
 		const iface = state.configuration?.interfaces.find(
 			(i) => i.interfaceNumber === interfaceNumber,
@@ -334,6 +342,7 @@ export class USBDevice {
 		validateByte('endpointNumber', endpointNumber);
 		validateWord('length', length);
 		const state = _device.get(this)!;
+		await yieldToLoop();
 		const buffer = $.usbTransferIn(state.native, endpointNumber, length);
 		return { data: new DataView(buffer), status: 'ok' };
 	}
@@ -344,6 +353,7 @@ export class USBDevice {
 	): Promise<USBOutTransferResult> {
 		validateByte('endpointNumber', endpointNumber);
 		const state = _device.get(this)!;
+		await yieldToLoop();
 		return {
 			bytesWritten: $.usbTransferOut(state.native, endpointNumber, data),
 			status: 'ok',
@@ -365,12 +375,14 @@ export class USBDevice {
 		validateWord('index', setup.index);
 		validateWord('length', length);
 		const state = _device.get(this)!;
+		await yieldToLoop();
 		const buffer = $.usbControlTransferIn(state.native, setup, length);
 		return { data: new DataView(buffer), status: 'ok' };
 	}
 
 	async reset(): Promise<void> {
 		const state = _device.get(this)!;
+		await yieldToLoop();
 		$.usbResetDevice(state.native);
 	}
 }
