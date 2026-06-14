@@ -35,6 +35,11 @@ const sidebarTabs = [
 		url: '/inspect',
 	},
 	{
+		title: '@nx.js/install-title',
+		description: 'Title installer for nx.js',
+		url: '/install-title',
+	},
+	{
 		title: '@nx.js/ncm',
 		description: 'Content manager API',
 		url: '/ncm',

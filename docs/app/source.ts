@@ -4,6 +4,7 @@ import {
 	constantsDocs,
 	httpDocs,
 	inspectDocs,
+	installTitleDocs,
 	ncmDocs,
 	replDocs,
 	runtimeDocs,
@@ -31,6 +32,13 @@ export const loaders = new Map([
 		loader({
 			baseUrl: '/http',
 			source: httpDocs.toFumadocsSource(),
+		}),
+	],
+	[
+		'install-title',
+		loader({
+			baseUrl: '/install-title',
+			source: installTitleDocs.toFumadocsSource(),
 		}),
 	],
 	[
