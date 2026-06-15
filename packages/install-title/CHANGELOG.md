@@ -1,5 +1,11 @@
 # @nx.js/install-title
 
+## 0.0.4-beta.0
+
+### Patch Changes
+
+- feat: add NSZ, XCI, and XCZ format support with new unified `install()` function ([#394](https://github.com/TooTallNate/nx.js/pull/394))
+
 ## 0.0.3
 
 ### Patch Changes
