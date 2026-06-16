@@ -18,7 +18,7 @@ catalog:
   esbuild: ^0.27.3
   playwright: ^1.50.0
   sisteransi: ^1.0.5
-  terminal-image: ^3.0.0
+  terminal-image: ^4.3.0
   types-package-json: ^2.0.39
   vite: ^5.4.2
   vitest: ^3.0.0
