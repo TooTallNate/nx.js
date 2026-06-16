@@ -109,6 +109,8 @@ extern "C" size_t horizon_mman_data_arena_size(void);
 extern "C" char *fake_heap_start;
 extern "C" char *fake_heap_end;
 
+static void nx_emergency_teardown(void);
+
 // ---------------------------------------------------------------------------
 // V8 fatal error / OOM handlers.
 //
@@ -121,9 +123,9 @@ extern "C" char *fake_heap_end;
 //
 // There is no recovering a V8 isolate from a fatal/OOM condition, but we can
 // at least die cleanly: log the reason + native heap stats to nxjs-debug.log,
-// then exit(1). libnx's exit() unwinds through the homebrew environment back
-// to hbloader/hbmenu with the proper handshake, so the rest of the system
-// stays healthy.
+// release the native resources that corrupt hbmenu/bsdsocket when leaked in
+// applet mode, then exit(1). libnx's exit() unwinds through the homebrew
+// environment with the proper applet handshake.
 // ---------------------------------------------------------------------------
 static void nx_v8_fatal_exit(const char *kind, const char *location,
                              const char *detail) {
@@ -138,9 +140,12 @@ static void nx_v8_fatal_exit(const char *kind, const char *location,
 	        (size_t)mi.arena / 1024,
 	        (size_t)(fake_heap_end - fake_heap_start) / 1024);
 	fflush(stderr);
-	// NOT abort(): exit() runs the libnx exit path (back to hbloader) so the
-	// applet host process survives. Skipping the runtime's normal teardown is
-	// acceptable — the alternative is taking down the whole system.
+	// NOT abort(): exit() runs the libnx exit path (back to hbloader). But in
+	// applet mode hbmenu resumes in this same host process, so first release the
+	// native resources that otherwise poison hbmenu / bsdsocket on the next applet
+	// launch. This deliberately avoids JS/V8 object teardown: the isolate is
+	// already unrecoverable.
+	nx_emergency_teardown();
 	exit(1);
 }
 
@@ -179,6 +184,16 @@ static int is_running = 1;
 //    memory race against the JS heap.
 static bool g_nv_early_ref = false;
 static void *g_display_parachute = NULL;
+static nx_context_t *g_nx_ctx = NULL;
+static uv_loop_t *g_loop = NULL;
+static bool g_loop_initialized = false;
+static bool g_socket_initialized = false;
+static bool g_pl_initialized = false;
+static bool g_romfs_nxjs_mounted = false;
+static bool g_romfs_app_mounted = false;
+static bool g_mman_teardown_done = false;
+static bool g_emergency_teardown_started = false;
+static FILE *g_debug_fd = NULL;
 
 static void nx_display_parachute_release(void) {
 	if (g_display_parachute != NULL) {
@@ -208,6 +223,114 @@ void nx_framebuffer_exit() {
 		framebuffer = NULL;
 		js_framebuffer = NULL;
 	}
+}
+
+static void nx_close_uv_handles(uv_loop_t *loop, bool drain) {
+	uv_walk(
+	    loop,
+	    [](uv_handle_t *handle, void *) {
+		    if (uv_is_closing(handle))
+			    return;
+		    if (handle->type == UV_POLL) {
+			    uv_os_fd_t fd = -1;
+			    if (uv_fileno(handle, &fd) == 0 && fd >= 0) {
+				    close(fd);
+			    }
+		    }
+		    uv_close(handle, nullptr);
+	    },
+	    nullptr);
+
+	if (drain) {
+		// Pump until no active/closing handles remain (bounded to avoid a hang).
+		for (int i = 0; i < 1000 && uv_run(loop, UV_RUN_NOWAIT) != 0; i++) {
+		}
+	}
+}
+
+static void nx_teardown_mman_once(void) {
+	if (!g_mman_teardown_done) {
+		g_mman_teardown_done = true;
+		horizon_mman_teardown();
+	}
+}
+
+static void nx_emergency_teardown(void) {
+	if (g_emergency_teardown_started)
+		return;
+	g_emergency_teardown_started = true;
+	is_running = 0;
+
+	fprintf(stderr, "[fatal] emergency native teardown before exit\n");
+	fflush(stderr);
+
+	// Release whatever owns the applet display before returning to hbmenu.
+	if (nx_webgl_active()) {
+		nx_webgl_exit();
+	} else if (screen_is_gpu) {
+		nx_skia_gpu_screen_exit();
+		screen_is_gpu = false;
+	} else if (framebuffer != NULL) {
+		nx_framebuffer_exit();
+	}
+	nx_console_exit();
+
+	if (g_loop_initialized && g_loop != NULL) {
+		// Do not drain here: close callbacks may run JS-facing async completion
+		// code, and fatal/OOM callbacks run while V8 is unrecoverable. Closing poll
+		// fds plus uv_library_shutdown() below is enough to avoid leaving live BSD
+		// sessions for socketExit().
+		nx_close_uv_handles(g_loop, false);
+	}
+	uv_library_shutdown();
+
+	if (g_nx_ctx != NULL) {
+		if (g_nx_ctx->spl_initialized) {
+			splExit();
+			g_nx_ctx->spl_initialized = false;
+		}
+		nx_hidsys_exit(g_nx_ctx);
+		if (g_nx_ctx->mbedtls_initialized) {
+			mbedtls_ctr_drbg_free(&g_nx_ctx->ctr_drbg);
+			mbedtls_entropy_free(&g_nx_ctx->entropy);
+			g_nx_ctx->mbedtls_initialized = false;
+		}
+		if (g_nx_ctx->ca_certs_loaded) {
+			mbedtls_x509_crt_free(&g_nx_ctx->ca_chain);
+			g_nx_ctx->ca_certs_loaded = false;
+		}
+		if (g_nx_ctx->ft_library) {
+			FT_Done_FreeType(g_nx_ctx->ft_library);
+			g_nx_ctx->ft_library = NULL;
+		}
+	}
+
+	nx_display_parachute_release();
+	if (g_nv_early_ref) {
+		nvExit();
+		g_nv_early_ref = false;
+	}
+	if (g_pl_initialized) {
+		plExit();
+		g_pl_initialized = false;
+	}
+	if (g_romfs_app_mounted) {
+		romfsUnmount("romfs");
+		g_romfs_app_mounted = false;
+	}
+	if (g_romfs_nxjs_mounted) {
+		romfsUnmount("nxjs");
+		g_romfs_nxjs_mounted = false;
+	}
+	if (g_socket_initialized) {
+		socketExit();
+		g_socket_initialized = false;
+	}
+	if (g_debug_fd) {
+		fclose(g_debug_fd);
+		g_debug_fd = NULL;
+	}
+	nx_teardown_mman_once();
 }
 
 void nx_exit_event_loop(void) { is_running = 0; }
@@ -1203,6 +1326,7 @@ static void resolve_entrypoint(nx_context_t *nx_ctx, int argc, char *argv[],
 				       rc);
 				nx_ctx->had_error = 1;
 			} else {
+				g_romfs_app_mounted = true;
 				*out_path = (char *)"romfs:/main.js";
 				*out_code = (char *)read_file(*out_path, out_size);
 			}
@@ -1213,6 +1337,7 @@ static void resolve_entrypoint(nx_context_t *nx_ctx, int argc, char *argv[],
 				printf("Failed to mount romfs from %s (0x%x)\n", argv[1], rc);
 				nx_ctx->had_error = 1;
 			} else {
+				g_romfs_app_mounted = true;
 				*out_path = (char *)"romfs:/main.js";
 				*out_code = (char *)read_file(*out_path, out_size);
 			}
@@ -1230,6 +1355,7 @@ static void resolve_entrypoint(nx_context_t *nx_ctx, int argc, char *argv[],
 		// the second mount coexists with the `nxjs:` one.
 		rc = romfsMountSelf("romfs");
 		if (R_SUCCEEDED(rc)) {
+			g_romfs_app_mounted = true;
 			*out_path = (char *)"romfs:/main.js";
 			*out_code = (char *)read_file(*out_path, out_size);
 		}
@@ -1251,6 +1377,7 @@ int main(int argc, char *argv[]) {
 	Result rc;
 
 	nx_context_t *nx_ctx = (nx_context_t *)calloc(1, sizeof(nx_context_t));
+	g_nx_ctx = nx_ctx;
 	nx_ctx->rendering_mode = NX_RENDERING_MODE_INIT;
 
 	// Mount the nx.js NRO's OWN embedded romfs as `nxjs:` (it holds the
@@ -1266,6 +1393,7 @@ int main(int argc, char *argv[]) {
 	rc = romfsMountSelf("nxjs");
 	if (R_FAILED(rc))
 		diagAbortWithResult(rc);
+	g_romfs_nxjs_mounted = true;
 
 	// Probe the process memory grant up front: it gates BOTH the socket buffer
 	// config (here) and the V8 JIT/heap policy (below). In applet mode the lean
@@ -1291,7 +1419,7 @@ int main(int argc, char *argv[]) {
 	// config parse) so that `[config]`/`[v8]`/`[skia]` diagnostics — including
 	// any "value not honored" lines from the nxjs.ini parse below — are
 	// captured to sdmc:/switch/nxjs-debug.log.
-	FILE *debug_fd = freopen(LOG_FILENAME, "w", stderr);
+	g_debug_fd = freopen(LOG_FILENAME, "w", stderr);
 
 	// Take a process-lifetime nvdrv reference NOW, while memory is plentiful.
 	// The libnx PrintConsole/Framebuffer stack nvInitialize()/nvExit()s around
@@ -1366,15 +1494,19 @@ int main(int argc, char *argv[]) {
 	rc = socketInitialize(&socket_cfg);
 	if (R_FAILED(rc))
 		diagAbortWithResult(rc);
+	g_socket_initialized = true;
 
 	rc = plInitialize(PlServiceType_User);
 	if (R_FAILED(rc))
 		diagAbortWithResult(rc);
+	g_pl_initialized = true;
 
 	// libuv loop.
 	uv_loop_t loop;
 	uv_loop_init(&loop);
 	nx_ctx->loop = &loop;
+	g_loop = &loop;
+	g_loop_initialized = true;
 
 	// V8 platform + isolate (single-threaded, matching the switch-v8 port).
 	// NewSingleThreadedDefaultPlatform: the multi-threaded default spins worker
@@ -1901,24 +2033,10 @@ int main(int argc, char *argv[]) {
 	// live sessions still open, which faults the bsdsocket sysmodule (User
 	// Break) and corrupts the next launch. Then run the loop until all close
 	// callbacks fire so uv_loop_close() succeeds (it returns EBUSY otherwise).
-	uv_walk(
-	    &loop,
-	    [](uv_handle_t *handle, void *) {
-		    if (uv_is_closing(handle))
-			    return;
-		    if (handle->type == UV_POLL) {
-			    uv_os_fd_t fd = -1;
-			    if (uv_fileno(handle, &fd) == 0 && fd >= 0) {
-				    close(fd);
-			    }
-		    }
-		    uv_close(handle, nullptr);
-	    },
-	    nullptr);
-	// Pump until no active/closing handles remain (bounded to avoid a hang).
-	for (int i = 0; i < 1000 && uv_run(&loop, UV_RUN_NOWAIT) != 0; i++) {
-	}
+	nx_close_uv_handles(&loop, true);
 	uv_loop_close(&loop);
+	g_loop_initialized = false;
+	g_loop = NULL;
 
 	iso->Dispose();
 	delete create_params.array_buffer_allocator;
@@ -1948,6 +2066,7 @@ int main(int argc, char *argv[]) {
 	nx_hidsys_exit(nx_ctx);
 	nx_config_free(&nx_ctx->config);
 	free(nx_ctx);
+	g_nx_ctx = NULL;
 
 	// Must run while the socket layer is still up: libuv's async self-wakeup
 	// pipe is a loopback TCP socket pair (libnx has no anonymous pipes), and
@@ -1962,16 +2081,29 @@ int main(int argc, char *argv[]) {
 		nvExit();
 		g_nv_early_ref = false;
 	}
-	plExit();
-	romfsUnmount("nxjs");
+	if (g_pl_initialized) {
+		plExit();
+		g_pl_initialized = false;
+	}
+	if (g_romfs_nxjs_mounted) {
+		romfsUnmount("nxjs");
+		g_romfs_nxjs_mounted = false;
+	}
 	// The `romfs:` mount (self for a standalone app, or the launched app's NRO
 	// for a bootstrap launch) is unmounted best-effort; it is a no-op if no
 	// such mount was registered.
-	romfsUnmount("romfs");
-	socketExit();
+	if (g_romfs_app_mounted) {
+		romfsUnmount("romfs");
+		g_romfs_app_mounted = false;
+	}
+	if (g_socket_initialized) {
+		socketExit();
+		g_socket_initialized = false;
+	}
 
-	if (debug_fd) {
-		fclose(debug_fd);
+	if (g_debug_fd) {
+		fclose(g_debug_fd);
+		g_debug_fd = NULL;
 	}
 	delete_if_empty(LOG_FILENAME);
 
@@ -1980,6 +2112,6 @@ int main(int argc, char *argv[]) {
 	// VERY LAST thing before returning to hbloader/hbmenu — leaked aliases
 	// corrupt the next process's address space (posix_memalign->NULL, hbmenu
 	// framebuffer crash). Matches the hello-v8 reference teardown ordering.
-	horizon_mman_teardown();
+	nx_teardown_mman_once();
 	return 0;
 }
