@@ -271,16 +271,36 @@ export async function* install(
 		);
 	for (const [name, entry] of cnmtNcaFiles) {
 		yield* step(`Install content meta "${name}"`, async function* () {
+			// The name registered in content storage is always `.nca`.
+			const ncaName = name.replace(/\.ncz$/, '.nca');
+			const contentId = NcmContentId.from(ncaName);
+			let installedContentMeta = false;
+
 			// Install the NCA so that we can mount the
 			// filesystem to read the `.cnmt` file inside.
 			// Returns the actual installed NCA size (decompressed for NCZ).
-			const installedSize = await installNca(name, entry, contentStorage);
+			let installedSize: bigint;
+			let cnmtData: ArrayBuffer;
+			try {
+				installedSize = await installNca(name, entry, contentStorage);
+				installedContentMeta = true;
 
-			// The name registered in content storage is always `.nca`
-			const ncaName = name.replace(/\.ncz$/, '.nca');
-
-			// Read the decrypted `.cnmt` file
-			const cnmtData = await readContentMeta(ncaName, contentStorage);
+				// Read the decrypted `.cnmt` file.
+				cnmtData = await readContentMeta(ncaName, contentStorage);
+			} catch (err) {
+				// If the newly-registered content meta cannot be mounted/read, remove it
+				// immediately. Leaving a malformed or rejected meta NCA in content storage
+				// can poison later FS/NCM operations until reboot.
+				if (installedContentMeta) {
+					try {
+						contentStorage.delete(contentId);
+					} catch {}
+				}
+				try {
+					contentStorage.cleanupAllPlaceHolder();
+				} catch {}
+				throw err;
+			}
 
 			const cnmtHeader = new PackagedContentMetaHeader(cnmtData);
 			const contentMetaKey = createContentMetaKey(cnmtHeader);
