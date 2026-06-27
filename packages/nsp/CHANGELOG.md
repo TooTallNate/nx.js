@@ -1,5 +1,11 @@
 # @nx.js/nsp
 
+## 1.0.0-beta.5
+
+### Patch Changes
+
+- Update the `terminal-image` dependency used for package build output rendering. ([#398](https://github.com/TooTallNate/nx.js/pull/398))
+
 ## 1.0.0-beta.4
 
 ## 1.0.0-beta.3
