@@ -149,7 +149,16 @@ export class Request extends Body implements globalThis.Request {
 		}
 		if (!method) method = 'GET';
 
-		if ((method === 'GET' || method === 'HEAD') && body) {
+		// When `body` is another `Request` (or `Body`) instance, the actual
+		// payload lives on its `.body` property — which may be `null` for a
+		// bodyless request. Unwrap it here so the GET/HEAD guard below tests
+		// the real body rather than the (always-truthy) wrapper object.
+		const actualBody =
+			body && typeof body === 'object' && 'body' in body
+				? body.body
+				: body;
+
+		if ((method === 'GET' || method === 'HEAD') && actualBody) {
 			throw new TypeError('Body not allowed for GET or HEAD requests');
 		}
 		super(body, headers);
