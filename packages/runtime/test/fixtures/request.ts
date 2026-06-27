@@ -12,6 +12,51 @@ test('Request constructor with init overriding credentials', (t) => {
 	t.equal(original.credentials, 'omit', 'original unchanged');
 });
 
+// --- Request constructor: bodyless input Request (regression) ---
+
+test('Request from bodyless GET input Request does not throw', (t) => {
+	// Regression: `fetch(new Request(url))` re-wraps the input Request via
+	// `new Request(input)`. With no `init.body`, the input Request was used as
+	// the body, and the GET/HEAD guard saw the (truthy) wrapper object and
+	// wrongly threw "Body not allowed for GET or HEAD requests".
+	const input = new Request('https://example.com/data');
+	let derived: Request | undefined;
+	t.doesNotThrow(() => {
+		derived = new Request(input);
+	}, 'no throw re-wrapping a bodyless GET Request');
+	t.equal(derived!.method, 'GET', 'method is GET');
+	t.equal(derived!.url, input.url, 'url copied');
+	t.equal(derived!.body, null, 'body is null');
+});
+
+test('Request from bodyless HEAD input Request does not throw', (t) => {
+	const input = new Request('https://example.com/data', { method: 'HEAD' });
+	let derived: Request | undefined;
+	t.doesNotThrow(() => {
+		derived = new Request(input);
+	}, 'no throw re-wrapping a bodyless HEAD Request');
+	t.equal(derived!.method, 'HEAD', 'method is HEAD');
+});
+
+test('Request still rejects an actual body on GET', (t) => {
+	// The error message text is implementation-defined (nx.js and Chrome word
+	// it differently), so only assert that a TypeError is thrown.
+	let err: unknown;
+	t.throws(
+		() => {
+			try {
+				new Request('https://example.com', { method: 'GET', body: 'x' });
+			} catch (e) {
+				err = e;
+				throw e;
+			}
+		},
+		undefined,
+		'GET with a real body still throws',
+	);
+	t.ok(err instanceof TypeError, 'thrown error is a TypeError');
+});
+
 // --- Request constructor: referrer ---
 
 test('Request constructor copies referrer from input Request', (t) => {
