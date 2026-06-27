@@ -1,5 +1,11 @@
 # @nx.js/install-title
 
+## 0.0.4-beta.1
+
+### Patch Changes
+
+- Clean up staged content meta NCAs and placeholders when metadata mounting fails during title installation. ([#401](https://github.com/TooTallNate/nx.js/pull/401))
+
 ## 0.0.4-beta.0
 
 ### Patch Changes
