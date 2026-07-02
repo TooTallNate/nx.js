@@ -2,13 +2,26 @@ import { $, type AudioNodeHandle, type VideoHandle, type VideoMetadata } from '.
 import { getSharedAudioContext } from './audio';
 import { ctxInternal, nodeInternal } from './audio/internal';
 import { DOMException } from './dom-exception';
-import { fetch } from './fetch/fetch';
 import { ErrorEvent, Event } from './polyfills/event';
 import { EventTarget } from './polyfills/event-target';
 import { URL } from './polyfills/url';
 import { clearInterval, setInterval } from './timers';
 import { createInternal, def, proto } from './utils';
 import type { GainNode } from './audio/gain-node';
+
+// Late-bound (call-time) `globalThis.fetch` wrapper. Same rationale as
+// `image.ts`: embedders extend the scheme registry via a
+// `globalThis.fetch` override installed after the runtime bundle has
+// evaluated. `video.ts` already short-circuits its own FILE_SCHEMES
+// set to a direct native decoder and bypasses fetch entirely; the
+// wrapper only affects the http/https/blob/data branch and any
+// embedder-registered scheme.
+function fetch(
+	input: string | URL | Request,
+	init?: RequestInit,
+): Promise<Response> {
+	return globalThis.fetch(input, init);
+}
 
 const HAVE_NOTHING = 0;
 const HAVE_METADATA = 1;

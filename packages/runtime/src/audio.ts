@@ -4,12 +4,24 @@ import type { AudioBufferSourceNode } from './audio/audio-buffer-source-node';
 import { AudioContext } from './audio/audio-context';
 import type { GainNode } from './audio/gain-node';
 import { DOMException } from './dom-exception';
-import { fetch } from './fetch/fetch';
 import { ErrorEvent, Event } from './polyfills/event';
 import { EventTarget } from './polyfills/event-target';
 import { URL } from './polyfills/url';
 import { clearInterval, setInterval } from './timers';
 import { def } from './utils';
+
+// Late-bound (call-time) `globalThis.fetch` wrapper. Same rationale as
+// `image.ts`: embedders extend the scheme registry via a
+// `globalThis.fetch` override installed after the runtime bundle has
+// evaluated. Import-time capture of `./fetch/fetch` would freeze the
+// pre-wrapper engine fetch and any extended scheme would silently fail
+// on `<audio src>`.
+function fetch(
+	input: string | URL | Request,
+	init?: RequestInit,
+): Promise<Response> {
+	return globalThis.fetch(input, init);
+}
 
 const HAVE_NOTHING = 0;
 const HAVE_METADATA = 1;
