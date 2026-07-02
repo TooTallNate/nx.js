@@ -1,10 +1,22 @@
 import { $ } from './$';
 import { createInternal, def, proto } from './utils';
-import { fetch } from './fetch/fetch';
 import { URL } from './polyfills/url';
 import { Event, ErrorEvent } from './polyfills/event';
 import { EventTarget } from './polyfills/event-target';
 import type { CanvasRenderingContext2D } from './canvas/canvas-rendering-context-2d';
+
+// Late-bound (call-time) `globalThis.fetch` wrapper. Embedders extend
+// the scheme registry by installing a `globalThis.fetch` wrapper at
+// session start; capturing `./fetch/fetch` at import time would freeze
+// the pre-wrapper engine fetch and any embedder-registered schemes
+// would silently fail on `<img src>`. The function body below resolves
+// `globalThis.fetch` per-call, so the embedder's wrapper always wins.
+function fetch(
+	input: string | URL | Request,
+	init?: RequestInit,
+): Promise<Response> {
+	return globalThis.fetch(input, init);
+}
 
 interface ImageInternal {
 	complete: boolean;
