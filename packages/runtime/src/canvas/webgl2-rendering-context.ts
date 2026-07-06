@@ -1094,14 +1094,6 @@ export interface WebGL2RenderingContext {
 // matching browser behavior.
 export interface WebGL2RenderingContext extends Readonly<typeof GL_CONSTANTS> {}
 
-// Bulk `Object.defineProperties(target, descriptors)` produces the same
-// property shape (writable=enumerable=configurable=false when only
-// `value` is set) as the previous per-key `Object.defineProperty` loop,
-// but presents V8 with a single predictable install call per target
-// instead of ~370 sequential defineProperty invocations at module-body
-// scope. The per-key loop shape has been observed to trip V8/aarch64
-// JIT tier-up on large constant tables at module-body scope; the bulk
-// call sidesteps the tier-up path entirely.
 {
 	const keys = Object.keys(GL_CONSTANTS);
 	const descs: PropertyDescriptorMap = {};
