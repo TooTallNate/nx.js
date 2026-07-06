@@ -46,22 +46,28 @@ jobs:
             const run = context.payload.workflow_run;
 
             // Resolve the PR number. `workflow_run.pull_requests` is empty
-            // for fork PRs, so fall back to looking up open PRs by the run's
-            // head SHA. For `pull_request`-triggered runs the head SHA is the
-            // PR branch tip, but also match `merge_commit_sha` defensively in
-            // case it is the synthetic merge commit.
+            // for fork PRs, so fall back to looking up PRs by the run's head
+            // SHA. The commit lives in the HEAD repository (the fork), so the
+            // commit→PRs lookup must be done there — querying the base repo
+            // returns nothing for fork commits. Filter to PRs that target
+            // this repo and whose head is exactly the run's head SHA.
             let prNumber = run.pull_requests?.[0]?.number;
             if (!prNumber) {
+              const headOwner =
+                run.head_repository?.owner?.login ?? context.repo.owner;
+              const headRepo = run.head_repository?.name ?? context.repo.repo;
               const { data: prs } =
                 await github.rest.repos.listPullRequestsAssociatedWithCommit({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
+                  owner: headOwner,
+                  repo: headRepo,
                   commit_sha: run.head_sha,
                 });
+              const baseFullName = `${context.repo.owner}/${context.repo.repo}`;
               const pr = prs.find(
                 (p) =>
-                  p.head.sha === run.head_sha ||
-                  p.merge_commit_sha === run.head_sha,
+                  p.base.repo.full_name === baseFullName &&
+                  (p.head.sha === run.head_sha ||
+                    p.merge_commit_sha === run.head_sha),
               );
               prNumber = pr?.number;
             }
