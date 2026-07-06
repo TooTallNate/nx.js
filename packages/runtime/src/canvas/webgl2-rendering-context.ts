@@ -1094,9 +1094,15 @@ export interface WebGL2RenderingContext {
 // matching browser behavior.
 export interface WebGL2RenderingContext extends Readonly<typeof GL_CONSTANTS> {}
 
-for (const [k, v] of Object.entries(GL_CONSTANTS)) {
-	Object.defineProperty(WebGL2RenderingContext, k, { value: v });
-	Object.defineProperty(WebGL2RenderingContext.prototype, k, { value: v });
+{
+	const keys = Object.keys(GL_CONSTANTS);
+	const descs: PropertyDescriptorMap = {};
+	for (let i = 0; i < keys.length; i++) {
+		const k = keys[i];
+		descs[k] = { value: (GL_CONSTANTS as Record<string, number>)[k] };
+	}
+	Object.defineProperties(WebGL2RenderingContext, descs);
+	Object.defineProperties(WebGL2RenderingContext.prototype, descs);
 }
 def(WebGL2RenderingContext);
 
