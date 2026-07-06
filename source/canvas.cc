@@ -1694,6 +1694,14 @@ void nx_canvas_context_2d_fill_text(const FunctionCallbackInfo<Value> &info) {
 	String::Utf8Value text(iso, info[0]);
 	if (!*text)
 		return;
+	// Pin the FreeType/HarfBuzz char_size to this ctx's state.font_size.
+	// Two OffscreenCanvas contexts sharing a FontFace share the underlying
+	// nx_font_face_t (FT_Face + hb_font); a save/restore on one context
+	// mutates the shared FT_Face's device-global char_size in place, so
+	// the next text op on the other context reads glyphs at the wrong
+	// size. Re-pin per call — one FT_Set_Char_Size + one
+	// hb_font_set_scale, sub-microsecond on cached faces.
+	set_font_size(context, context->state->font_size);
 	double scale = 1., font_size = context->state->font_size;
 	if (info.Length() >= 4 && info[3]->IsNumber()) {
 		double max_width;
@@ -1728,6 +1736,8 @@ void nx_canvas_context_2d_stroke_text(
 	String::Utf8Value text(iso, info[0]);
 	if (!*text)
 		return;
+	// Re-pin per call — see fill_text for full rationale.
+	set_font_size(context, context->state->font_size);
 	double scale = 1., font_size = context->state->font_size;
 	if (info.Length() >= 4 && info[3]->IsNumber()) {
 		double max_width;
@@ -1769,6 +1779,9 @@ void nx_canvas_context_2d_measure_text(
 	};
 	double width = 0;
 	if (context->state->hb_font) {
+		// Re-pin per call — see fill_text for full rationale. Measure has
+		// to match render, so the pin fires here too.
+		set_font_size(context, context->state->font_size);
 		String::Utf8Value text(iso, info[0]);
 		hb_buffer_t *buf = hb_buffer_create();
 		hb_buffer_set_direction(buf, HB_DIRECTION_LTR);
