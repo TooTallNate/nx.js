@@ -1,10 +1,16 @@
 name: Type Diff
 
+# Builds the base and PR `@nx.js/runtime` type declarations, diffs them, and
+# uploads the diff as an artifact. The sticky PR comment is posted by the
+# "Type Diff Comment" workflow (`workflow_run`), which runs with a
+# write-capable token — the `pull_request` token is read-only for fork PRs,
+# so commenting from this workflow 403s on any fork-originated PR.
+
 on:
   pull_request:
 
 permissions:
-  pull-requests: write
+  contents: read
 
 jobs:
   type-diff:
@@ -48,81 +54,30 @@ jobs:
           pnpm build --filter @nx.js/runtime
           cp packages/runtime/dist/index.d.ts /tmp/pr-types.d.ts
 
-      - name: Generate diff and post comment
-        uses: actions/github-script@v7
+      - name: Generate diff
+        run: |
+          mkdir -p /tmp/type-diff
+          # `diff` exits 1 when the files differ; only >1 is a real error
+          diff -u --label "base: index.d.ts" /tmp/base-types.d.ts \
+                  --label "pr: index.d.ts" /tmp/pr-types.d.ts \
+                  > /tmp/type-diff/diff.txt || [ $? -eq 1 ]
+
+      - name: Write job summary
+        run: |
+          if [ -s /tmp/type-diff/diff.txt ]; then
+            {
+              echo '## 📝 Runtime Type Changes'
+              echo ''
+              echo '```diff'
+              head -c 60000 /tmp/type-diff/diff.txt
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo '✅ No changes to the public TypeScript API surface.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload diff artifact
+        uses: actions/upload-artifact@v7
         with:
-          script: |
-            const fs = require('fs');
-            const { execSync } = require('child_process');
-
-            // Generate diff
-            let diff = '';
-            try {
-              diff = execSync(
-                'diff -u --label "base: index.d.ts" /tmp/base-types.d.ts --label "pr: index.d.ts" /tmp/pr-types.d.ts',
-                { encoding: 'utf8' }
-              );
-            } catch (e) {
-              // diff exits 1 when files differ
-              diff = e.stdout || '';
-            }
-
-            const changed = diff.length > 0;
-            const marker = '<!-- type-diff-report -->';
-
-            // Find existing comment
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-            });
-            const existing = comments.find(c => c.body.includes(marker));
-
-            let body;
-            if (changed) {
-              // Truncate if extremely large (GitHub comment limit is 65536 chars)
-              let diffBlock = diff;
-              if (diffBlock.length > 60000) {
-                diffBlock = diffBlock.slice(0, 60000) + '\n... (truncated)';
-              }
-              body = [
-                marker,
-                '## 📝 Runtime Type Changes',
-                '',
-                'This PR modifies the public TypeScript API surface (`packages/runtime/dist/index.d.ts`):',
-                '',
-                '<details>',
-                '<summary>View type diff</summary>',
-                '',
-                '```diff',
-                diffBlock,
-                '```',
-                '',
-                '</details>',
-              ].join('\n');
-            } else {
-              body = [
-                marker,
-                '## 📝 Runtime Type Changes',
-                '',
-                '✅ No changes to the public TypeScript API surface.',
-              ].join('\n');
-            }
-
-            if (existing) {
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: existing.id,
-                body,
-              });
-              core.info(`Updated comment ${existing.id}`);
-            } else {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body,
-              });
-              core.info('Created new comment');
-            }
+          name: type-diff
+          path: /tmp/type-diff/
