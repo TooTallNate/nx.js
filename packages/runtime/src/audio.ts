@@ -10,19 +10,6 @@ import { URL } from './polyfills/url';
 import { clearInterval, setInterval } from './timers';
 import { def } from './utils';
 
-// Late-bound (call-time) `globalThis.fetch` wrapper. Same rationale as
-// `image.ts`: embedders extend the scheme registry via a
-// `globalThis.fetch` override installed after the runtime bundle has
-// evaluated. Import-time capture of `./fetch/fetch` would freeze the
-// pre-wrapper engine fetch and any extended scheme would silently fail
-// on `<audio src>`.
-function fetch(
-	input: string | URL | Request,
-	init?: RequestInit,
-): Promise<Response> {
-	return globalThis.fetch(input, init);
-}
-
 const HAVE_NOTHING = 0;
 const HAVE_METADATA = 1;
 const HAVE_CURRENT_DATA = 2;
@@ -226,7 +213,9 @@ export class Audio extends EventTarget {
 		const url = new URL(this.#src, $.entrypoint);
 		this.#currentSrc = url.href;
 
-		fetch(url)
+		// Call-time `globalThis.fetch` so embedder-installed wrappers
+		// (e.g. extended URL schemes) are honored — see note in `image.ts`.
+		globalThis.fetch(url)
 			.then((res) => {
 				if (!res.ok) {
 					throw new Error(`Failed to load audio: ${res.status}`);

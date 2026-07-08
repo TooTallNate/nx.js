@@ -9,20 +9,6 @@ import { clearInterval, setInterval } from './timers';
 import { createInternal, def, proto } from './utils';
 import type { GainNode } from './audio/gain-node';
 
-// Late-bound (call-time) `globalThis.fetch` wrapper. Same rationale as
-// `image.ts`: embedders extend the scheme registry via a
-// `globalThis.fetch` override installed after the runtime bundle has
-// evaluated. `video.ts` already short-circuits its own FILE_SCHEMES
-// set to a direct native decoder and bypasses fetch entirely; the
-// wrapper only affects the http/https/blob/data branch and any
-// embedder-registered scheme.
-function fetch(
-	input: string | URL | Request,
-	init?: RequestInit,
-): Promise<Response> {
-	return globalThis.fetch(input, init);
-}
-
 const HAVE_NOTHING = 0;
 const HAVE_METADATA = 1;
 const HAVE_CURRENT_DATA = 2;
@@ -384,9 +370,12 @@ export class Video extends EventTarget {
 		const url = new URL(i.src, $.entrypoint);
 		i.currentSrc = url.href;
 
+		// Non-FILE_SCHEMES loads use call-time `globalThis.fetch` so
+		// embedder-installed wrappers (e.g. extended URL schemes) are
+		// honored — see note in `image.ts`.
 		const loadPromise = FILE_SCHEMES.has(url.protocol)
 			? $.videoLoad(handleOf(this), decodeURI(url.href), null)
-			: fetch(url)
+			: globalThis.fetch(url)
 					.then((res) => {
 						if (!res.ok) {
 							throw new Error(`Failed to load video: ${res.status}`);

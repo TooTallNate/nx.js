@@ -5,19 +5,6 @@ import { Event, ErrorEvent } from './polyfills/event';
 import { EventTarget } from './polyfills/event-target';
 import type { CanvasRenderingContext2D } from './canvas/canvas-rendering-context-2d';
 
-// Late-bound (call-time) `globalThis.fetch` wrapper. Embedders extend
-// the scheme registry by installing a `globalThis.fetch` wrapper at
-// session start; capturing `./fetch/fetch` at import time would freeze
-// the pre-wrapper engine fetch and any embedder-registered schemes
-// would silently fail on `<img src>`. The function body below resolves
-// `globalThis.fetch` per-call, so the embedder's wrapper always wins.
-function fetch(
-	input: string | URL | Request,
-	init?: RequestInit,
-): Promise<Response> {
-	return globalThis.fetch(input, init);
-}
-
 interface ImageInternal {
 	complete: boolean;
 	src?: URL;
@@ -100,7 +87,13 @@ export class Image extends EventTarget {
 		const internal = _(this);
 		internal.src = url;
 		internal.complete = false;
-		fetch(url)
+		// `globalThis.fetch` is resolved at call time (NOT imported from
+		// `./fetch/fetch`) so that an embedder-installed `fetch` wrapper —
+		// e.g. one extending the URL scheme registry — is honored for
+		// `<img src>` loads. A bare `fetch` identifier is also not an
+		// option: esbuild would rename the bundled `fetch` declaration to
+		// `fetch2`, breaking `def(fetch)`'s global registration.
+		globalThis.fetch(url)
 			.then((res) => {
 				if (!res.ok) {
 					throw new Error(`Failed to load image: ${res.status}`);
