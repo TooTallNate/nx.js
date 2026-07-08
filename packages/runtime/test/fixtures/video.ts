@@ -312,6 +312,63 @@ test('video seek + frame pixels', async (t) => {
 	t.ok(isColor(centerPixel(video), 0, 0, 255), 'frame at 1.5s is blue');
 });
 
+// Await `p`, mapping the outcome to a comparable string (racing a timeout
+// so a never-settling promise can't hang the harness).
+function playOutcome(p: Promise<void>, timeoutMs = 15000): Promise<string> {
+	return Promise.race([
+		p.then(
+			() => 'resolved',
+			(err: any) => `rejected:${err?.name}`,
+		),
+		sleep(timeoutMs).then(() => 'timeout'),
+	]);
+}
+
+test('video eager play() before loadedmetadata', async (t) => {
+	// Browser-portable idiom: call play() immediately after setting `src`,
+	// without waiting for `loadedmetadata`/`canplay`. Must not reject —
+	// playback is queued and the promise resolves once it begins.
+	const video = createVideo();
+	video.muted = true;
+	video.src = URL.createObjectURL(
+		new Blob([videoBytes()], { type: 'video/webm' }),
+	);
+	const p = video.play();
+	t.equal(video.paused, false, 'paused is false immediately after play()');
+	t.equal(await playOutcome(p), 'resolved', 'play() promise resolved');
+	t.equal(video.paused, false, 'still not paused once playing');
+	await sleep(500);
+	t.ok(video.currentTime > 0.1, 'currentTime advances after eager play()');
+	video.pause();
+});
+
+test('video play() with no source rejects', async (t) => {
+	const video = createVideo();
+	video.muted = true;
+	t.equal(
+		await playOutcome(video.play()),
+		'rejected:NotSupportedError',
+		'play() without a source rejects with NotSupportedError',
+	);
+	t.equal(video.paused, true, 'stays paused');
+});
+
+test('video pause() before metadata aborts pending play()', async (t) => {
+	const video = createVideo();
+	video.muted = true;
+	video.src = URL.createObjectURL(
+		new Blob([videoBytes()], { type: 'video/webm' }),
+	);
+	const p = video.play();
+	video.pause();
+	t.equal(
+		await playOutcome(p),
+		'rejected:AbortError',
+		'pending play() rejects with AbortError after pause()',
+	);
+	t.equal(video.paused, true, 'paused after pause()');
+});
+
 test('video playback', async (t) => {
 	const { video, loaded } = loadVideo();
 	t.ok(await loaded, 'loadedmetadata fired');
