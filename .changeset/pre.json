@@ -62,6 +62,7 @@
     "buffersource-arraybufferstruct",
     "bump-v8-image",
     "canvas-console",
+    "canvas-cross-context-font-size",
     "canvas-image-type-confusion",
     "canvas-path-ctm",
     "clean-compile-warnings",
@@ -72,6 +73,7 @@
     "egl-swap-interval",
     "fast-fused-decompress",
     "fatal-emergency-teardown",
+    "fetch-late-binding",
     "fetch-request-get-body",
     "gamepad-id",
     "gpu-transparent-present",
@@ -101,8 +103,10 @@
     "v1-beta",
     "v8-heap-sizing",
     "video-element",
+    "video-play-before-metadata",
     "web-audio-api",
     "web-bluetooth",
+    "webgl2-bulk-defineproperties",
     "webusb"
   ]
 }

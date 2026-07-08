@@ -1,5 +1,17 @@
 # @nx.js/runtime
 
+## 1.0.0-beta.6
+
+### Patch Changes
+
+- fix: cross-context canvas font size leakage — re-pin the shared FT_Face char_size at the start of `fillText()`, `strokeText()`, and `measureText()` ([#406](https://github.com/TooTallNate/nx.js/pull/406))
+
+- feat: `Image`, `Audio`, and `Video` now resolve `globalThis.fetch` at call time, so embedder-installed `fetch` wrappers (e.g. custom URL schemes) are honored for `src` loads ([#404](https://github.com/TooTallNate/nx.js/pull/404))
+
+- fix: `Video.play()` no longer rejects with `InvalidStateError` when called before `loadedmetadata` — playback is queued and the returned promise resolves once it actually begins, matching `HTMLMediaElement.play()`. A pending `play()` is rejected with `AbortError` by `pause()` or a superseding load, and with `NotSupportedError` on load failure ([#412](https://github.com/TooTallNate/nx.js/pull/412))
+
+- fix: install WebGL2 `GL_CONSTANTS` with a single bulk `Object.defineProperties()` call per target instead of ~740 sequential `Object.defineProperty()` calls at module scope ([#405](https://github.com/TooTallNate/nx.js/pull/405))
+
 ## 1.0.0-beta.5
 
 ### Patch Changes
