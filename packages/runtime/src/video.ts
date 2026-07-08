@@ -40,7 +40,7 @@ interface VideoInternal {
 	// `play()` promises issued before metadata loaded — settled when
 	// playback actually begins (or rejected on load failure / pause() /
 	// a superseding load).
-	pendingPlays: { resolve: () => void; reject: (err: unknown) => void }[];
+	pendingPlays: PromiseWithResolvers<void>[];
 }
 
 const _ = createInternal<Video, VideoInternal>();
@@ -466,11 +466,10 @@ export class Video extends EventTarget {
 			// Chrome). The promise settles when playback actually begins
 			// (see `load()`'s metadata handler), or rejects on load
 			// failure / `pause()` / a superseding load.
-			const promise = new Promise<void>((resolve, reject) => {
-				i.pendingPlays.push({ resolve, reject });
-			});
+			const pending = Promise.withResolvers<void>();
+			i.pendingPlays.push(pending);
 			if (wasPaused) this.dispatchEvent(new Event('play'));
-			return promise;
+			return pending.promise;
 		}
 		if (i.ended) {
 			// Replay from the start (browser behavior).
