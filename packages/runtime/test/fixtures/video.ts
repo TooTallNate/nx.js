@@ -342,15 +342,18 @@ test('video eager play() before loadedmetadata', async (t) => {
 	video.pause();
 });
 
-test('video play() with no source rejects', async (t) => {
+test('video play() with no source stays pending', async (t) => {
+	// Per the spec's resource selection algorithm (and Chrome), play()
+	// with no source neither resolves nor rejects — it waits for a
+	// source — and `paused` still flips to false.
 	const video = createVideo();
 	video.muted = true;
 	t.equal(
-		await playOutcome(video.play()),
-		'rejected:NotSupportedError',
-		'play() without a source rejects with NotSupportedError',
+		await playOutcome(video.play(), 2000),
+		'timeout',
+		'play() without a source remains pending',
 	);
-	t.equal(video.paused, true, 'stays paused');
+	t.equal(video.paused, false, 'paused becomes false');
 });
 
 test('video pause() before metadata aborts pending play()', async (t) => {

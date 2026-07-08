@@ -456,24 +456,16 @@ export class Video extends EventTarget {
 
 	play(): Promise<void> {
 		const i = _(this);
-		if (!i.src) {
-			// Matches browsers: `play()` never throws synchronously; with
-			// no source it returns a rejected promise.
-			return Promise.reject(
-				new DOMException(
-					'The element has no supported sources.',
-					'NotSupportedError',
-				),
-			);
-		}
 		const wasPaused = i.paused;
 		i.paused = false;
 		if (!i.metadata) {
-			// Metadata not loaded yet — queue playback instead of
-			// rejecting (`HTMLMediaElement.play()` never rejects for "not
-			// loaded yet"). The promise settles when playback actually
-			// begins (see `load()`'s metadata handler), or rejects on
-			// load failure / `pause()` / a superseding load.
+			// Metadata not loaded yet (or no source set at all) — queue
+			// playback instead of rejecting (`HTMLMediaElement.play()`
+			// never rejects for "not loaded yet"; with no source the
+			// promise stays pending until a source arrives, matching
+			// Chrome). The promise settles when playback actually begins
+			// (see `load()`'s metadata handler), or rejects on load
+			// failure / `pause()` / a superseding load.
 			const promise = new Promise<void>((resolve, reject) => {
 				i.pendingPlays.push({ resolve, reject });
 			});
