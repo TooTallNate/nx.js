@@ -356,6 +356,65 @@ test('video play() with no source stays pending', async (t) => {
 	t.equal(video.paused, false, 'paused becomes false');
 });
 
+test('video play() before src resolves once a source arrives', async (t) => {
+	// A source-less play() stays pending; when a source is later set, the
+	// SAME promise resolves and playback begins (the first load must not
+	// abort queued plays).
+	const video = createVideo();
+	video.muted = true;
+	const p = video.play();
+	await sleep(100);
+	video.src = URL.createObjectURL(
+		new Blob([videoBytes()], { type: 'video/webm' }),
+	);
+	t.equal(
+		await playOutcome(p),
+		'resolved',
+		'pending play() resolved after src was set',
+	);
+	t.equal(video.paused, false, 'not paused once playing');
+	await sleep(500);
+	t.ok(video.currentTime > 0.1, 'currentTime advances');
+	video.pause();
+});
+
+test('video superseding load aborts pending play()', async (t) => {
+	// Changing `src` while a play() is queued on an in-flight load rejects
+	// the pending promise ("interrupted by a new load request").
+	const video = createVideo();
+	video.muted = true;
+	video.src = URL.createObjectURL(
+		new Blob([videoBytes()], { type: 'video/webm' }),
+	);
+	const p = video.play();
+	video.src = URL.createObjectURL(
+		new Blob([videoBytes()], { type: 'video/webm' }),
+	);
+	t.equal(
+		await playOutcome(p),
+		'rejected:AbortError',
+		'pending play() rejects with AbortError on a superseding load',
+	);
+	t.equal(video.paused, true, 'paused after superseding load');
+});
+
+test('video play() while already playing', async (t) => {
+	const { video, loaded } = loadVideo();
+	t.ok(await loaded, 'loadedmetadata fired');
+	let playEvents = 0;
+	video.addEventListener('play', () => playEvents++);
+	await video.play();
+	t.equal(
+		await playOutcome(video.play()),
+		'resolved',
+		'second play() resolves',
+	);
+	await sleep(200);
+	t.equal(playEvents, 1, 'only one play event fired');
+	t.equal(video.paused, false, 'still playing');
+	video.pause();
+});
+
 test('video pause() before metadata aborts pending play()', async (t) => {
 	const video = createVideo();
 	video.muted = true;

@@ -372,19 +372,29 @@ export class Video extends EventTarget {
 	load(): void {
 		const i = _(this);
 		if (!i.src) return;
+		// The FIRST load (establishing the initial source) must not abort
+		// queued play() promises or reset `paused` — a source-less play()
+		// stays pending until a source arrives and then starts playback
+		// (Chrome behavior). A SUPERSEDING load (src changed while a load
+		// was in flight or a source was already set) aborts pending plays
+		// and pauses (Chrome rejects with "The play() request was
+		// interrupted by a new load request").
+		const firstLoad = i.loadSeq === 0;
 		const seq = ++i.loadSeq;
 
 		stopTicking(this);
-		settlePendingPlays(
-			i,
-			new DOMException(
-				'The play() request was interrupted by a new load request.',
-				'AbortError',
-			),
-		);
+		if (!firstLoad) {
+			settlePendingPlays(
+				i,
+				new DOMException(
+					'The play() request was interrupted by a new load request.',
+					'AbortError',
+				),
+			);
+			i.paused = true;
+		}
 		i.metadata = null;
 		i.readyState = HAVE_NOTHING;
-		i.paused = true;
 		i.ended = false;
 		i.seeking = false;
 		i.canplayFired = false;
@@ -470,6 +480,11 @@ export class Video extends EventTarget {
 			i.pendingPlays.push(pending);
 			if (wasPaused) this.dispatchEvent(new Event('play'));
 			return pending.promise;
+		}
+		if (!wasPaused) {
+			// Already playing — no state transition, no `play` event
+			// (matches Chrome: the promise still resolves).
+			return Promise.resolve();
 		}
 		if (i.ended) {
 			// Replay from the start (browser behavior).
