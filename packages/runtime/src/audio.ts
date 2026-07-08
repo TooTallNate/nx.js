@@ -4,7 +4,6 @@ import type { AudioBufferSourceNode } from './audio/audio-buffer-source-node';
 import { AudioContext } from './audio/audio-context';
 import type { GainNode } from './audio/gain-node';
 import { DOMException } from './dom-exception';
-import { fetch } from './fetch/fetch';
 import { ErrorEvent, Event } from './polyfills/event';
 import { EventTarget } from './polyfills/event-target';
 import { URL } from './polyfills/url';
@@ -214,7 +213,9 @@ export class Audio extends EventTarget {
 		const url = new URL(this.#src, $.entrypoint);
 		this.#currentSrc = url.href;
 
-		fetch(url)
+		// Call-time `globalThis.fetch` so embedder-installed wrappers
+		// (e.g. extended URL schemes) are honored — see note in `image.ts`.
+		globalThis.fetch(url)
 			.then((res) => {
 				if (!res.ok) {
 					throw new Error(`Failed to load audio: ${res.status}`);

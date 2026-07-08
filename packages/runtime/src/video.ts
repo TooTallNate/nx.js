@@ -2,7 +2,6 @@ import { $, type AudioNodeHandle, type VideoHandle, type VideoMetadata } from '.
 import { getSharedAudioContext } from './audio';
 import { ctxInternal, nodeInternal } from './audio/internal';
 import { DOMException } from './dom-exception';
-import { fetch } from './fetch/fetch';
 import { ErrorEvent, Event } from './polyfills/event';
 import { EventTarget } from './polyfills/event-target';
 import { URL } from './polyfills/url';
@@ -371,9 +370,12 @@ export class Video extends EventTarget {
 		const url = new URL(i.src, $.entrypoint);
 		i.currentSrc = url.href;
 
+		// Non-FILE_SCHEMES loads use call-time `globalThis.fetch` so
+		// embedder-installed wrappers (e.g. extended URL schemes) are
+		// honored — see note in `image.ts`.
 		const loadPromise = FILE_SCHEMES.has(url.protocol)
 			? $.videoLoad(handleOf(this), decodeURI(url.href), null)
-			: fetch(url)
+			: globalThis.fetch(url)
 					.then((res) => {
 						if (!res.ok) {
 							throw new Error(`Failed to load video: ${res.status}`);

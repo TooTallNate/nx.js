@@ -1,6 +1,5 @@
 import { $ } from './$';
 import { createInternal, def, proto } from './utils';
-import { fetch } from './fetch/fetch';
 import { URL } from './polyfills/url';
 import { Event, ErrorEvent } from './polyfills/event';
 import { EventTarget } from './polyfills/event-target';
@@ -88,7 +87,13 @@ export class Image extends EventTarget {
 		const internal = _(this);
 		internal.src = url;
 		internal.complete = false;
-		fetch(url)
+		// `globalThis.fetch` is resolved at call time (NOT imported from
+		// `./fetch/fetch`) so that an embedder-installed `fetch` wrapper —
+		// e.g. one extending the URL scheme registry — is honored for
+		// `<img src>` loads. A bare `fetch` identifier is also not an
+		// option: esbuild would rename the bundled `fetch` declaration to
+		// `fetch2`, breaking `def(fetch)`'s global registration.
+		globalThis.fetch(url)
 			.then((res) => {
 				if (!res.ok) {
 					throw new Error(`Failed to load image: ${res.status}`);
