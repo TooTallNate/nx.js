@@ -37,6 +37,10 @@ interface VideoInternal {
 	lastTimeupdate: number;
 	canplayFired: boolean;
 	errorFired: boolean;
+	// `play()` promises issued before metadata loaded — settled when
+	// playback actually begins (or rejected on load failure / pause() /
+	// a superseding load).
+	pendingPlays: PromiseWithResolvers<void>[];
 }
 
 const _ = createInternal<Video, VideoInternal>();
@@ -49,6 +53,18 @@ function applyVolume(v: Video) {
 	const i = _(v);
 	if (i.gain) {
 		i.gain.gain.value = i.muted ? 0 : i.volume;
+	}
+}
+
+// Settle any `play()` promises that were issued before metadata loaded:
+// resolve them when playback begins, or reject them all with `error`.
+function settlePendingPlays(i: VideoInternal, error?: unknown) {
+	const pending = i.pendingPlays;
+	if (pending.length === 0) return;
+	i.pendingPlays = [];
+	for (const p of pending) {
+		if (error) p.reject(error);
+		else p.resolve();
 	}
 }
 
@@ -138,7 +154,7 @@ function tick(v: Video) {
  * const video = new Video();
  * video.loop = true;
  * video.src = 'romfs:/attract.webm';
- * video.addEventListener('canplay', () => video.play());
+ * video.play(); // queued until metadata loads, like in browsers
  *
  * function render() {
  *   ctx.drawImage(video, 0, 0, screen.width, screen.height);
@@ -201,6 +217,7 @@ export class Video extends EventTarget {
 			lastTimeupdate: 0,
 			canplayFired: false,
 			errorFired: false,
+			pendingPlays: [],
 		});
 		addEventListener('unload', () => {
 			stopTicking(v);
@@ -355,12 +372,29 @@ export class Video extends EventTarget {
 	load(): void {
 		const i = _(this);
 		if (!i.src) return;
+		// The FIRST load (establishing the initial source) must not abort
+		// queued play() promises or reset `paused` — a source-less play()
+		// stays pending until a source arrives and then starts playback
+		// (Chrome behavior). A SUPERSEDING load (src changed while a load
+		// was in flight or a source was already set) aborts pending plays
+		// and pauses (Chrome rejects with "The play() request was
+		// interrupted by a new load request").
+		const firstLoad = i.loadSeq === 0;
 		const seq = ++i.loadSeq;
 
 		stopTicking(this);
+		if (!firstLoad) {
+			settlePendingPlays(
+				i,
+				new DOMException(
+					'The play() request was interrupted by a new load request.',
+					'AbortError',
+				),
+			);
+			i.paused = true;
+		}
 		i.metadata = null;
 		i.readyState = HAVE_NOTHING;
-		i.paused = true;
 		i.ended = false;
 		i.seeking = false;
 		i.canplayFired = false;
@@ -407,20 +441,50 @@ export class Video extends EventTarget {
 				}
 				i.readyState = HAVE_METADATA;
 				this.dispatchEvent(new Event('loadedmetadata'));
+				if (!i.paused) {
+					// An eager `play()` (called before metadata loaded)
+					// queued playback — begin it now.
+					$.videoPlay(handleOf(this));
+				}
+				settlePendingPlays(i);
 				// Pre-buffering starts immediately; pump until `canplay`.
 				startTicking(this);
 			},
 			(error) => {
 				if (_(this).loadSeq !== seq) return;
+				settlePendingPlays(
+					i,
+					new DOMException(
+						'Failed to load because no supported source was found.',
+						'NotSupportedError',
+					),
+				);
 				this.dispatchEvent(new ErrorEvent('error', { error }));
 			},
 		);
 	}
 
-	async play(): Promise<void> {
+	play(): Promise<void> {
 		const i = _(this);
+		const wasPaused = i.paused;
+		i.paused = false;
 		if (!i.metadata) {
-			throw new DOMException('No video source loaded', 'InvalidStateError');
+			// Metadata not loaded yet (or no source set at all) — queue
+			// playback instead of rejecting (`HTMLMediaElement.play()`
+			// never rejects for "not loaded yet"; with no source the
+			// promise stays pending until a source arrives, matching
+			// Chrome). The promise settles when playback actually begins
+			// (see `load()`'s metadata handler), or rejects on load
+			// failure / `pause()` / a superseding load.
+			const pending = Promise.withResolvers<void>();
+			i.pendingPlays.push(pending);
+			if (wasPaused) this.dispatchEvent(new Event('play'));
+			return pending.promise;
+		}
+		if (!wasPaused) {
+			// Already playing — no state transition, no `play` event
+			// (matches Chrome: the promise still resolves).
+			return Promise.resolve();
 		}
 		if (i.ended) {
 			// Replay from the start (browser behavior).
@@ -428,18 +492,27 @@ export class Video extends EventTarget {
 			i.seeking = true;
 			$.videoSeek(handleOf(this), 0);
 		}
-		i.paused = false;
 		$.videoPlay(handleOf(this));
 		startTicking(this);
 		this.dispatchEvent(new Event('play'));
+		return Promise.resolve();
 	}
 
 	pause(): void {
 		const i = _(this);
 		if (i.paused) return;
 		i.paused = true;
-		$.videoPause(handleOf(this));
-		if (!i.seeking) stopTicking(this);
+		settlePendingPlays(
+			i,
+			new DOMException(
+				'The play() request was interrupted by a call to pause().',
+				'AbortError',
+			),
+		);
+		if (i.metadata) {
+			$.videoPause(handleOf(this));
+			if (!i.seeking) stopTicking(this);
+		}
 		this.dispatchEvent(new Event('pause'));
 	}
 
