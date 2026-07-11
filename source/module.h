@@ -11,8 +11,11 @@ void nx_console_init(nx_context_t *nx_ctx);
 // Shared by both the device runtime (source/main.cc) and the host test binary
 // (packages/runtime/test/src/main.cc) so the two never drift. Specifiers are
 // resolved as URLs (via `ada`) against the importing module's URL and read
-// synchronously with read_file()/fopen, so only mounted devoptab schemes
-// (romfs:, sdmc:, nxjs:, file:) work; bare specifiers are rejected.
+// synchronously with read_file()/fopen — so entrypoint / filesystem imports
+// use mounted devoptab schemes (romfs:, sdmc:, nxjs:, file:) and reject bare
+// specifiers. Page-level modules (see nx_module_bindings below) additionally
+// consult a per-page importmap and may source their body from a runtime-
+// supplied prefetch registry rather than fopen.
 // ---------------------------------------------------------------------------
 
 // Register the host module callbacks on the isolate:
@@ -20,6 +23,17 @@ void nx_console_init(nx_context_t *nx_ctx);
 //   - SetHostImportModuleDynamicallyCallback   (filesystem `import()`)
 // Call once, after Isolate::New.
 void nx_init_modules(v8::Isolate *iso);
+
+// Register the page-module JS surface on `init_obj` (the `$` init object):
+//   - moduleSetImportmap(pageBase: string, mapJson: string): void
+//   - moduleSetSource(url: string, source: string): void
+//   - moduleRun(source: string, url: string, pageBase: string): Promise<any>
+//   - moduleClearPage(pageBase: string): void
+// The embedder is expected to walk static imports on the JS side, prefetch
+// each dep's source via its own fetch (`moduleSetSource`), then call
+// `moduleRun` on the entry. `moduleClearPage` purges the page's state on
+// navigation. See BINDINGS.md §page-modules and NXJS_PATCHES_NEEDED.md #105.
+void nx_module_bindings(v8::Isolate *iso, v8::Local<v8::Object> init_obj);
 
 // Compile + instantiate + evaluate `src` (length `len`) as the entrypoint ES
 // module, recorded under URL `name` (its ScriptOrigin resource name and
