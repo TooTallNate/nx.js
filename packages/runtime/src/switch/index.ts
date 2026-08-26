@@ -343,6 +343,17 @@ export function connect<Host extends string, Port extends string>(
 }
 
 /**
+ * The V8 inspector, over the Chrome DevTools Protocol.
+ *
+ * @example
+ *
+ * ```typescript
+ * Switch.inspector.start({ port: 9229 });
+ * ```
+ */
+export * as inspector from './inspector';
+
+/**
  * Creates a TCP server bound to the specified `port` number.
  *
  * @param opts Object containing the port number and other configuration properties.
