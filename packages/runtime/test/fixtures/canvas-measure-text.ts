@@ -7,6 +7,10 @@ import { test } from '../src/tap';
 // baseline offsets.  These tests verify that the returned values are
 // structurally correct (non-zero, correct sign conventions) and that
 // `textBaseline` shifts the metrics consistently.
+//
+// Note: emHeightAscent / emHeightDescent are omitted because Chrome
+// does not implement them yet, so they would fail the conformance
+// comparison (nxjs-test passes but Chrome returns undefined).
 
 function ctx(w = 300, h = 100): OffscreenCanvasRenderingContext2D {
 	return new OffscreenCanvas(w, h).getContext('2d')!;
@@ -24,8 +28,6 @@ test('measureText returns all TextMetrics fields', (t) => {
 	t.equal(typeof m.actualBoundingBoxDescent, 'number', 'actualBoundingBoxDescent is a number');
 	t.equal(typeof m.fontBoundingBoxAscent, 'number', 'fontBoundingBoxAscent is a number');
 	t.equal(typeof m.fontBoundingBoxDescent, 'number', 'fontBoundingBoxDescent is a number');
-	t.equal(typeof m.emHeightAscent, 'number', 'emHeightAscent is a number');
-	t.equal(typeof m.emHeightDescent, 'number', 'emHeightDescent is a number');
 	t.equal(typeof m.hangingBaseline, 'number', 'hangingBaseline is a number');
 	t.equal(typeof m.alphabeticBaseline, 'number', 'alphabeticBaseline is a number');
 	t.equal(typeof m.ideographicBaseline, 'number', 'ideographicBaseline is a number');
@@ -40,8 +42,6 @@ test('measureText vertical metrics are non-zero for visible text', (t) => {
 	t.ok(m.actualBoundingBoxDescent > 0, 'actualBoundingBoxDescent is positive (g has a descender)');
 	t.ok(m.fontBoundingBoxAscent > 0, 'fontBoundingBoxAscent is positive');
 	t.ok(m.fontBoundingBoxDescent > 0, 'fontBoundingBoxDescent is positive');
-	t.ok(m.emHeightAscent > 0, 'emHeightAscent is positive');
-	t.ok(m.emHeightDescent > 0, 'emHeightDescent is positive');
 });
 
 test('measureText empty string returns zero ink but valid font metrics', (t) => {
