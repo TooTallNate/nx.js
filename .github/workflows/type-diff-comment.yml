@@ -72,7 +72,12 @@ jobs:
               prNumber = pr?.number;
             }
             if (!prNumber) {
-              core.setFailed(`Unable to resolve PR for head SHA ${run.head_sha}`);
+              // This can happen when the PR branch is force-pushed between
+              // the Type Diff run starting and this comment workflow
+              // executing — the old head SHA is no longer associated with
+              // the PR.  A newer Type Diff run will post the comment for
+              // the updated head, so just skip gracefully.
+              core.warning(`Unable to resolve PR for head SHA ${run.head_sha} — skipping comment`);
               return;
             }
 
