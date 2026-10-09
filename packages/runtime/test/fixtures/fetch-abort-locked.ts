@@ -10,7 +10,7 @@ test('cancel() on a locked ReadableStream throws TypeError', async (t) => {
 	t.ok(source.locked, 'stream is locked after getReader');
 	let threw = false;
 	try {
-		source.cancel();
+		await source.cancel();
 	} catch (e: any) {
 		threw = true;
 		t.ok(e instanceof TypeError, 'cancel throws TypeError on locked stream');
@@ -25,7 +25,7 @@ test('abort() on a locked WritableStream throws TypeError', async (t) => {
 	t.ok(sink.locked, 'stream is locked after getWriter');
 	let threw = false;
 	try {
-		sink.abort();
+		await sink.abort();
 	} catch (e: any) {
 		threw = true;
 		t.ok(e instanceof TypeError, 'abort throws TypeError on locked stream');
