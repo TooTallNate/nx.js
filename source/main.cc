@@ -46,6 +46,7 @@ static bool g_tight_memory = false;
 // BINDINGS.md: void nx_init_foo(v8::Isolate*, v8::Local<v8::Object> init_obj).
 #define NX_MODULE(name)                                                        \
 	void nx_init_##name(v8::Isolate *, v8::Local<v8::Object>)
+void nx_swkbd_teardown();
 NX_MODULE(account);
 NX_MODULE(album);
 NX_MODULE(applet);
@@ -2018,6 +2019,8 @@ int main(int argc, char *argv[]) {
 	}
 
 	// Release retained handles before disposing the isolate.
+	// A leaked inline swkbd session outlives this NRO inside hbloader's process.
+	nx_swkbd_teardown();
 	nx_modules_teardown();
 	nx_ctx->frame_handler.Reset();
 	nx_ctx->exit_handler.Reset();
