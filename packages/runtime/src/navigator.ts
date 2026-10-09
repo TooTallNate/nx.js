@@ -73,25 +73,14 @@ export class Navigator {
 	 */
 	get userAgent() {
 		if (!state.ua) {
-			// The application's own name and version come from its NACP, and
-			// reading it can fail: `Application.self.name` throws
-			// "No language entry found" when the running title cannot be
-			// resolved — which is the normal state under an emulator, where
-			// the `.nro` is launched directly and libnx never gets the
-			// homebrew environment that points at it.
-			//
-			// That is not a reason for every `fetch()` to fail, which is what
-			// happened before, since `fetch` fills this header in for callers
-			// who did not set one. The rest of the string — the Horizon and
-			// nx.js versions — is still true and still worth sending, so only
-			// the unknown parts fall back.
-			let name = 'unknown';
-			let version = '0.0.0';
+			let name: string;
+			let version: string;
 			try {
 				name = Application.self.name;
 				version = Application.self.version;
 			} catch {
-				// Left at the fallbacks above.
+				name = 'unknown';
+				version = '0.0.0';
 			}
 			const rv = [$.version.hos];
 			const ams = $.version.ams;
