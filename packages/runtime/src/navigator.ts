@@ -73,7 +73,15 @@ export class Navigator {
 	 */
 	get userAgent() {
 		if (!state.ua) {
-			const { name, version } = Application.self;
+			let name: string;
+			let version: string;
+			try {
+				name = Application.self.name;
+				version = Application.self.version;
+			} catch {
+				name = 'unknown';
+				version = '0.0.0';
+			}
 			const rv = [$.version.hos];
 			const ams = $.version.ams;
 			if (ams) {
