@@ -179,6 +179,15 @@ void nx_swkbd_show(const FunctionCallbackInfo<Value> &info) {
 	data->appearArg.returnButtonFlag = opt_bool(iso, o, "enableReturn");
 	data->appearArg.stringLenMin = opt_int(iso, o, "minLength", 0);
 	data->appearArg.stringLenMax = opt_int(iso, o, "maxLength", 0);
+	// The applet keeps its cursor position across Appear; past the end of
+	// the new text every keystroke is dropped.
+	{
+		Local<Value> v;
+		int32_t cursor = 0;
+		if (o->Get(ctx, nx_str(iso, "value")).ToLocal(&v) && v->IsString())
+			cursor = v.As<String>()->Length();
+		swkbdInlineSetCursorPos(&data->kbdinline, cursor);
+	}
 	swkbdInlineAppear(&data->kbdinline, &data->appearArg);
 
 	int x = 0, y = 0, width = 0, height = 0;
@@ -231,8 +240,8 @@ void nx_swkbd_set_input_text(const FunctionCallbackInfo<Value> &info) {
 	if (!data)
 		return;
 	String::Utf8Value value(iso, info[1]);
-	if (*value)
-		swkbdInlineSetInputText(&data->kbdinline, *value);
+	// An empty string clears the applet's text.
+	swkbdInlineSetInputText(&data->kbdinline, *value ? *value : "");
 }
 
 } // namespace
