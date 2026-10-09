@@ -356,6 +356,31 @@ static double get_text_scale(nx_canvas_context_2d_t *context, const char *text,
 	return width > max_width ? max_width / width : 1.;
 }
 
+// How far `textBaseline` moves the alignment point away from the alphabetic
+// baseline, in pixels, y-down. Shared by layout and measurement so the two can
+// never disagree about where the text sits.
+static double baseline_offset(nx_canvas_context_2d_t *context) {
+	FT_Face ft = context->state->ft_face;
+	if (!ft)
+		return 0;
+	double asc = ft->size->metrics.ascender / 64.0;
+	double desc = ft->size->metrics.descender / 64.0;
+	switch (context->state->text_baseline) {
+	case TEXT_BASELINE_TOP:
+		return asc;
+	case TEXT_BASELINE_HANGING:
+		return asc * 0.80;
+	case TEXT_BASELINE_MIDDLE:
+		return (asc + desc) / 2.0;
+	case TEXT_BASELINE_IDEOGRAPHIC:
+		return desc;
+	case TEXT_BASELINE_BOTTOM:
+		return desc * 2.0;
+	default:
+		return 0;
+	}
+}
+
 // Shape `text` via HarfBuzz and produce Skia glyph IDs + baseline-relative
 // positions (y-down), applying text-align and text-baseline offsets. Returns
 // the laid-out glyph ids/positions through the out vectors.
@@ -389,23 +414,10 @@ static void layout_glyphs(nx_canvas_context_2d_t *context, const char *text,
 		alignment_offset = -x;
 	else if (context->state->text_align == TEXT_ALIGN_CENTER)
 		alignment_offset = -x / 2.0;
-	double baseline_offset = 0;
-	FT_Face ft = context->state->ft_face;
-	if (context->state->text_baseline == TEXT_BASELINE_TOP)
-		baseline_offset = ft->size->metrics.ascender / 64.0;
-	else if (context->state->text_baseline == TEXT_BASELINE_HANGING)
-		baseline_offset = (ft->size->metrics.ascender / 64.0) * 0.80;
-	else if (context->state->text_baseline == TEXT_BASELINE_MIDDLE)
-		baseline_offset = ((ft->size->metrics.ascender / 64.0) +
-		                   (ft->size->metrics.descender / 64.0)) /
-		                  2.0;
-	else if (context->state->text_baseline == TEXT_BASELINE_IDEOGRAPHIC)
-		baseline_offset = ft->size->metrics.descender / 64.0;
-	else if (context->state->text_baseline == TEXT_BASELINE_BOTTOM)
-		baseline_offset = (ft->size->metrics.descender / 64.0) * 2.0;
+	double offset = baseline_offset(context);
 	for (unsigned int i = 0; i < glyph_count; ++i) {
 		out_pos[i].offset((SkScalar)(ox + alignment_offset),
-		                  (SkScalar)(oy + baseline_offset));
+		                  (SkScalar)(oy + offset));
 	}
 	hb_buffer_destroy(buf);
 }
@@ -1777,36 +1789,119 @@ void nx_canvas_context_2d_measure_text(
 	auto set0 = [&](const char *k, double v) {
 		metrics->Set(jsctx, nx_str(iso, k), Number::New(iso, v)).Check();
 	};
+
 	double width = 0;
-	if (context->state->hb_font) {
+	// Every vertical field is measured relative to the alignment point, which
+	// `textBaseline` moves; `layout_glyphs` already applies that offset, so the
+	// numbers here agree with where `fillText` would actually draw.
+	double actual_left = 0, actual_right = 0;
+	double actual_ascent = 0, actual_descent = 0;
+	double font_ascent = 0, font_descent = 0;
+	double em_ascent = 0, em_descent = 0;
+	double hanging = 0, alphabetic = 0, ideographic = 0;
+
+	if (context->state->hb_font && context->state->ft_face) {
 		// Re-pin per call — see fill_text for full rationale. Measure has
 		// to match render, so the pin fires here too.
 		set_font_size(context, context->state->font_size);
 		String::Utf8Value text(iso, info[0]);
+		const char *str = *text ? *text : "";
+
+		std::vector<SkGlyphID> glyphs;
+		std::vector<SkPoint> pos;
+		layout_glyphs(context, str, 0, 0, glyphs, pos);
+
+		// The advance width is unaffected by alignment; sum it directly.
 		hb_buffer_t *buf = hb_buffer_create();
 		hb_buffer_set_direction(buf, HB_DIRECTION_LTR);
 		hb_buffer_set_script(buf, HB_SCRIPT_COMMON);
 		hb_buffer_set_language(buf, hb_language_get_default());
-		hb_buffer_add_utf8(buf, *text ? *text : "", -1, 0, -1);
+		hb_buffer_add_utf8(buf, str, -1, 0, -1);
 		hb_shape(context->state->hb_font, buf, NULL, 0);
 		unsigned int glyph_count = hb_buffer_get_length(buf);
 		hb_glyph_position_t *gp = hb_buffer_get_glyph_positions(buf, NULL);
 		for (unsigned int i = 0; i < glyph_count; ++i)
 			width += gp[i].x_advance / 64.0;
 		hb_buffer_destroy(buf);
+
+		SkFont font = current_font(context, context->state->font_size);
+
+		// Ink extents: the union of the glyph bounds at their laid-out
+		// positions. An empty string has no ink, and stays all zeros.
+		if (!glyphs.empty()) {
+			std::vector<SkRect> bounds(glyphs.size());
+			font.getBounds(SkSpan<const SkGlyphID>(glyphs.data(), glyphs.size()),
+			               SkSpan<SkRect>(bounds.data(), bounds.size()), nullptr);
+			SkRect ink = SkRect::MakeEmpty();
+			bool first = true;
+			for (size_t i = 0; i < glyphs.size(); ++i) {
+				SkRect r = bounds[i].makeOffset(pos[i].x(), pos[i].y());
+				if (r.isEmpty())
+					continue;
+				if (first) {
+					ink = r;
+					first = false;
+				} else {
+					ink.join(r);
+				}
+			}
+			if (!first) {
+				// Spec sign convention: distances from the alignment point,
+				// positive going left and up. Skia's y grows downward.
+				actual_left = -ink.fLeft;
+				actual_right = ink.fRight;
+				actual_ascent = -ink.fTop;
+				actual_descent = ink.fBottom;
+			}
+		}
+
+		// Font box and baselines come from the same FreeType metrics
+		// `layout_glyphs` uses to place the baseline, so they cannot drift
+		// apart from where the text lands.
+		FT_Face ft = context->state->ft_face;
+		double asc = ft->size->metrics.ascender / 64.0;
+		double desc = -(ft->size->metrics.descender / 64.0);
+
+		SkFontMetrics fm;
+		font.getMetrics(&fm);
+		if (fm.fAscent != 0 || fm.fDescent != 0) {
+			// Skia agrees with FreeType here, and carries the line gap; prefer
+			// it when the typeface provided one.
+			asc = -fm.fAscent;
+			desc = fm.fDescent;
+		}
+
+		double offset = baseline_offset(context);
+
+		font_ascent = asc - offset;
+		font_descent = desc + offset;
+
+		// The em box is the font size, split at the baseline in the same
+		// proportion as the ascender and descender.
+		double total = asc + desc;
+		double size = context->state->font_size;
+		if (total > 0) {
+			em_ascent = size * (asc / total) - offset;
+			em_descent = size * (desc / total) + offset;
+		}
+
+		alphabetic = -offset;
+		hanging = asc * 0.80 - offset;
+		ideographic = -desc - offset;
 	}
+
 	set0("width", width);
-	set0("actualBoundingBoxLeft", 0);
-	set0("actualBoundingBoxRight", 0);
-	set0("fontBoundingBoxAscent", 0);
-	set0("fontBoundingBoxDescent", 0);
-	set0("actualBoundingBoxAscent", 0);
-	set0("actualBoundingBoxDescent", 0);
-	set0("emHeightAscent", 0);
-	set0("emHeightDescent", 0);
-	set0("hangingBaseline", 0);
-	set0("alphabeticBaseline", 0);
-	set0("ideographicBaseline", 0);
+	set0("actualBoundingBoxLeft", actual_left);
+	set0("actualBoundingBoxRight", actual_right);
+	set0("fontBoundingBoxAscent", font_ascent);
+	set0("fontBoundingBoxDescent", font_descent);
+	set0("actualBoundingBoxAscent", actual_ascent);
+	set0("actualBoundingBoxDescent", actual_descent);
+	set0("emHeightAscent", em_ascent);
+	set0("emHeightDescent", em_descent);
+	set0("hangingBaseline", hanging);
+	set0("alphabeticBaseline", alphabetic);
+	set0("ideographicBaseline", ideographic);
 	info.GetReturnValue().Set(metrics);
 }
 
