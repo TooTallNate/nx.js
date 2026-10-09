@@ -133,6 +133,9 @@ export function addEventListener(
 	}
 	EventTarget.prototype.addEventListener.call(window, type, callback, options);
 }
+// The name is passed explicitly because esbuild renames this identifier
+// in the bundle.
+def(addEventListener, 'addEventListener');
 
 /**
  * Removes the event listener in target's event listener list with the same type, callback, and options.
