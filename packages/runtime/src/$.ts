@@ -223,6 +223,14 @@ export interface Init {
 	appletSetMediaPlaybackState(state: boolean): void;
 
 	// battery.c
+	/**
+	 * The V8 inspector (source/inspector.cc). Its transport is native because
+	 * a paused isolate cannot run the JavaScript that would service a socket.
+	 */
+	inspectorStart(opts: { port?: number; wait?: boolean }): number;
+	inspectorStop(): void;
+	inspectorAttached(): boolean;
+
 	batteryInit(): void;
 	batteryInitClass(c: ClassOf<BatteryManager>): void;
 	batteryExit(): void;

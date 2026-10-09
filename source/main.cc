@@ -63,6 +63,7 @@ NX_MODULE(fs);
 NX_MODULE(fsdev);
 NX_MODULE(gamepad);
 NX_MODULE(image);
+NX_MODULE(inspector);
 NX_MODULE(irs);
 NX_MODULE(memory);
 NX_MODULE(nifm);
@@ -79,6 +80,10 @@ NX_MODULE(video);
 NX_MODULE(web);
 NX_MODULE(window);
 #undef NX_MODULE
+
+// Not an init-only module: the inspector's transport is driven by the loop.
+void nx_inspector_poll(v8::Isolate *);
+void nx_inspector_shutdown(void);
 
 using namespace v8;
 
@@ -975,6 +980,7 @@ static void build_init_object(Isolate *iso, Local<Context> context,
 	nx_init_gamepad(iso, init_obj);
 	nx_init_hidsys(iso, init_obj);
 	nx_init_image(iso, init_obj);
+	nx_init_inspector(iso, init_obj);
 	nx_init_irs(iso, init_obj);
 	nx_init_memory(iso, init_obj);
 	nx_init_nifm(iso, init_obj);
@@ -1908,6 +1914,11 @@ int main(int argc, char *argv[]) {
 			// exits via + / Switch.exit() (handled below).
 			if (!screen_is_gpu && !nx_webgl_active() && !applet_active)
 				break;
+			// The debugger socket is deliberately not on the libuv loop: it
+			// has to be serviced while JavaScript is paused, when that loop
+			// is not running. See inspector.cc.
+			nx_inspector_poll(iso);
+
 			if (!nx_ctx->had_error) {
 				// libuv: sockets, fs, dns, threadpool afters, timers.
 				uv_run(&loop, UV_RUN_NOWAIT);
@@ -2033,6 +2044,11 @@ int main(int argc, char *argv[]) {
 	// live sessions still open, which faults the bsdsocket sysmodule (User
 	// Break) and corrupts the next launch. Then run the loop until all close
 	// callbacks fire so uv_loop_close() succeeds (it returns EBUSY otherwise).
+	// The inspector's sockets are not on the loop, so nx_close_uv_handles()
+	// does not reach them — and leaving a live socket open across socketExit()
+	// is what faults the bsdsocket sysmodule and corrupts the next launch.
+	nx_inspector_shutdown();
+
 	nx_close_uv_handles(&loop, true);
 	uv_loop_close(&loop);
 	g_loop_initialized = false;
