@@ -1,5 +1,23 @@
 # @nx.js/runtime
 
+## 1.0.0-beta.7
+
+### Patch Changes
+
+- fix: aborting a `fetch()` no longer throws when body streams are locked ([#420](https://github.com/TooTallNate/nx.js/pull/420))
+
+- fix: register the global `addEventListener` wrapper so keyboard events are delivered ([#419](https://github.com/TooTallNate/nx.js/pull/419))
+
+- fix: `measureText()` now reports vertical `TextMetrics` fields instead of zero ([#414](https://github.com/TooTallNate/nx.js/pull/414))
+
+- fix: `Socket#close()` no longer surfaces unhandled rejections on already-errored sockets ([#421](https://github.com/TooTallNate/nx.js/pull/421))
+
+- fix: close the inline software keyboard applet at runtime teardown to prevent leaking sessions ([#423](https://github.com/TooTallNate/nx.js/pull/423))
+
+- fix: reset the inline software keyboard cursor before each `show()` and allow clearing text ([#422](https://github.com/TooTallNate/nx.js/pull/422))
+
+- fix: `navigator.userAgent` no longer throws when the application's NACP cannot be read ([#415](https://github.com/TooTallNate/nx.js/pull/415))
+
 ## 1.0.0-beta.6
 
 ### Patch Changes
