@@ -792,6 +792,10 @@ importers:
       kleur:
         specifier: github:TooTallNate/kleur#rgb
         version: https://codeload.github.com/TooTallNate/kleur/tar.gz/aa22b05da68d29ff6d2ce5eba5895ac654b7f25a
+    devDependencies:
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.4(@types/debug@4.1.12)(@types/node@22.19.13)(lightningcss@1.31.1)
 
   packages/install-title:
     dependencies:
