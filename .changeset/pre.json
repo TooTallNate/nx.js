@@ -80,6 +80,7 @@
     "global-addeventlistener",
     "gpu-transparent-present",
     "image-skimage-memo",
+    "inspect-repeated-refs-invalid-date",
     "install-title-meta-cleanup",
     "install-title-nsz-xci-xcz",
     "jit-default-applet",
