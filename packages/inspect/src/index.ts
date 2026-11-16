@@ -69,8 +69,22 @@ export function createInspect(opts?: CreateInspectOptions) {
 			return cyan(`[Circular *${refIndex}]`);
 		}
 
+		// `refs` only holds the objects on the current path, so a value
+		// that shows up twice without a cycle is printed in full both times.
 		refs.set(v, refs.size + 1);
+		try {
+			return inspectObject(v, opts, refs, depth);
+		} finally {
+			refs.delete(v);
+		}
+	}
 
+	function inspectObject(
+		v: unknown,
+		opts: InspectOptions,
+		refs: Map<{}, number>,
+		depth: number,
+	): string {
 		// If the value defines the `inspect.custom` symbol, then invoke
 		// the function. If the return value is a string, return that.
 		// Otherwise, treat the return value as the value to inspect
@@ -102,7 +116,8 @@ export function createInspect(opts?: CreateInspectOptions) {
 			return bold(red(String(v)));
 		}
 		if (isDate(v)) {
-			return magenta(v.toISOString());
+			const time = v.getTime();
+			return magenta(Number.isNaN(time) ? 'Invalid Date' : v.toISOString());
 		}
 		if (isPromise(v)) {
 			let val = '';
