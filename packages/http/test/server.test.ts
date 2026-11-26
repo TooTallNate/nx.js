@@ -50,6 +50,32 @@ describe('readRequest()', () => {
 		expect((await reader.read()).done).toEqual(true);
 	});
 
+	test('single request - chunked encoding split across reads', async () => {
+		// Each line arrives in its own read, so the CRLF is at the very end
+		// of the buffer, with nothing after it
+		const parts = [
+			'POST /a HTTP/1.1\r\nHost: foo.com\r\nTransfer-Encoding: chunked\r\n\r\n',
+			'7\r\n',
+			'Mozilla',
+			'\r\n',
+			'0\r\n',
+			'\r\n',
+		];
+		const sourceStream = new ReadableStream<Uint8Array>({
+			pull(controller) {
+				const part = parts.shift();
+				if (part === undefined) {
+					controller.close();
+				} else {
+					controller.enqueue(encoder.encode(part));
+				}
+			},
+		});
+		const unshiftable = new UnshiftableStream(sourceStream);
+		const req = await readRequest(unshiftable);
+		expect(await req?.text()).toEqual('Mozilla');
+	});
+
 	test('single request - content-length', async () => {
 		const sourceStream = new ReadableStream<Uint8Array>({
 			pull(controller) {

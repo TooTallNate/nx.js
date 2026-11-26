@@ -34,8 +34,8 @@ export async function readUntilEol(
 		if (i !== -1) {
 			if (buffered.length > i + 2) {
 				unshiftable.unshift(buffered.slice(i + 2));
-				buffered = buffered.slice(0, i);
 			}
+			buffered = buffered.slice(0, i);
 			break;
 		}
 	}
